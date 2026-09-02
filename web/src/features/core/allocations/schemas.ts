@@ -135,8 +135,9 @@ export const changeRequestEventListSchema = z.array(changeRequestEventSchema);
 export const allocationUsageSchema = z.object({
   id: z.string(),
   compute_allocation_id: z.string(),
-  used_raw_amount: z.number().int(),
-  used_su_amount: z.number().int(),
+  // Both the used_raw_amount and used_su_amount are DOUBLE values
+  used_raw_amount: z.number(),
+  used_su_amount: z.number(),
   last_updated: z.string(),
   user_id: z.string(),
   job_id: z.string(),
