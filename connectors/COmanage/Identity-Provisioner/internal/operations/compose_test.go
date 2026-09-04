@@ -19,6 +19,7 @@ package operations
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -147,4 +148,127 @@ func TestBuildCreatePersonBody_Shape(t *testing.T) {
 	if strings.Contains(string(raw), "Identifier") {
 		t.Errorf("no Identifier block expected without a sub: %s", raw)
 	}
+}
+
+// The composite PUT deletes anything the body leaves out, so merging an
+// identifier must return the person whole.
+func TestMergeIdentifier_KeepsEveryPropertyOfThePerson(t *testing.T) {
+	person := `{
+      "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A", "date_of_birth": null, "timezone": null},
+      "Name": [{"given": "Test", "family": "Person", "type": "official", "primary_name": true, "language": "en"}],
+      "EmailAddress": [{"mail": "user@example.invalid", "type": "official", "verified": true}],
+      "Identifier": [
+        {"identifier": "Person100099", "type": "comanage_id", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "uidnumber", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "gidnumber", "login": false, "status": "A"},
+        {"identifier": "custos-tperson", "type": "uid", "login": false, "status": "A"}
+      ],
+      "CoPersonRole": [{"affiliation": "member", "status": "A"}],
+      "CoGroupMember": [{"co_group_id": 64, "member": true, "owner": false}],
+      "UnixClusterAccount": [{"username": "custos-tperson", "uid": 2000093, "unix_cluster_id": 1}],
+      "Url": [],
+      "SshKey": []
+    }`
+
+	merged, err := mergeIdentifier(json.RawMessage(person), "oidcsub", "http://idp.invalid/users/9", true)
+	if err != nil {
+		t.Fatalf("mergeIdentifier: %v", err)
+	}
+
+	var before, after map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(person), &before); err != nil {
+		t.Fatalf("decode fixture: %v", err)
+	}
+	if err := json.Unmarshal(merged, &after); err != nil {
+		t.Fatalf("decode merged: %v", err)
+	}
+
+	// Every section survives, and only Identifier is allowed to differ.
+	for key, want := range before {
+		got, ok := after[key]
+		if !ok {
+			t.Fatalf("PUT body dropped %q, the registry would delete it", key)
+		}
+		if key == "Identifier" {
+			continue
+		}
+		if !sameJSON(t, got, want) {
+			t.Errorf("%s changed\n got: %s\nwant: %s", key, got, want)
+		}
+	}
+	for key := range after {
+		if _, ok := before[key]; !ok {
+			t.Errorf("PUT body invented %q", key)
+		}
+	}
+
+	// Every identifier the person already had is still there, plus the new one.
+	var idents []struct {
+		Identifier string `json:"identifier"`
+		Type       string `json:"type"`
+		Login      bool   `json:"login"`
+		Status     string `json:"status"`
+	}
+	if err := json.Unmarshal(after["Identifier"], &idents); err != nil {
+		t.Fatalf("decode identifiers: %v", err)
+	}
+	found := map[string]string{}
+	for _, id := range idents {
+		found[id.Type] = id.Identifier
+		if id.Status != "A" {
+			t.Errorf("%s lost its status: %+v", id.Type, id)
+		}
+	}
+	for typ, want := range map[string]string{
+		"comanage_id": "Person100099",
+		"uidnumber":   "2000093",
+		"gidnumber":   "2000093",
+		"uid":         "custos-tperson",
+		"oidcsub":     "http://idp.invalid/users/9",
+	} {
+		if found[typ] != want {
+			t.Errorf("identifier %s = %q, want %q", typ, found[typ], want)
+		}
+	}
+	if len(idents) != 5 {
+		t.Errorf("identifier count = %d, want 5", len(idents))
+	}
+}
+
+// A person whose sub changes must end with one oidcsub, not two.
+func TestMergeIdentifier_ReplacesSameType(t *testing.T) {
+	person := `{"CoPerson":{"co_id":2},"Identifier":[{"identifier":"old-sub","type":"oidcsub","login":true,"status":"A"}]}`
+	merged, err := mergeIdentifier(json.RawMessage(person), "oidcsub", "new-sub", true)
+	if err != nil {
+		t.Fatalf("mergeIdentifier: %v", err)
+	}
+	var out struct {
+		Identifier []struct {
+			Identifier string `json:"identifier"`
+			Type       string `json:"type"`
+		} `json:"Identifier"`
+	}
+	if err := json.Unmarshal(merged, &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(out.Identifier) != 1 {
+		t.Fatalf("want 1 oidcsub, got %d: %s", len(out.Identifier), merged)
+	}
+	if out.Identifier[0].Identifier != "new-sub" {
+		t.Errorf("identifier = %q, want new-sub", out.Identifier[0].Identifier)
+	}
+}
+
+// sameJSON compares two raw messages by value, since marshalling compacts
+// whitespace and would make identical content look different.
+func sameJSON(t *testing.T, a, b json.RawMessage) bool {
+	t.Helper()
+	var x, y interface{}
+	if err := json.Unmarshal(a, &x); err != nil {
+		t.Fatalf("decode a: %v", err)
+	}
+	if err := json.Unmarshal(b, &y); err != nil {
+		t.Fatalf("decode b: %v", err)
+	}
+	return reflect.DeepEqual(x, y)
 }

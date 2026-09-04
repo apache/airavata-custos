@@ -94,7 +94,7 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return fmt.Errorf("extract CoPerson.meta.id: %w", err)
 	}
 
-	if err := o.ensureOIDCLinkage(ctx, cu, coPersonID, composite, sub); err != nil {
+	if err := o.ensureOIDCLinkage(ctx, cu, personID, composite, sub); err != nil {
 		return err
 	}
 
@@ -186,44 +186,32 @@ func (o *Orchestrator) findOrCreateCoGroup(ctx context.Context, name string) (in
 	return id, nil
 }
 
-// ensureOIDCLinkage attaches an org identity carrying the user's OIDC sub to
-// the person. The directory exports the sub for login mapping, and the
-// registry only accepts login-identity types through the org identity path.
-func (o *Orchestrator) ensureOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, coPersonID int, composite json.RawMessage, sub string) error {
+// ensureOIDCLinkage puts the sub on the person as an oidcsub identifier, which
+// is what the registry exports for ssh login matching. A person provisioned before
+// their first sign-in has no sub yet, so it is added here.
+func (o *Orchestrator) ensureOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite json.RawMessage, sub string) error {
 	ctx, span := tracing.Start(ctx, "comanage.ensure_oidc_linkage")
 	defer span.End()
 
 	if sub == "" {
 		return nil
 	}
-	if existing, err := extractOrgIdentifierValues(composite, "oidcsub"); err == nil {
-		for _, v := range existing {
-			if v == sub {
-				return nil
-			}
-		}
+	if existing, err := extractIdentifier(composite, "oidcsub"); err == nil && existing == sub {
+		return nil
 	}
 
-	orgID, err := o.c.CreateOrgIdentity()
+	body, err := mergeIdentifier(composite, "oidcsub", sub, true)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		o.dlq(ctx, cu, "create_org_identity", err)
+		o.dlq(ctx, cu, "merge_oidcsub", err)
 		return err
 	}
-	if _, err := o.c.CreateIdentifierOnOrgIdentity(sub, "oidcsub", orgID, true); err != nil {
+	if err := o.updatePerson(ctx, personID, body); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		o.dlq(ctx, cu, "create_org_identity_identifier", err)
+		o.dlq(ctx, cu, "attach_oidcsub", err)
 		return err
 	}
-	if _, err := o.c.CreateCoOrgIdentityLink(coPersonID, orgID); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		o.dlq(ctx, cu, "link_org_identity", err)
-		return err
-	}
-	o.audit(ctx, cu, "ComanageOIDCLinkageCreated", fmt.Sprintf("co_person_id=%d org_identity_id=%d", coPersonID, orgID))
+	o.audit(ctx, cu, "ComanageOIDCLinkageCreated", fmt.Sprintf("comanage_person_id=%s", personID))
 	return nil
 }
 

@@ -19,6 +19,7 @@ package subscribers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -53,20 +54,46 @@ func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.S
 }
 
 func (s *ClusterUserSubscriber) RegisterSubscribers() {
-	s.bus.Subscribe(events.ComputeClusterUserCreateEvent, s.handleClusterUserCreate)
+	s.bus.SubscribeComputeClusterUserCreated(s.handleClusterUserCreate)
+	s.bus.SubscribeUserIdentityCreated(s.handleUserIdentityCreate)
 }
 
-func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ events.Event, payload interface{}) {
+// handleUserIdentityCreate re-runs provisioning once the user has a `sub`.
+// A user provisioned before their first sign-in has none in the registry, so
+// the cluster cannot match the person to their ssh login.
+func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, ident models.UserIdentity) {
+	// Provisioning stores a comanage identity of its own, which lands back
+	// here. Without this the handler would call itself without end.
+	if ident.Source != "oidc" || ident.OIDCSub == "" {
+		return
+	}
+
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.user_identity_create")
+	defer span.End()
+	span.SetAttributes(attribute.String("comanage.user_id", ident.UserID))
+
+	cu, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, ident.UserID)
+	if errors.Is(err, service.ErrNotFound) {
+		// No account on this cluster, so there is nothing to link.
+		return
+	}
+	if err != nil {
+		slog.Error("comanage subscriber: cluster user lookup failed", "user_id", ident.UserID, "err", err)
+		return
+	}
+	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		slog.Error("comanage subscriber: EnsurePOSIXAccount failed after identity link", "compute_cluster_user_id", cu.ID, "user_id", ident.UserID, "err", err)
+	}
+}
+
+func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu models.ComputeClusterUser) {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_create")
 	defer span.End()
 
-	cu, ok := payload.(*models.ComputeClusterUser)
-	if !ok {
-		slog.Error("comanage subscriber: payload is not *ComputeClusterUser", "type", payload)
-		span.SetStatus(codes.Error, "payload type mismatch")
-		return
-	}
 	if cu.ComputeClusterID != s.custosClusterID {
 		return
 	}
@@ -83,10 +110,11 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ e
 	})
 	// TODO: move to a transactional scope. In-process delivery loses events
 	// if the process crashes between the core commit and subscriber pickup.
-	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
+	if err := s.ops.EnsurePOSIXAccount(ctx, &cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.Error("comanage subscriber: EnsurePOSIXAccount failed",
 			"compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		return
 	}
 }

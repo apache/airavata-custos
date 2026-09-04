@@ -59,6 +59,12 @@ func mergeUnixClusterAccount(composite json.RawMessage, block UnixClusterAccount
 // composite PUT is the only person-identifier write the registry authorizes,
 // and the directory maps the login name from this entry.
 func mergeLoginIdentifier(composite json.RawMessage, username string) ([]byte, error) {
+	return mergeIdentifier(composite, "uid", username, false)
+}
+
+// mergeIdentifier sets the composite's identifier of the given type, replacing
+// an existing entry so a changed value doesn't leave two behind.
+func mergeIdentifier(composite json.RawMessage, identifierType, value string, login bool) ([]byte, error) {
 	var top map[string]json.RawMessage
 	if err := json.Unmarshal(composite, &top); err != nil {
 		return nil, fmt.Errorf("decode composite: %w", err)
@@ -69,21 +75,23 @@ func mergeLoginIdentifier(composite json.RawMessage, username string) ([]byte, e
 			return nil, fmt.Errorf("decode Identifier array: %w", err)
 		}
 	}
-	value, _ := json.Marshal(username)
+	encoded, _ := json.Marshal(value)
 	replaced := false
 	for _, ident := range idents {
 		var typ string
 		_ = json.Unmarshal(ident["type"], &typ)
-		if typ == "uid" {
-			ident["identifier"] = value
+		if typ == identifierType {
+			ident["identifier"] = encoded
 			replaced = true
 		}
 	}
 	if !replaced {
+		loginJSON, _ := json.Marshal(login)
+		typeJSON, _ := json.Marshal(identifierType)
 		idents = append(idents, map[string]json.RawMessage{
-			"identifier": value,
-			"type":       json.RawMessage(`"uid"`),
-			"login":      json.RawMessage("false"),
+			"identifier": encoded,
+			"type":       typeJSON,
+			"login":      loginJSON,
 			"status":     json.RawMessage(`"A"`),
 		})
 	}
@@ -123,31 +131,6 @@ func extractIdentifier(composite json.RawMessage, identifierType string) (string
 		}
 	}
 	return "", nil
-}
-
-// extractOrgIdentifierValues returns the identifier values of the given type
-// across the composite's org identities.
-func extractOrgIdentifierValues(composite json.RawMessage, identifierType string) ([]string, error) {
-	var top struct {
-		OrgIdentity []struct {
-			Identifier []struct {
-				Identifier string `json:"identifier"`
-				Type       string `json:"type"`
-			} `json:"Identifier"`
-		} `json:"OrgIdentity"`
-	}
-	if err := json.Unmarshal(composite, &top); err != nil {
-		return nil, fmt.Errorf("decode composite for org identifiers: %w", err)
-	}
-	var out []string
-	for _, org := range top.OrgIdentity {
-		for _, id := range org.Identifier {
-			if id.Type == identifierType {
-				out = append(out, id.Identifier)
-			}
-		}
-	}
-	return out, nil
 }
 
 // extractCoPersonID returns the numeric CoPerson.meta.id (distinct from the
