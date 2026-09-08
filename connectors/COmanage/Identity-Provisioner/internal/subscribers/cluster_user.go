@@ -117,4 +117,13 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu 
 			"compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return
 	}
+	if cu.AccessLevel == models.ClusterAccessAdmin {
+		s.provisionClusterAdmin(ctx, &cu)
+	}
+}
+
+// TODO - add ADMIN cluster users to the cluster admin group.
+func (s *ClusterUserSubscriber) provisionClusterAdmin(_ context.Context, cu *models.ComputeClusterUser) {
+	slog.Warn("comanage subscriber: cluster admin group provisioning not implemented",
+		"compute_cluster_user_id", cu.ID, "user_id", cu.UserID)
 }

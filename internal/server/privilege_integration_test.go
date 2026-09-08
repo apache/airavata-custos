@@ -341,3 +341,28 @@ func TestRevokePropagatesCacheInvalidation(t *testing.T) {
 		t.Errorf("HasPrivilege after revoke: has=%v err=%v", has, err)
 	}
 }
+
+// Creating a user hands out a cluster account, so a caller without
+// users:write must not reach it.
+func TestCreateUser_WithoutUsersWrite_403(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	user := seedUser(t, database, "plain@example.edu")
+
+	body, _ := json.Marshal(map[string]any{"email": "new@example.edu", "first_name": "New", "last_name": "User"})
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = withTestCaller(req, user)
+	srv.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("status: got %d, want 403", rr.Code)
+	}
+	var count int
+	if err := database.Get(&count, "SELECT COUNT(*) FROM users WHERE email = 'new@example.edu'"); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("a caller without users:write created a user")
+	}
+}

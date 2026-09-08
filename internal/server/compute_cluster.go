@@ -80,22 +80,35 @@ func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, clusters)
 }
 
+type createComputeClusterUserRequest struct {
+	ComputeClusterID string `json:"compute_cluster_id"`
+	UserID           string `json:"user_id"`
+	LocalUsername    string `json:"local_username"`
+}
+
 // @Summary	Create a compute cluster user
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
 // @Accept	json
 // @Produce	json
-// @Param	request	body	models.ComputeClusterUser	true	"Cluster user payload"
+// @Param	request	body	createComputeClusterUserRequest	true	"Cluster user payload"
 // @Success	201	{object}	models.ComputeClusterUser
 // @Failure	400	{object}	object{error=string}
 // @Router	/compute-cluster-users [post]
 func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request) {
-	var cu models.ComputeClusterUser
-	if err := common.DecodeJSON(r, &cu); err != nil {
+	var req createComputeClusterUserRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	created, err := s.svc.CreateComputeClusterUser(r.Context(), &cu)
+	// Access level is left out on purpose. Granting cluster admin goes through
+	// user onboarding, which checks roles:manage first.
+	// TODO - accept an access level here once the caller can be checked for ADMIN on the same cluster
+	created, err := s.svc.CreateComputeClusterUser(r.Context(), &models.ComputeClusterUser{
+		ComputeClusterID: req.ComputeClusterID,
+		UserID:           req.UserID,
+		LocalUsername:    req.LocalUsername,
+	})
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -126,18 +139,25 @@ func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster user ID"
-// @Param	request	body	models.ComputeClusterUser	true	"Cluster user payload"
+// @Param	request	body	createComputeClusterUserRequest	true	"Cluster user payload"
 // @Success	200	{object}	models.ComputeClusterUser
 // @Failure	400	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-cluster-users/{id} [put]
 func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request) {
-	var cu models.ComputeClusterUser
-	if err := common.DecodeJSON(r, &cu); err != nil {
+	var req createComputeClusterUserRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	cu.ID = r.PathValue("id")
+	// The store does not write access_level, so accepting it here would echo
+	// a change that never happened.
+	cu := models.ComputeClusterUser{
+		ID:               r.PathValue("id"),
+		ComputeClusterID: req.ComputeClusterID,
+		UserID:           req.UserID,
+		LocalUsername:    req.LocalUsername,
+	}
 	if err := s.svc.UpdateComputeClusterUser(r.Context(), &cu); err != nil {
 		common.WriteServiceError(w, err)
 		return

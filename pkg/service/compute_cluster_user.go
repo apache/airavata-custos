@@ -46,6 +46,12 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	if cu.ID == "" {
 		cu.ID = newID()
 	}
+	if cu.AccessLevel == "" {
+		cu.AccessLevel = models.ClusterAccessUser
+	}
+	if cu.AccessLevel != models.ClusterAccessUser && cu.AccessLevel != models.ClusterAccessAdmin {
+		return nil, fmt.Errorf("%w: unknown access level %q", ErrInvalidInput, cu.AccessLevel)
+	}
 
 	if cluster, err := s.clusters.FindByID(ctx, cu.ComputeClusterID); err != nil {
 		return nil, fmt.Errorf("lookup compute cluster: %w", err)
