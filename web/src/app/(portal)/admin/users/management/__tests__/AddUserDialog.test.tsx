@@ -92,14 +92,41 @@ describe("AddUserDialog", () => {
     expect(screen.getByRole("radio", { name: /Admin/ })).toBeDisabled();
   });
 
-  it("shows cluster admin as coming soon and disabled", () => {
-    renderDialog();
+  it("sends cluster_admin when cluster admin is ticked", () => {
+    const { onSubmit } = renderDialog();
     fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
-    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+
     const clusterAdmin = screen
       .getByText(/Admin access on the cluster itself/)
       .closest("label")
       ?.querySelector("input");
-    expect(clusterAdmin).toBeDisabled();
+    expect(clusterAdmin).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "sandrade@sdsc.edu" },
+    });
+    fireEvent.click(clusterAdmin as HTMLInputElement);
+    fireEvent.click(screen.getByRole("button", { name: "Add admin user" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: "sandrade@sdsc.edu",
+      first_name: "",
+      last_name: "",
+      portal_admin: true,
+      cluster_admin: true,
+    });
+  });
+
+  it("leaves cluster_admin off when the box is not ticked", () => {
+    const { onSubmit } = renderDialog();
+    fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "sandrade@sdsc.edu" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add admin user" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.not.objectContaining({ cluster_admin: expect.anything() }),
+    );
   });
 });
