@@ -117,6 +117,41 @@ describe("AddUserDialog", () => {
     });
   });
 
+  it("submits a cluster admin without portal admin", () => {
+    const { onSubmit } = renderDialog();
+    fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
+
+    const box = (text: RegExp) =>
+      screen.getByText(text).closest("label")?.querySelector("input") as HTMLInputElement;
+    fireEvent.click(box(/Admin access on the cluster itself/));
+    fireEvent.click(box(/Manage users, allocations, and settings/));
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "sandrade@sdsc.edu" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add admin user" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: "sandrade@sdsc.edu",
+      first_name: "",
+      last_name: "",
+      cluster_admin: true,
+    });
+  });
+
+  it("blocks submit when neither kind of admin access is picked", () => {
+    const { onSubmit } = renderDialog();
+    fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
+    fireEvent.click(
+      screen
+        .getByText(/Manage users, allocations, and settings/)
+        .closest("label")
+        ?.querySelector("input") as HTMLInputElement,
+    );
+    expect(screen.getByRole("button", { name: "Add admin user" })).toBeDisabled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("leaves cluster_admin off when the box is not ticked", () => {
     const { onSubmit } = renderDialog();
     fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
