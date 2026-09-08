@@ -61,6 +61,7 @@ export function AddUserDialog({
   const [lastName, setLastName] = React.useState("");
   const [username, setUsername] = React.useState("");
   const [allocationId, setAllocationId] = React.useState(NO_ALLOCATION);
+  const [clusterAdmin, setClusterAdmin] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
@@ -70,6 +71,7 @@ export function AddUserDialog({
       setLastName("");
       setUsername("");
       setAllocationId(NO_ALLOCATION);
+      setClusterAdmin(false);
     }
   }, [open]);
 
@@ -85,6 +87,7 @@ export function AddUserDialog({
     };
     if (isAdmin) {
       payload.portal_admin = true;
+      if (clusterAdmin) payload.cluster_admin = true;
     } else {
       if (username.trim()) payload.username = username.trim();
       if (allocationId !== NO_ALLOCATION) {
@@ -217,7 +220,6 @@ export function AddUserDialog({
                     readOnly
                     className="mt-0.5 size-4 rounded border-input accent-[color:var(--brand)]"
                   />
-                  {/* TODO: cluster admin is not wired up yet, so admins are portal-only. */}
                   <span>
                     <span className="block text-sm font-medium">Portal admin</span>
                     <span className="block text-xs text-muted-foreground">
@@ -225,17 +227,17 @@ export function AddUserDialog({
                     </span>
                   </span>
                 </label>
-                <label className="flex cursor-not-allowed items-start gap-2.5 border-t p-3 opacity-60">
-                  <input type="checkbox" disabled className="mt-0.5 size-4 rounded border-input" />
+                <label className="flex cursor-pointer items-start gap-2.5 border-t p-3">
+                  <input
+                    type="checkbox"
+                    checked={clusterAdmin}
+                    onChange={(e) => setClusterAdmin(e.target.checked)}
+                    className="mt-0.5 size-4 rounded border-input accent-[color:var(--brand)]"
+                  />
                   <span>
-                    <span className="block text-sm font-medium">
-                      Cluster admin{" "}
-                      <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Coming soon
-                      </span>
-                    </span>
+                    <span className="block text-sm font-medium">Cluster admin</span>
                     <span className="block text-xs text-muted-foreground">
-                      Admin access on the cluster itself. Available in an upcoming release.
+                      Admin access on the cluster itself, with a login account.
                     </span>
                   </span>
                 </label>
@@ -243,8 +245,16 @@ export function AddUserDialog({
               <div className="flex items-start gap-2.5 rounded-md border border-[color:var(--tone-warn-fg)]/30 bg-[color:var(--tone-warn-bg)] p-3 text-xs">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[color:var(--tone-warn-fg)]" />
                 <span>
-                  <span className="block text-sm font-medium">This user will be a portal admin</span>
-                  <span className="text-muted-foreground">Admin access to the portal.</span>
+                  <span className="block text-sm font-medium">
+                    {clusterAdmin
+                      ? "This user will be a portal and cluster admin"
+                      : "This user will be a portal admin"}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {clusterAdmin
+                      ? "Admin access to the portal, and sudo on the cluster."
+                      : "Admin access to the portal."}
+                  </span>
                 </span>
               </div>
             </div>
