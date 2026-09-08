@@ -38,7 +38,7 @@ type createUserRequest struct {
 }
 
 // @Summary	Create a user
-// @Description	Creates a researcher (both admins flag false) or an admin.
+// @Description	Creates a researcher (both admin flags false) or an admin.
 // @Tags	Users
 // @Security	BearerAuth
 // @Accept	json

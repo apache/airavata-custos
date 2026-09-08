@@ -31,6 +31,10 @@ export const zAllocationMembershipResponse = z.object({
 
 export type allocationMembershipResponseZodType = z.infer<typeof zAllocationMembershipResponse>;
 
+export const zClusterAccessLevel = z.enum(['USER', 'ADMIN']);
+
+export type clusterAccessLevelZodType = z.infer<typeof zClusterAccessLevel>;
+
 export const zComputeAllocation = z.object({
     compute_cluster_id: z.string().optional(),
     end_time: z.string().optional(),
@@ -173,9 +177,11 @@ export const zComputeCluster = z.object({
 export type computeClusterZodType = z.infer<typeof zComputeCluster>;
 
 export const zComputeClusterUser = z.object({
+    access_level: zClusterAccessLevel.optional(),
     compute_cluster_id: z.string().optional(),
     id: z.string().optional(),
     local_username: z.string().optional(),
+    provisioned_at: z.string().optional(),
     user_id: z.string().optional()
 });
 
@@ -432,12 +438,34 @@ export const zAttachResourceRequest = z.object({
 
 export type attachResourceRequestZodType = z.infer<typeof zAttachResourceRequest>;
 
+export const zCreateComputeClusterUserRequest = z.object({
+    compute_cluster_id: z.string().optional(),
+    local_username: z.string().optional(),
+    user_id: z.string().optional()
+});
+
+export type createComputeClusterUserRequestZodType = z.infer<typeof zCreateComputeClusterUserRequest>;
+
 export const zCreateRoleRequest = z.object({
     description: z.string().optional(),
     name: z.string().optional()
 });
 
 export type createRoleRequestZodType = z.infer<typeof zCreateRoleRequest>;
+
+export const zCreateUserRequest = z.object({
+    allocation_id: z.string().optional(),
+    cluster_admin: z.boolean().optional(),
+    compute_cluster_id: z.string().optional(),
+    email: z.string().optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    organization_id: z.string().optional(),
+    portal_admin: z.boolean().optional(),
+    username: z.string().optional()
+});
+
+export type createUserRequestZodType = z.infer<typeof zCreateUserRequest>;
 
 export const zGrantPrivilegeRequest = z.object({
     privilege: zPrivilegeKey.optional(),
@@ -1005,7 +1033,7 @@ export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = zUserA
 /**
  * Cluster user payload
  */
-export const zPostComputeClusterUsersBody = zComputeClusterUser;
+export const zPostComputeClusterUsersBody = zCreateComputeClusterUserRequest;
 
 /**
  * Created
@@ -1028,7 +1056,7 @@ export const zGetComputeClusterUsersByIdResponse = zComputeClusterUser;
 /**
  * Cluster user payload
  */
-export const zPutComputeClusterUsersByIdBody = zComputeClusterUser;
+export const zPutComputeClusterUsersByIdBody = zCreateComputeClusterUserRequest;
 
 export const zPutComputeClusterUsersByIdPath = z.object({
     id: z.string()
@@ -1359,7 +1387,7 @@ export const zGetUsersResponse = zUserListResponse;
 /**
  * User payload
  */
-export const zPostUsersBody = zUser;
+export const zPostUsersBody = zCreateUserRequest;
 
 /**
  * Created
