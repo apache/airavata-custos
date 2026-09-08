@@ -37,7 +37,10 @@ type CoGroupMemberCreateOne struct {
 	Owner     bool             `json:"Owner"`
 }
 
-func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int) (int, error) {
+// CreateCoGroupMember adds a person to a group. An owner can change the
+// group's membership in the registry, so only pass true for a group the person
+// already owns, such as their own primary group.
+func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int, owner bool) (int, error) {
 	body, err := json.Marshal(CoGroupMemberCreateRequest{
 		RequestType: "CoGroupMembers",
 		Version:     restAPIVersion,
@@ -46,7 +49,7 @@ func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int) (int, error) {
 			Person:    IdentifierParent{Type: "CO", Id: coPersonId},
 			CoGroupId: coGroupId,
 			Member:    true,
-			Owner:     true,
+			Owner:     owner,
 		}},
 	})
 	if err != nil {

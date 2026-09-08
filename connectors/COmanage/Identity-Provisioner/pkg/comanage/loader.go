@@ -24,6 +24,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -71,6 +72,7 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 	}
 
 	var registryURL, apiUser, apiKey, personIDType, custosCluster, defaultShell, homedirPrefix string
+	var adminGroup string
 	var coID, unixClusterID int
 	timeout := 30 * time.Second
 
@@ -93,6 +95,10 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		unixClusterID = asInt(unixCluster["id"])
 		if pType, ok := unixCluster["person_id_type"].(string); ok {
 			personIDType = pType
+		}
+		// An unset env var is left in the yaml as "${...}", so treat that as not set.
+		if g, ok := unixCluster["admin_group"].(string); ok && !strings.HasPrefix(g, "${") {
+			adminGroup = g
 		}
 	}
 
@@ -126,16 +132,17 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 	}
 
 	return client.Config{
-		RegistryURL:     registryURL,
-		COID:            coID,
-		APIUser:         apiUser,
-		APIKey:          apiKey,
-		PersonIDType:    personIDType,
-		UnixClusterID:   unixClusterID,
-		CustosClusterID: custosCluster,
-		DefaultShell:    defaultShell,
-		HomedirPrefix:   homedirPrefix,
-		HTTPTimeout:     timeout,
+		RegistryURL:       registryURL,
+		COID:              coID,
+		APIUser:           apiUser,
+		APIKey:            apiKey,
+		PersonIDType:      personIDType,
+		UnixClusterID:     unixClusterID,
+		ClusterAdminGroup: adminGroup,
+		CustosClusterID:   custosCluster,
+		DefaultShell:      defaultShell,
+		HomedirPrefix:     homedirPrefix,
+		HTTPTimeout:       timeout,
 	}, true
 }
 
@@ -159,6 +166,7 @@ func loadConfigFromEnv() (client.Config, bool) {
 	apiKey := os.Getenv("COMANAGE_API_KEY")
 	personIDType := os.Getenv("COMANAGE_PERSON_ID_TYPE")
 	unixClusterStr := os.Getenv("COMANAGE_UNIX_CLUSTER_ID")
+	adminGroup := os.Getenv("COMANAGE_CLUSTER_ADMIN_GROUP")
 	custosCluster := os.Getenv("CUSTOS_CLUSTER_ID")
 
 	if registryURL == "" || coIDStr == "" || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterStr == "" || custosCluster == "" {
@@ -192,15 +200,16 @@ func loadConfigFromEnv() (client.Config, bool) {
 	}
 
 	return client.Config{
-		RegistryURL:     registryURL,
-		COID:            coID,
-		APIUser:         apiUser,
-		APIKey:          apiKey,
-		PersonIDType:    personIDType,
-		UnixClusterID:   unixClusterID,
-		CustosClusterID: custosCluster,
-		DefaultShell:    defaultShell,
-		HomedirPrefix:   homedirPrefix,
-		HTTPTimeout:     timeout,
+		RegistryURL:       registryURL,
+		COID:              coID,
+		APIUser:           apiUser,
+		APIKey:            apiKey,
+		PersonIDType:      personIDType,
+		UnixClusterID:     unixClusterID,
+		ClusterAdminGroup: adminGroup,
+		CustosClusterID:   custosCluster,
+		DefaultShell:      defaultShell,
+		HomedirPrefix:     homedirPrefix,
+		HTTPTimeout:       timeout,
 	}, true
 }

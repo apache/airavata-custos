@@ -40,12 +40,14 @@ type Config struct {
 	// PersonIDType is the COmanage Identifier Type used to look up and tag a
 	// CoPerson (e.g. the type name configured in the registry's Identifier
 	// Types). Required value.
-	PersonIDType    string
-	UnixClusterID   int
-	CustosClusterID string
-	DefaultShell    string
-	HomedirPrefix   string
-	HTTPTimeout     time.Duration
+	PersonIDType  string
+	UnixClusterID int
+	// ClusterAdminGroup is the COGroup that carries sudo on the cluster.
+	ClusterAdminGroup string
+	CustosClusterID   string
+	DefaultShell      string
+	HomedirPrefix     string
+	HTTPTimeout       time.Duration
 }
 
 type Client struct {

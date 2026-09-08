@@ -117,13 +117,12 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu 
 			"compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return
 	}
+	// The account is usable either way, so a failed group join is logged and
+	// left for a retry rather than failing the whole handler.
 	if cu.AccessLevel == models.ClusterAccessAdmin {
-		s.provisionClusterAdmin(ctx, &cu)
+		if err := s.ops.EnsureClusterAdminGroup(ctx, &cu); err != nil {
+			span.RecordError(err)
+			slog.Error("comanage subscriber: EnsureClusterAdminGroup failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		}
 	}
-}
-
-// TODO - add ADMIN cluster users to the cluster admin group.
-func (s *ClusterUserSubscriber) provisionClusterAdmin(_ context.Context, cu *models.ComputeClusterUser) {
-	slog.Warn("comanage subscriber: cluster admin group provisioning not implemented",
-		"compute_cluster_user_id", cu.ID, "user_id", cu.UserID)
 }

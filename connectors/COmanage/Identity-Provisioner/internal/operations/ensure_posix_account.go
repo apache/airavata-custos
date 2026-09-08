@@ -108,7 +108,9 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 	if err := o.findOrCreateIdentifier(ctx, cu, coGroupID, uidnumber, "gidnumber"); err != nil {
 		return err
 	}
-	if err := o.findOrCreateCoGroupMember(ctx, cu, coGroupID, coPersonID); err != nil {
+	// Intentionally, not making an owner of their own group.
+	// An owner can add other people to it, and the group is on the cluster, so that would share their files.
+	if err := o.findOrCreateCoGroupMember(ctx, cu, coGroupID, coPersonID, false); err != nil {
 		return err
 	}
 	if err := o.findOrCreateUnixClusterGroup(ctx, cu, coGroupID, log); err != nil {
@@ -258,7 +260,7 @@ func (o *Orchestrator) findOrCreateIdentifier(ctx context.Context, cu *models.Co
 	return nil
 }
 
-func (o *Orchestrator) findOrCreateCoGroupMember(ctx context.Context, cu *models.ComputeClusterUser, coGroupID, coPersonID int) error {
+func (o *Orchestrator) findOrCreateCoGroupMember(ctx context.Context, cu *models.ComputeClusterUser, coGroupID, coPersonID int, owner bool) error {
 	_, span := tracing.Start(ctx, "comanage.find_or_create_co_group_member")
 	defer span.End()
 	span.SetAttributes(
@@ -275,7 +277,7 @@ func (o *Orchestrator) findOrCreateCoGroupMember(ctx context.Context, cu *models
 	if existing != 0 {
 		return nil
 	}
-	if _, err := o.c.CreateCoGroupMember(coPersonID, coGroupID); err != nil {
+	if _, err := o.c.CreateCoGroupMember(coPersonID, coGroupID, owner); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		o.dlq(ctx, cu, "create_co_group_member", err)

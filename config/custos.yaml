@@ -70,6 +70,7 @@ connectors:
     unix_cluster:
       id: ${COMANAGE_UNIX_CLUSTER_ID}
       person_id_type: "${COMANAGE_PERSON_ID_TYPE}"
+      admin_group: "${COMANAGE_CLUSTER_ADMIN_GROUP}"
     provisioning:
       custos_cluster_id: "${CUSTOS_CLUSTER_ID}"
       default_shell: "/bin/bash"
