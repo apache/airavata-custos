@@ -25,6 +25,7 @@ import {
 } from "@/shared/hooks/useShallowSearchParams";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Input } from "@/shared/ui/input";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
@@ -36,6 +37,25 @@ import { IDENTITY_SOURCE_LABELS, identitySourceLabel } from "./identities";
 function fullNameFor(user: UserManagementRow): string {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
   return name || user.email;
+}
+
+// PENDING means the account exists but nobody has signed in as it yet. The
+// status flips on first sign-in, not when cluster provisioning finishes.
+function UserStatusBadge({ status }: { status: string | undefined }) {
+  switch (status) {
+    case "ACTIVE":
+      return <StatusBadge variant="active" />;
+    case "PENDING":
+      return <StatusBadge variant="pending" label="Awaiting sign-in" />;
+    case "SUSPENDED":
+      return <StatusBadge variant="warning" label="Suspended" />;
+    case "INACTIVE":
+      return <StatusBadge variant="inactive" />;
+    case "MERGED":
+      return <StatusBadge variant="inactive" label="Merged" />;
+    default:
+      return <span className="text-muted-foreground">—</span>;
+  }
 }
 
 function useExpandableRow() {
@@ -59,6 +79,7 @@ export function UsersTable({
   pageSize,
   total,
   onPageChange,
+  toolbarAction,
 }: {
   users: UserManagementRow[];
   rolesCatalog: Role[];
@@ -69,6 +90,7 @@ export function UsersTable({
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
+  toolbarAction?: React.ReactNode;
 }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const expandedRow = useExpandableRow();
@@ -178,6 +200,12 @@ export function UsersTable({
 
   columns.push(
     {
+      key: "status",
+      header: "Status",
+      width: "180px",
+      cell: (row) => <UserStatusBadge status={row.status} />,
+    },
+    {
       key: "identities",
       header: "External Identities",
       width: "220px",
@@ -242,6 +270,7 @@ export function UsersTable({
             ))}
           </SelectContent>
         </Select>
+        {toolbarAction}
       </div>
 
       {filtersActive ? (
