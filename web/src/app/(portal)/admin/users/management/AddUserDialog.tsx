@@ -61,6 +61,7 @@ export function AddUserDialog({
   const [lastName, setLastName] = React.useState("");
   const [username, setUsername] = React.useState("");
   const [allocationId, setAllocationId] = React.useState(NO_ALLOCATION);
+  const [portalAdmin, setPortalAdmin] = React.useState(true);
   const [clusterAdmin, setClusterAdmin] = React.useState(false);
 
   React.useEffect(() => {
@@ -71,22 +72,37 @@ export function AddUserDialog({
       setLastName("");
       setUsername("");
       setAllocationId(NO_ALLOCATION);
+      setPortalAdmin(true);
       setClusterAdmin(false);
     }
   }, [open]);
 
   const isAdmin = userType === "admin";
+  const noAdminAccess = isAdmin && !portalAdmin && !clusterAdmin;
+  const adminNotice = noAdminAccess
+    ? { title: "Pick at least one kind of admin access", detail: "Otherwise there is nothing to grant." }
+    : portalAdmin && clusterAdmin
+      ? {
+          title: "This user will be a portal and cluster admin",
+          detail: "Admin access to the portal, and sudo on the cluster.",
+        }
+      : clusterAdmin
+        ? {
+            title: "This user will be a cluster admin",
+            detail: "Sudo on the cluster, with no admin access in the portal.",
+          }
+        : { title: "This user will be a portal admin", detail: "Admin access to the portal." };
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isPending) return;
+    if (isPending || noAdminAccess) return;
     const payload: CreateUserPayload = {
       email: email.trim(),
       first_name: firstName.trim(),
       last_name: lastName.trim(),
     };
     if (isAdmin) {
-      payload.portal_admin = true;
+      if (portalAdmin) payload.portal_admin = true;
       if (clusterAdmin) payload.cluster_admin = true;
     } else {
       if (username.trim()) payload.username = username.trim();
@@ -216,8 +232,8 @@ export function AddUserDialog({
                 <label className="flex cursor-pointer items-start gap-2.5 p-3">
                   <input
                     type="checkbox"
-                    checked
-                    readOnly
+                    checked={portalAdmin}
+                    onChange={(e) => setPortalAdmin(e.target.checked)}
                     className="mt-0.5 size-4 rounded border-input accent-[color:var(--brand)]"
                   />
                   <span>
@@ -245,16 +261,8 @@ export function AddUserDialog({
               <div className="flex items-start gap-2.5 rounded-md border border-[color:var(--tone-warn-fg)]/30 bg-[color:var(--tone-warn-bg)] p-3 text-xs">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[color:var(--tone-warn-fg)]" />
                 <span>
-                  <span className="block text-sm font-medium">
-                    {clusterAdmin
-                      ? "This user will be a portal and cluster admin"
-                      : "This user will be a portal admin"}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {clusterAdmin
-                      ? "Admin access to the portal, and sudo on the cluster."
-                      : "Admin access to the portal."}
-                  </span>
+                  <span className="block text-sm font-medium">{adminNotice.title}</span>
+                  <span className="text-muted-foreground">{adminNotice.detail}</span>
                 </span>
               </div>
             </div>
@@ -264,7 +272,7 @@ export function AddUserDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="brand" disabled={isPending}>
+            <Button type="submit" variant="brand" disabled={isPending || noAdminAccess}>
               {isPending ? "Adding…" : isAdmin ? "Add admin user" : "Add user"}
             </Button>
           </DialogFooter>
