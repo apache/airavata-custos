@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -172,15 +173,15 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		}
 		return nil, fmt.Errorf("%w: status=%s", identity.ErrUserNotPending, user.Status)
 	}
+	binding := &models.UserIdentity{
+		ID:         newID(),
+		UserID:     user.ID,
+		Source:     identitySourceOIDC,
+		ExternalID: claims.Sub,
+		Email:      claims.Email,
+		OIDCSub:    claims.Sub,
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		binding := &models.UserIdentity{
-			ID:         newID(),
-			UserID:     user.ID,
-			Source:     identitySourceOIDC,
-			ExternalID: claims.Sub,
-			Email:      claims.Email,
-			OIDCSub:    claims.Sub,
-		}
 		if err := s.userIdentities.Create(ctx, tx, binding); err != nil {
 			return fmt.Errorf("create oidc identity: %w", err)
 		}
@@ -196,6 +197,9 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		return nil, err
 	}
 	slog.Info("identity linked via email fallback", "user_id", user.ID, "email", claims.Email)
+
+	// Publish the event indicating the user account became active, so the `sub` can be added to the registry.
+	s.eventBus.Publish(ctx, events.UserIdentityCreateEvent, binding)
 	user.Status = models.UserActive
 	return user, nil
 }

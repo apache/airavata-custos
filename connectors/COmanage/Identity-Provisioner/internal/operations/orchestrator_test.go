@@ -353,23 +353,26 @@ func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 	installRecorder(t)
 
-	var identifierBodies []string
-	var linkBody string
+	var oidcPutBody string
 	base := mockComanageServer(t)
 	defer base.Close()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		switch {
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/identifiers.json"):
+		case r.Method == http.MethodPut && strings.Contains(path, "/people/"):
 			b, _ := io.ReadAll(r.Body)
-			identifierBodies = append(identifierBodies, string(b))
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"Identifier","Id":"7"}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/org_identities.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"OrgIdentity","Id":"61"}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_org_identity_links.json"):
-			b, _ := io.ReadAll(r.Body)
-			linkBody = string(b)
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoOrgIdentityLink","Id":"71"}`)
+			if strings.Contains(string(b), `"oidcsub"`) {
+				oidcPutBody = string(b)
+			}
+			proxyReq, _ := http.NewRequest(r.Method, base.URL+r.URL.RequestURI(), strings.NewReader(string(b)))
+			resp, err := http.DefaultClient.Do(proxyReq)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			defer resp.Body.Close()
+			w.WriteHeader(resp.StatusCode)
+			_, _ = io.Copy(w, resp.Body)
 		default:
 			proxyReq, _ := http.NewRequest(r.Method, base.URL+r.URL.RequestURI(), r.Body)
 			resp, err := http.DefaultClient.Do(proxyReq)
@@ -400,16 +403,17 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 		t.Fatalf("EnsurePOSIXAccount: %v", err)
 	}
 
-	found := false
-	for _, b := range identifierBodies {
-		if strings.Contains(b, `"Type":"oidcsub"`) && strings.Contains(b, "idp.invalid/users/9") && strings.Contains(b, `"Type":"Org"`) {
-			found = true
+	if oidcPutBody == "" {
+		t.Fatal("no composite PUT carrying the oidcsub identifier")
+	}
+	if !strings.Contains(oidcPutBody, `"identifier":"http://idp.invalid/users/9"`) {
+		t.Fatalf("PUT missing the sub value: %s", oidcPutBody)
+	}
+	// The PUT deletes anything left out, so the rest of the person and their
+	// existing identifiers have to come along with the addition.
+	for _, keep := range []string{`"Name"`, `"EmailAddress"`, `"Person100099"`, `"2000099"`} {
+		if !strings.Contains(oidcPutBody, keep) {
+			t.Fatalf("PUT dropped %s, which deleteOmitted would erase: %s", keep, oidcPutBody)
 		}
-	}
-	if !found {
-		t.Fatalf("no oidcsub identifier posted on the org identity: %v", identifierBodies)
-	}
-	if !strings.Contains(linkBody, `"CoPersonId":42`) || !strings.Contains(linkBody, `"OrgIdentityId":61`) {
-		t.Fatalf("link body wrong: %s", linkBody)
 	}
 }
