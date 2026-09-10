@@ -29,26 +29,42 @@ import (
 // CreateUser persists a new user. If user.ID is empty a new UUID is generated.
 // The referenced organization must already exist.
 func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	if err := s.checkNewUser(ctx, user); err != nil {
+		return nil, err
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.users.Create(ctx, tx, user)
+	}); err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+
+	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
+	return user, nil
+}
+
+// checkNewUser validates the user and fills in the defaults. Split from
+// CreateUser so a caller can validate before opening its own transaction.
+func (s *Service) checkNewUser(ctx context.Context, user *models.User) error {
 	if user == nil {
-		return nil, fmt.Errorf("%w: user is nil", ErrInvalidInput)
+		return fmt.Errorf("%w: user is nil", ErrInvalidInput)
 	}
 	if user.Email == "" {
-		return nil, fmt.Errorf("%w: user email is required", ErrInvalidInput)
+		return fmt.Errorf("%w: user email is required", ErrInvalidInput)
 	}
 	if user.OrganizationID == "" {
-		return nil, fmt.Errorf("%w: user organization_id is required", ErrInvalidInput)
+		return fmt.Errorf("%w: user organization_id is required", ErrInvalidInput)
 	}
 
 	if org, err := s.orgs.FindByID(ctx, user.OrganizationID); err != nil {
-		return nil, fmt.Errorf("verify organization: %w", err)
+		return fmt.Errorf("verify organization: %w", err)
 	} else if org == nil {
-		return nil, fmt.Errorf("%w: organization %q does not exist", ErrInvalidInput, user.OrganizationID)
+		return fmt.Errorf("%w: organization %q does not exist", ErrInvalidInput, user.OrganizationID)
 	}
 
 	if existing, err := s.users.FindByEmail(ctx, user.Email); err != nil {
-		return nil, fmt.Errorf("lookup user by email: %w", err)
+		return fmt.Errorf("lookup user by email: %w", err)
 	} else if existing != nil {
-		return nil, fmt.Errorf("%w: user with email %q", ErrAlreadyExists, user.Email)
+		return fmt.Errorf("%w: user with email %q", ErrAlreadyExists, user.Email)
 	}
 
 	if user.ID == "" {
@@ -60,15 +76,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	if user.Type == "" {
 		user.Type = models.UserTypeClusterLocal
 	}
-
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Create(ctx, tx, user)
-	}); err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
-	}
-
-	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
-	return user, nil
+	return nil
 }
 
 // ListUsers returns a page of users plus the total count.

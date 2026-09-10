@@ -36,7 +36,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &pgComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, provisioned_at`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at`
 
 func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -110,9 +110,9 @@ func (s *pgComputeClusterUserStore) FindByUser(ctx context.Context, userID strin
 
 func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username)
-         VALUES ($1, $2, $3, $4)`,
-		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername)
+		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, access_level)
+         VALUES ($1, $2, $3, $4, $5)`,
+		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel)
 	return err
 }
 

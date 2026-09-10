@@ -20,12 +20,30 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+const clusterUserAuditAdminGranted = "CLUSTER_ADMIN_GRANTED"
+
+func (s *Service) writeClusterUserAuditTx(ctx context.Context, tx *sql.Tx, eventType, entityID string, details map[string]any) error {
+	payload, err := json.Marshal(details)
+	if err != nil {
+		return fmt.Errorf("marshal audit details: %w", err)
+	}
+	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
+		ID:         newID(),
+		EventType:  eventType,
+		EventTime:  nowUTC(),
+		EntityID:   entityID,
+		EntityType: "compute_cluster_user",
+		Details:    string(payload),
+	})
+}
 
 // CreateComputeClusterUser persists a new compute-cluster user mapping. If
 // the ID is empty, a UUID is generated. The (possibly populated) record is
@@ -45,6 +63,13 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	}
 	if cu.ID == "" {
 		cu.ID = newID()
+	}
+	if cu.AccessLevel == "" {
+		cu.AccessLevel = models.ClusterAccessUser
+	}
+	if cu.AccessLevel != models.ClusterAccessUser && cu.AccessLevel != models.ClusterAccessAdmin {
+		return nil, fmt.Errorf("%w: unknown access level %q for user %s on cluster %s, must be %s or %s",
+			ErrInvalidInput, cu.AccessLevel, cu.UserID, cu.ComputeClusterID, models.ClusterAccessUser, models.ClusterAccessAdmin)
 	}
 
 	if cluster, err := s.clusters.FindByID(ctx, cu.ComputeClusterID); err != nil {
