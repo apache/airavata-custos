@@ -188,21 +188,22 @@
         state: present
       tags: [pam]
 
-    - name: "[pam] Clone pam_oauth2_device repository"
+    - name: "[pam] Clone pam_oauth2_device source"
       git:
         repo: "{{ pam_oauth2_device_repo }}"
         dest: "{{ pam_oauth2_device_src_dir }}"
+        version: "{{ pam_oauth2_device_version | default('master') }}"
         force: true
       tags: [pam]
 
     - name: "[pam] Build pam_oauth2_device"
       make:
-        chdir: "{{ pam_oauth2_device_src_dir }}"
+        chdir: "{{ pam_oauth2_device_build_dir }}"
       tags: [pam]
 
     - name: "[pam] Install pam_oauth2_device.so"
       copy:
-        src: "{{ pam_oauth2_device_src_dir }}/pam_oauth2_device.so"
+        src: "{{ pam_oauth2_device_build_dir }}/pam_oauth2_device.so"
         dest: /usr/lib64/security/pam_oauth2_device.so
         remote_src: true
         owner: root
@@ -217,6 +218,16 @@
         owner: root
         group: root
         mode: "0755"
+      tags: [pam]
+
+    - name: "[pam] Copy custom logo art"
+      copy:
+        src: "{{ pam_logo_file_src }}"
+        dest: /etc/pam_oauth2_device/logo.txt
+        owner: root
+        group: root
+        mode: "0644"
+      when: pam_logo_file_src is defined
       tags: [pam]
 
     - name: "[pam] Template pam_oauth2_device config.json"

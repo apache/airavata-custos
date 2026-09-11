@@ -65,10 +65,14 @@ sssd_domain_name: "xxx"
 # -----------------------------------------------------------------------------
 
 # Git repo to clone for building pam_oauth2_device
-pam_oauth2_device_repo: "https://github.com/cyber-shuttle/pam_oauth2_device.git"
+pam_oauth2_device_repo: "https://github.com/apache/airavata-custos.git"
 
-# Where to clone the source on the target
-pam_oauth2_device_src_dir: "/usr/local/src/pam_oauth2_device"
+# Branch or tag to build from
+pam_oauth2_device_version: "master"
+
+# Where to clone the source on the target, and where the module builds
+pam_oauth2_device_src_dir: "/usr/local/src/pam_oauth2_device/airavata-custos"
+pam_oauth2_device_build_dir: "{{ pam_oauth2_device_src_dir }}/extensions/CILogon-SSH-PAM"
 
 # LDAP settings for pam_oauth2_device user lookup
 # This lets the PAM module verify the SSH username exists in LDAP
@@ -81,6 +85,13 @@ pam_oauth2_ldap_attr: "uid"
 
 # Enable debug logging in pam_oauth2_device (set false for production)
 pam_oauth2_debug: false
+
+# System name shown in the SSH sign-in prompt (defaults to the inventory hostname)
+# pam_prompt_hostname: "login.cluster.example.org"
+
+# Local text file shown in place of the built-in logo art in the sign-in prompt.
+# Copied to /etc/pam_oauth2_device/logo.txt on the node; leave unset for the default art.
+# pam_logo_file_src: "~/cluster-logo.txt"
 
 # -----------------------------------------------------------------------------
 # Validation
