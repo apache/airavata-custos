@@ -37,6 +37,8 @@ type CoGroupMemberCreateOne struct {
 	Owner     bool             `json:"Owner"`
 }
 
+// CreateCoGroupMember adds a person to a group as a plain member, never as an owner.
+// An owner can add anyone to the group in the registry, going around Custos.
 func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int) (int, error) {
 	body, err := json.Marshal(CoGroupMemberCreateRequest{
 		RequestType: "CoGroupMembers",
@@ -46,7 +48,7 @@ func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int) (int, error) {
 			Person:    IdentifierParent{Type: "CO", Id: coPersonId},
 			CoGroupId: coGroupId,
 			Member:    true,
-			Owner:     true,
+			Owner:     false,
 		}},
 	})
 	if err != nil {

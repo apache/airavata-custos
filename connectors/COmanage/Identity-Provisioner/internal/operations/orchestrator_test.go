@@ -19,19 +19,16 @@ package operations
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
-	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -74,126 +71,13 @@ func installRecorder(t *testing.T) *recordingProcessor {
 	return rec
 }
 
-// fakeCore is an in-memory CoreService stub that records audit-event writes
-// and returns canned user/identity data.
-type fakeCore struct {
-	user              *models.User
-	identities        []models.UserIdentity
-	auditEvents       []models.AuditEvent
-	createdIdentity   *models.UserIdentity
-	markedProvisioned []string
-}
-
-func (f *fakeCore) GetUser(_ context.Context, _ string) (*models.User, error) {
-	return f.user, nil
-}
-
-func (f *fakeCore) ListUserIdentitiesForUser(_ context.Context, _ string) ([]models.UserIdentity, error) {
-	out := make([]models.UserIdentity, len(f.identities))
-	copy(out, f.identities)
-	return out, nil
-}
-
-func (f *fakeCore) CreateUserIdentity(_ context.Context, ui *models.UserIdentity) (*models.UserIdentity, error) {
-	f.createdIdentity = ui
-	return ui, nil
-}
-
-func (f *fakeCore) MarkComputeClusterUserProvisioned(_ context.Context, id string) error {
-	f.markedProvisioned = append(f.markedProvisioned, id)
-	return nil
-}
-
-func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
-	tracing.PopulateAuditIDs(ctx, &e.TraceID, &e.SpanID, &e.ParentSpanID)
-	if e.ID == "" {
-		e.ID = fmt.Sprintf("audit-%d", len(f.auditEvents)+1)
-	}
-	if e.EventTime.IsZero() {
-		e.EventTime = time.Now().UTC()
-	}
-	f.auditEvents = append(f.auditEvents, *e)
-	return e, nil
-}
-
-// mockComanageServer returns a happy-path COmanage REST mock that walks the
-// orchestrator through every step without hitting a real registry.
-func mockComanageServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	// composite served on every /people/<id> GET.
-	composite := `{
-        "CoPerson":{"meta":{"id":42},"co_id":2,"status":"A"},
-        "Name":[{"given":"E2E","family":"Test","type":"official","primary_name":true}],
-        "EmailAddress":[{"mail":"e2e@example.invalid","type":"official","verified":false}],
-        "Identifier":[
-            {"identifier":"Person100099","type":"comanage_id","login":false,"status":"A"},
-            {"identifier":"2000099","type":"uidnumber","login":false,"status":"A"}
-        ]
-    }`
-
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		switch {
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/people"):
-			_, _ = io.WriteString(w, `[{"identifier":"Person100099","type":"comanage_id","login":false,"status":"A"}]`)
-		case r.Method == http.MethodGet && strings.Contains(path, "/people/"):
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = io.WriteString(w, composite)
-		case r.Method == http.MethodPut && strings.Contains(path, "/people/"):
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = io.WriteString(w, composite)
-		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_people.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"CoPeople","Version":"1.0","CoPeople":[]}`)
-		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_groups.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"CoGroups","Version":"1.0","CoGroups":[]}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_groups.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroup","Id":"55"}`)
-		case r.Method == http.MethodGet && strings.HasSuffix(path, "/identifiers.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"Identifiers","Version":"1.0","Identifiers":[]}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/identifiers.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"Identifier","Id":"7"}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/org_identities.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"OrgIdentity","Id":"61"}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_org_identity_links.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoOrgIdentityLink","Id":"71"}`)
-		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_group_members.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"CoGroupMembers","Version":"1.0","CoGroupMembers":[]}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_group_members.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroupMember","Id":"11"}`)
-		case r.Method == http.MethodGet && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[]}`)
-		case r.Method == http.MethodPost && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"UnixClusterGroup","Id":"3"}`)
-		default:
-			t.Logf("unexpected mock request: %s %s", r.Method, path)
-			http.NotFound(w, r)
-		}
-	}))
-}
-
-func newOrchestratorForTest(t *testing.T, srv *httptest.Server, core CoreService) *Orchestrator {
-	t.Helper()
-	c := client.New(client.Config{
-		RegistryURL:   srv.URL,
-		COID:          2,
-		APIUser:       "co_2.test",
-		APIKey:        "k",
-		PersonIDType:  "comanage_id",
-		UnixClusterID: 1,
-		DefaultShell:  "/bin/bash",
-		HomedirPrefix: "/home/",
-		HTTPTimeout:   5 * time.Second,
-	})
-	return &Orchestrator{c: c, core: core}
-}
-
 func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 	rec := installRecorder(t)
-	srv := mockComanageServer(t)
+	srv := mockComanageServer(t, &mockRegistry{})
 	defer srv.Close()
 
 	core := &fakeCore{user: &models.User{ID: "user-1", FirstName: "E2E", LastName: "Test", Email: "e2e@example.invalid"}}
-	orch := newOrchestratorForTest(t, srv, core)
+	orch := newOrchestratorForTest(t, srv, core, "")
 
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
@@ -245,7 +129,7 @@ func TestEnsurePOSIXAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	defer srv.Close()
 
 	core := &fakeCore{user: &models.User{ID: "user-x", FirstName: "F", LastName: "L", Email: "fl@example.invalid"}}
-	orch := newOrchestratorForTest(t, srv, core)
+	orch := newOrchestratorForTest(t, srv, core, "")
 
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
@@ -329,7 +213,7 @@ func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	defer srv.Close()
 
 	core := &fakeCore{user: &models.User{ID: "user-1", FirstName: "E2E", LastName: "Test", Email: "e2e@example.invalid"}}
-	orch := newOrchestratorForTest(t, srv, core)
+	orch := newOrchestratorForTest(t, srv, core, "")
 
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
@@ -354,7 +238,7 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 	installRecorder(t)
 
 	var oidcPutBody string
-	base := mockComanageServer(t)
+	base := mockComanageServer(t, &mockRegistry{})
 	defer base.Close()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
@@ -393,7 +277,7 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 			{UserID: "user-1", Source: "oidc", ExternalID: "http://idp.invalid/users/9", OIDCSub: "http://idp.invalid/users/9"},
 		},
 	}
-	orch := newOrchestratorForTest(t, srv, core)
+	orch := newOrchestratorForTest(t, srv, core, "")
 
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
