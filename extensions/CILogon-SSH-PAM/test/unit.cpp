@@ -70,7 +70,7 @@ Userinfo get_userinfo(Config const &config,
 		      std::string const &username_attribute);
 
 void show_prompt(pam_handle_t *pamh,
-		 int qr_error_correction_level,
+		 Config const &config,
 		 DeviceAuthResponse *device_auth_response);
 
 bool is_authorized(Config const &config,
@@ -92,6 +92,53 @@ EXPECT_EQ(cmp_file_string("data/qr1.2.txt", getQr(loremipsum, 2, 1)), -1);
 EXPECT_EQ(cmp_file_string("data/qr2.0.txt", getQr(text, 0, 1)), -1);
 EXPECT_EQ(cmp_file_string("data/qr2.1.txt", getQr(text, 1, 1)), -1);
 EXPECT_EQ(cmp_file_string("data/qr2.2.txt", getQr(text, 2, 1)), -1);
+}
+
+TEST(PamOAuth2Unit, PromptLayout)
+{
+    Config config;
+    config.qr_error_correction_level = 0;
+    config.prompt_hostname = "testhost";
+
+    DeviceAuthResponse response;
+    response.user_code = "XPN-VTQ-NJP";
+    response.verification_uri = "https://cilogon.org/device/";
+    response.verification_uri_complete = "https://cilogon.org/device/?user_code=XPN-VTQ-NJP";
+    response.expires_in = 900;
+
+    std::string prompt = response.get_prompt(config);
+EXPECT_NE(prompt.find("Sign in to testhost to finish connecting."), std::string::npos);
+EXPECT_NE(prompt.find("  Open this link in a browser\n      https://cilogon.org/device/?user_code=XPN-VTQ-NJP\n"), std::string::npos);
+EXPECT_NE(prompt.find("The page will show XPN-VTQ-NJP.  Expires in 15 min."), std::string::npos);
+EXPECT_NE(prompt.find("  Or scan this code with your phone"), std::string::npos);
+EXPECT_NE(prompt.find("Press Enter once you've signed in, or Ctrl-C to cancel."), std::string::npos);
+// 40 rows total, so on a 24-row terminal only the lockup scrolls off
+EXPECT_EQ(std::count(prompt.begin(), prompt.end(), '\n'), 40);
+// the SSH client shows control bytes literally, so none may be emitted
+EXPECT_EQ(prompt.find('\033'), std::string::npos);
+
+    response.verification_uri_complete.clear();
+EXPECT_NE(response.get_prompt(config).find("Enter code XPN-VTQ-NJP when asked."), std::string::npos);
+}
+
+TEST(PamOAuth2Unit, PromptLogoFile)
+{
+    Config config;
+    config.qr_error_correction_level = -1;
+
+    DeviceAuthResponse response;
+    response.user_code = "XPN-VTQ-NJP";
+    response.verification_uri = "https://cilogon.org/device/";
+
+    TempFile logo("SITE ART LINE 1\nSITE ART LINE 2");
+    config.prompt_logo_file = logo.filename();
+    std::string prompt = response.get_prompt(config);
+EXPECT_NE(prompt.find("SITE ART LINE 1\nSITE ART LINE 2\n"), std::string::npos);
+EXPECT_EQ(prompt.find("████████"), std::string::npos);
+
+    // missing file falls back to the built-in art
+    config.prompt_logo_file = "/nonexistent/logo.txt";
+EXPECT_NE(response.get_prompt(config).find("████████"), std::string::npos);
 }
 
 TEST(PamOAuth2Unit, IsAuthorized)

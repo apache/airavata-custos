@@ -152,6 +152,9 @@ Thus, at the top level, there is a single object with a number of entries, descr
 | tls | ca\_path | String | N | Directory with trust anchors | Note 2 |
 | qr | | Object | N | | |
 | qr | error\_correction\_level | Int | Y | QR code | Note 3 |
+| prompt | | Object | N | | |
+| prompt | hostname | String | N | System name shown in the sign-in prompt | Note 5 |
+| prompt | logo\_file | String | N | Text file replacing the built-in logo art | Note 5 |
 
 Notes:
 
@@ -162,6 +165,7 @@ Notes:
    * If both ca\_path and ca\_bundle are present, the latter takes precedence
 3 The QR code section is optional but if present, it must have the error correction level defined.  Permitted values are 1 (low), 2 (medium), 3 (high) or -1 (disabled).  If the section is missing, the QR code is disabled.
 4 The "${url}" above would be the URL (hostname) of your OpenID Provider.  Its host certificate must be valid when checked against the CA bundle (see item 2)
+5 The prompt section controls the sign-in message shown over SSH. "hostname" is the system name presented to the user; if unset, "custos-cluster" is shown.  "logo\_file" names a plain-text file whose content is shown in place of the built-in logo art at the top of the prompt, so a site can show its own branding without rebuilding the module; if unset or unreadable, the built-in art is shown. The config is read on every login, so changing the file takes effect immediately. The prompt (logo file included) is deliberately plain text: the SSH client escapes control bytes in auth messages, so ANSI color codes would be shown literally.
 
 #### Table 2: Configuring Authorisation Flow
 
