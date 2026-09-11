@@ -20,9 +20,12 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/google/uuid"
@@ -246,5 +249,43 @@ func TestBootstrapSuperAdmin_CreatesPendingUserWhenMissing(t *testing.T) {
 	}
 	if has, err := svc.HasPrivilege(ctx(), userID, models.PrivilegesGrant); err != nil || !has {
 		t.Errorf("super_admin grant after bootstrap: has=%v err=%v", has, err)
+	}
+}
+
+// A user provisioned before their first sign-in has no sub in the registry.
+// The sub arrives at first user sign-in, when the user is matched by email, and the
+// registry gets it through this event.
+func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
+	database := setupTestDB(t)
+	bus := events.New()
+	svc := New(database, bus)
+	user := seedPendingUserWithEmail(t, database, "provision-first@example.edu")
+
+	got := make(chan models.UserIdentity, 1)
+	bus.SubscribeUserIdentityCreated(func(_ context.Context, identity models.UserIdentity) {
+		got <- identity
+	})
+
+	if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{
+		Sub:           "sub-provision-first",
+		Email:         "provision-first@example.edu",
+		EmailVerified: true,
+	}); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	select {
+	case identity := <-got:
+		if identity.UserID != user {
+			t.Errorf("user_id: got %s, want %s", identity.UserID, user)
+		}
+		if identity.Source != "oidc" {
+			t.Errorf("source: got %s, want oidc", identity.Source)
+		}
+		if identity.OIDCSub != "sub-provision-first" {
+			t.Errorf("oidc_sub: got %s, want sub-provision-first", identity.OIDCSub)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no UserIdentityCreateEvent published on identity link")
 	}
 }
