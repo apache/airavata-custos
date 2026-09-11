@@ -15,12 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# SELinux type enforcement policy: allow sshd to make HTTPS connections
+# SELinux type enforcement policy: allow sshd to reach the OIDC provider
+# and LDAP.
 #
-# Problem: pam_oauth2_device runs inside sshd (sshd_t context) and uses
-# libcurl to contact CILogon over HTTPS (port 443). SELinux's default
-# policy for sshd_t does not permit outbound TCP connections to http_port_t.
-# Without this module, auth silently falls through to password-auth.
+# Problem: pam_oauth2_device runs inside sshd and uses libcurl for the
+# device flow (HTTPS, port 443) plus a direct LDAP query (port 636).
+# SELinux's default sshd policy does not permit those outbound TCP
+# connections. Without this module, auth silently falls through to
+# password-auth.
+#
+# On OpenSSH 9.8+ (Rocky/RHEL 10) authentication runs in the split
+# sshd-session process under its own sshd_session_t type, so that type
+# needs the same allows. It does not exist on RHEL 9, hence the
+# optional block.
 #
 # Discovered from AVC denial:
 #   avc: denied { name_connect } for comm="sshd" dest=443
@@ -33,13 +40,24 @@
 #   semodule_package -o pam_oauth2_sshd.pp -m pam_oauth2_sshd.mod
 #   semodule -i pam_oauth2_sshd.pp
 
-module pam_oauth2_sshd 1.0;
+module pam_oauth2_sshd 2.0;
 
 require {
     type sshd_t;
     type http_port_t;
+    type ldap_port_t;
     class tcp_socket name_connect;
 }
 
 #============= sshd_t ==============
 allow sshd_t http_port_t:tcp_socket name_connect;
+allow sshd_t ldap_port_t:tcp_socket name_connect;
+
+#============= sshd_session_t (OpenSSH 9.8+ split sshd) ==============
+optional {
+    require {
+        type sshd_session_t;
+    }
+    allow sshd_session_t http_port_t:tcp_socket name_connect;
+    allow sshd_session_t ldap_port_t:tcp_socket name_connect;
+}

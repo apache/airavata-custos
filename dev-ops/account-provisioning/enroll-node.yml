@@ -281,6 +281,7 @@
         src: files/pam_oauth2_sshd.te
         dest: /tmp/pam_oauth2_sshd.te
         mode: "0644"
+      register: selinux_te_copy
       tags: [pam]
 
     - name: "[pam] Check if pam_oauth2_sshd SELinux module is already loaded"
@@ -295,7 +296,7 @@
         checkmodule -M -m -o /tmp/pam_oauth2_sshd.mod /tmp/pam_oauth2_sshd.te
         semodule_package -o /tmp/pam_oauth2_sshd.pp -m /tmp/pam_oauth2_sshd.mod
         semodule -i /tmp/pam_oauth2_sshd.pp
-      when: selinux_module_check.rc != 0
+      when: selinux_te_copy.changed or selinux_module_check.rc != 0
       tags: [pam]
 
     # =========================================================================
