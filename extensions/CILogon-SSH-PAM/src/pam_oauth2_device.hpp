@@ -52,7 +52,8 @@ public:
         verification_uri,
         verification_uri_complete,
         device_code;
-    std::string get_prompt(const int qr_ecc);
+    int expires_in = 0;
+    std::string get_prompt(Config const &config);
 };
 
 void make_authorization_request(Config const &config,

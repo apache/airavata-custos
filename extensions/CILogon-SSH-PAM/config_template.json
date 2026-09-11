@@ -25,6 +25,10 @@
     "qr": {
         "error_correction_level": 0
     },
+    "prompt": {
+        "hostname": "cluster.example.org",
+        "logo_file": "/etc/pam_oauth2_device/logo.txt"
+    },
     "group": {
         "access": true,
         "service_name": "stfc-cloud-prod"
