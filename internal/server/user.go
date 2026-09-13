@@ -22,24 +22,54 @@ import (
 
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
+type createUserRequest struct {
+	Email            string `json:"email"`
+	FirstName        string `json:"first_name"`
+	LastName         string `json:"last_name"`
+	OrganizationID   string `json:"organization_id,omitempty"`
+	Username         string `json:"username,omitempty"`
+	ComputeClusterID string `json:"compute_cluster_id,omitempty"`
+	AllocationID     string `json:"allocation_id,omitempty"`
+	PortalAdmin      bool   `json:"portal_admin,omitempty"`
+	ClusterAdmin     bool   `json:"cluster_admin,omitempty"`
+}
+
 // @Summary	Create a user
+// @Description	Creates a researcher (both admin flags false) or an admin.
 // @Tags	Users
 // @Security	BearerAuth
 // @Accept	json
 // @Produce	json
-// @Param	request	body	models.User	true	"User payload"
+// @Param	request	body	createUserRequest	true	"User payload"
 // @Success	201	{object}	models.User
 // @Failure	400	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/users [post]
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
-	var u models.User
-	if err := common.DecodeJSON(r, &u); err != nil {
+	var req createUserRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	created, err := s.svc.CreateUser(r.Context(), &u)
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	created, err := s.svc.OnboardUser(r.Context(), service.OnboardUserInput{
+		Email:            req.Email,
+		FirstName:        req.FirstName,
+		LastName:         req.LastName,
+		OrganizationID:   req.OrganizationID,
+		Username:         req.Username,
+		ComputeClusterID: req.ComputeClusterID,
+		AllocationID:     req.AllocationID,
+		PortalAdmin:      req.PortalAdmin,
+		ClusterAdmin:     req.ClusterAdmin,
+		OnboardedBy:      caller.UserID,
+	})
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

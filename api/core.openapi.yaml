@@ -64,6 +64,14 @@ definitions:
       role:
         $ref: '#/definitions/Role'
     type: object
+  ClusterAccessLevel:
+    enum:
+    - USER
+    - ADMIN
+    type: string
+    x-enum-varnames:
+    - ClusterAccessUser
+    - ClusterAccessAdmin
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -323,6 +331,8 @@ definitions:
     type: object
   ComputeClusterUser:
     properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
       compute_cluster_id:
         type: string
       id:
@@ -330,6 +340,10 @@ definitions:
       local_username:
         description: The username of the user on the compute cluster, which may be
           different from their Airavata Custos username.
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
         type: string
       user_id:
         type: string
@@ -677,11 +691,41 @@ definitions:
       resource_time:
         type: integer
     type: object
+  createComputeClusterUserRequest:
+    properties:
+      compute_cluster_id:
+        type: string
+      local_username:
+        type: string
+      user_id:
+        type: string
+    type: object
   createRoleRequest:
     properties:
       description:
         type: string
       name:
+        type: string
+    type: object
+  createUserRequest:
+    properties:
+      allocation_id:
+        type: string
+      cluster_admin:
+        type: boolean
+      compute_cluster_id:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      organization_id:
+        type: string
+      portal_admin:
+        type: boolean
+      username:
         type: string
     type: object
   grantPrivilegeRequest:
@@ -2493,7 +2537,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/ComputeClusterUser'
+          $ref: '#/definitions/createComputeClusterUserRequest'
       produces:
       - application/json
       responses:
@@ -2576,7 +2620,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/ComputeClusterUser'
+          $ref: '#/definitions/createComputeClusterUserRequest'
       produces:
       - application/json
       responses:
@@ -3655,13 +3699,14 @@ paths:
     post:
       consumes:
       - application/json
+      description: Creates a researcher (both admin flags false) or an admin.
       parameters:
       - description: User payload
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/User'
+          $ref: '#/definitions/createUserRequest'
       produces:
       - application/json
       responses:
@@ -3671,6 +3716,13 @@ paths:
             $ref: '#/definitions/User'
         "400":
           description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             properties:
               error:

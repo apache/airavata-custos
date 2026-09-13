@@ -118,4 +118,12 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu 
 		slog.Error("comanage subscriber: EnsurePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return
 	}
+	// Even if this fails, the cluster account is usable without sudo, so a
+	// failed group join is logged and left for a retry.
+	if cu.AccessLevel == models.ClusterAccessAdmin {
+		if err := s.ops.EnsureClusterAdminMembership(ctx, &cu); err != nil {
+			span.RecordError(err)
+			slog.Error("comanage subscriber: EnsureClusterAdminMembership failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		}
+	}
 }

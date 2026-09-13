@@ -31,6 +31,9 @@ import (
 
 const MaxCollisionSuffix = 999
 
+// MaxLoginLen is the POSIX login name cap.
+const MaxLoginLen = 32
+
 var ErrUnbuildableUsername = errors.New("posix: cannot build username from empty first and last name")
 
 // BuildBase returns the unsuffixed username. 'truncated' is set when the name
@@ -51,8 +54,8 @@ func BuildBase(u *models.User, prefix string) (string, bool, error) {
 		return "", false, fmt.Errorf("%w: user %q (first=%q last=%q)", ErrUnbuildableUsername, u.ID, u.FirstName, u.LastName)
 	}
 
-	// 32 = POSIX login cap; -1 separator, -3 reserved for collision suffix (up to "999").
-	maxLocal := 32 - len(prefix) - 1 - 3
+	// -1 separator, -3 reserved for collision suffix (up to "999").
+	maxLocal := MaxLoginLen - len(prefix) - 1 - 3
 	truncated := false
 	if len(local) > maxLocal {
 		local = local[:maxLocal]
