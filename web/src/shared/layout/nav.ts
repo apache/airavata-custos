@@ -22,6 +22,7 @@ import {
   ClipboardList,
   FolderKanban,
   HardDrive,
+  KeyRound,
   type LucideIcon,
   Server,
   UserCog,
@@ -37,6 +38,16 @@ export type NavItem = {
   icon: LucideIcon;
   group: NavGroup;
   ability?: AbilityCheck;
+  requiredPrivilege?: string;
+  externalZone?: boolean;
+};
+
+type ExtensionNavigation = {
+  href: string;
+  label: string;
+  group: NavGroup;
+  icon: "key-round";
+  required_privilege: string;
 };
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
@@ -101,3 +112,18 @@ export const portalNav: NavItem[] = [
     ability: { action: "read", subject: "Cluster" },
   },
 ];
+
+export function extensionNav(): NavItem[] {
+  const raw = process.env.NEXT_PUBLIC_CUSTOS_EXTENSIONS;
+  if (!raw) return [];
+  const items = JSON.parse(raw) as ExtensionNavigation[];
+  const icons: Record<ExtensionNavigation["icon"], LucideIcon> = { "key-round": KeyRound };
+  return items.map((item) => ({
+    href: item.href,
+    label: item.label,
+    icon: icons[item.icon],
+    group: item.group,
+    requiredPrivilege: item.required_privilege,
+    externalZone: true,
+  }));
+}

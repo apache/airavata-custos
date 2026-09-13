@@ -17,6 +17,7 @@
 
 import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
+import { extensionRewrites, loadConfiguredExtensions } from "./src/extensions/manifest";
 
 function detectBuildSha(): string {
   if (process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA) return process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA;
@@ -31,10 +32,16 @@ function detectBuildSha(): string {
   }
 }
 
-const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_PORTAL_BUILD_SHA: detectBuildSha(),
-  },
-};
-
-export default nextConfig;
+export default async function nextConfig(): Promise<NextConfig> {
+  const extensions = await loadConfiguredExtensions();
+  const navigation = extensions.flatMap((extension) => extension.navigation);
+  return {
+    env: {
+      NEXT_PUBLIC_PORTAL_BUILD_SHA: detectBuildSha(),
+      NEXT_PUBLIC_CUSTOS_EXTENSIONS: JSON.stringify(navigation),
+    },
+    async rewrites() {
+      return extensionRewrites(extensions);
+    },
+  };
+}

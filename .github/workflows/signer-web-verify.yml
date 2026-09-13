@@ -1,0 +1,90 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: Signer Web Verify
+
+on:
+  pull_request:
+    paths:
+      - 'extensions/SSH-Certificate-Signer/web/**'
+      - 'web/**'
+      - '.github/workflows/signer-web-verify.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'extensions/SSH-Certificate-Signer/web/**'
+      - 'web/**'
+      - '.github/workflows/signer-web-verify.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Signer zone and multi-zone integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXTAUTH_SECRET: ci-only-dummy-secret
+      CUSTOS_SIGNER_API_BASE_URL: http://localhost:8084
+      CUSTOS_PORTAL_BASE_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: extensions/SSH-Certificate-Signer/web/package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            extensions/SSH-Certificate-Signer/web/pnpm-lock.yaml
+            web/pnpm-lock.yaml
+
+      - name: Install signer zone
+        working-directory: extensions/SSH-Certificate-Signer/web
+        run: pnpm install --frozen-lockfile
+
+      - name: Install portal
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify signer zone
+        working-directory: extensions/SSH-Certificate-Signer/web
+        run: pnpm verify
+
+      - name: Install Chromium
+        working-directory: extensions/SSH-Certificate-Signer/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run multi-zone end-to-end tests
+        working-directory: extensions/SSH-Certificate-Signer/web
+        run: pnpm test:e2e
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signer-zone-playwright-artifacts
+          path: |
+            extensions/SSH-Certificate-Signer/web/playwright-report/
+            extensions/SSH-Certificate-Signer/web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

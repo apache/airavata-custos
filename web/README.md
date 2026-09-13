@@ -33,4 +33,21 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+## Extension zones
+
+The portal discovers independently deployed UI extensions from the
+comma-separated `CUSTOS_EXTENSION_MANIFEST_URLS` setting. Every configured
+manifest is mandatory: an unavailable or invalid manifest fails configuration
+instead of silently dropping navigation or rewrites.
+
+For the SSH Certificate Signer development setup, start its Go service on
+`:8084`, its signer-owned Next.js app on `:3001`, and configure:
+
+```dotenv
+CUSTOS_EXTENSION_MANIFEST_URLS=http://localhost:8084/.well-known/custos-extension.json
+```
+
+The portal then serves the signer zone at `/signer/*`. Cross-zone navigation
+uses a normal HTML link so the destination zone loads its own Next.js runtime.
+
 See [CLAUDE.md](./CLAUDE.md) for commands, env modes, and architecture overview.

@@ -30,6 +30,7 @@ Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a securit
 - Go 1.22+
 - PostgreSQL 17+
 - Vault / OpenBao with KV v2 secrets engine enabled
+- Node.js 22+ and pnpm 9+ for the signer-owned web zone
 
 ---
 
@@ -78,6 +79,7 @@ Environment variables take precedence over YAML values.
 | `DEV_DEFAULT_EMAIL` | `dev_mode.default_email` | Default email in dev mode |
 | `ALLOWED_ISSUERS` | `signer.auth.allowed_issuers` | Comma-separated list of allowed OIDC issuers |
 | `LOG_LEVEL` | `logging.level` | Log level: debug, info, warn, error |
+| `SIGNER_WEB_BASE_URL` | `web.base_url` | Origin serving the signer web zone (default `http://localhost:3001`) |
 
 ---
 
@@ -219,7 +221,16 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 | `GET` | `/api/v1/certificates` | OIDC Bearer | List certificates for authenticated user |
 | `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | Get certificate details |
 | `GET` | `/api/v1/userinfo` | OIDC Bearer | Get authenticated user profile |
+| `GET` | `/.well-known/custos-extension.json` | None | Discover the signer web zone and navigation |
 | `GET` | `/metrics` | None | Prometheus metrics |
+
+## Web zone
+
+The certificate administration UI is owned by this extension under
+[`web/`](./web/). It is a standalone Next.js application with base path
+`/signer`. The Custos portal discovers it through the public extension manifest
+and proxies `/signer/*` with Next.js multi-zone rewrites. See the web zone
+README for local two-process setup and verification commands.
 
 Client credentials are passed via `X-Client-Id` (format: `{tenant_id}:{client_id}`) and `X-Client-Secret` headers. OIDC Bearer endpoints use `Authorization: Bearer <token>`.
 

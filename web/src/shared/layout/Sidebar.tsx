@@ -20,17 +20,23 @@
 import { cn } from "@/lib/utils";
 import { brand } from "@/shared/brand";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { usePrivileges } from "@/features/core/identity/queries";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_GROUP_LABELS, type NavGroup, type NavItem, portalNav } from "./nav";
+import { NAV_GROUP_LABELS, type NavGroup, type NavItem, extensionNav, portalNav } from "./nav";
 
 const GROUP_ORDER: NavGroup[] = ["allocations", "admin"];
 
 export function Sidebar() {
   const pathname = usePathname();
   const ability = useAbility();
+  const { data: session } = useSession();
+  const { data: livePrivileges } = usePrivileges();
+  const privileges = new Set(livePrivileges ?? session?.privileges ?? []);
 
-  const visible = portalNav.filter((item) => {
+  const visible = [...portalNav, ...extensionNav()].filter((item) => {
+    if (item.requiredPrivilege && !privileges.has(item.requiredPrivilege)) return false;
     if (!item.ability) return true;
     return ability.can(item.ability.action, item.ability.subject);
   });
@@ -72,20 +78,29 @@ function isActive(pathname: string, href: string): boolean {
 
 function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
-  return (
-    <Link
-      href={item.href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "relative flex h-11 items-center gap-3 px-6 text-sm font-medium transition",
-        active
-          ? "bg-[var(--sidebar-active)] font-semibold text-foreground"
-          : "text-muted-foreground hover:bg-[var(--sidebar-hover)] hover:text-foreground",
-      )}
-    >
+  const className = cn(
+    "relative flex h-11 items-center gap-3 px-6 text-sm font-medium transition",
+    active
+      ? "bg-[var(--sidebar-active)] font-semibold text-foreground"
+      : "text-muted-foreground hover:bg-[var(--sidebar-hover)] hover:text-foreground",
+  );
+  const content = (
+    <>
       <Icon className={cn("h-5 w-5 stroke-[1.75]", active && "text-brand")} />
       <span className="truncate">{item.label}</span>
       {active && <span className="absolute top-2 right-0 bottom-2 w-1 rounded-l-full bg-brand" />}
+    </>
+  );
+  if (item.externalZone) {
+    return (
+      <a href={item.href} aria-current={active ? "page" : undefined} className={className}>
+        {content}
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} aria-current={active ? "page" : undefined} className={className}>
+      {content}
     </Link>
   );
 }

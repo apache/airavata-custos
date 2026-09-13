@@ -23,6 +23,14 @@ import { Sidebar } from "../Sidebar";
 
 let currentPrivileges: Privilege[] = [];
 
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: { privileges: currentPrivileges } }),
+}));
+
+vi.mock("@/features/core/identity/queries", () => ({
+  usePrivileges: () => ({ data: currentPrivileges }),
+}));
+
 vi.mock("@/shared/casl/AbilityProvider", () => ({
   useAbility: () => defineAbilitiesFor(currentPrivileges),
 }));
@@ -33,13 +41,44 @@ vi.mock("next/navigation", () => ({
 
 const NEW_ADMIN_LABELS = ["Organizations", "Resources"];
 
-const FULL_PRIVILEGES: Privilege[] = [
-  "core:organizations:read",
-  "core:clusters:read",
-];
+const FULL_PRIVILEGES: Privilege[] = ["core:organizations:read", "core:clusters:read"];
 
 beforeEach(() => {
   currentPrivileges = [];
+  process.env.NEXT_PUBLIC_CUSTOS_EXTENSIONS = "";
+});
+
+describe("Sidebar extension entries", () => {
+  it("renders an authorized extension as a hard-navigation link", () => {
+    currentPrivileges = ["signer:certificates:read"];
+    process.env.NEXT_PUBLIC_CUSTOS_EXTENSIONS = JSON.stringify([
+      {
+        href: "/signer/certificates",
+        label: "SSH Certificates",
+        group: "admin",
+        icon: "key-round",
+        required_privilege: "signer:certificates:read",
+      },
+    ]);
+    render(<Sidebar />);
+    const link = screen.getByRole("link", { name: "SSH Certificates" });
+    expect(link).toHaveAttribute("href", "/signer/certificates");
+    expect(link.tagName).toBe("A");
+  });
+
+  it("hides an extension when its declared privilege is absent", () => {
+    process.env.NEXT_PUBLIC_CUSTOS_EXTENSIONS = JSON.stringify([
+      {
+        href: "/signer/certificates",
+        label: "SSH Certificates",
+        group: "admin",
+        icon: "key-round",
+        required_privilege: "signer:certificates:read",
+      },
+    ]);
+    render(<Sidebar />);
+    expect(screen.queryByRole("link", { name: "SSH Certificates" })).toBeNull();
+  });
 });
 
 describe("Sidebar admin entries", () => {

@@ -175,8 +175,10 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 	adminHandler := handler.NewAdminHandler(vaultClient, logger)
 	certificatesHandler := handler.NewCertificatesHandler(db, logger)
 	userInfoHandler := handler.NewUserInfoHandler()
+	extensionManifestHandler := handler.NewExtensionManifestHandler(cfg.Web)
 
 	handlers := server.Handlers{
+		ExtensionManifest: extensionManifestHandler.Handle,
 		Sign:              signHandler.Handle,
 		Revoke:            revokeHandler.Handle,
 		JWKS:              jwksHandler.Handle,

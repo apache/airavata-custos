@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+out/
+dist/
+build/
+coverage/
+*.log
+*.tsbuildinfo
+next-env.d.ts
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Environment
+.env*.local
+.env.local
+
+# IDE
+.idea/
+.vscode/
+
+# MSW worker (generated)
+public/mockServiceWorker.js

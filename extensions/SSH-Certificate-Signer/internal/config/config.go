@@ -26,6 +26,7 @@ import (
 
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
+	Web      WebConfig      `yaml:"web"`
 	Database DatabaseConfig `yaml:"database"`
 	Vault    VaultConfig    `yaml:"vault"`
 	Signer   SignerConfig   `yaml:"signer"`
@@ -33,6 +34,10 @@ type Config struct {
 	Logging  LoggingConfig  `yaml:"logging"`
 	Metrics  MetricsConfig  `yaml:"metrics"`
 	CORS     CORSConfig     `yaml:"cors"`
+}
+
+type WebConfig struct {
+	BaseURL string `yaml:"base_url"`
 }
 
 // DevModeConfig disables OIDC token validation and returns a default identity
@@ -133,6 +138,7 @@ func DefaultConfig() *Config {
 			WriteTimeoutSeconds:    30,
 			ShutdownTimeoutSeconds: 30,
 		},
+		Web: WebConfig{BaseURL: "http://localhost:3001"},
 		Database: DatabaseConfig{
 			Host:                   "localhost",
 			Port:                   5432,
@@ -206,6 +212,9 @@ func Load(path string) (*Config, error) {
 }
 
 func applyEnvOverrides(cfg *Config) {
+	if v := os.Getenv("SIGNER_WEB_BASE_URL"); v != "" {
+		cfg.Web.BaseURL = v
+	}
 	if v := os.Getenv("DB_HOST"); v != "" {
 		cfg.Database.Host = v
 	}

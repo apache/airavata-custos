@@ -29,6 +29,9 @@ func TestLoad_DefaultConfig(t *testing.T) {
 	if cfg.Server.Port != 8084 {
 		t.Errorf("expected port 8084, got %d", cfg.Server.Port)
 	}
+	if cfg.Web.BaseURL != "http://localhost:3001" {
+		t.Errorf("expected default web URL, got %q", cfg.Web.BaseURL)
+	}
 	if cfg.Database.Host != "localhost" {
 		t.Errorf("expected host localhost, got %s", cfg.Database.Host)
 	}
@@ -86,6 +89,7 @@ database:
 	t.Setenv("DEV_DEFAULT_EMAIL", "test@dev.local")
 	t.Setenv("ALLOWED_ISSUERS", "https://a.com, https://b.com")
 	t.Setenv("LOG_LEVEL", "debug")
+	t.Setenv("SIGNER_WEB_BASE_URL", "https://signer.example.org")
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -111,6 +115,9 @@ database:
 	}
 	if cfg.Logging.Level != "debug" {
 		t.Errorf("expected debug log level, got %s", cfg.Logging.Level)
+	}
+	if cfg.Web.BaseURL != "https://signer.example.org" {
+		t.Errorf("expected signer web URL override, got %q", cfg.Web.BaseURL)
 	}
 }
 
