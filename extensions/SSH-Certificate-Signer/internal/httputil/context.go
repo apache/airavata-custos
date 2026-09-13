@@ -30,6 +30,7 @@ const (
 	clientConfigKey contextKey = "clientConfig"
 	sourceIPKey     contextKey = "sourceIP"
 	userIdentityKey contextKey = "userIdentity"
+	adminCallerKey  contextKey = "adminCaller"
 )
 
 type UserIdentityContext struct {
@@ -37,6 +38,23 @@ type UserIdentityContext struct {
 	Subject   string
 	Email     string
 	Principal string
+}
+
+type AdminCallerContext struct {
+	ID         string
+	Email      string
+	Privileges []string
+}
+
+func WithAdminCaller(ctx context.Context, caller *AdminCallerContext) context.Context {
+	return context.WithValue(ctx, adminCallerKey, caller)
+}
+
+func AdminCallerFromContext(ctx context.Context) *AdminCallerContext {
+	if v := ctx.Value(adminCallerKey); v != nil {
+		return v.(*AdminCallerContext)
+	}
+	return nil
 }
 
 func WithUserIdentity(ctx context.Context, id *UserIdentityContext) context.Context {

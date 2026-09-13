@@ -41,6 +41,7 @@ import (
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -68,6 +69,7 @@ func run() error {
 	if err != nil {
 		return errors.New("failed to load config: " + err.Error())
 	}
+	registerExtensionPrivileges(cfg.Privileges.Extensions)
 
 	applyLogLevel(cfg.Core.LogLevel)
 	slog.Info("loaded config", "path", configPath)
@@ -200,6 +202,14 @@ func run() error {
 
 	slog.Info("server stopped cleanly")
 	return nil
+}
+
+func registerExtensionPrivileges(keys []string) {
+	privileges := make([]models.PrivilegeKey, len(keys))
+	for i, key := range keys {
+		privileges[i] = models.PrivilegeKey(key)
+	}
+	models.Register(privileges...)
 }
 
 func envDefault(key, fallback string) string {

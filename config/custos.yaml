@@ -27,6 +27,13 @@ core:
       audience: "${OIDC_AUDIENCE}"
     cache_ttl: "30s"
 
+privileges:
+  # Extension-owned privileges are registered at runtime. The core: namespace
+  # is reserved and cannot be configured here.
+  extensions:
+    - signer:certificates:read
+    - signer:certificates:write
+
 connectors:
   slurm-mapper:
     type: "slurm-association-mapper"

@@ -195,3 +195,50 @@ func TestLoadConfig_AuthDefaultsTTLWhenZero(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, IdentityCacheDefaultTTL, cfg.Core.Auth.CacheTTL)
 }
+
+func TestLoadConfig_ExtensionPrivileges(t *testing.T) {
+	yaml := `core:
+  auth:
+    oidc:
+      issuer: "https://idp.example"
+      audience: "aud"
+privileges:
+  extensions:
+    - " signer:certificates:read "
+    - signer:certificates:read
+`
+	cfg, err := LoadConfig(writeTempYAML(t, yaml))
+	require.NoError(t, err)
+	assert.Equal(t, []string{"signer:certificates:read", "signer:certificates:read"}, cfg.Privileges.Extensions)
+}
+
+func TestLoadConfig_ExtensionPrivilegesOptional(t *testing.T) {
+	yaml := `core:
+  auth:
+    oidc:
+      issuer: "https://idp.example"
+      audience: "aud"
+`
+	cfg, err := LoadConfig(writeTempYAML(t, yaml))
+	require.NoError(t, err)
+	assert.Empty(t, cfg.Privileges.Extensions)
+}
+
+func TestLoadConfig_ExtensionPrivilegesRejectInvalid(t *testing.T) {
+	for _, key := range []string{"", "   ", "core:users:read", "  core:roles:manage  "} {
+		t.Run(key, func(t *testing.T) {
+			yaml := `core:
+  auth:
+    oidc:
+      issuer: "https://idp.example"
+      audience: "aud"
+privileges:
+  extensions:
+    - "` + key + `"
+`
+			_, err := LoadConfig(writeTempYAML(t, yaml))
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "privileges.extensions")
+		})
+	}
+}

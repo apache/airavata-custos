@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -37,7 +38,12 @@ const IdentityCacheDefaultTTL = 30 * time.Second
 
 type Config struct {
 	Core       CoreConfig                  `yaml:"core"`
+	Privileges PrivilegesConfig            `yaml:"privileges"`
 	Connectors map[string]*ConnectorConfig `yaml:"connectors"`
+}
+
+type PrivilegesConfig struct {
+	Extensions []string `yaml:"extensions"`
 }
 
 type CoreConfig struct {
@@ -87,8 +93,25 @@ func LoadConfig(path string) (*Config, error) {
 	if err := applyAuthDefaults(&cfg.Core.Auth); err != nil {
 		return nil, err
 	}
+	if err := normalizeExtensionPrivileges(&cfg.Privileges); err != nil {
+		return nil, err
+	}
 
 	return &cfg, nil
+}
+
+func normalizeExtensionPrivileges(p *PrivilegesConfig) error {
+	for i, raw := range p.Extensions {
+		key := strings.TrimSpace(raw)
+		if key == "" {
+			return fmt.Errorf("privileges.extensions[%d] must not be empty", i)
+		}
+		if strings.HasPrefix(key, "core:") {
+			return fmt.Errorf("privileges.extensions[%d] must not use the reserved core: namespace", i)
+		}
+		p.Extensions[i] = key
+	}
+	return nil
 }
 
 // applyAuthDefaults enforces the auth invariants:

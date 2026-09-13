@@ -16,6 +16,7 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,35 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/httputil"
 	"github.com/apache/airavata-custos/signer/internal/metrics"
 )
+
+func CorePrivilegeMiddleware(authorizer auth.CoreAuthorizer, required string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if !strings.HasPrefix(authHeader, "Bearer ") || strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer ")) == "" {
+				httputil.WriteJSONError(w, http.StatusUnauthorized, "unauthorized", "Missing bearer token")
+				return
+			}
+			caller, err := authorizer.ResolveCaller(r.Context(), strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer ")))
+			if errors.Is(err, auth.ErrCoreUnauthorized) {
+				httputil.WriteJSONError(w, http.StatusUnauthorized, "unauthorized", "Invalid or expired bearer token")
+				return
+			}
+			if err != nil {
+				httputil.WriteJSONError(w, http.StatusServiceUnavailable, "authorization_unavailable", "Authorization service unavailable")
+				return
+			}
+			if !caller.HasPrivilege(required) {
+				httputil.WriteJSONError(w, http.StatusForbidden, "insufficient_privilege", "Caller lacks required privilege")
+				return
+			}
+			ctx := httputil.WithAdminCaller(r.Context(), &httputil.AdminCallerContext{
+				ID: caller.ID, Email: caller.Email, Privileges: caller.Privileges,
+			})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
 
 // BearerAuthMiddleware authenticates requests using an OIDC Bearer token in the
 // Authorization header. Used for user-facing endpoints (certificates, userinfo).
