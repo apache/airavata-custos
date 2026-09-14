@@ -38,6 +38,8 @@ export type CallerRoleGrant = {
     role?: Role;
 };
 
+export type ClusterAccessLevel = 'USER' | 'ADMIN';
+
 export type ComputeAllocation = {
     /**
      * The ID of the compute cluster where the allocation is provisioned.
@@ -277,12 +279,17 @@ export type ComputeCluster = {
 };
 
 export type ComputeClusterUser = {
+    access_level?: ClusterAccessLevel;
     compute_cluster_id?: string;
     id?: string;
     /**
      * The username of the user on the compute cluster, which may be different from their Airavata Custos username.
      */
     local_username?: string;
+    /**
+     * When the account was provisioned into the registry; nil until then.
+     */
+    provisioned_at?: string;
     user_id?: string;
 };
 
@@ -479,9 +486,27 @@ export type AttachResourceRequest = {
     resource_time?: number;
 };
 
+export type CreateComputeClusterUserRequest = {
+    compute_cluster_id?: string;
+    local_username?: string;
+    user_id?: string;
+};
+
 export type CreateRoleRequest = {
     description?: string;
     name?: string;
+};
+
+export type CreateUserRequest = {
+    allocation_id?: string;
+    cluster_admin?: boolean;
+    compute_cluster_id?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    organization_id?: string;
+    portal_admin?: boolean;
+    username?: string;
 };
 
 export type GrantPrivilegeRequest = {
@@ -2388,7 +2413,7 @@ export type PostComputeClusterUsersData = {
     /**
      * Cluster user payload
      */
-    body: ComputeClusterUser;
+    body: CreateComputeClusterUserRequest;
     path?: never;
     query?: never;
     url: '/compute-cluster-users';
@@ -2480,7 +2505,7 @@ export type PutComputeClusterUsersByIdData = {
     /**
      * Cluster user payload
      */
-    body: ComputeClusterUser;
+    body: CreateComputeClusterUserRequest;
     path: {
         /**
          * Compute cluster user ID
@@ -3619,7 +3644,7 @@ export type PostUsersData = {
     /**
      * User payload
      */
-    body: User;
+    body: CreateUserRequest;
     path?: never;
     query?: never;
     url: '/users';
@@ -3630,6 +3655,12 @@ export type PostUsersErrors = {
      * Bad Request
      */
     400: {
+        error?: string;
+    };
+    /**
+     * Conflict
+     */
+    409: {
         error?: string;
     };
 };

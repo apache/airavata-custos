@@ -969,6 +969,8 @@ export const getUsers = <ThrowOnError extends boolean = false>(options?: Options
 
 /**
  * Create a user
+ *
+ * Creates a researcher (both admin flags false) or an admin.
  */
 export const postUsers = <ThrowOnError extends boolean = false>(options: Options<PostUsersData, ThrowOnError>): RequestResult<PostUsersResponses, PostUsersErrors, ThrowOnError> => (options.client ?? client).post<PostUsersResponses, PostUsersErrors, ThrowOnError>({
     security: [{ name: 'Authorization', type: 'apiKey' }],
