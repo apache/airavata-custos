@@ -18,11 +18,16 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
+import { useAllocations } from "@/features/core/allocations/queries";
 import { useCurrentUser } from "@/features/core/identity/queries";
-import { useRolesCatalog, useUserPageDetails, useUsers } from "@/features/core/users/queries";
+import { useCreateUser, useRolesCatalog, useUserPageDetails, useUsers } from "@/features/core/users/queries";
+import type { CreateUserPayload } from "@/features/core/users/schemas";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { AddUserDialog } from "./AddUserDialog";
 import { UsersTable } from "./UsersTable";
 
 const PAGE_SIZE = 25;
@@ -32,8 +37,24 @@ export function UsersTableContainer() {
   const canReadUsers = ability.can("read", "User");
   const canManageRoles = ability.can("manage", "Role");
   const canReadDirectPrivileges = ability.can("manage", "PrivilegeGrant");
+  const canCreateUsers = ability.can("manage", "User");
   const { user: currentUser } = useCurrentUser();
   const [page, setPage] = React.useState(1);
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [addError, setAddError] = React.useState<string | null>(null);
+  const createMutation = useCreateUser();
+  const allocationsQuery = useAllocations({ status: "ACTIVE" });
+
+  async function handleAddUser(payload: CreateUserPayload) {
+    setAddError(null);
+    try {
+      await createMutation.mutateAsync(payload);
+      toast.success(payload.portal_admin ? "Admin user added" : "User added");
+      setAddDialogOpen(false);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Failed to add user");
+    }
+  }
   const usersQuery = useUsers(
     { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE },
     { enabled: canReadUsers },
@@ -68,16 +89,42 @@ export function UsersTableContainer() {
   }
 
   return (
-    <UsersTable
-      users={hydratedRows}
-      rolesCatalog={rolesQuery.data ?? []}
-      currentUserEmail={currentUser?.email}
-      canManageRoles={canManageRoles}
-      canReadDirectPrivileges={canReadDirectPrivileges}
-      page={page}
-      pageSize={PAGE_SIZE}
-      total={usersQuery.data?.total ?? 0}
-      onPageChange={setPage}
-    />
+    <>
+      <UsersTable
+        users={hydratedRows}
+        rolesCatalog={rolesQuery.data ?? []}
+        currentUserEmail={currentUser?.email}
+        canManageRoles={canManageRoles}
+        canReadDirectPrivileges={canReadDirectPrivileges}
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={usersQuery.data?.total ?? 0}
+        onPageChange={setPage}
+        toolbarAction={
+          canCreateUsers ? (
+            <Button
+              className="sm:ml-auto"
+              onClick={() => {
+                setAddError(null);
+                setAddDialogOpen(true);
+              }}
+            >
+              + Add user
+            </Button>
+          ) : null
+        }
+      />
+      {canCreateUsers ? (
+        <AddUserDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          onSubmit={handleAddUser}
+          isPending={createMutation.isPending}
+          error={addError}
+          canCreateAdmins={canManageRoles}
+          allocations={allocationsQuery.data?.items ?? []}
+        />
+      ) : null}
+    </>
   );
 }
