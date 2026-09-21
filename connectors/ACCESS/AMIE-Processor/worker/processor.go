@@ -33,6 +33,7 @@ import (
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/pkg/events"
 )
 
 const rootEventMaxBytes = 64 * 1024
@@ -323,16 +324,8 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 	})
 }
 
-// ComputeNextRetryAt calculates the next retry time using exponential backoff.
-// The delay is BaseBackoffSeconds * 2^(attempt-1), capped at MaxBackoffSeconds.
+// ComputeNextRetryAt calculates the next retry time.
 func ComputeNextRetryAt(attempt int) time.Time {
-	exp := attempt - 1
-	if exp < 0 {
-		exp = 0
-	}
-	delaySec := BaseBackoffSeconds * (1 << exp) // 30 * 2^exp
-	if delaySec > MaxBackoffSeconds {
-		delaySec = MaxBackoffSeconds
-	}
-	return time.Now().UTC().Add(time.Duration(delaySec) * time.Second)
+	delay := events.NextRetryDelay(attempt, BaseBackoffSeconds*time.Second, MaxBackoffSeconds*time.Second)
+	return time.Now().UTC().Add(delay)
 }
