@@ -127,11 +127,18 @@ type Event struct {
 }
 
 // EventSubscriberFunc is a function type that can be registered to receive events from the bus.
-type EventSubscriberFunc func(ctx context.Context, event Event, value interface{})
+// A returned error means the event was not handled.
+type EventSubscriberFunc func(ctx context.Context, event Event, value interface{}) error
+
+// subscription is one named subscriber's handler for a topic.
+type subscription struct {
+	subscriber string
+	handler    EventSubscriberFunc
+}
 
 // Bus is a lightweight, in-memory, topic-based pub/sub event bus.
 // Modules publish and subscribe by topic without knowing about each other.
 type Bus struct {
 	mu   sync.RWMutex
-	subs map[string][]EventSubscriberFunc
+	subs map[string][]subscription
 }

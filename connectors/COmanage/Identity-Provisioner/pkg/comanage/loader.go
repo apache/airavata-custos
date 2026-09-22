@@ -43,6 +43,9 @@ func init() {
 	tracing.RegisterTerminalMarkers("comanage", "ComanageClusterAccountAttached")
 }
 
+// Type is the connector type in the config file and the subscriber name on the bus.
+const Type = "comanage-identity-provisioner"
+
 // LoadConnector wires the subscriber to the event bus. Reads YAML config first
 // and falls back to environment variables. If neither yields a complete
 // config, it logs and returns nil without registering.
@@ -56,7 +59,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		}
 	}
 	httpClient := client.New(cfg)
-	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers()
+	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
 	slog.Info("comanage provisioner: subscriber registered",
 		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.CustosClusterID)
 	// Custos is the source of truth: CoPerson and UnixClusterAccount records

@@ -30,7 +30,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context.Context, computeAllocation models.ComputeAllocation) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_create")
 	defer span.End()
@@ -50,7 +50,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get compute cluster. Error: "+err.Error())
-		return
+		return err
 	}
 
 	project, err := a.coreService.GetProject(ctx, computeAllocation.ProjectID)
@@ -59,7 +59,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get project. Error: "+err.Error())
-		return
+		return err
 	}
 
 	pi, err := a.coreService.GetUser(ctx, project.ProjectPIID)
@@ -68,7 +68,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get project PI. Error: "+err.Error())
-		return
+		return err
 	}
 
 	organization, err := a.coreService.GetOrganization(ctx, pi.OrganizationID)
@@ -77,7 +77,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get organization. Error: "+err.Error())
-		return
+		return err
 	}
 
 	slurmAccount := client.Account{
@@ -92,17 +92,18 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to create SLURM account. Error: "+err.Error())
-		return
+		return err
 	}
 
 	a.recordAuditEvent(ctx, "ComputeAllocationCreationSucceeded", "compute_allocation", computeAllocation.ID, "Successfully created SLURM account for compute allocation.")
 	slog.Info("Successfully created SLURM account for compute allocation", "account", slurmAccount)
+	return nil
 }
 
 // SubscribeToComputeAllocationDeletion revokes every member's access when the
 // allocation is deleted. The Slurm account is left in place so its job history
 // stays attributable.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context.Context, computeAllocation models.ComputeAllocation) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_delete")
 	defer span.End()
@@ -116,15 +117,16 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationDeletionFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
-		return
+		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deleted allocation.")
+	return nil
 }
 
 // SubscribeToComputeAllocationUpdate keeps cluster access in sync with the
 // allocation. An allocation that stops being active loses every association,
 // and one that becomes active again has them restored.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.Context, computeAllocation models.ComputeAllocation) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
 	defer span.End()
@@ -139,10 +141,10 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.C
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to restore associations. Error: "+err.Error())
-			return
+			return err
 		}
 		a.recordAuditEvent(ctx, "ComputeAllocationProvisioned", "compute_allocation", computeAllocation.ID, "Restored cluster associations for the active allocation.")
-		return
+		return nil
 	}
 
 	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
@@ -150,12 +152,13 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.C
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
-		return
+		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deactivated allocation.")
+	return nil
 }
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreation(ctx context.Context, mapping models.ComputeAllocationResourceMapping) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreation(ctx context.Context, mapping models.ComputeAllocationResourceMapping) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_resource_mapping_create")
 	defer span.End()
@@ -172,7 +175,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to get compute allocation. Error: "+err.Error())
-		return
+		return err
 	}
 
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
@@ -181,7 +184,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to get compute cluster. Error: "+err.Error())
-		return
+		return err
 	}
 	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
 
@@ -191,7 +194,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to get compute allocation resource. Error: "+err.Error())
-		return
+		return err
 	}
 
 	grpTres := []client.TRES{}
@@ -202,7 +205,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 			slog.Error("Resource type is empty for resource mapping creation", "mapping", mapping)
 			span.SetStatus(codes.Error, "resource type is empty")
 			a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Resource type is empty for resource mapping creation")
-			return
+			return errEmptyResourceType
 		}
 
 		grpTres = append(grpTres, tresFor(resource.ResourceType, mapping.ResourceAmount))
@@ -215,7 +218,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 			slog.Error("Resource type is empty for resource mapping creation", "mapping", mapping)
 			span.SetStatus(codes.Error, "resource type is empty")
 			a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Resource type is empty for resource mapping creation")
-			return
+			return errEmptyResourceType
 		}
 
 		grpTresMins = append(grpTresMins, tresFor(resource.ResourceType, mapping.ResourceTime))
@@ -238,9 +241,10 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to upsert association. Error: "+err.Error())
-		return
+		return err
 	} else {
 		slog.Info("Successfully upserted association for membership resource override creation", "association", association)
 		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationSucceeded", "compute_allocation_resource_mapping", mapping.ID, "Successfully upserted association for compute allocation resource mapping creation")
 	}
+	return nil
 }

@@ -39,12 +39,12 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 	slog.Info("loading connectors from config")
 
 	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *identity.Router, *config.ConnectorConfig) error{
-		"slurm-association-mapper":      smapper.LoadConnector,
-		"amie-processor":                amie.LoadConnector,
-		"comanage-identity-provisioner": comanage.LoadConnector,
-		"slurm-usage-monitor":           monitor.LoadConnector,
-		"temp-account":                  tempaccount.LoadConnector,
-		"analytics":                     analytics.LoadConnector,
+		smapper.Type:     smapper.LoadConnector,
+		amie.Type:        amie.LoadConnector,
+		comanage.Type:    comanage.LoadConnector,
+		monitor.Type:     monitor.LoadConnector,
+		tempaccount.Type: tempaccount.LoadConnector,
+		analytics.Type:   analytics.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {

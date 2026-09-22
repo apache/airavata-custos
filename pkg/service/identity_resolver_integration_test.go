@@ -262,8 +262,9 @@ func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
 	user := seedPendingUserWithEmail(t, database, "provision-first@example.edu")
 
 	got := make(chan models.UserIdentity, 1)
-	bus.SubscribeUserIdentityCreated(func(_ context.Context, identity models.UserIdentity) {
+	bus.SubscribeUserIdentityCreated("test-subscriber", func(_ context.Context, identity models.UserIdentity) error {
 		got <- identity
+		return nil
 	})
 
 	if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{

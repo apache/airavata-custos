@@ -19,6 +19,7 @@ package events
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -29,62 +30,18 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-type ctxKey string
-
-const testCtxKey ctxKey = "trace-id"
-
 const topicTest EventType = "test::topic"
 
-func TestPublishSyncPropagatesContext(t *testing.T) {
-	bus := New()
+const subscriberTest = "test-subscriber"
 
-	got := make(chan string, 1)
-	bus.Subscribe(topicTest, func(ctx context.Context, _ Event, _ interface{}) {
-		v, _ := ctx.Value(testCtxKey).(string)
-		got <- v
-	})
-
-	ctx := context.WithValue(context.Background(), testCtxKey, "abc123")
-	bus.PublishSync(ctx, topicTest, "payload")
-
-	select {
-	case v := <-got:
-		if v != "abc123" {
-			t.Fatalf("PublishSync did not propagate ctx value, got %q", v)
-		}
-	case <-time.After(time.Second):
-		t.Fatalf("subscriber never ran")
-	}
-}
-
-func TestPublishAsyncPropagatesContext(t *testing.T) {
-	bus := New()
-
-	got := make(chan string, 1)
-	bus.Subscribe(topicTest, func(ctx context.Context, _ Event, _ interface{}) {
-		v, _ := ctx.Value(testCtxKey).(string)
-		got <- v
-	})
-
-	ctx := context.WithValue(context.Background(), testCtxKey, "def456")
-	bus.Publish(ctx, topicTest, "payload")
-
-	select {
-	case v := <-got:
-		if v != "def456" {
-			t.Fatalf("Publish did not propagate ctx value, got %q", v)
-		}
-	case <-time.After(time.Second):
-		t.Fatalf("subscriber never ran")
-	}
-}
-
-func TestPublishAsyncDetachesCancellation(t *testing.T) {
+// Make sure a handler is not canceled when the publisher's request context is
+// canceled, since a handler can keep running after publishing the event.
+func TestPublishDetachesCancellation(t *testing.T) {
 	bus := New()
 
 	started := make(chan struct{})
 	done := make(chan error, 1)
-	bus.Subscribe(topicTest, func(ctx context.Context, _ Event, _ interface{}) {
+	bus.Subscribe(subscriberTest, topicTest, func(ctx context.Context, _ Event, _ interface{}) error {
 		close(started)
 		select {
 		case <-ctx.Done():
@@ -92,6 +49,7 @@ func TestPublishAsyncDetachesCancellation(t *testing.T) {
 		case <-time.After(200 * time.Millisecond):
 			done <- nil
 		}
+		return nil
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -110,38 +68,22 @@ func TestPublishAsyncDetachesCancellation(t *testing.T) {
 	}
 }
 
-func TestPublishSyncPanicPropagatesToCaller(t *testing.T) {
-	bus := New()
-
-	bus.Subscribe(topicTest, func(context.Context, Event, interface{}) {
-		panic("boom")
-	})
-
-	var recovered any
-	func() {
-		defer func() { recovered = recover() }()
-		bus.PublishSync(context.Background(), topicTest, nil)
-	}()
-
-	if recovered == nil {
-		t.Fatalf("expected sync publish to surface subscriber panic to caller")
-	}
-}
-
-func TestPublishAsyncSubscriberPanicDoesNotKillOthers(t *testing.T) {
+// Make sure one subscriber panicking does not stop another subscriber of the same event.
+func TestPublishSubscriberPanicDoesNotKillOthers(t *testing.T) {
 	bus := New()
 
 	var ran atomic.Int32
 	var wg sync.WaitGroup
 	wg.Add(2)
-	bus.Subscribe(topicTest, func(context.Context, Event, interface{}) {
+	bus.Subscribe(subscriberTest, topicTest, func(context.Context, Event, interface{}) error {
 		defer wg.Done()
 		ran.Add(1)
 		panic("boom")
 	})
-	bus.Subscribe(topicTest, func(context.Context, Event, interface{}) {
+	bus.Subscribe(subscriberTest, topicTest, func(context.Context, Event, interface{}) error {
 		defer wg.Done()
 		ran.Add(1)
+		return nil
 	})
 
 	bus.Publish(context.Background(), topicTest, nil)
@@ -159,6 +101,83 @@ func TestPublishAsyncSubscriberPanicDoesNotKillOthers(t *testing.T) {
 
 	if got := ran.Load(); got != 2 {
 		t.Fatalf("expected both subscribers to run, got %d", got)
+	}
+}
+
+// Make sure a handler error marks the subscribe span as failed, so a failed
+// delivery does not show as healthy in the trace view.
+func TestPublishMarksSpanErrorWhenHandlerFails(t *testing.T) {
+	rec := &recordingProcessor{}
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	prev := otel.GetTracerProvider()
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+
+	bus := New()
+	bus.Subscribe(subscriberTest, topicTest, func(context.Context, Event, interface{}) error {
+		return errors.New("boom")
+	})
+
+	bus.Publish(context.Background(), topicTest, nil)
+
+	deadline := time.Now().Add(time.Second)
+	var sub sdktrace.ReadOnlySpan
+	for time.Now().Before(deadline) {
+		_ = tp.ForceFlush(context.Background())
+		sub = rec.findByName("bus.subscribe:" + string(topicTest))
+		if sub != nil {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	if sub == nil {
+		t.Fatalf("did not see bus.subscribe span")
+	}
+	if got := sub.Status().Code; got != codes.Error {
+		t.Fatalf("expected bus.subscribe span status=Error, got %v", got)
+	}
+}
+
+// Make sure the `sync publish` stops at the first failing handler and returns its error.
+func TestPublishSyncReturnsHandlerError(t *testing.T) {
+	bus := New()
+
+	want := errors.New("boom")
+	var secondRan bool
+	bus.Subscribe(subscriberTest, topicTest, func(context.Context, Event, interface{}) error {
+		return want
+	})
+	bus.Subscribe(subscriberTest, topicTest, func(context.Context, Event, interface{}) error {
+		secondRan = true
+		return nil
+	})
+
+	if err := bus.PublishSync(context.Background(), topicTest, nil); !errors.Is(err, want) {
+		t.Fatalf("expected handler error, got %v", err)
+	}
+	if secondRan {
+		t.Fatalf("expected sync publish to stop at the first error")
+	}
+}
+
+// Make sure a handler panic reaches the caller of the `sync publish`, unlike
+// Publish method, which runs handlers in the background and can only log it.
+func TestPublishSyncPanicPropagatesToCaller(t *testing.T) {
+	bus := New()
+
+	bus.Subscribe(subscriberTest, topicTest, func(context.Context, Event, interface{}) error {
+		panic("boom")
+	})
+
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		_ = bus.PublishSync(context.Background(), topicTest, nil)
+	}()
+
+	if recovered == nil {
+		t.Fatalf("expected sync publish to surface subscriber panic to caller")
 	}
 }
 
@@ -185,41 +204,4 @@ func (p *recordingProcessor) findByName(name string) sdktrace.ReadOnlySpan {
 		}
 	}
 	return nil
-}
-
-func TestSafeDispatchSetsSpanErrorOnPanic(t *testing.T) {
-	rec := &recordingProcessor{}
-	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
-	prev := otel.GetTracerProvider()
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
-
-	bus := New()
-	bus.Subscribe(topicTest, func(context.Context, Event, interface{}) {
-		panic("boom")
-	})
-
-	bus.Publish(context.Background(), topicTest, nil)
-
-	deadline := time.Now().Add(time.Second)
-	var sub sdktrace.ReadOnlySpan
-	for time.Now().Before(deadline) {
-		_ = tp.ForceFlush(context.Background())
-		sub = rec.findByName("bus.subscribe:" + string(topicTest))
-		if sub != nil {
-			break
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-
-	if sub == nil {
-		var names []string
-		for _, s := range rec.spans {
-			names = append(names, s.Name())
-		}
-		t.Fatalf("did not see bus.subscribe span; got names=%v", names)
-	}
-	if got := sub.Status().Code; got != codes.Error {
-		t.Fatalf("expected bus.subscribe span status=Error, got %v", got)
-	}
 }

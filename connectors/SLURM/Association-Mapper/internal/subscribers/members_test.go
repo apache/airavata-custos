@@ -19,6 +19,7 @@ package subscribers
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -156,8 +157,11 @@ func testMembership() models.ComputeAllocationMembership {
 func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
+	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
 		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
 	got := slurm.all()
 	if len(got) != 1 {
@@ -168,13 +172,33 @@ func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
 	}
 }
 
+// Make sure a failed core lookup is returned as the handler's error and not
+// only logged, so the bus can tell the delivery failed.
+func TestMembershipCreationReturnsCoreError(t *testing.T) {
+	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
+	lookupErr := errors.New("core unavailable")
+	core.GetComputeAllocationFunc = func(context.Context, string) (*models.ComputeAllocation, error) {
+		return nil, lookupErr
+	}
+
+	err := NewAssociationSubscriber(&fakeSlurmClient{}, nil, core, 0, 0).
+		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+	if !errors.Is(err, lookupErr) {
+		t.Fatalf("expected the core lookup error, got %v", err)
+	}
+}
+
 // An unprovisioned account must NOT get an association: slurmctld would cache
-// the failed uid lookup and reject the user's jobs. The reconciler picks it up.
+// the failed uid lookup and reject the user's jobs. The reconciler picks it up,
+// so the handler returns no error.
 func TestMembershipCreationDefersWhenNotProvisioned(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: nil})
 	slurm := &fakeSlurmClient{}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
+	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
 		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+	if err != nil {
+		t.Fatalf("expected no error for an unprovisioned account, got %v", err)
+	}
 
 	if n := len(slurm.all()); n != 0 {
 		t.Fatalf("expected no association for an unprovisioned account, got %d", n)

@@ -43,6 +43,9 @@ func tresFor(resourceType string, count int64) client.TRES {
 // and reject the user's jobs. The reconciler retries these.
 var errNotProvisioned = errors.New("cluster account not provisioned yet")
 
+// errEmptyResourceType means the resource row has an empty resource_type.
+var errEmptyResourceType = errors.New("resource type is empty")
+
 // assocKey identifies an association the way Slurm does. Cluster is not part
 // of it because callers scope their lookups to one cluster already.
 type assocKey struct {

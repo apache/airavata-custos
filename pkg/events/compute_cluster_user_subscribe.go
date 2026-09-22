@@ -19,47 +19,28 @@ package events
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // ComputeClusterUserHandler handles compute-cluster user lifecycle events
 // with a typed payload.
-type ComputeClusterUserHandler func(ctx context.Context, user models.ComputeClusterUser)
+type ComputeClusterUserHandler func(ctx context.Context, user models.ComputeClusterUser) error
 
 // SubscribeComputeClusterUserCreated registers a typed handler invoked
 // whenever a compute_cluster_user::create event is published.
-func (b *Bus) SubscribeComputeClusterUserCreated(handler ComputeClusterUserHandler) {
-	b.subscribeComputeClusterUser(ComputeClusterUserCreateEvent, handler)
+func (b *Bus) SubscribeComputeClusterUserCreated(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserCreateEvent, handler)
 }
 
 // SubscribeComputeClusterUserUpdated registers a typed handler invoked
 // whenever a compute_cluster_user::update event is published.
-func (b *Bus) SubscribeComputeClusterUserUpdated(handler ComputeClusterUserHandler) {
-	b.subscribeComputeClusterUser(ComputeClusterUserUpdateEvent, handler)
+func (b *Bus) SubscribeComputeClusterUserUpdated(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserUpdateEvent, handler)
 }
 
 // SubscribeComputeClusterUserDeleted registers a typed handler invoked
 // whenever a compute_cluster_user::delete event is published.
-func (b *Bus) SubscribeComputeClusterUserDeleted(handler ComputeClusterUserHandler) {
-	b.subscribeComputeClusterUser(ComputeClusterUserDeleteEvent, handler)
-}
-
-func (b *Bus) subscribeComputeClusterUser(topic EventType, handler ComputeClusterUserHandler) {
-	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
-		switch u := value.(type) {
-		case models.ComputeClusterUser:
-			handler(ctx, u)
-		case *models.ComputeClusterUser:
-			if u != nil {
-				handler(ctx, *u)
-			}
-		default:
-			slog.Warn("compute cluster user event payload has unexpected type",
-				"type", event.Type,
-				"got", value,
-			)
-		}
-	})
+func (b *Bus) SubscribeComputeClusterUserDeleted(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserDeleteEvent, handler)
 }
