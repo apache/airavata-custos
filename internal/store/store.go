@@ -440,6 +440,38 @@ type AuditEventStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// EventDeliveryStore persists which subscriber listens to which event, each
+// published event, and each event on its way to each subscriber.
+type EventDeliveryStore interface {
+	// SaveSubscription records the subscriber that listens to eventType. Saving the same pair again is a no-op.
+	SaveSubscription(ctx context.Context, subscriber, eventType string) error
+	// ListSubscriptions returns every saved subscription.
+	ListSubscriptions(ctx context.Context) ([]models.EventSubscription, error)
+	// DeleteSubscriptions removes every subscription of the given subscriber.
+	DeleteSubscriptions(ctx context.Context, subscriber string) error
+	// DeleteSubscription removes one subscriber's subscription to one event type.
+	DeleteSubscription(ctx context.Context, subscriber, eventType string) error
+
+	// CreateEvent inserts a published event within the provided transaction.
+	CreateEvent(ctx context.Context, tx *sql.Tx, e *models.Event) error
+	// CreateDelivery inserts one subscriber's delivery of an event within the provided transaction.
+	CreateDelivery(ctx context.Context, tx *sql.Tx, d *models.EventDelivery) error
+	// FindDeliveryByID returns the delivery with its event, or nil if not found.
+	FindDeliveryByID(ctx context.Context, id string) (*models.PendingDelivery, error)
+	// FindDueDeliveries returns pending deliveries whose next_run_at is at or before now, oldest first, and each with its event.
+	FindDueDeliveries(ctx context.Context, now time.Time, limit int) ([]models.PendingDelivery, error)
+	// ListDeliveriesByStatus returns deliveries in the given status, newest first, and each with its event.
+	ListDeliveriesByStatus(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error)
+	// MarkDeliverySucceeded records a successful delivery within the provided transaction.
+	MarkDeliverySucceeded(ctx context.Context, tx *sql.Tx, id string, attempts int, finishedAt time.Time) error
+	// MarkDeliveryRetry records a failed attempt and when to try again, within the provided transaction.
+	MarkDeliveryRetry(ctx context.Context, tx *sql.Tx, id string, attempts int, nextRunAt time.Time, lastError string) error
+	// MarkDeliveryFailed records that delivery has given up, within the provided transaction.
+	MarkDeliveryFailed(ctx context.Context, tx *sql.Tx, id string, attempts int, lastError string, finishedAt time.Time) error
+	// ResetDeliveryToPending makes a delivery due again with a fresh attempt count, within the provided transaction. The last error is kept.
+	ResetDeliveryToPending(ctx context.Context, tx *sql.Tx, id string, nextRunAt time.Time) error
+}
+
 // RoleStore covers role definitions and the privilege bundle each carries.
 type RoleStore interface {
 	FindByID(ctx context.Context, id string) (*models.Role, error)
