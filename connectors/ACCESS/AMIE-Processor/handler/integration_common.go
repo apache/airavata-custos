@@ -150,7 +150,11 @@ func seedDefaultCluster(t *testing.T, database *sqlx.DB) {
 }
 
 func newTestCoreService(database *sqlx.DB) *coreservice.Service {
-	return coreservice.New(database, events.New())
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		panic("event bus: " + err.Error())
+	}
+	return coreservice.New(database, bus)
 }
 
 func newTestAuditService(database *sqlx.DB) *amieservice.AuditService {

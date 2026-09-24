@@ -25,7 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/google/uuid"
@@ -257,7 +256,7 @@ func TestBootstrapSuperAdmin_CreatesPendingUserWhenMissing(t *testing.T) {
 // registry gets it through this event.
 func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
 	database := setupTestDB(t)
-	bus := events.New()
+	bus := newTestBus(database)
 	svc := New(database, bus)
 	user := seedPendingUserWithEmail(t, database, "provision-first@example.edu")
 
@@ -274,6 +273,11 @@ func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
+
+	// The event is stored, so the worker has to run for the subscriber to get it.
+	workerCtx, stopWorker := context.WithCancel(context.Background())
+	defer stopWorker()
+	go bus.Run(workerCtx)
 
 	select {
 	case identity := <-got:

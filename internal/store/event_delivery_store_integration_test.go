@@ -74,26 +74,29 @@ func TestSaveSubscriptionTwiceKeepsOneRow(t *testing.T) {
 	}
 }
 
-// Make sure only pending deliveries past their next_run_at come back, oldest
-// first, each with its event and the same payload JSON. The worker picks rows
-// with this query, so a retry set for later must not run early.
+// Make sure only pending deliveries past their next_run_at, for a loaded
+// subscriber, come back oldest first, each with its event and the same
+// payload JSON. The worker picks rows with this query, so a retry set for
+// later must not run early, and rows for a connector that is not running must
+// not fill the batch.
 func TestFindDueDeliveriesReturnsOnlyPastDueRows(t *testing.T) {
 	database := setupTestDB(t)
 	s := NewEventDeliveryStore(database)
 	ctx := context.Background()
 	now := time.Now().UTC()
 
-	event := newEvent(now.Add(-3 * time.Minute))
-	older := newDelivery(event.ID, "slurm-association-mapper", now.Add(-3*time.Minute))
-	newer := newDelivery(event.ID, "comanage-identity-provisioner", now.Add(-2*time.Minute))
-	done := newDelivery(event.ID, "analytics", now.Add(-time.Minute))
-	later := newDelivery(event.ID, "storage", now.Add(time.Hour))
+	event := newEvent(now.Add(-4 * time.Minute))
+	older := newDelivery(event.ID, "slurm-association-mapper", now.Add(-4*time.Minute))
+	newer := newDelivery(event.ID, "comanage-identity-provisioner", now.Add(-3*time.Minute))
+	done := newDelivery(event.ID, "analytics", now.Add(-2*time.Minute))
+	notLoaded := newDelivery(event.ID, "storage", now.Add(-time.Minute))
+	later := newDelivery(event.ID, "slurm-association-mapper", now.Add(time.Hour))
 
 	inTx(t, database, func(tx *sql.Tx) error {
 		if err := s.CreateEvent(ctx, tx, event); err != nil {
 			return err
 		}
-		for _, d := range []*models.EventDelivery{older, newer, done, later} {
+		for _, d := range []*models.EventDelivery{older, newer, done, notLoaded, later} {
 			if err := s.CreateDelivery(ctx, tx, d); err != nil {
 				return err
 			}
@@ -101,7 +104,8 @@ func TestFindDueDeliveriesReturnsOnlyPastDueRows(t *testing.T) {
 		return s.MarkDeliverySucceeded(ctx, tx, done.ID, 1, now)
 	})
 
-	due, err := s.FindDueDeliveries(ctx, now, 10)
+	loaded := []string{"slurm-association-mapper", "comanage-identity-provisioner", "analytics"}
+	due, err := s.FindDueDeliveries(ctx, now, loaded, 10)
 	if err != nil {
 		t.Fatalf("find due: %v", err)
 	}

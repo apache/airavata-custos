@@ -198,7 +198,10 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	}
 
 	amieClient := amieclient.New(cfg)
-	eventBus := events.New()
+	eventBus, err := events.New(context.Background(), database)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
 	coreSvc := coreservice.New(database, eventBus)
 
 	packetStore := store.NewPacketStore(database)

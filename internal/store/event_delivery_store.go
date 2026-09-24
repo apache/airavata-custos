@@ -107,15 +107,15 @@ func (s *pgEventDeliveryStore) FindDeliveryByID(ctx context.Context, id string) 
 	return &d, nil
 }
 
-func (s *pgEventDeliveryStore) FindDueDeliveries(ctx context.Context, now time.Time, limit int) ([]models.PendingDelivery, error) {
+func (s *pgEventDeliveryStore) FindDueDeliveries(ctx context.Context, now time.Time, subscribers []string, limit int) ([]models.PendingDelivery, error) {
 	var rows []models.PendingDelivery
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+eventDeliveryWithEventColumns+`
 		 FROM event_deliveries d JOIN events e ON e.id = d.event_id
-		 WHERE d.status = $1 AND d.next_run_at <= $2
+		 WHERE d.status = $1 AND d.next_run_at <= $2 AND d.subscriber = ANY($3)
 		 ORDER BY d.created_at
-		 LIMIT $3`,
-		models.EventDeliveryPending, now, limit)
+		 LIMIT $4`,
+		models.EventDeliveryPending, now, subscribers, limit)
 	if err != nil {
 		return nil, err
 	}

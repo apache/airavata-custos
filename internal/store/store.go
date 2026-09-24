@@ -458,8 +458,9 @@ type EventDeliveryStore interface {
 	CreateDelivery(ctx context.Context, tx *sql.Tx, d *models.EventDelivery) error
 	// FindDeliveryByID returns the delivery with its event, or nil if not found.
 	FindDeliveryByID(ctx context.Context, id string) (*models.PendingDelivery, error)
-	// FindDueDeliveries returns pending deliveries whose next_run_at is at or before now, oldest first, and each with its event.
-	FindDueDeliveries(ctx context.Context, now time.Time, limit int) ([]models.PendingDelivery, error)
+	// FindDueDeliveries returns pending deliveries for the given subscribers
+	// whose next_run_at is at or before now, oldest first, each with its event.
+	FindDueDeliveries(ctx context.Context, now time.Time, subscribers []string, limit int) ([]models.PendingDelivery, error)
 	// ListDeliveriesByStatus returns deliveries in the given status, newest first, and each with its event.
 	ListDeliveriesByStatus(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error)
 	// MarkDeliverySucceeded records a successful delivery within the provided transaction.

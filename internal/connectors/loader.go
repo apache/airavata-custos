@@ -55,6 +55,10 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 
 		if !connectorCfg.Enabled {
 			slog.Info("connector is disabled", "name", connectorName, "type", connectorCfg.Type)
+			// Disabled on purpose, so stop keeping events for it.
+			if err := eventBus.Unsubscribe(ctx, connectorCfg.Type); err != nil {
+				return err
+			}
 			continue
 		}
 
