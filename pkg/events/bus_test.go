@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -61,6 +62,15 @@ func publish(t *testing.T, ctx context.Context, bus *Bus, topic EventType, paylo
 	}); err != nil {
 		t.Fatalf("publish: %v", err)
 	}
+}
+
+func auditRows(t *testing.T, database *sqlx.DB, entityID string) []models.AuditEvent {
+	t.Helper()
+	var rows []models.AuditEvent
+	if err := database.Select(&rows, "SELECT event_type, details, trace_id FROM audit_events WHERE entity_id = $1 ORDER BY event_time", entityID); err != nil {
+		t.Fatalf("list audit rows: %v", err)
+	}
+	return rows
 }
 
 func countEvents(t *testing.T, database *sqlx.DB) int {
@@ -133,6 +143,50 @@ func TestPublishRollsBackWithCallerTransaction(t *testing.T) {
 
 	if n := countEvents(t, database); n != 0 {
 		t.Fatalf("expected the event to roll back with the transaction, got %d stored", n)
+	}
+}
+
+// Make sure every event delivery attempt creates an audit row with
+// the attempt number and under the trace of the request that published the event.
+func TestEveryDeliveryAttemptCreatesAnAuditRow(t *testing.T) {
+	database := setupTestDB(t)
+	bus := newBus(t, database)
+	calls := 0
+	bus.SubscribeComputeClusterUserCreated(subscriberTest, func(context.Context, models.ComputeClusterUser) error {
+		calls++
+		if calls == 1 {
+			return errors.New("registry 503")
+		}
+		return nil
+	})
+
+	ctx, span := tracing.Start(context.Background(), "test.publish")
+	wantTrace, _ := tracing.IDsFromContext(ctx)
+	publish(t, ctx, bus, ComputeClusterUserCreateEvent, clusterUser())
+	span.End()
+
+	bus.deliverDue(context.Background())
+	pending := onlyDelivery(t, bus, models.EventDeliveryPending)
+
+	// Update the same event delivery row due again instead of waiting out the backoff.
+	if err := db.TxFn(context.Background(), database, func(tx *sql.Tx) error {
+		return bus.store.MarkDeliveryRetry(context.Background(), tx, pending.ID, pending.Attempts, time.Now().Add(-time.Minute), "still down")
+	}); err != nil {
+		t.Fatalf("mark retry: %v", err)
+	}
+	bus.deliverDue(context.Background())
+
+	rows := auditRows(t, database, pending.ID)
+	if len(rows) != 2 || rows[0].EventType != auditDeliveryFailed || rows[1].EventType != auditDeliverySucceeded {
+		t.Fatalf("expected a failed then a succeeded attempt, got %+v", rows)
+	}
+	if !strings.Contains(rows[1].Details, `"attempt":2`) {
+		t.Fatalf("expected the second row to carry attempt 2, got %s", rows[1].Details)
+	}
+	for _, r := range rows {
+		if r.TraceID != wantTrace {
+			t.Fatalf("audit row trace %q, want the publisher's %q", r.TraceID, wantTrace)
+		}
 	}
 }
 

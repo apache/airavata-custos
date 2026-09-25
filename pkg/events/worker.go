@@ -20,10 +20,12 @@ package events
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/apache/airavata-custos/internal/audit"
@@ -42,6 +44,12 @@ const (
 	maxAttempts    = 10
 	retryBase      = 30 * time.Second
 	retryMax       = time.Hour
+)
+
+// Audit event types written by the event worker, one row per delivery attempt.
+const (
+	auditDeliverySucceeded = "EVENT_DELIVERY_SUCCEEDED"
+	auditDeliveryFailed    = "EVENT_DELIVERY_FAILED"
 )
 
 // Run is started once, after the connectors have loaded. It first drops the
@@ -173,22 +181,52 @@ func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
-	markErr := db.TxFn(ctx, b.db, func(tx *sql.Tx) error {
+	recordErr := db.TxFn(ctx, b.db, func(tx *sql.Tx) error {
+		var updateErr error
 		switch {
 		case err == nil:
-			return b.store.MarkDeliverySucceeded(ctx, tx, row.ID, attempts, now)
+			updateErr = b.store.MarkDeliverySucceeded(ctx, tx, row.ID, attempts, now)
 		case errors.Is(err, ErrPermanent) || attempts >= maxAttempts:
 			slog.ErrorContext(handlerCtx, "event delivery failed, no more retries", "subscriber", row.Subscriber, "topic", row.Event.EventType, "attempts", attempts, "error", err)
-			return b.store.MarkDeliveryFailed(ctx, tx, row.ID, attempts, err.Error(), now)
+			updateErr = b.store.MarkDeliveryFailed(ctx, tx, row.ID, attempts, err.Error(), now)
 		default:
 			next := now.Add(NextRetryDelay(attempts, retryBase, retryMax))
 			slog.WarnContext(handlerCtx, "event delivery failed, will retry", "subscriber", row.Subscriber, "topic", row.Event.EventType, "attempt", attempts, "next_run_at", next, "error", err)
-			return b.store.MarkDeliveryRetry(ctx, tx, row.ID, attempts, next, err.Error())
+			updateErr = b.store.MarkDeliveryRetry(ctx, tx, row.ID, attempts, next, err.Error())
 		}
+		if updateErr != nil {
+			return updateErr
+		}
+		return b.auditEvents.Create(ctx, tx, deliveryAudit(handlerCtx, row, attempts, now, err))
 	})
 	// The row stays pending, so the next tick runs it again. Handlers are
 	// idempotent, so a repeat after a success is harmless.
-	if markErr != nil {
-		slog.Error("event delivery outcome not recorded", "delivery_id", row.ID, "error", markErr)
+	if recordErr != nil {
+		slog.Error("event delivery outcome not recorded", "delivery_id", row.ID, "error", recordErr)
+	}
+}
+
+// deliveryAudit builds the audit row for one event delivery attempt. The trace id is
+// the one from the request that published the event, and the source is the subscriber.
+func deliveryAudit(ctx context.Context, row models.PendingDelivery, attempts int, now time.Time, err error) *models.AuditEvent {
+	eventType := auditDeliverySucceeded
+	details := map[string]any{"subscriber": row.Subscriber, "event_type": row.Event.EventType, "attempt": attempts}
+	if err != nil {
+		eventType = auditDeliveryFailed
+		details["error"] = err.Error()
+	}
+	body, _ := json.Marshal(details)
+	traceID, spanID := tracing.IDsFromContext(ctx)
+	return &models.AuditEvent{
+		ID:           uuid.NewString(),
+		EventType:    eventType,
+		EventTime:    now,
+		EntityID:     row.ID,
+		EntityType:   "event_delivery",
+		Details:      string(body),
+		Source:       row.Subscriber,
+		TraceID:      traceID,
+		SpanID:       spanID,
+		ParentSpanID: tracing.ParentSpanIDFromContext(ctx),
 	}
 }

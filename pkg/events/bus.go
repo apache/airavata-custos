@@ -41,6 +41,7 @@ func New(ctx context.Context, database *sqlx.DB) (*Bus, error) {
 	b := &Bus{
 		db:            database,
 		store:         store.NewEventDeliveryStore(database),
+		auditEvents:   store.NewAuditEventStore(database),
 		topicHandlers: make(map[string][]handler),
 		subscriptions: make(map[string]map[string]struct{}),
 	}

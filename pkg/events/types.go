@@ -147,8 +147,9 @@ type handler struct {
 // writes one event delivery row per saved subscription, and the worker started by
 // Run calls the handlers from those rows.
 type Bus struct {
-	db    *sqlx.DB
-	store store.EventDeliveryStore
+	db          *sqlx.DB
+	store       store.EventDeliveryStore
+	auditEvents store.AuditEventStore
 
 	mu sync.RWMutex
 

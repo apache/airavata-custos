@@ -29,6 +29,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/tracing"
 )
 
 var (
@@ -61,12 +62,18 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 			sharedDBErr = err
 			return
 		}
+		// Set up a tracer provider to embed span ids
+		if _, err := tracing.Init(tracing.InitConfig{Mode: tracing.ModeProduction, ServiceName: "custos"}); err != nil {
+			sharedDBErr = err
+			return
+		}
 		sharedDB = database
 	})
 	if sharedDBErr != nil {
 		t.Fatalf("setup db: %v", sharedDBErr)
 	}
 	tables := []string{
+		"audit_events",
 		"event_deliveries",
 		"events",
 		"event_subscriptions",
