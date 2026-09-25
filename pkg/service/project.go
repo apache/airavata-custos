@@ -65,12 +65,13 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.Create(ctx, tx, project)
+		if err := s.projs.Create(ctx, tx, project); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectCreateEvent, project)
 	}); err != nil {
 		return nil, fmt.Errorf("create project: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ProjectCreateEvent, project)
 	return project, nil
 }
 
@@ -199,12 +200,13 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 		project.CreatedTime = existing.CreatedTime
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.Update(ctx, tx, project)
+		if err := s.projs.Update(ctx, tx, project); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, project)
 	}); err != nil {
 		return fmt.Errorf("update project: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ProjectUpdateEvent, project)
 	return nil
 }
 
@@ -224,14 +226,15 @@ func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status mod
 	if existing == nil {
 		return nil, ErrNotFound
 	}
+	existing.Status = status
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.UpdateStatus(ctx, tx, id, status)
+		if err := s.projs.UpdateStatus(ctx, tx, id, status); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update project status: %w", err)
 	}
-	existing.Status = status
-
-	s.eventBus.Publish(ctx, events.ProjectUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -248,11 +251,12 @@ func (s *Service) DeleteProject(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.Delete(ctx, tx, id)
+		if err := s.projs.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectDeleteEvent, project)
 	}); err != nil {
 		return fmt.Errorf("delete project: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ProjectDeleteEvent, project)
 	return nil
 }

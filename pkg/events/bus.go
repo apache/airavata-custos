@@ -31,7 +31,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/apache/airavata-custos/internal/audit"
-	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -113,11 +112,10 @@ func subscribeTyped[T any](b *Bus, subscriber string, topic EventType, handler f
 }
 
 // Publish stores the event with one delivery per saved subscriber, and the
-// worker delivers it later. Nothing is written when nobody subscribes.
-func (b *Bus) Publish(ctx context.Context, topic EventType, payload any) error {
-	ctx, span := tracing.Start(ctx, "bus.publish:"+string(topic))
-	defer span.End()
-
+// worker delivers it later. It writes the event and its deliveries in the caller's
+// transaction, so everything is committed or rolled back together.
+// Nothing is written when nobody subscribes.
+func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload any) error {
 	subscribers := b.subscribersOf(string(topic))
 	if len(subscribers) == 0 {
 		return nil
@@ -143,31 +141,22 @@ func (b *Bus) Publish(ctx context.Context, topic EventType, payload any) error {
 		CreatedAt: now,
 	}
 
-	err = db.TxFn(ctx, b.db, func(tx *sql.Tx) error {
-		if err := b.store.CreateEvent(ctx, tx, event); err != nil {
-			return err
-		}
-		// Create a delivery for each subscriber with a PENDING status
-		for _, name := range subscribers {
-			d := &models.EventDelivery{
-				ID:         uuid.NewString(),
-				EventID:    event.ID,
-				Subscriber: name,
-				Status:     models.EventDeliveryPending,
-				NextRunAt:  now,
-				CreatedAt:  now,
-			}
-			if err := b.store.CreateDelivery(ctx, tx, d); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		slog.ErrorContext(ctx, "event not stored", "topic", topic, "error", err)
+	if err := b.store.CreateEvent(ctx, tx, event); err != nil {
 		return fmt.Errorf("store event: %w", err)
+	}
+	// Create a delivery for each subscriber with a PENDING status
+	for _, name := range subscribers {
+		d := &models.EventDelivery{
+			ID:         uuid.NewString(),
+			EventID:    event.ID,
+			Subscriber: name,
+			Status:     models.EventDeliveryPending,
+			NextRunAt:  now,
+			CreatedAt:  now,
+		}
+		if err := b.store.CreateDelivery(ctx, tx, d); err != nil {
+			return fmt.Errorf("store event delivery: %w", err)
+		}
 	}
 	return nil
 }

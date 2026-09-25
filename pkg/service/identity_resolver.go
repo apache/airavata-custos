@@ -188,18 +188,20 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		if err := s.users.UpdateStatus(ctx, tx, user.ID, models.UserActive); err != nil {
 			return fmt.Errorf("activate user: %w", err)
 		}
-		return s.writeIdentityAuditTx(ctx, tx, user.ID, map[string]any{
+		if err := s.writeIdentityAuditTx(ctx, tx, user.ID, map[string]any{
 			"oidc_sub": claims.Sub,
 			"email":    claims.Email,
 			"source":   "oidc_email_fallback",
-		})
+		}); err != nil {
+			return err
+		}
+		// Publish the event indicating the user account became active, so the `sub` can be added to the registry.
+		return s.eventBus.Publish(ctx, tx, events.UserIdentityCreateEvent, binding)
 	}); err != nil {
 		return nil, err
 	}
 	slog.Info("identity linked via email fallback", "user_id", user.ID, "email", claims.Email)
 
-	// Publish the event indicating the user account became active, so the `sub` can be added to the registry.
-	s.eventBus.Publish(ctx, events.UserIdentityCreateEvent, binding)
 	user.Status = models.UserActive
 	return user, nil
 }

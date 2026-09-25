@@ -94,14 +94,17 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 		if err := s.projMemberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project memberships: %w", err)
 		}
-		return s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged)
+		if err := s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged); err != nil {
+			return err
+		}
+		retiring.Status = models.UserMerged
+		if err := s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, survivor)
 	}); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)
 	}
-
-	retiring.Status = models.UserMerged
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, retiring)
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, survivor)
 	return survivor, nil
 }
 

@@ -53,6 +53,16 @@ func onlyDelivery(t *testing.T, bus *Bus, status models.EventDeliveryStatus) mod
 	return rows[0]
 }
 
+// publish stores the event in its own transaction and fails the test if that fails.
+func publish(t *testing.T, ctx context.Context, bus *Bus, topic EventType, payload any) {
+	t.Helper()
+	if err := db.TxFn(ctx, bus.db, func(tx *sql.Tx) error {
+		return bus.Publish(ctx, tx, topic, payload)
+	}); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+}
+
 func countEvents(t *testing.T, database *sqlx.DB) int {
 	t.Helper()
 	var n int
@@ -78,9 +88,7 @@ func TestPublishIsDeliveredToSubscriber(t *testing.T) {
 
 	ctx, span := tracing.Start(context.Background(), "test.publish")
 	wantTrace, _ := tracing.IDsFromContext(ctx)
-	if err := bus.Publish(ctx, ComputeClusterUserCreateEvent, clusterUser()); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
+	publish(t, ctx, bus, ComputeClusterUserCreateEvent, clusterUser())
 	span.End()
 	bus.deliverDue(context.Background())
 
@@ -100,11 +108,31 @@ func TestPublishWritesNothingWithoutSubscription(t *testing.T) {
 	database := setupTestDB(t)
 	bus := newBus(t, database)
 
-	if err := bus.Publish(context.Background(), UserCreateEvent, &models.User{ID: "u-1"}); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
+	publish(t, context.Background(), bus, UserCreateEvent, &models.User{ID: "u-1"})
 	if n := countEvents(t, database); n != 0 {
 		t.Fatalf("expected no stored events, got %d", n)
+	}
+}
+
+// Make sure nothing is stored when the caller's transaction rolls back.
+func TestPublishRollsBackWithCallerTransaction(t *testing.T) {
+	database := setupTestDB(t)
+	bus := newBus(t, database)
+	bus.SubscribeComputeClusterUserCreated(subscriberTest, func(context.Context, models.ComputeClusterUser) error { return nil })
+
+	tx, err := database.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	if err := bus.Publish(context.Background(), tx, ComputeClusterUserCreateEvent, clusterUser()); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	if err := tx.Rollback(); err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
+
+	if n := countEvents(t, database); n != 0 {
+		t.Fatalf("expected the event to roll back with the transaction, got %d stored", n)
 	}
 }
 
@@ -124,9 +152,7 @@ func TestFailedDeliveryIsRetriedAfterBackoff(t *testing.T) {
 				return handler(ctx, cu)
 			})
 
-			if err := bus.Publish(context.Background(), ComputeClusterUserCreateEvent, clusterUser()); err != nil {
-				t.Fatalf("publish: %v", err)
-			}
+			publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
 			// The second pass runs before the backoff has passed, so it must skip the row.
 			bus.deliverDue(context.Background())
 			bus.deliverDue(context.Background())
@@ -154,9 +180,7 @@ func TestDeliveryFailsAtAttemptCap(t *testing.T) {
 		return errors.New("registry 503")
 	})
 
-	if err := bus.Publish(context.Background(), ComputeClusterUserCreateEvent, clusterUser()); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
+	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	// Jump the row to its last allowed attempt instead of failing it nine times.
 	pending := onlyDelivery(t, bus, models.EventDeliveryPending)
 	if err := db.TxFn(context.Background(), database, func(tx *sql.Tx) error {
@@ -179,9 +203,7 @@ func TestPermanentErrorFailsWithoutRetry(t *testing.T) {
 		return fmt.Errorf("%w: bad row", ErrPermanent)
 	})
 
-	if err := bus.Publish(context.Background(), ComputeClusterUserCreateEvent, clusterUser()); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
+	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	bus.deliverDue(context.Background())
 
 	if d := onlyDelivery(t, bus, models.EventDeliveryFailed); d.Attempts != 1 {
@@ -199,9 +221,7 @@ func TestEventPublishedBeforeSubscriberLoadsIsDelivered(t *testing.T) {
 
 	// A fresh process: the subscription is saved, the handler is not loaded yet.
 	bus := newBus(t, database)
-	if err := bus.Publish(context.Background(), ComputeClusterUserCreateEvent, clusterUser()); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
+	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	bus.deliverDue(context.Background())
 	if d := onlyDelivery(t, bus, models.EventDeliveryPending); d.Attempts != 0 {
 		t.Fatalf("expected the row to wait untouched, got %d attempts", d.Attempts)
@@ -229,9 +249,7 @@ func TestUnsubscribeStopsNewDeliveries(t *testing.T) {
 	if err := bus.Unsubscribe(context.Background(), subscriberTest); err != nil {
 		t.Fatalf("unsubscribe: %v", err)
 	}
-	if err := bus.Publish(context.Background(), ComputeClusterUserCreateEvent, clusterUser()); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
+	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	if n := countEvents(t, database); n != 0 {
 		t.Fatalf("expected no stored events after unsubscribe, got %d", n)
 	}
