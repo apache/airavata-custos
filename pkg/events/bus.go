@@ -88,6 +88,27 @@ func (b *Bus) Unsubscribe(ctx context.Context, subscriber string) error {
 	return nil
 }
 
+// Subscription is a saved subscription and whether its subscriber is loaded.
+// Not loaded means the connector did not start, so its deliveries stay pending.
+type Subscription struct {
+	models.EventSubscription
+	Loaded bool `json:"loaded"`
+}
+
+// ListSubscriptions returns every saved subscription with its loaded flag.
+func (b *Bus) ListSubscriptions(ctx context.Context) ([]Subscription, error) {
+	rows, err := b.store.ListSubscriptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Subscription, 0, len(rows))
+	for _, r := range rows {
+		_, loaded := b.handlerFor(r.Subscriber, r.EventType)
+		out = append(out, Subscription{EventSubscription: r, Loaded: loaded})
+	}
+	return out, nil
+}
+
 // subscribeTyped wraps a handler that takes the payload as T. The payload
 // comes as JSON from a delivery row, or as T or *T from PublishSync.
 func subscribeTyped[T any](b *Bus, subscriber string, topic EventType, handler func(context.Context, T) error) {

@@ -44,7 +44,7 @@ func clusterUser() *models.ComputeClusterUser {
 
 func onlyDelivery(t *testing.T, bus *Bus, status models.EventDeliveryStatus) models.PendingDelivery {
 	t.Helper()
-	rows, err := bus.store.ListDeliveriesByStatus(context.Background(), status, 10)
+	rows, err := bus.store.ListDeliveries(context.Background(), status, 10)
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}

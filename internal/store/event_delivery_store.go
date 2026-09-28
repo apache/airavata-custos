@@ -122,12 +122,12 @@ func (s *pgEventDeliveryStore) FindDueDeliveries(ctx context.Context, now time.T
 	return rows, nil
 }
 
-func (s *pgEventDeliveryStore) ListDeliveriesByStatus(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error) {
+func (s *pgEventDeliveryStore) ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error) {
 	var rows []models.PendingDelivery
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+eventDeliveryWithEventColumns+`
 		 FROM event_deliveries d JOIN events e ON e.id = d.event_id
-		 WHERE d.status = $1
+		 WHERE $1 = '' OR d.status = $1
 		 ORDER BY d.created_at DESC
 		 LIMIT $2`,
 		status, limit)

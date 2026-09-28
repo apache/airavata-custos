@@ -461,8 +461,8 @@ type EventDeliveryStore interface {
 	// FindDueDeliveries returns pending deliveries for the given subscribers
 	// whose next_run_at is at or before now, oldest first, each with its event.
 	FindDueDeliveries(ctx context.Context, now time.Time, subscribers []string, limit int) ([]models.PendingDelivery, error)
-	// ListDeliveriesByStatus returns deliveries in the given status, newest first, and each with its event.
-	ListDeliveriesByStatus(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error)
+	// ListDeliveries returns deliveries newest first, each with its event. An empty status means any status.
+	ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error)
 	// MarkDeliverySucceeded records a successful delivery within the provided transaction.
 	MarkDeliverySucceeded(ctx context.Context, tx *sql.Tx, id string, attempts int, finishedAt time.Time) error
 	// MarkDeliveryRetry records a failed attempt and when to try again, within the provided transaction.

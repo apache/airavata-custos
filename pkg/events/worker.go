@@ -34,8 +34,13 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// ErrPermanent marks an error a retry cannot fix, so the delivery fails at once.
-var ErrPermanent = errors.New("permanent delivery failure")
+var (
+	// ErrPermanent marks an error a retry cannot fix, so the delivery fails at once.
+	ErrPermanent = errors.New("permanent delivery failure")
+
+	ErrDeliveryNotFound  = errors.New("event delivery not found")
+	ErrDeliveryNotFailed = errors.New("event delivery has not failed")
+)
 
 const (
 	pollInterval   = 10 * time.Second
@@ -204,6 +209,28 @@ func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 	if recordErr != nil {
 		slog.Error("event delivery outcome not recorded", "delivery_id", row.ID, "error", recordErr)
 	}
+}
+
+// ListDeliveries returns deliveries newest first. An empty status means any status.
+func (b *Bus) ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error) {
+	return b.store.ListDeliveries(ctx, status, limit)
+}
+
+// RetryDelivery puts a failed delivery back to pending with the attempt count reset, so the worker delivers it again.
+func (b *Bus) RetryDelivery(ctx context.Context, id string) error {
+	row, err := b.store.FindDeliveryByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if row == nil {
+		return ErrDeliveryNotFound
+	}
+	if row.Status != models.EventDeliveryFailed {
+		return ErrDeliveryNotFailed
+	}
+	return db.TxFn(ctx, b.db, func(tx *sql.Tx) error {
+		return b.store.ResetDeliveryToPending(ctx, tx, id, time.Now().UTC())
+	})
 }
 
 // deliveryAudit builds the audit row for one event delivery attempt. The trace id is
