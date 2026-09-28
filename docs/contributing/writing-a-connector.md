@@ -149,7 +149,18 @@ func LoadConnector(
 
 ### 3. Register in the central loader
 
-Open `internal/connectors/loader.go` and add two lines.
+Declare the connector's type name once, in your loader package:
+
+```go
+const Type = "lustre-sync"
+```
+
+This is the `type:` value your `config/custos.yaml` block uses, and the name
+the event bus saves your subscriptions under, so it must stay the same across
+releases. Pick a kebab-case identifier; the convention is `<connector-name>`
+or `<system>-<role>`.
+
+Then open `internal/connectors/loader.go` and add two lines.
 
 Import:
 
@@ -157,18 +168,14 @@ Import:
 "github.com/apache/airavata-custos/connectors/Lustre/Sync/pkg/lustresync"
 ```
 
-Add an entry to the `connectorLoaders` map:
+Add an entry to the `connectorLoaders` map, keyed on the constant:
 
 ```go
 connectorLoaders := map[string]func (...){
 // ...existing entries...
-"lustre-sync": lustresync.LoadConnector,
+lustresync.Type: lustresync.LoadConnector,
 }
 ```
-
-The string `"lustre-sync"` is what your `config/custos.yaml` block will
-reference as its `type:` field. Pick a kebab-case identifier; the convention is
-`<connector-name>` or `<system>-<role>`.
 
 ### 4. Add a YAML config block
 
@@ -343,17 +350,21 @@ the next boot can resume.
 
 ### 9. Event bus (if you publish or subscribe)
 
-`pkg/events.Bus` is an in-process publish/subscribe channel. The core service
-layer publishes domain events whenever state changes (a user is created, an
-allocation is updated, etc.). Connectors subscribe to react.
+`pkg/events.Bus` is a publish/subscribe bus backed by PostgreSQL. The core
+service layer publishes a domain event in the same transaction as the change
+it describes (a user is created, a membership is updated, and so on). The bus
+stores the event with one delivery row per subscriber, and a worker in the
+server calls each subscriber's handler until the delivery succeeds or gives up. 
+Nothing is lost when the server restarts or a handler fails.
 
 Event types are typed constants, one file per entity, in `pkg/events/`:
 `user_subscribe.go` (`UserCreateEvent`, `UserUpdateEvent`, `UserDeleteEvent`),
-`compute_allocation_subscribe.go`, `project_subscribe.go`, and so on. Each
-file documents the payload type the dispatcher sends with the event.
+`compute_cluster_user_subscribe.go`, and so on. Each file has typed
+`SubscribeXCreated`, `SubscribeXUpdated` and `SubscribeXDeleted` helpers that
+decode the payload for you.
 
-**Subscribing.** Register inside `LoadConnector` so the subscription is in
-place before traffic arrives:
+**Subscribing.** Register inside `LoadConnector`, under your connector's`Type` name. 
+The bus saves the subscription under that name, so it has to be the same on every start.
 
 ```go
 type ClusterUserSubscriber struct {
@@ -362,35 +373,62 @@ core *service.Service
 }
 
 func (s *ClusterUserSubscriber) RegisterSubscribers() {
-s.bus.Subscribe(events.ComputeClusterUserCreateEvent, s.handleCreate)
+s.bus.SubscribeComputeClusterUserCreated(comanage.Type, s.handleCreate)
 }
 
-func (s *ClusterUserSubscriber) handleCreate(ctx context.Context, _ events.Event, payload interface{}) {
-cu, ok := payload.(*models.ComputeClusterUser)
-if !ok {
-slog.Error("payload type mismatch", "type", payload)
-return
-}
+func (s *ClusterUserSubscriber) handleCreate(ctx context.Context, cu models.ComputeClusterUser) error {
 // ...react...
+return nil
 }
 ```
 
 The COmanage `ClusterUserSubscriber` is the smallest working example.
-Subscriber handlers run asynchronously, one goroutine per dispatch; a panic
-in one handler does not crash the bus or other subscribers.
+
+Rules for a handler:
+
+- **Return an error when the work is not done.** The bus retries the delivery
+  with backoff, 30 seconds at first and up to an hour, ten attempts in all. A
+  handler that logs and returns nil marks the delivery succeeded, and nobody
+  looks at it again.
+- **Wrap `events.ErrPermanent` when a retry cannot help**, for example a row
+  with data the handler can never use. The delivery fails at once instead of
+  retrying for hours.
+- **Be safe to run twice for the same event.** A retry, a crash before the
+  outcome is recorded, or a restart can each call the handler again. Check
+  before you create, and make an update set the final state rather than add
+  to it.
+- **Finish within two minutes.** The handler's context has that timeout. Long work belongs in a background goroutine.
+- A panic counts as a failed attempt. It is logged and retried like an error.
+
+The handler's context carries the trace id and source of the request that
+published the event, so audit rows the handler writes join that trace.
+
+**While your connector is down.** The subscription is saved, so an event
+published while your connector is not loaded, or before it loads at startup,
+gets a delivery row and waits. It is delivered once the connector is loaded
+again. Setting `enabled: false` in the config removes the subscription, so no
+new deliveries are written for a connector that was turned off on purpose.
+Removing a subscribe call from your code drops that subscription on the next start.
+
+Every delivery attempt writes an `audit_events` row under the event's trace,
+with the subscriber as the source. Deliveries can be listed and a failed one
+retried through `GET /events/deliveries` and
+`POST /events/deliveries/{id}/retry`. `GET /events/subscriptions` shows which
+subscribers are loaded.
 
 **Publishing.** All current publishes come from the core service layer
-(`pkg/service/*`). A connector can publish too if it needs to broadcast
-something to other connectors or to core; today none do, but the API
-supports it. The convention is to publish from your own service layer (not
-from handlers or stores):
+(`pkg/service/*`). A connector can publish too, from its own service layer,
+inside the transaction that makes the change:
 
 ```go
-eventBus.Publish(ctx, events.SomeEvent, payload)
+if err := eventBus.Publish(ctx, tx, events.SomeEvent, payload); err != nil {
+return err
+}
 ```
 
-`Publish` is fire-and-forget. Use `PublishSync` only when a downstream
-subscriber must finish before your function returns (rare).
+Nothing is stored when the event has no subscriber. `PublishSync` calls the
+handlers in the caller's goroutine and stores nothing. Use it only when the
+caller has to wait for the result (rare).
 
 ### 10. Audit rows (and `audit_extras` if you have your own references)
 
@@ -584,6 +622,8 @@ including the AMIE-specific isolated stack on `:5433`.
       yourWorker.Run(ctx) // honour ctx.Done() inside
   }()
   ```
+- **Returning nil from an event handler that did not finish.** The delivery is marked succeeded and never retried.
+  Return the error, or wrap `events.ErrPermanent` when a retry cannot help.
 - **Mounting routes outside `/connectors/<name>/...`.** Other connectors collide; nothing tells you until production.
 - **Bypassing `coreService` for domain mutations.** Use `coreService.CreateUser`, `CreateComputeAllocationMembership`,
   etc., so transactions and audit rows stay consistent. Composing connector-side stores around `internal/store` types is

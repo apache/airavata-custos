@@ -65,11 +65,17 @@ A typical mutating request follows the same path regardless of which connector o
 2. `identity.Middleware` extracts the token, verifies it against the configured OIDC issuer, resolves the caller from `user_identities` keyed by the token's `sub` claim, and attaches the caller plus their privilege set to the request context.
 3. The router dispatches to the handler. For privileged routes the `RequirePrivilege` wrapper checks the privilege set on context; missing privilege returns 403.
 4. The handler calls `coreService.CreateUser(ctx, user)`. The service mutates inside a transaction and stamps an audit row in the same transaction. The audit row inherits `trace_id` / `span_id` from the request context.
-5. After commit, the service publishes a domain event (e.g. `events.UserCreateEvent`) on the bus.
-6. Subscribers run asynchronously, each in its own goroutine. The COmanage subscriber, for example, reacts by talking to its external registry and writes its own audit row (joined to the same `trace_id`).
+5. In the same transaction, the service publishes a domain event (e.g. `events.UserCreateEvent`). The bus stores the event with one delivery row per subscriber, so the event is committed or rolled back together with the change.
+6. A worker in the server delivers each row to its subscriber's handler. The COmanage subscriber, for example, reacts by talking to its external registry and writes its own audit row (joined to the same `trace_id`). A failed delivery is retried with backoff.
 7. The handler returns the response to the portal.
 
-Failures stop at the layer that detected them: an invalid token returns 401 before any handler runs; a privilege miss returns 403 before the service is touched; a service error rolls the transaction back, no audit row is written.
+Failures stop at the layer that detected them: an invalid token returns 401 before any handler runs; a privilege miss returns 403 before the service is touched; a service error rolls the transaction back, no audit row and no event is written.
+
+## Event bus
+
+`pkg/events.Bus` is backed by three core tables: `event_subscriptions`, `events` and `event_deliveries`. There is no external broker. A subscriber is a connector, named by its `Type` constant. Subscriptions are saved, so an event published while a connector is not loaded gets a delivery row and waits for it. Turning a connector off with `enabled: false` removes its subscription.
+
+One worker goroutine polls due deliveries every 10 seconds and calls the handler with a 2 minute timeout. On failure it retries with backoff, 30 seconds at first and up to 1 hour, 10 attempts in all. A handler can wrap `events.ErrPermanent` to fail at once. Handlers must be safe to run more than once for the same event. Every attempt writes an `audit_events` row under the event's trace. Deliveries are listed and a failed one retried under `/events/deliveries`; `/events/subscriptions` shows which subscribers are loaded.
 
 ## Identity and authentication
 
