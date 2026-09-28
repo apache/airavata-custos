@@ -35,8 +35,8 @@ import (
 
 const subscriberTest = "test-subscriber"
 
-// runWorkerUntil runs the worker until one delivery is in the given status and
-// returns it. Fails the test after 5 seconds.
+// runWorkerUntil runs the worker until the test subscriber's delivery is in
+// the given status and returns it. Fails the test after 5 seconds.
 func runWorkerUntil(t *testing.T, bus *events.Bus, status models.EventDeliveryStatus) models.PendingDelivery {
 	t.Helper()
 	ctx, stop := context.WithCancel(context.Background())
@@ -48,8 +48,10 @@ func runWorkerUntil(t *testing.T, bus *events.Bus, status models.EventDeliverySt
 		if err != nil {
 			t.Fatalf("list deliveries: %v", err)
 		}
-		if len(rows) == 1 {
-			return rows[0]
+		for _, row := range rows {
+			if row.Subscriber == subscriberTest {
+				return row
+			}
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
