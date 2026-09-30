@@ -31,9 +31,32 @@ vi.mock("@/shared/casl/AbilityProvider", () => ({
   useAbility: () => defineAbilitiesFor(currentPrivileges),
 }));
 
+const pendingMocks = vi.hoisted(() => ({ total: 0 }));
+
+vi.mock("@/features/core/cluster-accounts/queries", () => ({
+  useClusterAccounts: () => ({ data: { items: [], total: pendingMocks.total } }),
+}));
+
 describe("UsersNav", () => {
   beforeEach(() => {
     currentPrivileges = [];
+    pendingMocks.total = 0;
+  });
+
+  // Make sure the approvals tab is only there for someone who can read
+  // clusters, and that it carries the number of accounts waiting.
+  it("shows Cluster Accounts with the pending count for cluster readers", () => {
+    currentPrivileges = ["core:users:read", "core:clusters:read"];
+    pendingMocks.total = 3;
+    render(<UsersNav />);
+    const tab = screen.getByRole("link", { name: /Cluster Accounts/ });
+    expect(tab).toHaveTextContent("3");
+  });
+
+  it("hides Cluster Accounts without clusters:read", () => {
+    currentPrivileges = ["core:users:read"];
+    render(<UsersNav />);
+    expect(screen.queryByRole("link", { name: /Cluster Accounts/ })).toBeNull();
   });
 
   it("hides Role Management without roles:manage", () => {

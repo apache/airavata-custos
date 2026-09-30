@@ -1,0 +1,69 @@
+[
+  {
+    "id": "ccu-pending-1",
+    "compute_cluster_id": "cluster-a",
+    "user_id": "user-jane-doe",
+    "local_username": "jdoe",
+    "access_level": "USER",
+    "provisioned_at": null,
+    "approval_status": "PENDING",
+    "display_name": "Jane Doe",
+    "email": "jdoe@example.edu",
+    "cluster_name": "cluster-a"
+  },
+  {
+    "id": "ccu-pending-2",
+    "compute_cluster_id": "cluster-b",
+    "user_id": "user-marcus-lee",
+    "local_username": "mlee",
+    "access_level": "USER",
+    "provisioned_at": null,
+    "approval_status": "PENDING",
+    "display_name": "Marcus Lee",
+    "email": "mlee@example.edu",
+    "cluster_name": "cluster-b"
+  },
+  {
+    "id": "ccu-approved-1",
+    "compute_cluster_id": "cluster-a",
+    "user_id": "user-wei-zhang",
+    "local_username": "wzhang",
+    "access_level": "USER",
+    "provisioned_at": null,
+    "approval_status": "APPROVED",
+    "reviewed_at": "2026-09-29T14:00:00Z",
+    "reviewed_by": "user-admin",
+    "display_name": "Wei Zhang",
+    "email": "wzhang@example.edu",
+    "cluster_name": "cluster-a"
+  },
+  {
+    "id": "ccu-active-1",
+    "compute_cluster_id": "cluster-a",
+    "user_id": "user-tom-becker",
+    "local_username": "tbecker",
+    "access_level": "USER",
+    "provisioned_at": "2026-09-27T09:30:00Z",
+    "approval_status": "APPROVED",
+    "reviewed_at": "2026-09-26T16:10:00Z",
+    "reviewed_by": "user-admin",
+    "display_name": "Tom Becker",
+    "email": "tbecker@example.edu",
+    "cluster_name": "cluster-a"
+  },
+  {
+    "id": "ccu-denied-1",
+    "compute_cluster_id": "cluster-b",
+    "user_id": "user-sam-okafor",
+    "local_username": "sokafor",
+    "access_level": "USER",
+    "provisioned_at": null,
+    "approval_status": "DENIED",
+    "reviewed_at": "2026-09-24T11:00:00Z",
+    "reviewed_by": "user-admin",
+    "review_note": "Not on the approved collaborator list.",
+    "display_name": "Sam Okafor",
+    "email": "sokafor@example.edu",
+    "cluster_name": "cluster-b"
+  }
+]

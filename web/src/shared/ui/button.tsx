@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 // - outline → white card with border
 // - ghost   → text-only, hover tinted
 // - destructive → soft red tint (not a fill)
+// - success → soft green tint, the approve side of destructive
 // - brand   → blue CTA for wizard "Continue" / proposal "Submit"
 // - link    → inline text link
 const buttonVariants = cva(
@@ -39,8 +40,12 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
           "text-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        // Tone tokens carry their own dark values, and the hover deepens the
+        // tint by mixing in the foreground so it holds in both themes.
         destructive:
-          "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)] hover:bg-[color:var(--custos-red-100)] focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
+          "bg-[color:var(--tone-error-bg)] text-[color:var(--tone-error-fg)] hover:bg-[color-mix(in_srgb,var(--tone-error-bg),var(--tone-error-fg)_14%)] focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
+        success:
+          "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)] hover:bg-[color-mix(in_srgb,var(--tone-ok-bg),var(--tone-ok-fg)_14%)]",
         brand: "bg-brand text-brand-foreground hover:bg-brand/90",
         link: "text-brand underline-offset-4 hover:underline",
       },

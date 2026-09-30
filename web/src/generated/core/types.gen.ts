@@ -38,6 +38,40 @@ export type CallerRoleGrant = {
     role?: Role;
 };
 
+export type ClusterAccessLevel = 'USER' | 'ADMIN';
+
+export type ClusterAccountApproval = 'PENDING' | 'APPROVED' | 'DENIED';
+
+export type ClusterAccountListResponse = {
+    items?: Array<ClusterAccountResponse>;
+    total?: number;
+};
+
+export type ClusterAccountResponse = {
+    access_level?: ClusterAccessLevel;
+    approval_status?: ClusterAccountApproval;
+    cluster_name?: string;
+    compute_cluster_id?: string;
+    display_name?: string;
+    email?: string;
+    id?: string;
+    /**
+     * The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+     */
+    local_username?: string;
+    /**
+     * When the account was provisioned into the registry; nil until then.
+     */
+    provisioned_at?: string;
+    review_note?: string;
+    reviewed_at?: string;
+    /**
+     * The admin who approved or denied the account.
+     */
+    reviewed_by?: string;
+    user_id?: string;
+};
+
 export type ComputeAllocation = {
     /**
      * The ID of the compute cluster where the allocation is provisioned.
@@ -277,14 +311,40 @@ export type ComputeCluster = {
 };
 
 export type ComputeClusterUser = {
+    access_level?: ClusterAccessLevel;
+    approval_status?: ClusterAccountApproval;
     compute_cluster_id?: string;
     id?: string;
     /**
      * The username of the user on the compute cluster, which may be different from their Airavata Custos username.
      */
     local_username?: string;
+    /**
+     * When the account was provisioned into the registry; nil until then.
+     */
+    provisioned_at?: string;
+    review_note?: string;
+    reviewed_at?: string;
+    /**
+     * The admin who approved or denied the account.
+     */
+    reviewed_by?: string;
     user_id?: string;
 };
+
+export type Event = {
+    created_at?: string;
+    event_type?: string;
+    id?: string;
+    payload?: Array<number>;
+    /**
+     * Subsystem that published the event.
+     */
+    source?: string;
+    trace_id?: string;
+};
+
+export type EventDeliveryStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
 
 export type Organization = {
     id?: string;
@@ -300,7 +360,20 @@ export type OrganizationListResponse = {
     total?: number;
 };
 
-export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+export type PendingDelivery = {
+    attempts?: number;
+    created_at?: string;
+    event?: Event;
+    event_id?: string;
+    finished_at?: string;
+    id?: string;
+    last_error?: string;
+    next_run_at?: string;
+    status?: EventDeliveryStatus;
+    subscriber?: string;
+};
+
+export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:events:manage';
 
 export type Project = {
     created_time?: string;
@@ -367,6 +440,13 @@ export type Role = {
     id?: string;
     is_system?: boolean;
     name?: string;
+};
+
+export type Subscription = {
+    created_at?: string;
+    event_type?: string;
+    loaded?: boolean;
+    subscriber?: string;
 };
 
 export type TraceEvent = {
@@ -479,9 +559,31 @@ export type AttachResourceRequest = {
     resource_time?: number;
 };
 
+export type CreateComputeClusterUserRequest = {
+    compute_cluster_id?: string;
+    local_username?: string;
+    user_id?: string;
+};
+
 export type CreateRoleRequest = {
     description?: string;
     name?: string;
+};
+
+export type CreateUserRequest = {
+    allocation_id?: string;
+    cluster_admin?: boolean;
+    compute_cluster_id?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    organization_id?: string;
+    portal_admin?: boolean;
+    username?: string;
+};
+
+export type DenyClusterAccountRequest = {
+    note?: string;
 };
 
 export type GrantPrivilegeRequest = {
@@ -2384,11 +2486,51 @@ export type GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses = {
 
 export type GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses[keyof GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses];
 
+export type GetComputeClusterUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * PENDING | APPROVED | DENIED
+         */
+        approval_status?: string;
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/compute-cluster-users';
+};
+
+export type GetComputeClusterUsersErrors = {
+    /**
+     * Bad Request
+     */
+    400: {
+        error?: string;
+    };
+};
+
+export type GetComputeClusterUsersError = GetComputeClusterUsersErrors[keyof GetComputeClusterUsersErrors];
+
+export type GetComputeClusterUsersResponses = {
+    /**
+     * OK
+     */
+    200: ClusterAccountListResponse;
+};
+
+export type GetComputeClusterUsersResponse = GetComputeClusterUsersResponses[keyof GetComputeClusterUsersResponses];
+
 export type PostComputeClusterUsersData = {
     /**
      * Cluster user payload
      */
-    body: ComputeClusterUser;
+    body: CreateComputeClusterUserRequest;
     path?: never;
     query?: never;
     url: '/compute-cluster-users';
@@ -2480,7 +2622,7 @@ export type PutComputeClusterUsersByIdData = {
     /**
      * Cluster user payload
      */
-    body: ComputeClusterUser;
+    body: CreateComputeClusterUserRequest;
     path: {
         /**
          * Compute cluster user ID
@@ -2516,6 +2658,85 @@ export type PutComputeClusterUsersByIdResponses = {
 };
 
 export type PutComputeClusterUsersByIdResponse = PutComputeClusterUsersByIdResponses[keyof PutComputeClusterUsersByIdResponses];
+
+export type PostComputeClusterUsersByIdApproveData = {
+    body?: never;
+    path: {
+        /**
+         * Compute cluster user ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/compute-cluster-users/{id}/approve';
+};
+
+export type PostComputeClusterUsersByIdApproveErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Already approved
+     */
+    409: {
+        error?: string;
+    };
+};
+
+export type PostComputeClusterUsersByIdApproveError = PostComputeClusterUsersByIdApproveErrors[keyof PostComputeClusterUsersByIdApproveErrors];
+
+export type PostComputeClusterUsersByIdApproveResponses = {
+    /**
+     * OK
+     */
+    200: ComputeClusterUser;
+};
+
+export type PostComputeClusterUsersByIdApproveResponse = PostComputeClusterUsersByIdApproveResponses[keyof PostComputeClusterUsersByIdApproveResponses];
+
+export type PostComputeClusterUsersByIdDenyData = {
+    /**
+     * Optional note
+     */
+    body?: DenyClusterAccountRequest;
+    path: {
+        /**
+         * Compute cluster user ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/compute-cluster-users/{id}/deny';
+};
+
+export type PostComputeClusterUsersByIdDenyErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Already approved or denied
+     */
+    409: {
+        error?: string;
+    };
+};
+
+export type PostComputeClusterUsersByIdDenyError = PostComputeClusterUsersByIdDenyErrors[keyof PostComputeClusterUsersByIdDenyErrors];
+
+export type PostComputeClusterUsersByIdDenyResponses = {
+    /**
+     * OK
+     */
+    200: ComputeClusterUser;
+};
+
+export type PostComputeClusterUsersByIdDenyResponse = PostComputeClusterUsersByIdDenyResponses[keyof PostComputeClusterUsersByIdDenyResponses];
 
 export type GetComputeClustersData = {
     body?: never;
@@ -2674,6 +2895,98 @@ export type GetComputeClustersByIdUsersByUserIdResponses = {
 
 export type GetComputeClustersByIdUsersByUserIdResponse = GetComputeClustersByIdUsersByUserIdResponses[keyof GetComputeClustersByIdUsersByUserIdResponses];
 
+export type GetEventsDeliveriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * PENDING | SUCCEEDED | FAILED
+         */
+        status?: string;
+        /**
+         * Page size (default 50, max 200)
+         */
+        limit?: number;
+    };
+    url: '/events/deliveries';
+};
+
+export type GetEventsDeliveriesErrors = {
+    /**
+     * Invalid status or limit
+     */
+    400: {
+        error?: string;
+    };
+};
+
+export type GetEventsDeliveriesError = GetEventsDeliveriesErrors[keyof GetEventsDeliveriesErrors];
+
+export type GetEventsDeliveriesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        items?: Array<PendingDelivery>;
+    };
+};
+
+export type GetEventsDeliveriesResponse = GetEventsDeliveriesResponses[keyof GetEventsDeliveriesResponses];
+
+export type PostEventsDeliveriesByIdRetryData = {
+    body?: never;
+    path: {
+        /**
+         * Delivery id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/events/deliveries/{id}/retry';
+};
+
+export type PostEventsDeliveriesByIdRetryErrors = {
+    /**
+     * Delivery not found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Delivery has not failed
+     */
+    409: {
+        error?: string;
+    };
+};
+
+export type PostEventsDeliveriesByIdRetryError = PostEventsDeliveriesByIdRetryErrors[keyof PostEventsDeliveriesByIdRetryErrors];
+
+export type PostEventsDeliveriesByIdRetryResponses = {
+    /**
+     * No Content
+     */
+    204: unknown;
+};
+
+export type GetEventsSubscriptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/events/subscriptions';
+};
+
+export type GetEventsSubscriptionsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        items?: Array<Subscription>;
+    };
+};
+
+export type GetEventsSubscriptionsResponse = GetEventsSubscriptionsResponses[keyof GetEventsSubscriptionsResponses];
+
 export type GetMeData = {
     body?: never;
     path?: never;
@@ -2794,7 +3107,7 @@ export type GetPrivilegesByKeyHoldersData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:events:manage';
     };
     query?: never;
     url: '/privileges/{key}/holders';
@@ -3324,7 +3637,7 @@ export type DeleteRolesByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:events:manage';
     };
     query?: never;
     url: '/roles/{id}/privileges/{key}';
@@ -3619,7 +3932,7 @@ export type PostUsersData = {
     /**
      * User payload
      */
-    body: User;
+    body: CreateUserRequest;
     path?: never;
     query?: never;
     url: '/users';
@@ -3630,6 +3943,12 @@ export type PostUsersErrors = {
      * Bad Request
      */
     400: {
+        error?: string;
+    };
+    /**
+     * Conflict
+     */
+    409: {
         error?: string;
     };
 };
@@ -3950,7 +4269,7 @@ export type DeleteUsersByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:events:manage';
     };
     query?: never;
     url: '/users/{id}/privileges/{key}';
