@@ -23,15 +23,18 @@ const sharedSecret = "test-secret-for-playwright-cookie-fixture-only-32chars";
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /.*\.e2e\.ts/,
-  fullyParallel: true,
+  testMatch: "signer-certificates.e2e.ts",
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: "line",
   use: {
     baseURL,
     trace: "retain-on-failure",
+    // The signer suite installs deterministic Playwright routes. Blocking
+    // service workers ensures browser MSW cannot consume or bypass a request.
+    serviceWorkers: "block",
   },
   projects: [
     {
@@ -42,16 +45,14 @@ export default defineConfig({
   webServer: {
     command: `corepack pnpm dev --port ${port}`,
     url: baseURL,
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       PORT: String(port),
-      NEXT_PUBLIC_PORTAL_USE_MSW: "true",
+      NEXT_PUBLIC_PORTAL_USE_MSW: "false",
+      CUSTOS_E2E_FAIL_ON_SIGNER_PROXY_REQUEST: "true",
       NEXTAUTH_SECRET: sharedSecret,
       NEXTAUTH_URL: baseURL,
-      // Required by env schema. Tests inject session cookies directly so this
-      // OIDC config is never actually invoked — the real OIDC flow is in the
-      // live config against the compose Keycloak.
       OIDC_ISSUER_URL: "http://localhost:8081/realms/custos",
       OIDC_CLIENT_ID: "playwright-cookie-fixture",
       OIDC_CLIENT_SECRET: "playwright-cookie-fixture",
@@ -59,6 +60,4 @@ export default defineConfig({
   },
 });
 
-// The fixture reads NEXTAUTH_SECRET from process.env, but Playwright workers
-// run in their own process — propagate it explicitly here.
 process.env.NEXTAUTH_SECRET = sharedSecret;

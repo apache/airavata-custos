@@ -17,6 +17,7 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:signer": "playwright test --config=playwright.signer.config.ts --project=chromium --workers=1",
     "clean": "rm -rf .next dist coverage",
     "gen:api": "tsx scripts/gen-api.mts",
     "gen:api:check": "pnpm gen:api && git diff --quiet src/generated || (echo 'OpenAPI codegen drift — re-run pnpm gen:api' && exit 1)",

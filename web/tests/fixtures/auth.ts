@@ -21,7 +21,7 @@
 import type { Page } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 
-export type Persona = "viewer" | "manager" | "admin";
+export type Persona = "viewer" | "manager" | "signer-reader" | "admin";
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
 // gates resolve per persona. The MSW /user/privileges handler reads the
@@ -64,12 +64,16 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "amie:replies:write",
     "amie:unmapped:read",
     "amie:unmapped:write",
+    "signer:certificates:read",
+    "signer:certificates:write",
   ],
+  "signer-reader": ["signer:certificates:read"],
 };
 
 const NAMES: Record<Persona, string> = {
   viewer: "Test Viewer",
   manager: "Test Manager",
+  "signer-reader": "Test Signer Reader",
   admin: "Test Admin",
 };
 

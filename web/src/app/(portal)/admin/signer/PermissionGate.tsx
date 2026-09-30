@@ -15,26 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { execSync } from "node:child_process";
-import type { NextConfig } from "next";
+"use client";
 
-function detectBuildSha(): string {
-  if (process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA) return process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA;
-  try {
-    return execSync("git rev-parse --short HEAD", {
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-      .toString()
-      .trim();
-  } catch {
-    return "dev";
+import type { ReactNode } from "react";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { ErrorState } from "@/shared/ui/ErrorState";
+
+export function SignerPermissionGate({ children }: { children: ReactNode }) {
+  const ability = useAbility();
+  if (ability.cannot("read", "Signer")) {
+    return <ErrorState message="Not permitted." />;
   }
+  return <>{children}</>;
 }
-
-const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_PORTAL_BUILD_SHA: detectBuildSha(),
-  },
-};
-
-export default nextConfig;

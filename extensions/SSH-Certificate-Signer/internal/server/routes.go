@@ -26,7 +26,6 @@ import (
 )
 
 type Handlers struct {
-	ExtensionManifest http.HandlerFunc
 	Sign              http.HandlerFunc
 	Revoke            http.HandlerFunc
 	JWKS              http.HandlerFunc
@@ -52,9 +51,6 @@ func NewRouter(
 	r.Use(SecurityHeadersMiddleware)
 	r.Use(SourceIPMiddleware)
 	r.Use(BodyLimitMiddleware(1 << 20)) // 1 MB
-
-	// Extension discovery endpoint (no auth)
-	r.Get("/.well-known/custos-extension.json", handlers.ExtensionManifest)
 
 	// Health endpoint (no auth)
 	r.Get("/api/v1/health", handlers.Health)

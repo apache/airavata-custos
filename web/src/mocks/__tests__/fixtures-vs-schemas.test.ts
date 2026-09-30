@@ -19,6 +19,8 @@
 
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import signerCertificatesFixture from "@/features/core/signer/__fixtures__/certificates.json";
+import { certificateSchema } from "@/features/core/signer/schemas";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
 import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationDiffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
@@ -58,6 +60,10 @@ import {
 } from "@/features/core/analytics/schemas";
 
 describe("MSW fixtures pass current Zod schemas", () => {
+  it("signer certificate fixtures validate against certificateSchema", () => {
+    const result = z.array(certificateSchema).safeParse(signerCertificatesFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
   it("project fixtures validate against projectSchema (zProjectStatus-backed)", () => {
     const result = z.array(projectSchema).safeParse(projectsFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);

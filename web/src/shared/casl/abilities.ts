@@ -48,6 +48,8 @@ export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "amie:replies:write": [{ action: "manage", subject: "AMIE" }],
   "amie:unmapped:read": [{ action: "read", subject: "AMIE" }],
   "amie:unmapped:write": [{ action: "manage", subject: "AMIE" }],
+  "signer:certificates:read": [{ action: "read", subject: "Signer" }],
+  "signer:certificates:write": [{ action: "manage", subject: "Signer" }],
 };
 
 export function defineAbilitiesFor(privileges: Privilege[]): AppAbility {

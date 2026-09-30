@@ -21,9 +21,6 @@ server:
   write_timeout_seconds: 30            # HTTP write timeout
   shutdown_timeout_seconds: 30         # Graceful shutdown drain
 
-web:
-  base_url: http://localhost:3001      # env: SIGNER_WEB_BASE_URL
-
 database:
   host: localhost                      # env: DB_HOST
   port: 3306                           # env: DB_PORT

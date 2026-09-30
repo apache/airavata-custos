@@ -15,26 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { execSync } from "node:child_process";
-import type { NextConfig } from "next";
+import type { ReactNode } from "react";
+import { SignerPermissionGate } from "./PermissionGate";
 
-function detectBuildSha(): string {
-  if (process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA) return process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA;
-  try {
-    return execSync("git rev-parse --short HEAD", {
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-      .toString()
-      .trim();
-  } catch {
-    return "dev";
-  }
+export default function SignerLayout({ children }: { children: ReactNode }) {
+  return <SignerPermissionGate>{children}</SignerPermissionGate>;
 }
-
-const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_PORTAL_BUILD_SHA: detectBuildSha(),
-  },
-};
-
-export default nextConfig;

@@ -26,7 +26,25 @@ type Context = { params: Promise<{ path: string[] }> };
 
 async function proxy(request: NextRequest, ctx: Context) {
   const { path } = await ctx.params;
-  const upstreamUrl = new URL(`/${path.join("/")}`, serverEnv.CUSTOS_CORE_API_BASE_URL);
+  const isSigner = path[0] === "signer";
+  if (isSigner && process.env.CUSTOS_E2E_FAIL_ON_SIGNER_PROXY_REQUEST === "true") {
+    console.error("Unexpected signer proxy request during hermetic E2E", {
+      method: request.method,
+      path: request.nextUrl.pathname,
+    });
+    return NextResponse.json(
+      {
+        code: "unexpected_signer_proxy_request",
+        message: "Signer E2E request escaped its Playwright route",
+      },
+      { status: 500 },
+    );
+  }
+  const upstreamBase = isSigner
+    ? serverEnv.CUSTOS_SIGNER_API_BASE_URL
+    : serverEnv.CUSTOS_CORE_API_BASE_URL;
+  const upstreamPath = isSigner ? `/api/v1/${path.slice(1).join("/")}` : `/${path.join("/")}`;
+  const upstreamUrl = new URL(upstreamPath, upstreamBase);
   upstreamUrl.search = request.nextUrl.search;
 
   const session = await getPortalSession();
@@ -48,12 +66,25 @@ async function proxy(request: NextRequest, ctx: Context) {
   const method = request.method;
   const body = method === "GET" || method === "HEAD" ? undefined : await request.text();
 
-  const upstream = await fetch(upstreamUrl, {
-    method,
-    headers,
-    body,
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method,
+      headers,
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    console.error("API proxy upstream unavailable", {
+      service: isSigner ? "signer" : "core",
+      method,
+      path: upstreamPath,
+    });
+    return NextResponse.json(
+      { code: "upstream_unavailable", message: "Backend service is unavailable" },
+      { status: 503 },
+    );
+  }
 
   const responseHeaders = new Headers();
   const upstreamType = upstream.headers.get("content-type");

@@ -15,26 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { execSync } from "node:child_process";
-import type { NextConfig } from "next";
+import { CertificateDetail } from "@/features/core/signer/components/CertificateDetail";
 
-function detectBuildSha(): string {
-  if (process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA) return process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA;
-  try {
-    return execSync("git rev-parse --short HEAD", {
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-      .toString()
-      .trim();
-  } catch {
-    return "dev";
-  }
+export default async function CertificateDetailPage(props: {
+  params: Promise<{ serial: string }>;
+}) {
+  const { serial } = await props.params;
+  return <CertificateDetail serial={serial} />;
 }
-
-const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_PORTAL_BUILD_SHA: detectBuildSha(),
-  },
-};
-
-export default nextConfig;
