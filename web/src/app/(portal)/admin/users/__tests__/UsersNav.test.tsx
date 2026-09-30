@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import type { Privilege } from "@/features/core/identity/types";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UsersNav } from "../UsersNav";
@@ -48,5 +48,17 @@ describe("UsersNav", () => {
     render(<UsersNav />);
     expect(screen.getByRole("link", { name: "User Management" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Role Management" })).toBeInTheDocument();
+  });
+  it("only shows Activity with the dedicated read privilege", () => {
+    currentPrivileges = ["core:users:read"];
+    const { unmount } = render(<UsersNav />);
+    expect(screen.queryByRole("link", { name: "Activity" })).not.toBeInTheDocument();
+    unmount();
+    currentPrivileges = ["core:users:activity:read"];
+    render(<UsersNav />);
+    expect(screen.getByRole("link", { name: "Activity" })).toHaveAttribute(
+      "href",
+      "/admin/users/activity",
+    );
   });
 });

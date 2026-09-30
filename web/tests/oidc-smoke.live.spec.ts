@@ -17,17 +17,19 @@
 
 import { expect, test } from "@playwright/test";
 
-// Live smoke against the dev-ops/compose Keycloak + the backend on :8080.
+// Live smoke against Keycloak and the backend configured for the portal.
 // Picked up only by playwright.live.config.ts (`.spec.ts` pattern).
 test.describe("OIDC smoke", () => {
-  test("admin signs in, lands on portal, /users/dev-admin returns 200", async ({ page, request }) => {
+  test("admin signs in and sees captured activity from the backend", async ({ page, request }) => {
     await page.goto("/sign-in");
-    await page.getByRole("button", { name: /sign in with custos/i }).click();
     await page.waitForURL(/\/realms\/custos\/protocol\/openid-connect\/auth/);
     await page.getByLabel(/username or email/i).fill("admin");
-    await page.getByLabel(/password/i).fill("admin");
+    await page.getByLabel("Password", { exact: true }).fill("admin");
     await page.getByRole("button", { name: /^sign in$/i }).click();
-    await page.waitForURL((url) => !url.pathname.startsWith("/sign-in") && !url.host.includes("8081"));
+    const portalOrigin = new URL(process.env.LIVE_PORTAL_URL ?? "http://localhost:3001").origin;
+    await page.waitForURL(
+      (url) => url.origin === portalOrigin && !url.pathname.startsWith("/sign-in"),
+    );
     await expect(page.getByText("admin@custos.local")).toBeVisible();
 
     const cookies = await page.context().cookies();
@@ -38,5 +40,22 @@ test.describe("OIDC smoke", () => {
     expect(meRes.status()).toBe(200);
     const body = await meRes.json();
     expect(body.email).toBe("admin@custos.local");
+
+    await page.goto("/admin/users/activity");
+    await expect(page.getByRole("heading", { name: "User activity overview" })).toBeVisible();
+    await expect(
+      page
+        .getByRole("table", { name: "User login activity" })
+        .getByRole("row")
+        .filter({ hasText: "admin@custos.local" }),
+    ).toBeVisible();
+    const activityRes = await request.get(
+      "/api/v1/users/activity?window=30&status=active&query=admin%40custos.local&limit=10&offset=0&sort=last_login&direction=desc",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(activityRes.status()).toBe(200);
+    const activity = await activityRes.json();
+    expect(activity.total).toBe(1);
+    expect(activity.items[0].login_count).toBe(1);
   });
 });

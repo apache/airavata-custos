@@ -15,19 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Privilege } from "@/features/core/identity/types";
+import { serverEnv } from "@/lib/env";
+import { captureInitialOIDCLogin, loginCaptureBearer } from "@/shared/auth/login-capture";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Keycloak from "next-auth/providers/keycloak";
-import { serverEnv } from "@/lib/env";
-import type { Privilege } from "@/features/core/identity/types";
-
-function looksLikeJwt(token: string | null | undefined): boolean {
-  return typeof token === "string" && token.split(".").length === 3;
-}
 
 const isProduction = serverEnv.NODE_ENV === "production";
-const sessionCookieName = isProduction
-  ? "__Secure-custos.session-token"
-  : "custos.session-token";
+const sessionCookieName = isProduction ? "__Secure-custos.session-token" : "custos.session-token";
 
 // Match the access_token's natural lifetime; without refresh-token handling a
 // longer session is misleading — the inner bearer dies first.
@@ -64,9 +59,7 @@ export const authConfig: NextAuthConfig = {
         (token as { accessToken?: string }).accessToken = account.access_token;
         // Some IdPs hand out opaque access tokens; use the JWT-shaped
         // bearer for the backend call so the verifier accepts it.
-        const bearer = looksLikeJwt(account.access_token)
-          ? account.access_token
-          : (account.id_token ?? account.access_token);
+        const bearer = loginCaptureBearer(account) ?? account.access_token;
         try {
           const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/me`, {
             headers: { authorization: `Bearer ${bearer}` },
@@ -83,6 +76,13 @@ export const authConfig: NextAuthConfig = {
           }
         } catch {
           // Leave token as-is; the portal shows the no-access notice for the empty case.
+        }
+        const recorded = await captureInitialOIDCLogin({
+          account,
+          coreApiBaseUrl: serverEnv.CUSTOS_CORE_API_BASE_URL,
+        });
+        if (!recorded) {
+          console.error("OIDC login activity capture failed");
         }
       }
       if (account?.id_token) {

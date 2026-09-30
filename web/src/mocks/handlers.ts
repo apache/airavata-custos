@@ -28,6 +28,7 @@ import { projectsHandlers } from "./handlers/projects";
 import { resourcesHandlers } from "./handlers/resources";
 import { rolesHandlers } from "./handlers/roles";
 import { tracesHandlers } from "./handlers/traces";
+import { userActivityHandlers } from "./handlers/user-activity";
 import { usersHandlers } from "./handlers/users";
 
 export const handlers: RequestHandler[] = [
@@ -36,6 +37,7 @@ export const handlers: RequestHandler[] = [
   ...rolesHandlers,
   ...identityHandlers,
   ...usersHandlers,
+  ...userActivityHandlers,
   ...analyticsHandlers,
   ...projectsHandlers,
   ...organizationsHandlers,

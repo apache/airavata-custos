@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Privilege } from "@/features/core/identity/types";
 import { defineAbilitiesFor } from "@/shared/casl/abilities";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "../Sidebar";
 
 let currentPrivileges: Privilege[] = [];
@@ -33,10 +33,7 @@ vi.mock("next/navigation", () => ({
 
 const NEW_ADMIN_LABELS = ["Organizations", "Resources"];
 
-const FULL_PRIVILEGES: Privilege[] = [
-  "core:organizations:read",
-  "core:clusters:read",
-];
+const FULL_PRIVILEGES: Privilege[] = ["core:organizations:read", "core:clusters:read"];
 
 beforeEach(() => {
   currentPrivileges = [];
@@ -57,5 +54,13 @@ describe("Sidebar admin entries", () => {
     for (const label of NEW_ADMIN_LABELS) {
       expect(screen.queryByRole("link", { name: label })).toBeNull();
     }
+  });
+  it("links an activity-only custom role directly to its authorized page", () => {
+    currentPrivileges = ["core:users:activity:read"];
+    render(<Sidebar />);
+    expect(screen.getByRole("link", { name: "Users & Permissions" })).toHaveAttribute(
+      "href",
+      "/admin/users/activity",
+    );
   });
 });

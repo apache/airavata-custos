@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type MongoAbility, createMongoAbility } from "@casl/ability";
 import type { Privilege } from "@/features/core/identity/types";
+import { type MongoAbility, createMongoAbility } from "@casl/ability";
 
 export type AppAbility = MongoAbility;
 export type Ability = AppAbility;
@@ -34,6 +34,7 @@ export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "core:projects:write": [{ action: "manage", subject: "Project" }],
   "core:users:read": [{ action: "read", subject: "User" }],
   "core:users:write": [{ action: "manage", subject: "User" }],
+  "core:users:activity:read": [{ action: "read", subject: "UserActivity" }],
   "core:organizations:read": [{ action: "read", subject: "Organization" }],
   "core:organizations:write": [{ action: "manage", subject: "Organization" }],
   "core:traces:read": [

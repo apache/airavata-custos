@@ -30,10 +30,25 @@ export function Sidebar() {
   const pathname = usePathname();
   const ability = useAbility();
 
-  const visible = portalNav.filter((item) => {
-    if (!item.ability) return true;
-    return ability.can(item.ability.action, item.ability.subject);
-  });
+  const visible = portalNav
+    .map((item) => {
+      if (
+        item.href === "/admin/users" &&
+        !ability.can("read", "User") &&
+        ability.can("read", "UserActivity")
+      ) {
+        return {
+          ...item,
+          href: "/admin/users/activity",
+          ability: { action: "read", subject: "UserActivity" },
+        };
+      }
+      return item;
+    })
+    .filter((item) => {
+      if (!item.ability) return true;
+      return ability.can(item.ability.action, item.ability.subject);
+    });
 
   const groups = GROUP_ORDER.map((group) => ({
     group,

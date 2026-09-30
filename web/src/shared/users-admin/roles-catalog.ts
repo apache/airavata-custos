@@ -43,6 +43,7 @@ export const ROLE_SUPER_ADMIN: RoleRow = {
     "core:traces:read",
     "core:users:read",
     "core:users:write",
+    "core:users:activity:read",
     "temp-account:accounts:read",
     "temp-account:accounts:write",
   ],
