@@ -40,15 +40,15 @@ const ALL_PRIVILEGES: Privilege[] = [
   "amie:replies:write",
   "amie:unmapped:read",
   "amie:unmapped:write",
+  "signer:certificates:read",
+  "signer:certificates:write",
 ];
 
 // Test seam: e2e scopes privileges per persona via a non-httpOnly cookie.
 // Unset (MSW-only browsing, unit tests) falls back to full access.
 function effectivePrivileges(): Privilege[] {
   if (typeof document === "undefined") return ALL_PRIVILEGES;
-  const match = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("custos.test-privileges="));
+  const match = document.cookie.split("; ").find((c) => c.startsWith("custos.test-privileges="));
   if (!match) return ALL_PRIVILEGES;
   const list = decodeURIComponent(match.slice("custos.test-privileges=".length))
     .split(",")
