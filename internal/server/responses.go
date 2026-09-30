@@ -83,6 +83,20 @@ type AllocationMembershipResponse struct {
 	Email       string `json:"email,omitempty"`
 }
 
+// ClusterAccountResponse is a cluster user with the user's name and email and the cluster name, for the review list.
+type ClusterAccountResponse struct {
+	models.ComputeClusterUser
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	ClusterName string `json:"cluster_name"`
+}
+
+// ClusterAccountListResponse is the paginated list envelope for cluster accounts.
+type ClusterAccountListResponse struct {
+	Items []ClusterAccountResponse `json:"items"`
+	Total int                      `json:"total"`
+}
+
 // ComputeAllocationListResponse is the paginated list envelope for compute
 // allocations.
 type ComputeAllocationListResponse struct {

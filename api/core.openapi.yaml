@@ -72,6 +72,59 @@ definitions:
     x-enum-varnames:
     - ClusterAccessUser
     - ClusterAccessAdmin
+  ClusterAccountApproval:
+    enum:
+    - PENDING
+    - APPROVED
+    - DENIED
+    type: string
+    x-enum-varnames:
+    - ClusterAccountPending
+    - ClusterAccountApproved
+    - ClusterAccountDenied
+  ClusterAccountListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ClusterAccountResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ClusterAccountResponse:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the account.
+        type: string
+      user_id:
+        type: string
+    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -333,6 +386,8 @@ definitions:
     properties:
       access_level:
         $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
       compute_cluster_id:
         type: string
       id:
@@ -344,6 +399,13 @@ definitions:
       provisioned_at:
         description: When the account was provisioned into the registry; nil until
           then.
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the account.
         type: string
       user_id:
         type: string
@@ -790,6 +852,11 @@ definitions:
       portal_admin:
         type: boolean
       username:
+        type: string
+    type: object
+  denyClusterAccountRequest:
+    properties:
+      note:
         type: string
     type: object
   grantPrivilegeRequest:
@@ -2592,6 +2659,41 @@ paths:
       tags:
       - Compute Allocation Usages
   /compute-cluster-users:
+    get:
+      description: Cluster users with their user and cluster, newest first. Every
+        status unless one is given.
+      parameters:
+      - description: PENDING | APPROVED | DENIED
+        in: query
+        name: approval_status
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ClusterAccountListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List cluster accounts by approval status
+      tags:
+      - Compute Cluster Users
     post:
       consumes:
       - application/json
@@ -2709,6 +2811,85 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a compute cluster user
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/approve:
+    post:
+      description: Records the caller as the approver and starts creating the account
+        on the cluster.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterUser'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Already approved
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve a cluster account
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/deny:
+    post:
+      consumes:
+      - application/json
+      description: Records the caller's decision and the note. No account is created
+        on the cluster. The user keeps portal access.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Optional note
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/denyClusterAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterUser'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Already approved or denied
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deny a cluster account
       tags:
       - Compute Cluster Users
   /compute-clusters:

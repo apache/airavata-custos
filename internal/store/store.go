@@ -93,8 +93,12 @@ type ComputeClusterUserStore interface {
 	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	// FindByUser returns every cluster mapping held by the given Custos user.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
+	// ListByApprovalStatus returns mappings joined with the user and cluster, newest first, plus the total. An empty status means any status.
+	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
 	// Create inserts a new mapping within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// Review records the admin's decision on the mapping within the provided transaction.
+	Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction.

@@ -33,6 +33,13 @@ func (b *Bus) SubscribeComputeClusterUserCreated(subscriber string, handler Comp
 	subscribeTyped(b, subscriber, ComputeClusterUserCreateEvent, handler)
 }
 
+// SubscribeComputeClusterUserApproved registers a typed handler invoked
+// whenever a compute_cluster_user::approve event is published, which is when
+// an admin approves the account, and it can be created on the cluster.
+func (b *Bus) SubscribeComputeClusterUserApproved(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserApproveEvent, handler)
+}
+
 // SubscribeComputeClusterUserUpdated registers a typed handler invoked
 // whenever a compute_cluster_user::update event is published.
 func (b *Bus) SubscribeComputeClusterUserUpdated(subscriber string, handler ComputeClusterUserHandler) {

@@ -24,11 +24,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const clusterUserAuditAdminGranted = "CLUSTER_ADMIN_GRANTED"
+const (
+	clusterUserAuditAdminGranted = "CLUSTER_ADMIN_GRANTED"
+	clusterUserAuditApproved     = "CLUSTER_ACCOUNT_APPROVED"
+	clusterUserAuditDenied       = "CLUSTER_ACCOUNT_DENIED"
+)
 
 func (s *Service) writeClusterUserAuditTx(ctx context.Context, tx *sql.Tx, eventType, entityID string, details map[string]any) error {
 	payload, err := json.Marshal(details)
@@ -71,6 +76,24 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		return nil, fmt.Errorf("%w: unknown access level %q for user %s on cluster %s, must be %s or %s",
 			ErrInvalidInput, cu.AccessLevel, cu.UserID, cu.ComputeClusterID, models.ClusterAccessUser, models.ClusterAccessAdmin)
 	}
+	// A new row waits for review. The admin routes pass it as approved, with the admin who added it as the reviewer.
+	if cu.ApprovalStatus == "" {
+		cu.ApprovalStatus = models.ClusterAccountPending
+	}
+	switch cu.ApprovalStatus {
+	case models.ClusterAccountPending:
+	case models.ClusterAccountApproved:
+		if cu.ReviewedBy == nil || *cu.ReviewedBy == "" {
+			return nil, fmt.Errorf("%w: an approved cluster user needs a reviewer", ErrInvalidInput)
+		}
+		if cu.ReviewedAt == nil {
+			now := nowUTC()
+			cu.ReviewedAt = &now
+		}
+	default:
+		return nil, fmt.Errorf("%w: a new cluster user can be %s or %s, not %s",
+			ErrInvalidInput, models.ClusterAccountPending, models.ClusterAccountApproved, cu.ApprovalStatus)
+	}
 
 	if cluster, err := s.clusters.FindByID(ctx, cu.ComputeClusterID); err != nil {
 		return nil, fmt.Errorf("lookup compute cluster: %w", err)
@@ -94,7 +117,14 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		if err := s.clusterUsers.Create(ctx, tx, cu); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, cu)
+		if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, cu); err != nil {
+			return err
+		}
+		// Approved at creation, so provisioning starts now.
+		if cu.ApprovalStatus == models.ClusterAccountApproved {
+			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+		}
+		return nil
 	}); err != nil {
 		switch {
 		case isLocalUsernameDuplicate(err):
@@ -105,6 +135,113 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		default:
 			return nil, fmt.Errorf("create compute cluster user: %w", err)
 		}
+	}
+	return cu, nil
+}
+
+// ListComputeClusterUsersByApproval returns cluster users in the given
+// approval status with their user and cluster, newest first. An empty status means any status.
+func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ClusterAccountApproval, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
+	switch status {
+	case "", models.ClusterAccountPending, models.ClusterAccountApproved, models.ClusterAccountDenied:
+	default:
+		return nil, 0, fmt.Errorf("%w: unknown approval status %q", ErrInvalidInput, status)
+	}
+	rows, total, err := s.clusterUsers.ListByApprovalStatus(ctx, status, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list compute cluster users by approval: %w", err)
+	}
+	return rows, total, nil
+}
+
+// ApproveComputeClusterUser records the admin's approval and publishes the
+// `approve event`, which is what creates the account on the cluster. A denied account can be approved later.
+func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID string) (*models.ComputeClusterUser, error) {
+	cu, err := s.clusterUserForReview(ctx, id, reviewerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only a denied or pending cluster account can be approved
+	if cu.ApprovalStatus == models.ClusterAccountApproved {
+		return nil, fmt.Errorf("%w: cluster user %q is already approved", ErrAlreadyExists, id)
+	}
+	now := nowUTC()
+	cu.ApprovalStatus = models.ClusterAccountApproved
+	cu.ReviewedAt = &now
+	cu.ReviewedBy = &reviewerID
+	cu.ReviewNote = nil
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountApproved, reviewerID, "", now); err != nil {
+			return err
+		}
+		if err := s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditApproved, id, map[string]any{
+			"actor_id":       reviewerID,
+			"user_id":        cu.UserID,
+			"cluster_id":     cu.ComputeClusterID,
+			"local_username": cu.LocalUsername,
+		}); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+	}); err != nil {
+		return nil, fmt.Errorf("approve compute cluster user: %w", err)
+	}
+	return cu, nil
+}
+
+// DenyComputeClusterUser records the admin's denial. No event is published,
+// so the account is never created on the cluster. An approved account cannot
+// be denied, since it may already exist on the cluster.
+func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, note string) (*models.ComputeClusterUser, error) {
+	cu, err := s.clusterUserForReview(ctx, id, reviewerID)
+	if err != nil {
+		return nil, err
+	}
+	switch cu.ApprovalStatus {
+	case models.ClusterAccountApproved:
+		return nil, fmt.Errorf("%w: cluster user %q is already approved, remove it instead", ErrAlreadyExists, id)
+	case models.ClusterAccountDenied:
+		return nil, fmt.Errorf("%w: cluster user %q is already denied", ErrAlreadyExists, id)
+	}
+	now := nowUTC()
+	cu.ApprovalStatus = models.ClusterAccountDenied
+	cu.ReviewedAt = &now
+	cu.ReviewedBy = &reviewerID
+	cu.ReviewNote = nil
+	if note != "" {
+		cu.ReviewNote = &note
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountDenied, reviewerID, note, now); err != nil {
+			return err
+		}
+		return s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditDenied, id, map[string]any{
+			"actor_id":       reviewerID,
+			"user_id":        cu.UserID,
+			"cluster_id":     cu.ComputeClusterID,
+			"local_username": cu.LocalUsername,
+			"note":           note,
+		})
+	}); err != nil {
+		return nil, fmt.Errorf("deny compute cluster user: %w", err)
+	}
+	return cu, nil
+}
+
+func (s *Service) clusterUserForReview(ctx context.Context, id, reviewerID string) (*models.ComputeClusterUser, error) {
+	if id == "" {
+		return nil, fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
+	}
+	if reviewerID == "" {
+		return nil, fmt.Errorf("%w: reviewer is required", ErrInvalidInput)
+	}
+	cu, err := s.clusterUsers.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("lookup compute cluster user: %w", err)
+	}
+	if cu == nil {
+		return nil, ErrNotFound
 	}
 	return cu, nil
 }
