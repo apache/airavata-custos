@@ -16,15 +16,54 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
+import clusterAccountsFixture from "@/features/core/cluster-accounts/__fixtures__/cluster-accounts.json";
+import type { ClusterAccount } from "@/features/core/cluster-accounts/schemas";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
 import type { ComputeCluster, ComputeClusterUser } from "@/features/core/clusters/schemas";
 
 const clusters = clustersFixture as ComputeCluster[];
 const clusterUsers = clusterUsersFixture as ComputeClusterUser[];
+const clusterAccounts = clusterAccountsFixture as ClusterAccount[];
 
 export const clustersHandlers = [
   http.get("*/api/v1/compute-clusters", () => HttpResponse.json(clusters)),
+
+  http.get("*/api/v1/compute-cluster-users", ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get("approval_status");
+    const rows = status
+      ? clusterAccounts.filter((a) => a.approval_status === status)
+      : clusterAccounts;
+    return HttpResponse.json({ items: rows, total: rows.length });
+  }),
+
+  http.post("*/api/v1/compute-cluster-users/:id/approve", ({ params }) => {
+    const found = clusterAccounts.find((a) => a.id === String(params.id));
+    if (!found) return HttpResponse.json({ error: "cluster user not found" }, { status: 404 });
+    if (found.approval_status === "APPROVED") {
+      return HttpResponse.json({ error: "already approved" }, { status: 409 });
+    }
+    found.approval_status = "APPROVED";
+    found.reviewed_at = new Date().toISOString();
+    found.reviewed_by = "user-admin";
+    found.review_note = undefined;
+    return HttpResponse.json(found);
+  }),
+
+  http.post("*/api/v1/compute-cluster-users/:id/deny", async ({ params, request }) => {
+    const found = clusterAccounts.find((a) => a.id === String(params.id));
+    if (!found) return HttpResponse.json({ error: "cluster user not found" }, { status: 404 });
+    if (found.approval_status !== "PENDING") {
+      return HttpResponse.json({ error: "already reviewed" }, { status: 409 });
+    }
+    const body = (await request.json().catch(() => ({}))) as { note?: string };
+    found.approval_status = "DENIED";
+    found.reviewed_at = new Date().toISOString();
+    found.reviewed_by = "user-admin";
+    found.review_note = body.note || undefined;
+    return HttpResponse.json(found);
+  }),
 
   http.get("*/api/v1/compute-clusters/:id", ({ params }) => {
     const id = String(params.id);

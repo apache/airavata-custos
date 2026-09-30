@@ -31,6 +31,43 @@ export const zAllocationMembershipResponse = z.object({
 
 export type allocationMembershipResponseZodType = z.infer<typeof zAllocationMembershipResponse>;
 
+export const zClusterAccessLevel = z.enum(['USER', 'ADMIN']);
+
+export type clusterAccessLevelZodType = z.infer<typeof zClusterAccessLevel>;
+
+export const zClusterAccountApproval = z.enum([
+    'PENDING',
+    'APPROVED',
+    'DENIED'
+]);
+
+export type clusterAccountApprovalZodType = z.infer<typeof zClusterAccountApproval>;
+
+export const zClusterAccountResponse = z.object({
+    access_level: zClusterAccessLevel.optional(),
+    approval_status: zClusterAccountApproval.optional(),
+    cluster_name: z.string().optional(),
+    compute_cluster_id: z.string().optional(),
+    display_name: z.string().optional(),
+    email: z.string().optional(),
+    id: z.string().optional(),
+    local_username: z.string().optional(),
+    provisioned_at: z.string().optional(),
+    review_note: z.string().optional(),
+    reviewed_at: z.string().optional(),
+    reviewed_by: z.string().optional(),
+    user_id: z.string().optional()
+});
+
+export type clusterAccountResponseZodType = z.infer<typeof zClusterAccountResponse>;
+
+export const zClusterAccountListResponse = z.object({
+    items: z.array(zClusterAccountResponse).optional(),
+    total: z.int().optional()
+});
+
+export type clusterAccountListResponseZodType = z.infer<typeof zClusterAccountListResponse>;
+
 export const zComputeAllocation = z.object({
     compute_cluster_id: z.string().optional(),
     end_time: z.string().optional(),
@@ -173,13 +210,38 @@ export const zComputeCluster = z.object({
 export type computeClusterZodType = z.infer<typeof zComputeCluster>;
 
 export const zComputeClusterUser = z.object({
+    access_level: zClusterAccessLevel.optional(),
+    approval_status: zClusterAccountApproval.optional(),
     compute_cluster_id: z.string().optional(),
     id: z.string().optional(),
     local_username: z.string().optional(),
+    provisioned_at: z.string().optional(),
+    review_note: z.string().optional(),
+    reviewed_at: z.string().optional(),
+    reviewed_by: z.string().optional(),
     user_id: z.string().optional()
 });
 
 export type computeClusterUserZodType = z.infer<typeof zComputeClusterUser>;
+
+export const zEvent = z.object({
+    created_at: z.string().optional(),
+    event_type: z.string().optional(),
+    id: z.string().optional(),
+    payload: z.array(z.int()).optional(),
+    source: z.string().optional(),
+    trace_id: z.string().optional()
+});
+
+export type eventZodType = z.infer<typeof zEvent>;
+
+export const zEventDeliveryStatus = z.enum([
+    'PENDING',
+    'SUCCEEDED',
+    'FAILED'
+]);
+
+export type eventDeliveryStatusZodType = z.infer<typeof zEventDeliveryStatus>;
 
 export const zOrganization = z.object({
     id: z.string().optional(),
@@ -196,6 +258,21 @@ export const zOrganizationListResponse = z.object({
 
 export type organizationListResponseZodType = z.infer<typeof zOrganizationListResponse>;
 
+export const zPendingDelivery = z.object({
+    attempts: z.int().optional(),
+    created_at: z.string().optional(),
+    event: zEvent.optional(),
+    event_id: z.string().optional(),
+    finished_at: z.string().optional(),
+    id: z.string().optional(),
+    last_error: z.string().optional(),
+    next_run_at: z.string().optional(),
+    status: zEventDeliveryStatus.optional(),
+    subscriber: z.string().optional()
+});
+
+export type pendingDeliveryZodType = z.infer<typeof zPendingDelivery>;
+
 export const zPrivilegeKey = z.enum([
     'core:clusters:read',
     'core:clusters:write',
@@ -209,7 +286,8 @@ export const zPrivilegeKey = z.enum([
     'core:organizations:write',
     'core:traces:read',
     'core:privileges:grant',
-    'core:roles:manage'
+    'core:roles:manage',
+    'core:events:manage'
 ]);
 
 export type privilegeKeyZodType = z.infer<typeof zPrivilegeKey>;
@@ -294,6 +372,15 @@ export const zCallerRoleGrant = z.object({
 });
 
 export type callerRoleGrantZodType = z.infer<typeof zCallerRoleGrant>;
+
+export const zSubscription = z.object({
+    created_at: z.string().optional(),
+    event_type: z.string().optional(),
+    loaded: z.boolean().optional(),
+    subscriber: z.string().optional()
+});
+
+export type subscriptionZodType = z.infer<typeof zSubscription>;
 
 export const zTraceEvent = z.object({
     created_at: z.string().optional(),
@@ -432,12 +519,40 @@ export const zAttachResourceRequest = z.object({
 
 export type attachResourceRequestZodType = z.infer<typeof zAttachResourceRequest>;
 
+export const zCreateComputeClusterUserRequest = z.object({
+    compute_cluster_id: z.string().optional(),
+    local_username: z.string().optional(),
+    user_id: z.string().optional()
+});
+
+export type createComputeClusterUserRequestZodType = z.infer<typeof zCreateComputeClusterUserRequest>;
+
 export const zCreateRoleRequest = z.object({
     description: z.string().optional(),
     name: z.string().optional()
 });
 
 export type createRoleRequestZodType = z.infer<typeof zCreateRoleRequest>;
+
+export const zCreateUserRequest = z.object({
+    allocation_id: z.string().optional(),
+    cluster_admin: z.boolean().optional(),
+    compute_cluster_id: z.string().optional(),
+    email: z.string().optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    organization_id: z.string().optional(),
+    portal_admin: z.boolean().optional(),
+    username: z.string().optional()
+});
+
+export type createUserRequestZodType = z.infer<typeof zCreateUserRequest>;
+
+export const zDenyClusterAccountRequest = z.object({
+    note: z.string().optional()
+});
+
+export type denyClusterAccountRequestZodType = z.infer<typeof zDenyClusterAccountRequest>;
 
 export const zGrantPrivilegeRequest = z.object({
     privilege: zPrivilegeKey.optional(),
@@ -1002,10 +1117,21 @@ export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalPath = z.object({
  */
 export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = zUserAllocationSuTotalResponse;
 
+export const zGetComputeClusterUsersQuery = z.object({
+    approval_status: z.string().optional(),
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetComputeClusterUsersResponse = zClusterAccountListResponse;
+
 /**
  * Cluster user payload
  */
-export const zPostComputeClusterUsersBody = zComputeClusterUser;
+export const zPostComputeClusterUsersBody = zCreateComputeClusterUserRequest;
 
 /**
  * Created
@@ -1028,7 +1154,7 @@ export const zGetComputeClusterUsersByIdResponse = zComputeClusterUser;
 /**
  * Cluster user payload
  */
-export const zPutComputeClusterUsersByIdBody = zComputeClusterUser;
+export const zPutComputeClusterUsersByIdBody = zCreateComputeClusterUserRequest;
 
 export const zPutComputeClusterUsersByIdPath = z.object({
     id: z.string()
@@ -1038,6 +1164,29 @@ export const zPutComputeClusterUsersByIdPath = z.object({
  * OK
  */
 export const zPutComputeClusterUsersByIdResponse = zComputeClusterUser;
+
+export const zPostComputeClusterUsersByIdApprovePath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zPostComputeClusterUsersByIdApproveResponse = zComputeClusterUser;
+
+/**
+ * Optional note
+ */
+export const zPostComputeClusterUsersByIdDenyBody = zDenyClusterAccountRequest;
+
+export const zPostComputeClusterUsersByIdDenyPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zPostComputeClusterUsersByIdDenyResponse = zComputeClusterUser;
 
 /**
  * OK
@@ -1081,6 +1230,29 @@ export const zGetComputeClustersByIdUsersByUserIdPath = z.object({
  * OK
  */
 export const zGetComputeClustersByIdUsersByUserIdResponse = zComputeClusterUser;
+
+export const zGetEventsDeliveriesQuery = z.object({
+    status: z.string().optional(),
+    limit: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetEventsDeliveriesResponse = z.object({
+    items: z.array(zPendingDelivery).optional()
+});
+
+export const zPostEventsDeliveriesByIdRetryPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zGetEventsSubscriptionsResponse = z.object({
+    items: z.array(zSubscription).optional()
+});
 
 /**
  * OK
@@ -1130,7 +1302,8 @@ export const zGetPrivilegesByKeyHoldersPath = z.object({
         'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
-        'core:roles:manage'
+        'core:roles:manage',
+        'core:events:manage'
     ])
 });
 
@@ -1279,7 +1452,8 @@ export const zDeleteRolesByIdPrivilegesByKeyPath = z.object({
         'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
-        'core:roles:manage'
+        'core:roles:manage',
+        'core:events:manage'
     ])
 });
 
@@ -1359,7 +1533,7 @@ export const zGetUsersResponse = zUserListResponse;
 /**
  * User payload
  */
-export const zPostUsersBody = zUser;
+export const zPostUsersBody = zCreateUserRequest;
 
 /**
  * Created
@@ -1468,7 +1642,8 @@ export const zDeleteUsersByIdPrivilegesByKeyPath = z.object({
         'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
-        'core:roles:manage'
+        'core:roles:manage',
+        'core:events:manage'
     ])
 });
 

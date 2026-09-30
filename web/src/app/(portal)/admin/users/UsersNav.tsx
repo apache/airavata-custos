@@ -19,17 +19,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useClusterAccounts } from "@/features/core/cluster-accounts/queries";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 
 const TABS = [
   { href: "/admin/users/management", label: "User Management" },
   {
+    href: "/admin/users/cluster-accounts",
+    label: "Cluster Accounts",
+    ability: { action: "read", subject: "Cluster" } as const,
+    badge: "pending-cluster-accounts",
+  },
+  {
     href: "/admin/users/roles",
     label: "Role Management",
     ability: { action: "manage", subject: "Role" } as const,
   },
 ] as const;
+
+// Shows how many accounts wait for approval, so the admin sees it from the
+// other tabs too.
+function PendingClusterAccountsBadge() {
+  const query = useClusterAccounts({ approval_status: "PENDING", limit: 1 });
+  const count = query.data?.total ?? 0;
+  if (count === 0) return null;
+  return (
+    <span
+      aria-label={`${count} pending approval`}
+      className="rounded-full bg-[color:var(--tone-warn-bg)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[color:var(--tone-warn-fg)]"
+    >
+      {count}
+    </span>
+  );
+}
 
 export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
   const pathname = usePathname();
@@ -51,13 +74,14 @@ export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
               <Link
                 href={tab.href}
                 className={cn(
-                  "inline-flex items-center px-4 py-2 text-sm font-medium transition-colors",
+                  "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors",
                   active
                     ? "border-b-2 border-brand text-foreground"
                     : "border-b-2 border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 {tab.label}
+                {"badge" in tab ? <PendingClusterAccountsBadge /> : null}
               </Link>
             </li>
           );
