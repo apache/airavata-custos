@@ -41,13 +41,27 @@ const (
 	ClusterAccessAdmin ClusterAccessLevel = "ADMIN"
 )
 
+// ClusterAccountApproval is the admin's decision on a cluster account.
+// The account is created on the cluster only after it is approved.
+type ClusterAccountApproval string
+
+const (
+	ClusterAccountPending  ClusterAccountApproval = "PENDING"
+	ClusterAccountApproved ClusterAccountApproval = "APPROVED"
+	ClusterAccountDenied   ClusterAccountApproval = "DENIED"
+)
+
 type ComputeClusterUser struct {
-	ID               string             `json:"id"                db:"id"`
-	ComputeClusterID string             `json:"compute_cluster_id" db:"compute_cluster_id"`
-	UserID           string             `json:"user_id"            db:"user_id"`
-	LocalUsername    string             `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
-	AccessLevel      ClusterAccessLevel `json:"access_level"       db:"access_level"`
-	ProvisionedAt    *time.Time         `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
+	ID               string                 `json:"id"                db:"id"`
+	ComputeClusterID string                 `json:"compute_cluster_id" db:"compute_cluster_id"`
+	UserID           string                 `json:"user_id"            db:"user_id"`
+	LocalUsername    string                 `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	AccessLevel      ClusterAccessLevel     `json:"access_level"       db:"access_level"`
+	ProvisionedAt    *time.Time             `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
+	ApprovalStatus   ClusterAccountApproval `json:"approval_status"    db:"approval_status"`
+	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
+	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
 }
 
 type ComputeAllocation struct {

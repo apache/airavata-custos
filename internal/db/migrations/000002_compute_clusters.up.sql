@@ -33,16 +33,25 @@ CREATE TABLE IF NOT EXISTS compute_cluster_users
     local_username     VARCHAR(32) NOT NULL,
     access_level       VARCHAR(16) NOT NULL DEFAULT 'USER',
     provisioned_at     TIMESTAMPTZ(6) NULL,
+    -- An admin with the right privilege has to approve the account before it is created on the cluster.
+    -- A user an admin adds is approved at once, a user from an allocation source waits for review.
+    approval_status    VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    reviewed_at        TIMESTAMPTZ(6) NULL,
+    reviewed_by        VARCHAR(255) NULL,
+    review_note        TEXT NULL,
     created_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     CONSTRAINT chk_compute_cluster_users_access_level CHECK (access_level IN ('USER', 'ADMIN')),
+    CONSTRAINT chk_compute_cluster_users_approval_status CHECK (approval_status IN ('PENDING', 'APPROVED', 'DENIED')),
     CONSTRAINT uq_compute_cluster_users_pair UNIQUE (compute_cluster_id, user_id),
     CONSTRAINT uq_compute_cluster_users_local_username UNIQUE (compute_cluster_id, local_username),
     CONSTRAINT fk_compute_cluster_users_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE CASCADE,
-    CONSTRAINT fk_compute_cluster_users_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT fk_compute_cluster_users_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_compute_cluster_users_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users (id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_compute_cluster_users_user ON compute_cluster_users (user_id);
+CREATE INDEX IF NOT EXISTS idx_compute_cluster_users_approval_status ON compute_cluster_users (approval_status);
 
 CREATE OR REPLACE TRIGGER trg_compute_clusters_updated_at
     BEFORE UPDATE ON compute_clusters

@@ -182,12 +182,17 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		}
 	}
 
+	// Onboarding is an admin creating the user account on purpose, so it counts as the approval.
+	reviewedAt := nowUTC()
 	clusterUser := &models.ComputeClusterUser{
 		ID:               newID(),
 		ComputeClusterID: in.ComputeClusterID,
 		UserID:           created.ID,
 		LocalUsername:    in.Username,
 		AccessLevel:      models.ClusterAccessUser,
+		ApprovalStatus:   models.ClusterAccountApproved,
+		ReviewedAt:       &reviewedAt,
+		ReviewedBy:       &in.OnboardedBy,
 	}
 	if in.ClusterAdmin {
 		clusterUser.AccessLevel = models.ClusterAccessAdmin
@@ -257,7 +262,11 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 			return err
 		}
 		if needsCluster {
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, clusterUser)
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, clusterUser); err != nil {
+				return err
+			}
+			// Approved at creation, so provisioning starts now.
+			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, clusterUser)
 		}
 		return nil
 	}); err != nil {

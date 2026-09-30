@@ -55,7 +55,9 @@ func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.S
 
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
-	s.bus.SubscribeComputeClusterUserCreated(subscriber, s.handleClusterUserCreate)
+	// Accounts are created on the cluster only after an admin approves them,
+	// so the `approve event` is what starts provisioning, not the `create event`.
+	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
 	s.bus.SubscribeUserIdentityCreated(subscriber, s.handleUserIdentityCreate)
 }
 
@@ -94,9 +96,9 @@ func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, id
 	return nil
 }
 
-func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
 	ctx = audit.WithSource(ctx, "comanage")
-	ctx, span := tracing.Start(ctx, "comanage.cluster_user_create")
+	ctx, span := tracing.Start(ctx, "comanage.cluster_user_approved")
 	defer span.End()
 
 	if cu.ComputeClusterID != s.custosClusterID {

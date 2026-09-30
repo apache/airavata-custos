@@ -20,11 +20,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -82,5 +84,179 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 
 	if err := svc.MarkComputeClusterUserProvisioned(ctx(), "missing-"+uuid.NewString()); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound for unknown id, got %v", err)
+	}
+}
+
+// newClusterUser creates a cluster, a user, and a cluster user with no approval
+// given, the way an allocation source does, and returns the cluster user.
+func newClusterUser(t *testing.T, svc *Service, database *sqlx.DB) *models.ComputeClusterUser {
+	t.Helper()
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "appr-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	userID := seedUser(t, database, fmt.Sprintf("member-%s@example.edu", uuid.NewString()))
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{
+		ComputeClusterID: cluster.ID,
+		UserID:           userID,
+		LocalUsername:    "appr-" + uuid.NewString()[:8],
+	})
+	if err != nil {
+		t.Fatalf("create compute cluster user: %v", err)
+	}
+	return cu
+}
+
+func countDeliveries(t *testing.T, svc *Service) int {
+	t.Helper()
+	rows, err := svc.EventBus().ListDeliveries(ctx(), "", 10)
+	if err != nil {
+		t.Fatalf("list deliveries: %v", err)
+	}
+	return len(rows)
+}
+
+// Make sure a cluster user created without an approval waits for an admin
+// instead of being created on the cluster.
+func TestCreateComputeClusterUser_WaitsForApproval(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+
+	cu := newClusterUser(t, svc, database)
+	if cu.ApprovalStatus != models.ClusterAccountPending || cu.ReviewedBy != nil {
+		t.Fatalf("expected a pending row with no reviewer, got %+v", cu)
+	}
+}
+
+// Make sure a cluster user an admin adds directly is approved and provisioning
+// starts at once, without a separate approval step.
+func TestCreateComputeClusterUser_ApprovedByAdminStartsProvisioning(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "appr-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	member := seedUser(t, database, fmt.Sprintf("member-%s@example.edu", uuid.NewString()))
+
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{
+		ComputeClusterID: cluster.ID,
+		UserID:           member,
+		LocalUsername:    "appr-" + uuid.NewString()[:8],
+		ApprovalStatus:   models.ClusterAccountApproved,
+		ReviewedBy:       &admin,
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if cu.ApprovalStatus != models.ClusterAccountApproved || cu.ReviewedAt == nil {
+		t.Fatalf("expected an approved row with a review time, got %+v", cu)
+	}
+	if n := countDeliveries(t, svc); n != 1 {
+		t.Fatalf("expected one delivery of the approve event, got %d", n)
+	}
+}
+
+// Make sure an approval stores who approved, leaves an audit row, and publishes
+// the approve event so the account gets created on the cluster.
+func TestApproveComputeClusterUser_PublishesApproveEvent(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	cu := newClusterUser(t, svc, database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+
+	got, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, admin)
+	if err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if got.ApprovalStatus != models.ClusterAccountApproved || got.ReviewedBy == nil || *got.ReviewedBy != admin || got.ReviewedAt == nil {
+		t.Fatalf("expected an approved row reviewed by %s, got %+v", admin, got)
+	}
+	if n := countDeliveries(t, svc); n != 1 {
+		t.Fatalf("expected one delivery of the approve event, got %d", n)
+	}
+	if n := countAuditEventsOfType(t, database, clusterUserAuditApproved, cu.ID); n != 1 {
+		t.Fatalf("expected one approval audit row, got %d", n)
+	}
+}
+
+// Make sure a denial stores who denied and the note, leaves an audit row, and
+// publishes nothing, so the account is never created on the cluster.
+func TestDenyComputeClusterUser_PublishesNothing(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	cu := newClusterUser(t, svc, database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+
+	got, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, "not on the collaborator list")
+	if err != nil {
+		t.Fatalf("deny: %v", err)
+	}
+	if got.ApprovalStatus != models.ClusterAccountDenied || got.ReviewNote == nil || *got.ReviewNote != "not on the collaborator list" {
+		t.Fatalf("expected a denied row with the note, got %+v", got)
+	}
+	if n := countDeliveries(t, svc); n != 0 {
+		t.Fatalf("expected no delivery for a denied account, got %d", n)
+	}
+	if n := countAuditEventsOfType(t, database, clusterUserAuditDenied, cu.ID); n != 1 {
+		t.Fatalf("expected one denial audit row, got %d", n)
+	}
+}
+
+// Make sure an approved account cannot be approved again or denied, since it
+// may already exist on the cluster, while a denied one can still be approved.
+func TestReviewComputeClusterUser_ApprovalIsFinal(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cu := newClusterUser(t, svc, database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+
+	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, ""); err != nil {
+		t.Fatalf("deny: %v", err)
+	}
+	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, admin); err != nil {
+		t.Fatalf("approve after deny: %v", err)
+	}
+	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, admin); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("expected ErrAlreadyExists on a second approval, got %v", err)
+	}
+	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, ""); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("expected ErrAlreadyExists denying an approved account, got %v", err)
+	}
+}
+
+// Make sure a cluster user created through onboarding is approved by the
+// onboarding admin and provisioning starts at once, since adding the user by hand is the approval.
+func TestOnboardUser_ClusterAccountIsApproved(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	onboarder := seedUser(t, database, fmt.Sprintf("onboarder-%s@example.edu", uuid.NewString()))
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "onb-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	in := onboardInput(fmt.Sprintf("researcher-%s@example.edu", uuid.NewString()))
+	in.Username = "onb-" + uuid.NewString()[:8]
+	in.ComputeClusterID = cluster.ID
+	in.OnboardedBy = onboarder
+
+	created, err := svc.OnboardUser(ctx(), in)
+	if err != nil {
+		t.Fatalf("onboard: %v", err)
+	}
+	cu, err := svc.GetComputeClusterUserByPair(ctx(), cluster.ID, created.ID)
+	if err != nil {
+		t.Fatalf("cluster user: %v", err)
+	}
+	if cu.ApprovalStatus != models.ClusterAccountApproved || cu.ReviewedBy == nil || *cu.ReviewedBy != onboarder {
+		t.Fatalf("expected approval by the onboarding admin, got %+v", cu)
+	}
+	if n := countDeliveries(t, svc); n != 1 {
+		t.Fatalf("expected one delivery of the approve event, got %d", n)
 	}
 }

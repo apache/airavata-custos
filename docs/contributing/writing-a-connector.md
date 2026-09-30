@@ -373,10 +373,10 @@ core *service.Service
 }
 
 func (s *ClusterUserSubscriber) RegisterSubscribers() {
-s.bus.SubscribeComputeClusterUserCreated(comanage.Type, s.handleCreate)
+s.bus.SubscribeComputeClusterUserApproved(comanage.Type, s.handleApproved)
 }
 
-func (s *ClusterUserSubscriber) handleCreate(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *ClusterUserSubscriber) handleApproved(ctx context.Context, cu models.ComputeClusterUser) error {
 // ...react...
 return nil
 }
