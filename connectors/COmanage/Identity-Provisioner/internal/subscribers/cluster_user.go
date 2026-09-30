@@ -53,20 +53,21 @@ func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.S
 	}
 }
 
-func (s *ClusterUserSubscriber) RegisterSubscribers() {
-	s.bus.SubscribeComputeClusterUserCreated(s.handleClusterUserCreate)
-	s.bus.SubscribeUserIdentityCreated(s.handleUserIdentityCreate)
+// RegisterSubscribers subscribes the handlers under the given subscriber name.
+func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
+	s.bus.SubscribeComputeClusterUserCreated(subscriber, s.handleClusterUserCreate)
+	s.bus.SubscribeUserIdentityCreated(subscriber, s.handleUserIdentityCreate)
 }
 
 // handleUserIdentityCreate re-runs provisioning once the `User` has a `sub`.
 // A user provisioned before their first sign-in has none in the registry, so
 // the cluster cannot match the person to their ssh login.
-func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, identity models.UserIdentity) {
+func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, identity models.UserIdentity) error {
 	// Provisioning stores a COmanage identity of its own, which comes back with
 	// the `identity`. The event is fired for every `UserIdentity` source, and only the `oidc` one
 	// carries the sub that needs to be updated in the COmanage registry.
 	if identity.Source != "oidc" || identity.OIDCSub == "" {
-		return
+		return nil
 	}
 
 	ctx = audit.WithSource(ctx, "comanage")
@@ -78,26 +79,28 @@ func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, id
 	if errors.Is(err, service.ErrNotFound) {
 		// Expected for portal admins, system users, and temp users, which have no compute cluster account.
 		slog.Debug("comanage subscriber: no cluster account to link the sub to", "user_id", identity.UserID, "cluster_id", s.custosClusterID)
-		return
+		return nil
 	}
 	if err != nil {
 		slog.Error("comanage subscriber: cluster user lookup failed", "user_id", identity.UserID, "err", err)
-		return
+		return err
 	}
 	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.Error("comanage subscriber: EnsurePOSIXAccount failed after identity link", "compute_cluster_user_id", cu.ID, "user_id", identity.UserID, "err", err)
+		return err
 	}
+	return nil
 }
 
-func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu models.ComputeClusterUser) {
+func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu models.ComputeClusterUser) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_create")
 	defer span.End()
 
 	if cu.ComputeClusterID != s.custosClusterID {
-		return
+		return nil
 	}
 	span.SetAttributes(
 		attribute.String("comanage.cluster_user_id", cu.ID),
@@ -116,7 +119,7 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu 
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.Error("comanage subscriber: EnsurePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
-		return
+		return err
 	}
 	// Even if this fails, the cluster account is usable without sudo, so a
 	// failed group join is logged and left for a retry.
@@ -124,6 +127,8 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, cu 
 		if err := s.ops.EnsureClusterAdminMembership(ctx, &cu); err != nil {
 			span.RecordError(err)
 			slog.Error("comanage subscriber: EnsureClusterAdminMembership failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+			return err
 		}
 	}
+	return nil
 }

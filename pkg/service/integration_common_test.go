@@ -84,6 +84,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"roles",
 		"user_privileges",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"user_identities",
 		"users",
 		"organizations",
@@ -94,7 +97,16 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 }
 
 func newTestService(database *sqlx.DB) *Service {
-	return New(database, events.New())
+	return New(database, newTestBus(database))
+}
+
+// newTestBus creates a bus on the test database and panics if that fails.
+func newTestBus(database *sqlx.DB) *events.Bus {
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		panic("event bus: " + err.Error())
+	}
+	return bus
 }
 
 func seedOrg(t *testing.T, database *sqlx.DB) string {

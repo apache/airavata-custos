@@ -33,12 +33,13 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		return nil, err
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Create(ctx, tx, user)
+		if err := s.users.Create(ctx, tx, user); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserCreateEvent, user)
 	}); err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
 	return user, nil
 }
 
@@ -185,12 +186,13 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Update(ctx, tx, user)
+		if err := s.users.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
 	}); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, user)
 	return nil
 }
 
@@ -210,14 +212,15 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	if existing == nil {
 		return nil, ErrNotFound
 	}
+	existing.Status = status
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.UpdateStatus(ctx, tx, id, status)
+		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
-	existing.Status = status
-
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -234,11 +237,12 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Delete(ctx, tx, id)
+		if err := s.users.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserDeleteEvent, existing)
 	return nil
 }

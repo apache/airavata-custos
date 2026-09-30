@@ -19,50 +19,31 @@ package events
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // ComputeAllocationMembershipResourceOverrideHandler handles lifecycle
 // events for membership resource overrides with a typed payload.
-type ComputeAllocationMembershipResourceOverrideHandler func(ctx context.Context, o models.ComputeAllocationMembershipResourceOverride)
+type ComputeAllocationMembershipResourceOverrideHandler func(ctx context.Context, o models.ComputeAllocationMembershipResourceOverride) error
 
 // SubscribeComputeAllocationMembershipResourceOverrideCreated registers a
 // typed handler invoked whenever a
 // compute_allocation_membership_resource_override::create event is published.
-func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideCreated(handler ComputeAllocationMembershipResourceOverrideHandler) {
-	b.subscribeMembershipResourceOverride(ComputeAllocationMembershipResourceOverrideCreateEvent, handler)
+func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber string, handler ComputeAllocationMembershipResourceOverrideHandler) {
+	subscribeTyped(b, subscriber, ComputeAllocationMembershipResourceOverrideCreateEvent, handler)
 }
 
 // SubscribeComputeAllocationMembershipResourceOverrideUpdated registers a
 // typed handler invoked whenever a
 // compute_allocation_membership_resource_override::update event is published.
-func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideUpdated(handler ComputeAllocationMembershipResourceOverrideHandler) {
-	b.subscribeMembershipResourceOverride(ComputeAllocationMembershipResourceOverrideUpdateEvent, handler)
+func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideUpdated(subscriber string, handler ComputeAllocationMembershipResourceOverrideHandler) {
+	subscribeTyped(b, subscriber, ComputeAllocationMembershipResourceOverrideUpdateEvent, handler)
 }
 
 // SubscribeComputeAllocationMembershipResourceOverrideDeleted registers a
 // typed handler invoked whenever a
 // compute_allocation_membership_resource_override::delete event is published.
-func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideDeleted(handler ComputeAllocationMembershipResourceOverrideHandler) {
-	b.subscribeMembershipResourceOverride(ComputeAllocationMembershipResourceOverrideDeleteEvent, handler)
-}
-
-func (b *Bus) subscribeMembershipResourceOverride(topic EventType, handler ComputeAllocationMembershipResourceOverrideHandler) {
-	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
-		switch o := value.(type) {
-		case models.ComputeAllocationMembershipResourceOverride:
-			handler(ctx, o)
-		case *models.ComputeAllocationMembershipResourceOverride:
-			if o != nil {
-				handler(ctx, *o)
-			}
-		default:
-			slog.Warn("compute allocation membership resource override event payload has unexpected type",
-				"type", event.Type,
-				"got", value,
-			)
-		}
-	})
+func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideDeleted(subscriber string, handler ComputeAllocationMembershipResourceOverrideHandler) {
+	subscribeTyped(b, subscriber, ComputeAllocationMembershipResourceOverrideDeleteEvent, handler)
 }

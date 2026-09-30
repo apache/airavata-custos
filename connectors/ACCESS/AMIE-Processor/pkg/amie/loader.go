@@ -54,6 +54,9 @@ func init() {
 
 const connectorName = "amie"
 
+// Type is the connector type in the config file.
+const Type = "amie-processor"
+
 // LoadConnector skips silently when AMIE_BASE_URL / AMIE_SITE_CODE /
 // AMIE_API_KEY are not all set. When enabled, it attaches /connectors/amie/*
 // endpoints to mux.

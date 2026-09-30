@@ -122,12 +122,16 @@ func run() error {
 		}
 	}()
 
-	// Create a new event bus instance to async messaging between service and connectors
-	eventBus := events.New()
-	svc := service.New(database, eventBus)
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	// The bus carries events from the service to the connectors through the
+	// database, so nothing is lost across a restart or a failed handler.
+	eventBus, err := events.New(ctx, database)
+	if err != nil {
+		return err
+	}
+	svc := service.New(database, eventBus)
 
 	tryBootstrap(ctx, svc)
 
@@ -140,6 +144,13 @@ func run() error {
 	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, router); err != nil {
 		return err
 	}
+	// Started after the connectors, so every handler is registered before
+	// the first delivery.
+	connectorsWG.Add(1)
+	go func() {
+		defer connectorsWG.Done()
+		eventBus.Run(ctx)
+	}()
 
 	verifier, err := identity.NewJWTVerifier(ctx, cfg.Core.Auth.OIDC.Issuer, cfg.Core.Auth.OIDC.Audience)
 	if err != nil {

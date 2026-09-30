@@ -19,6 +19,7 @@ package tracing
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log/slog"
 	"os"
@@ -120,6 +121,31 @@ func ParentSpanIDFromContext(ctx context.Context) string {
 
 func FromContext(ctx context.Context) trace.Span {
 	return trace.SpanFromContext(ctx)
+}
+
+// ContextWithTraceID attaches a saved trace id to ctx, so the spans and audit
+// rows written from here on belong to the trace of the request that started it.
+// An empty traceID is normal and leaves ctx unchanged, so the caller runs with
+// no trace. An invalid one does the same but is logged since it should not happen.
+func ContextWithTraceID(ctx context.Context, traceID string) context.Context {
+	if traceID == "" {
+		return ctx
+	}
+	tid, err := trace.TraceIDFromHex(traceID)
+	if err != nil {
+		slog.Warn("ignoring invalid trace id", "trace_id", traceID, "error", err)
+		return ctx
+	}
+	var sid trace.SpanID
+	if _, err := rand.Read(sid[:]); err != nil {
+		return ctx
+	}
+	return trace.ContextWithRemoteSpanContext(ctx, trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID:    tid,
+		SpanID:     sid,
+		TraceFlags: trace.FlagsSampled,
+		Remote:     true,
+	}))
 }
 
 func IDsFromContext(ctx context.Context) (traceID, spanID string) {

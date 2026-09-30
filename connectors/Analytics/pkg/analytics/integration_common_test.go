@@ -20,6 +20,7 @@
 package analytics
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -74,7 +75,11 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *Service, http.Handler) {
 	}
 	truncateAll(t, sharedDB)
 
-	svc := NewService(coreservice.New(sharedDB, events.New()), sharedDB)
+	bus, err := events.New(context.Background(), sharedDB)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
+	svc := NewService(coreservice.New(sharedDB, bus), sharedDB)
 	router := identity.NewRouter(http.NewServeMux())
 	NewHandlers(svc).RegisterRoutes(router)
 	return sharedDB, svc, router

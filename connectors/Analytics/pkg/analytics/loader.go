@@ -35,6 +35,9 @@ import (
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
+// Type is the connector type in the config file.
+const Type = "analytics"
+
 func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	svc := NewService(coreService, database)
 	NewHandlers(svc).RegisterRoutes(router)

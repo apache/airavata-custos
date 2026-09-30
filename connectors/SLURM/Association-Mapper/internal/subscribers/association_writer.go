@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -42,6 +43,10 @@ func tresFor(resourceType string, count int64) client.TRES {
 // writing the association now would make slurmctld cache a failed uid lookup
 // and reject the user's jobs. The reconciler retries these.
 var errNotProvisioned = errors.New("cluster account not provisioned yet")
+
+// errEmptyResourceType means the resource row has an empty resource_type. A
+// retry cannot fix the row, so the delivery is not retried.
+var errEmptyResourceType = fmt.Errorf("%w: resource type is empty", events.ErrPermanent)
 
 // assocKey identifies an association the way Slurm does. Cluster is not part
 // of it because callers scope their lookups to one cluster already.

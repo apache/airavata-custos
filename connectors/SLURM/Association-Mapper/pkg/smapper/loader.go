@@ -34,6 +34,9 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
+// Type is the connector type in the config file and the subscriber name on the bus.
+const Type = "slurm-association-mapper"
+
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
@@ -94,7 +97,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
 	subscriber := subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService, reconcileInterval, provisionGrace)
-	subscriber.RegisterSubscribers()
+	subscriber.RegisterSubscribers(Type)
 
 	// The sweep, not the events above, is what guarantees associations exist.
 	wg.Add(1)

@@ -252,16 +252,18 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return fmt.Errorf("create allocation membership: %w", err)
 			}
 		}
+
+		if err := s.eventBus.Publish(ctx, tx, events.UserCreateEvent, created); err != nil {
+			return err
+		}
+		if needsCluster {
+			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, clusterUser)
+		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	// Published after commit so a subscriber never provisions a rolled-back row.
-	s.eventBus.Publish(ctx, events.UserCreateEvent, created)
-	if needsCluster {
-		s.eventBus.Publish(ctx, events.ComputeClusterUserCreateEvent, clusterUser)
-	}
 	if in.ClusterAdmin {
 		slog.Info("cluster admin account created", "user_id", created.ID, "cluster_id", clusterUser.ComputeClusterID, "actor_id", in.OnboardedBy)
 	}

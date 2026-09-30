@@ -58,12 +58,13 @@ func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.allocDiffs.Create(ctx, tx, diff)
+		if err := s.allocDiffs.Create(ctx, tx, diff); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDiffCreateEvent, diff)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation diff: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationDiffCreateEvent, diff)
 	return diff, nil
 }
 
@@ -124,11 +125,12 @@ func (s *Service) DeleteComputeAllocationDiff(ctx context.Context, id string) er
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.allocDiffs.Delete(ctx, tx, id)
+		if err := s.allocDiffs.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDiffDeleteEvent, diff)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation diff: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationDiffDeleteEvent, diff)
 	return nil
 }

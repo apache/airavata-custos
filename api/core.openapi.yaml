@@ -348,6 +348,34 @@ definitions:
       user_id:
         type: string
     type: object
+  Event:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: string
+      payload:
+        items:
+          type: integer
+        type: array
+      source:
+        description: Subsystem that published the event.
+        type: string
+      trace_id:
+        type: string
+    type: object
+  EventDeliveryStatus:
+    enum:
+    - PENDING
+    - SUCCEEDED
+    - FAILED
+    type: string
+    x-enum-varnames:
+    - EventDeliveryPending
+    - EventDeliverySucceeded
+    - EventDeliveryFailed
   Organization:
     properties:
       id:
@@ -368,6 +396,29 @@ definitions:
       total:
         type: integer
     type: object
+  PendingDelivery:
+    properties:
+      attempts:
+        type: integer
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/Event'
+      event_id:
+        type: string
+      finished_at:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   PrivilegeKey:
     enum:
     - core:clusters:read
@@ -383,6 +434,7 @@ definitions:
     - core:traces:read
     - core:privileges:grant
     - core:roles:manage
+    - core:events:manage
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -398,6 +450,7 @@ definitions:
     - TracesRead
     - PrivilegesGrant
     - RolesManage
+    - EventsManage
   Project:
     properties:
       created_time:
@@ -504,6 +557,17 @@ definitions:
       is_system:
         type: boolean
       name:
+        type: string
+    type: object
+  Subscription:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      loaded:
+        type: boolean
+      subscriber:
         type: string
     type: object
   TraceEvent:
@@ -2787,6 +2851,99 @@ paths:
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
+  /events/deliveries:
+    get:
+      description: Newest first, every status unless one is given. A pending delivery
+        with no attempts means its subscriber is not loaded, so it waits until that
+        connector starts.
+      parameters:
+      - description: PENDING | SUCCEEDED | FAILED
+        in: query
+        name: status
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/PendingDelivery'
+                type: array
+            type: object
+        "400":
+          description: Invalid status or limit
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List event deliveries
+      tags:
+      - Events
+  /events/deliveries/{id}/retry:
+    post:
+      description: Makes the delivery due again with a fresh attempt count. The worker
+        picks it up on its next pass.
+      parameters:
+      - description: Delivery id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Delivery not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Delivery has not failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retry a failed event delivery
+      tags:
+      - Events
+  /events/subscriptions:
+    get:
+      description: Every saved subscription and whether its subscriber is loaded in
+        this process.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/Subscription'
+                type: array
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List event subscriptions
+      tags:
+      - Events
   /me:
     get:
       description: Roles are the caller's own grants; unlike /users/{id}/roles this
@@ -2908,6 +3065,7 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
         in: path
         name: key
         required: true
@@ -3433,6 +3591,7 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
         in: path
         name: key
         required: true
@@ -4037,6 +4196,7 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
         in: path
         name: key
         required: true

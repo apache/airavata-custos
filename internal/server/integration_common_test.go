@@ -20,6 +20,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -71,7 +72,11 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 		t.Fatalf("setup db: %v", sharedDBErr)
 	}
 	truncateAll(t, sharedDB)
-	svc := service.New(sharedDB, events.New())
+	bus, err := events.New(context.Background(), sharedDB)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
+	svc := service.New(sharedDB, bus)
 	router := identity.NewRouter(http.NewServeMux())
 	return sharedDB, svc, New(svc, router)
 }
@@ -84,6 +89,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"roles",
 		"user_privileges",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"compute_allocation_usages",
 		"compute_allocation_memberships",
 		"compute_allocation_resource_mappings",

@@ -53,15 +53,16 @@ func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, cor
 	}
 }
 
-func (a *AssociationSubscriber) RegisterSubscribers() {
-	a.eventBus.SubscribeComputeAllocationCreated(a.SubscribeToComputeAllocationCreation)
-	a.eventBus.SubscribeComputeAllocationDeleted(a.SubscribeToComputeAllocationDeletion)
-	a.eventBus.SubscribeComputeAllocationUpdated(a.SubscribeToComputeAllocationUpdate)
-	a.eventBus.SubscribeComputeAllocationMembershipCreated(a.SubscribeToComputeAllocationMembershipCreation)
-	a.eventBus.SubscribeComputeAllocationMembershipUpdated(a.SubscribeToComputeAllocationMembershipUpdate)
-	a.eventBus.SubscribeComputeAllocationMembershipDeleted(a.SubscribeToComputeAllocationMembershipDeletion)
-	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(a.SubscribeToComputeAllocationMembershipResourceOverrideCreation)
-	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(a.SubscribeToComputeAllocationResourceMappingCreation)
+// RegisterSubscribers subscribes the handlers under the given subscriber name.
+func (a *AssociationSubscriber) RegisterSubscribers(subscriber string) {
+	a.eventBus.SubscribeComputeAllocationCreated(subscriber, a.SubscribeToComputeAllocationCreation)
+	a.eventBus.SubscribeComputeAllocationDeleted(subscriber, a.SubscribeToComputeAllocationDeletion)
+	a.eventBus.SubscribeComputeAllocationUpdated(subscriber, a.SubscribeToComputeAllocationUpdate)
+	a.eventBus.SubscribeComputeAllocationMembershipCreated(subscriber, a.SubscribeToComputeAllocationMembershipCreation)
+	a.eventBus.SubscribeComputeAllocationMembershipUpdated(subscriber, a.SubscribeToComputeAllocationMembershipUpdate)
+	a.eventBus.SubscribeComputeAllocationMembershipDeleted(subscriber, a.SubscribeToComputeAllocationMembershipDeletion)
+	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber, a.SubscribeToComputeAllocationMembershipResourceOverrideCreation)
+	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(subscriber, a.SubscribeToComputeAllocationResourceMappingCreation)
 }
 
 func (a *AssociationSubscriber) recordAuditEvent(ctx context.Context, eventType, entityType, entityId, message string) {

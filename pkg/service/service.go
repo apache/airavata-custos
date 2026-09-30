@@ -154,6 +154,10 @@ func (s *Service) AuditTraces() store.AuditTraceStore {
 	return s.auditTraces
 }
 
+func (s *Service) EventBus() *events.Bus {
+	return s.eventBus
+}
+
 func (s *Service) SetAuditTraces(ts store.AuditTraceStore) {
 	s.auditTraces = ts
 }

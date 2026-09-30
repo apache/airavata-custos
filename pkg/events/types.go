@@ -22,6 +22,10 @@ package events
 import (
 	"context"
 	"sync"
+
+	"github.com/jmoiron/sqlx"
+
+	"github.com/apache/airavata-custos/internal/store"
 )
 
 // EventType identifies the kind of event carried on the bus.
@@ -127,11 +131,38 @@ type Event struct {
 }
 
 // EventSubscriberFunc is a function type that can be registered to receive events from the bus.
-type EventSubscriberFunc func(ctx context.Context, event Event, value interface{})
+// A returned error means the event was not handled, and the bus will call the handler again later.
+// It must be safe to run more than once for the same event, since a retry,
+// a crash before the outcome is recorded, or a restart can each cause a repeat.
+type EventSubscriberFunc func(ctx context.Context, event Event, value interface{}) error
 
-// Bus is a lightweight, in-memory, topic-based pub/sub event bus.
-// Modules publish and subscribe by topic without knowing about each other.
+// handler is one subscriber's registered function for a topic.
+type handler struct {
+	subscriber string
+	fn         EventSubscriberFunc
+}
+
+// Bus is a topic-based pub/sub event bus backed by PostgreSQL. Modules
+// publish and subscribe by topic without knowing about each other. A publish
+// writes one event delivery row per saved subscription, and the worker started by
+// Run calls the handlers from those rows.
 type Bus struct {
-	mu   sync.RWMutex
-	subs map[string][]EventSubscriberFunc
+	db          *sqlx.DB
+	store       store.EventDeliveryStore
+	auditEvents store.AuditEventStore
+
+	mu sync.RWMutex
+
+	// The two maps below hold different sets. `topicHandlers` is who can take
+	// an event right now, the functions the connectors registered in "this process".
+	// It starts empty on every restart and fills as each connector loads and
+	// starts subscribing to events. `subscriptions` is who should get an event,
+	// a copy of the DB table, so it is complete from the start. A connector that
+	// fails to load exists in `subscriptions` and not in `topicHandlers`, so its
+	// events are stored and wait for it.
+
+	// Handlers registered in this process - topic -> handlers.
+	topicHandlers map[string][]handler
+	// Cache the event_subscriptions - topic -> subscriber.
+	subscriptions map[string]map[string]struct{}
 }

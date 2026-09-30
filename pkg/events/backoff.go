@@ -15,25 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tempaccount
+package events
 
-import (
-	"context"
-	"sync"
+import "time"
 
-	"github.com/apache/airavata-custos/connectors/TempAccount/internal"
-	"github.com/apache/airavata-custos/internal/config"
-	"github.com/apache/airavata-custos/pkg/events"
-	"github.com/apache/airavata-custos/pkg/identity"
-	"github.com/apache/airavata-custos/pkg/service"
-	"github.com/jmoiron/sqlx"
-)
-
-// Type is the connector type in the config file.
-const Type = "temp-account"
-
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
-	handlers := internal.NewHandlers(coreService)
-	handlers.RegisterRoutes(router)
-	return nil
+// NextRetryDelay calculates the delay before the next retry using exponential backoff.
+// The delay starts at base, doubles per attempt, and is capped at max.
+func NextRetryDelay(attempt int, base, max time.Duration) time.Duration {
+	delay := base
+	// Stops doubling at the cap
+	for i := 1; i < attempt && delay < max; i++ {
+		delay *= 2
+	}
+	return min(delay, max)
 }

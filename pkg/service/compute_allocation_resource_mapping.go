@@ -71,12 +71,13 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 		ResourceTime:                resourceTime,
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resourceMappings.Create(ctx, tx, mapping)
+		if err := s.resourceMappings.Create(ctx, tx, mapping); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	}); err != nil {
 		return nil, fmt.Errorf("attach resource to allocation: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	return mapping, nil
 }
 
@@ -104,12 +105,13 @@ func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocatio
 	existing.ResourceAmount = resourceAmount
 	existing.ResourceTime = resourceTime
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resourceMappings.Update(ctx, tx, existing)
+		if err := s.resourceMappings.Update(ctx, tx, existing); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update allocation resource mapping: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -130,12 +132,13 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID)
+		if err := s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("detach resource from allocation: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	return nil
 }
 

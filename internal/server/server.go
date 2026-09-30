@@ -189,6 +189,10 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /audit/traces/{trace_id}", models.TracesRead, s.handleGetTrace)
 	s.router.RequirePrivilege("GET /audit/events", models.TracesRead, s.handleListEvents)
 	s.router.RequirePrivilege("GET /audit/sources", models.TracesRead, s.handleListSources)
+
+	s.router.RequirePrivilege("GET /events/deliveries", models.TracesRead, s.listEventDeliveries)
+	s.router.RequirePrivilege("POST /events/deliveries/{id}/retry", models.EventsManage, s.retryEventDelivery)
+	s.router.RequirePrivilege("GET /events/subscriptions", models.TracesRead, s.listEventSubscriptions)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {

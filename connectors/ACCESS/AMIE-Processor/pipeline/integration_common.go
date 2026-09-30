@@ -122,6 +122,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 	tables := []string{
 		"amie_audit_extras",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
@@ -195,7 +198,10 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	}
 
 	amieClient := amieclient.New(cfg)
-	eventBus := events.New()
+	eventBus, err := events.New(context.Background(), database)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
 	coreSvc := coreservice.New(database, eventBus)
 
 	packetStore := store.NewPacketStore(database)

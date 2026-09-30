@@ -83,7 +83,8 @@ INSERT INTO role_privileges (role_id, privilege) VALUES
     ('11111111-1111-1111-1111-111111111111', 'core:users:read'),
     ('11111111-1111-1111-1111-111111111111', 'core:users:write'),
     ('11111111-1111-1111-1111-111111111111', 'core:organizations:read'),
-    ('11111111-1111-1111-1111-111111111111', 'core:traces:read')
+    ('11111111-1111-1111-1111-111111111111', 'core:traces:read'),
+    ('11111111-1111-1111-1111-111111111111', 'core:events:manage')
 ON CONFLICT DO NOTHING;
 
 -- auditor privileges

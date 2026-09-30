@@ -91,7 +91,10 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusterUsers.Create(ctx, tx, cu)
+		if err := s.clusterUsers.Create(ctx, tx, cu); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, cu)
 	}); err != nil {
 		switch {
 		case isLocalUsernameDuplicate(err):
@@ -103,8 +106,6 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 			return nil, fmt.Errorf("create compute cluster user: %w", err)
 		}
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeClusterUserCreateEvent, cu)
 	return cu, nil
 }
 
@@ -216,12 +217,13 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 		cu.LocalUsername = existing.LocalUsername
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusterUsers.Update(ctx, tx, cu)
+		if err := s.clusterUsers.Update(ctx, tx, cu); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu)
 	}); err != nil {
 		return fmt.Errorf("update compute cluster user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeClusterUserUpdateEvent, cu)
 	return nil
 }
 
@@ -259,11 +261,12 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusterUsers.Delete(ctx, tx, id)
+		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu)
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeClusterUserDeleteEvent, cu)
 	return nil
 }
