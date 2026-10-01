@@ -190,10 +190,14 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 	return cu, nil
 }
 
-// DenyComputeClusterUser records the admin's denial. No event is published,
-// so the account is never created on the cluster. An approved account cannot
-// be denied, since it may already exist on the cluster.
+// DenyComputeClusterUser records the admin's denial and publishes the deny
+// event. The reason is required because it is passed on to whoever requested
+// the account. An approved account cannot be denied, since it may already
+// exist on the cluster.
 func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, note string) (*models.ComputeClusterUser, error) {
+	if note == "" {
+		return nil, fmt.Errorf("%w: a reason is required to deny", ErrInvalidInput)
+	}
 	cu, err := s.clusterUserForReview(ctx, id, reviewerID)
 	if err != nil {
 		return nil, err
@@ -208,21 +212,21 @@ func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, no
 	cu.ApprovalStatus = models.ClusterAccountDenied
 	cu.ReviewedAt = &now
 	cu.ReviewedBy = &reviewerID
-	cu.ReviewNote = nil
-	if note != "" {
-		cu.ReviewNote = &note
-	}
+	cu.ReviewNote = &note
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountDenied, reviewerID, note, now); err != nil {
 			return err
 		}
-		return s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditDenied, id, map[string]any{
+		if err := s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditDenied, id, map[string]any{
 			"actor_id":       reviewerID,
 			"user_id":        cu.UserID,
 			"cluster_id":     cu.ComputeClusterID,
 			"local_username": cu.LocalUsername,
 			"note":           note,
-		})
+		}); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDenyEvent, cu)
 	}); err != nil {
 		return nil, fmt.Errorf("deny compute cluster user: %w", err)
 	}

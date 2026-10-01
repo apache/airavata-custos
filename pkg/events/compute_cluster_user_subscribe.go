@@ -40,6 +40,13 @@ func (b *Bus) SubscribeComputeClusterUserApproved(subscriber string, handler Com
 	subscribeTyped(b, subscriber, ComputeClusterUserApproveEvent, handler)
 }
 
+// SubscribeComputeClusterUserDenied registers a typed handler invoked
+// whenever a compute_cluster_user::deny event is published. The payload
+// carries the admin's reason in ReviewNote.
+func (b *Bus) SubscribeComputeClusterUserDenied(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserDenyEvent, handler)
+}
+
 // SubscribeComputeClusterUserUpdated registers a typed handler invoked
 // whenever a compute_cluster_user::update event is published.
 func (b *Bus) SubscribeComputeClusterUserUpdated(subscriber string, handler ComputeClusterUserHandler) {

@@ -217,21 +217,22 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		model.AuditCreatePerson,
 		model.AuditCreateAccount,
 		model.AuditCreateMembership,
-		model.AuditReplySent,
+		model.AuditReplyHeld,
 	} {
 		if got := countAuditActions(t, database, pkt.ID, action); got != 1 {
 			t.Errorf("audit %s: got %d, want 1", action, got)
 		}
 	}
 
-	// Reply: notify_account_create with the required fields:
-	// AccountActivityTime, ProjectID, ResourceList, UserRemoteSiteLogin.
-	if got, want := amie.lastReplyType(), "notify_account_create"; got != want {
-		t.Fatalf("reply type: got %q, want %q", got, want)
+	// The cluster account is new and not approved yet, so nothing goes to ACCESS. The
+	// reply is kept on the packet: notify_account_create with the required
+	// fields AccountActivityTime, ProjectID, ResourceList, UserRemoteSiteLogin.
+	if len(amie.Replies) != 0 {
+		t.Fatalf("expected no reply before approval, got %d", len(amie.Replies))
 	}
-	reply := amie.lastReplyBody()
-	if reply == nil {
-		t.Fatal("reply body missing")
+	replyType, reply := heldReply(t, pkt)
+	if replyType != "notify_account_create" {
+		t.Fatalf("reply type: got %q, want %q", replyType, "notify_account_create")
 	}
 	if got, _ := reply["ProjectID"].(string); got != projectID {
 		t.Errorf("reply.ProjectID: got %q, want %q", got, projectID)
@@ -317,7 +318,7 @@ func TestRequestAccountCreate_IdempotentReDelivery(t *testing.T) {
 		model.AuditCreatePerson,
 		model.AuditCreateAccount,
 		model.AuditCreateMembership,
-		model.AuditReplySent,
+		model.AuditReplyHeld,
 	} {
 		if got := countAuditActions(t, database, firstPkt.ID, action); got != 1 {
 			t.Errorf("first delivery audit %s: got %d, want 1", action, got)
@@ -327,8 +328,40 @@ func TestRequestAccountCreate_IdempotentReDelivery(t *testing.T) {
 		}
 	}
 
-	if len(amie.Replies) != 2 {
-		t.Errorf("amie replies after two deliveries: got %d, want 2", len(amie.Replies))
+	if len(amie.Replies) != 0 {
+		t.Errorf("amie replies before approval: got %d, want 0", len(amie.Replies))
+	}
+}
+
+// Make sure a person who already has an approved cluster account gets the
+// reply at once, since a new project for them needs no new approval.
+func TestRequestAccountCreate_ApprovedAccountRepliesAtOnce(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	body := baseRACBody()
+	body["ProjectID"] = projectID
+
+	svc := newTestCoreService(database)
+	amie := &fakeAmieClient{}
+	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, newTestAuditService(database))
+	handle := func(pkt *model.Packet) {
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+	}
+	handle(insertPacket(t, database, "request_account_create", body))
+	approvePendingAccounts(t, database, svc)
+
+	pkt := insertPacket(t, database, "request_account_create", body)
+	handle(pkt)
+
+	if got := amie.lastReplyType(); got != "notify_account_create" {
+		t.Fatalf("reply type: got %q, want notify_account_create", got)
+	}
+	if pkt.Status == model.PacketStatusWaitingApproval || pkt.HeldReply != nil {
+		t.Errorf("expected the reply to be sent, not held, got status %s", pkt.Status)
 	}
 }
 
@@ -458,13 +491,23 @@ func TestRequestAccountCreate_ReplyFailurePropagates(t *testing.T) {
 
 	body := baseRACBody()
 	body["ProjectID"] = projectID
-	pkt := insertPacket(t, database, "request_account_create", body)
 
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
-	amie := &fakeAmieClient{FailWith: errors.New("simulated AMIE outage")}
+	amie := &fakeAmieClient{}
 	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, audit)
 
+	// Only an approved cluster account is replied to at once, so create and approve it first.
+	first := insertPacket(t, database, "request_account_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": first.Type, "body": body}, first, "")
+	}); err != nil {
+		t.Fatalf("first Handle: %v", err)
+	}
+	approvePendingAccounts(t, database, svc)
+
+	amie.FailWith = errors.New("simulated AMIE outage")
+	pkt := insertPacket(t, database, "request_account_create", body)
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
 	})

@@ -247,14 +247,15 @@ type denyClusterAccountRequest struct {
 }
 
 // @Summary	Deny a cluster account
-// @Description	Records the caller's decision and the note. No account is created on the cluster. The user keeps portal access.
+// @Description	Records the caller's decision and the reason. No account is created on the cluster, and the reason is passed on to whoever requested the account. The user keeps portal access.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster user ID"
-// @Param	request	body	denyClusterAccountRequest	false	"Optional note"
+// @Param	request	body	denyClusterAccountRequest	true	"Reason for the denial"
 // @Success	200	{object}	models.ComputeClusterUser
+// @Failure	400	{object}	object{error=string}	"Reason missing"
 // @Failure	404	{object}	object{error=string}
 // @Failure	409	{object}	object{error=string}	"Already approved or denied"
 // @Router	/compute-cluster-users/{id}/deny [post]
@@ -264,11 +265,9 @@ func (s *Server) denyClusterAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req denyClusterAccountRequest
-	if r.ContentLength != 0 {
-		if err := common.DecodeJSON(r, &req); err != nil {
-			common.WriteError(w, http.StatusBadRequest, err)
-			return
-		}
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
 	}
 	cu, err := s.svc.DenyComputeClusterUser(r.Context(), r.PathValue("id"), caller.UserID, strings.TrimSpace(req.Note))
 	if err != nil {

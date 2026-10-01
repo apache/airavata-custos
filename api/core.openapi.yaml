@@ -120,7 +120,7 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the account.
+        description: The admin who approved or denied the cluster account.
         type: string
       user_id:
         type: string
@@ -405,7 +405,7 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the account.
+        description: The admin who approved or denied the cluster account.
         type: string
       user_id:
         type: string
@@ -2853,17 +2853,19 @@ paths:
     post:
       consumes:
       - application/json
-      description: Records the caller's decision and the note. No account is created
-        on the cluster. The user keeps portal access.
+      description: Records the caller's decision and the reason. No account is created
+        on the cluster, and the reason is passed on to whoever requested the account.
+        The user keeps portal access.
       parameters:
       - description: Compute cluster user ID
         in: path
         name: id
         required: true
         type: string
-      - description: Optional note
+      - description: Reason for the denial
         in: body
         name: request
+        required: true
         schema:
           $ref: '#/definitions/denyClusterAccountRequest'
       produces:
@@ -2873,6 +2875,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ComputeClusterUser'
+        "400":
+          description: Reason missing
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:

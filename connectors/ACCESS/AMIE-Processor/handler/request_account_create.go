@@ -134,11 +134,8 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		replyBody["UserOrgCode"] = v
 	}
 	reply := map[string]any{"type": "notify_account_create", "body": replyBody}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_account_create: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_account_create: audit REPLY_SENT: %w", err)
+	if err := replyWhenAccountApproved(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, account, reply); err != nil {
+		return fmt.Errorf("request_account_create: %w", err)
 	}
 	return nil
 }

@@ -208,12 +208,16 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			return fmt.Errorf("unmarshal packet raw JSON: %w", err)
 		}
 
-		// Load the full packet from DB to preserve all fields (e.g. retries).
+		// Load the full packet from DB to preserve all fields (e.g., retries).
 		packet, err := p.packetStore.FindByID(ctx, ewp.PacketID)
 		if err != nil {
 			return fmt.Errorf("load packet %s: %w", ewp.PacketID, err)
 		}
 
+		// A handler that holds its reply sets the status to waiting.
+		decodedAt := time.Now().UTC()
+		packet.Status = model.PacketStatusDecoded
+		packet.DecodedAt = &decodedAt
 		if err := p.router.Route(ctx, tx, packetJSON, packet, ewp.ID); err != nil {
 			return fmt.Errorf("route packet: %w", err)
 		}
@@ -226,11 +230,8 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			return fmt.Errorf("update event to SUCCEEDED: %w", err)
 		}
 
-		decodedAt := time.Now().UTC()
-		packet.Status = model.PacketStatusDecoded
-		packet.DecodedAt = &decodedAt
 		if err := p.packetStore.Update(ctx, tx, packet); err != nil {
-			return fmt.Errorf("update packet to DECODED: %w", err)
+			return fmt.Errorf("update packet: %w", err)
 		}
 
 		p.metrics.RecordPacketProcessed(ewp.PacketType, "succeeded")

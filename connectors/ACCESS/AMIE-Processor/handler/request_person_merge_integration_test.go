@@ -188,7 +188,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
 	userDNStore := store.NewUserDNStore(database)
-	h := NewRequestPersonMergeHandler(svc, userDNStore, amie, audit)
+	h := NewRequestPersonMergeHandler(svc, userDNStore, store.NewEventStore(database), amie, audit)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -331,7 +331,7 @@ func TestRequestPersonMerge_ReplaySafeAfterMerge(t *testing.T) {
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
 	userDNStore := store.NewUserDNStore(database)
-	h := NewRequestPersonMergeHandler(svc, userDNStore, amie, audit)
+	h := NewRequestPersonMergeHandler(svc, userDNStore, store.NewEventStore(database), amie, audit)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": firstPkt.Type, "body": body}, firstPkt, "")
@@ -420,7 +420,7 @@ func TestRequestPersonMerge_SameKeepAndDelete(t *testing.T) {
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
 	userDNStore := store.NewUserDNStore(database)
-	h := NewRequestPersonMergeHandler(svc, userDNStore, amie, audit)
+	h := NewRequestPersonMergeHandler(svc, userDNStore, store.NewEventStore(database), amie, audit)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -476,7 +476,7 @@ func TestRequestPersonMerge_UnknownRetiringOrSurviving(t *testing.T) {
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
 	userDNStore := store.NewUserDNStore(database)
-	h := NewRequestPersonMergeHandler(svc, userDNStore, amie, audit)
+	h := NewRequestPersonMergeHandler(svc, userDNStore, store.NewEventStore(database), amie, audit)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -529,7 +529,7 @@ func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{FailWith: errors.New("simulated AMIE outage")}
 	userDNStore := store.NewUserDNStore(database)
-	h := NewRequestPersonMergeHandler(svc, userDNStore, amie, audit)
+	h := NewRequestPersonMergeHandler(svc, userDNStore, store.NewEventStore(database), amie, audit)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -546,6 +546,46 @@ func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 	}
 	if len(amie.Replies) != 0 {
 		t.Errorf("amie reply count on failed reply: got %d, want 0", len(amie.Replies))
+	}
+}
+
+// Make sure a packet held on the retiring person's cluster account is marked
+// to be processed again, since the merge deletes that account when the
+// survivor already has one on the same cluster.
+func TestRequestPersonMerge_ReprocessesPacketsHeldOnRetiringAccount(t *testing.T) {
+	database := setupTestDB(t)
+	seed := seedMergeUsers(t, database)
+
+	var retiringAccount string
+	if err := database.Get(&retiringAccount, "SELECT id FROM compute_cluster_users WHERE user_id = $1", seed.retiringID); err != nil {
+		t.Fatalf("read retiring cluster account: %v", err)
+	}
+	held := insertPacket(t, database, "request_account_create", baseRACBody())
+	if _, err := database.Exec("UPDATE amie_packets SET status = $1, held_reply = '{}', held_for = $2 WHERE id = $3",
+		model.PacketStatusWaitingApproval, retiringAccount, held.ID); err != nil {
+		t.Fatalf("hold packet: %v", err)
+	}
+	eventID := uuid.NewString()
+	if _, err := database.Exec("INSERT INTO amie_processing_events (id, packet_id, type, status) VALUES ($1, $2, $3, $4)",
+		eventID, held.ID, held.Type, model.ProcessingStatusSucceeded); err != nil {
+		t.Fatalf("insert processing event: %v", err)
+	}
+
+	body := baseRPMBody(seed)
+	pkt := insertPacket(t, database, "request_person_merge", body)
+	h := NewRequestPersonMergeHandler(newTestCoreService(database), store.NewUserDNStore(database), store.NewEventStore(database), &fakeAmieClient{}, newTestAuditService(database))
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+
+	var status model.ProcessingStatus
+	if err := database.Get(&status, "SELECT status FROM amie_processing_events WHERE id = $1", eventID); err != nil {
+		t.Fatalf("read processing event: %v", err)
+	}
+	if status != model.ProcessingStatusNew {
+		t.Errorf("held packet's processing event: got %s, want %s", status, model.ProcessingStatusNew)
 	}
 }
 
