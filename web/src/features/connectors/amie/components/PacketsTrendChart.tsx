@@ -19,15 +19,24 @@
 
 import * as React from "react";
 import { StackedAreaUsage } from "@/shared/charts/StackedAreaUsage";
-import type { PacketStatBucket, PacketStatus } from "../types";
+import { type PacketStatBucket, type PacketStatus, packetStatusLabel } from "../types";
 
-const STATUS_ORDER: PacketStatus[] = ["PROCESSED", "DECODED", "NEW", "FAILED"];
+const STATUS_ORDER: PacketStatus[] = [
+  "PROCESSED",
+  "DECODED",
+  "NEW",
+  "WAITING_APPROVAL",
+  "REFUSED",
+  "FAILED",
+];
 // Recharts paints area fill AND tooltip label in the same color on white.
 // Use 700-step so tooltip labels clear WCAG AA 4.5:1.
 const STATUS_COLORS: Record<PacketStatus, string> = {
   PROCESSED: "var(--custos-green-700)",
   DECODED: "var(--custos-amber-700)",
   NEW: "var(--custos-blue-700)",
+  WAITING_APPROVAL: "var(--custos-purple-700)",
+  REFUSED: "var(--custos-gray-500)",
   FAILED: "var(--custos-red-700)",
 };
 
@@ -42,10 +51,10 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
     for (const b of buckets) {
       const row =
         days.get(b.date) ??
-        ({ date: b.date, NEW: 0, DECODED: 0, PROCESSED: 0, FAILED: 0 } as Record<
-          PacketStatus,
-          number
-        > & { date: string });
+        ({
+          date: b.date,
+          ...Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])),
+        } as Record<PacketStatus, number> & { date: string });
       row[b.status] = (row[b.status] ?? 0) + b.count;
       days.set(b.date, row);
     }
@@ -79,7 +88,7 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
               className="inline-block size-2 rounded-full"
               style={{ background: STATUS_COLORS[s] }}
             />
-            {s}
+            {packetStatusLabel(s)}
           </li>
         ))}
       </ul>

@@ -15,7 +15,26 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export type PacketStatus = "NEW" | "DECODED" | "PROCESSED" | "FAILED";
+export type PacketStatus =
+  | "NEW"
+  | "DECODED"
+  | "PROCESSED"
+  | "FAILED"
+  | "WAITING_APPROVAL"
+  | "REFUSED";
+
+export const PACKET_STATUSES: PacketStatus[] = [
+  "NEW",
+  "DECODED",
+  "PROCESSED",
+  "FAILED",
+  "WAITING_APPROVAL",
+  "REFUSED",
+];
+
+export function packetStatusLabel(status: PacketStatus): string {
+  return status.replaceAll("_", " ");
+}
 
 export const PACKET_TYPES = [
   "request_project_create",

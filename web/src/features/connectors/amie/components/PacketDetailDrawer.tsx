@@ -134,6 +134,19 @@ function OverviewTab({ packet }: { packet: Packet }) {
         <dt className="text-muted-foreground">Updated</dt>
         <dd className="tabular-nums">{formatDate(packet.updated_at)}</dd>
       </dl>
+      {packet.status === "WAITING_APPROVAL" ? (
+        <div className="rounded-md bg-[color:var(--tone-warn-bg)] p-3 text-sm text-[color:var(--tone-warn-fg)]">
+          The reply to ACCESS is held until an admin reviews the cluster account.{" "}
+          <Link href="/admin/users/cluster-accounts" className="font-medium underline">
+            Review cluster accounts
+          </Link>
+        </div>
+      ) : null}
+      {packet.status === "REFUSED" ? (
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          An admin denied the cluster account. ACCESS was sent a failure with the reason.
+        </div>
+      ) : null}
       {packet.last_error ? (
         <div className="rounded-md border border-[color:var(--custos-red-200)] bg-[color:var(--custos-red-50)] p-3 text-sm text-[color:var(--custos-red-700)]">
           <strong>Last error:</strong> {packet.last_error}
