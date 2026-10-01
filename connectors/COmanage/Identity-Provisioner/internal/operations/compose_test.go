@@ -225,6 +225,65 @@ func TestMergeIdentifier_KeepsEveryPropertyOfThePerson(t *testing.T) {
 	}
 }
 
+// Make sure removing a login takes only the cluster account and the uid
+// identifier with that username, since the composite PUT deletes anything the
+// body leaves out and the rest of the attributes of the person must survive.
+func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
+	person := `{
+      "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A"},
+      "Name": [{"given": "Jane", "family": "Doe", "type": "official", "primary_name": true}],
+      "EmailAddress": [{"mail": "jdoe@example.edu", "type": "official", "verified": true}],
+      "Identifier": [
+        {"identifier": "Person100099", "type": "comanage_id", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "uidnumber", "login": false, "status": "A"},
+        {"identifier": "jdoe", "type": "uid", "login": false, "status": "A"},
+        {"identifier": "http://idp.example.edu/users/9", "type": "oidcsub", "login": true, "status": "A"}
+      ],
+      "CoGroupMember": [{"co_group_id": 64, "member": true, "owner": false}],
+      "UnixClusterAccount": [{"username": "jdoe", "uid": 2000093, "unix_cluster_id": 1}]
+    }`
+	want := `{
+      "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A"},
+      "Name": [{"given": "Jane", "family": "Doe", "type": "official", "primary_name": true}],
+      "EmailAddress": [{"mail": "jdoe@example.edu", "type": "official", "verified": true}],
+      "Identifier": [
+        {"identifier": "Person100099", "type": "comanage_id", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "uidnumber", "login": false, "status": "A"},
+        {"identifier": "http://idp.example.edu/users/9", "type": "oidcsub", "login": true, "status": "A"}
+      ],
+      "CoGroupMember": [{"co_group_id": 64, "member": true, "owner": false}],
+      "UnixClusterAccount": []
+    }`
+
+	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	if err != nil {
+		t.Fatalf("removeLogin: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected the person to be reported as changed")
+	}
+	if !sameJSON(t, got, json.RawMessage(want)) {
+		t.Errorf("person after removal\n got: %s\nwant: %s", got, want)
+	}
+}
+
+// Make sure a person who has no account with the username being removed is
+// left unchanged. The person is found by an email search, which can match someone else.
+func TestRemoveLogin_LeavesAnotherPersonUntouched(t *testing.T) {
+	person := `{
+      "CoPerson": {"co_id": 2},
+      "Identifier": [{"identifier": "asmith", "type": "uid", "login": false, "status": "A"}],
+      "UnixClusterAccount": [{"username": "asmith", "uid": 2000094, "unix_cluster_id": 1}]
+    }`
+	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	if err != nil {
+		t.Fatalf("removeLogin: %v", err)
+	}
+	if changed || !sameJSON(t, got, json.RawMessage(person)) {
+		t.Errorf("expected no change, got changed=%v body=%s", changed, got)
+	}
+}
+
 // A person whose sub changes must end with one oidcsub, not two.
 func TestMergeIdentifier_ReplacesSameType(t *testing.T) {
 	person := `{"CoPerson":{"co_id":2},"Identifier":[{"identifier":"old-sub","type":"oidcsub","login":true,"status":"A"}]}`

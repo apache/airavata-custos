@@ -37,6 +37,9 @@ import (
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //
+// A dropped cluster account publishes compute_cluster_user::delete, so it is
+// also removed outside Custos.
+//
 // Left in place (who actually did the thing):
 //   - compute_allocation_change_requests (requester / approver)
 //   - compute_allocation_usages
@@ -78,12 +81,35 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 			ErrInvalidInput, retiringID, retiring.Status)
 	}
 
+	// The reassigning below deletes the retiring user's cluster account on every
+	// cluster where the survivor already has one. Those need a delete event.
+	retiringAccounts, err := s.clusterUsers.FindByUser(ctx, retiringID)
+	if err != nil {
+		return nil, fmt.Errorf("list retiring cluster users: %w", err)
+	}
+	survivorAccounts, err := s.clusterUsers.FindByUser(ctx, survivingID)
+	if err != nil {
+		return nil, fmt.Errorf("list surviving cluster users: %w", err)
+	}
+	survivorClusters := make(map[string]bool, len(survivorAccounts))
+	for _, cu := range survivorAccounts {
+		survivorClusters[cu.ComputeClusterID] = true
+	}
+
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user identities: %w", err)
 		}
 		if err := s.clusterUsers.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign compute cluster users: %w", err)
+		}
+		for _, cu := range retiringAccounts {
+			if !survivorClusters[cu.ComputeClusterID] {
+				continue
+			}
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
+				return err
+			}
 		}
 		if err := s.projs.ReassignPI(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project PI: %w", err)
