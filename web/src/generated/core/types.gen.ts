@@ -66,7 +66,7 @@ export type ClusterAccountResponse = {
     review_note?: string;
     reviewed_at?: string;
     /**
-     * The admin who approved or denied the account.
+     * The admin who approved or denied the cluster account.
      */
     reviewed_by?: string;
     user_id?: string;
@@ -326,7 +326,7 @@ export type ComputeClusterUser = {
     review_note?: string;
     reviewed_at?: string;
     /**
-     * The admin who approved or denied the account.
+     * The admin who approved or denied the cluster account.
      */
     reviewed_by?: string;
     user_id?: string;
@@ -2699,9 +2699,9 @@ export type PostComputeClusterUsersByIdApproveResponse = PostComputeClusterUsers
 
 export type PostComputeClusterUsersByIdDenyData = {
     /**
-     * Optional note
+     * Reason for the denial
      */
-    body?: DenyClusterAccountRequest;
+    body: DenyClusterAccountRequest;
     path: {
         /**
          * Compute cluster user ID
@@ -2713,6 +2713,12 @@ export type PostComputeClusterUsersByIdDenyData = {
 };
 
 export type PostComputeClusterUsersByIdDenyErrors = {
+    /**
+     * Reason missing
+     */
+    400: {
+        error?: string;
+    };
     /**
      * Not Found
      */

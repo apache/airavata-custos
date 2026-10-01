@@ -25,7 +25,13 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { PACKET_TYPES, type Packet, type PacketStatus } from "../types";
+import {
+  PACKET_STATUSES,
+  PACKET_TYPES,
+  type Packet,
+  type PacketStatus,
+  packetStatusLabel,
+} from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
 
@@ -230,10 +236,11 @@ export function PacketInboxTable({
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             <option value="all">All</option>
-            <option value="NEW">NEW</option>
-            <option value="DECODED">DECODED</option>
-            <option value="PROCESSED">PROCESSED</option>
-            <option value="FAILED">FAILED</option>
+            {PACKET_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {packetStatusLabel(s)}
+              </option>
+            ))}
           </select>
         </div>
 

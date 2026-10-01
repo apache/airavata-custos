@@ -56,6 +56,22 @@ describe("amie schemas", () => {
     expect(parsed.linked_entity?.type).toBe("project");
   });
 
+  // Make sure a packet whose reply is held or refused parses, since one
+  // packet that fails to parse makes the whole inbox list fail.
+  it.each(["WAITING_APPROVAL", "REFUSED"])("packetSchema accepts a %s packet", (status) => {
+    const parsed = packetSchema.parse({
+      id: "pkt-x",
+      amie_id: "1",
+      type: "request_account_create",
+      status,
+      source: "access",
+      received_at: "2026-06-08T00:00:00Z",
+      updated_at: "2026-06-08T00:00:00Z",
+      retries: 0,
+    });
+    expect(parsed.status).toBe(status);
+  });
+
   it("packetSchema rejects unknown status", () => {
     expect(() =>
       packetSchema.parse({

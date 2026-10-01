@@ -25,6 +25,11 @@ describe("PacketStatusBadge", () => {
     expect(screen.getByText("PROCESSED")).toBeInTheDocument();
   });
 
+  it("shows a held packet as WAITING APPROVAL, without the underscore", () => {
+    render(<PacketStatusBadge status="WAITING_APPROVAL" />);
+    expect(screen.getByText("WAITING APPROVAL")).toBeInTheDocument();
+  });
+
   it("adds the loud '!' marker on aged FAILED packets", () => {
     const { container } = render(<PacketStatusBadge status="FAILED" ageHours={36} />);
     expect(container.textContent).toContain("FAILED");

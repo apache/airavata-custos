@@ -16,13 +16,16 @@
 // under the License.
 
 import { cn } from "@/lib/utils";
-import type { PacketStatus, ReplyStatus } from "../types";
+import { type PacketStatus, type ReplyStatus, packetStatusLabel } from "../types";
 
 const packetStyles: Record<PacketStatus, string> = {
   NEW: "bg-[color:var(--custos-blue-50)] text-[color:var(--custos-blue-700)]",
   DECODED: "bg-[color:var(--custos-amber-50)] text-[color:var(--custos-amber-700)]",
   PROCESSED: "bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]",
   FAILED: "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)]",
+  WAITING_APPROVAL: "bg-[color:var(--custos-purple-50)] text-[color:var(--custos-purple-700)]",
+  // A refusal is an admin's decision, not an error, so it stays neutral.
+  REFUSED: "bg-[color:var(--custos-gray-100)] text-[color:var(--custos-gray-700)]",
 };
 
 const replyStyles: Record<ReplyStatus, string> = {
@@ -52,7 +55,7 @@ export function PacketStatusBadge({
         className,
       )}
     >
-      {status}
+      {packetStatusLabel(status)}
       {loud ? <span aria-hidden="true">!</span> : null}
     </span>
   );
