@@ -35,12 +35,13 @@ import (
 type RequestPersonMergeHandler struct {
 	svc         *service.Service
 	userDNStore store.UserDNStore
+	eventStore  store.EventStore
 	amieClient  AmieClient
 	auditSvc    AuditService
 }
 
-func NewRequestPersonMergeHandler(svc *service.Service, userDNStore store.UserDNStore, amieClient AmieClient, auditSvc AuditService) *RequestPersonMergeHandler {
-	return &RequestPersonMergeHandler{svc: svc, userDNStore: userDNStore, amieClient: amieClient, auditSvc: auditSvc}
+func NewRequestPersonMergeHandler(svc *service.Service, userDNStore store.UserDNStore, eventStore store.EventStore, amieClient AmieClient, auditSvc AuditService) *RequestPersonMergeHandler {
+	return &RequestPersonMergeHandler{svc: svc, userDNStore: userDNStore, eventStore: eventStore, amieClient: amieClient, auditSvc: auditSvc}
 }
 
 func (h *RequestPersonMergeHandler) SupportsType() string { return "request_person_merge" }
@@ -123,6 +124,25 @@ func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, pack
 		"retiring_id", retiring.ID,
 	)
 
+	retiringAccounts, err := h.svc.ListComputeClusterUsersByUser(ctx, retiring.ID)
+	if err != nil {
+		return fmt.Errorf("request_person_merge: list retiring cluster accounts: %w", err)
+	}
+	// The retiring person can have a request_account_create packet whose reply
+	// is held until their cluster account is approved. The merge moves that
+	// account to the survivor, or deletes it when the survivor already has one
+	// on the cluster. If it is deleted, the held reply waits on an account that
+	// no longer exists, so it would never be sent.
+	//
+	// So those packets are processed again after the merge. The merge moves the
+	// retiring person's ACCESS identity to the survivor, so the handler finds the
+	// survivor's account. It replies at once if that account is approved, or
+	// holds the reply on it until an admin reviews it.
+	for _, account := range retiringAccounts {
+		if err := h.eventStore.ReprocessPacketsHeldFor(ctx, tx, account.ID); err != nil {
+			return fmt.Errorf("request_person_merge: reprocess packets held for %s: %w", account.ID, err)
+		}
+	}
 	if _, err := h.svc.MergeUsers(ctx, survivor.ID, retiring.ID); err != nil {
 		return fmt.Errorf("request_person_merge: merge: %w", err)
 	}

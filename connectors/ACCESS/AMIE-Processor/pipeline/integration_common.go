@@ -174,6 +174,8 @@ func seedCluster(t *testing.T, database *sqlx.DB) {
 // server.
 type testPipeline struct {
 	db       *sqlx.DB
+	svc      *coreservice.Service
+	ctx      context.Context
 	baseURL  string
 	siteCode string
 	cancel   context.CancelFunc
@@ -218,13 +220,15 @@ func newTestPipeline(t *testing.T) *testPipeline {
 		handler.NewRequestProjectReactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestAccountInactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestAccountReactivateHandler(coreSvc, amieClient, auditSvc),
-		handler.NewRequestPersonMergeHandler(coreSvc, userDNStore, amieClient, auditSvc),
+		handler.NewRequestPersonMergeHandler(coreSvc, userDNStore, eventStore, amieClient, auditSvc),
 		handler.NewRequestUserModifyHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewDataProjectCreateHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewDataAccountCreateHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewInformTransactionCompleteHandler(auditSvc),
 		handler.NewNoOpHandler(),
 	)
+
+	handler.NewHeldReplies(database, packetStore, amieClient, auditSvc).Subscribe(eventBus, "amie-processor")
 
 	met := metrics.NewWithRegistry(prometheus.NewRegistry())
 	poller := worker.NewPoller(amieClient, packetStore, eventStore, met, database, cfg)
@@ -233,11 +237,13 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	ctx, cancel := context.WithCancel(context.Background())
 	pipe := &testPipeline{
 		db:       database,
+		svc:      coreSvc,
+		ctx:      ctx,
 		baseURL:  cfg.BaseURL,
 		siteCode: cfg.SiteCode,
 		cancel:   cancel,
 	}
-	pipe.wg.Add(2)
+	pipe.wg.Add(3)
 	go func() {
 		defer pipe.wg.Done()
 		poller.Run(ctx)
@@ -246,7 +252,38 @@ func newTestPipeline(t *testing.T) *testPipeline {
 		defer pipe.wg.Done()
 		processor.Run(ctx)
 	}()
+	go func() {
+		defer pipe.wg.Done()
+		eventBus.Run(ctx)
+	}()
 	return pipe
+}
+
+// startApproving stands in for an admin who approves every new cluster
+// account, so held replies are released, and the scenario can finish.
+func (p *testPipeline) startApproving() {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-p.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+			var ids []string
+			var reviewer string
+			if p.db.SelectContext(p.ctx, &ids, "SELECT id FROM compute_cluster_users WHERE approval_status = 'PENDING'") != nil ||
+				len(ids) == 0 || p.db.GetContext(p.ctx, &reviewer, "SELECT id FROM users LIMIT 1") != nil {
+				continue
+			}
+			for _, id := range ids {
+				_, _ = p.svc.ApproveComputeClusterUser(p.ctx, id, reviewer)
+			}
+		}
+	}()
 }
 
 func (p *testPipeline) stop() {
@@ -288,7 +325,7 @@ func (p *testPipeline) waitForDrain(t *testing.T, expectPackets int, deadline ti
 			t.Fatalf("count packets: %v", err)
 		}
 		if err := p.db.Get(&pendingDecode,
-			"SELECT COUNT(*) FROM amie_packets WHERE status = 'NEW'",
+			"SELECT COUNT(*) FROM amie_packets WHERE status IN ('NEW', 'WAITING_APPROVAL')",
 		); err != nil {
 			t.Fatalf("count pending packets: %v", err)
 		}

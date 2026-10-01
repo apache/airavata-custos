@@ -139,6 +139,10 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		"PiRemoteSiteLogin": piClusterUser.LocalUsername,
 		"ResourceList":      getResourceList(body),
 	}
+
+	// NOTE - Not held for the PI's cluster account approval. This reply gives ACCESS the
+	// project ID, and holding it would block the whole project there. ACCESS gets
+	// the PI's login early, but the account is only created after admin approval.
 	reply := map[string]any{"type": "notify_project_create", "body": replyBody}
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_project_create: sending reply: %w", err)

@@ -169,7 +169,7 @@ expectations:
   audit_log:
     # audit_events (source='amie') and amie_audit_extras carry the same count;
     # one row each per AMIE audit.
-    total_count: 54
+    total_count: 57
     by_action:
       PACKET_RECEIVED: 12     # one per packet
       CREATE_PERSON: 6        # 3 project_create + 3 account_create
@@ -178,7 +178,8 @@ expectations:
       CREATE_ALLOCATION: 3    # supplement-delivery still audits CREATE_ALLOCATION
       ATTACH_RESOURCE: 2      # one per allocation; supplement attach is a no-op
       CREATE_MEMBERSHIP: 5    # 2 PIs + 3 account_create
-      REPLY_SENT: 11          # everything except inform_transaction_complete
+      REPLY_HELD: 3           # each account_create waits for its cluster account approval
+      REPLY_SENT: 11          # everything except inform_transaction_complete, each once
       PERSIST_DNS: 3          # 2 from data_*, 1 delete from request_user_modify
       UPDATE_PERSON: 1
       MERGE_PERSONS: 1

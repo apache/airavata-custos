@@ -32,6 +32,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	defer pipe.stop()
 
 	pipe.fireScenario(t, "baseline")
+	pipe.startApproving()
 	decoded := pipe.waitForDrain(t, 12, 90*time.Second)
 
 	// Counts match baseline.yaml.
@@ -48,7 +49,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"compute_allocations", 2},
 		{"compute_allocation_diffs", 1},
 		{"amie_user_dns", 2},
-		{"amie_audit_extras", 54},
+		{"amie_audit_extras", 57},
 		{"compute_cluster_users", 4},
 		{"compute_allocation_memberships", 5},
 		{"project_memberships", 4},
@@ -71,8 +72,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	); err != nil {
 		t.Fatalf("count amie audit_events: %v", err)
 	}
-	if amieAuditEvents != 54 {
-		t.Errorf("audit_events source='amie': got %d, want 54", amieAuditEvents)
+	if amieAuditEvents != 57 {
+		t.Errorf("audit_events source='amie': got %d, want 57", amieAuditEvents)
 	}
 
 	// audit_log.by_action.
@@ -85,6 +86,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"CREATE_ACCOUNT", 6},
 		{"CREATE_PROJECT", 3},
 		{"CREATE_ALLOCATION", 3},
+		{"REPLY_HELD", 3},
 		{"CREATE_MEMBERSHIP", 5},
 		{"REPLY_SENT", 11},
 		{"PERSIST_DNS", 3},

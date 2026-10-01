@@ -32,6 +32,7 @@ type EventStore interface {
 	FindTop50EventsToProcess(ctx context.Context, statuses []model.ProcessingStatus, now time.Time) ([]model.EventWithPacket, error)
 	Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error
 	Update(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error
+	ReprocessPacketsHeldFor(ctx context.Context, tx *sql.Tx, heldFor string) error
 }
 
 type pgEventStore struct {
@@ -99,5 +100,16 @@ func (s *pgEventStore) Update(ctx context.Context, tx *sql.Tx, e *model.Processi
 		e.Status, e.Attempts,
 		e.StartedAt, e.FinishedAt,
 		e.LastError, e.NextRetryAt, e.ID)
+	return err
+}
+
+// ReprocessPacketsHeldFor marks the packets whose reply waits on heldFor to be
+// processed again, so their handler runs with the current state. For example, a
+// person merge deletes the cluster account those packets were held on.
+func (s *pgEventStore) ReprocessPacketsHeldFor(ctx context.Context, tx *sql.Tx, heldFor string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE amie_processing_events SET status = $1, next_retry_at = NULL
+		 WHERE packet_id IN (SELECT id FROM amie_packets WHERE held_for = $2 AND status = $3)`,
+		model.ProcessingStatusNew, heldFor, model.PacketStatusWaitingApproval)
 	return err
 }

@@ -109,13 +109,15 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 		handler.NewRequestProjectReactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestAccountInactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestAccountReactivateHandler(coreService, amie, auditSvc),
-		handler.NewRequestPersonMergeHandler(coreService, userDNStore, amie, auditSvc),
+		handler.NewRequestPersonMergeHandler(coreService, userDNStore, eventStore, amie, auditSvc),
 		handler.NewRequestUserModifyHandler(coreService, userDNStore, amie, auditSvc),
 		handler.NewDataProjectCreateHandler(coreService, userDNStore, amie, auditSvc),
 		handler.NewDataAccountCreateHandler(coreService, userDNStore, amie, auditSvc),
 		handler.NewInformTransactionCompleteHandler(auditSvc),
 		handler.NewNoOpHandler(),
 	)
+
+	handler.NewHeldReplies(database, packetStore, amie, auditSvc).Subscribe(eventBus, Type)
 
 	met := metrics.New()
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
