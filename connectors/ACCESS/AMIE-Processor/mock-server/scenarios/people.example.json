@@ -1,0 +1,13 @@
+{
+  "resource": "baseline-cluster.example.edu",
+  "org": "Example University",
+  "org_code": "EXAMPLE",
+  "people": {
+    "person1": { "first": "Jane", "last": "Doe", "email": "jdoe@example.edu" },
+    "person1-alt": { "first": "Jane", "last": "Doe", "email": "jane.doe@example.edu" },
+    "person2": { "first": "Sam", "last": "Lee", "email": "slee@example.edu" },
+    "person3": { "first": "Riley", "last": "Park", "email": "rpark@example.edu" },
+    "person4": { "first": "Morgan", "last": "Reed", "email": "mreed@example.edu" },
+    "person5": { "first": "Casey", "last": "Young", "email": "cyoung@example.edu" }
+  }
+}

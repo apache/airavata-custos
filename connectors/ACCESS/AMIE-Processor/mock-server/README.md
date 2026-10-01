@@ -62,6 +62,26 @@ curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=dev_email'
 
 Today the access-amie handlers persist PI and USER memberships only; Co-PI and Allocation Manager positions require handler enhancement to read a role field from the AMIE packet.
 
+### Configurations with real people
+
+Each file in `scenarios/` is one configuration. It lists projects, the people on them, and merges. Send one by its file name:
+
+```bash
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=1-pi-only'
+```
+
+| Configuration | What it sends |
+|---|---|
+| `1-pi-only` | one project, PI only |
+| `2-one-project` | one project, PI and three members |
+| `3-two-projects` | two projects, people shared across them in different roles |
+| `4a-one-project` | one project where one person has two accounts |
+| `4b-merge` | merges those two accounts. Send it after `4a-one-project` has finished. |
+
+The people come from `scenarios/people.json`. Copy `people.example.json` to `people.json` and fill in real names and emails to sign in as them. An email must be the one the person's identity provider gives at sign-in. `resource` must be the name of a resource that exists in Custos. Without `people.json` the mock uses the example file.
+
+The mock has no auth. Next to a real deployment, start it with `MOCK_AMIE_HOST=127.0.0.1`.
+
 ## Load test (k6)
 
 Install k6, then run it. If you're hitting the local server, start that one first:
