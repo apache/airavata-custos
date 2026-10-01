@@ -184,11 +184,13 @@ func TestApproveComputeClusterUser_PublishesApproveEvent(t *testing.T) {
 }
 
 // Make sure a denial stores who denied and the note, leaves an audit row, and
-// publishes nothing, so the account is never created on the cluster.
-func TestDenyComputeClusterUser_PublishesNothing(t *testing.T) {
+// publishes only the deny event, so the account is never created on the cluster.
+func TestDenyComputeClusterUser_PublishesDenyEvent(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	noop := func(context.Context, models.ComputeClusterUser) error { return nil }
+	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", noop)
+	svc.EventBus().SubscribeComputeClusterUserDenied("test-subscriber", noop)
 	cu := newClusterUser(t, svc, database)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 
@@ -199,11 +201,30 @@ func TestDenyComputeClusterUser_PublishesNothing(t *testing.T) {
 	if got.ApprovalStatus != models.ClusterAccountDenied || got.ReviewNote == nil || *got.ReviewNote != "not on the collaborator list" {
 		t.Fatalf("expected a denied row with the note, got %+v", got)
 	}
-	if n := countDeliveries(t, svc); n != 0 {
-		t.Fatalf("expected no delivery for a denied account, got %d", n)
+	if n := countDeliveries(t, svc); n != 1 {
+		t.Fatalf("expected one delivery of the deny event, got %d", n)
 	}
 	if n := countAuditEventsOfType(t, database, clusterUserAuditDenied, cu.ID); n != 1 {
 		t.Fatalf("expected one denial audit row, got %d", n)
+	}
+}
+
+// Make sure the cluster account denial reason is mandatory
+func TestDenyComputeClusterUser_RequiresReason(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cu := newClusterUser(t, svc, database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+
+	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, ""); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected ErrInvalidInput for a denial without a reason, got %v", err)
+	}
+	got, err := svc.GetComputeClusterUser(ctx(), cu.ID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.ApprovalStatus != models.ClusterAccountPending {
+		t.Fatalf("expected the account to stay pending, got %s", got.ApprovalStatus)
 	}
 }
 
@@ -215,7 +236,7 @@ func TestReviewComputeClusterUser_ApprovalIsFinal(t *testing.T) {
 	cu := newClusterUser(t, svc, database)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 
-	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, ""); err != nil {
+	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, "not on the collaborator list"); err != nil {
 		t.Fatalf("deny: %v", err)
 	}
 	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, admin); err != nil {
@@ -224,7 +245,7 @@ func TestReviewComputeClusterUser_ApprovalIsFinal(t *testing.T) {
 	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, admin); !errors.Is(err, ErrAlreadyExists) {
 		t.Fatalf("expected ErrAlreadyExists on a second approval, got %v", err)
 	}
-	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, ""); !errors.Is(err, ErrAlreadyExists) {
+	if _, err := svc.DenyComputeClusterUser(ctx(), cu.ID, admin, "not on the collaborator list"); !errors.Is(err, ErrAlreadyExists) {
 		t.Fatalf("expected ErrAlreadyExists denying an approved account, got %v", err)
 	}
 }
