@@ -42,6 +42,25 @@ describe("ReviewClusterAccountDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith("Not on the list");
   });
 
+  // Make sure a denial cannot be sent without a reason, since the backend
+  // refuses it and the reason is passed on to whoever requested the account.
+  it("keeps Deny disabled until a reason is typed", () => {
+    render(
+      <ReviewClusterAccountDialog
+        account={pending}
+        action="deny"
+        onOpenChange={vi.fn()}
+        onConfirm={vi.fn()}
+        isPending={false}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Deny" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: "   " } });
+    expect(screen.getByRole("button", { name: "Deny" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: "Not on the list" } });
+    expect(screen.getByRole("button", { name: "Deny" })).toBeEnabled();
+  });
+
   // Make sure the approval names the account the admin is about to create, so
   // a wrong row is caught before it goes to the cluster.
   it("restates the account before approving", () => {

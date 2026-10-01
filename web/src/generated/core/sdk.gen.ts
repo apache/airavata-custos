@@ -650,7 +650,7 @@ export const postComputeClusterUsersByIdApprove = <ThrowOnError extends boolean 
 /**
  * Deny a cluster account
  *
- * Records the caller's decision and the note. No account is created on the cluster. The user keeps portal access.
+ * Records the caller's decision and the reason. No account is created on the cluster, and the reason is passed on to whoever requested the account. The user keeps portal access.
  */
 export const postComputeClusterUsersByIdDeny = <ThrowOnError extends boolean = false>(options: Options<PostComputeClusterUsersByIdDenyData, ThrowOnError>): RequestResult<PostComputeClusterUsersByIdDenyResponses, PostComputeClusterUsersByIdDenyErrors, ThrowOnError> => (options.client ?? client).post<PostComputeClusterUsersByIdDenyResponses, PostComputeClusterUsersByIdDenyErrors, ThrowOnError>({
     security: [{ name: 'Authorization', type: 'apiKey' }],

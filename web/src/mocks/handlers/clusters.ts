@@ -58,10 +58,13 @@ export const clustersHandlers = [
       return HttpResponse.json({ error: "already reviewed" }, { status: 409 });
     }
     const body = (await request.json().catch(() => ({}))) as { note?: string };
+    if (!body.note?.trim()) {
+      return HttpResponse.json({ error: "a reason is required to deny" }, { status: 400 });
+    }
     found.approval_status = "DENIED";
     found.reviewed_at = new Date().toISOString();
     found.reviewed_by = "user-admin";
-    found.review_note = body.note || undefined;
+    found.review_note = body.note.trim();
     return HttpResponse.json(found);
   }),
 

@@ -51,7 +51,7 @@ const copy: Record<ReviewAction, { title: string; description: string; button: s
   deny: {
     title: "Deny cluster account",
     description:
-      "No account is created on the cluster. The user keeps portal access and can be approved later.",
+      "No account is created on the cluster. The user keeps portal access and can be approved later. The reason is passed on to whoever requested the account.",
     button: "Deny",
   },
 };
@@ -95,10 +95,11 @@ export function ReviewClusterAccountDialog({
         ) : null}
         {action === "deny" ? (
           <div className="space-y-2">
-            <Label htmlFor="review-note">Reason (optional, kept in the audit log)</Label>
+            <Label htmlFor="review-note">Reason (required, kept in the audit log)</Label>
             <textarea
               id="review-note"
               rows={3}
+              required
               className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -119,7 +120,7 @@ export function ReviewClusterAccountDialog({
           <Button
             type="button"
             variant={action === "deny" ? "destructive" : "default"}
-            disabled={isPending}
+            disabled={isPending || (action === "deny" && note.trim() === "")}
             onClick={() => onConfirm(note.trim())}
           >
             {isPending ? `${copy[action].button}…` : copy[action].button}

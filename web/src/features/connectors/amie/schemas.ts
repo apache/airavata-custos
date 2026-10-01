@@ -19,7 +19,14 @@
 
 import { z } from "zod";
 
-export const packetStatusSchema = z.enum(["NEW", "DECODED", "PROCESSED", "FAILED"]);
+export const packetStatusSchema = z.enum([
+  "NEW",
+  "DECODED",
+  "PROCESSED",
+  "FAILED",
+  "WAITING_APPROVAL",
+  "REFUSED",
+]);
 
 export const linkedEntityRefSchema = z.object({
   type: z.enum(["project", "account", "person", "user_merge"]),

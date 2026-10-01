@@ -1175,7 +1175,7 @@ export const zPostComputeClusterUsersByIdApprovePath = z.object({
 export const zPostComputeClusterUsersByIdApproveResponse = zComputeClusterUser;
 
 /**
- * Optional note
+ * Reason for the denial
  */
 export const zPostComputeClusterUsersByIdDenyBody = zDenyClusterAccountRequest;
 
