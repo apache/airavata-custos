@@ -22,6 +22,8 @@ declare module "next-auth" {
     accessToken?: string | null;
     idToken?: string | null;
     privileges?: Privilege[];
+    // Unset when the sign-in matches no Custos user.
+    custosUserId?: string;
   }
   interface User {
     privileges?: Privilege[];

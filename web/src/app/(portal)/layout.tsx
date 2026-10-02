@@ -23,8 +23,8 @@ import { PortalLayout } from "@/shared/layout/PortalLayout";
 export default async function PortalRoutesLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
-  // A signed-in user with no privileges stays in the shell and sees the notice,
-  // not a redirect: sending them to a gated home route would loop.
-  const hasAccess = (session.privileges ?? []).length > 0;
+  // A user with no privileges gets in, since their pages are limited by membership.
+  // A sign-in with no Custos user sees the notice here, as a redirect would loop.
+  const hasAccess = Boolean(session.custosUserId);
   return <PortalLayout>{hasAccess ? children : <NoAccessNotice />}</PortalLayout>;
 }

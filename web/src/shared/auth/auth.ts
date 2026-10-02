@@ -82,7 +82,7 @@ export const authConfig: NextAuthConfig = {
             t.privileges = body.privileges ?? [];
           }
         } catch {
-          // Leave token as-is; the portal shows the no-access notice for the empty case.
+          // The token stays without a Custos user, so the portal shows the no-access notice.
         }
       }
       if (account?.id_token) {
@@ -102,6 +102,7 @@ export const authConfig: NextAuthConfig = {
       if (t.accessToken) session.accessToken = t.accessToken;
       if (t.idToken) session.idToken = t.idToken;
       session.privileges = t.privileges ?? [];
+      session.custosUserId = t.custosUserId;
       if (session.user) {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.
