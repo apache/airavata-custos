@@ -22,11 +22,10 @@ import * as React from "react";
 import { toast } from "sonner";
 
 const HEADING = "No portal access";
-const BODY = "Your account has no privileges yet. Ask an administrator to grant you a role.";
+const BODY = "No account was found for this sign-in. Ask an administrator for access.";
 
-// Shown in place of the portal content when the signed-in user holds no
-// privileges. Announces the reason as a toast and keeps a durable inline
-// message, so the state does not vanish with the toast.
+// Shown when the sign-in matches no Custos user. The message also stays on
+// the page, since a toast alone disappears.
 export function NoAccessNotice() {
   React.useEffect(() => {
     toast.error(HEADING, { description: BODY });
