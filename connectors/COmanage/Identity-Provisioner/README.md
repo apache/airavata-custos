@@ -61,14 +61,19 @@ idempotent.
 | 2 | Store `comanage_id` | Persist the COmanage identifier in `user_identities` so step 1 finds it next time. | Core service `CreateUserIdentity` |
 | 3 | Read composite | Pull the full Core composite to read `uidnumber` and `CoPerson.meta.id`. | Core `GET /people/<comanage_id>` |
 | 4 | Per-user CoGroup | Find or create a CoGroup named after the user's local username (`GroupType:"CL"`, `Auto:false`). | REST `co_groups.json` |
-| 5 | groupname Identifier | Attach a `type:"uid"` Identifier (the local username string) to the CoGroup. | REST `identifiers.json` |
-| 6 | gidnumber Identifier | Attach a `type:"gidnumber"` Identifier (numeric, mirrors `uidnumber`) to the CoGroup. | REST `identifiers.json` |
-| 7 | CoGroupMember | Join the CoPerson to the CoGroup as member + owner. | REST `co_group_members.json` |
-| 8 | UnixClusterGroup | Attach the CoGroup to the configured UnixCluster. A 4xx here is treated as "already attached". | REST `unix_cluster_groups.json` |
+| 5 | UnixClusterGroup | Attach the CoGroup to the configured UnixCluster. A 4xx here is treated as "already attached". | REST `unix_cluster_groups.json` |
+| 6 | groupname Identifier | Attach a `type:"uid"` Identifier (the local username string) to the CoGroup. | REST `identifiers.json` |
+| 7 | gidnumber Identifier | Attach a `type:"gidnumber"` Identifier (numeric, mirrors `uidnumber`) to the CoGroup. | REST `identifiers.json` |
+| 8 | CoGroupMember | Join the CoPerson to the CoGroup as member + owner. | REST `co_group_members.json` |
 | 9 | UnixClusterAccount | Re-GET a fresh composite, merge a `UnixClusterAccount` block, then full-composite PUT. The merge round-trips unmodeled fields as `json.RawMessage` so `deleteOmitted` cannot drop attributes the connector does not understand. | Core `GET /people/<comanage_id>` then `PUT /people/<comanage_id>` |
 
 Step 9 uses `sync_mode:"M"` (Manual) so a downstream provisioning plugin
 cannot overwrite the block when Custos is the source of truth.
+
+Each active allocation with a `posix_group` gets a CoGroup of that name, set up
+as in steps 5-7 with gid 3000000 plus the CoGroup id. Allocation, membership and
+account events keep it holding exactly the allocation's provisioned, active
+members; deleting the allocation deletes the group.
 
 ## Audit events
 

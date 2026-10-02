@@ -60,6 +60,13 @@ func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
 	s.bus.SubscribeUserIdentityCreated(subscriber, s.handleUserIdentityCreate)
+
+	s.bus.SubscribeComputeAllocationCreated(subscriber, s.handleComputeAllocationChanged)
+	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.handleComputeAllocationChanged)
+	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.handleComputeAllocationDeleted)
+	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.handleMembershipChanged)
+	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.handleMembershipChanged)
+	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
 }
 
 // handleClusterUserDeleted removes the account from the registry.
@@ -73,7 +80,7 @@ func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu
 		slog.Error("comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
-	return nil
+	return s.syncUserAllocations(ctx, cu.UserID)
 }
 
 // handleUserIdentityCreate re-runs provisioning once the `User` has a `sub`.
@@ -108,7 +115,7 @@ func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, id
 		slog.Error("comanage subscriber: EnsurePOSIXAccount failed after identity link", "compute_cluster_user_id", cu.ID, "user_id", identity.UserID, "err", err)
 		return err
 	}
-	return nil
+	return s.syncUserAllocations(ctx, cu.UserID)
 }
 
 func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
@@ -147,5 +154,5 @@ func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c
 			return err
 		}
 	}
-	return nil
+	return s.syncUserAllocations(ctx, cu.UserID)
 }

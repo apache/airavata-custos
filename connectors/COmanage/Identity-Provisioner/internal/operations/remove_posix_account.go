@@ -65,17 +65,8 @@ func (o *Orchestrator) RemovePOSIXAccount(ctx context.Context, cu *models.Comput
 		return fmt.Errorf("find primary group: %w", err)
 	}
 	if groupID != 0 {
-		bindingID, err := o.c.FindUnixClusterGroup(groupID)
-		if err != nil {
-			return fmt.Errorf("find cluster group binding: %w", err)
-		}
-		if bindingID != 0 {
-			if err := ignoreNotFound(o.c.DeleteUnixClusterGroup(bindingID)); err != nil {
-				return fmt.Errorf("delete cluster group binding: %w", err)
-			}
-		}
-		if err := ignoreNotFound(o.c.DeleteCoGroup(groupID)); err != nil {
-			return fmt.Errorf("delete primary group: %w", err)
+		if err := o.removeCoGroup(groupID); err != nil {
+			return err
 		}
 	}
 
@@ -131,4 +122,21 @@ func ignoreNotFound(err error) error {
 		return nil
 	}
 	return err
+}
+
+// removeCoGroup unbinds a group from the UnixCluster, then deletes it.
+func (o *Orchestrator) removeCoGroup(groupID int) error {
+	bindingID, err := o.c.FindUnixClusterGroup(groupID)
+	if err != nil {
+		return fmt.Errorf("find cluster group binding: %w", err)
+	}
+	if bindingID != 0 {
+		if err := ignoreNotFound(o.c.DeleteUnixClusterGroup(bindingID)); err != nil {
+			return fmt.Errorf("delete cluster group binding: %w", err)
+		}
+	}
+	if err := ignoreNotFound(o.c.DeleteCoGroup(groupID)); err != nil {
+		return fmt.Errorf("delete group: %w", err)
+	}
+	return nil
 }

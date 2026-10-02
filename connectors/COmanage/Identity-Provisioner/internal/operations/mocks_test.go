@@ -47,6 +47,7 @@ type fakeCore struct {
 	auditEvents       []models.AuditEvent
 	createdIdentity   *models.UserIdentity
 	markedProvisioned []string
+	groupMembers      []models.ComputeClusterUser
 }
 
 func (f *fakeCore) GetUser(_ context.Context, _ string) (*models.User, error) {
@@ -64,9 +65,18 @@ func (f *fakeCore) CreateUserIdentity(_ context.Context, ui *models.UserIdentity
 	return ui, nil
 }
 
+func (f *fakeCore) UpdateUserIdentity(_ context.Context, ui *models.UserIdentity) error {
+	f.createdIdentity = ui
+	return nil
+}
+
 func (f *fakeCore) MarkComputeClusterUserProvisioned(_ context.Context, id string) error {
 	f.markedProvisioned = append(f.markedProvisioned, id)
 	return nil
+}
+
+func (f *fakeCore) ListGroupMembersForAllocation(_ context.Context, _ string) ([]models.ComputeClusterUser, error) {
+	return f.groupMembers, nil
 }
 
 func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
@@ -90,6 +100,8 @@ type mockRegistry struct {
 	posted      []client.CoGroupMemberCreateOne
 	put         [][]byte // bodies of the person PUTs
 	deleted     []string // paths of the DELETE calls
+
+	members []client.CoGroupMemberListOne // membership rows served for any group, overriding adminMember
 }
 
 func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
@@ -147,6 +159,10 @@ func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
 			members := "[]"
 			if reg.adminMember {
 				members = `[{"Version":"1.0","Id":9,"CoGroupId":` + strconv.Itoa(reg.adminGroup) + `,"Person":{"Type":"CO","Id":42},"Member":true,"Owner":false}]`
+			}
+			if reg.members != nil {
+				b, _ := json.Marshal(reg.members)
+				members = string(b)
 			}
 			_, _ = io.WriteString(w, `{"ResponseType":"CoGroupMembers","Version":"1.0","CoGroupMembers":`+members+`}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_group_members.json"):

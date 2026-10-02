@@ -112,6 +112,10 @@ export type ComputeAllocation = {
      */
     initial_su_amount?: number;
     name?: string;
+    /**
+     * Fixed at creation; the group's name everywhere.
+     */
+    posix_group?: string;
     project_id?: string;
     start_time?: string;
     /**

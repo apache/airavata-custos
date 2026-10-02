@@ -89,6 +89,7 @@ export const zComputeAllocation = z.object({
     id: z.string().optional(),
     initial_su_amount: z.int().optional(),
     name: z.string().optional(),
+    posix_group: z.string().optional(),
     project_id: z.string().optional(),
     start_time: z.string().optional(),
     status: zAllocationStatus.optional()

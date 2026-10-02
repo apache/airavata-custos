@@ -389,6 +389,15 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 	return nil
 }
 
+// ListGroupMembersForAllocation returns the cluster accounts an allocation's POSIX group holds.
+func (s *Service) ListGroupMembersForAllocation(ctx context.Context, allocationID string) ([]models.ComputeClusterUser, error) {
+	rows, err := s.clusterUsers.FindGroupMembers(ctx, allocationID)
+	if err != nil {
+		return nil, fmt.Errorf("list group members for allocation: %w", err)
+	}
+	return rows, nil
+}
+
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.
 func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error {
 	if id == "" {

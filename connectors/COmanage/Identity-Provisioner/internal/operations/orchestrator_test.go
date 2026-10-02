@@ -323,3 +323,10 @@ func TestEnsurePOSIXAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
 		t.Errorf("pending account was marked provisioned: %v", core.markedProvisioned)
 	}
 }
+
+func TestStorePersonID_RepointsAStaleID(t *testing.T) {
+	core := &fakeCore{identities: []models.UserIdentity{{ID: "ui-1", Source: "comanage", ExternalID: "Nexus100007"}}}
+	if err := (&Orchestrator{core: core}).storePersonID(context.Background(), "user-1", "Nexus100014"); err != nil || core.createdIdentity == nil || core.createdIdentity.ID != "ui-1" || core.createdIdentity.ExternalID != "Nexus100014" {
+		t.Fatalf("err=%v written=%+v; want ui-1 repointed to Nexus100014", err, core.createdIdentity)
+	}
+}

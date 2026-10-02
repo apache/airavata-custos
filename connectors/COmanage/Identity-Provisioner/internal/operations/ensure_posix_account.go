@@ -102,6 +102,10 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 	if err != nil {
 		return err
 	}
+	// The registry publishes a group on identifier and member writes, not on binding, so binding comes first.
+	if err := o.findOrCreateUnixClusterGroup(ctx, cu, coGroupID, log); err != nil {
+		return err
+	}
 	if err := o.findOrCreateIdentifier(ctx, cu, coGroupID, cu.LocalUsername, "uid"); err != nil {
 		return err
 	}
@@ -109,9 +113,6 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return err
 	}
 	if err := o.findOrCreateCoGroupMember(ctx, cu, coGroupID, coPersonID); err != nil {
-		return err
-	}
-	if err := o.findOrCreateUnixClusterGroup(ctx, cu, coGroupID, log); err != nil {
 		return err
 	}
 

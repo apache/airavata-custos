@@ -65,7 +65,7 @@ func (c *Client) FindUnixClusterGroup(coGroupId int) (int, error) {
 			return 0, fmt.Errorf("decode unix_cluster_groups list: %w", err)
 		}
 		for _, g := range out.UnixClusterGroups {
-			if g.UnixClusterId == c.cfg.UnixClusterID {
+			if g.UnixClusterId == c.cfg.UnixClusterID && g.CoGroupId == coGroupId {
 				return g.Id, nil
 			}
 		}

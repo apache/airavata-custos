@@ -25,6 +25,7 @@ import (
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 // ListComputeAllocations returns a paginated, filterable slice of compute
@@ -85,6 +86,13 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 	} else if cluster == nil {
 		return nil, fmt.Errorf("%w: compute cluster %q not found", ErrInvalidInput, alloc.ComputeClusterID)
 	}
+
+	name := posix.Normalize(alloc.Name)
+	if name == "" {
+		return nil, fmt.Errorf("%w: allocation name %q has no letters or digits", ErrInvalidInput, alloc.Name)
+	}
+	group := "proj-" + name[:min(len(name), posix.MaxLoginLen-len("proj-"))]
+	alloc.PosixGroup = &group
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.allocs.Create(ctx, tx, alloc); err != nil {

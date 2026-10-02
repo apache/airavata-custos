@@ -103,6 +103,8 @@ type ComputeClusterUserStore interface {
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction.
 	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string) error
+	// FindGroupMembers returns an active allocation's provisioned, active members.
+	FindGroupMembers(ctx context.Context, allocationID string) ([]models.ComputeClusterUser, error)
 	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
 	// dropping fromUserID's rows on clusters where toUserID already has one.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
