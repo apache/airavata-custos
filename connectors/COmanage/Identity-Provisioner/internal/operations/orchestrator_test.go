@@ -82,7 +82,7 @@ func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest"}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
 	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
 		t.Fatalf("EnsurePOSIXAccount: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestEnsurePOSIXAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	defer root.End()
 	wantTrace := root.SpanContext().TraceID()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx"}
+	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx", ApprovalStatus: models.ClusterAccountApproved}
 	if err := orch.EnsurePOSIXAccount(ctx, cu); err == nil {
 		t.Fatalf("expected EnsurePOSIXAccount to fail under 500")
 	}
@@ -218,7 +218,7 @@ func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest"}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest", ApprovalStatus: models.ClusterAccountApproved}
 	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
 		t.Fatalf("EnsurePOSIXAccount: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest"}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
 	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
 		t.Fatalf("EnsurePOSIXAccount: %v", err)
 	}
@@ -299,5 +299,27 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 		if !strings.Contains(oidcPutBody, keep) {
 			t.Fatalf("PUT dropped %s, which deleteOmitted would erase: %s", keep, oidcPutBody)
 		}
+	}
+}
+
+// Make sure an account that is still waiting for admin approval is not sent to the registry.
+func TestEnsurePOSIXAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+	defer srv.Close()
+
+	core := &fakeCore{user: &models.User{ID: "user-1", FirstName: "Jane", LastName: "Doe", Email: "jdoe@example.edu"}}
+	orch := newOrchestratorForTest(t, srv, core, "")
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountPending}
+	if err := orch.EnsurePOSIXAccount(context.Background(), cu); err != nil {
+		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	}
+
+	if calls != 0 {
+		t.Errorf("registry got %d calls for a pending account, want 0", calls)
+	}
+	if len(core.markedProvisioned) != 0 {
+		t.Errorf("pending account was marked provisioned: %v", core.markedProvisioned)
 	}
 }

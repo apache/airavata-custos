@@ -50,7 +50,12 @@ func New(c *client.Client, core *service.Service) *Orchestrator {
 	return &Orchestrator{c: c, core: core}
 }
 
+// EnsurePOSIXAccount creates the cluster account in the registry. An account
+// that is not approved is skipped, whichever event asked for it.
 func (o *Orchestrator) EnsurePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+	if cu.ApprovalStatus != models.ClusterAccountApproved {
+		return nil
+	}
 	ctx, span := tracing.Start(ctx, "comanage.ensure_posix_account")
 	defer span.End()
 	span.SetAttributes(
