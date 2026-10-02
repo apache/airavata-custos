@@ -99,6 +99,20 @@ connectors:
         mode: "0700"
         hard_limit: 10995116277760    # 10 TiB
         hard_limit_inodes: 10000000
+      - path: "/project/{allocation}"
+        owner: "0"
+        group: "{allocation}"
+        mode: "2750"
+        hard_limit: 10995116277760    # 10 TiB
+        hard_limit_inodes: 300000000
+      - path: "/project/{allocation}/shared"
+        owner: "0"
+        group: "{allocation}"
+        mode: "2770"
+      - path: "/project/{allocation}/{user}"
+        owner: "{user}"
+        group: "{user}"
+        mode: "0700"
 
   amie-processor:
     type: "amie-processor"
