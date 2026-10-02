@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -382,7 +383,12 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusterUsers.MarkProvisioned(ctx, tx, id)
+		if err := s.clusterUsers.MarkProvisioned(ctx, tx, id); err != nil {
+			return err
+		}
+		now := time.Now()
+		cu.ProvisionedAt = &now
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu)
 	}); err != nil {
 		return fmt.Errorf("mark compute cluster user provisioned: %w", err)
 	}

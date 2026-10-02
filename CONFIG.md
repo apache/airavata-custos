@@ -132,6 +132,28 @@ connectors:
       http_timeout: "30s"
 ```
 
+#### VAST Storage Provisioner
+
+```yaml
+  vast-storage:
+    type: "vast-storage-provisioner"
+    enabled: true
+    custos_cluster_id: "cluster-001"
+    vms:
+      url: "http://vms.example.org"
+      username: "custos"
+      password: "${VAST_API_PASSWORD}"
+      tenant_id: 1
+    # config/custos.yaml holds the full list.
+    storage:
+      - path: "/home/{user}"
+        owner: "{user}"
+        group: "{user}"
+        mode: "0700"
+        hard_limit: 107374182400      # 100 GiB
+        hard_limit_inodes: 1000000
+```
+
 #### AMIE Processor
 
 ```yaml
@@ -223,6 +245,7 @@ When a connector is disabled:
 - `slurm-association-mapper` - SLURM Association Mapper
 - `slurm-usage-monitor` - SLURM Usage Monitor
 - `comanage-identity-provisioner` - COmanage Identity Provisioner
+- `vast-storage-provisioner` - VAST Storage Provisioner
 - `amie-processor` - AMIE Processor
 
 New connector types can be added by:
