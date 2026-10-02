@@ -21,14 +21,18 @@
 import type { Page } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 
-export type Persona = "researcher" | "viewer" | "manager" | "admin";
+// researcher - no privileges, sees only their own allocations and projects
+// readOnlyAdmin - reads users, organizations, clusters and allocations
+// manager - reads and writes allocations and projects, reads the rest and AMIE
+// admin - reads and writes everything, manages roles and privileges
+export type Persona = "researcher" | "readOnlyAdmin" | "manager" | "admin";
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
 // gates resolve per persona. The MSW /user/privileges handler reads the
 // matching test-privileges cookie set below.
 const PRIVILEGES: Record<Persona, string[]> = {
   researcher: [],
-  viewer: [
+  readOnlyAdmin: [
     "core:users:read",
     "core:organizations:read",
     "core:clusters:read",
@@ -70,7 +74,7 @@ const PRIVILEGES: Record<Persona, string[]> = {
 
 const NAMES: Record<Persona, string> = {
   researcher: "Test Researcher",
-  viewer: "Test Viewer",
+  readOnlyAdmin: "Test Read-only Admin",
   manager: "Test Manager",
   admin: "Test Admin",
 };
