@@ -40,6 +40,12 @@ const monitorInterval = 30 * time.Second
 // depends on the cluster's slurmdbd commit lag, so it is configurable.
 const defaultPollOverlap = 15 * time.Minute
 
+// maxPollStep is the value of the next poll step keeping the gap not too wide.
+const maxPollStep = 24 * time.Hour
+
+// startupCatchUp is the value how far back the poller scans for jobs.
+const startupCatchUp = 24 * time.Hour
+
 type jobLister interface {
 	ListJobs(filter client.JobFilter) ([]client.JobInfo, error)
 }
@@ -63,7 +69,7 @@ func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreServi
 		coreService:     coreService,
 		clusterId:       clusterId,
 		pollOverlap:     pollOverlap,
-		lastMonitorTime: 1, // initialize to 1 to avoid issues with zero value
+		lastMonitorTime: time.Now().Add(-startupCatchUp).Unix(),
 	}
 }
 
@@ -71,7 +77,7 @@ func (m *SlurmMonitor) StartMonitor(ctx context.Context) {
 	ticker := time.NewTicker(monitorInterval)
 	defer ticker.Stop()
 
-	slog.Info("Starting SLURM usage monitor", "interval", monitorInterval)
+	slog.Info("Starting SLURM usage monitor", "interval", monitorInterval, "first_poll_from", time.Unix(m.lastMonitorTime, 0).UTC())
 	for {
 		select {
 		case <-ctx.Done():
@@ -99,13 +105,9 @@ func (m *SlurmMonitor) poll() {
 		return
 	}
 
-	windowStart := m.lastMonitorTime - int64(m.pollOverlap.Seconds())
-	if windowStart < 1 {
-		windowStart = 1
-	}
 	jobFilter := client.JobFilter{
-		StartTime: windowStart,
-		EndTime:   time.Now().Unix(),
+		StartTime: m.lastMonitorTime - int64(m.pollOverlap.Seconds()),
+		EndTime:   min(time.Now().Unix(), m.lastMonitorTime+int64(maxPollStep.Seconds())),
 	}
 
 	jobs, err := m.slurmClient.ListJobs(jobFilter)
