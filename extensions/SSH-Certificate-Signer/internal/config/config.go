@@ -74,10 +74,11 @@ type VaultConfig struct {
 }
 
 type SignerConfig struct {
-	CA         CAConfig         `yaml:"ca"`
-	Policy     PolicyConfig     `yaml:"policy"`
-	Auth       AuthConfig       `yaml:"auth"`
-	Validation ValidationConfig `yaml:"validation"`
+	CoreAPIBaseURL string           `yaml:"core_api_base_url"`
+	CA             CAConfig         `yaml:"ca"`
+	Policy         PolicyConfig     `yaml:"policy"`
+	Auth           AuthConfig       `yaml:"auth"`
+	Validation     ValidationConfig `yaml:"validation"`
 }
 
 type CAConfig struct {
@@ -150,6 +151,7 @@ func DefaultConfig() *Config {
 			TimeoutSeconds: 10,
 		},
 		Signer: SignerConfig{
+			CoreAPIBaseURL: "http://localhost:8080",
 			CA: CAConfig{
 				Rotation: RotationConfig{
 					PeriodHours:  2160,
@@ -245,6 +247,9 @@ func applyEnvOverrides(cfg *Config) {
 			}
 		}
 		cfg.Signer.Auth.AllowedIssuers = trimmed
+	}
+	if v := os.Getenv("CORE_API_BASE_URL"); v != "" {
+		cfg.Signer.CoreAPIBaseURL = strings.TrimRight(v, "/")
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.Logging.Level = v

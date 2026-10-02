@@ -35,6 +35,9 @@ func TestLoad_DefaultConfig(t *testing.T) {
 	if cfg.Signer.Validation.PrincipalValidator != "noop" {
 		t.Errorf("expected noop validator, got %s", cfg.Signer.Validation.PrincipalValidator)
 	}
+	if cfg.Signer.CoreAPIBaseURL != "http://localhost:8080" {
+		t.Errorf("unexpected Core API URL: %s", cfg.Signer.CoreAPIBaseURL)
+	}
 }
 
 func TestLoad_YAMLFile(t *testing.T) {
@@ -86,6 +89,7 @@ database:
 	t.Setenv("DEV_DEFAULT_EMAIL", "test@dev.local")
 	t.Setenv("ALLOWED_ISSUERS", "https://a.com, https://b.com")
 	t.Setenv("LOG_LEVEL", "debug")
+	t.Setenv("CORE_API_BASE_URL", "http://core:8080/")
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -111,6 +115,9 @@ database:
 	}
 	if cfg.Logging.Level != "debug" {
 		t.Errorf("expected debug log level, got %s", cfg.Logging.Level)
+	}
+	if cfg.Signer.CoreAPIBaseURL != "http://core:8080" {
+		t.Errorf("expected Core API override, got %s", cfg.Signer.CoreAPIBaseURL)
 	}
 }
 
