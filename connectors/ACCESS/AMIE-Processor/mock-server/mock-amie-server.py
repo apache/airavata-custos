@@ -24,10 +24,12 @@
 # upstream emits so the connector can be exercised end-to-end without a
 # decoder shim.
 
+import json
 import os
 import random
 import time
 import uuid
+from datetime import date, timedelta
 from flask import Flask, jsonify, request
 from pathlib import Path
 
@@ -621,6 +623,71 @@ def gen_baseline_scenario():
     ]
 
 
+# ----- Configurations read from scenarios/<name>.json -----
+
+def load_site():
+    # people.json holds real people
+    path = SCENARIOS_DIR / "people.json"
+    if not path.is_file():
+        path = SCENARIOS_DIR / "people.example.json"
+    return json.loads(path.read_text())
+
+
+def person_fields(prefix, key, site):
+    person = site["people"][key]
+    return {
+        f"{prefix}GlobalID": f"e2e-{key}",
+        f"{prefix}FirstName": person["first"],
+        f"{prefix}LastName": person["last"],
+        f"{prefix}Email": person["email"],
+        f"{prefix}Organization": site["org"],
+        f"{prefix}OrgCode": site["org_code"],
+        "NsfStatusCode": "AC",
+    }
+
+
+def gen_from_file(name):
+    config = json.loads((SCENARIOS_DIR / f"{name}.json").read_text())
+    site = load_site()
+    start = date.today()
+    packets = []
+    for project in config.get("projects", []):
+        grant = project["grant"]
+        packets.append(make_packet("request_project_create", {
+            "GrantNumber": grant,
+            "PfosNumber": f"PFOS-{grant}",
+            "ProjectTitle": project["title"],
+            "ServiceUnitsAllocated": str(project["su"]),
+            "StartDate": start.isoformat(),
+            "EndDate": (start + timedelta(days=365)).isoformat(),
+            "ResourceList": [site["resource"]],
+            "AllocationType": "new",
+            **person_fields("Pi", project["pi"], site),
+        }))
+        for key, role in project.get("users", {}).items():
+            packets.append(make_packet("request_account_create", {
+                "ProjectID": f"__GRANT__{grant}",
+                "GrantNumber": grant,
+                "UserPersonID": f"e2e-{key}-person",
+                "UserRole": role,
+                "ResourceList": [site["resource"]],
+                **person_fields("User", key, site),
+            }))
+    for merge in config.get("merges", []):
+        packets.append(make_packet("request_person_merge", {
+            "KeepGlobalID": f"e2e-{merge['keep']}",
+            "KeepPersonID": f"e2e-{merge['keep']}-person",
+            "DeleteGlobalID": f"e2e-{merge['retire']}",
+            "DeletePersonID": f"e2e-{merge['retire']}-person",
+            "MergeReason": "Duplicate person records",
+        }))
+    return packets
+
+
+def file_scenarios():
+    return sorted(p.stem for p in SCENARIOS_DIR.glob("*.json") if not p.stem.startswith("people"))
+
+
 # ----- API endpoints -----
 
 @app.route("/packets/<site>", methods=["GET"])
@@ -694,6 +761,8 @@ def create_scenario(site):
         packets = gen_dev_email_scenario()
     elif scenario_type == "baseline":
         packets = gen_baseline_scenario()
+    elif scenario_type in file_scenarios():
+        packets = gen_from_file(scenario_type)
     else:
         packets = generate_batch(success_count=3, failure_count=2)
     pending_packets.extend(packets)
@@ -718,10 +787,13 @@ if __name__ == "__main__":
     print("  POST /test/{site}/scenarios?type=heavy          — 15 success + 10 failure")
     print("  POST /test/{site}/scenarios?type=all_handlers   — one packet per handler type")
     print("  POST /test/{site}/scenarios?type=dev_email      — scripted dev_email scenario")
+    for name in file_scenarios():
+        print(f"  POST /test/{{site}}/scenarios?type={name}")
     print()
     if DEV_EMAIL:
         print(f"DEV_EMAIL injection enabled: {DEV_EMAIL}")
     else:
         print("DEV_EMAIL unset; dev_email scenario will be empty")
     print()
-    app.run(host="0.0.0.0", port=8180, debug=False)
+    # The mock has no auth. Set MOCK_AMIE_HOST=127.0.0.1 when it runs next to a real deployment.
+    app.run(host=os.getenv("MOCK_AMIE_HOST", "0.0.0.0"), port=8180, debug=False)
