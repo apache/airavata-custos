@@ -331,6 +331,53 @@ func (o *Orchestrator) updatePerson(ctx context.Context, personID string, body [
 	return nil
 }
 
+// findCoPerson resolves the user's CoPerson by the stored id, then by email.
+// It returns an empty person identifier when the registry has no match.
+func (o *Orchestrator) findCoPerson(ctx context.Context, user *models.User) (string, json.RawMessage, error) {
+	personIDType := o.c.Config().PersonIDType
+
+	if stored, err := o.findStoredPersonID(ctx, user.ID); err != nil {
+		return "", nil, fmt.Errorf("stored lookup: %w", err)
+	} else if stored != "" {
+		composite, err := o.c.GetPersonComposite(stored)
+		if err == nil {
+			return stored, composite, nil
+		}
+		if !errors.Is(err, client.ErrNotFound) {
+			return "", nil, fmt.Errorf("get composite for stored id: %w", err)
+		}
+		// stored id no longer resolves; fall through to email search
+	}
+
+	if user.Email == "" {
+		return "", nil, nil
+	}
+	coPersonID, err := o.findByEmailExact(user.Email)
+	if err != nil && !errors.Is(err, client.ErrNotFound) {
+		return "", nil, fmt.Errorf("email search: %w", err)
+	}
+	if coPersonID == 0 {
+		return "", nil, nil
+	}
+	// The registry's /people/{identifier} endpoint expects an identifier
+	// value (e.g. "Custos100022"), not the numeric CoPerson id, so the value
+	// is read from the person's identifiers first.
+	personID, err := o.c.FindIdentifierValueOnPerson(coPersonID, personIDType)
+	if err != nil {
+		return "", nil, fmt.Errorf("find %s on CoPerson %d: %w", personIDType, coPersonID, err)
+	}
+	if personID == "" {
+		// The person exists but the registry has not assigned the identifier
+		// yet. Creating the person again is safe, the registry dedups it.
+		return "", nil, nil
+	}
+	composite, err := o.c.GetPersonComposite(personID)
+	if err != nil {
+		return "", nil, fmt.Errorf("get composite by %s %s: %w", personIDType, personID, err)
+	}
+	return personID, composite, nil
+}
+
 // lookupOrCreateCoPerson resolves the user's CoPerson, returning the COmanage
 // person identifier, the composite (if the GET path was used), and whether a
 // new CoPerson was created.
@@ -339,56 +386,15 @@ func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.
 	defer span.End()
 	personIDType := o.c.Config().PersonIDType
 
-	if stored, err := o.findStoredPersonID(ctx, user.ID); err != nil {
+	personID, composite, err := o.findCoPerson(ctx, user)
+	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return "", nil, false, fmt.Errorf("stored lookup: %w", err)
-	} else if stored != "" {
-		composite, err := o.c.GetPersonComposite(stored)
-		if err == nil {
-			span.SetAttributes(attribute.String("comanage.person_id", stored))
-			return stored, composite, false, nil
-		}
-		if !errors.Is(err, client.ErrNotFound) {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return "", nil, false, fmt.Errorf("get composite for stored id: %w", err)
-		}
-		// stored id no longer resolves; fall through to email search
+		return "", nil, false, err
 	}
-
-	if user.Email != "" {
-		coPersonID, err := o.findByEmailExact(user.Email)
-		if err != nil && !errors.Is(err, client.ErrNotFound) {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return "", nil, false, fmt.Errorf("email search: %w", err)
-		}
-		if coPersonID != 0 {
-			// COmanage's /people/{identifier} endpoint expects an Identifier
-			// *value* (e.g. "Custos100022"), not a numeric CoPerson ID. Resolve
-			// the identifier value by listing the CoPerson's Identifiers first.
-			personID, err := o.c.FindIdentifierValueOnPerson(coPersonID, personIDType)
-			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-				return "", nil, false, fmt.Errorf("find %s on CoPerson %d: %w", personIDType, coPersonID, err)
-			}
-			if personID == "" {
-				// CoPerson exists but the identifier-assignment plugin hasn't
-				// run yet; fall through to POST /people (idempotent against
-				// repeat creation since COmanage dedups on the CoPersonRole).
-			} else {
-				composite, err := o.c.GetPersonComposite(personID)
-				if err != nil {
-					span.RecordError(err)
-					span.SetStatus(codes.Error, err.Error())
-					return "", nil, false, fmt.Errorf("get composite by %s %s: %w", personIDType, personID, err)
-				}
-				span.SetAttributes(attribute.String("comanage.person_id", personID))
-				return personID, composite, false, nil
-			}
-		}
+	if personID != "" {
+		span.SetAttributes(attribute.String("comanage.person_id", personID))
+		return personID, composite, false, nil
 	}
 
 	body, err := buildCreatePersonBody(o.c.Config().COID, user, sub)

@@ -121,3 +121,21 @@ func (c *Client) FindCoGroupMember(coGroupId, coPersonId int) (int, error) {
 		return 0, &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 }
+
+func (c *Client) DeleteCoGroupMember(id int) error {
+	u := c.restAPI(fmt.Sprintf("/co_group_members/%d.json", id))
+	resp, respBody, err := c.Do(http.MethodDelete, u, nil)
+	if err != nil {
+		return err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusNoContent:
+		return nil
+	case http.StatusUnauthorized:
+		return ErrAuth401
+	case http.StatusNotFound:
+		return ErrNotFound
+	default:
+		return &HTTPError{Method: "DELETE", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
+	}
+}

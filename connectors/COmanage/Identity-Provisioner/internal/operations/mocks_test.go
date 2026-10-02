@@ -83,21 +83,31 @@ func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (
 
 // mockRegistry configures mockComanageServer
 type mockRegistry struct {
-	adminGroup  int  // CoGroup id returned for adminGroupName, 0 = not in the registry
-	adminMember bool // person 42 is already in the admin group
+	adminGroup  int    // CoGroup id returned for adminGroupName, 0 = not in the registry
+	adminMember bool   // person 42 is already in the admin group
+	account     string // username of the cluster account person 42 has, "" = none
+	userGroup   int    // CoGroup id of that account's primary group, 0 = not in the registry
 	posted      []client.CoGroupMemberCreateOne
+	put         [][]byte // bodies of the person PUTs
+	deleted     []string // paths of the DELETE calls
 }
 
 func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
 	t.Helper()
 	// composite served on every /people/<id> GET.
+	account, login := "", ""
+	if reg.account != "" {
+		account = `"UnixClusterAccount":[{"meta":{"id":8},"unix_cluster_id":1,"username":"` + reg.account + `","uid":2000099,"status":"A"}],`
+		login = `,{"identifier":"` + reg.account + `","type":"uid","login":false,"status":"A"}`
+	}
 	composite := `{
         "CoPerson":{"meta":{"id":42},"co_id":2,"status":"A"},
         "Name":[{"given":"E2E","family":"Test","type":"official","primary_name":true}],
         "EmailAddress":[{"mail":"e2e@example.edu","type":"official","verified":false}],
+        ` + account + `
         "Identifier":[
             {"identifier":"Person100099","type":"comanage_id","login":false,"status":"A"},
-            {"identifier":"2000099","type":"uidnumber","login":false,"status":"A"}
+            {"identifier":"2000099","type":"uidnumber","login":false,"status":"A"}` + login + `
         ]
     }`
 
@@ -110,16 +120,23 @@ func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = io.WriteString(w, composite)
 		case r.Method == http.MethodPut && strings.Contains(path, "/people/"):
+			body, _ := io.ReadAll(r.Body)
+			reg.put = append(reg.put, body)
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = io.WriteString(w, composite)
+		case r.Method == http.MethodDelete:
+			reg.deleted = append(reg.deleted, path)
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_people.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"CoPeople","Version":"1.0","CoPeople":[]}`)
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_groups.json"):
-			groups := "[]"
+			var groups []string
 			if reg.adminGroup != 0 {
-				groups = `[{"Version":"1.0","Id":` + strconv.Itoa(reg.adminGroup) + `,"CoId":2,"Name":"` + adminGroupName + `","Status":"Active"}]`
+				groups = append(groups, `{"Version":"1.0","Id":`+strconv.Itoa(reg.adminGroup)+`,"CoId":2,"Name":"`+adminGroupName+`","Status":"Active"}`)
 			}
-			_, _ = io.WriteString(w, `{"ResponseType":"CoGroups","Version":"1.0","CoGroups":`+groups+`}`)
+			if reg.userGroup != 0 {
+				groups = append(groups, `{"Version":"1.0","Id":`+strconv.Itoa(reg.userGroup)+`,"CoId":2,"Name":"`+reg.account+`","Status":"Active"}`)
+			}
+			_, _ = io.WriteString(w, `{"ResponseType":"CoGroups","Version":"1.0","CoGroups":[`+strings.Join(groups, ",")+`]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_groups.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroup","Id":"55"}`)
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/identifiers.json"):
@@ -140,7 +157,11 @@ func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
 			reg.posted = append(reg.posted, body.CoGroupMembers...)
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroupMember","Id":"11"}`)
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
-			_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[]}`)
+			bindings := "[]"
+			if reg.userGroup != 0 {
+				bindings = `[{"Version":"1.0","Id":3,"UnixClusterId":1,"CoGroupId":` + strconv.Itoa(reg.userGroup) + `}]`
+			}
+			_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":`+bindings+`}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"UnixClusterGroup","Id":"3"}`)
 		default:
