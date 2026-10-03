@@ -77,6 +77,29 @@ connectors:
       homedir_prefix: "/home/"
       http_timeout: "30s"
 
+  vast-storage:
+    type: "vast-storage-provisioner"
+    enabled: false
+    custos_cluster_id: "${CUSTOS_CLUSTER_ID}"
+    vms:
+      url: "${VAST_VMS_URL}"
+      username: "${VAST_API_USER}"
+      password: "${VAST_API_PASSWORD}"
+      tenant_id: ${VAST_TENANT_ID}
+    storage:
+      - path: "/home/{user}"
+        owner: "{user}"
+        group: "{user}"
+        mode: "0700"
+        hard_limit: 107374182400      # 100 GiB
+        hard_limit_inodes: 1000000
+      - path: "/scratch/{user}"
+        owner: "{user}"
+        group: "{user}"
+        mode: "0700"
+        hard_limit: 10995116277760    # 10 TiB
+        hard_limit_inodes: 10000000
+
   amie-processor:
     type: "amie-processor"
     enabled: true
