@@ -27,12 +27,35 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/VAST/Storage-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 var layout = []Mount{
 	{Path: "/home/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, HardLimit: 1, HardLimitInodes: 1},
 	{Path: "/scratch/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, HardLimit: 1, HardLimitInodes: 1},
+	{Path: "/project/{allocation}", Owner: "0", Group: "{allocation}", Mode: 0o2750, HardLimit: 1, HardLimitInodes: 1},
+	{Path: "/project/{allocation}/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700},
+}
+
+// oneAllocation serves one active allocation whose only member is the account.
+func oneAllocation() *service.CoreServiceMock {
+	group, provisioned := "proj-a", time.Now()
+	return &service.CoreServiceMock{
+		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) {
+			return []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE}}, nil
+		},
+		GetComputeAllocationFunc: func(context.Context, string) (*models.ComputeAllocation, error) {
+			return &models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}, nil
+		},
+		ListMembersForAllocationFunc: func(context.Context, string) ([]store.MembershipWithUser, error) {
+			return []store.MembershipWithUser{{
+				ComputeAllocationMembership: models.ComputeAllocationMembership{MembershipStatus: models.ACTIVE},
+				LocalUsername:               "custos-jdoe", ProvisionedAt: &provisioned,
+			}}, nil
+		},
+	}
 }
 
 func TestEnsureUser(t *testing.T) {
@@ -42,7 +65,7 @@ func TestEnsureUser(t *testing.T) {
 		provisionedAt *time.Time
 		want          []string
 	}{
-		{name: "creates in order", provisionedAt: &now, want: []string{"folder /home/custos-jdoe", "quota /home/custos-jdoe", "folder /scratch/custos-jdoe", "quota /scratch/custos-jdoe"}},
+		{name: "creates in order", provisionedAt: &now, want: []string{"folder /home/custos-jdoe", "quota /home/custos-jdoe", "folder /scratch/custos-jdoe", "quota /scratch/custos-jdoe", "folder /project/proj-a", "quota /project/proj-a", "folder /project/proj-a/custos-jdoe"}},
 		{name: "skips unprovisioned"},
 	}
 	for _, tt := range tests {
@@ -61,7 +84,7 @@ func TestEnsureUser(t *testing.T) {
 				}
 			}))
 			defer srv.Close()
-			s := NewStorageSubscriber(client.New(srv.URL, "u", "p", 1), nil, nil, "c1", layout)
+			s := NewStorageSubscriber(client.New(srv.URL, "u", "p", 1), nil, oneAllocation(), "c1", layout)
 			cu := models.ComputeClusterUser{ComputeClusterID: "c1", LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
 			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(log, tt.want) {
 				t.Fatalf("err=%v calls=%v, want %v", err, log, tt.want)

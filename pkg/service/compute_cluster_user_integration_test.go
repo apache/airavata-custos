@@ -321,15 +321,22 @@ func TestListMembersForAllocation_CarriesTheClusterAccount(t *testing.T) {
 		}
 		return userID
 	}
-	want := map[string]bool{member("p"): true, member("u"): false, member(""): false}
+	want := map[string]string{member("p"): "p", member("u"): "u", member(""): ""}
 
 	rows, err := svc.ListMembersForAllocation(ctx(), alloc.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, r := range rows {
-		if provisioned, ok := want[r.UserID]; ok && (r.ProvisionedAt != nil) != provisioned {
-			t.Errorf("member %s: provisioned %v, want %v", r.UserID, r.ProvisionedAt != nil, provisioned)
+		got := ""
+		if r.LocalUsername != "" {
+			got = "u"
+		}
+		if r.ProvisionedAt != nil {
+			got = "p"
+		}
+		if acct, ok := want[r.UserID]; ok && got != acct {
+			t.Errorf("member %s: account %q, want %q", r.UserID, got, acct)
 		}
 	}
 }
