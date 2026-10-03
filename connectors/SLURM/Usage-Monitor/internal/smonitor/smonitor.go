@@ -43,7 +43,8 @@ const defaultPollOverlap = 15 * time.Minute
 // maxPollStep is the value of the next poll step keeping the gap not too wide.
 const maxPollStep = 24 * time.Hour
 
-// startupCatchUp is the value how far back the poller scans for jobs.
+// startupCatchUp is the value how far back the poller scans for jobs when no
+// usage has been recorded for the cluster yet.
 const startupCatchUp = 24 * time.Hour
 
 type jobLister interface {
@@ -73,7 +74,20 @@ func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreServi
 	}
 }
 
+// resumeFromLastUsage starts polling from where the last usage was recorded.
+func (m *SlurmMonitor) resumeFromLastUsage(ctx context.Context) {
+	last, err := m.coreService.LatestUsageTimeForCluster(ctx, m.clusterId)
+	if err != nil {
+		slog.Warn("could not read the last recorded usage, starting from the default", "error", err)
+		return
+	}
+	if last != nil {
+		m.lastMonitorTime = last.Unix()
+	}
+}
+
 func (m *SlurmMonitor) StartMonitor(ctx context.Context) {
+	m.resumeFromLastUsage(ctx)
 	ticker := time.NewTicker(monitorInterval)
 	defer ticker.Stop()
 

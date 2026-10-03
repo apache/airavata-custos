@@ -220,6 +220,7 @@ type ComputeAllocationUsageService interface {
 	ListUsagesByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
 	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error)
 	GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error)
 	DeleteComputeAllocationUsage(ctx context.Context, id string) error
 }
 

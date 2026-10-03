@@ -120,6 +120,44 @@ func TestPollFirstQueryAfterAStartCoversOneStep(t *testing.T) {
 	}
 }
 
+// Make sure the first poll after a start picks up from the last recorded usage.
+func TestPollResumesFromTheLastRecordedUsage(t *testing.T) {
+	lastUsage := time.Now().Add(-3 * time.Hour).Truncate(time.Second)
+	core := newMockCore(nil, nil)
+	core.LatestUsageTimeForClusterFunc = func(ctx context.Context, clusterID string) (*time.Time, error) {
+		return &lastUsage, nil
+	}
+	lister := &fakeJobLister{}
+	m := NewSlurmMonitor(nil, nil, core, "cl-1", 0)
+	m.slurmClient = lister
+
+	m.resumeFromLastUsage(context.Background())
+	m.poll()
+
+	if got, want := lister.filters[0].StartTime, lastUsage.Add(-defaultPollOverlap).Unix(); got != want {
+		t.Errorf("first query starts at %d, want %d", got, want)
+	}
+}
+
+// Make sure a cluster with no recorded usage starts one day back.
+func TestPollStartsOneDayBackWithoutRecordedUsage(t *testing.T) {
+	core := newMockCore(nil, nil)
+	core.LatestUsageTimeForClusterFunc = func(ctx context.Context, clusterID string) (*time.Time, error) {
+		return nil, nil
+	}
+	lister := &fakeJobLister{}
+	before := time.Now().Add(-startupCatchUp - defaultPollOverlap).Unix()
+	m := NewSlurmMonitor(nil, nil, core, "cl-1", 0)
+	m.slurmClient = lister
+
+	m.resumeFromLastUsage(context.Background())
+	m.poll()
+
+	if got := lister.filters[0].StartTime; got < before || got > before+1 {
+		t.Errorf("first query starts at %d, want one day and the look-back ago (%d)", got, before)
+	}
+}
+
 // Make sure a long gap is polled one step at a time, with no time skipped.
 func TestPollWalksALongGapInSteps(t *testing.T) {
 	lister := &fakeJobLister{}

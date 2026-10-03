@@ -549,6 +549,9 @@ type ComputeAllocationUsageStore interface {
 	// SumSUForUserInAllocation returns the total SUs consumed by the given
 	// user against the given allocation.
 	SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	// LatestCalculatedTimeForCluster returns the latest calculated_time of usage
+	// recorded against the cluster's allocations, or nil when there is none.
+	LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error)
 	// Create inserts a new usage event within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error
 	// Delete removes a usage event by ID within the provided transaction.

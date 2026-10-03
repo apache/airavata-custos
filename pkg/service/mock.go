@@ -258,6 +258,9 @@ var _ CoreService = &CoreServiceMock{}
 //			IsProjectParticipantFunc: func(ctx context.Context, projectID string, userID string) (bool, error) {
 //				panic("mock out the IsProjectParticipant method")
 //			},
+//			LatestUsageTimeForClusterFunc: func(ctx context.Context, clusterID string) (*time.Time, error) {
+//				panic("mock out the LatestUsageTimeForCluster method")
+//			},
 //			ListAllAuditEventsFunc: func(ctx context.Context) ([]*models.AuditEvent, error) {
 //				panic("mock out the ListAllAuditEvents method")
 //			},
@@ -684,6 +687,9 @@ type CoreServiceMock struct {
 
 	// IsProjectParticipantFunc mocks the IsProjectParticipant method.
 	IsProjectParticipantFunc func(ctx context.Context, projectID string, userID string) (bool, error)
+
+	// LatestUsageTimeForClusterFunc mocks the LatestUsageTimeForCluster method.
+	LatestUsageTimeForClusterFunc func(ctx context.Context, clusterID string) (*time.Time, error)
 
 	// ListAllAuditEventsFunc mocks the ListAllAuditEvents method.
 	ListAllAuditEventsFunc func(ctx context.Context) ([]*models.AuditEvent, error)
@@ -1483,6 +1489,13 @@ type CoreServiceMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// LatestUsageTimeForCluster holds details about calls to the LatestUsageTimeForCluster method.
+		LatestUsageTimeForCluster []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
+		}
 		// ListAllAuditEvents holds details about calls to the ListAllAuditEvents method.
 		ListAllAuditEvents []struct {
 			// Ctx is the ctx argument value.
@@ -2016,6 +2029,7 @@ type CoreServiceMock struct {
 	lockHasPrivilege                                           sync.RWMutex
 	lockIsAllocationMember                                     sync.RWMutex
 	lockIsProjectParticipant                                   sync.RWMutex
+	lockLatestUsageTimeForCluster                              sync.RWMutex
 	lockListAllAuditEvents                                     sync.RWMutex
 	lockListAllocationsForResource                             sync.RWMutex
 	lockListAllocationsForUser                                 sync.RWMutex
@@ -5040,6 +5054,42 @@ func (mock *CoreServiceMock) IsProjectParticipantCalls() []struct {
 	mock.lockIsProjectParticipant.RLock()
 	calls = mock.calls.IsProjectParticipant
 	mock.lockIsProjectParticipant.RUnlock()
+	return calls
+}
+
+// LatestUsageTimeForCluster calls LatestUsageTimeForClusterFunc.
+func (mock *CoreServiceMock) LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
+	if mock.LatestUsageTimeForClusterFunc == nil {
+		panic("CoreServiceMock.LatestUsageTimeForClusterFunc: method is nil but CoreService.LatestUsageTimeForCluster was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+	}
+	mock.lockLatestUsageTimeForCluster.Lock()
+	mock.calls.LatestUsageTimeForCluster = append(mock.calls.LatestUsageTimeForCluster, callInfo)
+	mock.lockLatestUsageTimeForCluster.Unlock()
+	return mock.LatestUsageTimeForClusterFunc(ctx, clusterID)
+}
+
+// LatestUsageTimeForClusterCalls gets all the calls that were made to LatestUsageTimeForCluster.
+// Check the length with:
+//
+//	len(mockedCoreService.LatestUsageTimeForClusterCalls())
+func (mock *CoreServiceMock) LatestUsageTimeForClusterCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+	}
+	mock.lockLatestUsageTimeForCluster.RLock()
+	calls = mock.calls.LatestUsageTimeForCluster
+	mock.lockLatestUsageTimeForCluster.RUnlock()
 	return calls
 }
 
