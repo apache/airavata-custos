@@ -26,6 +26,34 @@ export type AllocationSuTotalResponse = {
 
 export type AllocationStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
+export type AuditEvent = {
+    /**
+     * Additional details about the event, stored as a JSON string or plain text.
+     */
+    details?: string;
+    /**
+     * ID of the entity the event is about.
+     */
+    entity_id?: string;
+    /**
+     * Kind of the entity ("user", "role", "compute_cluster_user", "packet", etc.).
+     */
+    entity_type?: string;
+    event_time?: string;
+    /**
+     * e.g., "COMPUTE_ALLOCATION_CREATED", "COMPUTE_ALLOCATION_UPDATED", "COMPUTE_ALLOCATION_DELETED", etc.
+     */
+    event_type?: string;
+    id?: string;
+    parent_span_id?: string;
+    /**
+     * Subsystem that produced the event (e.g., "amie", "comanage", "slurm", "core", etc.).
+     */
+    source?: string;
+    span_id?: string;
+    trace_id?: string;
+};
+
 export type CallerProfileResponse = {
     privileges?: Array<PrivilegeKey>;
     roles?: Array<CallerRoleGrant>;
@@ -332,11 +360,27 @@ export type ComputeClusterUser = {
     user_id?: string;
 };
 
+export type DeliveryHistory = {
+    attempts?: number;
+    created_at?: string;
+    event?: Event;
+    event_id?: string;
+    finished_at?: string;
+    history?: Array<AuditEvent>;
+    id?: string;
+    last_error?: string;
+    next_run_at?: string;
+    status?: EventDeliveryStatus;
+    subscriber?: string;
+};
+
 export type Event = {
     created_at?: string;
     event_type?: string;
     id?: string;
-    payload?: Array<number>;
+    payload?: {
+        [key: string]: unknown;
+    };
     /**
      * Subsystem that published the event.
      */
@@ -2938,6 +2982,38 @@ export type GetEventsDeliveriesResponses = {
 };
 
 export type GetEventsDeliveriesResponse = GetEventsDeliveriesResponses[keyof GetEventsDeliveriesResponses];
+
+export type GetEventsDeliveriesByIdData = {
+    body?: never;
+    path: {
+        /**
+         * Delivery id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/events/deliveries/{id}';
+};
+
+export type GetEventsDeliveriesByIdErrors = {
+    /**
+     * Delivery not found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type GetEventsDeliveriesByIdError = GetEventsDeliveriesByIdErrors[keyof GetEventsDeliveriesByIdErrors];
+
+export type GetEventsDeliveriesByIdResponses = {
+    /**
+     * OK
+     */
+    200: DeliveryHistory;
+};
+
+export type GetEventsDeliveriesByIdResponse = GetEventsDeliveriesByIdResponses[keyof GetEventsDeliveriesByIdResponses];
 
 export type PostEventsDeliveriesByIdRetryData = {
     body?: never;

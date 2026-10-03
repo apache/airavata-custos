@@ -31,6 +31,21 @@ export const zAllocationMembershipResponse = z.object({
 
 export type allocationMembershipResponseZodType = z.infer<typeof zAllocationMembershipResponse>;
 
+export const zAuditEvent = z.object({
+    details: z.string().optional(),
+    entity_id: z.string().optional(),
+    entity_type: z.string().optional(),
+    event_time: z.string().optional(),
+    event_type: z.string().optional(),
+    id: z.string().optional(),
+    parent_span_id: z.string().optional(),
+    source: z.string().optional(),
+    span_id: z.string().optional(),
+    trace_id: z.string().optional()
+});
+
+export type auditEventZodType = z.infer<typeof zAuditEvent>;
+
 export const zClusterAccessLevel = z.enum(['USER', 'ADMIN']);
 
 export type clusterAccessLevelZodType = z.infer<typeof zClusterAccessLevel>;
@@ -228,7 +243,7 @@ export const zEvent = z.object({
     created_at: z.string().optional(),
     event_type: z.string().optional(),
     id: z.string().optional(),
-    payload: z.array(z.int()).optional(),
+    payload: z.record(z.string(), z.unknown()).optional(),
     source: z.string().optional(),
     trace_id: z.string().optional()
 });
@@ -242,6 +257,22 @@ export const zEventDeliveryStatus = z.enum([
 ]);
 
 export type eventDeliveryStatusZodType = z.infer<typeof zEventDeliveryStatus>;
+
+export const zDeliveryHistory = z.object({
+    attempts: z.int().optional(),
+    created_at: z.string().optional(),
+    event: zEvent.optional(),
+    event_id: z.string().optional(),
+    finished_at: z.string().optional(),
+    history: z.array(zAuditEvent).optional(),
+    id: z.string().optional(),
+    last_error: z.string().optional(),
+    next_run_at: z.string().optional(),
+    status: zEventDeliveryStatus.optional(),
+    subscriber: z.string().optional()
+});
+
+export type deliveryHistoryZodType = z.infer<typeof zDeliveryHistory>;
 
 export const zOrganization = z.object({
     id: z.string().optional(),
@@ -1242,6 +1273,15 @@ export const zGetEventsDeliveriesQuery = z.object({
 export const zGetEventsDeliveriesResponse = z.object({
     items: z.array(zPendingDelivery).optional()
 });
+
+export const zGetEventsDeliveriesByIdPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zGetEventsDeliveriesByIdResponse = zDeliveryHistory;
 
 export const zPostEventsDeliveriesByIdRetryPath = z.object({
     id: z.string()
