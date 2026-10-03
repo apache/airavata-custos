@@ -58,6 +58,7 @@ type Service struct {
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
 	auditTraces         store.AuditTraceStore
+	loginActivity       store.LoginActivityStore
 	identityCache       *identityCache
 }
 
@@ -89,6 +90,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
+		loginActivity:       store.NewLoginActivityStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -146,8 +148,15 @@ func NewWithStores(
 		roles:               roles,
 		userRoles:           userRoles,
 		auditTraces:         store.NewAuditTraceStore(database),
+		loginActivity:       store.NewLoginActivityStore(database),
 		identityCache:       newIdentityCache(),
 	}
+}
+
+// SetLoginActivity replaces the login activity store. Tests use it to record
+// sign-ins without standing up the full store set.
+func (s *Service) SetLoginActivity(ls store.LoginActivityStore) {
+	s.loginActivity = ls
 }
 
 func (s *Service) AuditTraces() store.AuditTraceStore {

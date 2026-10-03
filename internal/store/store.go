@@ -25,6 +25,88 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+const (
+	UserActivityStatusAll     = "all"
+	UserActivityStatusActive  = "active"
+	UserActivityStatusDormant = "dormant"
+	UserActivityStatusNever   = "never"
+)
+
+// LoginEvent is trusted, normalized evidence for one portal login session.
+type LoginEvent struct {
+	ID         string
+	EventKey   string
+	UserID     string
+	OccurredAt time.Time
+	LocalDate  string
+	Timezone   string
+	Provider   string
+	SessionID  string
+}
+
+// LoginActivityStore persists login facts and user summaries in one transaction.
+type LoginActivityStore interface {
+	Record(ctx context.Context, tx *sql.Tx, event LoginEvent) (bool, error)
+}
+
+// UserActivityRow is one OIDC-linked user's activity summary for the audit table.
+type UserActivityRow struct {
+	UserID    string   `json:"user_id" db:"user_id"`
+	Name      string   `json:"name" db:"name"`
+	Email     string   `json:"email" db:"email"`
+	RoleNames []string `json:"role_names"`
+	// LastLogin is the most recent recorded sign-in timestamp.
+	LastLogin    *time.Time `json:"last_login" db:"last_login"`
+	InactiveDays *int       `json:"inactive_days" db:"inactive_days"`
+	// LoginCount is the lifetime number of recorded sign-ins.
+	LoginCount       uint64 `json:"login_count" db:"login_count"`
+	WindowLoginCount uint64 `json:"window_login_count" db:"window_login_count"`
+	// LoginDayCount is the lifetime number of local calendar days with a sign-in.
+	LoginDayCount uint64 `json:"login_day_count" db:"login_day_count"`
+	CurrentStreak uint64 `json:"current_streak" db:"current_streak"`
+}
+
+// UserActivityFilter controls windowed list reads for GET /users/activity.
+type UserActivityFilter struct {
+	WindowDays int
+	Status     string
+	Query      string
+	Limit      int
+	Offset     int
+	Sort       string
+	Direction  string
+	// Now anchors every user-local calendar boundary in one request so the
+	// status filter, inactive_days and window counts cannot disagree.
+	Now time.Time
+}
+
+// UserActivityTrendPoint is one user-local calendar-day analytics bucket.
+type UserActivityTrendPoint struct {
+	Date string `json:"date" db:"date"`
+	// ActiveUsers counts distinct users who signed in on this local calendar date.
+	ActiveUsers uint64 `json:"active_users" db:"active_users"`
+	// LoginCount sums recorded sign-ins on this local calendar date.
+	LoginCount uint64 `json:"login_count" db:"login_count"`
+}
+
+// UserActivityAnalytics is the dashboard and drawer aggregate payload.
+type UserActivityAnalytics struct {
+	GeneratedAt       time.Time `json:"generated_at"`
+	WindowDays        int       `json:"window_days"`
+	TotalUsers        uint64    `json:"total_users"`
+	UsersEverLoggedIn uint64    `json:"users_ever_logged_in"`
+	// ActiveUsers counts users with a recorded sign-in within the window.
+	ActiveUsers          uint64                   `json:"active_users"`
+	PriorActiveUsers     *uint64                  `json:"prior_active_users"`
+	DormantOver90Days    *uint64                  `json:"dormant_over_90_days"`
+	OldestNeverCreatedAt *time.Time               `json:"oldest_never_created_at"`
+	LifetimeLoginCount   uint64                   `json:"lifetime_login_count"`
+	LifetimeActiveDays   uint64                   `json:"lifetime_active_days"`
+	WindowLoginCount     uint64                   `json:"window_login_count"`
+	WindowActiveDays     uint64                   `json:"window_active_days"`
+	Trend                []UserActivityTrendPoint `json:"trend"`
+}
+
 // UserStore defines persistence operations for users.
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
@@ -46,6 +128,12 @@ type UserStore interface {
 	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error
 	// Delete removes a user by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// ListActivity returns a page of OIDC-linked activity rows plus the filtered total.
+	ListActivity(ctx context.Context, f UserActivityFilter) ([]UserActivityRow, int, error)
+	// GetActivityAnalytics returns population-wide login engagement metrics.
+	GetActivityAnalytics(ctx context.Context, now time.Time, windowDays int) (*UserActivityAnalytics, error)
+	// GetUserActivityAnalytics returns the same metrics restricted to one OIDC-linked user.
+	GetUserActivityAnalytics(ctx context.Context, userID string, now time.Time, windowDays int) (*UserActivityAnalytics, error)
 }
 
 // OrganizationStore defines persistence operations for organizations.

@@ -70,6 +70,11 @@ func (s *Server) routes() {
 
 	s.router.RequirePrivilege("POST /users", models.UsersWrite, s.createUser)
 	s.router.RequirePrivilege("GET /users", models.UsersRead, s.listUsers)
+	// Sign-in activity is a separate privilege: reading the user directory
+	// does not imply reading when each person last signed in.
+	s.router.RequirePrivilege("GET /users/activity", models.UsersActivityRead, s.listUserActivity)
+	s.router.RequirePrivilege("GET /users/activity/analytics", models.UsersActivityRead, s.getActivityAnalytics)
+	s.router.RequirePrivilege("GET /users/{id}/activity/analytics", models.UsersActivityRead, s.getSelectedUserActivityAnalytics)
 	s.router.RequirePrivilege("GET /users/{id}", models.UsersRead, s.getUser)
 	s.router.RequirePrivilege("PUT /users/{id}", models.UsersWrite, s.updateUser)
 	s.router.RequirePrivilege("PUT /users/{id}/status", models.UsersWrite, s.updateUserStatus)
@@ -170,6 +175,7 @@ func (s *Server) routes() {
 	// A caller reads their own profile; no privilege needed.
 	s.router.RequireAuth("GET /user/privileges", s.getCallerPrivileges)
 	s.router.RequireAuth("GET /me", s.getCallerProfile)
+	s.router.RequireAuth("POST /me/login-events", s.recordLoginEvent)
 	s.router.RequirePrivilege("GET /privileges/catalog", models.PrivilegesGrant, s.getPrivilegeCatalog)
 	s.router.RequirePrivilege("GET /users/{id}/privileges", models.PrivilegesGrant, s.listUserPrivileges)
 	s.router.RequirePrivilege("GET /privileges/{key}/holders", models.PrivilegesGrant, s.listPrivilegeHolders)

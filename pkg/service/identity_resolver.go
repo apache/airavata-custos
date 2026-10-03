@@ -112,7 +112,7 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 	}
 	now := time.Now()
 	if hit, ok := s.identityCache.get(claims.Sub, now); ok {
-		return hit.caller, hit.privs, nil
+		return callerWithSessionClaims(hit.caller, claims), hit.privs, nil
 	}
 	user, err := s.users.GetUserByOIDCSub(ctx, claims.Sub)
 	if err != nil {
@@ -130,7 +130,24 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 	}
 	caller := &identity.Caller{UserID: user.ID}
 	s.identityCache.set(claims.Sub, caller, privs, now)
-	return caller, privs, nil
+	return callerWithSessionClaims(caller, claims), privs, nil
+}
+
+// callerWithSessionClaims copies the cached caller and layers this request's
+// session claims on top. Those claims identify a single token, so they must
+// never be served from the cache of a previous sign-in.
+func callerWithSessionClaims(base *identity.Caller, claims *identity.Claims) *identity.Caller {
+	if base == nil {
+		return nil
+	}
+	merged := *base
+	merged.Issuer = claims.Issuer
+	merged.Subject = claims.Sub
+	merged.SessionID = claims.SessionID
+	merged.AuthTime = claims.AuthTime
+	merged.TokenID = claims.TokenID
+	merged.IssuedAt = claims.IssuedAt
+	return &merged
 }
 
 // linkBySub creates the first OIDC binding for a PENDING user matched by verified email.
