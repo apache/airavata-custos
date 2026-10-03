@@ -326,7 +326,7 @@ func TestEnsurePOSIXAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
 
 func TestStorePersonID_RepointsAStaleID(t *testing.T) {
 	core := &fakeCore{identities: []models.UserIdentity{{ID: "ui-1", Source: "comanage", ExternalID: "Person100001"}}}
-	if err := (&Orchestrator{core: core}).storePersonID(context.Background(), "user-1", "Person100002"); err != nil || core.createdIdentity == nil || core.createdIdentity.ID != "ui-1" || core.createdIdentity.ExternalID != "Person100002" {
-		t.Fatalf("err=%v written=%+v; want ui-1 repointed to Person100002", err, core.createdIdentity)
+	if err := (&Orchestrator{core: core}).storePersonID(context.Background(), "user-1", "Person100002"); err != nil || core.writtenIdentity == nil || core.writtenIdentity.ID != "ui-1" || core.writtenIdentity.ExternalID != "Person100002" {
+		t.Fatalf("err=%v written=%+v; want ui-1 repointed to Person100002", err, core.writtenIdentity)
 	}
 }

@@ -40,8 +40,7 @@ type MembershipWithUser struct {
 	DisplayName    string
 	Email          string
 	AllocationName string
-	// The member's account on the allocation's cluster; empty and nil without one.
-	LocalUsername string
+	// When the member's account on the allocation's cluster was provisioned; nil without one.
 	ProvisionedAt *time.Time
 }
 
@@ -165,7 +164,6 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 		FirstName     string     `db:"first_name"`
 		LastName      string     `db:"last_name"`
 		UserEmail     string     `db:"user_email"`
-		LocalUsername string     `db:"local_username"`
 		ProvisionedAt *time.Time `db:"provisioned_at"`
 	}
 	var rows []row
@@ -174,7 +172,7 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 		        m.membership_status,
 		        COALESCE(pm.role, 'MEMBER') AS role,
 		        u.first_name, u.last_name, u.email AS user_email,
-		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at
+		        cu.provisioned_at
 		   FROM compute_allocation_memberships m
 		   JOIN compute_allocations a    ON a.id = m.compute_allocation_id
 		   JOIN users u                  ON u.id = m.user_id
@@ -194,7 +192,6 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 			Role:                        r.Role,
 			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
 			Email:                       r.UserEmail,
-			LocalUsername:               r.LocalUsername,
 			ProvisionedAt:               r.ProvisionedAt,
 		})
 	}

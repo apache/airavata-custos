@@ -46,7 +46,7 @@ type fakeCore struct {
 	user              *models.User
 	identities        []models.UserIdentity
 	auditEvents       []models.AuditEvent
-	createdIdentity   *models.UserIdentity
+	writtenIdentity   *models.UserIdentity
 	markedProvisioned []string
 	members           []store.MembershipWithUser
 }
@@ -62,12 +62,12 @@ func (f *fakeCore) ListUserIdentitiesForUser(_ context.Context, _ string) ([]mod
 }
 
 func (f *fakeCore) CreateUserIdentity(_ context.Context, ui *models.UserIdentity) (*models.UserIdentity, error) {
-	f.createdIdentity = ui
+	f.writtenIdentity = ui
 	return ui, nil
 }
 
 func (f *fakeCore) UpdateUserIdentity(_ context.Context, ui *models.UserIdentity) error {
-	f.createdIdentity = ui
+	f.writtenIdentity = ui
 	return nil
 }
 

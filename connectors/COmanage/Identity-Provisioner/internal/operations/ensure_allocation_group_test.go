@@ -29,7 +29,7 @@ import (
 )
 
 func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) {
-	name := "proj-cis250123"
+	name := "proj-grant"
 	alloc := &models.ComputeAllocation{ID: "alloc-1", Status: models.ACTIVE, PosixGroup: &name}
 	row := func(id, person int) client.CoGroupMemberListOne {
 		return client.CoGroupMemberListOne{Id: id, CoGroupId: 55, Person: client.IdentifierParent{Type: "CO", Id: person}, Member: true}
@@ -54,7 +54,7 @@ func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) 
 			removed = append(removed, e.Details)
 		}
 	}
-	if !slices.Equal(removed, []string{"group=proj-cis250123 co_person_id=42", "group=proj-cis250123 co_person_id=7"}) {
+	if !slices.Equal(removed, []string{"group=proj-grant co_person_id=42", "group=proj-grant co_person_id=7"}) {
 		t.Fatalf("removal audits %v, want one per deleted row", removed)
 	}
 }

@@ -49,7 +49,6 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		o.auditAllocation(ctx, a, "ComanageAllocationGroupCreated", fmt.Sprintf("group=%s co_group_id=%d", *a.PosixGroup, groupID))
 	}
 
-	// The registry publishes a group on identifier and member writes, not on binding, so binding comes first.
 	binding, err := o.c.FindUnixClusterGroup(groupID)
 	if err == nil && binding == 0 {
 		_, err = o.c.CreateUnixClusterGroup(groupID)
