@@ -20,6 +20,7 @@ import { allocationsHandlers } from "./handlers/allocations";
 import { amieHandlers } from "./handlers/amie";
 import { analyticsHandlers } from "./handlers/analytics";
 import { clustersHandlers } from "./handlers/clusters";
+import { eventsHandlers } from "./handlers/events";
 import { healthzHandlers } from "./handlers/healthz";
 import { identityHandlers } from "./handlers/identity";
 import { organizationsHandlers } from "./handlers/organizations";
@@ -41,6 +42,7 @@ export const handlers: RequestHandler[] = [
   ...organizationsHandlers,
   ...allocationsHandlers,
   ...tracesHandlers,
+  ...eventsHandlers,
   ...amieHandlers,
   ...clustersHandlers,
   ...resourcesHandlers,
