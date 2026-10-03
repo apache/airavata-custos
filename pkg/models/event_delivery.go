@@ -33,7 +33,7 @@ type EventSubscription struct {
 type Event struct {
 	ID        string          `json:"id" db:"id"`
 	EventType string          `json:"event_type" db:"event_type"`
-	Payload   json.RawMessage `json:"payload" db:"payload"`
+	Payload   json.RawMessage `json:"payload" db:"payload" swaggertype:"object"`
 	Source    string          `json:"source" db:"source"` // Subsystem that published the event.
 	TraceID   string          `json:"trace_id" db:"trace_id"`
 	CreatedAt time.Time       `json:"created_at" db:"created_at"`
@@ -63,5 +63,11 @@ type EventDelivery struct {
 // PendingDelivery is a delivery joined with its event.
 type PendingDelivery struct {
 	EventDelivery
-	Event Event `db:"event"`
+	Event Event `json:"event" db:"event"`
+}
+
+// DeliveryHistory is event deliveries with its audit rows.
+type DeliveryHistory struct {
+	PendingDelivery
+	History []AuditEvent `json:"history"`
 }

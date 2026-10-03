@@ -55,6 +55,7 @@ const (
 const (
 	auditDeliverySucceeded = "EVENT_DELIVERY_SUCCEEDED"
 	auditDeliveryFailed    = "EVENT_DELIVERY_FAILED"
+	auditDeliveryRetried   = "EVENT_DELIVERY_RETRIED"
 )
 
 // Run is started once, after the connectors have loaded. It first drops the
@@ -216,8 +217,25 @@ func (b *Bus) ListDeliveries(ctx context.Context, status models.EventDeliverySta
 	return b.store.ListDeliveries(ctx, status, limit)
 }
 
+// GetDelivery returns one event delivery with its audit history.
+func (b *Bus) GetDelivery(ctx context.Context, id string) (*models.DeliveryHistory, error) {
+	row, err := b.store.FindDeliveryByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if row == nil {
+		return nil, ErrDeliveryNotFound
+	}
+	history, err := b.auditEvents.FindByEntity(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &models.DeliveryHistory{PendingDelivery: *row, History: history}, nil
+}
+
 // RetryDelivery puts a failed delivery back to pending with the attempt count reset, so the worker delivers it again.
-func (b *Bus) RetryDelivery(ctx context.Context, id string) error {
+// The audit row keeps who retried it and the attempts before the reset.
+func (b *Bus) RetryDelivery(ctx context.Context, id, actorID string) error {
 	row, err := b.store.FindDeliveryByID(ctx, id)
 	if err != nil {
 		return err
@@ -228,9 +246,37 @@ func (b *Bus) RetryDelivery(ctx context.Context, id string) error {
 	if row.Status != models.EventDeliveryFailed {
 		return ErrDeliveryNotFailed
 	}
+	now := time.Now().UTC()
 	return db.TxFn(ctx, b.db, func(tx *sql.Tx) error {
-		return b.store.ResetDeliveryToPending(ctx, tx, id, time.Now().UTC())
+		if err := b.store.ResetDeliveryToPending(ctx, tx, id, now); err != nil {
+			return err
+		}
+		return b.auditEvents.Create(ctx, tx, retryAudit(ctx, *row, actorID, now))
 	})
+}
+
+// retryAudit builds the audit row for an admin retry. The trace id is the admin's request.
+func retryAudit(ctx context.Context, row models.PendingDelivery, actorID string, now time.Time) *models.AuditEvent {
+	body, _ := json.Marshal(map[string]any{
+		"subscriber":        row.Subscriber,
+		"event_type":        row.Event.EventType,
+		"actor_id":          actorID,
+		"previous_attempts": row.Attempts,
+		"last_error":        row.LastError,
+	})
+	traceID, spanID := tracing.IDsFromContext(ctx)
+	return &models.AuditEvent{
+		ID:           uuid.NewString(),
+		EventType:    auditDeliveryRetried,
+		EventTime:    now,
+		EntityID:     row.ID,
+		EntityType:   "event_delivery",
+		Details:      string(body),
+		Source:       row.Subscriber,
+		TraceID:      traceID,
+		SpanID:       spanID,
+		ParentSpanID: tracing.ParentSpanIDFromContext(ctx),
+	}
 }
 
 // deliveryAudit builds the audit row for one event delivery attempt. The trace id is
