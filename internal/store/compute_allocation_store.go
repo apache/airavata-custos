@@ -37,7 +37,7 @@ func NewComputeAllocationStore(db *sqlx.DB) ComputeAllocationStore {
 	return &pgComputeAllocationStore{db: db}
 }
 
-const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time`
+const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time, posix_group`
 
 func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error) {
 	var a models.ComputeAllocation
@@ -75,8 +75,8 @@ func (s *pgComputeAllocationStore) FindByCluster(ctx context.Context, clusterID 
 func (s *pgComputeAllocationStore) Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocations (`+computeAllocationColumns+`)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime, a.PosixGroup)
 	return err
 }
 

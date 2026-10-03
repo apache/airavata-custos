@@ -26,6 +26,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -37,8 +38,10 @@ type CoreService interface {
 	GetUser(ctx context.Context, id string) (*models.User, error)
 	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
 	CreateUserIdentity(ctx context.Context, ui *models.UserIdentity) (*models.UserIdentity, error)
+	UpdateUserIdentity(ctx context.Context, ui *models.UserIdentity) error
 	CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
 	MarkComputeClusterUserProvisioned(ctx context.Context, id string) error
+	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
 }
 
 type Orchestrator struct {

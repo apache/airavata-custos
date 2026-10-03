@@ -219,7 +219,9 @@ func TestFindUnixClusterGroup_MatchesConfiguredCluster(t *testing.T) {
 
 func TestFindUnixClusterGroup_NoMatchReturnsZero(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[]}`)
+		_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[
+            {"Version":"1.0","Id":7,"UnixClusterId":1,"CoGroupId":25}
+        ]}`)
 	}))
 	defer srv.Close()
 

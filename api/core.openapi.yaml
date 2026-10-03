@@ -171,6 +171,9 @@ definitions:
         type: integer
       name:
         type: string
+      posix_group:
+        description: Fixed at creation; the group's name everywhere.
+        type: string
       project_id:
         type: string
       start_time:

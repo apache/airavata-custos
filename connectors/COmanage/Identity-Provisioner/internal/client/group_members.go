@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 )
 
 type CoGroupMemberCreateRequest struct {
@@ -137,5 +138,28 @@ func (c *Client) DeleteCoGroupMember(id int) error {
 		return ErrNotFound
 	default:
 		return &HTTPError{Method: "DELETE", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
+	}
+}
+
+// ListCoGroupMembers returns every membership row of a group.
+func (c *Client) ListCoGroupMembers(coGroupId int) ([]CoGroupMemberListOne, error) {
+	u := c.restAPI(fmt.Sprintf("/co_group_members.json?cogroupid=%d", coGroupId))
+	resp, respBody, err := c.Do(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var out CoGroupMemberListResponse
+		if err := json.Unmarshal(respBody, &out); err != nil {
+			return nil, fmt.Errorf("decode co_group_members list: %w", err)
+		}
+		return slices.DeleteFunc(out.CoGroupMembers, func(m CoGroupMemberListOne) bool { return m.CoGroupId != coGroupId }), nil
+	case http.StatusNoContent:
+		return nil, nil
+	case http.StatusUnauthorized:
+		return nil, ErrAuth401
+	default:
+		return nil, &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 }

@@ -25,9 +25,11 @@ CREATE TABLE IF NOT EXISTS compute_allocations
     initial_su_amount  BIGINT       NOT NULL DEFAULT 0,
     start_time         TIMESTAMPTZ(6) NOT NULL,
     end_time           TIMESTAMPTZ(6) NOT NULL,
+    posix_group        VARCHAR(32)  NULL,
     created_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
+    CONSTRAINT uq_compute_allocations_cluster_posix_group UNIQUE (compute_cluster_id, posix_group),
     CONSTRAINT fk_compute_allocations_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE RESTRICT,
     CONSTRAINT fk_compute_allocations_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE RESTRICT
 );

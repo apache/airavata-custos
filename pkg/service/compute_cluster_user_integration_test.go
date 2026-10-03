@@ -23,12 +23,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
@@ -279,5 +282,85 @@ func TestOnboardUser_ClusterAccountIsApproved(t *testing.T) {
 	}
 	if n := countDeliveries(t, svc); n != 1 {
 		t.Fatalf("expected one delivery of the approve event, got %d", n)
+	}
+}
+
+func TestListMembersForAllocation_CarriesTheClusterAccount(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
+	project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive, OriginatedID: uuid.NewString()})
+	if err != nil {
+		t.Fatalf("create project: %v", err)
+	}
+	alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
+		Name: "Grant", ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
+	})
+	if err != nil {
+		t.Fatalf("create allocation: %v", err)
+	}
+
+	// account: "" none, "p" provisioned, "u" unprovisioned
+	member := func(account string) string {
+		userID := seedUser(t, database, fmt.Sprintf("m-%s@example.edu", uuid.NewString()))
+		if account != "" {
+			cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: userID, LocalUsername: "m-" + uuid.NewString()[:8]})
+			if err == nil && account == "p" {
+				err = svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID)
+			}
+			if err != nil {
+				t.Fatalf("seed account: %v", err)
+			}
+		}
+		if _, err := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: alloc.ID, UserID: userID, MembershipStatus: models.ACTIVE}); err != nil {
+			t.Fatalf("seed membership: %v", err)
+		}
+		return userID
+	}
+	want := map[string]bool{member("p"): true, member("u"): false, member(""): false}
+
+	rows, err := svc.ListMembersForAllocation(ctx(), alloc.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range rows {
+		if provisioned, ok := want[r.UserID]; ok && (r.ProvisionedAt != nil) != provisioned {
+			t.Errorf("member %s: provisioned %v, want %v", r.UserID, r.ProvisionedAt != nil, provisioned)
+		}
+	}
+}
+
+func TestCreateComputeAllocation_SuffixesACollidingPosixGroup(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
+	grant := uuid.NewString()[:8]
+	var groups []string
+	for _, originated := range []string{"CIS-" + grant, "cis" + grant, "CIS" + grant, ""} {
+		project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive, OriginatedID: originated})
+		if err != nil {
+			t.Fatalf("create project: %v", err)
+		}
+		alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
+			Name: "Grant", ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
+		})
+		if err != nil {
+			t.Fatalf("create allocation for %q: %v", originated, err)
+		}
+		groups = append(groups, *alloc.PosixGroup)
+		if originated == "" && groups[3] != ("proj-" + posix.Normalize(project.ID))[:posix.MaxLoginLen] {
+			t.Fatalf("group %s, want one named after project id %s", groups[3], project.ID)
+		}
+	}
+	if want := "proj-cis" + grant; !slices.Equal(groups[:3], []string{want, want + "-2", want + "-3"}) {
+		t.Fatalf("groups %v, want %s, -2, -3", groups, want)
 	}
 }

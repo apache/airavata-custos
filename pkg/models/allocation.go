@@ -73,6 +73,8 @@ type ComputeAllocation struct {
 	InitialSUAmount  int64            `json:"initial_su_amount"  db:"initial_su_amount"`  // SUs allocated at the time of allocation creation.
 	StartTime        time.Time        `json:"start_time"         db:"start_time"`
 	EndTime          time.Time        `json:"end_time"           db:"end_time"`
+
+	PosixGroup *string `json:"posix_group" db:"posix_group"` // Fixed at creation; the group's name everywhere.
 }
 
 // Typically store the a paritition information

@@ -18,13 +18,16 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 // ListComputeAllocations returns a paginated, filterable slice of compute
@@ -74,7 +77,8 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		alloc.Status = models.ACTIVE
 	}
 
-	if proj, err := s.projs.FindByID(ctx, alloc.ProjectID); err != nil {
+	proj, err := s.projs.FindByID(ctx, alloc.ProjectID)
+	if err != nil {
 		return nil, fmt.Errorf("lookup project: %w", err)
 	} else if proj == nil {
 		return nil, fmt.Errorf("%w: project %q not found", ErrInvalidInput, alloc.ProjectID)
@@ -85,6 +89,27 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 	} else if cluster == nil {
 		return nil, fmt.Errorf("%w: compute cluster %q not found", ErrInvalidInput, alloc.ComputeClusterID)
 	}
+
+	// Named after the project, remains same through renewals.
+	name := cmp.Or(posix.Normalize(proj.OriginatedID), posix.Normalize(proj.ID))
+	siblings, err := s.allocs.FindByCluster(ctx, alloc.ComputeClusterID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup cluster allocations: %w", err)
+	}
+	taken := map[string]bool{}
+	for _, a := range siblings {
+		if a.PosixGroup != nil {
+			taken[*a.PosixGroup] = true
+		}
+	}
+	// Normalized names never contain "-", so a "-N" suffix cannot meet another allocation's base name.
+	base := "proj-" + name
+	group := base[:min(len(base), posix.MaxLoginLen)]
+	for n := 2; taken[group]; n++ {
+		suffix := "-" + strconv.Itoa(n)
+		group = base[:min(len(base), posix.MaxLoginLen-len(suffix))] + suffix
+	}
+	alloc.PosixGroup = &group
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.allocs.Create(ctx, tx, alloc); err != nil {
