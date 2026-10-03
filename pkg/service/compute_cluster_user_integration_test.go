@@ -31,6 +31,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
@@ -341,21 +342,25 @@ func TestCreateComputeAllocation_SuffixesACollidingPosixGroup(t *testing.T) {
 		t.Fatalf("create cluster: %v", err)
 	}
 	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
-	project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive, OriginatedID: uuid.NewString()})
-	if err != nil {
-		t.Fatalf("create project: %v", err)
-	}
+	grant := uuid.NewString()[:8]
 	var groups []string
-	for _, name := range []string{"Grant", "grant!", "GRANT"} {
+	for _, originated := range []string{"CIS-" + grant, "cis" + grant, "CIS" + grant, ""} {
+		project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive, OriginatedID: originated})
+		if err != nil {
+			t.Fatalf("create project: %v", err)
+		}
 		alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
-			Name: name, ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
+			Name: "Grant", ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
 		})
 		if err != nil {
-			t.Fatalf("create allocation %q: %v", name, err)
+			t.Fatalf("create allocation for %q: %v", originated, err)
 		}
 		groups = append(groups, *alloc.PosixGroup)
+		if originated == "" && groups[3] != ("proj-" + posix.Normalize(project.ID))[:posix.MaxLoginLen] {
+			t.Fatalf("group %s, want one named after project id %s", groups[3], project.ID)
+		}
 	}
-	if !slices.Equal(groups, []string{"proj-grant", "proj-grant-2", "proj-grant-3"}) {
-		t.Fatalf("groups %v, want proj-grant, proj-grant-2, proj-grant-3", groups)
+	if want := "proj-cis" + grant; !slices.Equal(groups[:3], []string{want, want + "-2", want + "-3"}) {
+		t.Fatalf("groups %v, want %s, -2, -3", groups, want)
 	}
 }

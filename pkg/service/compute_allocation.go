@@ -18,6 +18,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -76,7 +77,8 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		alloc.Status = models.ACTIVE
 	}
 
-	if proj, err := s.projs.FindByID(ctx, alloc.ProjectID); err != nil {
+	proj, err := s.projs.FindByID(ctx, alloc.ProjectID)
+	if err != nil {
 		return nil, fmt.Errorf("lookup project: %w", err)
 	} else if proj == nil {
 		return nil, fmt.Errorf("%w: project %q not found", ErrInvalidInput, alloc.ProjectID)
@@ -88,10 +90,8 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		return nil, fmt.Errorf("%w: compute cluster %q not found", ErrInvalidInput, alloc.ComputeClusterID)
 	}
 
-	name := posix.Normalize(alloc.Name)
-	if name == "" {
-		return nil, fmt.Errorf("%w: allocation name %q has no letters or digits", ErrInvalidInput, alloc.Name)
-	}
+	// Named after the project, remains same through renewals.
+	name := cmp.Or(posix.Normalize(proj.OriginatedID), posix.Normalize(proj.ID))
 	siblings, err := s.allocs.FindByCluster(ctx, alloc.ComputeClusterID)
 	if err != nil {
 		return nil, fmt.Errorf("lookup cluster allocations: %w", err)
