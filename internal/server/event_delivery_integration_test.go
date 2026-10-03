@@ -96,7 +96,73 @@ func TestRetryFailedDeliveryDeliversItAgain(t *testing.T) {
 	}
 }
 
-// Make sure only a failed delivery can be retried.
+// getDelivery calls GET /events/deliveries/{id} as a caller who can read traces.
+func getDelivery(t *testing.T, srv http.Handler, id string) *httptest.ResponseRecorder {
+	t.Helper()
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/events/deliveries/"+id, nil), "u-1", models.TracesRead))
+	return rr
+}
+
+// Make sure a delivery's history lists the failed attempt, the admin retry with who did it, and the next attempt, in that order.
+func TestDeliveryHistoryShowsAttemptsAndTheAdminRetryInOrder(t *testing.T) {
+	_, svc, srv := setupTestStack(t)
+	bus := svc.EventBus()
+	failed := failDelivery(t, svc, bus)
+
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodPost, "/events/deliveries/"+failed.ID+"/retry", nil), "u-1", models.EventsManage))
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("retry status: got %d, want 204: %s", rr.Code, rr.Body.String())
+	}
+	runWorkerUntil(t, bus, models.EventDeliverySucceeded)
+
+	rr = getDelivery(t, srv, failed.ID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	var body struct {
+		Event struct {
+			EventType string `json:"event_type"`
+		} `json:"event"`
+		History []models.AuditEvent `json:"history"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Event.EventType != string(events.OrganizationCreateEvent) {
+		t.Errorf("event type: got %q, want %q", body.Event.EventType, events.OrganizationCreateEvent)
+	}
+	var order []string
+	for _, a := range body.History {
+		order = append(order, a.EventType)
+	}
+	want := []string{"EVENT_DELIVERY_FAILED", "EVENT_DELIVERY_RETRIED", "EVENT_DELIVERY_SUCCEEDED"}
+	if fmt.Sprint(order) != fmt.Sprint(want) {
+		t.Fatalf("history: got %v, want %v", order, want)
+	}
+	var retry struct {
+		ActorID          string `json:"actor_id"`
+		PreviousAttempts int    `json:"previous_attempts"`
+		LastError        string `json:"last_error"`
+	}
+	if err := json.Unmarshal([]byte(body.History[1].Details), &retry); err != nil {
+		t.Fatalf("decode retry details: %v", err)
+	}
+	if retry.ActorID != "u-1" || retry.PreviousAttempts != 1 || retry.LastError == "" {
+		t.Errorf("retry details: got %+v, want actor u-1, 1 previous attempt and the last error", retry)
+	}
+}
+
+// Make sure an unknown delivery id returns 404.
+func TestGetDeliveryUnknownIDIsNotFound(t *testing.T) {
+	_, _, srv := setupTestStack(t)
+	if rr := getDelivery(t, srv, "no-such-delivery"); rr.Code != http.StatusNotFound {
+		t.Fatalf("status: got %d, want 404", rr.Code)
+	}
+}
+
+// Make sure only a failed delivery can be retried, and a refused retry leaves no audit row.
 func TestRetryRefusesDeliveryThatHasNotFailed(t *testing.T) {
 	_, svc, srv := setupTestStack(t)
 	bus := svc.EventBus()
@@ -111,6 +177,15 @@ func TestRetryRefusesDeliveryThatHasNotFailed(t *testing.T) {
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusConflict {
 		t.Fatalf("status: got %d, want 409", rr.Code)
+	}
+	history, err := bus.GetDelivery(context.Background(), done.ID)
+	if err != nil {
+		t.Fatalf("get delivery: %v", err)
+	}
+	for _, a := range history.History {
+		if a.EventType == "EVENT_DELIVERY_RETRIED" {
+			t.Fatalf("refused retry wrote an audit row: %+v", a)
+		}
 	}
 }
 

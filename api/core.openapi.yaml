@@ -40,6 +40,38 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
+  AuditEvent:
+    properties:
+      details:
+        description: Additional details about the event, stored as a JSON string or
+          plain text.
+        type: string
+      entity_id:
+        description: ID of the entity the event is about.
+        type: string
+      entity_type:
+        description: Kind of the entity ("user", "role", "compute_cluster_user", "packet",
+          etc.).
+        type: string
+      event_time:
+        type: string
+      event_type:
+        description: e.g., "COMPUTE_ALLOCATION_CREATED", "COMPUTE_ALLOCATION_UPDATED",
+          "COMPUTE_ALLOCATION_DELETED", etc.
+        type: string
+      id:
+        type: string
+      parent_span_id:
+        type: string
+      source:
+        description: Subsystem that produced the event (e.g., "amie", "comanage",
+          "slurm", "core", etc.).
+        type: string
+      span_id:
+        type: string
+      trace_id:
+        type: string
+    type: object
   CallerProfileResponse:
     properties:
       privileges:
@@ -410,6 +442,33 @@ definitions:
       user_id:
         type: string
     type: object
+  DeliveryHistory:
+    properties:
+      attempts:
+        type: integer
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/Event'
+      event_id:
+        type: string
+      finished_at:
+        type: string
+      history:
+        items:
+          $ref: '#/definitions/AuditEvent'
+        type: array
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   Event:
     properties:
       created_at:
@@ -419,9 +478,7 @@ definitions:
       id:
         type: string
       payload:
-        items:
-          type: integer
-        type: array
+        type: object
       source:
         description: Subsystem that published the event.
         type: string
@@ -3079,10 +3136,39 @@ paths:
       summary: List event deliveries
       tags:
       - Events
+  /events/deliveries/{id}:
+    get:
+      description: Returns the delivery with its event and its history. The history
+        lists each delivery attempt and each admin retry, the oldest first.
+      parameters:
+      - description: Delivery id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/DeliveryHistory'
+        "404":
+          description: Delivery not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an event delivery
+      tags:
+      - Events
   /events/deliveries/{id}/retry:
     post:
-      description: Makes the delivery due again with a fresh attempt count. The worker
-        picks it up on its next pass.
+      description: Makes the delivery due again with a fresh attempt count and records
+        who retried it. The worker picks it up on its next pass.
       parameters:
       - description: Delivery id
         in: path

@@ -63,8 +63,29 @@ func (s *Server) listEventDeliveries(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, map[string]any{"items": rows})
 }
 
+// @Summary	Get an event delivery
+// @Description	Returns the delivery with its event and its history. The history lists each delivery attempt and each admin retry, the oldest first.
+// @Tags	Events
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Delivery id"
+// @Success	200	{object}	models.DeliveryHistory
+// @Failure	404	{object}	object{error=string}	"Delivery not found"
+// @Router	/events/deliveries/{id} [get]
+func (s *Server) getEventDelivery(w http.ResponseWriter, r *http.Request) {
+	delivery, err := s.svc.EventBus().GetDelivery(r.Context(), r.PathValue("id"))
+	switch {
+	case err == nil:
+		common.WriteJSON(w, http.StatusOK, delivery)
+	case errors.Is(err, events.ErrDeliveryNotFound):
+		common.WriteError(w, http.StatusNotFound, err)
+	default:
+		common.WriteServiceError(w, err)
+	}
+}
+
 // @Summary	Retry a failed event delivery
-// @Description	Makes the delivery due again with a fresh attempt count. The worker picks it up on its next pass.
+// @Description	Makes the delivery due again with a fresh attempt count and records who retried it. The worker picks it up on its next pass.
 // @Tags	Events
 // @Security	BearerAuth
 // @Produce	json
@@ -74,7 +95,11 @@ func (s *Server) listEventDeliveries(w http.ResponseWriter, r *http.Request) {
 // @Failure	409	{object}	object{error=string}	"Delivery has not failed"
 // @Router	/events/deliveries/{id}/retry [post]
 func (s *Server) retryEventDelivery(w http.ResponseWriter, r *http.Request) {
-	err := s.svc.EventBus().RetryDelivery(r.Context(), r.PathValue("id"))
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	err := s.svc.EventBus().RetryDelivery(r.Context(), r.PathValue("id"), caller.UserID)
 	switch {
 	case err == nil:
 		w.WriteHeader(http.StatusNoContent)
