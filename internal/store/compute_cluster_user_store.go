@@ -176,19 +176,6 @@ func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql
 	return err
 }
 
-func (s *pgComputeClusterUserStore) FindGroupMembers(ctx context.Context, allocationID string) ([]models.ComputeClusterUser, error) {
-	var users []models.ComputeClusterUser
-	err := s.db.SelectContext(ctx, &users,
-		`SELECT `+computeClusterUserColumns+`
-           FROM compute_cluster_users cu
-          WHERE provisioned_at IS NOT NULL
-            AND EXISTS (SELECT 1 FROM compute_allocations a
-                          JOIN compute_allocation_memberships m ON m.compute_allocation_id = a.id
-                         WHERE a.id = $1 AND a.compute_cluster_id = cu.compute_cluster_id AND m.user_id = cu.user_id
-                           AND a.status = 'ACTIVE' AND m.membership_status = 'ACTIVE')`, allocationID)
-	return users, err
-}
-
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM compute_cluster_users

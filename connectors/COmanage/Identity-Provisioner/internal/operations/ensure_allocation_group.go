@@ -19,6 +19,7 @@ package operations
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -29,7 +30,7 @@ import (
 const allocationGIDBase = 3_000_000
 
 // EnsureAllocationGroup gives an active allocation its CoGroup and makes it
-// hold exactly the allocation's group members.
+// hold exactly its active members with a provisioned cluster account.
 func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
 	if a.PosixGroup == nil {
 		return nil
@@ -45,6 +46,7 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		if groupID, err = o.c.CreateCoGroup(*a.PosixGroup, "Custos allocation "+a.ID); err != nil {
 			return err
 		}
+		o.auditAllocation(ctx, a, "ComanageAllocationGroupCreated", fmt.Sprintf("group=%s co_group_id=%d", *a.PosixGroup, groupID))
 	}
 
 	// The registry publishes a group on identifier and member writes, not on binding, so binding comes first.
@@ -65,12 +67,15 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		}
 	}
 
-	members, err := o.core.ListGroupMembersForAllocation(ctx, a.ID)
+	members, err := o.core.ListMembersForAllocation(ctx, a.ID)
 	if err != nil {
 		return err
 	}
 	want := map[int]bool{}
 	for _, m := range members {
+		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
+			continue
+		}
 		_, composite, err := o.findCoPerson(ctx, &models.User{ID: m.UserID})
 		if err != nil {
 			return err
@@ -86,14 +91,22 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 	for _, row := range rows {
 		if row.Member && want[row.Person.Id] {
 			delete(want, row.Person.Id)
-		} else if err := ignoreNotFound(o.c.DeleteCoGroupMember(row.Id)); err != nil {
+			continue
+		}
+		if err := ignoreNotFound(o.c.DeleteCoGroupMember(row.Id)); err != nil {
 			return err
 		}
+		o.auditAllocation(ctx, a, "ComanageAllocationGroupMemberRemoved", fmt.Sprintf("group=%s co_person_id=%d", *a.PosixGroup, row.Person.Id))
 	}
 	for id := range want {
 		if _, err := o.c.CreateCoGroupMember(id, groupID); err != nil {
 			return err
 		}
+		o.auditAllocation(ctx, a, "ComanageAllocationGroupMemberAdded", fmt.Sprintf("group=%s co_person_id=%d", *a.PosixGroup, id))
 	}
 	return nil
+}
+
+func (o *Orchestrator) auditAllocation(ctx context.Context, a *models.ComputeAllocation, eventType, details string) {
+	_, _ = o.core.CreateAuditEvent(ctx, &models.AuditEvent{EventType: eventType, EntityID: a.ID, EntityType: "compute_allocation", Details: details})
 }

@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -283,7 +284,7 @@ func TestOnboardUser_ClusterAccountIsApproved(t *testing.T) {
 	}
 }
 
-func TestListGroupMembersForAllocation_OnlyProvisionedActiveMembers(t *testing.T) {
+func TestListMembersForAllocation_CarriesTheClusterAccount(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})
@@ -302,26 +303,66 @@ func TestListGroupMembersForAllocation_OnlyProvisionedActiveMembers(t *testing.T
 		t.Fatalf("create allocation: %v", err)
 	}
 
-	member := func(provision bool, status models.AllocationStatus) string {
+	// account: "" none, "p" provisioned, "u" unprovisioned
+	member := func(account string) string {
 		userID := seedUser(t, database, fmt.Sprintf("m-%s@example.edu", uuid.NewString()))
-		cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: userID, LocalUsername: "m-" + uuid.NewString()[:8]})
-		if err == nil && provision {
-			err = svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID)
+		if account != "" {
+			cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: userID, LocalUsername: "m-" + uuid.NewString()[:8]})
+			if err == nil && account == "p" {
+				err = svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID)
+			}
+			if err != nil {
+				t.Fatalf("seed account: %v", err)
+			}
 		}
-		if err == nil {
-			_, err = svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: alloc.ID, UserID: userID, MembershipStatus: status})
+		if _, err := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: alloc.ID, UserID: userID, MembershipStatus: models.ACTIVE}); err != nil {
+			t.Fatalf("seed membership: %v", err)
 		}
-		if err != nil {
-			t.Fatalf("seed member: %v", err)
-		}
-		return cu.LocalUsername
+		return userID
 	}
-	want := member(true, models.ACTIVE)
-	member(false, models.ACTIVE)
-	member(true, models.INACTIVE)
+	want := map[string]string{member("p"): "p", member("u"): "u", member(""): ""}
 
-	got, err := svc.ListGroupMembersForAllocation(ctx(), alloc.ID)
-	if err != nil || len(got) != 1 || got[0].LocalUsername != want {
-		t.Fatalf("expected only %s, got %+v (%v)", want, got, err)
+	rows, err := svc.ListMembersForAllocation(ctx(), alloc.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range rows {
+		got := ""
+		if r.LocalUsername != "" {
+			got = "u"
+		}
+		if r.ProvisionedAt != nil {
+			got = "p"
+		}
+		if acct, ok := want[r.UserID]; ok && got != acct {
+			t.Errorf("member %s: account %q, want %q", r.UserID, got, acct)
+		}
+	}
+}
+
+func TestCreateComputeAllocation_SuffixesACollidingPosixGroup(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
+	project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive, OriginatedID: uuid.NewString()})
+	if err != nil {
+		t.Fatalf("create project: %v", err)
+	}
+	var groups []string
+	for _, name := range []string{"Grant", "grant!", "GRANT"} {
+		alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
+			Name: name, ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
+		})
+		if err != nil {
+			t.Fatalf("create allocation %q: %v", name, err)
+		}
+		groups = append(groups, *alloc.PosixGroup)
+	}
+	if !slices.Equal(groups, []string{"proj-grant", "proj-grant-2", "proj-grant-3"}) {
+		t.Fatalf("groups %v, want proj-grant, proj-grant-2, proj-grant-3", groups)
 	}
 }

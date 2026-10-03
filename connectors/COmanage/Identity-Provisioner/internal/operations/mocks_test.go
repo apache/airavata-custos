@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -47,7 +48,7 @@ type fakeCore struct {
 	auditEvents       []models.AuditEvent
 	createdIdentity   *models.UserIdentity
 	markedProvisioned []string
-	groupMembers      []models.ComputeClusterUser
+	members           []store.MembershipWithUser
 }
 
 func (f *fakeCore) GetUser(_ context.Context, _ string) (*models.User, error) {
@@ -75,8 +76,8 @@ func (f *fakeCore) MarkComputeClusterUserProvisioned(_ context.Context, id strin
 	return nil
 }
 
-func (f *fakeCore) ListGroupMembersForAllocation(_ context.Context, _ string) ([]models.ComputeClusterUser, error) {
-	return f.groupMembers, nil
+func (f *fakeCore) ListMembersForAllocation(_ context.Context, _ string) ([]store.MembershipWithUser, error) {
+	return f.members, nil
 }
 
 func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {

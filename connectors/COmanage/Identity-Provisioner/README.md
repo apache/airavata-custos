@@ -78,12 +78,17 @@ members; deleting the allocation deletes the group.
 ## Audit events
 
 The connector emits the following `audit_events.event_type` values via the
-core service. `audit_events.entity_id` is always the `compute_cluster_users.id`.
+core service. `audit_events.entity_id` is the `compute_cluster_users.id`, or the
+`compute_allocations.id` for the `ComanageAllocationGroup*` events.
 
 | Event type | When |
 |------------|------|
 | `ComanageCoPersonCreated` | A new CoPerson was POSTed in step 1. Lookups that resolved to an existing CoPerson do not fire this. |
 | `ComanageClusterAccountAttached` | The sequence completed and the user has a UnixClusterAccount block on the configured UnixCluster. |
+| `ComanageAllocationGroupCreated` | An active allocation's CoGroup was created. |
+| `ComanageAllocationGroupMemberAdded` | A provisioned, active member was added to the allocation's CoGroup. |
+| `ComanageAllocationGroupMemberRemoved` | A membership row the allocation no longer calls for was removed from its CoGroup. |
+| `ComanageAllocationGroupDeleted` | A deleted allocation's CoGroup was unbound and deleted. |
 | `ComanageProvisioningFailed` | Any step returned an error. The `details` field carries `step=<name> err=<message>` so the dead-letter is tractable from the audit log alone. |
 
 The AMIE-Processor side of this flow also emits:

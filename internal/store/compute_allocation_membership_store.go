@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -39,6 +40,9 @@ type MembershipWithUser struct {
 	DisplayName    string
 	Email          string
 	AllocationName string
+	// The member's account on the allocation's cluster; empty and nil without one.
+	LocalUsername string
+	ProvisionedAt *time.Time
 }
 
 type pgComputeAllocationMembershipStore struct {
@@ -157,22 +161,27 @@ func (s *pgComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql
 func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
 	type row struct {
 		models.ComputeAllocationMembership
-		Role      string `db:"role"`
-		FirstName string `db:"first_name"`
-		LastName  string `db:"last_name"`
-		UserEmail string `db:"user_email"`
+		Role          string     `db:"role"`
+		FirstName     string     `db:"first_name"`
+		LastName      string     `db:"last_name"`
+		UserEmail     string     `db:"user_email"`
+		LocalUsername string     `db:"local_username"`
+		ProvisionedAt *time.Time `db:"provisioned_at"`
 	}
 	var rows []row
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
 		        m.membership_status,
 		        COALESCE(pm.role, 'MEMBER') AS role,
-		        u.first_name, u.last_name, u.email AS user_email
+		        u.first_name, u.last_name, u.email AS user_email,
+		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at
 		   FROM compute_allocation_memberships m
 		   JOIN compute_allocations a    ON a.id = m.compute_allocation_id
 		   JOIN users u                  ON u.id = m.user_id
 		   LEFT JOIN project_memberships pm
 		         ON pm.project_id = a.project_id AND pm.user_id = m.user_id
+		   LEFT JOIN compute_cluster_users cu
+		         ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
 		  WHERE m.compute_allocation_id = $1
 		  ORDER BY m.start_time`, allocationID)
 	if err != nil {
@@ -185,6 +194,8 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 			Role:                        r.Role,
 			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
 			Email:                       r.UserEmail,
+			LocalUsername:               r.LocalUsername,
+			ProvisionedAt:               r.ProvisionedAt,
 		})
 	}
 	return out, nil

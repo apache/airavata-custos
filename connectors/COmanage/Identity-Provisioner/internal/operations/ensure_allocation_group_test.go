@@ -21,8 +21,10 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -36,11 +38,23 @@ func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) 
 	srv := mockComanageServer(t, &reg)
 	defer srv.Close()
 	core := adminCore()
-	core.groupMembers = []models.ComputeClusterUser{{ID: "ccu-1", UserID: "user-1"}}
+	provisioned := time.Now()
+	core.members = []store.MembershipWithUser{
+		{ComputeAllocationMembership: models.ComputeAllocationMembership{UserID: "user-1", MembershipStatus: models.ACTIVE}, ProvisionedAt: &provisioned},
+	}
 	if err := newOrchestratorForTest(t, srv, core, "").EnsureAllocationGroup(context.Background(), alloc); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 	if !slices.Equal(reg.deleted, []string{"/co_group_members/10.json", "/co_group_members/11.json"}) || len(reg.posted) != 0 {
 		t.Fatalf("deleted %v, posted %v; want rows 10 and 11 deleted, nothing posted", reg.deleted, reg.posted)
+	}
+	var removed []string
+	for _, e := range core.auditEvents {
+		if e.EventType == "ComanageAllocationGroupMemberRemoved" && e.EntityID == "alloc-1" {
+			removed = append(removed, e.Details)
+		}
+	}
+	if !slices.Equal(removed, []string{"group=proj-cis250123 co_person_id=42", "group=proj-cis250123 co_person_id=7"}) {
+		t.Fatalf("removal audits %v, want one per deleted row", removed)
 	}
 }
