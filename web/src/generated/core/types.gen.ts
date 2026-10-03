@@ -601,6 +601,19 @@ export type UserStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'MERG
 
 export type UserType = 'CLUSTER_LOCAL' | 'VIRTUAL' | 'SYSTEM';
 
+export type AllocationMembershipRequest = {
+    compute_allocation_id?: string;
+    end_time?: string;
+    id?: string;
+    /**
+     * ACTIVE, INACTIVE, etc.
+     */
+    membership_status?: AllocationStatus;
+    role?: string;
+    start_time?: string;
+    user_id?: string;
+};
+
 export type AttachResourceRequest = {
     compute_allocation_resource_id?: string;
     resource_amount?: number;
@@ -1389,7 +1402,7 @@ export type PostComputeAllocationMembershipsData = {
     /**
      * Membership payload
      */
-    body: ComputeAllocationMembership;
+    body: AllocationMembershipRequest;
     path?: never;
     query?: never;
     url: '/compute-allocation-memberships';
@@ -1481,7 +1494,7 @@ export type PutComputeAllocationMembershipsByIdData = {
     /**
      * Membership payload
      */
-    body: ComputeAllocationMembership;
+    body: AllocationMembershipRequest;
     path: {
         /**
          * Membership ID

@@ -20,6 +20,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/url"
@@ -75,6 +76,11 @@ func (c *Client) UpsertAssociation(a Association) error {
 	if err != nil {
 		log.Printf("Failed to upsert association: %v", err)
 		return err
+	}
+	if a.User != "" {
+		if err := c.ensureUser(a.User, a.Account); err != nil {
+			return fmt.Errorf("ensure user %s: %w", a.User, err)
+		}
 	}
 
 	filter := AssocFilter{
@@ -135,6 +141,25 @@ func tresSliceEqualUnordered(a, b []TRES) bool {
 		}
 	}
 	return true
+}
+
+// ensureUser creates a missing user record defaulting to account, which writing
+// an association does not, and without which Slurm cannot later remove it.
+func (c *Client) ensureUser(name, account string) error {
+	var out struct {
+		Users []struct {
+			Name string `json:"name"`
+		} `json:"users"`
+	}
+	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/user/"+url.PathEscape(name), nil, &out); err != nil {
+		return err
+	}
+	if len(out.Users) > 0 {
+		return nil
+	}
+	body := map[string]any{"users": []map[string]any{{"name": name, "default": map[string]any{"account": account}}}}
+	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users", body, nil)
+	return err
 }
 
 func (c *Client) DeleteAssociation(f AssocFilter) error {

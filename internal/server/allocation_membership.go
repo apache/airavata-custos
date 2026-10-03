@@ -24,22 +24,30 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+type allocationMembershipRequest struct {
+	models.ComputeAllocationMembership
+	Role string `json:"role,omitempty"`
+}
+
 // @Summary	Create a compute allocation membership
 // @Tags	Compute Allocation Memberships
 // @Security	BearerAuth
 // @Accept	json
 // @Produce	json
-// @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload"
+// @Param	request	body	allocationMembershipRequest	true	"Membership payload"
 // @Success	201	{object}	models.ComputeAllocationMembership
 // @Failure	400	{object}	object{error=string}
 // @Router	/compute-allocation-memberships [post]
 func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
-	var m models.ComputeAllocationMembership
-	if err := common.DecodeJSON(r, &m); err != nil {
+	var req allocationMembershipRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	created, err := s.svc.CreateComputeAllocationMembership(r.Context(), &m)
+	created, err := s.svc.CreateComputeAllocationMembership(r.Context(), &req.ComputeAllocationMembership)
+	if err == nil && req.Role != "" {
+		err = s.svc.SetAllocationMemberRole(r.Context(), created.ComputeAllocationID, created.UserID, req.Role)
+	}
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -70,19 +78,22 @@ func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.R
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Membership ID"
-// @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload"
+// @Param	request	body	allocationMembershipRequest	true	"Membership payload"
 // @Success	200	{object}	models.ComputeAllocationMembership
 // @Failure	400	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocation-memberships/{id} [put]
 func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
-	var m models.ComputeAllocationMembership
-	if err := common.DecodeJSON(r, &m); err != nil {
+	var req allocationMembershipRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	m.ID = r.PathValue("id")
-	updated, err := s.svc.UpdateComputeAllocationMembership(r.Context(), &m)
+	req.ID = r.PathValue("id")
+	updated, err := s.svc.UpdateComputeAllocationMembership(r.Context(), &req.ComputeAllocationMembership)
+	if err == nil && req.Role != "" {
+		err = s.svc.SetAllocationMemberRole(r.Context(), updated.ComputeAllocationID, updated.UserID, req.Role)
+	}
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

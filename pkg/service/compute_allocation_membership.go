@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -222,13 +223,39 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 	if existing == nil {
 		return ErrNotFound
 	}
+	projectID, drop, err := s.orphanedManagerRole(ctx, existing)
+	if err != nil {
+		return err
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {
 			return err
+		}
+		if drop {
+			if err := s.projMemberships.Delete(ctx, tx, projectID, existing.UserID); err != nil {
+				return err
+			}
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation membership: %w", err)
 	}
 	return nil
+}
+
+// orphanedManagerRole reports whether deleting m leaves its holder an
+// ALLOCATION_MANAGER, a project-wide role, with no membership in the project.
+func (s *Service) orphanedManagerRole(ctx context.Context, m *models.ComputeAllocationMembership) (string, bool, error) {
+	alloc, err := s.GetComputeAllocation(ctx, m.ComputeAllocationID)
+	if err != nil {
+		return "", false, err
+	}
+	role, err := s.ProjectRoleForUser(ctx, alloc.ProjectID, m.UserID)
+	if err != nil || role != models.ProjectRoleAllocationManager {
+		return "", false, err
+	}
+	rest, err := s.ListMembersForProject(ctx, alloc.ProjectID)
+	return alloc.ProjectID, err == nil && !slices.ContainsFunc(rest, func(r store.MembershipWithUser) bool {
+		return r.UserID == m.UserID && r.ID != m.ID
+	}), err
 }

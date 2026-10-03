@@ -102,6 +102,24 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 	})
 }
 
+// SetAllocationMemberRole sets a member's role on the allocation's project,
+// where roles live. PI and CO_PI arrive from upstream: they are not assignable,
+// and a member holding one keeps it.
+func (s *Service) SetAllocationMemberRole(ctx context.Context, allocationID, userID, role string) error {
+	if role != "MEMBER" && role != string(models.ProjectRoleAllocationManager) {
+		return fmt.Errorf("%w: role %q is not assignable", ErrInvalidInput, role)
+	}
+	alloc, err := s.GetComputeAllocation(ctx, allocationID)
+	if err != nil {
+		return err
+	}
+	current, err := s.ProjectRoleForUser(ctx, alloc.ProjectID, userID)
+	if err != nil || current == models.ProjectRolePI || current == models.ProjectRoleCoPI {
+		return err
+	}
+	return s.EnsureProjectMembership(ctx, alloc.ProjectID, userID, role)
+}
+
 // ProjectRoleForUser returns the user's governance role on a project, or an
 // empty role when they hold none.
 func (s *Service) ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error) {

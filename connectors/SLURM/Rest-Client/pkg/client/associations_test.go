@@ -49,6 +49,7 @@ func TestListAssociationsByAccount(t *testing.T) {
 }
 
 func TestCreateAssociation(t *testing.T) {
+	var createdUser string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// Support to list associations so we can verify the association was created successfully
@@ -63,6 +64,16 @@ func TestCreateAssociation(t *testing.T) {
 			return
 		}
 
+		if r.Method == "GET" && r.URL.Path == "/slurmdb/v0.0.41/user/alice" {
+			_, _ = w.Write([]byte(`{"users":[]}`))
+			return
+		}
+		if r.Method == "POST" && r.URL.Path == "/slurmdb/v0.0.41/users" {
+			b, _ := io.ReadAll(r.Body)
+			createdUser = string(b)
+			_, _ = w.Write([]byte(`{}`))
+			return
+		}
 		if r.Method != "POST" || r.URL.Path != "/slurmdb/v0.0.41/associations" {
 			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
@@ -82,6 +93,9 @@ func TestCreateAssociation(t *testing.T) {
 	err := c.UpsertAssociation(Association{Account: "eng", Cluster: "artisan", User: "alice"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if createdUser != `{"users":[{"default":{"account":"eng"},"name":"alice"}]}` {
+		t.Errorf("a user with no record must be created defaulting to the account, got %s", createdUser)
 	}
 }
 

@@ -75,7 +75,7 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
 			continue
 		}
-		_, composite, err := o.findCoPerson(ctx, &models.User{ID: m.UserID})
+		_, composite, err := o.findCoPerson(ctx, &models.User{ID: m.UserID, Email: m.Email})
 		if err != nil {
 			return err
 		}

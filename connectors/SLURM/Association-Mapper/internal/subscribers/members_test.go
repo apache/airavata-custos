@@ -50,8 +50,15 @@ func (f *fakeSlurmClient) allDeletes() []client.AssocFilter {
 	return append([]client.AssocFilter(nil), f.deletes...)
 }
 
-func (f *fakeSlurmClient) ListAssociations(client.AssocFilter) ([]client.Association, error) {
-	return f.existing, nil
+func (f *fakeSlurmClient) ListAssociations(q client.AssocFilter) ([]client.Association, error) {
+	var out []client.Association
+	for _, a := range f.existing {
+		if (q.Account == "" || q.Account == a.Account) && (q.User == "" || q.User == a.User) &&
+			(q.Cluster == "" || q.Cluster == a.Cluster) && (q.Partition == "" || q.Partition == a.Partition) {
+			out = append(out, a)
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeSlurmClient) CreateAccount(client.Account, string) error { return nil }

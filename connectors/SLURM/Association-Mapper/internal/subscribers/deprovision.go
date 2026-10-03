@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -34,7 +35,7 @@ import (
 //
 // A member holds one association per partition on the allocation. The filter
 // names the cluster, account, and user but leaves the partition empty, which
-// matches every partition, so one call removes the member's whole set.
+// matches every partition, so revoke removes the member's whole set.
 func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
@@ -54,7 +55,7 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 		Account: allocation.Name,
 		User:    csu.LocalUsername,
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+	if err := a.revoke(filter); err != nil {
 		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
 	}
 	slog.Info("Removed associations for membership",
@@ -73,11 +74,57 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 		Cluster: cluster.Name,
 		Account: allocation.Name,
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+	if err := a.revoke(filter); err != nil {
 		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
 	}
 	slog.Info("Removed associations for allocation",
 		"account", allocation.Name, "cluster", cluster.Name)
+	return nil
+}
+
+// revoke removes the member associations f matches, one call each, since
+// slurmrestd removes at most one per call. Slurm refuses to remove a user's
+// default association while they hold another on the cluster, so the default
+// first moves to another account they keep, or, when they keep only other
+// partitions of the same account, those go too and the reconciler adds them back.
+func (a *AssociationSubscriber) revoke(f client.AssocFilter) error {
+	matched, err := a.slurmClient.ListAssociations(f)
+	if err != nil {
+		return err
+	}
+	byUser := map[string][]client.Association{}
+	for _, m := range matched {
+		if m.User != "" {
+			byUser[m.User] = append(byUser[m.User], m)
+		}
+	}
+	for user, drop := range byUser {
+		held, err := a.slurmClient.ListAssociations(client.AssocFilter{Cluster: f.Cluster, User: user})
+		if err != nil {
+			return err
+		}
+		kept := slices.DeleteFunc(held, func(h client.Association) bool {
+			return slices.ContainsFunc(drop, func(d client.Association) bool { return d.Account == h.Account && d.Partition == h.Partition })
+		})
+		if i := slices.IndexFunc(drop, func(d client.Association) bool { return d.IsDefault != nil && *d.IsDefault }); i >= 0 {
+			def := drop[i]
+			drop = append(slices.Delete(drop, i, i+1), def)
+			if j := slices.IndexFunc(kept, func(k client.Association) bool { return k.Account != def.Account }); j >= 0 {
+				next, yes := kept[j], true
+				next.ID, next.IsDefault = 0, &yes
+				if err := a.slurmClient.UpsertAssociation(next); err != nil {
+					return fmt.Errorf("move default of %s to %s: %w", user, next.Account, err)
+				}
+			} else {
+				drop = append(kept, drop...)
+			}
+		}
+		for _, d := range drop {
+			if err := a.slurmClient.DeleteAssociation(client.AssocFilter{Cluster: d.Cluster, Account: d.Account, User: d.User, Partition: d.Partition}); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

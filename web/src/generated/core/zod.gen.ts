@@ -543,6 +543,18 @@ export const zUserListResponse = z.object({
 
 export type userListResponseZodType = z.infer<typeof zUserListResponse>;
 
+export const zAllocationMembershipRequest = z.object({
+    compute_allocation_id: z.string().optional(),
+    end_time: z.string().optional(),
+    id: z.string().optional(),
+    membership_status: zAllocationStatus.optional(),
+    role: z.string().optional(),
+    start_time: z.string().optional(),
+    user_id: z.string().optional()
+});
+
+export type allocationMembershipRequestZodType = z.infer<typeof zAllocationMembershipRequest>;
+
 export const zAttachResourceRequest = z.object({
     compute_allocation_resource_id: z.string().optional(),
     resource_amount: z.int().optional(),
@@ -840,7 +852,7 @@ export const zPutComputeAllocationMembershipResourceOverridesByIdResponse = zCom
 /**
  * Membership payload
  */
-export const zPostComputeAllocationMembershipsBody = zComputeAllocationMembership;
+export const zPostComputeAllocationMembershipsBody = zAllocationMembershipRequest;
 
 /**
  * Created
@@ -863,7 +875,7 @@ export const zGetComputeAllocationMembershipsByIdResponse = zComputeAllocationMe
 /**
  * Membership payload
  */
-export const zPutComputeAllocationMembershipsByIdBody = zComputeAllocationMembership;
+export const zPutComputeAllocationMembershipsByIdBody = zAllocationMembershipRequest;
 
 export const zPutComputeAllocationMembershipsByIdPath = z.object({
     id: z.string()

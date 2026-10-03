@@ -868,6 +868,25 @@ definitions:
     - UserTypeClusterLocal
     - UserTypeVirtual
     - UserTypeSystem
+  allocationMembershipRequest:
+    properties:
+      compute_allocation_id:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      membership_status:
+        allOf:
+        - $ref: '#/definitions/AllocationStatus'
+        description: ACTIVE, INACTIVE, etc.
+      role:
+        type: string
+      start_time:
+        type: string
+      user_id:
+        type: string
+    type: object
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -1655,7 +1674,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/ComputeAllocationMembership'
+          $ref: '#/definitions/allocationMembershipRequest'
       produces:
       - application/json
       responses:
@@ -1738,7 +1757,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/ComputeAllocationMembership'
+          $ref: '#/definitions/allocationMembershipRequest'
       produces:
       - application/json
       responses:
