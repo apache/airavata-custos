@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -153,6 +154,19 @@ func (s *Service) GetTotalSUUsageForUserInAllocation(ctx context.Context, alloca
 		return 0, fmt.Errorf("sum su usage for user in allocation: %w", err)
 	}
 	return total, nil
+}
+
+// LatestUsageTimeForCluster returns when usage was last recorded against the
+// cluster's allocations, or nil when none has been recorded.
+func (s *Service) LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
+	if clusterID == "" {
+		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
+	}
+	latest, err := s.usages.LatestCalculatedTimeForCluster(ctx, clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("latest usage time for cluster: %w", err)
+	}
+	return latest, nil
 }
 
 // DeleteComputeAllocationUsage removes a usage event by ID.

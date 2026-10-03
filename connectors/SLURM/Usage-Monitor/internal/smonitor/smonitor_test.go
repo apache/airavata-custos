@@ -19,6 +19,7 @@ package smonitor
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -28,11 +29,14 @@ import (
 )
 
 type fakeJobLister struct {
-	jobs []client.JobInfo
+	jobs    []client.JobInfo
+	err     error              // returned by every query when set
+	filters []client.JobFilter // every query it was asked for, in order
 }
 
 func (f *fakeJobLister) ListJobs(filter client.JobFilter) ([]client.JobInfo, error) {
-	return f.jobs, nil
+	f.filters = append(f.filters, filter)
+	return f.jobs, f.err
 }
 
 func fixtureJob(jobID int64, user, partition string) client.JobInfo {
@@ -95,7 +99,101 @@ func newTestMonitor(core *service.CoreServiceMock, jobs ...client.JobInfo) *Slur
 		coreService:     core,
 		clusterId:       "cl-1",
 		pollOverlap:     defaultPollOverlap,
-		lastMonitorTime: 1,
+		lastMonitorTime: time.Now().Unix(),
+	}
+}
+
+// maxQuerySeconds is the longest time range one job query may cover.
+const maxQuerySeconds = int64((maxPollStep + defaultPollOverlap) / time.Second)
+
+// Make sure the first poll after a start asks only for the last day of jobs.
+func TestPollFirstQueryAfterAStartCoversOneStep(t *testing.T) {
+	lister := &fakeJobLister{}
+	m := NewSlurmMonitor(nil, nil, newMockCore(nil, nil), "cl-1", 0)
+	m.slurmClient = lister
+
+	m.poll()
+
+	query := lister.filters[0]
+	if seconds := query.EndTime - query.StartTime; seconds > maxQuerySeconds {
+		t.Errorf("first query covers %d seconds, want at most %d", seconds, maxQuerySeconds)
+	}
+}
+
+// Make sure the first poll after a start picks up from the last recorded usage.
+func TestPollResumesFromTheLastRecordedUsage(t *testing.T) {
+	lastUsage := time.Now().Add(-3 * time.Hour).Truncate(time.Second)
+	core := newMockCore(nil, nil)
+	core.LatestUsageTimeForClusterFunc = func(ctx context.Context, clusterID string) (*time.Time, error) {
+		return &lastUsage, nil
+	}
+	lister := &fakeJobLister{}
+	m := NewSlurmMonitor(nil, nil, core, "cl-1", 0)
+	m.slurmClient = lister
+
+	m.resumeFromLastUsage(context.Background())
+	m.poll()
+
+	if got, want := lister.filters[0].StartTime, lastUsage.Add(-defaultPollOverlap).Unix(); got != want {
+		t.Errorf("first query starts at %d, want %d", got, want)
+	}
+}
+
+// Make sure a cluster with no recorded usage starts one day back.
+func TestPollStartsOneDayBackWithoutRecordedUsage(t *testing.T) {
+	core := newMockCore(nil, nil)
+	core.LatestUsageTimeForClusterFunc = func(ctx context.Context, clusterID string) (*time.Time, error) {
+		return nil, nil
+	}
+	lister := &fakeJobLister{}
+	before := time.Now().Add(-startupCatchUp - defaultPollOverlap).Unix()
+	m := NewSlurmMonitor(nil, nil, core, "cl-1", 0)
+	m.slurmClient = lister
+
+	m.resumeFromLastUsage(context.Background())
+	m.poll()
+
+	if got := lister.filters[0].StartTime; got < before || got > before+1 {
+		t.Errorf("first query starts at %d, want one day and the look-back ago (%d)", got, before)
+	}
+}
+
+// Make sure a long gap is polled one step at a time, with no time skipped.
+func TestPollWalksALongGapInSteps(t *testing.T) {
+	lister := &fakeJobLister{}
+	m := newTestMonitor(newMockCore(nil, nil))
+	m.slurmClient = lister
+	m.lastMonitorTime = time.Now().Add(-60 * time.Hour).Unix()
+
+	before := time.Now().Unix()
+	for range 3 {
+		m.poll()
+	}
+
+	for i, query := range lister.filters {
+		if seconds := query.EndTime - query.StartTime; seconds > maxQuerySeconds {
+			t.Errorf("query %d covers %d seconds, want at most %d", i, seconds, maxQuerySeconds)
+		}
+		if i > 0 && query.StartTime > lister.filters[i-1].EndTime {
+			t.Errorf("query %d starts at %d, after query %d ended at %d", i, query.StartTime, i-1, lister.filters[i-1].EndTime)
+		}
+	}
+	if last := lister.filters[2].EndTime; last < before {
+		t.Errorf("after three polls the queries reach %d, want now (%d)", last, before)
+	}
+}
+
+// Make sure a failed query does not move the window forward.
+func TestPollKeepsTheWindowAfterAFailedQuery(t *testing.T) {
+	lister := &fakeJobLister{err: errors.New("cluster unreachable")}
+	m := newTestMonitor(newMockCore(nil, nil))
+	m.slurmClient = lister
+
+	m.poll()
+	m.poll()
+
+	if first, second := lister.filters[0].StartTime, lister.filters[1].StartTime; second != first {
+		t.Errorf("second query starts at %d, want the same start as the failed one (%d)", second, first)
 	}
 }
 

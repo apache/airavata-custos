@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -113,6 +114,19 @@ func (s *pgComputeAllocationUsageStore) SumSUForUserInAllocation(ctx context.Con
 		return 0, err
 	}
 	return total.Int64, nil
+}
+
+func (s *pgComputeAllocationUsageStore) LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
+	var latest sql.NullTime
+	err := s.db.GetContext(ctx, &latest,
+		`SELECT MAX(u.calculated_time)
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE a.compute_cluster_id = $1`, clusterID)
+	if err != nil || !latest.Valid {
+		return nil, err
+	}
+	return &latest.Time, nil
 }
 
 func (s *pgComputeAllocationUsageStore) Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error {
