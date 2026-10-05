@@ -27,6 +27,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+const computeAllocationResourceMappingColumns = "id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time"
+
 type pgComputeAllocationResourceMappingStore struct {
 	db *sqlx.DB
 }
@@ -40,7 +42,7 @@ func NewComputeAllocationResourceMappingStore(db *sqlx.DB) ComputeAllocationReso
 func (s *pgComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
-		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
+		`SELECT `+computeAllocationResourceMappingColumns+`
 		 FROM compute_allocation_resource_mappings
 		 WHERE id = $1`, id)
 	if err != nil {
@@ -55,7 +57,7 @@ func (s *pgComputeAllocationResourceMappingStore) FindByID(ctx context.Context, 
 func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
-		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
+		`SELECT `+computeAllocationResourceMappingColumns+`
 		 FROM compute_allocation_resource_mappings
 		 WHERE compute_allocation_id = $1 AND compute_allocation_resource_id = $2`,
 		allocationID, resourceID)
