@@ -949,7 +949,7 @@ export const zGetComputeAllocationResourcesByIdAllocationsPath = z.object({
 /**
  * OK
  */
-export const zGetComputeAllocationResourcesByIdAllocationsResponse = z.array(zComputeAllocationResourceMapping);
+export const zGetComputeAllocationResourcesByIdAllocationsResponse = z.array(zComputeAllocation);
 
 export const zGetComputeAllocationResourcesByIdMembershipOverridesPath = z.object({
     id: z.string()

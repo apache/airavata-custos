@@ -204,7 +204,7 @@ func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Reque
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation resource ID"
-// @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Success	200	{array}	models.ComputeAllocation
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocation-resources/{id}/allocations [get]
 func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Request) {

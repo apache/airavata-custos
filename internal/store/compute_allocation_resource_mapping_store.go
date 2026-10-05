@@ -86,13 +86,10 @@ func (s *pgComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx 
 func (s *pgComputeAllocationResourceMappingStore) FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {
 	var allocs []models.ComputeAllocation
 	err := s.db.SelectContext(ctx, &allocs,
-		`SELECT a.id, a.project_id, a.name, a.status, a.compute_cluster_id,
-		        a.initial_su_amount, a.start_time, a.end_time
-		 FROM compute_allocations a
-		 JOIN compute_allocation_resource_mappings m
-		     ON m.compute_allocation_id = a.id
-		 WHERE m.compute_allocation_resource_id = $1
-		 ORDER BY a.name`, resourceID)
+		`SELECT `+computeAllocationColumns+`
+		 FROM compute_allocations
+		 WHERE id IN (SELECT compute_allocation_id FROM compute_allocation_resource_mappings WHERE compute_allocation_resource_id = $1)
+		 ORDER BY name`, resourceID)
 	if err != nil {
 		return nil, err
 	}
