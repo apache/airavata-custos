@@ -1783,7 +1783,7 @@ export type GetComputeAllocationResourcesByIdAllocationsResponses = {
     /**
      * OK
      */
-    200: Array<ComputeAllocationResourceMapping>;
+    200: Array<ComputeAllocation>;
 };
 
 export type GetComputeAllocationResourcesByIdAllocationsResponse = GetComputeAllocationResourcesByIdAllocationsResponses[keyof GetComputeAllocationResourcesByIdAllocationsResponses];

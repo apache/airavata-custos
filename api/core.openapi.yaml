@@ -2008,7 +2008,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/ComputeAllocationResourceMapping'
+              $ref: '#/definitions/ComputeAllocation'
             type: array
         "404":
           description: Not Found
