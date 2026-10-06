@@ -137,11 +137,20 @@ func tresSliceEqualUnordered(a, b []TRES) bool {
 	return true
 }
 
+// DeleteAssociation deletes the user associations matching f one at a time, as slurmrestd requires.
 func (c *Client) DeleteAssociation(f AssocFilter) error {
-	path := "/slurmdb/v0.0." + c.apiVersion + "/association"
-	if q := f.query(); q != "" {
-		path += "?" + q
+	matched, err := c.ListAssociations(f)
+	if err != nil {
+		return err
 	}
-	_, err := c.do("DELETE", path, nil, nil)
-	return err
+	for _, assoc := range matched {
+		if assoc.User == "" {
+			continue
+		}
+		item := AssocFilter{Cluster: assoc.Cluster, Account: assoc.Account, User: assoc.User, Partition: assoc.Partition}
+		if _, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/association?"+item.query(), nil, nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }
