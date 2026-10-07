@@ -1,7 +1,7 @@
 # Runs as root, since it creates directories owned by cluster accounts.
 # /etc/local-vast.env sets VAST_USER, VAST_PASSWORD and LISTEN (host:port).
 [Unit]
-Description=VAST VMS stand-in for the Custos VAST Storage-Provisioner
+Description=VAST VMS stand-in for the Custos VAST-Provisioner
 After=network-online.target
 
 [Service]

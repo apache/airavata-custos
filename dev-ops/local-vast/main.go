@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Command local-vast serves the part of the VAST VMS REST API the VAST
-// Storage-Provisioner calls, on a test cluster's file server. Folders become
+// Command local-vast serves the part of the VAST VMS REST API the
+// VAST-Provisioner calls, on a test cluster's file server. Folders become
 // real directories whose owners resolve through NSS, as VMS resolves them
 // through its directory provider; quotas are only logged.
 package main

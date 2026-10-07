@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/airavata-custos/connectors/VAST/Storage-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -49,16 +49,19 @@ func (m Mount) uses(placeholder string) bool {
 	return strings.Contains(m.Path+m.Owner+m.Group, placeholder)
 }
 
-type StorageSubscriber struct {
-	vms             *client.Client
-	bus             *events.Bus
-	core            service.CoreService
-	custosClusterID string
-	mounts          []Mount
+type Cluster struct {
+	VMS    *client.Client
+	Mounts []Mount
 }
 
-func NewStorageSubscriber(vms *client.Client, bus *events.Bus, core service.CoreService, custosClusterID string, mounts []Mount) *StorageSubscriber {
-	return &StorageSubscriber{vms: vms, bus: bus, core: core, custosClusterID: custosClusterID, mounts: mounts}
+type StorageSubscriber struct {
+	bus      *events.Bus
+	core     service.CoreService
+	clusters map[string]Cluster
+}
+
+func NewStorageSubscriber(bus *events.Bus, core service.CoreService, clusters map[string]Cluster) *StorageSubscriber {
+	return &StorageSubscriber{bus: bus, core: core, clusters: clusters}
 }
 
 func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
@@ -75,10 +78,11 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 // ensureUser needs no approval check: COmanage provisions approved accounts only.
 // After the account's mounts it ensures each of the account's allocations.
 func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClusterUser) error {
-	if cu.ComputeClusterID != s.custosClusterID || cu.ProvisionedAt == nil {
+	c, ok := s.clusters[cu.ComputeClusterID]
+	if !ok || cu.ProvisionedAt == nil {
 		return nil
 	}
-	if err := s.ensure(ctx, cu.LocalUsername, ""); err != nil {
+	if err := s.ensure(ctx, c, cu.LocalUsername, ""); err != nil {
 		return err
 	}
 	memberships, err := s.core.ListAllocationsForUser(ctx, cu.UserID)
@@ -106,42 +110,42 @@ func (s *StorageSubscriber) ensureAllocationByID(ctx context.Context, id string)
 // ensureAllocation creates an active allocation's mounts, then those of each
 // member its POSIX group holds.
 func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.ComputeAllocation) error {
-	if a.ComputeClusterID != s.custosClusterID || a.Status != models.ACTIVE || a.PosixGroup == nil {
+	c, ok := s.clusters[a.ComputeClusterID]
+	if !ok || a.Status != models.ACTIVE || a.PosixGroup == nil {
 		return nil
 	}
-	if err := s.ensure(ctx, "", *a.PosixGroup); err != nil {
+	if err := s.ensure(ctx, c, "", *a.PosixGroup); err != nil {
 		return err
 	}
 	members, err := s.core.ListMembersForAllocation(ctx, a.ID)
 	if err != nil {
 		return err
 	}
+	var errs []error
 	for _, m := range members {
 		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
 			continue
 		}
-		if err := s.ensure(ctx, m.LocalUsername, *a.PosixGroup); err != nil {
-			return err
-		}
+		errs = append(errs, s.ensure(ctx, c, m.LocalUsername, *a.PosixGroup))
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // ensure creates the mounts that use exactly the placeholders given.
-func (s *StorageSubscriber) ensure(ctx context.Context, user, group string) error {
+func (s *StorageSubscriber) ensure(ctx context.Context, c Cluster, user, group string) error {
 	r := strings.NewReplacer("{user}", user, "{allocation}", group)
-	for _, m := range s.mounts {
+	for _, m := range c.Mounts {
 		if m.uses("{user}") != (user != "") || m.uses("{allocation}") != (group != "") {
 			continue
 		}
 		path := r.Replace(m.Path)
-		if err := s.vms.CreateFolder(ctx, path, r.Replace(m.Owner), r.Replace(m.Group), m.Mode); err != nil {
+		if err := c.VMS.CreateFolder(ctx, path, r.Replace(m.Owner), r.Replace(m.Group), m.Mode); err != nil {
 			return err
 		}
 		if m.HardLimit == 0 {
 			continue
 		}
-		if err := s.vms.CreateQuota(ctx, path, m.HardLimit, m.HardLimitInodes); err != nil {
+		if err := c.VMS.CreateQuota(ctx, path, m.HardLimit, m.HardLimitInodes); err != nil {
 			return err
 		}
 	}
@@ -150,7 +154,9 @@ func (s *StorageSubscriber) ensure(ctx context.Context, user, group string) erro
 
 func (s *StorageSubscriber) StartReconciler(ctx context.Context) {
 	for {
-		s.reconcile(ctx)
+		for id, c := range s.clusters {
+			s.reconcile(ctx, id, c)
+		}
 		select {
 		case <-ctx.Done():
 			return
@@ -159,20 +165,20 @@ func (s *StorageSubscriber) StartReconciler(ctx context.Context) {
 	}
 }
 
-func (s *StorageSubscriber) reconcile(ctx context.Context) {
-	users, err := s.core.ListComputeClusterUsersByCluster(ctx, s.custosClusterID)
+func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster) {
+	users, err := s.core.ListComputeClusterUsersByCluster(ctx, id)
 	errs := []error{err}
 	for _, cu := range users {
 		if cu.ProvisionedAt != nil {
-			errs = append(errs, s.ensure(ctx, cu.LocalUsername, ""))
+			errs = append(errs, s.ensure(ctx, c, cu.LocalUsername, ""))
 		}
 	}
-	allocs, err := s.core.ListComputeAllocationsByCluster(ctx, s.custosClusterID)
+	allocs, err := s.core.ListComputeAllocationsByCluster(ctx, id)
 	errs = append(errs, err)
 	for _, a := range allocs {
 		errs = append(errs, s.ensureAllocation(ctx, a))
 	}
 	if err := errors.Join(errs...); err != nil {
-		slog.Error("VAST reconciler", "err", err)
+		slog.Error("VAST reconciler", "cluster_id", id, "err", err)
 	}
 }

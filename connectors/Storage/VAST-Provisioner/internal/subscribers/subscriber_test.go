@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/airavata-custos/connectors/VAST/Storage-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -62,11 +62,13 @@ func TestEnsureUser(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name          string
+		cluster       string
 		provisionedAt *time.Time
 		want          []string
 	}{
-		{name: "creates in order", provisionedAt: &now, want: []string{"folder /home/custos-jdoe", "quota /home/custos-jdoe", "folder /scratch/custos-jdoe", "quota /scratch/custos-jdoe", "folder /project/proj-a", "quota /project/proj-a", "folder /project/proj-a/custos-jdoe"}},
-		{name: "skips unprovisioned"},
+		{name: "creates in order", cluster: "c1", provisionedAt: &now, want: []string{"folder /home/custos-jdoe", "quota /home/custos-jdoe", "folder /scratch/custos-jdoe", "quota /scratch/custos-jdoe", "folder /project/proj-a", "quota /project/proj-a", "folder /project/proj-a/custos-jdoe"}},
+		{name: "skips unprovisioned", cluster: "c1"},
+		{name: "skips unlisted cluster", cluster: "c2", provisionedAt: &now},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -84,8 +86,8 @@ func TestEnsureUser(t *testing.T) {
 				}
 			}))
 			defer srv.Close()
-			s := NewStorageSubscriber(client.New(srv.URL, "u", "p", 1), nil, oneAllocation(), "c1", layout)
-			cu := models.ComputeClusterUser{ComputeClusterID: "c1", LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
+			s := NewStorageSubscriber(nil, oneAllocation(), map[string]Cluster{"c1": {VMS: client.New(srv.URL, "u", "p", 1), Mounts: layout}})
+			cu := models.ComputeClusterUser{ComputeClusterID: tt.cluster, LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
 			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(log, tt.want) {
 				t.Fatalf("err=%v calls=%v, want %v", err, log, tt.want)
 			}

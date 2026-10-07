@@ -77,42 +77,43 @@ connectors:
       homedir_prefix: "/home/"
       http_timeout: "30s"
 
-  vast-storage:
+  vast-provisioner:
     type: "vast-storage-provisioner"
     enabled: false
-    custos_cluster_id: "${CUSTOS_CLUSTER_ID}"
-    vms:
-      url: "${VAST_VMS_URL}"
-      username: "${VAST_API_USER}"
-      password: "${VAST_API_PASSWORD}"
-      tenant_id: ${VAST_TENANT_ID}
-    storage:
-      - path: "/home/{user}"
-        owner: "{user}"
-        group: "{user}"
-        mode: "0700"
-        hard_limit: 107374182400      # 100 GiB
-        hard_limit_inodes: 1000000
-      - path: "/scratch/{user}"
-        owner: "{user}"
-        group: "{user}"
-        mode: "0700"
-        hard_limit: 10995116277760    # 10 TiB
-        hard_limit_inodes: 10000000
-      - path: "/project/{allocation}"
-        owner: "0"
-        group: "{allocation}"
-        mode: "2750"
-        hard_limit: 10995116277760    # 10 TiB
-        hard_limit_inodes: 300000000
-      - path: "/project/{allocation}/shared"
-        owner: "0"
-        group: "{allocation}"
-        mode: "2770"
-      - path: "/project/{allocation}/{user}"
-        owner: "{user}"
-        group: "{user}"
-        mode: "0700"
+    clusters:
+      - id: "${CUSTOS_CLUSTER_ID}"
+        vast:
+          url: "${VAST_VMS_URL}"
+          username: "${VAST_API_USER}"
+          password: "${VAST_API_PASSWORD}"
+          tenant_id: ${VAST_TENANT_ID}
+        targets:
+          - path: "/home/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 107374182400      # 100 GiB
+            hard_limit_inodes: 1000000
+          - path: "/scratch/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 10000000
+          - path: "/project/{allocation}"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2750"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 300000000
+          - path: "/project/{allocation}/shared"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2770"
+          - path: "/project/{allocation}/{user}"
+            owner: "{user}"
+            group: "{allocation}"
+            mode: "2700"
 
   amie-processor:
     type: "amie-processor"
