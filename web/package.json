@@ -8,19 +8,18 @@
   },
   "packageManager": "pnpm@9.15.9",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "pnpm gen:api && next dev",
+    "build": "pnpm gen:api && next build",
     "start": "next start",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest",
+    "typecheck": "pnpm gen:api && tsc --noEmit",
+    "test": "pnpm gen:api && vitest run --passWithNoTests",
+    "test:watch": "pnpm gen:api && vitest",
     "test:e2e": "playwright test",
     "clean": "rm -rf .next dist coverage",
     "gen:api": "tsx scripts/gen-api.mts",
-    "gen:api:check": "pnpm gen:api && git diff --quiet src/generated || (echo 'OpenAPI codegen drift — re-run pnpm gen:api' && exit 1)",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm gen:api:check && pnpm build"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
