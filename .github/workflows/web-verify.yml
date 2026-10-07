@@ -21,11 +21,15 @@ on:
   pull_request:
     paths:
       - 'web/**'
+      - 'api/core.openapi.yaml'
+      - 'connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml'
       - '.github/workflows/web-verify.yml'
   push:
     branches: [master]
     paths:
       - 'web/**'
+      - 'api/core.openapi.yaml'
+      - 'connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml'
       - '.github/workflows/web-verify.yml'
   workflow_dispatch:
 
