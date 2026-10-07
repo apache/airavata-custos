@@ -90,6 +90,36 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 	}
 }
 
+// Make sure `provisioned_at` is stamped and the provision event published only the first time.
+func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserProvisioned("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	cu := newClusterUser(t, svc, database)
+
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	first, err := svc.GetComputeClusterUser(ctx(), cu.ID)
+	if err != nil {
+		t.Fatalf("get compute cluster user: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned again: %v", err)
+	}
+	again, err := svc.GetComputeClusterUser(ctx(), cu.ID)
+	if err != nil {
+		t.Fatalf("get compute cluster user: %v", err)
+	}
+
+	if !again.ProvisionedAt.Equal(*first.ProvisionedAt) {
+		t.Fatalf("provisioned_at moved from %v to %v", first.ProvisionedAt, again.ProvisionedAt)
+	}
+	if n := countDeliveries(t, svc); n != 1 {
+		t.Fatalf("expected one delivery of the provision event, got %d", n)
+	}
+}
+
 // newClusterUser creates a cluster, a user, and a cluster user with no approval
 // given, the way an allocation source does, and returns the cluster user.
 func newClusterUser(t *testing.T, svc *Service, database *sqlx.DB) *models.ComputeClusterUser {
