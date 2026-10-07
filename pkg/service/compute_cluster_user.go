@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -369,8 +368,9 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 	return nil
 }
 
-// MarkComputeClusterUserProvisioned stamps provisioned_at on the mapping,
-// signaling that the account exists in the registry.
+// MarkComputeClusterUserProvisioned stamps provisioned_at on the mapping, signaling that the account exists in the registry.
+// It first runs once an admin approves the cluster account, and again on the user's first sign-in
+// and on retries, so provisioned_at is stamped and the provision event published only the first time.
 func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
@@ -383,12 +383,21 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.clusterUsers.MarkProvisioned(ctx, tx, id); err != nil {
+		now := nowUTC()
+		firstTime, err := s.clusterUsers.MarkProvisioned(ctx, tx, id, now)
+		if err != nil {
 			return err
 		}
-		now := time.Now()
-		cu.ProvisionedAt = &now
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu)
+		if firstTime {
+			cu.ProvisionedAt = &now
+		}
+		if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu); err != nil {
+			return err
+		}
+		if firstTime {
+			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserProvisionEvent, cu)
+		}
+		return nil
 	}); err != nil {
 		return fmt.Errorf("mark compute cluster user provisioned: %w", err)
 	}

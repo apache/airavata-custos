@@ -65,7 +65,7 @@ func NewStorageSubscriber(bus *events.Bus, core service.CoreService, clusters ma
 }
 
 func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
-	s.bus.SubscribeComputeClusterUserUpdated(subscriber, s.ensureUser)
+	s.bus.SubscribeComputeClusterUserProvisioned(subscriber, s.ensureUser)
 	s.bus.SubscribeComputeAllocationCreated(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.ensureAllocation)
 	byMembership := func(ctx context.Context, m models.ComputeAllocationMembership) error {

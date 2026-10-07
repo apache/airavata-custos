@@ -61,11 +61,12 @@ const (
 
 // ComputeClusterUser lifecycle message types.
 const (
-	ComputeClusterUserCreateEvent  EventType = "compute_cluster_user::create"
-	ComputeClusterUserUpdateEvent  EventType = "compute_cluster_user::update"
-	ComputeClusterUserDeleteEvent  EventType = "compute_cluster_user::delete"
-	ComputeClusterUserApproveEvent EventType = "compute_cluster_user::approve"
-	ComputeClusterUserDenyEvent    EventType = "compute_cluster_user::deny"
+	ComputeClusterUserCreateEvent    EventType = "compute_cluster_user::create"
+	ComputeClusterUserUpdateEvent    EventType = "compute_cluster_user::update"
+	ComputeClusterUserDeleteEvent    EventType = "compute_cluster_user::delete"
+	ComputeClusterUserApproveEvent   EventType = "compute_cluster_user::approve"
+	ComputeClusterUserDenyEvent      EventType = "compute_cluster_user::deny"
+	ComputeClusterUserProvisionEvent EventType = "compute_cluster_user::provision"
 )
 
 // ClusterAccount lifecycle message types.

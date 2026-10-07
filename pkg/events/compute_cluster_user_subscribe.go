@@ -47,6 +47,13 @@ func (b *Bus) SubscribeComputeClusterUserDenied(subscriber string, handler Compu
 	subscribeTyped(b, subscriber, ComputeClusterUserDenyEvent, handler)
 }
 
+// SubscribeComputeClusterUserProvisioned registers a typed handler invoked
+// whenever a compute_cluster_user::provision event is published, which is
+// when the account first exists in the registry.
+func (b *Bus) SubscribeComputeClusterUserProvisioned(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserProvisionEvent, handler)
+}
+
 // SubscribeComputeClusterUserUpdated registers a typed handler invoked
 // whenever a compute_cluster_user::update event is published.
 func (b *Bus) SubscribeComputeClusterUserUpdated(subscriber string, handler ComputeClusterUserHandler) {
