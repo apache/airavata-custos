@@ -19,7 +19,7 @@
 
 # local-vast
 
-A stand-in for the VAST VMS REST API, run on a test cluster's file server so the VAST Storage-Provisioner can be
+A stand-in for the VAST VMS REST API, run on a test cluster's file server so the VAST-Provisioner can be
 tested end to end: Custos → COmanage → LDAP → directories users see on the cluster.
 
 | VMS call | Stand-in |
@@ -44,9 +44,9 @@ The host needs NSS to resolve COmanage's groups as well as its people (for SSSD,
 parent directories of the configured paths, and the port open to the Custos host only. Point the connector at it:
 
 ```yaml
-    vms:
-      url: "http://<private ip>:8080"
-      username: "<VAST_USER>"
-      password: "${VAST_API_PASSWORD}"
-      tenant_id: 1
+        vast:
+          url: "http://<private ip>:8080"
+          username: "<VAST_USER>"
+          password: "${VAST_API_PASSWORD}"
+          tenant_id: 1
 ```

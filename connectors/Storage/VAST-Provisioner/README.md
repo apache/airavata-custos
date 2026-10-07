@@ -17,23 +17,24 @@
     under the License.
 -->
 
-# VAST Storage-Provisioner
+# VAST-Provisioner
 
-Creates directories and quotas on a VAST cluster through the VMS REST API, once the COmanage Identity-Provisioner
-on the same Custos cluster has provisioned the account or the allocation's group. Nothing is changed once it exists, and nothing is deleted.
+Creates directories and quotas on each configured cluster's VAST through the VMS REST API, once the COmanage
+Identity-Provisioner has provisioned the account or the allocation's group. Nothing is changed once it exists, and nothing is deleted.
 
-The directories come from the `storage` list in the config. Each entry's `path`, `owner` and `group` are templates
-over `{user}`, the account's username, and `{allocation}`, the allocation's group; the ones it uses decide what it
-waits for. Entries are created in config order, with a quota named after the path when `hard_limit` is set.
+The directories come from each cluster's `targets` list in the config. Each entry's `path`, `owner` and `group` are
+templates over `{user}`, the account's username, and `{allocation}`, the allocation's group; the ones it uses decide
+what it waits for. Entries are created in config order, with a quota named after the path when `hard_limit_size` is
+set. Events for clusters not listed are ignored.
 
 | Trigger | Runs |
 |---|---|
 | `compute_cluster_user::update` with `provisioned_at` set | The account's directories, then its project directories |
 | `compute_allocation::create` and `::update` | The project's directories, then each member's; retried until LDAP has the group |
 | `compute_allocation_membership::create` and `::update` | The same, for the membership's allocation |
-| Startup, then every 24 hours | The same, for every account and allocation on the cluster |
+| Startup, then every 24 hours | The same, for every account and allocation on each cluster |
 
-Configuration is in [`CONFIG.md`](../../../CONFIG.md#vast-storage-provisioner).
+Configuration is in [`CONFIG.md`](../../../CONFIG.md#storage-vast-provisioner).
 
 ## Prerequisites on VMS
 
@@ -42,5 +43,8 @@ VAST admins make these changes before the connector is enabled.
 | Prerequisite | Why |
 |---|---|
 | The COmanage LDAP is a VMS user-directory provider | VMS resolves owners only from its providers; Custos users and `proj-*` groups are otherwise unknown and every create retries |
-| The setgid bit is kept on `/project/{allocation}` and `shared` | VMS created a folder requested as `2770` as `0770`, so files in `shared` would not inherit the group |
 | The service account may create folders and quotas | The account the connector logs in with |
+
+VMS drops setgid from `create_dir_mode` (a `2770` request yields `0770`), so folders configured with setgid, such as
+`/project/{allocation}`, `shared` and `/project/{allocation}/{user}`, come out without it and files in them do not
+inherit the allocation's group until the bit is set outside the connector.

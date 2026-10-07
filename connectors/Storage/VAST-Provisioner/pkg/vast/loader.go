@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package vast is the VAST Storage-Provisioner entry point. Wired from
+// Package vast is the VAST-Provisioner entry point. Wired from
 // internal/connectors/loader.go.
 package vast
 
@@ -28,8 +28,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/connectors/VAST/Storage-Provisioner/internal/client"
-	"github.com/apache/airavata-custos/connectors/VAST/Storage-Provisioner/internal/subscribers"
+	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -40,24 +40,33 @@ import (
 const Type = "vast-storage-provisioner"
 
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
-	vms, _ := connectorConfig.GetNestedConfig("vms")
-	vmsURL, _ := vms["url"].(string)
-	username, _ := vms["username"].(string)
-	password, _ := vms["password"].(string)
-	tenantID, _ := vms["tenant_id"].(int)
-	clusterID, _ := connectorConfig.GetStringField("custos_cluster_id")
-	storage, _ := connectorConfig.Config["storage"].([]interface{})
-	if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" || len(storage) == 0 {
-		slog.Info("vast provisioner: required config not set; skipping")
+	entries, _ := connectorConfig.Config["clusters"].([]interface{})
+	clusters := map[string]subscribers.Cluster{}
+	for _, e := range entries {
+		cluster, _ := e.(map[string]interface{})
+		vms, _ := cluster["vast"].(map[string]interface{})
+		vmsURL, _ := vms["url"].(string)
+		username, _ := vms["username"].(string)
+		password, _ := vms["password"].(string)
+		tenantID, _ := vms["tenant_id"].(int)
+		clusterID, _ := cluster["id"].(string)
+		targets, _ := cluster["targets"].([]interface{})
+		if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" || len(targets) == 0 {
+			slog.Info("vast provisioner: required config not set; skipping", "cluster_id", clusterID)
+			continue
+		}
+		mounts, err := parseMounts(targets)
+		if err != nil {
+			return err
+		}
+		clusters[clusterID] = subscribers.Cluster{VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts}
+		slog.Info("vast provisioner: cluster registered", "vms", vmsURL, "cluster_id", clusterID)
+	}
+	if len(clusters) == 0 {
 		return nil
 	}
-	mounts, err := parseMounts(storage)
-	if err != nil {
-		return err
-	}
-	subscriber := subscribers.NewStorageSubscriber(client.New(vmsURL, username, password, tenantID), eventBus, coreService, clusterID, mounts)
+	subscriber := subscribers.NewStorageSubscriber(eventBus, coreService, clusters)
 	subscriber.RegisterSubscribers(Type)
-	slog.Info("vast provisioner: subscriber registered", "vms", vmsURL, "cluster_id", clusterID)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -71,11 +80,11 @@ func parseMounts(storage []interface{}) ([]subscribers.Mount, error) {
 	for i, e := range storage {
 		m, _ := e.(map[string]interface{})
 		str := func(k string) string { v, _ := m[k].(string); return v }
-		hardLimit, _ := m["hard_limit"].(int)
+		hardLimit, _ := m["hard_limit_size"].(int)
 		hardLimitInodes, _ := m["hard_limit_inodes"].(int)
 		mode, err := strconv.ParseInt(str("mode"), 8, 32)
 		if err != nil {
-			return nil, fmt.Errorf("vast provisioner: storage[%d].mode must be octal, such as \"0700\": %w", i, err)
+			return nil, fmt.Errorf("vast provisioner: targets[%d].mode must be octal, such as \"0700\": %w", i, err)
 		}
 		mounts = append(mounts, subscribers.Mount{Path: str("path"), Owner: str("owner"), Group: str("group"),
 			Mode: int(mode), HardLimit: int64(hardLimit), HardLimitInodes: int64(hardLimitInodes)})
