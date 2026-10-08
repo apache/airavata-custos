@@ -49,7 +49,7 @@ import (
 )
 
 func init() {
-	tracing.RegisterTerminalMarkers("amie", "TRANSACTION_COMPLETE")
+	tracing.RegisterMarkers("amie", "PACKET_RECEIVED", "TRANSACTION_COMPLETE", "REPLY_SENT", "REPLY_HELD")
 }
 
 const connectorName = "amie"

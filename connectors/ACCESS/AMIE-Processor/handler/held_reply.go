@@ -28,6 +28,7 @@ import (
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -93,6 +94,8 @@ func (h *HeldReplies) denied(ctx context.Context, cu models.ComputeClusterUser) 
 // Each packet gets its own transaction, so a failed send leaves only that
 // packet waiting for the bus to retry.
 func (h *HeldReplies) answer(ctx context.Context, clusterUserID string, status model.PacketStatus, failure map[string]any) error {
+	ctx, span := tracing.Start(ctx, "amie.held_reply")
+	defer span.End()
 	packets, err := h.packets.ListWaitingFor(ctx, clusterUserID)
 	if err != nil {
 		return fmt.Errorf("list held packets: %w", err)

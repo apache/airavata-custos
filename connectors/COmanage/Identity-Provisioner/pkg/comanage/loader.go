@@ -40,7 +40,7 @@ import (
 )
 
 func init() {
-	tracing.RegisterTerminalMarkers("comanage", "ComanageClusterAccountAttached")
+	tracing.RegisterMarkers("comanage", "ComanageProvisioningStarted", "ComanageClusterAccountAttached")
 }
 
 // Type is the connector type in the config file and the subscriber name on the bus.

@@ -57,7 +57,7 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
 		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
 	}
-	slog.Info("Removed associations for membership",
+	slog.InfoContext(ctx, "Removed associations for membership",
 		"user", csu.LocalUsername, "account", allocation.Name, "cluster", cluster.Name)
 	return nil
 }
@@ -76,7 +76,7 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
 		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
 	}
-	slog.Info("Removed associations for allocation",
+	slog.InfoContext(ctx, "Removed associations for allocation",
 		"account", allocation.Name, "cluster", cluster.Name)
 	return nil
 }
@@ -105,13 +105,13 @@ func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Con
 				continue
 			}
 			failed++
-			slog.Error("Failed to restore association for member",
+			slog.ErrorContext(ctx, "Failed to restore association for member",
 				"membership_id", member.ID, "allocation_id", allocation.ID, "error", err)
 		}
 	}
 	if failed > 0 {
 		return fmt.Errorf("%d of %d members could not be restored", failed, len(members))
 	}
-	slog.Info("Restored associations for allocation", "account", allocation.Name, "members", len(members))
+	slog.InfoContext(ctx, "Restored associations for allocation", "account", allocation.Name, "members", len(members))
 	return nil
 }

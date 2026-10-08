@@ -34,7 +34,7 @@ type TraceSummary struct {
 
 type TraceEvent struct {
 	SpanID       string    `db:"span_id" json:"span_id"`
-	ParentSpanID string    `db:"parent_span_id" json:"parent_span_id,omitempty"`
+	ParentSpanID *string   `db:"parent_span_id" json:"parent_span_id,omitempty"`
 	Source       string    `db:"source" json:"source"`
 	EventType    string    `db:"event_type" json:"event_type"`
 	EntityType   string    `db:"entity_type" json:"entity_type,omitempty"`

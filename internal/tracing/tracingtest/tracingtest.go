@@ -15,32 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package main
+// Package tracingtest gives tests the span that every audit row and event write requires.
+package tracingtest
 
 import (
 	"context"
-	"log/slog"
-	"os"
 
 	"github.com/apache/airavata-custos/internal/tracing"
-	"github.com/apache/airavata-custos/pkg/service"
 )
 
-const bootstrapAdminEmailEnv = "CUSTOS_BOOTSTRAP_ADMIN_EMAIL"
-
-// tryBootstrap runs the super_admin bootstrap if the operator set
-// CUSTOS_BOOTSTRAP_ADMIN_EMAIL. Idempotent: skips quietly when no env value
-// is set, the user does not exist, or super_admin already has a holder.
-// A bootstrap failure never blocks server start; the warning surfaces the
-// issue without crashing.
-func tryBootstrap(ctx context.Context, svc *service.Service) {
-	email := os.Getenv(bootstrapAdminEmailEnv)
-	if email == "" {
-		return
-	}
-	ctx, span := tracing.Start(ctx, "bootstrap.super_admin")
-	defer span.End()
-	if err := svc.BootstrapSuperAdmin(ctx, email, "env:"+bootstrapAdminEmailEnv); err != nil {
-		slog.WarnContext(ctx, "bootstrap super_admin failed", "email", email, "error", err)
-	}
+// Context returns a background context inside a fresh root span.
+func Context() context.Context {
+	ctx, _ := tracing.Start(context.Background(), "test")
+	return ctx
 }

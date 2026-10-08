@@ -138,6 +138,7 @@ func (p *Processor) processPendingEvents(ctx context.Context) {
 	slog.Info("processing pending events", "count", len(events))
 
 	for _, ewp := range events {
+		ctx := tracing.ContextWithSpanContext(ctx, ewp.TraceID, ewp.SpanID)
 		logger := slog.With(
 			"eventId", ewp.ID,
 			"packetId", ewp.PacketID,
@@ -148,9 +149,9 @@ func (p *Processor) processPendingEvents(ctx context.Context) {
 		stopTimer := p.metrics.StartProcessingTimer()
 
 		if err := p.executeInTransaction(ctx, ewp); err != nil {
-			logger.Error("event processing failed", "error", err)
+			logger.ErrorContext(ctx, "event processing failed", "error", err)
 			if recordErr := p.recordFailureInNewTransaction(ctx, ewp.ID, err); recordErr != nil {
-				logger.Error("failed to record processing failure", "error", recordErr)
+				logger.ErrorContext(ctx, "failed to record processing failure", "error", recordErr)
 			}
 		}
 
@@ -184,7 +185,7 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 	}()
 
 	return custosdb.TxFn(ctx, p.db, func(tx *sql.Tx) error {
-		slog.Info("Processing event",
+		slog.InfoContext(ctx, "Processing event",
 			"eventId", ewp.ID,
 			"type", ewp.Type,
 			"attempt", ewp.Attempts+1,
@@ -253,7 +254,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			return fmt.Errorf("find event for failure recording: %w", err)
 		}
 		if event == nil {
-			slog.Warn("event not found for failure recording", "eventId", eventID)
+			slog.WarnContext(ctx, "event not found for failure recording", "eventId", eventID)
 			return nil
 		}
 
@@ -286,7 +287,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 
 			p.metrics.RecordRetry()
 			p.metrics.RecordPacketProcessed(packet.Type, "retry_scheduled")
-			slog.Warn("event failed, scheduling retry",
+			slog.WarnContext(ctx, "event failed, scheduling retry",
 				"eventId", eventID,
 				"attempt", effectiveAttempts,
 				"nextRetryAt", nextRetry,
@@ -295,7 +296,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			event.Status = model.ProcessingStatusPermanentlyFailed
 			event.NextRetryAt = nil
 			p.metrics.RecordPacketProcessed(packet.Type, "permanently_failed")
-			slog.Error("event permanently failed after max attempts", "eventId", eventID)
+			slog.ErrorContext(ctx, "event permanently failed after max attempts", "eventId", eventID)
 
 			packet.Status = model.PacketStatusFailed
 			packet.Retries = effectiveAttempts

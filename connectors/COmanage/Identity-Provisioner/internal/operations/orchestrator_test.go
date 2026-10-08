@@ -26,7 +26,6 @@ import (
 	"sync"
 	"testing"
 
-	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/apache/airavata-custos/internal/tracing"
@@ -62,11 +61,10 @@ func installRecorder(t *testing.T) *recordingProcessor {
 	t.Helper()
 	rec := &recordingProcessor{}
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
-	prev := otel.GetTracerProvider()
-	otel.SetTracerProvider(tp)
+	prev := tracing.SetProvider(tp)
 	t.Cleanup(func() {
 		_ = tp.ForceFlush(context.Background())
-		otel.SetTracerProvider(prev)
+		tracing.SetProvider(prev)
 	})
 	return rec
 }

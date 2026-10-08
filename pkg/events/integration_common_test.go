@@ -29,7 +29,6 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/db"
-	"github.com/apache/airavata-custos/internal/tracing"
 )
 
 var (
@@ -59,11 +58,6 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 			return
 		}
 		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		// Set up a tracer provider to embed span ids
-		if _, err := tracing.Init(tracing.InitConfig{Mode: tracing.ModeProduction, ServiceName: "custos"}); err != nil {
 			sharedDBErr = err
 			return
 		}

@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -166,6 +167,8 @@ func (s *StorageSubscriber) StartReconciler(ctx context.Context) {
 }
 
 func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster) {
+	ctx, span := tracing.Start(ctx, "vast.reconcile")
+	defer span.End()
 	users, err := s.core.ListComputeClusterUsersByCluster(ctx, id)
 	errs := []error{err}
 	for _, cu := range users {
@@ -179,6 +182,6 @@ func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster)
 		errs = append(errs, s.ensureAllocation(ctx, a))
 	}
 	if err := errors.Join(errs...); err != nil {
-		slog.Error("VAST reconciler", "cluster_id", id, "err", err)
+		slog.ErrorContext(ctx, "VAST reconciler", "cluster_id", id, "err", err)
 	}
 }

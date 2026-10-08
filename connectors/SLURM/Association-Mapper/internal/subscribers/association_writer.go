@@ -111,7 +111,7 @@ func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Contex
 		if err := a.slurmClient.UpsertAssociation(association); err != nil {
 			return fmt.Errorf("upsert association for partition %s: %w", association.Partition, err)
 		}
-		slog.Info("Upserted association", "association", association)
+		slog.InfoContext(ctx, "Upserted association", "association", association)
 	}
 	return nil
 }
@@ -146,7 +146,7 @@ func (a *AssociationSubscriber) desiredAssociationsForMembership(ctx context.Con
 	if len(resources) == 0 {
 		// Nothing to map onto a partition. Skipping beats guessing a
 		// partition name the cluster may not have.
-		slog.Warn("Allocation has no resources, no association written",
+		slog.WarnContext(ctx, "Allocation has no resources, no association written",
 			"allocation_id", allocation.ID, "user_id", membership.UserID)
 		return nil, nil
 	}

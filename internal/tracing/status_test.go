@@ -36,52 +36,25 @@ func TestEventStatus(t *testing.T) {
 	}
 }
 
-func TestTraceStatusOk(t *testing.T) {
-	setTerminalMarkersForTest(t, "amie", []string{"TRANSACTION_COMPLETE"})
-	events := []TraceEventStatus{
-		{Source: "amie", EventType: "CREATE_PERSON"},
-		{Source: "amie", EventType: "CREATE_ACCOUNT"},
-		{Source: "amie", EventType: "TRANSACTION_COMPLETE"},
+func TestTraceStatus(t *testing.T) {
+	RegisterMarkers("status-test", "PACKET_RECEIVED", "TRANSACTION_COMPLETE", "REPLY_HELD")
+	cases := []struct {
+		name   string
+		events []string
+		want   string
+	}{
+		{"start without terminal", []string{"PACKET_RECEIVED", "CREATE_PERSON"}, StatusInProgress},
+		{"no start", []string{"CREATE_PERSON"}, StatusOk},
+		{"start and terminal", []string{"PACKET_RECEIVED", "REPLY_HELD"}, StatusOk},
+		{"error wins", []string{"PACKET_RECEIVED", "REQUEST_REJECTED", "TRANSACTION_COMPLETE"}, StatusError},
 	}
-	if got := TraceStatus(events); got != StatusOk {
-		t.Errorf("TraceStatus(ok flow) = %q, want %q", got, StatusOk)
-	}
-}
-
-func TestTraceStatusError(t *testing.T) {
-	setTerminalMarkersForTest(t, "amie", []string{"TRANSACTION_COMPLETE"})
-	events := []TraceEventStatus{
-		{Source: "amie", EventType: "CREATE_PERSON"},
-		{Source: "comanage", EventType: "ComanageProvisioningFailed"},
-		{Source: "amie", EventType: "TRANSACTION_COMPLETE"},
-	}
-	if got := TraceStatus(events); got != StatusError {
-		t.Errorf("TraceStatus(error wins over terminal) = %q, want %q", got, StatusError)
-	}
-}
-
-func TestTraceStatusInProgress(t *testing.T) {
-	events := []TraceEventStatus{
-		{Source: "amie", EventType: "CREATE_PERSON"},
-		{Source: "amie", EventType: "CREATE_ACCOUNT"},
-	}
-	if got := TraceStatus(events); got != StatusInProgress {
-		t.Errorf("TraceStatus(no terminal) = %q, want %q", got, StatusInProgress)
-	}
-}
-
-func TestTraceStatusEmpty(t *testing.T) {
-	if got := TraceStatus(nil); got != StatusInProgress {
-		t.Errorf("TraceStatus(nil) = %q, want %q", got, StatusInProgress)
-	}
-}
-
-func TestTraceStatusComanageTerminal(t *testing.T) {
-	setTerminalMarkersForTest(t, "comanage", []string{"ComanageClusterAccountAttached"})
-	events := []TraceEventStatus{
-		{Source: "comanage", EventType: "ComanageClusterAccountAttached"},
-	}
-	if got := TraceStatus(events); got != StatusOk {
-		t.Errorf("TraceStatus(comanage terminal) = %q, want %q", got, StatusOk)
+	for _, c := range cases {
+		events := make([]TraceEventStatus, len(c.events))
+		for i, et := range c.events {
+			events[i] = TraceEventStatus{Source: "status-test", EventType: et}
+		}
+		if got := TraceStatus(events); got != c.want {
+			t.Errorf("%s: TraceStatus = %q, want %q", c.name, got, c.want)
+		}
 	}
 }

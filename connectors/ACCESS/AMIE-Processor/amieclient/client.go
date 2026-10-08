@@ -70,7 +70,7 @@ func (c *Client) FetchInProgressPackets(ctx context.Context) ([]map[string]any, 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		slog.Warn("failed to create AMIE fetch request", "error", err)
+		slog.WarnContext(ctx, "failed to create AMIE fetch request", "error", err)
 		return []map[string]any{}, nil
 	}
 	req.Header.Set("XA-SITE", c.siteCode)
@@ -79,23 +79,23 @@ func (c *Client) FetchInProgressPackets(ctx context.Context) ([]map[string]any, 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		slog.Warn("AMIE fetch request failed", "error", err)
+		slog.WarnContext(ctx, "AMIE fetch request failed", "error", err)
 		return []map[string]any{}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		slog.Warn("AMIE fetch returned non-2xx status", "status", resp.StatusCode)
+		slog.WarnContext(ctx, "AMIE fetch returned non-2xx status", "status", resp.StatusCode)
 		return []map[string]any{}, nil
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		slog.Warn("failed to read AMIE response body", "error", err)
+		slog.WarnContext(ctx, "failed to read AMIE response body", "error", err)
 		return []map[string]any{}, nil
 	}
 
-	return parsePacketsFromResponse(body)
+	return parsePacketsFromResponse(ctx, body)
 }
 
 // parsePacketsFromResponse extracts a slice of packet maps from the AMIE API
@@ -104,7 +104,7 @@ func (c *Client) FetchInProgressPackets(ctx context.Context) ([]map[string]any, 
 //  1. A root JSON array of packet objects.
 //  2. A root JSON object with a "result" key containing an array.
 //  3. A root JSON object (single packet or envelope with scalar "result").
-func parsePacketsFromResponse(body []byte) ([]map[string]any, error) {
+func parsePacketsFromResponse(ctx context.Context, body []byte) ([]map[string]any, error) {
 	// Try as a JSON array first.
 	var arr []map[string]any
 	if err := json.Unmarshal(body, &arr); err == nil {
@@ -114,7 +114,7 @@ func parsePacketsFromResponse(body []byte) ([]map[string]any, error) {
 	// Try as a JSON object.
 	var obj map[string]any
 	if err := json.Unmarshal(body, &obj); err != nil {
-		slog.Error("failed to parse AMIE response JSON", "error", err)
+		slog.ErrorContext(ctx, "failed to parse AMIE response JSON", "error", err)
 		return []map[string]any{}, nil
 	}
 

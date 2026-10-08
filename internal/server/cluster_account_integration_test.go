@@ -29,6 +29,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -59,7 +60,7 @@ func TestListClusterAccounts_FiltersByApprovalStatus(t *testing.T) {
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 	pending := seedClusterUser(t, database, svc)
 	approved := seedClusterUser(t, database, svc)
-	if _, err := svc.ApproveComputeClusterUser(t.Context(), approved.ID, admin); err != nil {
+	if _, err := svc.ApproveComputeClusterUser(tracingtest.Context(), approved.ID, admin); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
 

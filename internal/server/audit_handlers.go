@@ -95,7 +95,7 @@ func (s *Server) handleListTraces(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	trace_id	path	string	true	"32-char lowercase hex"
-// @Success	200	{object}	object{trace_id=string,tree=[]models.TraceNode,truncated=boolean}
+// @Success	200	{object}	object{trace_id=string,status=string,tree=[]models.TraceNode,truncated=boolean}
 // @Failure	400	{object}	object{error=string}	"Malformed trace_id"
 // @Failure	404	{object}	object{error=string}	"Trace not found"
 // @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
@@ -122,6 +122,7 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 
 	resp := map[string]any{
 		"trace_id":  traceID,
+		"status":    tree.Status,
 		"tree":      tree.Children,
 		"truncated": truncated,
 	}

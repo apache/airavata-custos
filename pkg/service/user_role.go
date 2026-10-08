@@ -180,7 +180,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 			return fmt.Errorf("lookup existing assignment: %w", err)
 		}
 		if existing != nil {
-			slog.Info("bootstrap: super_admin already granted to user, skipping", "email", email)
+			slog.InfoContext(ctx, "bootstrap: super_admin already granted to user, skipping", "email", email)
 			return nil
 		}
 		// If another user already holds super_admin, install is past bootstrap.
@@ -189,7 +189,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 			return fmt.Errorf("count super_admin holders: %w", err)
 		}
 		if len(holders) > 0 {
-			slog.Info("bootstrap: super_admin already held by another user, skipping", "email", email)
+			slog.InfoContext(ctx, "bootstrap: super_admin already held by another user, skipping", "email", email)
 			return nil
 		}
 		assignment := &models.UserRole{
@@ -209,7 +209,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		}); err != nil {
 			return fmt.Errorf("audit bootstrap assignment: %w", err)
 		}
-		slog.Info("bootstrap: super_admin granted", "user_id", user.ID, "email", email, "source", source)
+		slog.InfoContext(ctx, "bootstrap: super_admin granted", "user_id", user.ID, "email", email, "source", source)
 		return nil
 	})
 }
@@ -241,7 +241,7 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
+	slog.InfoContext(ctx, "bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
 	return created, nil
 }
 

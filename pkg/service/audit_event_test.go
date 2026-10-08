@@ -21,19 +21,11 @@ import (
 	"context"
 	"testing"
 
-	"go.opentelemetry.io/otel"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 func TestAuditEventTraceIDs_PopulatedFromActiveSpan(t *testing.T) {
-	prev := otel.GetTracerProvider()
-	tp := sdktrace.NewTracerProvider()
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
-
 	ctx, span := tracing.Start(context.Background(), "test.root")
 	defer span.End()
 
@@ -51,21 +43,7 @@ func TestAuditEventTraceIDs_PopulatedFromActiveSpan(t *testing.T) {
 	}
 }
 
-func TestAuditEventTraceIDs_NilWhenNoSpan(t *testing.T) {
-	e := &models.AuditEvent{EventType: "X", EntityID: "y"}
-	tracing.PopulateAuditIDs(context.Background(), &e.TraceID, &e.SpanID, &e.ParentSpanID)
-
-	if e.TraceID != "" || e.SpanID != "" {
-		t.Fatalf("expected empty trace/span IDs, got trace=%s span=%s", e.TraceID, e.SpanID)
-	}
-}
-
 func TestAuditEventTraceIDs_NotOverwrittenWhenPreset(t *testing.T) {
-	prev := otel.GetTracerProvider()
-	tp := sdktrace.NewTracerProvider()
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
-
 	ctx, span := tracing.Start(context.Background(), "test.root")
 	defer span.End()
 

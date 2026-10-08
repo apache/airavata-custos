@@ -35,8 +35,8 @@ func TestBuildTreeNestsByParent(t *testing.T) {
 	leaf := mkSpan(0x03)
 	rows := []rowEvent{
 		{SpanID: root, Source: "amie", EventType: "CREATE_PERSON", CreatedAt: time.Unix(1, 0)},
-		{SpanID: child, ParentSpanID: root, Source: "comanage", EventType: "ComanageLookup", CreatedAt: time.Unix(2, 0)},
-		{SpanID: leaf, ParentSpanID: child, Source: "comanage", EventType: "ComanageClusterAccountAttached", CreatedAt: time.Unix(3, 0)},
+		{SpanID: child, ParentSpanID: &root, Source: "comanage", EventType: "ComanageLookup", CreatedAt: time.Unix(2, 0)},
+		{SpanID: leaf, ParentSpanID: &child, Source: "comanage", EventType: "ComanageClusterAccountAttached", CreatedAt: time.Unix(3, 0)},
 	}
 	tree := buildTree(rows)
 	if got := len(tree.Children); got != 1 {
@@ -64,7 +64,7 @@ func TestBuildTreeOrphansBecomeTopLevel(t *testing.T) {
 	rows := []rowEvent{
 		{SpanID: row1, Source: "amie", EventType: "ROOT"},
 		// parent references a span that did not write an audit row
-		{SpanID: row2, ParentSpanID: ghost, Source: "amie", EventType: "ORPHAN"},
+		{SpanID: row2, ParentSpanID: &ghost, Source: "amie", EventType: "ORPHAN"},
 	}
 	tree := buildTree(rows)
 	if got := len(tree.Children); got != 2 {
@@ -119,24 +119,15 @@ func TestBuildTraceWhereTimeAndQ(t *testing.T) {
 	}
 }
 
-func TestMatchesStatusFilter(t *testing.T) {
-	if !matchesStatusFilter("ok", nil) {
-		t.Error("empty filter should match")
-	}
-	if !matchesStatusFilter("error", []string{"ok", "error"}) {
-		t.Error("match should succeed")
-	}
-	if matchesStatusFilter("in_progress", []string{"ok"}) {
-		t.Error("filter mismatch should reject")
-	}
-}
-
-func TestDominantSourcePicksRoot(t *testing.T) {
+// The root is the first row whose parent span wrote no row, so a trace
+// resumed from an unaudited span (an AMIE ingest, a publisher) still has one.
+func TestSummarisePicksRootWithUnauditedParent(t *testing.T) {
+	ingest, received := mkSpan(0x01), mkSpan(0x02)
 	rows := []rowEvent{
-		{Source: "comanage", ParentSpanID: mkSpan(0x01)},
-		{Source: "amie"}, // root: nil parent
+		{SpanID: received, ParentSpanID: &ingest, Source: "amie", EventType: "PACKET_RECEIVED"},
+		{SpanID: mkSpan(0x03), ParentSpanID: &received, Source: "comanage", EventType: "ComanageLookup"},
 	}
-	if got := dominantSource(rows); got != "amie" {
-		t.Errorf("dominant = %q, want amie", got)
+	if op, src, _ := summarise(rows); op != "PACKET_RECEIVED" || src != "amie" {
+		t.Errorf("root = %s/%s, want PACKET_RECEIVED/amie", op, src)
 	}
 }

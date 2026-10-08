@@ -76,8 +76,10 @@ func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.cluster_user_deleted")
+	defer span.End()
 	if err := s.ops.RemovePOSIXAccount(ctx, &cu); err != nil {
-		slog.Error("comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
 	return s.syncUserAllocations(ctx, cu.UserID)
@@ -102,17 +104,17 @@ func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, id
 	cu, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, identity.UserID)
 	if errors.Is(err, service.ErrNotFound) {
 		// Expected for portal admins, system users, and temp users, which have no compute cluster account.
-		slog.Debug("comanage subscriber: no cluster account to link the sub to", "user_id", identity.UserID, "cluster_id", s.custosClusterID)
+		slog.DebugContext(ctx, "comanage subscriber: no cluster account to link the sub to", "user_id", identity.UserID, "cluster_id", s.custosClusterID)
 		return nil
 	}
 	if err != nil {
-		slog.Error("comanage subscriber: cluster user lookup failed", "user_id", identity.UserID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", identity.UserID, "err", err)
 		return err
 	}
 	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		slog.Error("comanage subscriber: EnsurePOSIXAccount failed after identity link", "compute_cluster_user_id", cu.ID, "user_id", identity.UserID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed after identity link", "compute_cluster_user_id", cu.ID, "user_id", identity.UserID, "err", err)
 		return err
 	}
 	return s.syncUserAllocations(ctx, cu.UserID)
@@ -142,7 +144,7 @@ func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c
 	if err := s.ops.EnsurePOSIXAccount(ctx, &cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		slog.Error("comanage subscriber: EnsurePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
 	// Even if this fails, the cluster account is usable without sudo, so a
@@ -150,7 +152,7 @@ func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c
 	if cu.AccessLevel == models.ClusterAccessAdmin {
 		if err := s.ops.EnsureClusterAdminMembership(ctx, &cu); err != nil {
 			span.RecordError(err)
-			slog.Error("comanage subscriber: EnsureClusterAdminMembership failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+			slog.ErrorContext(ctx, "comanage subscriber: EnsureClusterAdminMembership failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 			return err
 		}
 	}

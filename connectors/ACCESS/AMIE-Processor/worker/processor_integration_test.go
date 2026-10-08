@@ -57,6 +57,9 @@ func (f *fakeRouter) Route(_ context.Context, _ *sql.Tx, _ map[string]any, _ *mo
 	return nil
 }
 
+// The poll pass that seeded events are ingested under.
+const pollTraceID, pollSpanID = "4bf92f3577b34da6a3ce929d0e0e4736", "00f067aa0ba902b7"
+
 // seedNewEvent inserts an amie_packets row + amie_processing_events row both
 // in NEW state. Returns the IDs so tests can refetch state directly.
 func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
@@ -75,9 +78,9 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 	}
 
 	if _, err := database.Exec(
-		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, now,
+		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at, trace_id, span_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, now, pollTraceID, pollSpanID,
 	); err != nil {
 		t.Fatalf("seed event: %v", err)
 	}
@@ -162,6 +165,10 @@ func TestProcessor_SuccessFirstAttempt(t *testing.T) {
 	}
 	if got := countRows(t, database, "amie_processing_errors"); got != 0 {
 		t.Errorf("error rows: got %d, want 0", got)
+	}
+	var trace, parent string
+	if err := database.QueryRow("SELECT trace_id, parent_span_id FROM audit_events WHERE event_type = 'PACKET_RECEIVED'").Scan(&trace, &parent); err != nil || trace != pollTraceID || parent != pollSpanID {
+		t.Errorf("PACKET_RECEIVED trace %q parent %q (%v), want the poll pass %q %q", trace, parent, err, pollTraceID, pollSpanID)
 	}
 }
 

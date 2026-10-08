@@ -30,6 +30,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -160,4 +161,4 @@ func countAuditEventsOfType(t *testing.T, database *sqlx.DB, eventType, entityID
 	return n
 }
 
-func ctx() context.Context { return context.Background() }
+func ctx() context.Context { return tracingtest.Context() }

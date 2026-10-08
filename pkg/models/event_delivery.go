@@ -36,6 +36,7 @@ type Event struct {
 	Payload   json.RawMessage `json:"payload" db:"payload" swaggertype:"object"`
 	Source    string          `json:"source" db:"source"` // Subsystem that published the event.
 	TraceID   string          `json:"trace_id" db:"trace_id"`
+	SpanID    string          `json:"span_id" db:"span_id"` // Publisher's span, the parent of its deliveries.
 	CreatedAt time.Time       `json:"created_at" db:"created_at"`
 }
 

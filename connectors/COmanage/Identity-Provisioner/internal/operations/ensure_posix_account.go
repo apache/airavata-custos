@@ -55,13 +55,13 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return err
 	}
 	log = log.With("comanage_person_id", personID)
-	log.Info("comanage: CoPerson resolved", "created", created)
+	log.InfoContext(ctx, "comanage: CoPerson resolved", "created", created)
 	if created {
 		o.audit(ctx, cu, "ComanageCoPersonCreated", fmt.Sprintf("comanage_id=%s email=%s", personID, user.Email))
 	}
 
 	if err := o.storePersonID(ctx, cu.UserID, personID); err != nil {
-		log.Warn("comanage: failed to store CoPerson id", "err", err)
+		log.WarnContext(ctx, "comanage: failed to store CoPerson id", "err", err)
 	}
 
 	if composite == nil {
@@ -146,10 +146,10 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		o.dlq(ctx, cu, "put_composite", err)
 		return err
 	}
-	log.Info("comanage: UnixClusterAccount attached", "username", cu.LocalUsername, "uid", uidInt, "co_group_id", coGroupID)
+	log.InfoContext(ctx, "comanage: UnixClusterAccount attached", "username", cu.LocalUsername, "uid", uidInt, "co_group_id", coGroupID)
 	o.audit(ctx, cu, "ComanageClusterAccountAttached", fmt.Sprintf("comanage_id=%s username=%s uid=%d", personID, cu.LocalUsername, uidInt))
 	if err := o.core.MarkComputeClusterUserProvisioned(ctx, cu.ID); err != nil {
-		log.Warn("comanage: failed to mark cluster user provisioned", "err", err)
+		log.WarnContext(ctx, "comanage: failed to mark cluster user provisioned", "err", err)
 	}
 	return nil
 }
@@ -297,18 +297,18 @@ func (o *Orchestrator) findOrCreateUnixClusterGroup(ctx context.Context, cu *mod
 		span.SetAttributes(attribute.Int("comanage.unix_cluster_group_id", existing))
 		return nil
 	} else if err != nil {
-		log.Debug("comanage: FindUnixClusterGroup failed; attempting POST", "err", err)
+		log.DebugContext(ctx, "comanage: FindUnixClusterGroup failed; attempting POST", "err", err)
 	}
 
 	if _, err := o.c.CreateUnixClusterGroup(coGroupID); err != nil {
 		var httpErr *client.HTTPError
 		if errors.As(err, &httpErr) && httpErr.StatusCode >= 400 && httpErr.StatusCode < 500 {
-			log.Info("comanage: UnixClusterGroup attach returned 4xx (already attached)", "status", httpErr.StatusCode)
+			log.InfoContext(ctx, "comanage: UnixClusterGroup attach returned 4xx (already attached)", "status", httpErr.StatusCode)
 			return nil
 		}
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusInternalServerError {
 			if existing, gerr := o.c.FindUnixClusterGroup(coGroupID); gerr == nil && existing != 0 {
-				log.Info("comanage: UnixClusterGroup POST returned 500 but binding exists", "binding_id", existing)
+				log.InfoContext(ctx, "comanage: UnixClusterGroup POST returned 500 but binding exists", "binding_id", existing)
 				span.SetAttributes(attribute.Int("comanage.unix_cluster_group_id", existing))
 				return nil
 			}

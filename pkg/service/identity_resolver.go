@@ -135,7 +135,7 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 
 // linkBySub creates the first OIDC binding for a PENDING user matched by verified email.
 func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*models.User, error) {
-	slog.Debug("linkBySub: evaluating claims",
+	slog.DebugContext(ctx, "linkBySub: evaluating claims",
 		"sub", claims.Sub,
 		"email", claims.Email,
 		"email_verified", claims.EmailVerified,
@@ -164,7 +164,7 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		// A non-MERGED user without an OIDC binding is an inconsistent state;
 		// merged users legitimately lose theirs to the surviving user.
 		if user.Status != models.UserMerged {
-			slog.Error("inconsistent user state: reached non-PENDING lifecycle without an OIDC binding",
+			slog.ErrorContext(ctx, "inconsistent user state: reached non-PENDING lifecycle without an OIDC binding",
 				"user_id", user.ID,
 				"email", claims.Email,
 				"sub", claims.Sub,
@@ -200,7 +200,7 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 	}); err != nil {
 		return nil, err
 	}
-	slog.Info("identity linked via email fallback", "user_id", user.ID, "email", claims.Email)
+	slog.InfoContext(ctx, "identity linked via email fallback", "user_id", user.ID, "email", claims.Email)
 
 	user.Status = models.UserActive
 	return user, nil

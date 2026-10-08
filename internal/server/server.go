@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/internal/httputil"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -48,6 +49,7 @@ func New(svc *service.Service, router *identity.Router) *Server {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+	tracing.SetRoute(r)
 }
 
 // requireCaller pulls the verified caller off the request context. Returns
@@ -207,25 +209,21 @@ type statusUpdateRequest struct {
 	Status string `json:"status"`
 }
 
-// LoggingMiddleware logs every request once it completes. It wraps
-// tracing.Middleware (logging outer, tracing inner) and reads the trace_id
-// from the X-Trace-Id response header the inner span set, since the inner
-// request ctx is not visible at this scope after ServeHTTP returns.
+// LoggingMiddleware logs every request once it completes. It sits outside
+// tracing.Middleware and reads the trace_id from the X-Trace-Id response
+// header, since the inner request ctx is not visible here after ServeHTTP returns.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rw := &httputil.StatusRecorder{ResponseWriter: w, Status: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		attrs := []any{
+		slog.InfoContext(r.Context(), "http request",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", rw.Status,
 			"duration", time.Since(start).String(),
-		}
-		if tid := rw.Header().Get("X-Trace-Id"); tid != "" {
-			attrs = append(attrs, "trace_id", tid)
-		}
-		slog.InfoContext(r.Context(), "http request", attrs...)
+			"trace_id", rw.Header().Get("X-Trace-Id"),
+		)
 	})
 }
 

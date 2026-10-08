@@ -566,8 +566,8 @@ func TestRequestPersonMerge_ReprocessesPacketsHeldOnRetiringAccount(t *testing.T
 		t.Fatalf("hold packet: %v", err)
 	}
 	eventID := uuid.NewString()
-	if _, err := database.Exec("INSERT INTO amie_processing_events (id, packet_id, type, status) VALUES ($1, $2, $3, $4)",
-		eventID, held.ID, held.Type, model.ProcessingStatusSucceeded); err != nil {
+	if _, err := database.Exec("INSERT INTO amie_processing_events (id, packet_id, type, status, trace_id, span_id) VALUES ($1, $2, $3, $4, $5, $6)",
+		eventID, held.ID, held.Type, model.ProcessingStatusSucceeded, "4bf92f3577b34da6a3ce929d0e0e4736", "00f067aa0ba902b7"); err != nil {
 		t.Fatalf("insert processing event: %v", err)
 	}
 

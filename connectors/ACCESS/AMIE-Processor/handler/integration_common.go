@@ -38,6 +38,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/internal/db"
 	corestore "github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
@@ -233,7 +234,7 @@ func approvePendingAccounts(t *testing.T, database *sqlx.DB, svc *coreservice.Se
 		t.Fatalf("pick a reviewer: %v", err)
 	}
 	for _, id := range ids {
-		if _, err := svc.ApproveComputeClusterUser(context.Background(), id, reviewer); err != nil {
+		if _, err := svc.ApproveComputeClusterUser(tracingtest.Context(), id, reviewer); err != nil {
 			t.Fatalf("approve %s: %v", id, err)
 		}
 	}
