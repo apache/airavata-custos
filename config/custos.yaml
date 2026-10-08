@@ -139,3 +139,18 @@ connectors:
   analytics:
     type: "analytics"
     enabled: true
+
+  email-notifier:
+    type: "email-notifier"
+    enabled: true
+    smtp_host: "${EMAIL_SMTP_HOST}"
+    smtp_port: 587
+    username: "${EMAIL_SMTP_USERNAME}"
+    password: "${EMAIL_SMTP_PASSWORD}"
+    from: "${EMAIL_FROM}"
+    support_email: "${EMAIL_SUPPORT}"
+    site_name: "${EMAIL_SITE_NAME}"
+    portal_url: "${EMAIL_PORTAL_URL}"
+    cluster_host: "${EMAIL_CLUSTER_HOST}"
+    # A square PNG. Defaults to the portal's /brand/logo/custos-mark.png.
+    logo_url: "${EMAIL_LOGO_URL}"

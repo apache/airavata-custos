@@ -25,6 +25,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
 	"github.com/apache/airavata-custos/connectors/Analytics/pkg/analytics"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
+	"github.com/apache/airavata-custos/connectors/Notification/Email/pkg/email"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/pkg/vast"
@@ -47,6 +48,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		tempaccount.Type: tempaccount.LoadConnector,
 		analytics.Type:   analytics.LoadConnector,
 		vast.Type:        vast.LoadConnector,
+		email.Type:       email.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {

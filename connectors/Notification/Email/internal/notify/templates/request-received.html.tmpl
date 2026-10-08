@@ -1,0 +1,42 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}}
+{{define "preheader"}}An administrator is reviewing it. We will email you when your account is ready.{{end}}
+{{define "status"}}<td class="pill-info" style="padding:4px 10px; border:1px solid #a6c3e4; border-radius:999px; background-color:#e9f0f8; color:#153b6e; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:18px; font-weight:600;">&#9679;&nbsp;Under review</td>{{end}}
+{{define "footer"}}You are receiving this because an account on {{.SiteName}} was requested for you{{if .Source}} through {{.Source}}{{end}}. This is an automated message.{{end}}
+{{define "body"}}
+<h1 class="h1 t-strong" style="margin:0 0 16px 0; font-size:24px; line-height:32px; font-weight:700; color:#111111;">We received a request for your account</h1>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">Hi{{if .FirstName}} {{.FirstName}}{{end}},</p>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">We received a request to create an account for you on {{.SiteName}}. An administrator is reviewing it, and we will email you again when your account is ready.</p>
+<p class="t-muted" style="margin:24px 0 8px 0; font-size:13px; line-height:18px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#4b5563;">Request details</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
+{{if .Source}}<tr>
+<td class="t-muted rule" width="40%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:14px; line-height:20px; color:#4b5563; vertical-align:top;">Requested through</td>
+<td class="t-strong rule" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:15px; line-height:20px; font-weight:600; color:#111111; vertical-align:top;">{{.Source}}</td>
+</tr>{{end}}
+{{if .ProjectNumber}}<tr>
+<td class="t-muted rule" width="40%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:14px; line-height:20px; color:#4b5563; vertical-align:top;">Project</td>
+<td class="t-strong rule" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:15px; line-height:20px; font-weight:600; color:#111111; vertical-align:top;">{{.ProjectNumber}}</td>
+</tr>{{end}}
+<tr>
+<td class="t-muted rule" width="40%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:14px; line-height:20px; color:#4b5563; vertical-align:top;">Proposed username</td>
+<td class="t-strong rule" style="font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace; padding:10px 0; border-top:1px solid #e5e7eb; font-size:15px; line-height:20px; font-weight:600; color:#111111; vertical-align:top;">{{.Username}}</td>
+</tr>
+</table>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">You don't need to do anything right now.</p>
+{{end}}
