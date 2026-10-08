@@ -1,0 +1,53 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}}
+{{define "preheader"}}See the administrator's reason and who to contact.{{end}}
+{{define "status"}}<td class="pill-err" style="padding:4px 10px; border:1px solid #fca5a5; border-radius:999px; background-color:#fef2f2; color:#b91c1c; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:18px; font-weight:600;">&#10005;&nbsp;Not approved</td>{{end}}
+{{define "footer"}}You are receiving this because an account on {{.SiteName}} was requested for you. This is an automated message.{{end}}
+{{define "body"}}
+<h1 class="h1 t-strong" style="margin:0 0 16px 0; font-size:24px; line-height:32px; font-weight:700; color:#111111;">Your request was not approved</h1>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">Hi{{if .FirstName}} {{.FirstName}}{{end}},</p>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">Your request for an account on {{.SiteName}} was not approved, and no account was created.</p>
+<p class="t-muted" style="margin:24px 0 8px 0; font-size:13px; line-height:18px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#4b5563;">Reason from the administrator</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
+<tr>
+<td class="quote t-body" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:4px 0 4px 16px; border-left:3px solid #9aa1ae; font-size:16px; line-height:26px; color:#404040; white-space:pre-line;">{{.Reason}}</td>
+</tr>
+</table>
+{{if or .Source .ProjectNumber}}
+<p class="t-muted" style="margin:24px 0 8px 0; font-size:13px; line-height:18px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#4b5563;">Request details</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
+{{if .Source}}<tr>
+<td class="t-muted rule" width="40%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:14px; line-height:20px; color:#4b5563; vertical-align:top;">Requested through</td>
+<td class="t-strong rule" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:15px; line-height:20px; font-weight:600; color:#111111; vertical-align:top;">{{.Source}}</td>
+</tr>{{end}}
+{{if .ProjectNumber}}<tr>
+<td class="t-muted rule" width="40%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:14px; line-height:20px; color:#4b5563; vertical-align:top;">Project</td>
+<td class="t-strong rule" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:10px 0; border-top:1px solid #e5e7eb; font-size:15px; line-height:20px; font-weight:600; color:#111111; vertical-align:top;">{{.ProjectNumber}}</td>
+</tr>{{end}}
+</table>
+{{end}}
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">If you have questions or think this was a mistake, contact us.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px 0;">
+<tr>
+<td class="btn-td" align="center" bgcolor="#171717" style="border-radius:8px; background-color:#171717; mso-padding-alt:14px 28px;">
+<a class="btn-a" href="mailto:{{.SupportEmail}}?subject=Account%20request" style="display:inline-block; padding:14px 28px; min-height:20px; border:1px solid #171717; border-radius:8px; background-color:#171717; color:#ffffff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:20px; font-weight:600; text-decoration:none;">Contact support</a>
+</td>
+</tr>
+</table>
+{{end}}
