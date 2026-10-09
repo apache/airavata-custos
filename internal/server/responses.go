@@ -31,22 +31,28 @@ type ProjectResponse struct {
 	ProjectPIEmail       string `json:"project_pi_email,omitempty"`
 }
 
+// RoleDetailResponse is a role with its privilege bundle.
+type RoleDetailResponse struct {
+	Role       models.Role           `json:"role" binding:"required"`
+	Privileges []models.PrivilegeKey `json:"privileges" extensions:"x-nullable"`
+}
+
 // ProjectListResponse is the paginated list envelope for projects.
 type ProjectListResponse struct {
-	Items []ProjectResponse `json:"items"`
-	Total int               `json:"total"`
+	Items []ProjectResponse `json:"items" binding:"required"`
+	Total int               `json:"total" binding:"required"`
 }
 
 // OrganizationListResponse is the paginated list envelope for organizations.
 type OrganizationListResponse struct {
-	Items []models.Organization `json:"items"`
-	Total int                   `json:"total"`
+	Items []models.Organization `json:"items" binding:"required"`
+	Total int                   `json:"total" binding:"required"`
 }
 
 // UserListResponse is the paginated list envelope for users.
 type UserListResponse struct {
-	Items []models.User `json:"items"`
-	Total int           `json:"total"`
+	Items []models.User `json:"items" binding:"required"`
+	Total int           `json:"total" binding:"required"`
 }
 
 // ProjectMemberResponse is one row in the project members tab.
@@ -57,7 +63,7 @@ type ProjectMemberResponse = store.ProjectMember
 // MEMBER when no project_roles row exists).
 type AllocationMembershipResponse struct {
 	models.ComputeAllocationMembership
-	Role        string `json:"role"`
+	Role        string `json:"role" binding:"required"`
 	DisplayName string `json:"display_name,omitempty"`
 	Email       string `json:"email,omitempty"`
 }
@@ -65,35 +71,35 @@ type AllocationMembershipResponse struct {
 // ClusterAccountResponse is a cluster user with the user's name and email and the cluster name, for the review list.
 type ClusterAccountResponse struct {
 	models.ComputeClusterUser
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
-	ClusterName string `json:"cluster_name"`
+	DisplayName string `json:"display_name" binding:"required"`
+	Email       string `json:"email" binding:"required"`
+	ClusterName string `json:"cluster_name" binding:"required"`
 }
 
 // ClusterAccountListResponse is the paginated list envelope for cluster accounts.
 type ClusterAccountListResponse struct {
-	Items []ClusterAccountResponse `json:"items"`
-	Total int                      `json:"total"`
+	Items []ClusterAccountResponse `json:"items" binding:"required"`
+	Total int                      `json:"total" binding:"required"`
 }
 
 // ComputeAllocationListResponse is the paginated list envelope for compute
 // allocations.
 type ComputeAllocationListResponse struct {
-	Items []models.ComputeAllocation `json:"items"`
-	Total int                        `json:"total"`
+	Items []models.ComputeAllocation `json:"items" binding:"required"`
+	Total int                        `json:"total" binding:"required"`
 }
 
 // AllocationSUTotalResponse is the response for total SUs consumed on an
 // allocation.
 type AllocationSUTotalResponse struct {
-	ComputeAllocationID string `json:"compute_allocation_id"`
-	TotalSUAmount       int64  `json:"total_su_amount"`
+	ComputeAllocationID string `json:"compute_allocation_id" binding:"required"`
+	TotalSUAmount       int64  `json:"total_su_amount" binding:"required"`
 }
 
 // UserAllocationSUTotalResponse is the response for SUs consumed by one user
 // on one allocation.
 type UserAllocationSUTotalResponse struct {
-	ComputeAllocationID string `json:"compute_allocation_id"`
-	UserID              string `json:"user_id"`
-	TotalSUAmount       int64  `json:"total_su_amount"`
+	ComputeAllocationID string `json:"compute_allocation_id" binding:"required"`
+	UserID              string `json:"user_id" binding:"required"`
+	TotalSUAmount       int64  `json:"total_su_amount" binding:"required"`
 }

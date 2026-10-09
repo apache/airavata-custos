@@ -23,6 +23,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // packetSource is the fixed source label until multi-source ingestion lands.
@@ -30,51 +31,57 @@ const packetSource = "access"
 
 // PacketResponse is the wire shape for an AMIE packet.
 type PacketResponse struct {
-	ID          string  `json:"id"`
-	AmieID      string  `json:"amie_id"`
-	Type        string  `json:"type"`
-	Status      string  `json:"status"`
-	Source      string  `json:"source"`
+	ID          string  `json:"id" binding:"required"`
+	AmieID      string  `json:"amie_id" binding:"required"`
+	Type        string  `json:"type" binding:"required"`
+	Status      string  `json:"status" binding:"required" enums:"NEW,DECODED,PROCESSED,FAILED,WAITING_APPROVAL,REFUSED"`
+	Source      string  `json:"source" binding:"required"`
 	RawJSON     *string `json:"raw_json,omitempty"`
-	ReceivedAt  string  `json:"received_at"`
-	UpdatedAt   string  `json:"updated_at"`
+	ReceivedAt  string  `json:"received_at" binding:"required"`
+	UpdatedAt   string  `json:"updated_at" binding:"required"`
 	DecodedAt   *string `json:"decoded_at,omitempty"`
 	ProcessedAt *string `json:"processed_at,omitempty"`
-	Retries     int     `json:"retries"`
+	Retries     int     `json:"retries" binding:"required"`
 	LastError   *string `json:"last_error,omitempty"`
 }
 
 // PacketListResponse is the paginated list envelope for packets.
 type PacketListResponse struct {
-	Packets []PacketResponse `json:"packets"`
-	Total   int              `json:"total"`
-	Limit   int              `json:"limit"`
-	Offset  int              `json:"offset"`
+	Packets []PacketResponse `json:"packets" binding:"required"`
+	Total   int              `json:"total" binding:"required"`
+	Limit   int              `json:"limit" binding:"required"`
+	Offset  int              `json:"offset" binding:"required"`
 }
 
 // PacketEventResponse is the wire shape for a packet processing event.
 type PacketEventResponse struct {
-	ID         string  `json:"id"`
-	PacketID   string  `json:"packet_id"`
-	EventType  string  `json:"event_type"`
-	Actor      string  `json:"actor"`
-	Status     string  `json:"status"`
+	ID         string  `json:"id" binding:"required"`
+	PacketID   string  `json:"packet_id" binding:"required"`
+	EventType  string  `json:"event_type" binding:"required" enums:"RECEIVED,DECODED,HANDLED,FAILED,RETRY,RETRY_SCHEDULED,MANUAL_RESOLVE,MANUAL_LINK"`
+	Actor      string  `json:"actor" binding:"required"`
+	Status     string  `json:"status" binding:"required" enums:"SUCCEEDED,RUNNING,FAILED"`
 	Message    *string `json:"message,omitempty"`
-	Timestamp  string  `json:"timestamp"`
+	Timestamp  string  `json:"timestamp" binding:"required"`
 	DurationMs *int64  `json:"duration_ms,omitempty"`
+}
+
+// PacketAuditsResponse is the audit trail of one packet.
+type PacketAuditsResponse struct {
+	PacketID string              `json:"packet_id" binding:"required"`
+	Events   []models.TraceEvent `json:"events" binding:"required"`
 }
 
 // PacketStatBucketResponse is a single (date, status, type) cell in the stats grid.
 type PacketStatBucketResponse struct {
-	Date   string `json:"date"`
-	Status string `json:"status"`
-	Type   string `json:"type"`
-	Count  int64  `json:"count"`
+	Date   string `json:"date" binding:"required"`
+	Status string `json:"status" binding:"required" enums:"NEW,DECODED,PROCESSED,FAILED,WAITING_APPROVAL,REFUSED"`
+	Type   string `json:"type" binding:"required"`
+	Count  int64  `json:"count" binding:"required"`
 }
 
 // PacketStatsResponse is the per-day packet stats payload.
 type PacketStatsResponse struct {
-	ByDay []PacketStatBucketResponse `json:"byDay"`
+	ByDay []PacketStatBucketResponse `json:"byDay" binding:"required"`
 }
 
 // packetResponseFrom maps a stored Packet to its wire shape.

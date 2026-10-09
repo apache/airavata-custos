@@ -15,17 +15,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Privilege } from "@/features/core/identity/types";
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 
 declare module "next-auth" {
   interface Session {
     accessToken?: string | null;
     idToken?: string | null;
-    privileges?: Privilege[];
+    privileges?: PrivilegeKey[];
     // Unset when the sign-in matches no Custos user.
     custosUserId?: string;
   }
-  interface User {
-    privileges?: Privilege[];
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+    idToken?: string;
+    privileges?: PrivilegeKey[];
+    custosUserId?: string;
   }
 }

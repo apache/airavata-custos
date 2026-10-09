@@ -18,75 +18,32 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
 import { FailedQueue } from "@/features/connectors/amie/components/FailedQueue";
 import { PacketDetailDrawer } from "@/features/connectors/amie/components/PacketDetailDrawer";
-import {
-  usePacket,
-  usePacketEvents,
-  usePackets,
-  useResolvePacket,
-  useRetryPacket,
-} from "@/features/connectors/amie/queries";
-import type { Packet } from "@/features/connectors/amie/types";
-import { pluralize } from "@/features/connectors/amie/utils";
+import { usePackets } from "@/features/connectors/amie/queries";
+import { usePageClamp } from "@/shared/hooks/usePageClamp";
+import { usePacketActions } from "../usePacketActions";
 
-function failedOver24h(rows: Packet[]): number {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  return rows.filter((r) => {
-    const t = Date.parse(r.received_at);
-    return !Number.isNaN(t) && t < cutoff;
-  }).length;
-}
+const PAGE_SIZE = 50;
 
 export function FailedQueueContainer() {
-  const failedQuery = usePackets({ status: "FAILED", limit: 100 });
+  const [page, setPage] = React.useState(1);
+  const failedQuery = usePackets({
+    status: "FAILED",
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  });
+  // Computed once per mount so the query key stays stable.
+  const [over24hCutoff] = React.useState(() => new Date(Date.now() - 24 * 3600_000).toISOString());
+  const over24hQuery = usePackets({ status: "FAILED", to: over24hCutoff, limit: 1 });
   const rows = failedQuery.data?.packets ?? [];
   const total = failedQuery.data?.total ?? 0;
+  // Retried and resolved packets leave the queue.
+  usePageClamp(page, setPage, failedQuery.data?.total, PAGE_SIZE);
 
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const actions = usePacketActions(() => setSelected(new Set()));
   const [drawerId, setDrawerId] = React.useState<string | undefined>(undefined);
-
-  const detailQuery = usePacket(drawerId);
-  const eventsQuery = usePacketEvents(drawerId);
-  const retryMutation = useRetryPacket();
-  const resolveMutation = useResolvePacket();
-
-  async function handleRetry(id: string) {
-    try {
-      await retryMutation.mutateAsync(id);
-      toast.success("Retry queued");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Retry failed");
-    }
-  }
-
-  async function handleResolveRow(packet: Packet) {
-    const reason = window.prompt(`Resolve ${packet.amie_id} — reason?`);
-    if (!reason || reason.trim().length < 3) return;
-    try {
-      await resolveMutation.mutateAsync({ id: packet.id, reason: reason.trim() });
-      toast.success(`Resolved ${packet.amie_id}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Resolve failed");
-    }
-  }
-
-  async function handleBulkRetry() {
-    const ids = Array.from(selected);
-    let queued = 0;
-    for (const id of ids) {
-      try {
-        await retryMutation.mutateAsync(id);
-        queued += 1;
-      } catch {
-        // continue
-      }
-    }
-    toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
-    setSelected(new Set());
-    failedQuery.refetch();
-  }
 
   return (
     <>
@@ -95,42 +52,23 @@ export function FailedQueueContainer() {
         total={total}
         isLoading={failedQuery.isLoading}
         error={failedQuery.error}
-        failedOver24h={failedOver24h(rows)}
+        failedOver24h={over24hQuery.data?.total ?? 0}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onRowClick={(p) => setDrawerId(p.id)}
+        onPageChange={(next) => {
+          setPage(next);
+          setSelected(new Set());
+        }}
+        onRefresh={() => failedQuery.refetch()}
         selected={selected}
         onSelectChange={setSelected}
-        onRowClick={(p) => setDrawerId(p.id)}
-        onRetryRow={handleRetry}
-        onResolveRow={handleResolveRow}
-        onBulkRetry={handleBulkRetry}
-        onRefresh={() => failedQuery.refetch()}
+        {...actions}
       />
       <PacketDetailDrawer
-        open={drawerId != null}
-        onOpenChange={(open) => {
-          if (!open) setDrawerId(undefined);
-        }}
-        packet={detailQuery.data}
-        events={eventsQuery.data ?? []}
-        isLoading={detailQuery.isLoading}
-        eventsLoading={eventsQuery.isLoading}
-        error={detailQuery.error}
-        canRetry
-        canResolve
-        onRetry={() => detailQuery.data && handleRetry(detailQuery.data.id)}
-        onResolve={(reason) =>
-          detailQuery.data
-            ? resolveMutation
-                .mutateAsync({ id: detailQuery.data.id, reason })
-                .then(() => toast.success("Packet resolved"))
-                .catch((err: unknown) =>
-                  toast.error(err instanceof Error ? err.message : "Resolve failed"),
-                )
-            : undefined
-        }
-        onRefresh={() => {
-          detailQuery.refetch();
-          eventsQuery.refetch();
-        }}
+        packetId={drawerId}
+        onClose={() => setDrawerId(undefined)}
+        {...actions}
       />
     </>
   );

@@ -15,24 +15,26 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export type PermissionKey = string;
-
-type PermissionParts = {
-  section: string;
-  action: string;
-};
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 
 const ACTION_ORDER = ["read", "write", "grant", "manage"];
 
-function splitPermission(key: PermissionKey): PermissionParts {
+// Read and write chips get their own tones; other verbs (grant, manage) the accent tone.
+export const actionChipClass = (action: string) =>
+  ({
+    read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
+    write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+  })[action] ?? "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
+
+function splitPermission(key: PrivilegeKey) {
   const parts = key.split(":");
   const action = parts.pop() ?? key;
   return { section: parts.join(":") || key, action };
 }
 
 export function permissionRowsFor(
-  permissions: PermissionKey[],
-  catalog: readonly PermissionKey[] = permissions,
+  permissions: PrivilegeKey[],
+  catalog: readonly PrivilegeKey[] = permissions,
 ) {
   const held = new Set(permissions);
   const keys = Array.from(new Set([...catalog, ...permissions])).sort();
@@ -40,7 +42,7 @@ export function permissionRowsFor(
     string,
     {
       section: string;
-      actions: Array<{ action: string; key: PermissionKey; active: boolean }>;
+      actions: Array<{ action: string; key: PrivilegeKey; active: boolean }>;
     }
   >();
 
@@ -57,49 +59,32 @@ export function permissionRowsFor(
       const ai = ACTION_ORDER.indexOf(a.action);
       const bi = ACTION_ORDER.indexOf(b.action);
       if (ai !== bi) {
-        return (
-          (ai === -1 ? ACTION_ORDER.length : ai) -
-          (bi === -1 ? ACTION_ORDER.length : bi)
-        );
+        return (ai === -1 ? ACTION_ORDER.length : ai) - (bi === -1 ? ACTION_ORDER.length : bi);
       }
       return a.action.localeCompare(b.action);
     }),
   }));
 }
 
-export function rwStateFor(permissions: PermissionKey[], catalog?: readonly PermissionKey[]) {
-  return permissionRowsFor(permissions, catalog).map((row) => ({
-    section: row.section,
-    read: row.actions.some((a) => a.action === "read" && a.active),
-    write: row.actions.some((a) => a.action === "write" && a.active),
-  }));
+export function toggleId(ids: ReadonlySet<string>, id: string): Set<string> {
+  const next = new Set(ids);
+  if (!next.delete(id)) next.add(id);
+  return next;
 }
 
 // Write implies read (you can't write what you can't read), so granting
-// write also grants read, and revoking read also revokes write.
-export function togglePermission(permissions: PermissionKey[], key: PermissionKey): PermissionKey[] {
-  const held = new Set(permissions);
+// write also grants its catalog read key, and revoking read also revokes write.
+export function togglePermission(
+  permissions: PrivilegeKey[],
+  key: PrivilegeKey,
+  catalog: readonly PrivilegeKey[],
+): PrivilegeKey[] {
   const { action } = splitPermission(key);
-  const isRead = action === "read";
-  const isWrite = action === "write";
-  const pairedKey = (
-    isRead ? key.replace(/:read$/, ":write") : key.replace(/:write$/, ":read")
-  ) as PermissionKey;
-
-  if (held.has(key)) {
-    held.delete(key);
-    if (isRead) held.delete(pairedKey);
-  } else {
-    held.add(key);
-    if (isWrite) held.add(pairedKey);
+  const paired =
+    action === "read" ? key.replace(/:read$/, ":write") : key.replace(/:write$/, ":read");
+  if (permissions.includes(key)) {
+    return permissions.filter((k) => k !== key && (action !== "read" || k !== paired));
   }
-  return Array.from(held);
-}
-
-// A user's effective permissions are the union of everything granted by
-// each role they hold.
-export function permissionsFromRoles(
-  roles: Array<{ permissions: PermissionKey[] }>,
-): PermissionKey[] {
-  return Array.from(new Set(roles.flatMap((r) => r.permissions)));
+  const read = action === "write" ? catalog.filter((k) => k === paired) : [];
+  return Array.from(new Set([...permissions, key, ...read]));
 }

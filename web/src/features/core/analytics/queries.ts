@@ -17,52 +17,51 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import {
+  getConnectorsAnalyticsAllocationsByIdJobs,
+  getConnectorsAnalyticsAllocationsByIdUsageSummary,
+  getConnectorsAnalyticsContexts,
+} from "@/generated/analytics/sdk.gen";
+import type { GetConnectorsAnalyticsAllocationsByIdJobsData } from "@/generated/analytics/types.gen";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getAllocationJobs, getAnalyticsContexts, getUsageSummary, type JobsParams } from "./api";
 
 export const analyticsKeys = {
   all: ["analytics"] as const,
   contexts: () => [...analyticsKeys.all, "contexts"] as const,
   summary: (allocationId: string) => [...analyticsKeys.all, "summary", allocationId] as const,
-  jobs: (allocationId: string, params: JobsParams) =>
-    [...analyticsKeys.all, "jobs", allocationId, params] as const,
+  jobs: (
+    allocationId: string,
+    query: GetConnectorsAnalyticsAllocationsByIdJobsData["query"],
+  ) => [...analyticsKeys.all, "jobs", allocationId, query] as const,
 };
-
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
 
 export function useAnalyticsContexts() {
   const { status } = useSession();
   return useQuery({
     queryKey: analyticsKeys.contexts(),
-    queryFn: getAnalyticsContexts,
+    queryFn: () => getConnectorsAnalyticsContexts(),
     enabled: status === "authenticated",
-    ...DEFAULTS,
   });
 }
 
 export function useUsageSummary(allocationId: string | undefined) {
   return useQuery({
-    queryKey: allocationId
-      ? analyticsKeys.summary(allocationId)
-      : [...analyticsKeys.all, "summary", "none"],
-    queryFn: () => getUsageSummary(allocationId as string),
-    enabled: Boolean(allocationId),
-    ...DEFAULTS,
+    queryKey: analyticsKeys.summary(allocationId ?? ""),
+    queryFn: allocationId
+      ? () => getConnectorsAnalyticsAllocationsByIdUsageSummary({ path: { id: allocationId } })
+      : skipToken,
   });
 }
 
-export function useAllocationJobs(allocationId: string | undefined, params: JobsParams) {
+export function useAllocationJobs(
+  allocationId: string | undefined,
+  query: GetConnectorsAnalyticsAllocationsByIdJobsData["query"],
+) {
   return useQuery({
-    queryKey: allocationId
-      ? analyticsKeys.jobs(allocationId, params)
-      : [...analyticsKeys.all, "jobs", "none"],
-    queryFn: () => getAllocationJobs(allocationId as string, params),
-    enabled: Boolean(allocationId),
-    ...DEFAULTS,
+    queryKey: analyticsKeys.jobs(allocationId ?? "", query),
+    queryFn: allocationId
+      ? () => getConnectorsAnalyticsAllocationsByIdJobs({ path: { id: allocationId }, query })
+      : skipToken,
   });
 }

@@ -24,11 +24,6 @@ import { useCurrentUser } from "@/features/core/identity/queries";
 export function ChangeRequestQueueContainer() {
   const ability = useAbility();
   const { user } = useCurrentUser();
-  const canApprove = ability.can("manage", "Allocation");
-  return (
-    <ChangeRequestApproverQueue
-      canApprove={canApprove}
-      approverId={user?.id ?? "anonymous"}
-    />
-  );
+  const canApprove = ability.can("write", "Allocation");
+  return <ChangeRequestApproverQueue canApprove={canApprove} approverId={user?.id} />;
 }

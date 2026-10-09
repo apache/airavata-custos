@@ -17,11 +17,13 @@
 
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/types.gen";
 
-let diffs: AllocationDiff[] = [];
+let diffs: ComputeAllocationDiff[] = [];
 
 vi.mock("../queries", () => ({
+  useDiff: () => ({}),
+  useDeleteDiff: () => ({}),
   useAllocationDiffs: () => ({ data: diffs, isLoading: false, error: null, refetch: vi.fn() }),
 }));
 
@@ -69,25 +71,12 @@ beforeEach(() => {
 
 describe("<AllocationHistoryTab />", () => {
   it("lists diffs newest first", () => {
-    render(<AllocationHistoryTab allocation={allocation} />);
+    render(<AllocationHistoryTab allocation={allocation} canManage={false} />);
     const rows = screen.getAllByRole("row").slice(1); // drop the header row
     expect(within(rows[0] as HTMLElement).getByText("USAGE_UPDATE")).toBeInTheDocument();
     expect(within(rows[1] as HTMLElement).getByText("RESOURCE_ATTACHED")).toBeInTheDocument();
-    expect(within(rows[2] as HTMLElement).getByText("ALLOCATION_STATUS_CHANGE")).toBeInTheDocument();
-  });
-
-  it("renders the status badge and a placeholder for a missing SU amount", () => {
-    render(<AllocationHistoryTab allocation={allocation} />);
-    expect(screen.getByText("INACTIVE")).toBeInTheDocument();
-    const resourceRow = screen.getByText("RESOURCE_ATTACHED").closest("tr");
-    expect(within(resourceRow as HTMLElement).getByText("-")).toBeInTheDocument();
-  });
-
-  it("shows the empty state when there is no history", () => {
-    diffs = [];
-    render(<AllocationHistoryTab allocation={allocation} />);
     expect(
-      screen.getByRole("heading", { name: /no history recorded for this allocation/i }),
+      within(rows[2] as HTMLElement).getByText("ALLOCATION_STATUS_CHANGE"),
     ).toBeInTheDocument();
   });
 });

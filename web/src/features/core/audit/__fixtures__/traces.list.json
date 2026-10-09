@@ -7,7 +7,13 @@
       "status": "error",
       "started_at": "2026-06-08T14:21:32.412Z",
       "ended_at": "2026-06-08T14:21:33.612Z",
-      "event_count": 14
+      "event_count": 14,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "attempts": 0
+      }
     },
     {
       "trace_id": "b4c2da3e405f6b7c8d9e0f1234567890",
@@ -16,7 +22,13 @@
       "status": "ok",
       "started_at": "2026-06-08T14:19:01.000Z",
       "ended_at": "2026-06-08T14:19:02.250Z",
-      "event_count": 10
+      "event_count": 10,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "attempts": 0
+      }
     },
     {
       "trace_id": "c5d3eb4f516a7b8c9d0e1f2345678901",
@@ -25,7 +37,13 @@
       "status": "ok",
       "started_at": "2026-06-08T14:15:30.000Z",
       "ended_at": "2026-06-08T14:15:30.042Z",
-      "event_count": 3
+      "event_count": 3,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "attempts": 0
+      }
     },
     {
       "trace_id": "d6e4fc5062716c7d8e9f02345678abcd",
@@ -33,8 +51,14 @@
       "source": "comanage",
       "status": "in_progress",
       "started_at": "2026-06-08T14:10:00.000Z",
-      "ended_at": "0001-01-01T00:00:00Z",
-      "event_count": 2
+      "ended_at": "2026-06-08T14:10:00.000Z",
+      "event_count": 2,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "attempts": 0
+      }
     },
     {
       "trace_id": "e7f50d617382b7c8d9e0f1234567abef",
@@ -43,7 +67,13 @@
       "status": "ok",
       "started_at": "2026-06-04T10:01:00.000Z",
       "ended_at": "2026-06-04T10:01:00.180Z",
-      "event_count": 4
+      "event_count": 4,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "attempts": 0
+      }
     }
   ],
   "total": 5,

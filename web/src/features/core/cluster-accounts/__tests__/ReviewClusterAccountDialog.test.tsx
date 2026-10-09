@@ -17,11 +17,10 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import fixture from "../__fixtures__/cluster-accounts.json";
+import { clusterAccounts } from "@/mocks/handlers/clusters";
 import { ReviewClusterAccountDialog } from "../components/ReviewClusterAccountDialog";
-import type { ClusterAccount } from "../schemas";
 
-const pending = (fixture as ClusterAccount[])[0] as ClusterAccount;
+const [pending = null] = clusterAccounts;
 
 describe("ReviewClusterAccountDialog", () => {
   // Make sure the denial passes the typed reason through, since it ends up in

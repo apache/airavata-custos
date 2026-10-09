@@ -17,8 +17,11 @@
 
 "use client";
 
+import type { User } from "@/generated/core/types.gen";
 import { useState } from "react";
 import { Lock, Pencil } from "lucide-react";
+import { toastOnSuccess } from "@/shared/ui/sonner";
+import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -26,9 +29,8 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { useUpdateMyName } from "../queries";
-import type { UserProfile } from "../schemas";
 
-function displayName(user: UserProfile): string {
+function displayName(user: User): string {
   const full = [user.first_name, user.middle_name, user.last_name]
     .filter(Boolean)
     .join(" ")
@@ -36,20 +38,13 @@ function displayName(user: UserProfile): string {
   return full || user.email || "Unknown user";
 }
 
-function initials(user: UserProfile): string {
+function initials(user: User): string {
   const source = displayName(user);
   const parts = source.split(/\s+/).filter(Boolean);
   const first = parts.at(0) ?? source;
   const last = parts.at(-1) ?? "";
   const chars = parts.length >= 2 ? `${first.charAt(0)}${last.charAt(0)}` : source.slice(0, 2);
   return chars.toUpperCase();
-}
-
-function formatDate(iso?: string): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -63,28 +58,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function ProfileCard({ user }: { user: UserProfile }) {
+export function ProfileCard({ user }: { user: User }) {
   const [editing, setEditing] = useState(false);
-  const [first, setFirst] = useState(user.first_name ?? "");
+  const [first, setFirst] = useState(user.first_name);
   const [middle, setMiddle] = useState(user.middle_name ?? "");
-  const [last, setLast] = useState(user.last_name ?? "");
-  const update = useUpdateMyName(user.id);
+  const [last, setLast] = useState(user.last_name);
+  const update = useUpdateMyName();
+  const canEdit = useAbility().can("write", "User");
 
   function openEdit() {
-    setFirst(user.first_name ?? "");
+    setFirst(user.first_name);
     setMiddle(user.middle_name ?? "");
-    setLast(user.last_name ?? "");
+    setLast(user.last_name);
     setEditing(true);
   }
 
   function onSave() {
     update.mutate(
-      { first_name: first, middle_name: middle, last_name: last },
-      { onSuccess: () => setEditing(false) },
+      {
+        path: { id: user.id },
+        body: { first_name: first.trim(), middle_name: middle.trim(), last_name: last.trim() },
+      },
+      toastOnSuccess("Profile updated", () => setEditing(false)),
     );
   }
-
-  const memberSince = formatDate(undefined);
 
   return (
     <Card className="gap-0 divide-y divide-border py-0">
@@ -98,10 +95,12 @@ export function ProfileCard({ user }: { user: UserProfile }) {
         </div>
         <div className="ml-auto flex items-center gap-3">
           {user.status === "ACTIVE" ? <StatusBadge variant="active" /> : null}
-          <Button variant="outline" size="sm" onClick={openEdit} disabled={editing}>
-            <Pencil className="h-3.5 w-3.5" />
-            Edit name
-          </Button>
+          {canEdit ? (
+            <Button variant="outline" size="sm" onClick={openEdit} disabled={editing}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit name
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -122,7 +121,8 @@ export function ProfileCard({ user }: { user: UserProfile }) {
               <Input
                 id="settings-middle-name"
                 className="mt-1"
-                placeholder="Optional"
+                // The backend keeps the stored value for a blank field.
+                placeholder={user.middle_name ? "Leave blank to keep current" : "Optional"}
                 value={middle}
                 onChange={(e) => setMiddle(e.target.value)}
               />
@@ -138,7 +138,12 @@ export function ProfileCard({ user }: { user: UserProfile }) {
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2">
-            <Button variant="brand" size="sm" onClick={onSave} disabled={update.isPending}>
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={onSave}
+              disabled={update.isPending || !first.trim() || !last.trim()}
+            >
               {update.isPending ? "Saving…" : "Save"}
             </Button>
             <Button
@@ -159,10 +164,9 @@ export function ProfileCard({ user }: { user: UserProfile }) {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 px-6 py-5">
         <Field label="Username">
-          <span className="font-mono text-[13px]">{user.email?.split("@")[0] ?? "—"}</span>
+          <span className="font-mono text-[13px]">{user.email.split("@")[0] ?? "—"}</span>
         </Field>
-        <Field label="Organization">{user.organization_id ?? "—"}</Field>
-        <Field label="Member since">{memberSince ?? "—"}</Field>
+        <Field label="Organization">{user.organization_id || "—"}</Field>
       </div>
     </Card>
   );

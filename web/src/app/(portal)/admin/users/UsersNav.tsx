@@ -34,7 +34,7 @@ const TABS = [
   {
     href: "/admin/users/roles",
     label: "Role Management",
-    ability: { action: "manage", subject: "Role" } as const,
+    ability: { action: "write", subject: "Role" } as const,
   },
 ] as const;
 

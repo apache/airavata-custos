@@ -49,9 +49,9 @@ func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 // CallerRoleGrant is a role held by the caller, together with the privileges
 // it grants and when it was granted.
 type CallerRoleGrant struct {
-	Role       models.Role           `json:"role"`
-	Privileges []models.PrivilegeKey `json:"privileges"`
-	GrantedAt  time.Time             `json:"granted_at"`
+	Role       models.Role           `json:"role" binding:"required"`
+	Privileges []models.PrivilegeKey `json:"privileges" extensions:"x-nullable"`
+	GrantedAt  time.Time             `json:"granted_at" binding:"required"`
 }
 
 // CallerProfileResponse bundles the caller's user row with the effective

@@ -18,12 +18,27 @@
 import { http, HttpResponse } from "msw";
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import type { ComputeAllocationResource, Rate } from "@/features/core/resources/schemas";
+import type {
+  ComputeAllocationResource,
+  ComputeAllocationResourceRate,
+  GetComputeAllocationResourcesByIdRatesData,
+  GetComputeAllocationResourcesByIdRatesEffectiveData,
+  PostComputeAllocationResourceRatesData,
+} from "@/generated/core/types.gen";
+import {
+  zComputeAllocationResource,
+  zComputeAllocationResourceRate,
+} from "@/generated/core/zod.gen";
+import { z } from "zod";
 
-const resources = resourcesFixture as ComputeAllocationResource[];
-const rates = ratesFixture as Rate[];
+const resources: ComputeAllocationResource[] = z
+  .array(zComputeAllocationResource)
+  .parse(resourcesFixture);
+const rates: ComputeAllocationResourceRate[] = z
+  .array(zComputeAllocationResourceRate)
+  .parse(ratesFixture);
 
-function ratesFor(resourceId: string): Rate[] {
+function ratesFor(resourceId: string | undefined): ComputeAllocationResourceRate[] {
   return rates.filter((r) => r.compute_allocation_resource_id === resourceId);
 }
 
@@ -43,7 +58,7 @@ export const resourcesHandlers = [
     HttpResponse.json(
       resources.map((r) => ({
         ...r,
-        ...(ALLOCATION_AGGREGATES[r.id] ?? {
+        ...(ALLOCATION_AGGREGATES[r.id ?? ""] ?? {
           allocation_count: 0,
           total_allocated: 0,
           total_used_su: 0,
@@ -53,32 +68,30 @@ export const resourcesHandlers = [
     ),
   ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates/effective", ({ params, request }) => {
-    const id = String(params.id);
-    const at = new URL(request.url).searchParams.get("at");
-    const now = at ? new Date(at).getTime() : Date.now();
-    const active = ratesFor(id).find(
-      (r) => now >= new Date(r.start_time).getTime() && now < new Date(r.end_time).getTime(),
-    );
-    if (!active) return HttpResponse.json({ error: "no effective rate" }, { status: 404 });
-    return HttpResponse.json(active);
-  }),
+  http.get<GetComputeAllocationResourcesByIdRatesEffectiveData["path"]>(
+    "*/api/v1/compute-allocation-resources/:id/rates/effective",
+    ({ params, request }) => {
+      const at = new URL(request.url).searchParams.get("at");
+      const now = at ? Date.parse(at) : Date.now();
+      const active = ratesFor(params.id).find(
+        (r) => now >= Date.parse(r.start_time ?? "") && now < Date.parse(r.end_time ?? ""),
+      );
+      if (!active) return HttpResponse.json({ error: "no effective rate" }, { status: 404 });
+      return HttpResponse.json(active);
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(ratesFor(id));
-  }),
+  http.get<GetComputeAllocationResourcesByIdRatesData["path"]>(
+    "*/api/v1/compute-allocation-resources/:id/rates",
+    ({ params }) => HttpResponse.json(ratesFor(params.id)),
+  ),
 
-  http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
-    const body = (await request.json()) as Partial<Rate>;
-    const created: Rate = {
-      id: `rate-${Date.now()}`,
-      compute_allocation_resource_id: String(body.compute_allocation_resource_id),
-      rate: Number(body.rate),
-      start_time: String(body.start_time),
-      end_time: String(body.end_time),
-    };
-    rates.push(created);
-    return HttpResponse.json(created, { status: 201 });
-  }),
+  http.post<never, PostComputeAllocationResourceRatesData["body"]>(
+    "*/api/v1/compute-allocation-resource-rates",
+    async ({ request }) => {
+      const created = { ...(await request.json()), id: `rate-${Date.now()}` };
+      rates.push(created);
+      return HttpResponse.json(created, { status: 201 });
+    },
+  ),
 ];

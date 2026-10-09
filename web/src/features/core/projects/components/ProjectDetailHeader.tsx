@@ -17,25 +17,14 @@
 
 "use client";
 
-import { Building2, Calendar, UserSquare } from "lucide-react";
+import { formatDate } from "@/shared/format";
+import type { ProjectResponse } from "@/generated/core/types.gen";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { Project } from "../schemas";
+import { Building2, Calendar, UserSquare } from "lucide-react";
 
 export type ProjectDetailHeaderProps = {
-  project: Project;
+  project: ProjectResponse;
 };
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 export function ProjectDetailHeader({ project }: ProjectDetailHeaderProps) {
   const tone: "success" | "warning" | "danger" =
@@ -48,9 +37,17 @@ export function ProjectDetailHeader({ project }: ProjectDetailHeaderProps) {
       <div className="flex flex-wrap items-center gap-3">
         <MetaItem variant="status" tone={tone} value={project.status} className="py-1.5" />
         <MetaRow>
-          <MetaItem icon={UserSquare} label="PI" value={project.project_pi_display_name ?? project.project_pi_id} />
+          <MetaItem
+            icon={UserSquare}
+            label="PI"
+            value={project.project_pi_display_name ?? project.project_pi_id}
+          />
           <MetaItem icon={Building2} label="Origination" value={project.origination} />
-          <MetaItem icon={Calendar} label="Created" value={formatDate(project.created_time)} />
+          <MetaItem
+            icon={Calendar}
+            label="Created"
+            value={formatDate(project.created_time)}
+          />
         </MetaRow>
       </div>
     </header>

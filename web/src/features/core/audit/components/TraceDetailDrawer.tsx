@@ -20,11 +20,15 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { AlertTriangle, RefreshCw, X } from "lucide-react";
 import * as React from "react";
+import { useDelivery, useRetryDelivery } from "@/features/core/events/queries";
+import type { TraceEvent, TraceSummary } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
-import { replaceShallowSearchParams } from "@/shared/hooks/useShallowSearchParams";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { setSearchParam } from "@/shared/hooks/useShallowSearchParams";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { confirmToast, toastOnSuccess } from "@/shared/ui/sonner";
 import { TabsRouter, type TabsRouterTab } from "@/shared/ui/TabsRouter";
 import {
   Tooltip,
@@ -33,14 +37,7 @@ import {
   TooltipTrigger,
 } from "@/shared/ui/tooltip";
 import { useTrace } from "../queries";
-import type { Span, Trace } from "../types";
-import {
-  detectErrorPath,
-  enrichSpan,
-  isCodeShaped,
-  shortHex,
-  traceTone,
-} from "../utils";
+import { detectErrorPath, isCodeShaped, shortHex, traceTone } from "../utils";
 import { CopyValue } from "./primitives/CopyValue";
 import { StatusPill } from "./primitives/StatusPill";
 import { TraceLinkedEntitiesTab } from "./TraceLinkedEntitiesTab";
@@ -57,8 +54,6 @@ export type TraceDetailDrawerProps = {
   initialTab?: TraceDetailDrawerTab;
 };
 
-const RETRY_TOOLTIP =
-  "Retry coming soon. When enabled, retry will replay the correlated event under a new trace, linked to this one. Preview the original payload in Overview.";
 
 function HeaderSkeleton() {
   return (
@@ -84,32 +79,11 @@ function BodySkeleton() {
   );
 }
 
-// Resolve the first error leaf's action to append after the error summary.
-// Only meaningful for error-toned traces.
-function failingActionFor(spans: Span[] | undefined): string | null {
-  if (!spans || spans.length === 0) return null;
-  const byId = new Map<string, Span>(spans.map((s) => [s.span_id, s]));
-  const enriched = spans.map((s) =>
-    enrichSpan(s, byId, s.parent_span_id ? byId.get(s.parent_span_id)?.status === 1 : false),
-  );
-  const { errorLeafIds } = detectErrorPath(enriched);
-  const leafId = errorLeafIds[0];
-  if (!leafId) return null;
-  const leaf = byId.get(leafId);
-  return leaf?.name ?? null;
-}
-
-function deriveErrorSummary(trace: Trace): string | null {
-  const ev = trace.root_event as
-    | { error?: unknown; status_message?: unknown; description?: unknown }
-    | null
-    | undefined;
-  if (ev && typeof ev === "object") {
-    if (typeof ev.error === "string" && ev.error) return ev.error;
-    if (typeof ev.status_message === "string" && ev.status_message) return ev.status_message;
-    if (typeof ev.description === "string" && ev.description) return ev.description;
-  }
-  return null;
+// The first error leaf: its description is the error summary, its action the
+// "at span" suffix.
+function failingSpanFor(spans: TraceEvent[]): TraceEvent | undefined {
+  const [leafId] = detectErrorPath(spans).errorLeafIds;
+  return spans.find((s) => s.span_id === leafId);
 }
 
 export function TraceDetailDrawer({
@@ -122,20 +96,6 @@ export function TraceDetailDrawer({
   const { data, isLoading, error, refetch } = useTrace(open && traceId ? traceId : undefined);
 
   const trace = data?.trace;
-  const spans = React.useMemo(() => data?.spans ?? [], [data]);
-  const tone = trace ? traceTone(trace) : null;
-  const isInProgress = tone === "in-progress";
-  const isError = tone === "error";
-
-  const failingAction = React.useMemo(
-    () => (isError ? failingActionFor(spans) : null),
-    [isError, spans],
-  );
-
-  const errorSummary = React.useMemo(
-    () => (trace && isError ? deriveErrorSummary(trace) : null),
-    [trace, isError],
-  );
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(v) => !v && onClose()}>
@@ -184,21 +144,17 @@ export function TraceDetailDrawer({
               </div>
               <div className="flex-1 px-6 py-10">
                 <ErrorState
-                  message={(error as Error).message ?? "Could not load trace."}
+                  message={error.message || "Could not load trace."}
                   onRetry={() => refetch()}
                   retryLabel="Retry"
                 />
               </div>
             </div>
-          ) : trace ? (
+          ) : data?.trace ? (
             <DrawerContent
-              trace={trace}
-              spans={spans}
-              tone={tone}
-              isInProgress={isInProgress}
-              isError={isError}
-              errorSummary={errorSummary}
-              failingAction={failingAction}
+              trace={data.trace}
+              spans={data.spans}
+              truncated={data.truncated}
               onClose={onClose}
               onRefresh={() => refetch()}
               initialTab={initialTab}
@@ -211,13 +167,9 @@ export function TraceDetailDrawer({
 }
 
 type DrawerContentProps = {
-  trace: Trace;
-  spans: Span[];
-  tone: ReturnType<typeof traceTone> | null;
-  isInProgress: boolean;
-  isError: boolean;
-  errorSummary: string | null;
-  failingAction: string | null;
+  trace: TraceSummary;
+  spans: TraceEvent[];
+  truncated: boolean;
   onClose: () => void;
   onRefresh: () => void;
   initialTab: TraceDetailDrawerTab;
@@ -226,27 +178,69 @@ type DrawerContentProps = {
 function DrawerContent({
   trace,
   spans,
-  tone,
-  isInProgress,
-  isError,
-  errorSummary,
-  failingAction,
+  truncated,
   onClose,
   onRefresh,
   initialTab,
 }: DrawerContentProps) {
-  const actionMono = isCodeShaped(trace.root_name);
+  const tone = traceTone(trace);
+  const isInProgress = tone === "in-progress";
+  const isError = tone === "error";
+  const failingSpan = React.useMemo(
+    () => (isError ? failingSpanFor(spans) : undefined),
+    [isError, spans],
+  );
+  const failingAction = failingSpan?.event_type || null;
+  // Retrying a trace re-runs a delivery whose latest attempt failed; attempts are time-ordered siblings.
+  const lastAttempts = new Map(
+    spans.filter((s) => s.entity_type === "event_delivery").map((s) => [s.entity_id, s]),
+  );
+  const failedDelivery = [...lastAttempts.values()].find((s) => s.status === "error")?.entity_id;
+  const canRetry = useAbility().can("write", "EventDelivery");
+  // Between automatic attempts the delivery is not FAILED yet, and the backend refuses a manual retry.
+  const deliveryFailed =
+    useDelivery(canRetry ? failedDelivery : undefined).data?.status === "FAILED";
+  const retry = useRetryDelivery();
+  const retryBlocked = !failedDelivery
+    ? "Nothing to retry: this trace has no failed event delivery."
+    : !canRetry
+      ? "You cannot retry event deliveries."
+      : !deliveryFailed
+        ? "The delivery is still retrying on its own."
+        : null;
+  const retryButton = (
+    <Button
+      variant="default"
+      size="sm"
+      aria-disabled={retryBlocked ? true : undefined}
+      disabled={retry.isPending}
+      className={retryBlocked ? "opacity-50" : undefined}
+      onClick={() =>
+        !retryBlocked &&
+        failedDelivery &&
+        confirmToast("Retry the failed delivery in this trace?", "Retry", () =>
+          retry.mutate(
+            { path: { id: failedDelivery } },
+            toastOnSuccess("Retry started", onRefresh),
+          ),
+        )
+      }
+    >
+      <RefreshCw className="h-3.5 w-3.5" />
+      <span>Retry</span>
+    </Button>
+  );
+  const errorSummary = failingSpan?.description || null;
+  const actionMono = isCodeShaped(trace.root_operation);
   const showErrorLine = isError && (errorSummary || failingAction);
 
   const treeLabel = spans.length > 0 ? `Tree (${spans.length})` : "Tree";
-  // Imperative tab swap from the span detail panel ("Open in Raw tab →"). The
-  // TabsRouter reads ?tab from the URL, so writing through replaceShallow is
-  // enough — the same hook fires re-render in the router.
-  const switchTab = React.useCallback((value: "overview" | "raw" | "linked") => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("tab", value);
-    replaceShallowSearchParams(params);
-  }, []);
+  // The span panel's "Open in Raw tab" writes ?tab, which TabsRouter reads.
+  const switchTab = React.useCallback(
+    (value: "overview" | "raw" | "linked") =>
+      setSearchParam(new URLSearchParams(window.location.search), "tab", value),
+    [],
+  );
 
   const tabs: TabsRouterTab[] = React.useMemo(
     () => [
@@ -299,7 +293,7 @@ function DrawerContent({
                 <span className="min-w-0 truncate font-mono text-xs text-foreground">
                   <CopyValue value={trace.trace_id} label="trace ID" explicit />
                 </span>
-                {tone && <StatusPill tone={tone} />}
+                <StatusPill tone={tone} />
               </div>
               <div
                 className={cn(
@@ -307,7 +301,7 @@ function DrawerContent({
                   actionMono ? "font-mono" : "font-display",
                 )}
               >
-                {trace.root_name}
+                {trace.root_operation}
               </div>
               {showErrorLine && (
                 <div className="mt-1.5 flex items-center gap-1.5 text-[13.5px] font-semibold text-[color:var(--banner-error-fg)]">
@@ -316,7 +310,7 @@ function DrawerContent({
                     aria-hidden="true"
                   />
                   <span>
-                    {errorSummary ?? ""}
+                    {errorSummary}
                     {failingAction ? (
                       <span className="font-medium">
                         {errorSummary ? " " : ""}at span{" "}
@@ -324,6 +318,14 @@ function DrawerContent({
                       </span>
                     ) : null}
                   </span>
+                </div>
+              )}
+              {truncated && (
+                <div
+                  data-testid="trace-truncated"
+                  className="mt-1.5 text-[12.5px] text-[color:var(--tone-warn-fg)]"
+                >
+                  Showing the first {spans.length} spans; this trace has more.
                 </div>
               )}
             </div>
@@ -346,27 +348,15 @@ function DrawerContent({
                   <TooltipContent>Refresh — manual polling, no auto-refetch.</TooltipContent>
                 </Tooltip>
               )}
-              <Tooltip>
-                <TooltipTrigger
-                  // aria-disabled keeps the button focusable so the "coming soon"
-                  // tooltip stays reachable.
-                  render={
-                    <Button
-                      variant="default"
-                      size="sm"
-                      aria-disabled
-                      onClick={(e) => e.preventDefault()}
-                      aria-label="Retry trace, currently disabled — coming soon"
-                      className="opacity-50"
-                      data-testid="retry-tooltip-anchor"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      <span>Retry</span>
-                    </Button>
-                  }
-                />
-                <TooltipContent className="max-w-[260px]">{RETRY_TOOLTIP}</TooltipContent>
-              </Tooltip>
+              {retryBlocked ? (
+                <Tooltip>
+                  {/* aria-disabled keeps the button focusable so the tooltip stays reachable. */}
+                  <TooltipTrigger render={retryButton} />
+                  <TooltipContent className="max-w-[260px]">{retryBlocked}</TooltipContent>
+                </Tooltip>
+              ) : (
+                retryButton
+              )}
               <CloseButton onClose={onClose} />
             </div>
           </div>

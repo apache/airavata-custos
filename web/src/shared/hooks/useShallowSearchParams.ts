@@ -65,3 +65,11 @@ export function replaceShallowSearchParams(next: URLSearchParams): void {
   window.history.replaceState(window.history.state, "", url);
   window.dispatchEvent(new Event(SHALLOW_EVENT));
 }
+
+// Sets or, for an empty value, removes one key and writes the URL shallowly.
+export function setSearchParam(params: URLSearchParams, key: string, value?: string | null): void {
+  const next = new URLSearchParams(params);
+  if (value) next.set(key, value);
+  else next.delete(key);
+  replaceShallowSearchParams(next);
+}

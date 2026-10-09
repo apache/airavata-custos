@@ -30,7 +30,7 @@ test.describe("admin viewer persona", () => {
     await expect(page.getByRole("button", { name: "+ Create organization" })).toHaveCount(0);
 
     // The dropped areas have no nav entry for anyone now.
-    await expect(page.getByRole("link", { name: "Users" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Roles & Privileges" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Clusters" })).toHaveCount(0);
     // Read entries the viewer is entitled to remain.

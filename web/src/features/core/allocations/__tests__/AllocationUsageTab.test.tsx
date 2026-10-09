@@ -17,12 +17,18 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationUsage, ComputeAllocation } from "../schemas";
+import type { ComputeAllocation, ComputeAllocationUsage } from "@/generated/core/types.gen";
 
-let usage: AllocationUsage[] = [];
+let usage: ComputeAllocationUsage[] = [];
 
 vi.mock("../queries", () => ({
+  useUsageRecord: () => ({}),
+  useDeleteUsage: () => ({}),
   useAllocationUsage: () => ({ data: usage, isLoading: false, error: null, refetch: vi.fn() }),
+  useCurrentSuAmount: () => ({ data: 300000 }),
+  useUsageTotal: () => ({ data: usage.reduce((acc, r) => acc + (r.used_su_amount ?? 0), 0) }),
+  useAllocationMembers: () => ({ data: [] }),
+  useUserUsageTotal: () => ({ data: 0 }),
 }));
 
 vi.mock("@/features/core/resources/queries", () => ({
@@ -50,7 +56,7 @@ const allocation: ComputeAllocation = {
   end_time: "2027-04-11T00:00:00.000Z",
 };
 
-function usageRow(overrides: Partial<AllocationUsage>): AllocationUsage {
+function usageRow(overrides: Partial<ComputeAllocationUsage>): ComputeAllocationUsage {
   return {
     id: "use-x",
     compute_allocation_id: "alloc-003",
@@ -74,21 +80,21 @@ beforeEach(() => {
 
 describe("<AllocationUsageTab />", () => {
   it("renders a per-resource bar with summed SU, one per resource", () => {
-    render(<AllocationUsageTab allocation={allocation} />);
-    expect(screen.getByText("ClusterA GPU")).toBeInTheDocument();
+    render(<AllocationUsageTab allocation={allocation} canRead canManage={false} />);
+    expect(screen.getByLabelText("ClusterA GPU share of usage")).toBeInTheDocument();
     expect(screen.getByText("80,000 SU")).toBeInTheDocument();
-    expect(screen.getByText("ClusterC RM")).toBeInTheDocument();
+    expect(screen.getByLabelText("ClusterC RM share of usage")).toBeInTheDocument();
     expect(screen.getByText("24,000 SU")).toBeInTheDocument();
   });
 
-  it("keeps the total usage bar", () => {
-    render(<AllocationUsageTab allocation={allocation} />);
-    expect(screen.getByText("104,000 / 250,000 SUs")).toBeInTheDocument();
+  it("measures total usage against the current SU amount", () => {
+    render(<AllocationUsageTab allocation={allocation} canRead canManage={false} />);
+    expect(screen.getByText("104,000 / 300,000 SUs")).toBeInTheDocument();
   });
 
   it("shows the empty state when there is no usage", () => {
     usage = [];
-    render(<AllocationUsageTab allocation={allocation} />);
+    render(<AllocationUsageTab allocation={allocation} canRead canManage={false} />);
     expect(screen.getByRole("heading", { name: /no usage recorded/i })).toBeInTheDocument();
   });
 });

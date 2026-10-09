@@ -24,20 +24,20 @@ import (
 
 // EventSubscription records that a subscriber listens to an event type.
 type EventSubscription struct {
-	Subscriber string    `json:"subscriber" db:"subscriber"`
-	EventType  string    `json:"event_type" db:"event_type"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	Subscriber string    `json:"subscriber" db:"subscriber" binding:"required"`
+	EventType  string    `json:"event_type" db:"event_type" binding:"required"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at" binding:"required"`
 }
 
 // Event is one published event. It is stored only when it has a subscriber.
 type Event struct {
-	ID        string          `json:"id" db:"id"`
-	EventType string          `json:"event_type" db:"event_type"`
-	Payload   json.RawMessage `json:"payload" db:"payload" swaggertype:"object"`
-	Source    string          `json:"source" db:"source"` // Subsystem that published the event.
-	TraceID   string          `json:"trace_id" db:"trace_id"`
-	SpanID    string          `json:"span_id" db:"span_id"` // Publisher's span, the parent of its deliveries.
-	CreatedAt time.Time       `json:"created_at" db:"created_at"`
+	ID        string          `json:"id" db:"id" binding:"required"`
+	EventType string          `json:"event_type" db:"event_type" binding:"required"`
+	Payload   json.RawMessage `json:"payload" db:"payload" swaggertype:"object" binding:"required"`
+	Source    string          `json:"source" db:"source" binding:"required"` // Subsystem that published the event.
+	TraceID   string          `json:"trace_id" db:"trace_id" binding:"required"`
+	SpanID    string          `json:"span_id" db:"span_id" binding:"required"` // Publisher's span, the parent of its deliveries.
+	CreatedAt time.Time       `json:"created_at" db:"created_at" binding:"required"`
 }
 
 type EventDeliveryStatus string
@@ -50,25 +50,25 @@ const (
 
 // EventDelivery is one event to be handled by the corresponding subscriber.
 type EventDelivery struct {
-	ID         string              `json:"id" db:"id"`
-	EventID    string              `json:"event_id" db:"event_id"`
-	Subscriber string              `json:"subscriber" db:"subscriber"`
-	Status     EventDeliveryStatus `json:"status" db:"status"`
-	Attempts   int                 `json:"attempts" db:"attempts"`
-	NextRunAt  time.Time           `json:"next_run_at" db:"next_run_at"`
+	ID         string              `json:"id" db:"id" binding:"required"`
+	EventID    string              `json:"event_id" db:"event_id" binding:"required"`
+	Subscriber string              `json:"subscriber" db:"subscriber" binding:"required"`
+	Status     EventDeliveryStatus `json:"status" db:"status" binding:"required"`
+	Attempts   int                 `json:"attempts" db:"attempts" binding:"required"`
+	NextRunAt  time.Time           `json:"next_run_at" db:"next_run_at" binding:"required"`
 	LastError  *string             `json:"last_error,omitempty" db:"last_error"`
-	CreatedAt  time.Time           `json:"created_at" db:"created_at"`
+	CreatedAt  time.Time           `json:"created_at" db:"created_at" binding:"required"`
 	FinishedAt *time.Time          `json:"finished_at,omitempty" db:"finished_at"`
 }
 
 // PendingDelivery is a delivery joined with its event.
 type PendingDelivery struct {
 	EventDelivery
-	Event Event `json:"event" db:"event"`
+	Event Event `json:"event" db:"event" binding:"required"`
 }
 
 // DeliveryHistory is event deliveries with its audit rows.
 type DeliveryHistory struct {
 	PendingDelivery
-	History []AuditEvent `json:"history"`
+	History []AuditEvent `json:"history" extensions:"x-nullable"`
 }

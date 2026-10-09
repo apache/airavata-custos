@@ -40,13 +40,13 @@ const (
 )
 
 type Project struct {
-	ID           string        `json:"id"            db:"id"`
-	OriginatedID string        `json:"originated_id" db:"originated_id"` // The ID of the project in origination. For example: ACCESS Record ID.
-	Title        string        `json:"title"         db:"title"`
-	Origination  string        `json:"origination"   db:"origination"` // ACCESS, NAIRR, XRASS, etc.
-	ProjectPIID  string        `json:"project_pi_id" db:"project_pi_id"`
-	Status       ProjectStatus `json:"status"        db:"status"`
-	CreatedTime  time.Time     `json:"created_time"  db:"created_time"`
+	ID           string        `json:"id"            db:"id" binding:"required"`
+	OriginatedID string        `json:"originated_id" db:"originated_id" binding:"required"` // The ID of the project in origination. For example: ACCESS Record ID.
+	Title        string        `json:"title"         db:"title" binding:"required"`
+	Origination  string        `json:"origination"   db:"origination" binding:"required"` // ACCESS, NAIRR, XRASS, etc.
+	ProjectPIID  string        `json:"project_pi_id" db:"project_pi_id" binding:"required"`
+	Status       ProjectStatus `json:"status"        db:"status" binding:"required"`
+	CreatedTime  time.Time     `json:"created_time"  db:"created_time" binding:"required"`
 }
 
 type Organization struct {
@@ -65,12 +65,12 @@ const (
 )
 
 type User struct {
-	ID             string     `json:"id"              db:"id"`
-	OrganizationID string     `json:"organization_id" db:"organization_id"`
-	FirstName      string     `json:"first_name"      db:"first_name"`
-	LastName       string     `json:"last_name"       db:"last_name"`
+	ID             string     `json:"id"              db:"id" binding:"required"`
+	OrganizationID string     `json:"organization_id" db:"organization_id" binding:"required"`
+	FirstName      string     `json:"first_name"      db:"first_name" binding:"required"`
+	LastName       string     `json:"last_name"       db:"last_name" binding:"required"`
 	MiddleName     string     `json:"middle_name,omitempty" db:"middle_name"`
-	Email          string     `json:"email"           db:"email"`
-	Status         UserStatus `json:"status"          db:"status"`
-	Type           UserType   `json:"type"            db:"type"`
+	Email          string     `json:"email"           db:"email" binding:"required"`
+	Status         UserStatus `json:"status"          db:"status" binding:"required"`
+	Type           UserType   `json:"type"            db:"type" binding:"required"`
 }

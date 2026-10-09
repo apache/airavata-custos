@@ -33,3 +33,7 @@ export function pluralize(noun: string, count: number, pluralForm?: string): str
   if (count === 1) return noun;
   return pluralForm ?? `${noun}s`;
 }
+
+export function packetStatusLabel(status: string): string {
+  return status.replaceAll("_", " ");
+}

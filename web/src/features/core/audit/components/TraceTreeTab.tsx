@@ -17,6 +17,13 @@
 
 "use client";
 
+import type { TraceEvent, TraceSummary } from "@/generated/core/types.gen";
+import { cn } from "@/lib/utils";
+import {
+  setSearchParam,
+  useShallowSearchParams,
+} from "@/shared/hooks/useShallowSearchParams";
+import { Button } from "@/shared/ui/button";
 import {
   AlertTriangle,
   ArrowDown,
@@ -27,66 +34,37 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import {
-  replaceShallowSearchParams,
-  useShallowSearchParams,
-} from "@/shared/hooks/useShallowSearchParams";
-import { Button } from "@/shared/ui/button";
-import type { Span, Trace, UISpan } from "../types";
-import {
-  buildTree,
-  detectErrorPath,
-  enrichSpan,
-  flattenTree,
-  rowTone,
-  subtreeHasError,
   type TreeNode,
   type VisibleRow,
+  buildTree,
+  detectErrorPath,
+  flattenTree,
+  subtreeHasError,
 } from "../utils";
 import { TraceSpanDetailPanel } from "./TraceSpanDetailPanel";
 import { TraceTreeRow } from "./TraceTreeRow";
 
 export type TraceTreeTabProps = {
-  trace: Trace;
-  spans: Span[];
+  trace: TraceSummary;
+  spans: TraceEvent[];
   onSwitchToTab: (tab: "overview" | "raw" | "linked") => void;
 };
 
 const SPAN_PARAM = "span";
 const SCROLL_PAD_PX = 40;
 
-function readSpanSource(span: Span, traceSource: string): string {
-  const attrs = span.attributes;
-  if (attrs && typeof attrs === "object" && !Array.isArray(attrs)) {
-    const s = (attrs as Record<string, unknown>).source;
-    if (typeof s === "string" && s) return s;
-  }
-  return traceSource;
-}
-
 export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps) {
-  const traceSource = String(trace.source);
-
-  const enrichedSpans = React.useMemo<UISpan[]>(() => {
-    const byId = new Map<string, Span>(spans.map((s) => [s.span_id, s]));
-    return spans.map((s) =>
-      enrichSpan(s, byId, s.parent_span_id ? byId.get(s.parent_span_id)?.status === 1 : false),
-    );
-  }, [spans]);
-
-  const { roots, byId } = React.useMemo(() => buildTree(enrichedSpans), [enrichedSpans]);
-  const { pathSet, errorLeafIds } = React.useMemo(
-    () => detectErrorPath(enrichedSpans),
-    [enrichedSpans],
-  );
+  const { roots, byId } = React.useMemo(() => buildTree(spans), [spans]);
+  const { pathSet, errorLeafIds } = React.useMemo(() => detectErrorPath(spans), [spans]);
   const pathSetRef = React.useRef(pathSet);
   pathSetRef.current = pathSet;
   const errorLeafSet = React.useMemo(() => new Set(errorLeafIds), [errorLeafIds]);
 
   const structuralIds = React.useMemo(() => {
     const out: string[] = [];
-    for (const node of byId.values()) if (node.children.length > 0) out.push(node.span.span_id);
+    for (const node of byId.values())
+      if (node.children.length > 0) out.push(node.span.span_id);
     return out;
   }, [byId]);
 
@@ -107,15 +85,12 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
   const fallbackSelected = errorLeafIds[0] ?? roots[0]?.span.span_id ?? null;
   const selectedSpanId =
     urlSelectedSpan && byId.has(urlSelectedSpan) ? urlSelectedSpan : fallbackSelected;
-  const selectedNode: TreeNode | null = selectedSpanId
-    ? byId.get(selectedSpanId) ?? null
-    : null;
+  const selectedNode: TreeNode | null = selectedSpanId ? (byId.get(selectedSpanId) ?? null) : null;
 
-  const writeSelected = React.useCallback((spanId: string) => {
-    const params = new URLSearchParams(window.location.search);
-    params.set(SPAN_PARAM, spanId);
-    replaceShallowSearchParams(params);
-  }, []);
+  const selectSpan = React.useCallback(
+    (spanId: string) => setSearchParam(searchParams, SPAN_PARAM, spanId),
+    [searchParams],
+  );
 
   const visible = React.useMemo<VisibleRow[]>(
     () => flattenTree(roots, expanded, errorsOnly, pathSet),
@@ -126,9 +101,7 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
   // matches the eye's top-to-bottom scan even in errors-only mode.
   const errorLeavesInOrder = React.useMemo(() => {
     const all = flattenTree(roots, expanded, false, pathSet);
-    return all
-      .filter((v) => errorLeafSet.has(v.node.span.span_id))
-      .map((v) => v.node.span.span_id);
+    return all.map((v) => v.node.span.span_id).filter((id) => errorLeafSet.has(id));
   }, [roots, expanded, pathSet, errorLeafSet]);
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -204,13 +177,6 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
     // rail's measured geometry.
     container.scrollTop = el.offsetTop - SCROLL_PAD_PX;
   }, []);
-
-  const selectSpan = React.useCallback(
-    (id: string) => {
-      writeSelected(id);
-    },
-    [writeSelected],
-  );
 
   const toggleRow = React.useCallback((id: string) => {
     setExpanded((prev) => {
@@ -311,7 +277,6 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
     }
   };
 
-  const hasRunning = enrichedSpans.some((s) => s.running);
   const hasErrors = errorLeafIds.length > 0;
   const statusSummary = (() => {
     const n = spans.length;
@@ -319,13 +284,6 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
       return (
         <span className="tabular-nums text-muted-foreground">
           {visible.length} of {n} rows
-        </span>
-      );
-    }
-    if (hasRunning) {
-      return (
-        <span className="tabular-nums text-muted-foreground">
-          {n} spans · <span className="text-[color:var(--tone-warn-fg)]">running</span>
         </span>
       );
     }
@@ -409,25 +367,25 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
           ) : (
             visible.map((row) => {
               const span = row.node.span;
-              const tone = rowTone(span);
-              const isErrorLeaf = errorLeafSet.has(span.span_id);
-              const isOnPath = pathSet.has(span.span_id);
-              const isExpanded = expanded.has(span.span_id);
+              const spanId = span.span_id;
+              const isErrorLeaf = errorLeafSet.has(spanId);
+              const isOnPath = pathSet.has(spanId);
+              const isExpanded = expanded.has(spanId);
               const hidden = row.hasChildren && !isExpanded && subtreeHasError(row.node);
               return (
                 <TraceTreeRow
-                  key={span.span_id}
+                  key={spanId}
                   row={row}
-                  tone={tone}
-                  source={readSpanSource(span, traceSource)}
-                  isSelected={selectedSpanId === span.span_id}
+                  tone={span.status}
+                  source={span.source || trace.source}
+                  isSelected={selectedSpanId === spanId}
                   isOnErrorPath={isOnPath}
                   isPreciseFailure={isErrorLeaf}
                   isExpanded={isExpanded}
                   hasHiddenError={hidden}
-                  onSelect={() => selectSpan(span.span_id)}
-                  onToggle={() => toggleRow(span.span_id)}
-                  rowRef={(el) => setRowRef(span.span_id, el)}
+                  onSelect={() => selectSpan(spanId)}
+                  onToggle={() => toggleRow(spanId)}
+                  rowRef={(el) => setRowRef(spanId, el)}
                 />
               );
             })
@@ -437,7 +395,7 @@ export function TraceTreeTab({ trace, spans, onSwitchToTab }: TraceTreeTabProps)
         <TraceSpanDetailPanel
           span={selectedNode ? selectedNode.span : null}
           trace={trace}
-          source={selectedNode ? readSpanSource(selectedNode.span, traceSource) : traceSource}
+          source={selectedNode?.span.source || trace.source}
           onOpenInRaw={() => onSwitchToTab("raw")}
         />
       </div>

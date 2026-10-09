@@ -47,7 +47,7 @@ func (s *Server) listRoles(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
-// @Success	200	{object}	object{role=models.Role,privileges=[]models.PrivilegeKey}
+// @Success	200	{object}	RoleDetailResponse
 // @Failure	400	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/roles/{id} [get]
@@ -67,10 +67,7 @@ func (s *Server) getRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, map[string]any{
-		"role":       role,
-		"privileges": keys,
-	})
+	common.WriteJSON(w, http.StatusOK, RoleDetailResponse{Role: *role, Privileges: keys})
 }
 
 type createRoleRequest struct {

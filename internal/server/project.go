@@ -40,7 +40,7 @@ type updateProjectRequest struct {
 // @Security	BearerAuth
 // @Accept	json
 // @Produce	json
-// @Param	request	body	models.Project	true	"Project payload"
+// @Param	request	body	object{title=string,project_pi_id=string}	true	"Project payload"
 // @Success	201	{object}	models.Project
 // @Failure	400	{object}	object{error=string}
 // @Router	/projects [post]

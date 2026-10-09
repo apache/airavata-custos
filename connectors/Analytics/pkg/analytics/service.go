@@ -40,81 +40,81 @@ const roleMember = "MEMBER"
 
 // Allocation is one allocation with its consumed credits.
 type Allocation struct {
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`
+	ID              string    `json:"id" binding:"required"`
+	Name            string    `json:"name" binding:"required"`
 	Status          string    `json:"status"`
-	InitialSUAmount int64     `json:"initial_su_amount"`
-	UsedSUAmount    float64   `json:"used_su_amount"`
+	InitialSUAmount int64     `json:"initial_su_amount" binding:"required"`
+	UsedSUAmount    float64   `json:"used_su_amount" binding:"required"`
 	StartTime       time.Time `json:"start_time"`
-	EndTime         time.Time `json:"end_time"`
+	EndTime         time.Time `json:"end_time" binding:"required"`
 }
 
 // ProjectContext is one project the caller belongs to, their role on it, and
 // its allocations.
 type ProjectContext struct {
-	ProjectID   string       `json:"project_id"`
-	ProjectName string       `json:"project_name"`
-	Role        string       `json:"role"`
-	Allocations []Allocation `json:"allocations"`
+	ProjectID   string       `json:"project_id" binding:"required"`
+	ProjectName string       `json:"project_name" binding:"required"`
+	Role        string       `json:"role" binding:"required"`
+	Allocations []Allocation `json:"allocations" binding:"required"`
 }
 
 // UsageDailyBucket is one day of consumption keyed by resource id. Buckets are
 // continuous from allocation start to today, so a zero-usage day carries an
 // empty map.
 type UsageDailyBucket struct {
-	Date       string             `json:"date"`
-	ByResource map[string]float64 `json:"by_resource"`
+	Date       string             `json:"date" binding:"required"`
+	ByResource map[string]float64 `json:"by_resource" binding:"required"`
 }
 
 // UsageResource aggregates one resource's consumption, including the caller's
 // own slice. Cap is null in v1 (per-resource caps are time-varying).
 type UsageResource struct {
-	ResourceID   string  `json:"resource_id"`
-	Name         string  `json:"name"`
+	ResourceID   string  `json:"resource_id" binding:"required"`
+	Name         string  `json:"name" binding:"required"`
 	ResourceType string  `json:"resource_type"`
-	Used         float64 `json:"used"`
-	Cap          *int64  `json:"cap"`
-	UsedNative   float64 `json:"used_native"`
-	NativeUnit   string  `json:"native_unit"`
-	UsedByCaller float64 `json:"used_by_caller"`
+	Used         float64 `json:"used" binding:"required"`
+	Cap          *int64  `json:"cap" extensions:"x-nullable"`
+	UsedNative   float64 `json:"used_native" binding:"required"`
+	NativeUnit   string  `json:"native_unit" binding:"required"`
+	UsedByCaller float64 `json:"used_by_caller" binding:"required"`
 }
 
 // UsageMember is one member's consumption against an allocation.
 type UsageMember struct {
-	UserID string  `json:"user_id"`
-	Name   string  `json:"name"`
-	Used   float64 `json:"used"`
+	UserID string  `json:"user_id" binding:"required"`
+	Name   string  `json:"name" binding:"required"`
+	Used   float64 `json:"used" binding:"required"`
 }
 
 // UsageSummary is the aggregated usage for one allocation. ByMember is null
 // unless the caller may see per-member data.
 type UsageSummary struct {
-	Total      int64              `json:"total"`
+	Total      int64              `json:"total" binding:"required"`
 	Used       float64            `json:"used"`
-	Daily      []UsageDailyBucket `json:"daily"`
-	ByResource []UsageResource    `json:"by_resource"`
-	ByMember   []UsageMember      `json:"by_member"`
+	Daily      []UsageDailyBucket `json:"daily" binding:"required"`
+	ByResource []UsageResource    `json:"by_resource" binding:"required"`
+	ByMember   []UsageMember      `json:"by_member" extensions:"x-nullable"`
 }
 
 // Job is one usage record (a job's charge).
 type Job struct {
-	ID             string    `json:"id"`
-	JobID          string    `json:"job_id"`
-	CalculatedTime time.Time `json:"calculated_time"`
-	UserID         string    `json:"user_id"`
-	UserName       string    `json:"user_name"`
-	ResourceID     string    `json:"resource_id"`
-	ResourceName   string    `json:"resource_name"`
-	ResourceType   string    `json:"resource_type"`
-	UsedRaw        float64   `json:"used_raw"`
-	NativeUnit     string    `json:"native_unit"`
-	Used           float64   `json:"used"`
+	ID             string    `json:"id" binding:"required"`
+	JobID          string    `json:"job_id" binding:"required"`
+	CalculatedTime time.Time `json:"calculated_time" binding:"required"`
+	UserID         string    `json:"user_id" binding:"required"`
+	UserName       string    `json:"user_name" binding:"required"`
+	ResourceID     string    `json:"resource_id" binding:"required"`
+	ResourceName   string    `json:"resource_name" binding:"required"`
+	ResourceType   string    `json:"resource_type" binding:"required"`
+	UsedRaw        float64   `json:"used_raw" binding:"required"`
+	NativeUnit     string    `json:"native_unit" binding:"required"`
+	Used           float64   `json:"used" binding:"required"`
 }
 
 // AllocationJobs is a page of jobs plus the total matching count.
 type AllocationJobs struct {
-	Jobs  []Job `json:"jobs"`
-	Total int   `json:"total"`
+	Jobs  []Job `json:"jobs" binding:"required"`
+	Total int   `json:"total" binding:"required"`
 }
 
 // Service aggregates usage on top of core data. It reads usage through its own

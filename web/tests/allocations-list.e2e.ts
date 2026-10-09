@@ -44,7 +44,8 @@ test.describe("allocations list", () => {
   test("status filter updates URL state", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/allocations");
-    await page.getByLabel(/filter by status/i).selectOption("INACTIVE");
+    await page.getByRole("combobox", { name: /filter by status/i }).click();
+    await page.getByRole("option", { name: "Inactive" }).click();
     await expect(page).toHaveURL(/[?&]status=INACTIVE/);
   });
 

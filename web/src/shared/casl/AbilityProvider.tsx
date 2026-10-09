@@ -34,5 +34,5 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAbility(): AppAbility {
-  return useCaslAbility() as AppAbility;
+  return useCaslAbility();
 }

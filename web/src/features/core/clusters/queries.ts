@@ -17,44 +17,63 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getCluster, listClusterUsers, listClusters } from "./api";
+import {
+  getComputeClusters,
+  getComputeClustersById,
+  getComputeClustersByIdUsers,
+  getComputeClustersByIdUsersByUserId,
+  postComputeClusters,
+} from "@/generated/core/sdk.gen";
+import { useInvalidating } from "@/shared/api/useInvalidating";
+import { skipToken, useQuery } from "@tanstack/react-query";
 
 export const clusterKeys = {
   all: ["clusters"] as const,
   list: () => [...clusterKeys.all, "list"] as const,
   detail: (id: string) => [...clusterKeys.all, "detail", id] as const,
   users: (id: string) => [...clusterKeys.all, "users", id] as const,
+  user: (id: string, userId: string) => [...clusterKeys.users(id), userId] as const,
 };
 
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
-
-export function useClusters() {
+export function useClusters(enabled = true) {
   return useQuery({
     queryKey: clusterKeys.list(),
-    queryFn: listClusters,
-    ...DEFAULTS,
+    queryFn: () => getComputeClusters(),
+    enabled,
+  });
+}
+
+// Resolves a cluster id to its name, falling back to the id.
+export function useClusterName() {
+  const clusters = useClusters().data;
+  return (id = "") => clusters?.find((c) => c.id === id)?.name ?? id;
+}
+
+export function useClusterUsers(id: string | undefined) {
+  return useQuery({
+    queryKey: clusterKeys.users(id ?? ""),
+    queryFn: id ? () => getComputeClustersByIdUsers({ path: { id } }) : skipToken,
   });
 }
 
 export function useCluster(id: string | undefined) {
   return useQuery({
-    queryKey: id ? clusterKeys.detail(id) : [...clusterKeys.all, "detail", "none"],
-    queryFn: () => getCluster(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
+    queryKey: clusterKeys.detail(id ?? ""),
+    queryFn: id ? () => getComputeClustersById({ path: { id } }) : skipToken,
   });
 }
 
-export function useClusterUsers(id: string | undefined) {
+export function useClusterUser(id: string | undefined, userId: string | undefined) {
   return useQuery({
-    queryKey: id ? clusterKeys.users(id) : [...clusterKeys.all, "users", "none"],
-    queryFn: () => listClusterUsers(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
+    queryKey: clusterKeys.user(id ?? "", userId ?? ""),
+    queryFn:
+      id && userId
+        ? () => getComputeClustersByIdUsersByUserId({ path: { id, userId } })
+        : skipToken,
+    retry: false,
   });
+}
+
+export function useCreateCluster() {
+  return useInvalidating(postComputeClusters<true>, clusterKeys.list());
 }

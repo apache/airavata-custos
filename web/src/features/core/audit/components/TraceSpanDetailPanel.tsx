@@ -17,25 +17,18 @@
 
 "use client";
 
+import type { TraceEvent, TraceSummary } from "@/generated/core/types.gen";
+import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import type * as React from "react";
-import { cn } from "@/lib/utils";
-import type { Trace, UISpan } from "../types";
-import {
-  durationBetween,
-  formatAbsoluteUtc,
-  formatDurationMs,
-  formatRelative,
-  isCodeShaped,
-  rowTone,
-} from "../utils";
+import { formatAbsoluteUtc, formatRelative, isCodeShaped } from "../utils";
 import { CopyValue } from "./primitives/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 
 export type TraceSpanDetailPanelProps = {
-  span: UISpan | null;
-  trace: Trace;
+  span: TraceEvent | null;
+  trace: TraceSummary;
   source: string;
   onOpenInRaw: () => void;
 };
@@ -54,7 +47,12 @@ function FactRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-export function TraceSpanDetailPanel({ span, trace, source, onOpenInRaw }: TraceSpanDetailPanelProps) {
+export function TraceSpanDetailPanel({
+  span,
+  trace,
+  source,
+  onOpenInRaw,
+}: TraceSpanDetailPanelProps) {
   if (!span) {
     return (
       <div
@@ -67,14 +65,9 @@ export function TraceSpanDetailPanel({ span, trace, source, onOpenInRaw }: Trace
     );
   }
 
-  const tone = rowTone(span);
-  const code = isCodeShaped(span.name);
-  const dur = durationBetween(span.start_time, span.end_time ?? null);
-  const attrs =
-    span.attributes && typeof span.attributes === "object" && !Array.isArray(span.attributes)
-      ? (span.attributes as Record<string, unknown>)
-      : null;
-  const attrKeys = attrs ? Object.keys(attrs).sort() : [];
+  const { event_type, created_at, status } = span;
+  const code = isCodeShaped(event_type);
+  const attrs = Object.entries({ "entity.type": span.entity_type, "entity.id": span.entity_id });
 
   return (
     <div
@@ -89,62 +82,47 @@ export function TraceSpanDetailPanel({ span, trace, source, onOpenInRaw }: Trace
             code ? "font-mono text-sm" : "text-[15.5px]",
           )}
         >
-          {span.name}
+          {event_type}
         </div>
       </div>
       <button
         type="button"
         onClick={onOpenInRaw}
         data-testid="trace-span-open-raw"
-        className="inline-flex items-center gap-1 self-start border-none bg-transparent py-1 text-[12px] font-semibold text-brand hover:underline"
+        className="inline-flex items-center gap-1 self-start border-none bg-transparent py-1 text-[12px] font-semibold text-foreground hover:underline"
       >
         Open in Raw tab <ArrowRight className="h-3 w-3" aria-hidden="true" />
       </button>
 
       <div className="mt-2 mb-3 flex items-center gap-2">
-        <StatusPill tone={tone} />
+        <StatusPill tone={status} />
         <SourcePill source={source} />
-        <span className="font-mono text-[11.5px] text-muted-foreground">kind={span.kind}</span>
       </div>
 
       <div className="border-t border-[color:var(--border)] pt-1.5">
         <FactRow label="Time">
-          {formatAbsoluteUtc(span.start_time)}
-          <span className="ml-1.5 text-muted-foreground">· {formatRelative(span.start_time)}</span>
+          {formatAbsoluteUtc(created_at)}
+          <span className="ml-1.5 text-muted-foreground">· {formatRelative(created_at)}</span>
         </FactRow>
-        <FactRow label="Duration">
-          {dur == null ? "—" : formatDurationMs(dur)}
-        </FactRow>
-        {span.status_message ? (
-          <FactRow label="Status message">
-            <span className="font-mono text-[12px] font-semibold text-[color:var(--banner-error-fg)]">
-              {span.status_message}
+        {span.description ? (
+          <FactRow label="Description">
+            <span
+              className={cn(
+                "font-mono text-[12px]",
+                status === "error" && "font-semibold text-[color:var(--banner-error-fg)]",
+              )}
+            >
+              {span.description}
             </span>
           </FactRow>
         ) : null}
       </div>
 
-      {attrs && typeof attrs.summary === "string" && attrs.summary ? (
-        <div className="mt-3">
-          <div className={SECTION_LABEL_CLASS}>Summary</div>
-          <div className="text-[13px] leading-relaxed text-foreground">{attrs.summary}</div>
-        </div>
-      ) : null}
-
-      {attrKeys.length > 0 ? (
+      {attrs.some(([, v]) => v) ? (
         <div className="mt-3.5">
           <div className={SECTION_LABEL_CLASS}>Attributes</div>
           <div className="overflow-hidden rounded-md border border-[color:var(--border)]">
-            {attrKeys.map((k, i) => {
-              const raw = attrs?.[k];
-              const value =
-                raw == null
-                  ? ""
-                  : typeof raw === "string"
-                    ? raw
-                    : typeof raw === "number" || typeof raw === "boolean"
-                      ? String(raw)
-                      : JSON.stringify(raw);
+            {attrs.map(([k, value = ""], i) => {
               return (
                 <div
                   key={k}
@@ -169,20 +147,20 @@ export function TraceSpanDetailPanel({ span, trace, source, onOpenInRaw }: Trace
       <div className="mt-3.5 flex flex-col gap-2 border-t border-[color:var(--border)] pt-2.5">
         <IdRow label="Trace ID" value={trace.trace_id} />
         <IdRow label="Span ID" value={span.span_id} />
-        {span.parent_span_id ? <IdRow label="Parent" value={span.parent_span_id} /> : null}
+        <IdRow label="Parent" value={span.parent_span_id} />
       </div>
     </div>
   );
 }
 
-function IdRow({ label, value }: { label: string; value: string }) {
+function IdRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className="w-[64px] shrink-0 text-[12px] font-medium text-muted-foreground">
         {label}
       </span>
       <span className="min-w-0 flex-1 truncate font-mono text-xs">
-        <CopyValue value={value} label={label} explicit />
+        {value ? <CopyValue value={value} label={label} explicit /> : "—"}
       </span>
     </div>
   );

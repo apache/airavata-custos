@@ -17,17 +17,11 @@
 
 "use client";
 
+import { formatDate } from "@/shared/format";
 import { Link2 } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import type { UserIdentity } from "../schemas";
-
-function formatDate(iso?: string): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
+import type { UserIdentity } from "@/generated/core/types.gen";
 
 export function IdentitiesCard({ identities }: { identities: UserIdentity[] }) {
   return (

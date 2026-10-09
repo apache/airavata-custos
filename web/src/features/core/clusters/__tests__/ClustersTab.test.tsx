@@ -17,19 +17,29 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeCluster, ComputeClusterUser } from "../schemas";
+import type { ComputeCluster, ComputeClusterUser, PrivilegeKey } from "@/generated/core/types.gen";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 
 let clusters: ComputeCluster[] = [];
 let users: ComputeClusterUser[] = [];
+let privileges: PrivilegeKey[] = [];
+
+vi.mock("@/shared/casl/AbilityProvider", () => ({
+  useAbility: () => defineAbilitiesFor(privileges),
+}));
 
 vi.mock("../queries", () => ({
   useClusters: () => ({ data: clusters, isLoading: false, error: null, refetch: vi.fn() }),
+  useCluster: (id?: string) => ({ data: clusters.find((c) => c.id === id) }),
+  useClusterUser: () => ({ data: undefined, error: null, isFetching: false }),
   useClusterUsers: () => ({ data: users, isLoading: false, error: null, refetch: vi.fn() }),
+  useCreateCluster: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 import { ClustersTab } from "../components/ClustersTab";
 
 beforeEach(() => {
+  privileges = ["core:clusters:read"];
   clusters = [
     { id: "cluster-a", name: "ClusterA" },
     { id: "cluster-c", name: "ClusterC" },
@@ -40,6 +50,8 @@ beforeEach(() => {
       compute_cluster_id: "cluster-a",
       user_id: "user-ada-lovelace",
       local_username: "alovelace",
+      access_level: "USER",
+      approval_status: "APPROVED",
     },
   ];
 });
@@ -66,5 +78,13 @@ describe("<ClustersTab />", () => {
     clusters = [];
     render(<ClustersTab />);
     expect(screen.getByRole("heading", { name: /no clusters registered/i })).toBeInTheDocument();
+  });
+
+  it("offers cluster registration only with the clusters write privilege", () => {
+    render(<ClustersTab />);
+    expect(screen.queryByRole("button", { name: /register cluster/i })).not.toBeInTheDocument();
+    privileges = ["core:clusters:read", "core:clusters:write"];
+    render(<ClustersTab />);
+    expect(screen.getByRole("button", { name: /register cluster/i })).toBeInTheDocument();
   });
 });

@@ -17,30 +17,27 @@
 
 "use client";
 
-import { AlertTriangle, ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import * as React from "react";
+import type { GetAuditTracesData } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { LastSyncedBadge } from "@/shared/ui/LastSyncedBadge";
+import { AlertTriangle, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { useAuditSources, useTraces } from "../queries";
-import type { Trace } from "../types";
-import { traceTone } from "../utils";
 import { TraceDetailDrawer } from "./TraceDetailDrawer";
 import { TraceFilterStrip } from "./TraceFilterStrip";
 import { TraceTable } from "./TraceTable";
 import {
   DEFAULT_FILTERS,
   type ListFilters,
-  bannerBounds,
   hasActiveFilters,
   parseFilters,
   serializeFilters,
   statusFiltersToApi,
-  windowToFromTo,
 } from "./traceListUrlState";
 
 export type TraceListContainerProps = {
@@ -68,78 +65,24 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
     [activeTraceId],
   );
 
-  // Stable `now` per-mount keeps the from/to window from drifting between
-  // re-renders (and changing the TanStack cache key).
-  const nowRef = React.useRef<number>(Date.now());
-  const failing24h = React.useMemo(() => bannerBounds(nowRef.current), []);
-  const { from, to } = React.useMemo(
-    () => windowToFromTo(filters.window, nowRef.current),
-    [filters.window],
-  );
+  const apiStatus = statusFiltersToApi(filters.status);
+  // failingOver24h overrides status/window so the banner click lands on the
+  // same range the count came from.
+  const apiFilters: GetAuditTracesData["query"] = {
+    status: filters.failingOver24h ? ["error"] : apiStatus.length ? apiStatus : undefined,
+    source: filters.source.length ? filters.source : undefined,
+    q: filters.q || undefined,
+    limit: filters.pageSize,
+    offset: (filters.page - 1) * filters.pageSize,
+  };
 
-  const { apiStatus, inProgressOnly } = React.useMemo(
-    () => statusFiltersToApi(filters.status),
-    [filters.status],
-  );
-
-  // failingOver24h overrides status/window and pins the 30d->24h window so the
-  // banner click lands on exactly the rows the count came from.
-  const apiFilters = React.useMemo(
-    () =>
-      filters.failingOver24h
-        ? {
-            status: [1] as number[],
-            source: filters.source.length ? filters.source : undefined,
-            from: failing24h.from,
-            to: failing24h.to,
-            q: filters.q || undefined,
-            limit: filters.pageSize,
-            offset: (filters.page - 1) * filters.pageSize,
-          }
-        : {
-            status: apiStatus.length ? apiStatus : undefined,
-            source: filters.source.length ? filters.source : undefined,
-            from,
-            to,
-            q: filters.q || undefined,
-            limit: filters.pageSize,
-            offset: (filters.page - 1) * filters.pageSize,
-          },
-    [
-      filters.failingOver24h,
-      apiStatus,
-      filters.source,
-      filters.q,
-      filters.page,
-      filters.pageSize,
-      from,
-      to,
-      failing24h,
-    ],
-  );
-
-  const tracesQuery = useTraces(apiFilters);
+  const tracesQuery = useTraces(apiFilters, filters.failingOver24h ? "failing24h" : filters.window);
   const sourcesQuery = useAuditSources();
-  const visibleTraces: Trace[] = React.useMemo(() => {
-    const rows = tracesQuery.data?.traces ?? [];
-    if (inProgressOnly) return rows.filter((t) => t.ended_at == null);
-    return rows;
-  }, [tracesQuery.data, inProgressOnly]);
-
-  const total = inProgressOnly
-    ? visibleTraces.length
-    : (tracesQuery.data?.total ?? 0);
 
   // 24h-failing banner — separate query so it survives any active filter.
-  const failingQuery = useTraces({
-    status: [1],
-    from: failing24h.from,
-    to: failing24h.to,
-    limit: 1,
-  });
+  const failingQuery = useTraces({ status: ["error"], limit: 1 }, "failing24h");
   const failingCount = failingQuery.data?.total ?? 0;
-  const showBanner =
-    !failingQuery.isLoading && failingCount > 0 && !filters.failingOver24h;
+  const showBanner = !failingQuery.isLoading && failingCount > 0 && !filters.failingOver24h;
 
   const onView = React.useCallback(
     (traceId: string) => {
@@ -179,11 +122,7 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
     });
   }, [filters.pageSize, updateFilters]);
 
-  const dataUpdatedAt = tracesQuery.dataUpdatedAt;
-  const syncedAt = dataUpdatedAt ? new Date(dataUpdatedAt) : new Date(nowRef.current);
-
-  // Sanity check — confirm tone derivation stays loaded.
-  void traceTone;
+  const syncedAt = new Date(tracesQuery.dataUpdatedAt || Date.now());
 
   return (
     <div className="w-full pb-12 pt-2">
@@ -193,7 +132,7 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
             Traces
           </h1>
           <p className="mt-1.5 max-w-[560px] text-sm text-muted-foreground">
-            Investigate where a flow broke and retry from the failed step.
+            Investigate where a flow broke.
           </p>
         </div>
         <LastSyncedBadge syncedAt={syncedAt} onRefetch={() => tracesQuery.refetch()} />
@@ -232,18 +171,18 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
         <TraceFilterStrip
           value={filters}
           onChange={updateFilters}
-          sourceOptions={sourcesQuery.data}
+          sourceOptions={sourcesQuery.data?.sources}
         />
       </div>
 
       <div className="mt-4">
         <TraceTable
-          traces={visibleTraces}
-          total={total}
+          traces={tracesQuery.data?.traces ?? []}
+          total={tracesQuery.data?.total ?? 0}
           page={filters.page}
           pageSize={filters.pageSize}
           loading={tracesQuery.isLoading}
-          error={tracesQuery.error as Error | null}
+          error={tracesQuery.error}
           hasActiveFilters={hasActiveFilters(filters)}
           onView={onView}
           onPageChange={onPageChange}

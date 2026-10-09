@@ -181,24 +181,24 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 // membership on any of its allocations. Status is ACTIVE when any membership
 // is active or the user holds only a role.
 type ProjectMember struct {
-	ID          string                   `json:"id" db:"id"` // The user's id.
-	ProjectID   string                   `json:"project_id" db:"project_id"`
-	UserID      string                   `json:"user_id" db:"user_id"`
-	Email       string                   `json:"email" db:"email"`
-	DisplayName string                   `json:"display_name" db:"display_name"`
-	Role        string                   `json:"role" db:"role"`
-	Status      string                   `json:"status" db:"status"`
-	AddedTime   time.Time                `json:"added_time" db:"added_time"`
-	Allocations ProjectMemberAllocations `json:"allocations" db:"allocations"`
+	ID          string                   `json:"id" db:"id" binding:"required"` // The user's id.
+	ProjectID   string                   `json:"project_id" db:"project_id" binding:"required"`
+	UserID      string                   `json:"user_id" db:"user_id" binding:"required"`
+	Email       string                   `json:"email" db:"email" binding:"required"`
+	DisplayName string                   `json:"display_name" db:"display_name" binding:"required"`
+	Role        string                   `json:"role" db:"role" binding:"required"`
+	Status      string                   `json:"status" db:"status" binding:"required"`
+	AddedTime   time.Time                `json:"added_time" db:"added_time" binding:"required"`
+	Allocations ProjectMemberAllocations `json:"allocations" db:"allocations" binding:"required"`
 }
 
 // ProjectMemberAllocations scans the JSON array of a member's allocations.
 type ProjectMemberAllocations []ProjectMemberAllocationRef
 
 type ProjectMemberAllocationRef struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
+	ID   string `json:"id" binding:"required"`
+	Name string `json:"name" binding:"required"`
+	Role string `json:"role" binding:"required"`
 }
 
 func (a *ProjectMemberAllocations) Scan(src any) error { return json.Unmarshal(src.([]byte), a) }

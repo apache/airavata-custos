@@ -24,57 +24,64 @@ import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
-import {
-  useAddMember,
-  useAllocationMembers,
-  useRemoveMember,
-  useUpdateMember,
-} from "../queries";
+import { confirmToast, toastOnSuccess } from "@/shared/ui/sonner";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import { Field, FormDialog, text } from "@/shared/ui/FormDialog";
+import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
 import type {
-  AllocationMembership,
+  AllocationMembershipResponse,
   ComputeAllocation,
-  CreateMembershipPayload,
-} from "../schemas";
-import { AddMemberDialog } from "./AddMemberDialog";
-import { MemberEditDialog, type MemberEditPayload } from "./MemberEditDialog";
+} from "@/generated/core/types.gen";
+import { initialsFrom, ROLE_LABELS } from "@/features/core/projects/components/ProjectMembersTab";
+import { MembershipDrawer } from "./MembershipDrawer";
 
 export type AllocationMembersTabProps = {
   allocation: ComputeAllocation;
   canManage: boolean;
+  // Membership detail requires the allocations read privilege.
+  canRead: boolean;
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  PI: "PI",
-  CO_PI: "Co-PI",
-  ALLOCATION_MANAGER: "Allocation Manager",
-  MEMBER: "Member",
-};
-
-function initialsFrom(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-
-export function AllocationMembersTab({ allocation, canManage }: AllocationMembersTabProps) {
-  const query = useAllocationMembers(allocation.id);
-  const addMutation = useAddMember(allocation.id);
-  const updateMutation = useUpdateMember(allocation.id);
-  const removeMutation = useRemoveMember(allocation.id);
-  const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
-  const [adding, setAdding] = React.useState(false);
+export function AllocationMembersTab({
+  allocation,
+  canManage,
+  canRead,
+}: AllocationMembersTabProps) {
+  const { id: allocationId = "", end_time: endTime = "" } = allocation;
+  const query = useAllocationMembers(allocationId);
+  const addMutation = useAddMember(allocationId);
+  const removeMutation = useRemoveMember(allocationId);
+  const [selectedId, setSelectedId] = React.useState<string>();
 
   if (query.isLoading) return <TableSkeleton rows={4} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const members = query.data ?? [];
 
   const headerCta = canManage ? (
-    <Button size="sm" onClick={() => setAdding(true)}>
-      + Add member
-    </Button>
+    <FormDialog
+      trigger={<Button size="sm">+ Add member</Button>}
+      title="Add member"
+      description="Add a user to this allocation. They will see it under their allocations."
+      submitLabel="Add member"
+      isPending={addMutation.isPending}
+      onSubmit={(form, close) =>
+        addMutation.mutate(
+          {
+            body: {
+              compute_allocation_id: allocationId,
+              user_id: text(form, "user"),
+              start_time: new Date().toISOString(),
+              end_time: endTime,
+            },
+          },
+          toastOnSuccess("Member added", close),
+        )
+      }
+    >
+      <Field label="User ID" name="user" placeholder="user-123" required />
+    </FormDialog>
   ) : null;
 
   if (members.length === 0) {
@@ -85,26 +92,16 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
           heading="No members yet"
           description="Add a user to grant them access to this allocation."
         />
-        <AddMemberDialog
-          open={adding}
-          onOpenChange={setAdding}
-          allocationId={allocation.id}
-          defaultEndTime={allocation.end_time}
-          onSubmit={(payload: CreateMembershipPayload) =>
-            addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-          }
-          isPending={addMutation.isPending}
-        />
       </div>
     );
   }
 
-  const columns: Array<DataTableColumn<AllocationMembership>> = [
+  const columns: Array<DataTableColumn<AllocationMembershipResponse>> = [
     {
       key: "member",
       header: "Member",
       cell: (row) => {
-        const name = row.display_name ?? row.user_id;
+        const name = row.display_name ?? row.user_id ?? "";
         return (
           <div className="flex items-center gap-3">
             <Avatar className="size-8">
@@ -126,7 +123,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
       key: "role",
       header: "Role",
       cell: (row) => (
-        <span className="text-sm">{row.role ? ROLE_LABELS[row.role] : "—"}</span>
+        <span className="text-sm">{row.role ? (ROLE_LABELS[row.role] ?? row.role) : "—"}</span>
       ),
     },
     {
@@ -134,13 +131,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
       header: "Status",
       cell: (row) => (
         <StatusBadge
-          variant={
-            row.membership_status === "ACTIVE"
-              ? "active"
-              : row.membership_status === "INACTIVE"
-                ? "inactive"
-                : "deleted"
-          }
+          variant={statusBadgeVariantFromAllocationStatus(row.membership_status)}
           label={row.membership_status}
         />
       ),
@@ -150,22 +141,20 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
       header: "",
       align: "right",
       interactive: true,
-      // PI and CO_PI are upstream-owned; the portal never edits or removes them.
       cell: (row) =>
-        canManage && row.role !== "PI" && row.role !== "CO_PI" ? (
+        canManage ? (
           <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setEditing(row)}
-              aria-label={`Edit ${row.display_name ?? row.user_id}`}
-            >
-              Edit
-            </Button>
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => removeMutation.mutate(row.id)}
+              onClick={() =>
+                confirmToast(`Remove ${row.display_name ?? row.user_id}?`, "Remove", () =>
+                  removeMutation.mutate(
+                    { path: { id: row.id ?? "" } },
+                    toastOnSuccess("Member removed"),
+                  ),
+                )
+              }
               aria-label={`Remove ${row.display_name ?? row.user_id}`}
               disabled={removeMutation.isPending}
             >
@@ -176,14 +165,6 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     },
   ];
 
-  function handleEditSubmit(payload: MemberEditPayload) {
-    if (!editing) return;
-    updateMutation.mutate(
-      { id: editing.id, patch: payload },
-      { onSuccess: () => setEditing(null) },
-    );
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -192,22 +173,17 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
         </p>
         {headerCta}
       </div>
-      <DataTable columns={columns} rows={members} rowKey={(row) => row.id} />
-      <MemberEditDialog
-        member={editing}
-        onClose={() => setEditing(null)}
-        onSubmit={handleEditSubmit}
-        isPending={updateMutation.isPending}
+      <DataTable
+        columns={columns}
+        rows={members}
+        rowKey={(row) => row.id ?? ""}
+        onRowClick={canRead ? (row) => setSelectedId(row.id) : undefined}
       />
-      <AddMemberDialog
-        open={adding}
-        onOpenChange={setAdding}
-        allocationId={allocation.id}
-        defaultEndTime={allocation.end_time}
-        onSubmit={(payload: CreateMembershipPayload) =>
-          addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-        }
-        isPending={addMutation.isPending}
+      <MembershipDrawer
+        allocationId={allocationId}
+        membershipId={selectedId}
+        canManage={canManage}
+        onClose={() => setSelectedId(undefined)}
       />
     </div>
   );

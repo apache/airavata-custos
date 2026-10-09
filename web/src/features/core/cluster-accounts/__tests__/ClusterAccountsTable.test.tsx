@@ -17,14 +17,14 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import fixture from "../__fixtures__/cluster-accounts.json";
+import { clusterAccounts } from "@/mocks/handlers/clusters";
 import { ClusterAccountsTable, clusterAccountStatus } from "../components/ClusterAccountsTable";
-import type { ClusterAccount } from "../schemas";
+import type { ClusterAccountResponse } from "@/generated/core/types.gen";
 
-const rows = fixture as ClusterAccount[];
-const byId = (id: string) => rows.find((r) => r.id === id) as ClusterAccount;
+const rows = clusterAccounts;
+const byId = (id: string) => rows.find((r) => r.id === id) ?? expect.unreachable(id);
 
-function renderTable(canReview: boolean, shown: ClusterAccount[] = rows) {
+function renderTable(canReview: boolean, shown: ClusterAccountResponse[] = rows) {
   const onApprove = vi.fn();
   const onDeny = vi.fn();
   render(

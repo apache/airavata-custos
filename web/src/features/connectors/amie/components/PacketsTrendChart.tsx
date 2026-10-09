@@ -18,20 +18,13 @@
 "use client";
 
 import * as React from "react";
+import type { PacketStatBucketResponse } from "@/generated/amie/types.gen";
 import { StackedAreaUsage } from "@/shared/charts/StackedAreaUsage";
-import { type PacketStatBucket, type PacketStatus, packetStatusLabel } from "../types";
+import { packetStatusLabel } from "../utils";
 
-const STATUS_ORDER: PacketStatus[] = [
-  "PROCESSED",
-  "DECODED",
-  "NEW",
-  "WAITING_APPROVAL",
-  "REFUSED",
-  "FAILED",
-];
 // Recharts paints area fill AND tooltip label in the same color on white.
 // Use 700-step so tooltip labels clear WCAG AA 4.5:1.
-const STATUS_COLORS: Record<PacketStatus, string> = {
+const STATUS_COLORS: Record<PacketStatBucketResponse["status"], string> = {
   PROCESSED: "var(--custos-green-700)",
   DECODED: "var(--custos-amber-700)",
   NEW: "var(--custos-blue-700)",
@@ -39,29 +32,32 @@ const STATUS_COLORS: Record<PacketStatus, string> = {
   REFUSED: "var(--custos-gray-500)",
   FAILED: "var(--custos-red-700)",
 };
+// Stacking order, bottom to top.
+const STATUS_ORDER = Object.keys(STATUS_COLORS);
 
-export type PacketsTrendChartProps = {
-  buckets: PacketStatBucket[];
-  height?: number;
-};
+// Matches the inbox's 30d stats window.
+const DAYS = 30;
 
-export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartProps) {
-  const byDay = React.useMemo(() => {
-    const days = new Map<string, Record<PacketStatus, number> & { date: string }>();
-    for (const b of buckets) {
-      const row =
-        days.get(b.date) ??
-        ({
-          date: b.date,
-          ...Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])),
-        } as Record<PacketStatus, number> & { date: string });
-      row[b.status] = (row[b.status] ?? 0) + b.count;
-      days.set(b.date, row);
-    }
-    return Array.from(days.values()).sort((a, b) => a.date.localeCompare(b.date));
-  }, [buckets]);
+type DayRow = { date: string } & Record<string, string | number>;
 
-  if (byDay.length === 0) {
+// One row per UTC day of the window ending today, zero-filled; buckets outside it are dropped.
+export function fillDays(buckets: PacketStatBucketResponse[], now = Date.now()) {
+  const rows = new Map<string, DayRow>();
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const date = new Date(now - i * 86_400_000).toISOString().slice(0, 10);
+    rows.set(date, { date, ...Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) });
+  }
+  for (const { date, status, count } of buckets) {
+    const row = rows.get(date);
+    if (row) row[status] = Number(row[status]) + count;
+  }
+  return Array.from(rows.values());
+}
+
+export function PacketsTrendChart({ buckets }: { buckets: PacketStatBucketResponse[] }) {
+  const byDay = React.useMemo(() => fillDays(buckets), [buckets]);
+
+  if (buckets.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">No packet activity in the selected window.</p>
     );
@@ -71,22 +67,22 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
     <div className="rounded-md border bg-card p-4">
       <header className="mb-3 flex items-baseline justify-between">
         <h2 className="font-heading text-sm font-semibold">Packets per day</h2>
-        <p className="text-xs text-muted-foreground">last {byDay.length} days · by status</p>
+        <p className="text-xs text-muted-foreground">last {DAYS} days · by status</p>
       </header>
       <StackedAreaUsage
         data={byDay}
         seriesKeys={STATUS_ORDER}
-        colors={STATUS_ORDER.map((s) => STATUS_COLORS[s])}
-        height={height}
+        colors={Object.values(STATUS_COLORS)}
+        height={220}
         ariaLabel="AMIE packets per day grouped by status"
       />
       <ul className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-        {STATUS_ORDER.map((s) => (
+        {Object.entries(STATUS_COLORS).map(([s, color]) => (
           <li key={s} className="flex items-center gap-1">
             <span
               aria-hidden="true"
               className="inline-block size-2 rounded-full"
-              style={{ background: STATUS_COLORS[s] }}
+              style={{ background: color }}
             />
             {packetStatusLabel(s)}
           </li>

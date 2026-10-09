@@ -18,21 +18,22 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
-import { ApiError } from "@/shared/api/client";
+import type { AllocationStatus } from "@/generated/core/types.gen";
+import { zAllocationStatus } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
+import { toastOnSuccess } from "@/shared/ui/sonner";
 import { useSubmitChangeRequest } from "../queries";
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
   INCREASE_CREDITS: "Increase credits (SUs)",
   EXTEND_END_DATE: "Extend end date",
+  CHANGE_STATUS: "Change status",
   OTHER: "Other",
 };
 
@@ -53,6 +54,11 @@ const formSchema = z.discriminatedUnion("requested_change_type", [
     reason: reasonField,
   }),
   z.object({
+    requested_change_type: z.literal("CHANGE_STATUS"),
+    requested_status: zAllocationStatus,
+    reason: reasonField,
+  }),
+  z.object({
     requested_change_type: z.literal("OTHER"),
     reason: reasonField,
   }),
@@ -61,12 +67,20 @@ const formSchema = z.discriminatedUnion("requested_change_type", [
 type FormValues = z.infer<typeof formSchema>;
 type ChangeType = FormValues["requested_change_type"];
 
+// NaN leaves the number input empty until the user types.
+const EMPTY: FormValues = {
+  requested_change_type: "INCREASE_CREDITS",
+  requested_amount: Number.NaN,
+  reason: "",
+};
+
 export type ChangeRequestSubmitDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allocationId: string;
   requesterId: string;
   currentSuAmount: number;
+  currentStatus?: AllocationStatus;
 };
 
 export function ChangeRequestSubmitDrawer({
@@ -75,17 +89,23 @@ export function ChangeRequestSubmitDrawer({
   allocationId,
   requesterId,
   currentSuAmount,
+  currentStatus,
 }: ChangeRequestSubmitDrawerProps) {
   const submitMutation = useSubmitChangeRequest();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { requested_change_type: "INCREASE_CREDITS", reason: "" } as FormValues,
+    defaultValues: EMPTY,
     mode: "onBlur",
   });
 
   const changeType = form.watch("requested_change_type");
+  // A cancelled draft does not survive into the next open.
+  const setOpen = (next: boolean) => {
+    if (!next) form.reset(EMPTY);
+    onOpenChange(next);
+  };
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => {
     const requestedSuAmount =
       values.requested_change_type === "INCREASE_CREDITS"
         ? currentSuAmount + values.requested_amount
@@ -97,63 +117,61 @@ export function ChangeRequestSubmitDrawer({
           ? `[OTHER] ${values.reason}`
           : values.reason;
 
-    try {
-      await submitMutation.mutateAsync({
-        compute_allocation_id: allocationId,
-        requested_su_amount: requestedSuAmount,
-        requested_status: "ACTIVE",
-        reason: reasonWithMeta,
-        requester_id: requesterId,
-      });
-      toast.success("Change request submitted");
-      form.reset({ requested_change_type: "INCREASE_CREDITS", reason: "" } as FormValues);
-      onOpenChange(false);
-    } catch (err) {
-      const msg =
-        err instanceof ApiError ? `Failed (${err.status}): ${err.message}` : "Failed to submit";
-      toast.error(msg);
-    }
+    submitMutation.mutate(
+      {
+        body: {
+          compute_allocation_id: allocationId,
+          requested_su_amount: requestedSuAmount,
+          requested_status:
+            values.requested_change_type === "CHANGE_STATUS" ? values.requested_status : currentStatus,
+          reason: reasonWithMeta,
+          requester_id: requesterId,
+        },
+      },
+      toastOnSuccess("Change request submitted", () => setOpen(false)),
+    );
   });
 
   function onChangeTypeChange(next: ChangeType) {
-    const reason = (form.getValues() as { reason?: string }).reason ?? "";
+    const reason = form.getValues("reason");
     if (next === "INCREASE_CREDITS") {
-      form.reset({
-        requested_change_type: "INCREASE_CREDITS",
-        reason,
-        requested_amount: undefined as unknown as number,
-      });
+      form.reset({ ...EMPTY, reason });
     } else if (next === "EXTEND_END_DATE") {
       form.reset({
         requested_change_type: "EXTEND_END_DATE",
         reason,
         requested_end_date: "",
       });
+    } else if (next === "CHANGE_STATUS") {
+      form.reset({ requested_change_type: "CHANGE_STATUS", reason, requested_status: "INACTIVE" });
     } else {
       form.reset({ requested_change_type: "OTHER", reason });
     }
   }
 
-  const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
+  const errorOf = (name: "requested_amount" | "requested_end_date" | "reason") =>
+    form.getFieldState(name, form.formState).error?.message;
 
   return (
     <SideDrawer
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={setOpen}
       title="Submit change request"
-      description="Request extra SUs, a new end date, or describe another change."
+      description="Request extra SUs, a new end date, a status change, or describe another change."
     >
       <form onSubmit={onSubmit} className="space-y-4" aria-label="Submit change request form">
         <div className="space-y-2">
           <Label htmlFor="cr-type">Change type</Label>
-          <Select value={changeType} onValueChange={(v) => onChangeTypeChange(v as ChangeType)}>
+          <Select value={changeType} onValueChange={(v) => v && onChangeTypeChange(v)}>
             <SelectTrigger id="cr-type" aria-label="Change type">
               <SelectValue>{(value: string) => CHANGE_TYPE_LABELS[value] ?? value}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="INCREASE_CREDITS">Increase credits (SUs)</SelectItem>
-              <SelectItem value="EXTEND_END_DATE">Extend end date</SelectItem>
-              <SelectItem value="OTHER">Other</SelectItem>
+              {Object.entries(CHANGE_TYPE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -168,8 +186,8 @@ export function ChangeRequestSubmitDrawer({
               placeholder="e.g. 10000"
               {...form.register("requested_amount", { valueAsNumber: true })}
             />
-            {errors.requested_amount?.message ? (
-              <p className="text-xs text-destructive">{errors.requested_amount.message}</p>
+            {errorOf("requested_amount") ? (
+              <p className="text-xs text-destructive">{errorOf("requested_amount")}</p>
             ) : null}
           </div>
         ) : null}
@@ -178,9 +196,26 @@ export function ChangeRequestSubmitDrawer({
           <div className="space-y-2">
             <Label htmlFor="cr-end">Requested new end date</Label>
             <Input id="cr-end" type="date" {...form.register("requested_end_date")} />
-            {errors.requested_end_date?.message ? (
-              <p className="text-xs text-destructive">{errors.requested_end_date.message}</p>
+            {errorOf("requested_end_date") ? (
+              <p className="text-xs text-destructive">{errorOf("requested_end_date")}</p>
             ) : null}
+          </div>
+        ) : null}
+
+        {changeType === "CHANGE_STATUS" ? (
+          <div className="space-y-2">
+            <Label htmlFor="cr-status">Requested status</Label>
+            <select
+              id="cr-status"
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              {...form.register("requested_status")}
+            >
+              {zAllocationStatus.options.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
         ) : null}
 
@@ -195,13 +230,13 @@ export function ChangeRequestSubmitDrawer({
             placeholder="Why is this change needed?"
             {...form.register("reason")}
           />
-          {errors.reason?.message ? (
-            <p className="text-xs text-destructive">{errors.reason.message}</p>
+          {errorOf("reason") ? (
+            <p className="text-xs text-destructive">{errorOf("reason")}</p>
           ) : null}
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
             Cancel
           </Button>
           <Button type="submit" disabled={submitMutation.isPending}>

@@ -44,6 +44,17 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequirePrivilege("GET /connectors/temp-account/membership/{user_id}", AccountsRead, h.getAllocationMembershipForTempUser)
 }
 
+// @Summary	Create a temporary account
+// @Description	Creates a user whose type must be VIRTUAL in an existing organization.
+// @Tags	Temp Accounts
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	request	body	object{first_name=string,last_name=string,middle_name=string,email=string,organization_id=string,type=models.UserType}	true	"User payload; type must be VIRTUAL"
+// @Success	201	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/connectors/temp-account/create [post]
 func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {
 	var u models.User
 	if err := common.DecodeJSON(r, &u); err != nil {
@@ -65,6 +76,14 @@ func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Remove a temporary account
+// @Tags	Temp Accounts
+// @Security	BearerAuth
+// @Param	user_id	path	string	true	"User ID"
+// @Success	204
+// @Failure	400	{object}	object{error=string}	"User is not VIRTUAL"
+// @Failure	404	{object}	object{error=string}
+// @Router	/connectors/temp-account/remove/{user_id} [delete]
 func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("user_id")
 	if userID == "" {
@@ -95,6 +114,17 @@ func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	Assign an allocation to a temporary account
+// @Description	Creates a compute allocation membership for a VIRTUAL user.
+// @Tags	Temp Accounts
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload; user_id and compute_allocation_id required"
+// @Success	200	{object}	models.ComputeAllocationMembership
+// @Failure	400	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/connectors/temp-account/assign-allocation [post]
 func (h *Handlers) assignAllocationToTempAccount(w http.ResponseWriter, r *http.Request) {
 	var m models.ComputeAllocationMembership
 	if err := common.DecodeJSON(r, &m); err != nil {
@@ -131,6 +161,16 @@ func (h *Handlers) assignAllocationToTempAccount(w http.ResponseWriter, r *http.
 	common.WriteJSON(w, http.StatusOK, assigned)
 }
 
+// @Summary	Update a temporary account's allocation membership
+// @Tags	Temp Accounts
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload; id, user_id and compute_allocation_id required"
+// @Success	200	{object}	models.ComputeAllocationMembership
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/connectors/temp-account/update-allocation [post]
 func (h *Handlers) updateAllocationToTempAccount(w http.ResponseWriter, r *http.Request) {
 	var m models.ComputeAllocationMembership
 	if err := common.DecodeJSON(r, &m); err != nil {
@@ -152,6 +192,15 @@ func (h *Handlers) updateAllocationToTempAccount(w http.ResponseWriter, r *http.
 	common.WriteJSON(w, http.StatusOK, updated)
 }
 
+// @Summary	List a temporary account's allocation memberships
+// @Tags	Temp Accounts
+// @Security	BearerAuth
+// @Produce	json
+// @Param	user_id	path	string	true	"User ID"
+// @Success	200	{array}	models.ComputeAllocationMembership
+// @Failure	400	{object}	object{error=string}	"User is not VIRTUAL"
+// @Failure	404	{object}	object{error=string}
+// @Router	/connectors/temp-account/membership/{user_id} [get]
 func (h *Handlers) getAllocationMembershipForTempUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("user_id")
 	if userID == "" {

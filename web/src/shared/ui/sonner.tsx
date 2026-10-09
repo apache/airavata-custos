@@ -25,7 +25,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { Toaster as Sonner, type ToasterProps, toast } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
@@ -59,4 +59,31 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
-export { Toaster };
+// Toasts that wait for a choice sit mid-screen; plain notifications stay in the default toaster.
+const CONFIRM_TOASTER = "confirm";
+
+const ConfirmToaster = () => (
+  <Toaster id={CONFIRM_TOASTER} position="top-center" offset={{ top: "45vh" }} />
+);
+
+// An in-app stand-in for window.confirm: onConfirm runs only if the action is clicked.
+function confirmToast(message: string, actionLabel: string, onConfirm: () => void) {
+  toast.warning(message, {
+    toasterId: CONFIRM_TOASTER,
+    duration: Number.POSITIVE_INFINITY,
+    action: { label: actionLabel, onClick: onConfirm },
+    cancel: { label: "Cancel", onClick: () => {} },
+  });
+}
+
+const toastError = (err: Error) => toast.error(err.message);
+
+// Mutation callbacks for the success half; failures already toast from the query client.
+const toastOnSuccess = (message: string, then?: () => void) => ({
+  onSuccess: () => {
+    toast.success(message);
+    then?.();
+  },
+});
+
+export { ConfirmToaster, Toaster, confirmToast, toastError, toastOnSuccess };

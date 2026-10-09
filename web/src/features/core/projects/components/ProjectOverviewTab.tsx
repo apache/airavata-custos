@@ -17,20 +17,25 @@
 
 "use client";
 
-import type { Project } from "../schemas";
+import type { ProjectResponse } from "@/generated/core/types.gen";
+import { formatDateTime } from "@/shared/format";
 
 export type ProjectOverviewTabProps = {
-  project: Project;
+  project: ProjectResponse;
 };
 
 export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
   return (
     <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
       <dt className="text-muted-foreground">Project ID</dt>
-      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.id}</dd>
+      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">
+        {project.id}
+      </dd>
 
       <dt className="text-muted-foreground">Originated ID</dt>
-      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.originated_id || "—"}</dd>
+      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">
+        {project.originated_id || "—"}
+      </dd>
 
       <dt className="text-muted-foreground">Title</dt>
       <dd className="text-foreground before:content-[':_']">{project.title}</dd>
@@ -44,7 +49,9 @@ export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
           <>
             {project.project_pi_display_name}
             {project.project_pi_email ? (
-              <span className="ml-2 text-xs text-muted-foreground">({project.project_pi_email})</span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                ({project.project_pi_email})
+              </span>
             ) : null}
           </>
         ) : (
@@ -56,7 +63,7 @@ export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
       <dd className="text-foreground before:content-[':_']">{project.status}</dd>
 
       <dt className="text-muted-foreground">Created</dt>
-      <dd className="text-foreground before:content-[':_']">{project.created_time}</dd>
+      <dd className="text-foreground before:content-[':_']">{formatDateTime(project.created_time)}</dd>
     </dl>
   );
 }

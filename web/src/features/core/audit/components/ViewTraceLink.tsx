@@ -35,9 +35,7 @@ export type ViewTraceLinkProps = {
 };
 
 /**
- * Sanctioned cross-feature export (ADR-0004).
- * This is the ONE primitive that other features may import from `core/audit`.
- * Phase 7 (`features/connectors/amie`) imports it for packet event rows.
+ * Sanctioned cross-feature export (ADR-0004), alongside the `primitives/` pills.
  * Do NOT add additional cross-feature exports to this folder.
  */
 export function ViewTraceLink({ traceId, spanId, variant = "text" }: ViewTraceLinkProps) {

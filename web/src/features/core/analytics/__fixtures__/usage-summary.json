@@ -360,8 +360,7 @@
         "native_unit": "TB-months",
         "used_by_caller": 7858
       }
-    ],
-    "by_member": null
+    ]
   },
   "alloc-genai": {
     "total": 900000,

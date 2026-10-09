@@ -17,12 +17,12 @@
 
 "use client";
 
-import { Search } from "lucide-react";
-import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { Card } from "@/shared/ui/card";
-import type { RowTone } from "../types";
+import { Search } from "lucide-react";
+import * as React from "react";
+import type { RowTone } from "../utils";
 import type { ListFilters, StatusFilter, WindowPreset } from "./traceListUrlState";
 
 export type TraceFilterStripProps = {
@@ -35,7 +35,6 @@ const STATUS_OPTIONS: { id: StatusFilter; tone: RowTone; label: string }[] = [
   { id: "error", tone: "error", label: "error" },
   { id: "ok", tone: "ok", label: "ok" },
   { id: "in-progress", tone: "in-progress", label: "in-progress" },
-  { id: "orphaned", tone: "orphaned", label: "orphaned" },
 ];
 
 const DEFAULT_SOURCE_OPTIONS = ["amie", "comanage", "slurm", "http", "core"] as const;
@@ -43,11 +42,10 @@ const WINDOW_OPTIONS: WindowPreset[] = ["24h", "7d", "30d"];
 
 // Inline-style tone dot — StatusPill exposes dotOnly but the filter pill needs
 // a 7px dot, not 8px.
-const TONE_DOT: Record<StatusFilter, { color: string; hollow: boolean }> = {
-  error: { color: "var(--custos-red-500)", hollow: false },
-  ok: { color: "var(--custos-green-500)", hollow: false },
-  "in-progress": { color: "var(--custos-amber-500)", hollow: false },
-  orphaned: { color: "var(--muted-foreground)", hollow: true },
+const TONE_DOT: Record<StatusFilter, string> = {
+  error: "var(--custos-red-500)",
+  ok: "var(--custos-green-500)",
+  "in-progress": "var(--custos-amber-500)",
 };
 
 function FilterPill({
@@ -71,7 +69,7 @@ function FilterPill({
         "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         radio ? "rounded-[14px]" : "rounded-md",
         active
-          ? "border-[color:var(--brand)] bg-[color:var(--brand-tint)] text-[color:var(--brand)]"
+          ? "border-[color:var(--brand)] bg-[color:var(--brand-tint)] text-foreground"
           : "border-[color:var(--border-strong)] bg-card text-foreground hover:bg-muted",
       )}
     >
@@ -81,7 +79,6 @@ function FilterPill({
 }
 
 function StatusDot({ status }: { status: StatusFilter }) {
-  const { color, hollow } = TONE_DOT[status];
   return (
     <span
       aria-hidden="true"
@@ -89,8 +86,7 @@ function StatusDot({ status }: { status: StatusFilter }) {
         width: 7,
         height: 7,
         borderRadius: "50%",
-        background: hollow ? "transparent" : color,
-        boxShadow: hollow ? `inset 0 0 0 1.4px ${color}` : "none",
+        background: TONE_DOT[status],
       }}
     />
   );
@@ -179,11 +175,7 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
           <GroupLegend>SOURCE</GroupLegend>
           <div className="flex flex-wrap gap-1.5">
             {sources.map((s) => (
-              <FilterPill
-                key={s}
-                active={value.source.includes(s)}
-                onClick={() => toggleSource(s)}
-              >
+              <FilterPill key={s} active={value.source.includes(s)} onClick={() => toggleSource(s)}>
                 {s}
               </FilterPill>
             ))}
@@ -214,7 +206,7 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search trace_id / span_id / entity / action…"
+            placeholder="Search trace_id / action…"
             aria-label="Search traces"
             className={cn(
               "h-[38px] w-full rounded-md border bg-card pl-9 pr-3 text-[13.5px] text-foreground outline-none",
@@ -231,7 +223,7 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
             className={cn(
               "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-semibold transition-colors",
               "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "border-[color:var(--brand)] bg-[color:var(--brand-tint)] text-[color:var(--brand)]",
+              "border-[color:var(--brand)] bg-[color:var(--brand-tint)] text-foreground",
             )}
           >
             <span>Failing &gt;24h</span>

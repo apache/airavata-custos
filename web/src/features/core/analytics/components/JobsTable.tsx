@@ -17,13 +17,14 @@
 
 "use client";
 
-import * as React from "react";
+import type { Job } from "@/generated/analytics/types.gen";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { useAllocationJobs } from "../queries";
+import * as React from "react";
 import { CHART_OTHER_COLOR, formatCredits, formatDateTime, formatNative } from "../lib";
-import type { AnalyticsJob } from "../schemas";
+import { useAllocationJobs } from "../queries";
 
 const PAGE_SIZE = 10;
 
@@ -37,11 +38,21 @@ type JobsTableProps = {
 
 export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTableProps) {
   const [mine, setMine] = React.useState(false);
+  const [offset, setOffset] = React.useState(0);
   const effectiveMine = canManage ? mine : true;
   const showUser = canManage && !effectiveMine;
 
-  const jobsQuery = useAllocationJobs(allocationId, { mine: effectiveMine, limit: PAGE_SIZE });
+  const jobsQuery = useAllocationJobs(allocationId, {
+    mine: effectiveMine,
+    limit: PAGE_SIZE,
+    offset,
+  });
   const data = jobsQuery.data;
+  const total = data?.total ?? 0;
+  const pickMine = (next: boolean) => {
+    setMine(next);
+    setOffset(0);
+  };
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -52,7 +63,7 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
             <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => setMine(false)}
+                onClick={() => pickMine(false)}
                 className={cn(
                   "rounded px-2.5 py-1 font-medium",
                   !mine ? "bg-accent text-accent-foreground" : "text-muted-foreground",
@@ -62,7 +73,7 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
               </button>
               <button
                 type="button"
-                onClick={() => setMine(true)}
+                onClick={() => pickMine(true)}
                 className={cn(
                   "rounded px-2.5 py-1 font-medium",
                   mine ? "bg-accent text-accent-foreground" : "text-muted-foreground",
@@ -74,7 +85,7 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
           ) : null}
         </div>
         <span className="text-xs text-muted-foreground">
-          {showUser ? "all jobs charged to this allocation" : "your jobs"} · last 30 days
+          {showUser ? "all jobs charged to this allocation" : "your jobs"} · newest first
         </span>
       </div>
 
@@ -82,7 +93,7 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
         <Skeleton className="h-40 w-full" />
       ) : jobsQuery.error ? (
         <ErrorState message="We couldn't load the jobs." onRetry={() => jobsQuery.refetch()} />
-      ) : !data || data.jobs.length === 0 ? (
+      ) : !data?.jobs?.length ? (
         <p className="py-6 text-sm text-muted-foreground">
           No jobs yet. Jobs appear here as soon as work is charged to this allocation.
         </p>
@@ -112,11 +123,28 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
               </tbody>
             </table>
           </div>
-          <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
-              Showing {data.jobs.length} of {data.total} jobs
+              Showing {offset + 1}–{offset + data.jobs.length} of {total} jobs
             </span>
-            <span>Recent activity · older charges live in the accounting ledger</span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={offset === 0}
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              >
+                ‹ Newer
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={offset + PAGE_SIZE >= total}
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+              >
+                Older ›
+              </Button>
+            </div>
           </div>
         </>
       )}
@@ -129,7 +157,7 @@ function JobRow({
   showUser,
   color,
 }: {
-  job: AnalyticsJob;
+  job: Job;
   showUser: boolean;
   color: string;
 }) {

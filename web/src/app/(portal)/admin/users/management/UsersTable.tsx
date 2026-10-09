@@ -17,26 +17,23 @@
 
 "use client";
 
-import type { Role } from "@/features/core/users/schemas";
-import type { UserManagementRow } from "@/features/core/users/types";
+import { fullNameFor } from "@/features/core/users/components/UserPicker";
+import { type UserManagementRow, useUserRow } from "@/features/core/users/queries";
+import type { Role } from "@/generated/core/types.gen";
 import {
-  replaceShallowSearchParams,
+  setSearchParam,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { Badge } from "@/shared/ui/badge";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
-import { IdentitiesCell } from "./IdentitiesCell";
+import { BadgesCell } from "./BadgesCell";
+import { IdentityLookupBox } from "./IdentityLookupBox";
 import { PermissionsDrawer } from "./PermissionsDrawer";
-import { RolesCell } from "./RolesCell";
-import { IDENTITY_SOURCE_LABELS, identitySourceLabel } from "./identities";
-
-function fullNameFor(user: UserManagementRow): string {
-  const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
-  return name || user.email;
-}
+import { IDENTITY_SOURCE_LABELS, identitySourceIcon, identitySourceLabel } from "./identities";
 
 function useExpandableRow() {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
@@ -52,7 +49,7 @@ function useExpandableRow() {
 export function UsersTable({
   users,
   rolesCatalog,
-  currentUserEmail,
+  currentUserId,
   canManageRoles,
   canReadDirectPrivileges,
   page,
@@ -62,7 +59,7 @@ export function UsersTable({
 }: {
   users: UserManagementRow[];
   rolesCatalog: Role[];
-  currentUserEmail: string | undefined;
+  currentUserId: string | undefined;
   canManageRoles: boolean;
   canReadDirectPrivileges: boolean;
   page: number;
@@ -70,9 +67,10 @@ export function UsersTable({
   total: number;
   onPageChange: (page: number) => void;
 }) {
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const expandedRow = useExpandableRow();
   const searchParams = useShallowSearchParams();
+  // ?user= opens a user, so traces can link straight to them.
+  const [selectedId, setSelectedId] = React.useState<string | null>(searchParams.get("user"));
+  const expandedRow = useExpandableRow();
   const search = searchParams.get("q") ?? "";
   const roleFilter = searchParams.get("role") ?? "all";
   const identityFilter = searchParams.get("identity") ?? "all";
@@ -87,7 +85,13 @@ export function UsersTable({
   function identityLabelFor(value: string): string {
     return value === "all" ? "All external identities" : identitySourceLabel(value);
   }
-  const selectedUser = users.find((user) => user.id === selectedId) ?? null;
+  const pageUser = users.find((user) => user.id === selectedId);
+  const lookedUpUser = useUserRow(
+    pageUser ? undefined : (selectedId ?? undefined),
+    rolesCatalog,
+    canManageRoles,
+  );
+  const selectedUser = pageUser ?? lookedUpUser ?? null;
 
   function resetSelection() {
     setSelectedId(null);
@@ -95,10 +99,7 @@ export function UsersTable({
   }
 
   function updateFilterParam(key: string, value: string | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (!value || value === "all") params.delete(key);
-    else params.set(key, value);
-    replaceShallowSearchParams(params);
+    setSearchParam(searchParams, key, value === "all" ? null : value);
     if (key !== "q") {
       resetSelection();
       onPageChange(1);
@@ -106,7 +107,7 @@ export function UsersTable({
   }
 
   function isCurrentUser(row: UserManagementRow): boolean {
-    return Boolean(currentUserEmail) && row.email === currentUserEmail;
+    return row.id === currentUserId;
   }
 
   const filteredUsers = React.useMemo(() => {
@@ -165,13 +166,21 @@ export function UsersTable({
       width: "260px",
       interactive: true,
       cell: (row) => (
-        <RolesCell
-          roles={row.roles}
+        <BadgesCell
+          items={row.roles}
+          label="Roles"
+          className="w-[260px]"
           isLoading={row.rolesLoading}
           hasError={row.rolesError}
           expanded={row.id === expandedRow.expandedId}
           onToggleExpand={() => expandedRow.toggle(row.id)}
-        />
+        >
+          {(role) => (
+            <Badge key={role.id} variant="outline">
+              {role.name}
+            </Badge>
+          )}
+        </BadgesCell>
       ),
     });
   }
@@ -183,13 +192,25 @@ export function UsersTable({
       width: "220px",
       interactive: true,
       cell: (row) => (
-        <IdentitiesCell
-          identities={row.identities}
+        <BadgesCell
+          items={row.identities}
+          label="Identities"
+          className="w-[220px]"
           isLoading={row.identitiesLoading}
           hasError={row.identitiesError}
           expanded={row.id === expandedRow.expandedId}
           onToggleExpand={() => expandedRow.toggle(row.id)}
-        />
+        >
+          {(identity) => {
+            const Icon = identitySourceIcon(identity.source);
+            return (
+              <Badge key={identity.id} variant="outline">
+                <Icon data-icon="inline-start" />
+                {identitySourceLabel(identity.source)}
+              </Badge>
+            );
+          }}
+        </BadgesCell>
       ),
     },
     {
@@ -202,7 +223,7 @@ export function UsersTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-center">
         <Input
           type="search"
           placeholder="Search this page by username or email"
@@ -230,7 +251,10 @@ export function UsersTable({
           value={identityFilter}
           onValueChange={(value) => updateFilterParam("identity", value)}
         >
-          <SelectTrigger aria-label="Filter this page by external identity" className="h-9 w-56 px-3">
+          <SelectTrigger
+            aria-label="Filter this page by external identity"
+            className="h-9 w-56 px-3"
+          >
             <SelectValue>{(value: string) => identityLabelFor(value)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -242,6 +266,9 @@ export function UsersTable({
             ))}
           </SelectContent>
         </Select>
+        <div className="sm:ml-auto">
+          <IdentityLookupBox onResolve={setSelectedId} />
+        </div>
       </div>
 
       {filtersActive ? (
@@ -256,8 +283,9 @@ export function UsersTable({
         rows={filteredUsers}
         rowKey={(row) => row.id}
         onRowClick={(row) => {
-          expandedRow.collapseUnless(row.id);
-          setSelectedId((previous) => (previous === row.id ? null : row.id));
+          const id = row.id;
+          expandedRow.collapseUnless(id);
+          setSelectedId((previous) => (previous === id ? null : id));
         }}
         rowClassName={(row) =>
           isCurrentUser(row)
@@ -285,7 +313,7 @@ export function UsersTable({
         rolesCatalog={rolesCatalog}
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={canReadDirectPrivileges}
-        currentUserEmail={currentUserEmail}
+        currentUserId={currentUserId}
         onClose={() => setSelectedId(null)}
       />
     </div>

@@ -69,7 +69,7 @@ test.describe("admin resources & clusters read-only sweep", () => {
     await page.getByLabel("Rate", { exact: true }).fill("0.77");
     await page.getByRole("button", { name: "Add rate" }).click();
 
-    await expect(page.getByText("Rate added.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Rate added")).toBeVisible({ timeout: 15_000 });
     const newRow = page.getByRole("row", { name: /0\.77/ });
     await expect(newRow.getByText("ACTIVE")).toBeVisible();
     // The former current rate stays in its window but loses the tie-break.

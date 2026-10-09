@@ -17,20 +17,20 @@
 
 "use client";
 
-import * as React from "react";
+import type { Allocation, ProjectContext } from "@/generated/analytics/types.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import * as React from "react";
 import { pctRemaining } from "./lib";
-import type { AnalyticsAllocation, AnalyticsContext } from "./schemas";
 
 // The lowest-remaining allocation across all contexts — the one most likely to
 // need attention, used as the landing default when the URL says nothing.
 function mostAtRisk(
-  contexts: AnalyticsContext[],
-): { project: AnalyticsContext; allocation: AnalyticsAllocation } | undefined {
-  let best: { project: AnalyticsContext; allocation: AnalyticsAllocation; pct: number } | undefined;
+  contexts: ProjectContext[],
+): { project: ProjectContext; allocation: Allocation } | undefined {
+  let best: { project: ProjectContext; allocation: Allocation; pct: number } | undefined;
   for (const c of contexts) {
     for (const a of c.allocations) {
       const pct = pctRemaining(a.initial_su_amount, a.used_su_amount);
@@ -43,14 +43,14 @@ function mostAtRisk(
 // Resolves the selected project and allocation. An explicit allocation in the
 // URL wins, then an explicit project (its first allocation), else the page lands
 // on the most-at-risk allocation. Selection persists in the URL.
-export function useAnalyticsSelection(contexts: AnalyticsContext[]) {
+export function useAnalyticsSelection(contexts: ProjectContext[]) {
   const params = useShallowSearchParams();
   const projectParam = params.get("project");
   const allocationParam = params.get("allocation");
 
   const { project, allocation } = React.useMemo<{
-    project: AnalyticsContext | undefined;
-    allocation: AnalyticsAllocation | undefined;
+    project: ProjectContext | undefined;
+    allocation: Allocation | undefined;
   }>(() => {
     if (allocationParam) {
       for (const c of contexts) {

@@ -16,12 +16,13 @@
 // under the License.
 
 import { UsersNav } from "../UsersNav";
+import { CreateUserDialog } from "./CreateUserDialog";
 import { UsersTableContainer } from "./UsersTableContainer";
 
 export default function UserManagementPage() {
   return (
     <div className="space-y-4">
-      <UsersNav />
+      <UsersNav rightSlot={<CreateUserDialog />} />
       <UsersTableContainer />
     </div>
   );

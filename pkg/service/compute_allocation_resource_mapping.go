@@ -81,6 +81,19 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 	return mapping, nil
 }
 
+// GetAllocationResourceMapping returns the (allocation, resource) mapping, or
+// ErrNotFound when the resource is not attached.
+func (s *Service) GetAllocationResourceMapping(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
+	mapping, err := s.resourceMappings.FindByPair(ctx, allocationID, resourceID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup mapping: %w", err)
+	}
+	if mapping == nil {
+		return nil, ErrNotFound
+	}
+	return mapping, nil
+}
+
 // UpdateAllocationResourceMapping updates the resource_amount and
 // resource_time recorded against an existing (allocation, resource) mapping.
 func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocationID, resourceID string, resourceAmount, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
@@ -94,12 +107,9 @@ func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocatio
 		return nil, fmt.Errorf("%w: resource_time must be non-negative", ErrInvalidInput)
 	}
 
-	existing, err := s.resourceMappings.FindByPair(ctx, allocationID, resourceID)
+	existing, err := s.GetAllocationResourceMapping(ctx, allocationID, resourceID)
 	if err != nil {
-		return nil, fmt.Errorf("lookup mapping: %w", err)
-	}
-	if existing == nil {
-		return nil, ErrNotFound
+		return nil, err
 	}
 
 	existing.ResourceAmount = resourceAmount
@@ -123,12 +133,9 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 		return fmt.Errorf("%w: allocation and resource ids are required", ErrInvalidInput)
 	}
 
-	existing, err := s.resourceMappings.FindByPair(ctx, allocationID, resourceID)
+	existing, err := s.GetAllocationResourceMapping(ctx, allocationID, resourceID)
 	if err != nil {
-		return fmt.Errorf("lookup mapping: %w", err)
-	}
-	if existing == nil {
-		return ErrNotFound
+		return err
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {

@@ -60,7 +60,7 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	packet_id	path	string	true	"AMIE packet ID"
-// @Success	200	{object}	object{packet_id=string,events=[]object{span_id=string,parent_span_id=string,source=string,event_type=string,entity_type=string,entity_id=string,description=string,status=string,created_at=string}}
+// @Success	200	{object}	PacketAuditsResponse
 // @Failure	400	{object}	object{error=string}	"packet_id is required"
 // @Failure	500	{object}	object{error=string}	"Store lookup failed"
 // @Failure	503	{object}	object{error=string}	"AMIE packet audit store not configured"
@@ -80,10 +80,7 @@ func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, map[string]any{
-		"packet_id": packetID,
-		"events":    events,
-	})
+	common.WriteJSON(w, http.StatusOK, PacketAuditsResponse{PacketID: packetID, Events: events})
 }
 
 // @Summary	List AMIE packets
@@ -201,12 +198,17 @@ func (h *Handlers) getStats(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, packetStatsResponseFrom(buckets))
 }
 
+// ReplyResponse is an outgoing reply row; it carries only the id the retry route takes until replies are stored.
+type ReplyResponse struct {
+	ID string `json:"id" binding:"required"`
+}
+
 // ReplyListResponse is the paginated list envelope for connector replies.
 type ReplyListResponse struct {
-	Replies []any `json:"replies"`
-	Total   int   `json:"total"`
-	Limit   int   `json:"limit"`
-	Offset  int   `json:"offset"`
+	Replies []ReplyResponse `json:"replies" binding:"required"`
+	Total   int             `json:"total" binding:"required"`
+	Limit   int             `json:"limit" binding:"required"`
+	Offset  int             `json:"offset" binding:"required"`
 }
 
 // @Summary	List replies sent to AMIE
@@ -219,7 +221,7 @@ type ReplyListResponse struct {
 // @Router	/connectors/amie/replies [get]
 func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, ReplyListResponse{
-		Replies: []any{},
+		Replies: []ReplyResponse{},
 		Total:   0,
 		Limit:   effectiveLimit(parseLimit(r)),
 		Offset:  parseOffset(r),

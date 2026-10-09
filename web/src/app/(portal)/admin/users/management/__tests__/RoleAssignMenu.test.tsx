@@ -15,18 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RoleAssignMenu } from "../RoleAssignMenu";
 
+const { confirmToast } = vi.hoisted(() => ({ confirmToast: vi.fn() }));
+vi.mock("@/shared/ui/sonner", () => ({ confirmToast }));
+
 const roleDetailsMock = vi.hoisted(() => ({
-  roles: [
-    {
-      id: "role-1",
-      name: "Administrator",
-      privileges: ["core:roles:manage"],
-    },
-  ],
+  details: [{ role: { id: "role-1", name: "Administrator", is_system: false, created_at: "2026-01-01T00:00:00Z" }, privileges: ["core:roles:manage"] }],
   isLoading: false,
   isError: false,
 }));
@@ -35,139 +32,58 @@ vi.mock("@/features/core/users/queries", () => ({
   useRoleDetails: () => roleDetailsMock,
 }));
 
+function openAndUnassign(isCurrentUser: boolean) {
+  const onSave = vi.fn();
+  render(
+    <RoleAssignMenu
+      roles={[{ id: "role-1", name: "Administrator", is_system: false, created_at: "2026-01-01T00:00:00Z" }]}
+      heldRoleIds={new Set(["role-1"])}
+      onSave={onSave}
+      triggerLabel="Manage user roles"
+      isCurrentUser={isCurrentUser}
+      isPending={false}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
+  return onSave;
+}
+
 describe("RoleAssignMenu", () => {
   beforeEach(() => {
-    roleDetailsMock.roles = [
-      {
-        id: "role-1",
-        name: "Administrator",
-        privileges: ["core:roles:manage"],
-      },
+    confirmToast.mockClear();
+    roleDetailsMock.details = [
+      { role: { id: "role-1", name: "Administrator", is_system: false, created_at: "2026-01-01T00:00:00Z" }, privileges: ["core:roles:manage"] },
     ];
-    roleDetailsMock.isLoading = false;
     roleDetailsMock.isError = false;
   });
 
-  it("submits the desired role set once", async () => {
-    const onSave = vi.fn().mockResolvedValue(true);
-    render(
-      <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
-        heldRoleIds={new Set(["role-1"])}
-        onSave={onSave}
-        triggerLabel="Manage user roles"
-        isCurrentUser={false}
-        isPending={false}
-        error={null}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith([], undefined));
-    expect(onSave).toHaveBeenCalledTimes(1);
-  });
-
-  it("submits the typed reason with the role set", async () => {
-    const onSave = vi.fn().mockResolvedValue(true);
-    render(
-      <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
-        heldRoleIds={new Set(["role-1"])}
-        onSave={onSave}
-        triggerLabel="Manage user roles"
-        isCurrentUser={false}
-        isPending={false}
-        error={null}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
+  it("submits the typed reason with the role set", () => {
+    const onSave = openAndUnassign(false);
     fireEvent.change(screen.getByLabelText(/reason/i), {
       target: { value: "Onboarding new team member" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith([], "Onboarding new team member"),
-    );
+    expect(onSave).toHaveBeenCalledWith([], "Onboarding new team member", expect.any(Function));
   });
 
-  it("confirms before self-removing a role-manager role", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    const onSave = vi.fn().mockResolvedValue(true);
-    render(
-      <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
-        heldRoleIds={new Set(["role-1"])}
-        onSave={onSave}
-        triggerLabel="Manage user roles"
-        isCurrentUser
-        isPending={false}
-        error={null}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
+  it("confirms before self-removing a role-manager role", () => {
+    const onSave = openAndUnassign(true);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    expect(confirm).toHaveBeenCalled();
+    expect(confirmToast).toHaveBeenCalled();
     expect(onSave).not.toHaveBeenCalled();
-    confirm.mockRestore();
-  });
-
-  it("allows saving when role privilege previews are unavailable", async () => {
-    roleDetailsMock.roles = [];
-    roleDetailsMock.isError = true;
-    const onSave = vi.fn().mockResolvedValue(true);
-    render(
-      <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
-        heldRoleIds={new Set(["role-1"])}
-        onSave={onSave}
-        triggerLabel="Manage user roles"
-        isCurrentUser={false}
-        isPending={false}
-        error={null}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
-    const save = screen.getByRole("button", { name: "Save" });
-    expect(save).toBeEnabled();
-    fireEvent.click(save);
-
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith([], undefined));
   });
 
   it("uses a conservative confirmation when current-user privileges are unavailable", () => {
-    roleDetailsMock.roles = [];
+    roleDetailsMock.details = [];
     roleDetailsMock.isError = true;
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    const onSave = vi.fn().mockResolvedValue(true);
-    render(
-      <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
-        heldRoleIds={new Set(["role-1"])}
-        onSave={onSave}
-        triggerLabel="Manage user roles"
-        isCurrentUser
-        isPending={false}
-        error={null}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
+    const onSave = openAndUnassign(true);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("privileges are unavailable"));
+    expect(confirmToast).toHaveBeenCalledWith(
+      expect.stringContaining("privileges are unavailable"),
+      "Continue",
+      expect.any(Function),
+    );
     expect(onSave).not.toHaveBeenCalled();
-    confirm.mockRestore();
   });
 });

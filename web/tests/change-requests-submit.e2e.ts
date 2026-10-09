@@ -21,9 +21,9 @@ import { signInAs } from "./fixtures/auth";
 test.describe("change request submit", () => {
   test("PI persona opens drawer, fills, submits", async ({ page }) => {
     await signInAs(page, "manager");
-    await page.goto("/allocations/alloc-001");
+    await page.goto("/allocations/alloc-004");
     await expect(
-      page.getByRole("heading", { name: /Genomic Sequencing - GPU Pool/i }),
+      page.getByRole("heading", { name: /Catalyst Discovery - Legacy/i }),
     ).toBeVisible();
 
     await page.getByRole("tab", { name: /^change requests$/i }).click();

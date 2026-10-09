@@ -30,19 +30,19 @@ const SystemRoleAdmin = "admin"
 // Role is a named bundle of privileges. Mutating the bundle propagates to
 // every holder.
 type Role struct {
-	ID          string    `json:"id"          db:"id"`
-	Name        string    `json:"name"        db:"name"`
-	Description *string   `json:"description" db:"description"`
-	IsSystem    bool      `json:"is_system"   db:"is_system"`
-	CreatedAt   time.Time `json:"created_at"  db:"created_at"`
+	ID          string    `json:"id"          db:"id" binding:"required"`
+	Name        string    `json:"name"        db:"name" binding:"required"`
+	Description *string   `json:"description" db:"description" extensions:"x-nullable"`
+	IsSystem    bool      `json:"is_system"   db:"is_system" binding:"required"`
+	CreatedAt   time.Time `json:"created_at"  db:"created_at" binding:"required"`
 }
 
 // UserRole is one role assignment. Revoke is DELETE; history lives in
 // audit_events.
 type UserRole struct {
-	UserID    string    `json:"user_id"    db:"user_id"`
-	RoleID    string    `json:"role_id"    db:"role_id"`
-	GrantedBy *string   `json:"granted_by" db:"granted_by"`
-	GrantedAt time.Time `json:"granted_at" db:"granted_at"`
-	Reason    *string   `json:"reason"     db:"reason"`
+	UserID    string    `json:"user_id"    db:"user_id" binding:"required"`
+	RoleID    string    `json:"role_id"    db:"role_id" binding:"required"`
+	GrantedBy *string   `json:"granted_by" db:"granted_by" extensions:"x-nullable"`
+	GrantedAt time.Time `json:"granted_at" db:"granted_at" binding:"required"`
+	Reason    *string   `json:"reason"     db:"reason" extensions:"x-nullable"`
 }

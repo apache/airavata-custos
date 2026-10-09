@@ -16,34 +16,47 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
-import contexts from "@/features/core/analytics/__fixtures__/contexts.json";
+import contextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
 import jobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
-import summaries from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import summariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import type {
+  GetConnectorsAnalyticsAllocationsByIdJobsData,
+  GetConnectorsAnalyticsAllocationsByIdUsageSummaryData,
+  ProjectContext,
+} from "@/generated/analytics/types.gen";
+import { zJob, zProjectContext, zUsageSummary } from "@/generated/analytics/zod.gen";
+import { z } from "zod";
+import { notFound, page } from "../paging";
 
-type JobEntry = { callerId: string; jobs: Array<{ user_id: string }> };
+const contexts: ProjectContext[] = z.array(zProjectContext).parse(contextsFixture);
+const summaries = z.record(z.string(), zUsageSummary).parse(summariesFixture);
+// Per allocation: the caller the "mine" filter scopes to, and every job.
+const jobsByAllocation = z
+  .record(z.string(), z.object({ callerId: z.string(), jobs: z.array(zJob) }))
+  .parse(jobsFixture);
 
 // The fixture bakes the privacy rule per allocation: the researcher project's
-// allocation carries by_member: null, the PI project's carries the ranked list.
+// allocation omits by_member, the PI project's carries the ranked list.
 // Unknown ids 404 like the real membership-scoped endpoint.
 export const analyticsHandlers = [
   http.get("*/api/v1/connectors/analytics/contexts", () => HttpResponse.json(contexts)),
-  http.get("*/api/v1/connectors/analytics/allocations/:id/usage-summary", ({ params }) => {
-    const summary = (summaries as Record<string, unknown>)[String(params.id)];
-    if (!summary) {
-      return HttpResponse.json({ error: "not found" }, { status: 404 });
-    }
-    return HttpResponse.json(summary);
-  }),
-  http.get("*/api/v1/connectors/analytics/allocations/:id/jobs", ({ params, request }) => {
-    const entry = (jobsFixture as Record<string, JobEntry>)[String(params.id)];
-    if (!entry) {
-      return HttpResponse.json({ error: "not found" }, { status: 404 });
-    }
-    const url = new URL(request.url);
-    const mine = url.searchParams.get("mine") === "true";
-    const limit = Number(url.searchParams.get("limit") ?? 20);
-    const offset = Number(url.searchParams.get("offset") ?? 0);
-    const rows = mine ? entry.jobs.filter((j) => j.user_id === entry.callerId) : entry.jobs;
-    return HttpResponse.json({ jobs: rows.slice(offset, offset + limit), total: rows.length });
-  }),
+  http.get<GetConnectorsAnalyticsAllocationsByIdUsageSummaryData["path"]>(
+    "*/api/v1/connectors/analytics/allocations/:id/usage-summary",
+    ({ params }) => {
+      const summary = summaries[params.id];
+      return summary ? HttpResponse.json(summary) : notFound("allocation");
+    },
+  ),
+  http.get<GetConnectorsAnalyticsAllocationsByIdJobsData["path"]>(
+    "*/api/v1/connectors/analytics/allocations/:id/jobs",
+    ({ params, request }) => {
+      const entry = jobsByAllocation[params.id];
+      if (!entry) return notFound("allocation");
+      const url = new URL(request.url);
+      const mine = url.searchParams.get("mine") === "true";
+      const rows = mine ? entry.jobs.filter((j) => j.user_id === entry.callerId) : entry.jobs;
+      const { items, total } = page(url, rows, 20);
+      return HttpResponse.json({ jobs: items, total });
+    },
+  ),
 ];

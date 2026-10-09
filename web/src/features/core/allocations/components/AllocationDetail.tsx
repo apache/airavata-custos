@@ -20,10 +20,10 @@
 import { useSession } from "next-auth/react";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { QueryErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
-import { useAllocation, useAllocationMembers } from "../queries";
+import { useAllocation, useAllocationMembers, useCustosManaged } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
@@ -40,13 +40,15 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const { data: session } = useSession();
   const allocationQuery = useAllocation(allocationId);
   const membersQuery = useAllocationMembers(allocationId);
+  const custos = useCustosManaged(ability.can("write", "Allocation") ? allocationId : undefined);
   useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
 
   if (allocationQuery.isLoading) return <CardSkeleton />;
   if (allocationQuery.error) {
     return (
-      <ErrorState
-        message={(allocationQuery.error as Error).message}
+      <QueryErrorState
+        error={allocationQuery.error}
+        what="allocation"
         onRetry={() => allocationQuery.refetch()}
       />
     );
@@ -54,7 +56,9 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const allocation = allocationQuery.data;
   if (!allocation) return null;
 
-  const canManage = ability.can("manage", "Allocation");
+  const canManage = ability.can("write", "Allocation") && custos;
+  // Change requests and diffs require the allocations read privilege; the page itself is scoped.
+  const canRead = ability.can("read", "Allocation");
   const memberCount = membersQuery.data?.length ?? 0;
 
   return (
@@ -66,12 +70,20 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
           {
             value: "overview",
             label: "Overview",
-            content: <AllocationOverviewTab allocation={allocation} />,
+            content: (
+              <AllocationOverviewTab allocation={allocation} canManage={canManage} />
+            ),
           },
           {
             value: "members",
             label: "Members",
-            content: <AllocationMembersTab allocation={allocation} canManage={canManage} />,
+            content: (
+              <AllocationMembersTab
+                allocation={allocation}
+                canManage={canManage}
+                canRead={canRead}
+              />
+            ),
           },
           {
             value: "change-requests",
@@ -87,14 +99,16 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
           {
             value: "usage",
             label: "Usage",
-            content: <AllocationUsageTab allocation={allocation} />,
+            content: (
+              <AllocationUsageTab allocation={allocation} canRead={canRead} canManage={canManage} />
+            ),
           },
           {
             value: "history",
             label: "History",
-            content: <AllocationHistoryTab allocation={allocation} />,
+            content: <AllocationHistoryTab allocation={allocation} canManage={canManage} />,
           },
-        ]}
+        ].filter((tab) => canRead || (tab.value !== "change-requests" && tab.value !== "history"))}
       />
     </section>
   );

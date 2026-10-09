@@ -18,19 +18,22 @@
 "use client";
 
 import * as React from "react";
+import { useAbility } from "@/shared/casl/AbilityProvider";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { useClusters } from "../queries";
-import type { ComputeCluster } from "../schemas";
+import type { ComputeCluster } from "@/generated/core/types.gen";
 import { ClusterUsersDrawer } from "./ClusterUsersDrawer";
+import { CreateClusterDialog } from "./CreateClusterDialog";
 
 export function ClustersTab() {
+  const canWrite = useAbility().can("write", "Cluster");
   const query = useClusters();
   const [search, setSearch] = React.useState("");
-  const [selected, setSelected] = React.useState<ComputeCluster | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const rows = query.data ?? [];
   const filtered = React.useMemo(() => {
@@ -54,7 +57,7 @@ export function ClustersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
         <Input
           type="search"
           placeholder="Search clusters"
@@ -63,12 +66,13 @@ export function ClustersTab() {
           aria-label="Search clusters"
           className="sm:w-72"
         />
+        {canWrite ? <CreateClusterDialog /> : null}
       </div>
 
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState heading="No clusters registered." />
       ) : filtered.length === 0 ? (
@@ -77,16 +81,16 @@ export function ClustersTab() {
         <DataTable
           columns={columns}
           rows={filtered}
-          rowKey={(row) => row.id}
-          onRowClick={(row) => setSelected(row)}
+          rowKey={(row) => row.id ?? ""}
+          onRowClick={(row) => setSelectedId(row.id ?? null)}
         />
       )}
 
       <ClusterUsersDrawer
-        clusterId={selected?.id ?? null}
-        clusterName={selected?.name ?? null}
+        clusterId={selectedId}
+        canWrite={canWrite}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) setSelectedId(null);
         }}
       />
     </div>

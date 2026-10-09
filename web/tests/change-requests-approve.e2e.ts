@@ -24,10 +24,12 @@ test.describe("change request approver queue", () => {
     await page.goto("/change-requests");
     await expect(page.getByRole("heading", { name: /^Change requests$/ })).toBeVisible();
 
-    const approveBtn = page.getByRole("button", { name: /^Approve cr-001$/ });
+    const approveBtn = page.getByRole("button", { name: /^Approve cr-002$/ });
     await expect(approveBtn).toBeVisible({ timeout: 15_000 });
+    // cr-001 belongs to an externally managed project, so it offers no decision.
+    await expect(page.getByRole("button", { name: /^Approve cr-001$/ })).toHaveCount(0);
     await approveBtn.click();
-    await expect(page.getByText(/approved cr-001/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/approved cr-002/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("admin can reject a pending request", async ({ page }) => {

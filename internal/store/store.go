@@ -212,11 +212,15 @@ type AllocationListFilter struct {
 // ComputeAllocationResourceSummary is a resource plus its aggregate
 // allocation, usage, and rate figures.
 type ComputeAllocationResourceSummary struct {
-	models.ComputeAllocationResource
-	AllocationCount int64   `json:"allocation_count" db:"allocation_count"`
-	TotalAllocated  int64   `json:"total_allocated"  db:"total_allocated"`
-	TotalUsedSU     float64 `json:"total_used_su"    db:"total_used_su"`
-	RateCount       int64   `json:"rate_count"       db:"rate_count"`
+	ID               string  `json:"id"                 db:"id" binding:"required"`
+	Name             string  `json:"name"               db:"name" binding:"required"`               // resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
+	ResourceType     string  `json:"resource_type"      db:"resource_type" binding:"required"`      // TRES: cpu, gres/gpu
+	ResourceAmount   int64   `json:"resource_amount"    db:"resource_amount" binding:"required"`    // Number of CPUs, GPUs.
+	ComputeClusterID string  `json:"compute_cluster_id" db:"compute_cluster_id" binding:"required"` // The ID of the compute cluster the resource (partition) belongs to.
+	AllocationCount  int64   `json:"allocation_count"   db:"allocation_count" binding:"required"`
+	TotalAllocated   int64   `json:"total_allocated"    db:"total_allocated" binding:"required"`
+	TotalUsedSU      float64 `json:"total_used_su"      db:"total_used_su" binding:"required"`
+	RateCount        int64   `json:"rate_count"         db:"rate_count" binding:"required"`
 }
 
 // ComputeAllocationResourceStore defines persistence operations for compute

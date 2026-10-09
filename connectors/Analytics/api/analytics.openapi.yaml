@@ -15,6 +15,12 @@ definitions:
         type: string
       used_su_amount:
         type: number
+    required:
+    - end_time
+    - id
+    - initial_su_amount
+    - name
+    - used_su_amount
     type: object
   AllocationJobs:
     properties:
@@ -24,6 +30,9 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - jobs
+    - total
     type: object
   Job:
     properties:
@@ -49,6 +58,18 @@ definitions:
         type: string
       user_name:
         type: string
+    required:
+    - calculated_time
+    - id
+    - job_id
+    - native_unit
+    - resource_id
+    - resource_name
+    - resource_type
+    - used
+    - used_raw
+    - user_id
+    - user_name
     type: object
   ProjectContext:
     properties:
@@ -62,6 +83,11 @@ definitions:
         type: string
       role:
         type: string
+    required:
+    - allocations
+    - project_id
+    - project_name
+    - role
     type: object
   UsageDailyBucket:
     properties:
@@ -72,6 +98,9 @@ definitions:
         type: object
       date:
         type: string
+    required:
+    - by_resource
+    - date
     type: object
   UsageMember:
     properties:
@@ -81,11 +110,16 @@ definitions:
         type: number
       user_id:
         type: string
+    required:
+    - name
+    - used
+    - user_id
     type: object
   UsageResource:
     properties:
       cap:
         type: integer
+        x-nullable: true
       name:
         type: string
       native_unit:
@@ -100,6 +134,13 @@ definitions:
         type: number
       used_native:
         type: number
+    required:
+    - name
+    - native_unit
+    - resource_id
+    - used
+    - used_by_caller
+    - used_native
     type: object
   UsageSummary:
     properties:
@@ -107,6 +148,7 @@ definitions:
         items:
           $ref: '#/definitions/UsageMember'
         type: array
+        x-nullable: true
       by_resource:
         items:
           $ref: '#/definitions/UsageResource'
@@ -119,6 +161,10 @@ definitions:
         type: integer
       used:
         type: number
+    required:
+    - by_resource
+    - daily
+    - total
     type: object
 info:
   contact: {}

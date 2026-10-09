@@ -17,26 +17,28 @@
 
 "use client";
 
+import type { PendingDelivery } from "@/generated/core/types.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Button } from "@/shared/ui/button";
-import type { Delivery } from "../types";
 import { MAX_ATTEMPTS, absoluteTime, deliveryState, relativeTime } from "../utils";
 import { DeliveryStatusBadge } from "./DeliveryStatusBadge";
 
 export type DeliveryTableProps = {
-  rows: Delivery[];
+  rows: PendingDelivery[];
   runningSubscribers?: Set<string>;
   canRetry: boolean;
   empty: React.ReactNode;
-  onOpen: (delivery: Delivery) => void;
-  onRetry: (delivery: Delivery) => void;
+  onOpen: (delivery: PendingDelivery) => void;
+  onRetry: (delivery: PendingDelivery) => void;
 };
 
-function whenCell(row: Delivery) {
+function whenCell(row: PendingDelivery) {
   // A delivery that is retrying matters by when it runs next, not when it was made.
   if (row.status === "PENDING" && row.attempts > 0) {
     return (
-      <span title={absoluteTime(row.next_run_at)}>next try {relativeTime(row.next_run_at)}</span>
+      <span title={absoluteTime(row.next_run_at)}>
+        next try {relativeTime(row.next_run_at)}
+      </span>
     );
   }
   return <span title={absoluteTime(row.created_at)}>{relativeTime(row.created_at)}</span>;
@@ -50,7 +52,7 @@ export function DeliveryTable({
   onOpen,
   onRetry,
 }: DeliveryTableProps) {
-  const columns: DataTableColumn<Delivery>[] = [
+  const columns: DataTableColumn<PendingDelivery>[] = [
     {
       key: "status",
       header: "Status",

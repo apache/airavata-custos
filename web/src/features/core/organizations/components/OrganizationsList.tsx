@@ -17,12 +17,12 @@
 
 "use client";
 
+import type { Organization } from "@/generated/core/types.gen";
 import type * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import type { Organization } from "../schemas";
 
 export type OrganizationsListProps = {
   rows: Organization[];
@@ -34,6 +34,7 @@ export type OrganizationsListProps = {
   total: number;
   onPageChange: (page: number) => void;
   headerCta?: React.ReactNode;
+  onRowClick?: (row: Organization) => void;
 };
 
 export function OrganizationsList({
@@ -46,6 +47,7 @@ export function OrganizationsList({
   total,
   onPageChange,
   headerCta,
+  onRowClick,
 }: OrganizationsListProps) {
   const columns: Array<DataTableColumn<Organization>> = [
     {
@@ -89,7 +91,8 @@ export function OrganizationsList({
         <DataTable
           columns={columns}
           rows={rows}
-          rowKey={(row) => row.id}
+          rowKey={(row) => row.id ?? ""}
+          onRowClick={onRowClick}
           pagination={{ page, pageSize, total, onPageChange }}
         />
       )}

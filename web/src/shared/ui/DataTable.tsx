@@ -71,11 +71,13 @@ function compareSortable(
   b: DataTableSortValue,
   direction: "asc" | "desc",
 ): number {
-  // Nullish values always sort last regardless of direction so a missing
-  // entry doesn't bubble to the top under desc.
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
+  // Missing values (nullish or Invalid Date) always sort last regardless of
+  // direction so a missing entry doesn't bubble to the top under desc.
+  const missing = (v: DataTableSortValue) =>
+    v == null || (v instanceof Date && Number.isNaN(v.getTime()));
+  if (missing(a) && missing(b)) return 0;
+  if (missing(a)) return 1;
+  if (missing(b)) return -1;
   let cmp = 0;
   if (a instanceof Date && b instanceof Date) {
     cmp = a.getTime() - b.getTime();

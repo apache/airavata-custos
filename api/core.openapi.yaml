@@ -22,6 +22,8 @@ definitions:
         type: string
       user_id:
         type: string
+    required:
+    - role
     type: object
   AllocationSUTotalResponse:
     properties:
@@ -29,6 +31,9 @@ definitions:
         type: string
       total_su_amount:
         type: integer
+    required:
+    - compute_allocation_id
+    - total_su_amount
     type: object
   AllocationStatus:
     enum:
@@ -71,6 +76,16 @@ definitions:
         type: string
       trace_id:
         type: string
+    required:
+    - details
+    - entity_id
+    - entity_type
+    - event_time
+    - event_type
+    - id
+    - source
+    - span_id
+    - trace_id
     type: object
   CallerProfileResponse:
     properties:
@@ -93,8 +108,12 @@ definitions:
         items:
           $ref: '#/definitions/PrivilegeKey'
         type: array
+        x-nullable: true
       role:
         $ref: '#/definitions/Role'
+    required:
+    - granted_at
+    - role
     type: object
   ClusterAccessLevel:
     enum:
@@ -122,6 +141,9 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - items
+    - total
     type: object
   ClusterAccountResponse:
     properties:
@@ -147,6 +169,7 @@ definitions:
         description: When the account was provisioned into the registry; nil until
           then.
         type: string
+        x-nullable: true
       review_note:
         type: string
       reviewed_at:
@@ -156,6 +179,16 @@ definitions:
         type: string
       user_id:
         type: string
+    required:
+    - access_level
+    - approval_status
+    - cluster_name
+    - compute_cluster_id
+    - display_name
+    - email
+    - id
+    - local_username
+    - user_id
     type: object
   ComputeAllocation:
     properties:
@@ -191,6 +224,10 @@ definitions:
         type: string
       change_status:
         description: '"PENDING", "APPROVED", "REJECTED", etc.'
+        enum:
+        - PENDING
+        - APPROVED
+        - REJECTED
         type: string
       compute_allocation_id:
         type: string
@@ -264,6 +301,9 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - items
+    - total
     type: object
   ComputeAllocationMembership:
     properties:
@@ -334,6 +374,12 @@ definitions:
         description: Wall-clock time in minutes that the allocated amount is granted
           for.
         type: integer
+    required:
+    - compute_allocation_id
+    - compute_allocation_resource_id
+    - id
+    - resource_amount
+    - resource_time
     type: object
   ComputeAllocationResourceRate:
     properties:
@@ -378,6 +424,16 @@ definitions:
         type: integer
       total_used_su:
         type: number
+    required:
+    - allocation_count
+    - compute_cluster_id
+    - id
+    - name
+    - rate_count
+    - resource_amount
+    - resource_type
+    - total_allocated
+    - total_used_su
     type: object
   ComputeAllocationUsage:
     properties:
@@ -435,6 +491,7 @@ definitions:
         description: When the account was provisioned into the registry; nil until
           then.
         type: string
+        x-nullable: true
       review_note:
         type: string
       reviewed_at:
@@ -444,6 +501,13 @@ definitions:
         type: string
       user_id:
         type: string
+    required:
+    - access_level
+    - approval_status
+    - compute_cluster_id
+    - id
+    - local_username
+    - user_id
     type: object
   DeliveryCounts:
     properties:
@@ -455,6 +519,11 @@ definitions:
         type: integer
       succeeded:
         type: integer
+    required:
+    - attempts
+    - failed
+    - pending
+    - succeeded
     type: object
   DeliveryHistory:
     properties:
@@ -472,6 +541,7 @@ definitions:
         items:
           $ref: '#/definitions/AuditEvent'
         type: array
+        x-nullable: true
       id:
         type: string
       last_error:
@@ -482,6 +552,15 @@ definitions:
         $ref: '#/definitions/EventDeliveryStatus'
       subscriber:
         type: string
+    required:
+    - attempts
+    - created_at
+    - event
+    - event_id
+    - id
+    - next_run_at
+    - status
+    - subscriber
     type: object
   Event:
     properties:
@@ -501,6 +580,14 @@ definitions:
         type: string
       trace_id:
         type: string
+    required:
+    - created_at
+    - event_type
+    - id
+    - payload
+    - source
+    - span_id
+    - trace_id
     type: object
   EventDeliveryStatus:
     enum:
@@ -531,6 +618,9 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - items
+    - total
     type: object
   PendingDelivery:
     properties:
@@ -554,6 +644,15 @@ definitions:
         $ref: '#/definitions/EventDeliveryStatus'
       subscriber:
         type: string
+    required:
+    - attempts
+    - created_at
+    - event
+    - event_id
+    - id
+    - next_run_at
+    - status
+    - subscriber
     type: object
   PrivilegeKey:
     enum:
@@ -606,6 +705,14 @@ definitions:
         $ref: '#/definitions/ProjectStatus'
       title:
         type: string
+    required:
+    - created_time
+    - id
+    - originated_id
+    - origination
+    - project_pi_id
+    - status
+    - title
     type: object
   ProjectListResponse:
     properties:
@@ -615,6 +722,9 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - items
+    - total
     type: object
   ProjectMemberAllocationRef:
     properties:
@@ -624,6 +734,10 @@ definitions:
         type: string
       role:
         type: string
+    required:
+    - id
+    - name
+    - role
     type: object
   ProjectMemberResponse:
     properties:
@@ -648,6 +762,16 @@ definitions:
         type: string
       user_id:
         type: string
+    required:
+    - added_time
+    - allocations
+    - display_name
+    - email
+    - id
+    - project_id
+    - role
+    - status
+    - user_id
     type: object
   ProjectResponse:
     properties:
@@ -672,6 +796,14 @@ definitions:
         $ref: '#/definitions/ProjectStatus'
       title:
         type: string
+    required:
+    - created_time
+    - id
+    - originated_id
+    - origination
+    - project_pi_id
+    - status
+    - title
     type: object
   ProjectStatus:
     enum:
@@ -689,12 +821,30 @@ definitions:
         type: string
       description:
         type: string
+        x-nullable: true
       id:
         type: string
       is_system:
         type: boolean
       name:
         type: string
+    required:
+    - created_at
+    - id
+    - is_system
+    - name
+    type: object
+  RoleDetailResponse:
+    properties:
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+        x-nullable: true
+      role:
+        $ref: '#/definitions/Role'
+    required:
+    - role
     type: object
   Subscription:
     properties:
@@ -706,6 +856,11 @@ definitions:
         type: boolean
       subscriber:
         type: string
+    required:
+    - created_at
+    - event_type
+    - loaded
+    - subscriber
     type: object
   TraceDelivery:
     properties:
@@ -717,6 +872,7 @@ definitions:
         type: string
       last_error:
         type: string
+        x-nullable: true
       next_run_at:
         type: string
       span_id:
@@ -725,6 +881,41 @@ definitions:
         $ref: '#/definitions/EventDeliveryStatus'
       subscriber:
         type: string
+    required:
+    - attempts
+    - event_type
+    - id
+    - next_run_at
+    - span_id
+    - status
+    - subscriber
+    type: object
+  TraceDetailResponse:
+    properties:
+      deliveries:
+        items:
+          $ref: '#/definitions/TraceDelivery'
+        type: array
+      status:
+        enum:
+        - ok
+        - error
+        - in_progress
+        type: string
+      trace_id:
+        type: string
+      tree:
+        items:
+          $ref: '#/definitions/TraceNode'
+        type: array
+      truncated:
+        type: boolean
+    required:
+    - deliveries
+    - status
+    - trace_id
+    - tree
+    - truncated
     type: object
   TraceEvent:
     properties:
@@ -747,7 +938,17 @@ definitions:
       span_id:
         type: string
       status:
+        enum:
+        - ok
+        - error
         type: string
+    required:
+    - created_at
+    - event_type
+    - id
+    - source
+    - span_id
+    - status
     type: object
   TraceNode:
     properties:
@@ -774,7 +975,18 @@ definitions:
       span_id:
         type: string
       status:
+        enum:
+        - ok
+        - error
         type: string
+    required:
+    - children
+    - created_at
+    - event_type
+    - id
+    - source
+    - span_id
+    - status
     type: object
   TraceSummary:
     properties:
@@ -791,9 +1003,22 @@ definitions:
       started_at:
         type: string
       status:
+        enum:
+        - ok
+        - error
+        - in_progress
         type: string
       trace_id:
         type: string
+    required:
+    - deliveries
+    - ended_at
+    - event_count
+    - root_operation
+    - source
+    - started_at
+    - status
+    - trace_id
     type: object
   User:
     properties:
@@ -813,6 +1038,14 @@ definitions:
         $ref: '#/definitions/UserStatus'
       type:
         $ref: '#/definitions/UserType'
+    required:
+    - email
+    - first_name
+    - id
+    - last_name
+    - organization_id
+    - status
+    - type
     type: object
   UserAllocationSUTotalResponse:
     properties:
@@ -822,6 +1055,10 @@ definitions:
         type: integer
       user_id:
         type: string
+    required:
+    - compute_allocation_id
+    - total_su_amount
+    - user_id
     type: object
   UserIdentity:
     properties:
@@ -855,6 +1092,9 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - items
+    - total
     type: object
   UserPrivilege:
     properties:
@@ -862,14 +1102,21 @@ definitions:
         type: string
       granted_by:
         type: string
+        x-nullable: true
       id:
         type: string
       privilege:
         $ref: '#/definitions/PrivilegeKey'
       reason:
         type: string
+        x-nullable: true
       user_id:
         type: string
+    required:
+    - granted_at
+    - id
+    - privilege
+    - user_id
     type: object
   UserRole:
     properties:
@@ -877,12 +1124,18 @@ definitions:
         type: string
       granted_by:
         type: string
+        x-nullable: true
       reason:
         type: string
+        x-nullable: true
       role_id:
         type: string
       user_id:
         type: string
+    required:
+    - granted_at
+    - role_id
+    - user_id
     type: object
   UserStatus:
     enum:
@@ -1197,22 +1450,7 @@ paths:
         "200":
           description: OK
           schema:
-            properties:
-              deliveries:
-                items:
-                  $ref: '#/definitions/TraceDelivery'
-                type: array
-              status:
-                type: string
-              trace_id:
-                type: string
-              tree:
-                items:
-                  $ref: '#/definitions/TraceNode'
-                type: array
-              truncated:
-                type: boolean
-            type: object
+            $ref: '#/definitions/TraceDetailResponse'
         "400":
           description: Malformed trace_id
           schema:
@@ -1319,6 +1557,30 @@ paths:
       tags:
       - Change Request Events
   /compute-allocation-change-requests:
+    get:
+      parameters:
+      - description: Change status filter
+        in: query
+        name: status
+        type: string
+      - description: Maximum rows (default 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeAllocationChangeRequest'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List change requests across allocations
+      tags:
+      - Compute Allocation Change Requests
     post:
       consumes:
       - application/json
@@ -2531,7 +2793,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/ComputeAllocationResourceMapping'
+              $ref: '#/definitions/ComputeAllocationResource'
             type: array
         "401":
           description: Unauthorized
@@ -2621,6 +2883,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Detach a resource from a compute allocation
+      tags:
+      - Compute Allocation Resources
+    get:
+      description: Returns the amount and time granted to the allocation on the resource.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compute allocation resource ID
+        in: path
+        name: resourceId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationResourceMapping'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a compute allocation -> resource mapping
       tags:
       - Compute Allocation Resources
     put:
@@ -3510,7 +3811,12 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Project'
+          properties:
+            project_pi_id:
+              type: string
+            title:
+              type: string
+          type: object
       produces:
       - application/json
       responses:
@@ -3881,14 +4187,7 @@ paths:
         "200":
           description: OK
           schema:
-            properties:
-              privileges:
-                items:
-                  $ref: '#/definitions/PrivilegeKey'
-                type: array
-              role:
-                $ref: '#/definitions/Role'
-            type: object
+            $ref: '#/definitions/RoleDetailResponse'
         "400":
           description: Bad Request
           schema:

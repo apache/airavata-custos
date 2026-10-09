@@ -17,36 +17,21 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { Button } from "@/shared/ui/button";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import type { ProjectResponse, ProjectStatus } from "@/generated/core/types.gen";
+import { DataTable, type DataTableColumn, type DataTablePagination } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import { STATUSES, statusLabel } from "@/shared/ui/FormDialog";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-import type { Project, ProjectStatus } from "../schemas";
+import Link from "next/link";
+import * as React from "react";
 
-function statusLabelFor(value: string): string {
-  switch (value) {
-    case "ACTIVE":
-      return "Active";
-    case "INACTIVE":
-      return "Inactive";
-    case "DELETED":
-      return "Deleted";
-    default:
-      return "All statuses";
-  }
-}
 
 export type ProjectsListProps = {
-  rows: Project[];
+  rows: ProjectResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
@@ -55,6 +40,7 @@ export type ProjectsListProps = {
   statusFilter: ProjectStatus | "all";
   onStatusFilterChange: (next: ProjectStatus | "all") => void;
   headerCta?: React.ReactNode;
+  pagination?: DataTablePagination;
 };
 
 export function ProjectsList({
@@ -67,7 +53,9 @@ export function ProjectsList({
   statusFilter,
   onStatusFilterChange,
   headerCta,
+  pagination,
 }: ProjectsListProps) {
+  // The backend skips filters for callers without projects read.
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -80,7 +68,7 @@ export function ProjectsList({
     });
   }, [rows, search, statusFilter]);
 
-  const columns: Array<DataTableColumn<Project>> = [
+  const columns: Array<DataTableColumn<ProjectResponse>> = [
     {
       key: "title",
       header: "Project",
@@ -153,16 +141,17 @@ export function ProjectsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as ProjectStatus | "all")}
+          onValueChange={(value) => value && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
-            <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
+            <SelectValue>{statusLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="INACTIVE">Inactive</SelectItem>
-            <SelectItem value="DELETED">Deleted</SelectItem>
+            {["all", ...STATUSES].map((s) => (
+              <SelectItem key={s} value={s}>
+                {statusLabel(s)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -177,17 +166,13 @@ export function ProjectsList({
           description="No projects match the current filters."
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row.id}
+          pagination={pagination}
+        />
       )}
     </div>
-  );
-}
-
-export function NewProjectCta({ canCreate = true }: { canCreate?: boolean }) {
-  if (!canCreate) return null;
-  return (
-    <Button render={<Link href="/projects?new=1" aria-label="New project" />}>
-      + New project
-    </Button>
   );
 }

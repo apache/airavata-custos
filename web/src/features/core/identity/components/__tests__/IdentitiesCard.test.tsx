@@ -18,7 +18,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { IdentitiesCard } from "../IdentitiesCard";
-import type { UserIdentity } from "../../schemas";
+import type { UserIdentity } from "@/generated/core/types.gen";
 
 describe("IdentitiesCard", () => {
   it("renders an empty state when no identities are linked", () => {

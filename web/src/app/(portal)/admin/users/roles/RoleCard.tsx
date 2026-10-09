@@ -18,7 +18,7 @@
 "use client";
 
 import { Pencil, ShieldCheck } from "lucide-react";
-import type { RoleRow } from "@/features/core/roles/schemas";
+import type { RoleRow } from "@/features/core/roles/queries";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
@@ -42,7 +42,7 @@ export function RoleCard({ role }: { role: RoleRow }) {
             <p className="mt-1 text-sm text-muted-foreground">{role.description}</p>
           </div>
           <Badge variant="secondary" className="shrink-0">
-            {role.memberCount} {role.memberCount === 1 ? "member" : "members"}
+            {role.holderIds.length} {role.holderIds.length === 1 ? "member" : "members"}
           </Badge>
         </div>
       </CardHeader>

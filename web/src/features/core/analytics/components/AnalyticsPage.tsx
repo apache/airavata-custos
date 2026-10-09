@@ -17,13 +17,13 @@
 
 "use client";
 
-import * as React from "react";
-import { ChartColumn } from "lucide-react";
+import type { Allocation, UsageSummary } from "@/generated/analytics/types.gen";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { ChartColumn } from "lucide-react";
+import * as React from "react";
 import { buildResourceSeries } from "../lib";
-import type { AnalyticsAllocation, AnalyticsContext, UsageSummary } from "../schemas";
 import { useAnalyticsContexts, useUsageSummary } from "../queries";
 import { useAnalyticsSelection } from "../useAnalyticsSelection";
 import { ContextSwitcher } from "./ContextSwitcher";
@@ -35,7 +35,7 @@ import { UsageOverTimeBars } from "./UsageOverTimeBars";
 
 const MANAGER_ROLES = new Set(["PI", "CO_PI", "ALLOCATION_MANAGER"]);
 
-const ROLE_LABEL: Record<AnalyticsContext["role"], string> = {
+const ROLE_LABEL: Record<string, string> = {
   PI: "PI on this project",
   CO_PI: "Co-PI on this project",
   ALLOCATION_MANAGER: "Allocation manager",
@@ -83,17 +83,15 @@ export function AnalyticsPage() {
         <>
           <ContextSwitcher
             contexts={contexts}
-            selectedProjectId={project.project_id}
             selectedAllocationId={allocation.id}
             onSelect={select}
           />
           <AnalyticsBody
-            project={project}
             allocation={allocation}
             isManager={isManager}
             summary={summaryQuery.data}
             summaryLoading={summaryQuery.isLoading}
-            summaryError={(summaryQuery.error as Error | null) ?? null}
+            summaryError={summaryQuery.error}
             onRetrySummary={() => summaryQuery.refetch()}
           />
         </>
@@ -103,7 +101,6 @@ export function AnalyticsPage() {
 }
 
 function AnalyticsBody({
-  project,
   allocation,
   isManager,
   summary,
@@ -111,8 +108,7 @@ function AnalyticsBody({
   summaryError,
   onRetrySummary,
 }: {
-  project: AnalyticsContext;
-  allocation: AnalyticsAllocation;
+  allocation: Allocation;
   isManager: boolean;
   summary: UsageSummary | undefined;
   summaryLoading: boolean;
@@ -130,9 +126,10 @@ function AnalyticsBody({
   if (!summary) return null;
 
   const now = new Date();
-  const callerUsed = summary.by_resource.reduce((a, r) => a + r.used_by_caller, 0);
+  const byResource = summary.by_resource ?? [];
+  const callerUsed = byResource.reduce((a, r) => a + r.used_by_caller, 0);
   const seriesColorById = Object.fromEntries(
-    buildResourceSeries(summary.by_resource).map((s) => [s.id, s.color]),
+    buildResourceSeries(byResource).map((s) => [s.id, s.color]),
   );
 
   return (
@@ -168,7 +165,7 @@ function TileSkeletons() {
 }
 
 // Only rendered for managers; the chip explains why the extra cards appear.
-function RoleChip({ role }: { role: AnalyticsContext["role"] }) {
+function RoleChip({ role }: { role: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-[color:var(--tone-info-bg)] px-3 py-1 text-xs font-medium text-[color:var(--tone-info-fg)]">
       {ROLE_LABEL[role]}

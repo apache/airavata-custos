@@ -164,6 +164,26 @@ func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.
 	common.WriteJSON(w, http.StatusOK, mapping)
 }
 
+// @Summary	Get a compute allocation -> resource mapping
+// @Description	Returns the amount and time granted to the allocation on the resource.
+// @Tags	Compute Allocation Resources
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	resourceId	path	string	true	"Compute allocation resource ID"
+// @Success	200	{object}	models.ComputeAllocationResourceMapping
+// @Failure	401	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/resources/{resourceId} [get]
+func (s *Server) getAllocationResourceMapping(w http.ResponseWriter, r *http.Request) {
+	mapping, err := s.svc.GetAllocationResourceMapping(r.Context(), r.PathValue("id"), r.PathValue("resourceId"))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, mapping)
+}
+
 // @Summary	Detach a resource from a compute allocation
 // @Tags	Compute Allocation Resources
 // @Security	BearerAuth
@@ -186,7 +206,7 @@ func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Req
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
-// @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Success	200	{array}	models.ComputeAllocationResource
 // @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/resources [get]

@@ -31,30 +31,32 @@ export type CopyValueProps = {
 
 const COPIED_RESET_MS = 1100;
 
-export function CopyValue({ value, label, explicit = false, className, children }: CopyValueProps) {
+// Copies best-effort and flashes `copied` either way so the click always gets feedback.
+export function useCopy(): [boolean, (text: string) => void] {
   const [copied, setCopied] = React.useState(false);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+  const timer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = React.useCallback((text: string) => {
+    void navigator.clipboard
+      .writeText(text)
+      .catch(() => {})
+      .finally(() => {
+        setCopied(true);
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
+      });
   }, []);
+  return [copied, copy];
+}
+
+export function CopyValue({ value, label, explicit = false, className, children }: CopyValueProps) {
+  const [copied, copy] = useCopy();
 
   const handleCopy = (event: React.MouseEvent) => {
     // Copying a trace id inside a list row should not also open the drawer.
     event.stopPropagation();
     event.preventDefault();
-    void (async () => {
-      try {
-        await navigator.clipboard.writeText(value);
-      } catch {
-        // Best-effort: still flash the check so the user has feedback.
-      }
-      setCopied(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
-    })();
+    copy(value);
   };
 
   const Icon = copied ? Check : Copy;

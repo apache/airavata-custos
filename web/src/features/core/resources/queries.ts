@@ -17,56 +17,103 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createResourceRate, getEffectiveRate, listResourceRates, listResourceSummaries } from "./api";
+import {
+  getComputeAllocationResourceRatesById,
+  getComputeAllocationResources,
+  getComputeAllocationResourcesById,
+  getComputeAllocationResourcesByIdAllocations,
+  getComputeAllocationResourcesByIdMembershipOverrides,
+  getComputeAllocationResourcesByIdRates,
+  getComputeAllocationResourcesByIdRatesEffective,
+  getComputeAllocationResourcesSummary,
+  postComputeAllocationResourceRates,
+  postComputeAllocationResources,
+} from "@/generated/core/sdk.gen";
+import { useInvalidating } from "@/shared/api/useInvalidating";
+import { skipToken, useQuery } from "@tanstack/react-query";
 
 export const resourceKeys = {
   all: ["resources"] as const,
   list: () => [...resourceKeys.all, "list"] as const,
+  catalog: () => [...resourceKeys.all, "catalog"] as const,
+  detail: (id: string) => [...resourceKeys.all, "detail", id] as const,
+  allocations: (id: string) => [...resourceKeys.detail(id), "allocations"] as const,
+  overrides: (id: string) => [...resourceKeys.detail(id), "overrides"] as const,
+  rate: (id: string) => [...resourceKeys.all, "rate", id] as const,
   rates: (id: string) => [...resourceKeys.all, "rates", id] as const,
   effective: (id: string) => [...resourceKeys.all, "effective", id] as const,
 };
 
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
-
 export function useResourceSummaries() {
   return useQuery({
     queryKey: resourceKeys.list(),
-    queryFn: listResourceSummaries,
-    ...DEFAULTS,
+    queryFn: () => getComputeAllocationResourcesSummary(),
   });
+}
+
+export function useResources() {
+  return useQuery({
+    queryKey: resourceKeys.catalog(),
+    queryFn: () => getComputeAllocationResources(),
+  });
+}
+
+export function useResource(id: string | undefined) {
+  return useQuery({
+    queryKey: resourceKeys.detail(id ?? ""),
+    queryFn: id ? () => getComputeAllocationResourcesById({ path: { id } }) : skipToken,
+  });
+}
+
+export function useResourceAllocations(id: string | undefined) {
+  return useQuery({
+    queryKey: resourceKeys.allocations(id ?? ""),
+    queryFn: id ? () => getComputeAllocationResourcesByIdAllocations({ path: { id } }) : skipToken,
+  });
+}
+
+export function useResourceOverrides(id: string | undefined) {
+  return useQuery({
+    queryKey: resourceKeys.overrides(id ?? ""),
+    queryFn: id
+      ? () => getComputeAllocationResourcesByIdMembershipOverrides({ path: { id } })
+      : skipToken,
+  });
+}
+
+export function useResourceRate(id: string | undefined) {
+  return useQuery({
+    queryKey: resourceKeys.rate(id ?? ""),
+    queryFn: id ? () => getComputeAllocationResourceRatesById({ path: { id } }) : skipToken,
+  });
+}
+
+export function useCreateResource() {
+  return useInvalidating(postComputeAllocationResources<true>, resourceKeys.all);
 }
 
 export function useResourceRates(id: string | undefined) {
   return useQuery({
-    queryKey: id ? resourceKeys.rates(id) : [...resourceKeys.all, "rates", "none"],
-    queryFn: () => listResourceRates(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
+    queryKey: resourceKeys.rates(id ?? ""),
+    queryFn: id ? () => getComputeAllocationResourcesByIdRates({ path: { id } }) : skipToken,
   });
 }
 
 export function useEffectiveRate(id: string | undefined) {
   return useQuery({
-    queryKey: id ? resourceKeys.effective(id) : [...resourceKeys.all, "effective", "none"],
-    queryFn: () => getEffectiveRate(id as string),
-    enabled: Boolean(id),
+    queryKey: resourceKeys.effective(id ?? ""),
+    queryFn: id
+      ? () => getComputeAllocationResourcesByIdRatesEffective({ path: { id } })
+      : skipToken,
     retry: false,
-    ...DEFAULTS,
   });
 }
 
 export function useCreateResourceRate(resourceId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: createResourceRate,
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: resourceKeys.rates(resourceId) });
-      client.invalidateQueries({ queryKey: resourceKeys.effective(resourceId) });
-    },
-  });
+  return useInvalidating(
+    postComputeAllocationResourceRates<true>,
+    resourceKeys.rates(resourceId),
+    resourceKeys.effective(resourceId),
+    resourceKeys.list(),
+  );
 }

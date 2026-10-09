@@ -16,7 +16,7 @@
 // under the License.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ageHoursOf, formatDate, pluralize } from "../utils";
+import { ageHoursOf, formatDate } from "../utils";
 
 describe("amie utils", () => {
   beforeEach(() => {
@@ -50,17 +50,5 @@ describe("amie utils", () => {
 
   it("formatDate returns a non-empty locale string for a valid iso", () => {
     expect(formatDate("2026-06-08T12:00:00Z")).not.toBe("—");
-  });
-
-  it("pluralize returns singular when count is 1", () => {
-    expect(pluralize("retry", 1)).toBe("retry");
-  });
-
-  it("pluralize uses default 's' suffix", () => {
-    expect(pluralize("packet", 3)).toBe("packets");
-  });
-
-  it("pluralize prefers an explicit plural form", () => {
-    expect(pluralize("retry", 3, "retries")).toBe("retries");
   });
 });

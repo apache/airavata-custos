@@ -16,10 +16,8 @@
 // under the License.
 
 import { type MongoAbility, createMongoAbility } from "@casl/ability";
-import type { Privilege } from "@/features/core/identity/types";
 
 export type AppAbility = MongoAbility;
-export type Ability = AppAbility;
 
 export type PrivilegeRule = { action: string; subject: string };
 
@@ -27,31 +25,34 @@ export type PrivilegeRule = { action: string; subject: string };
 // so clients can derive this map from /me instead of shipping it.
 export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "core:clusters:read": [{ action: "read", subject: "Cluster" }],
-  "core:clusters:write": [{ action: "manage", subject: "Cluster" }],
+  "core:clusters:write": [{ action: "write", subject: "Cluster" }],
   "core:allocations:read": [{ action: "read", subject: "Allocation" }],
-  "core:allocations:write": [{ action: "manage", subject: "Allocation" }],
+  "core:allocations:write": [{ action: "write", subject: "Allocation" }],
   "core:projects:read": [{ action: "read", subject: "Project" }],
-  "core:projects:write": [{ action: "manage", subject: "Project" }],
+  "core:projects:write": [{ action: "write", subject: "Project" }],
   "core:users:read": [{ action: "read", subject: "User" }],
-  "core:users:write": [{ action: "manage", subject: "User" }],
+  "core:users:write": [{ action: "write", subject: "User" }],
   "core:organizations:read": [{ action: "read", subject: "Organization" }],
-  "core:organizations:write": [{ action: "manage", subject: "Organization" }],
+  "core:organizations:write": [{ action: "write", subject: "Organization" }],
   "core:traces:read": [
     { action: "read", subject: "Trace" },
     { action: "read", subject: "AuditEvent" },
   ],
-  "core:privileges:grant": [{ action: "manage", subject: "PrivilegeGrant" }],
-  "core:roles:manage": [{ action: "manage", subject: "Role" }],
-  "core:events:manage": [{ action: "manage", subject: "EventDelivery" }],
-  "amie:packets:read": [{ action: "read", subject: "AMIE" }],
-  "amie:packets:write": [{ action: "manage", subject: "AMIE" }],
-  "amie:replies:read": [{ action: "read", subject: "AMIE" }],
-  "amie:replies:write": [{ action: "manage", subject: "AMIE" }],
-  "amie:unmapped:read": [{ action: "read", subject: "AMIE" }],
-  "amie:unmapped:write": [{ action: "manage", subject: "AMIE" }],
+  "core:privileges:grant": [{ action: "write", subject: "PrivilegeGrant" }],
+  "core:roles:manage": [{ action: "write", subject: "Role" }],
+  "core:events:manage": [{ action: "write", subject: "EventDelivery" }],
+  "amie:packets:read": [{ action: "read", subject: "AmiePacket" }],
+  "amie:packets:write": [{ action: "write", subject: "AmiePacket" }],
+  "amie:replies:read": [{ action: "read", subject: "AmieReply" }],
+  "amie:replies:write": [{ action: "write", subject: "AmieReply" }],
+  "amie:unmapped:read": [{ action: "read", subject: "AmieUnmapped" }],
+  "amie:unmapped:write": [{ action: "write", subject: "AmieUnmapped" }],
+  "temp-account:accounts:read": [{ action: "read", subject: "TempAccount" }],
+  "temp-account:accounts:write": [{ action: "write", subject: "TempAccount" }],
 };
 
-export function defineAbilitiesFor(privileges: Privilege[]): AppAbility {
+// Keys are strings: connectors register privileges beyond the core enum.
+export function defineAbilitiesFor(privileges: readonly string[]): AppAbility {
   const rules = privileges.flatMap((p) => PRIVILEGE_ABILITY_MAP[p] ?? []);
   return createMongoAbility(rules);
 }

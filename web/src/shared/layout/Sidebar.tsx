@@ -22,7 +22,7 @@ import { brand } from "@/shared/brand";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_GROUP_LABELS, type NavGroup, type NavItem, portalNav } from "./nav";
+import { NAV_GROUP_LABELS, type NavGroup, type NavItem, isNavItemVisible, portalNav } from "./nav";
 
 const GROUP_ORDER: NavGroup[] = ["allocations", "admin"];
 
@@ -30,10 +30,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const ability = useAbility();
 
-  const visible = portalNav.filter((item) => {
-    if (!item.ability) return true;
-    return ability.can(item.ability.action, item.ability.subject);
-  });
+  const visible = portalNav.filter((item) => isNavItemVisible(item, ability));
 
   const groups = GROUP_ORDER.map((group) => ({
     group,
@@ -53,7 +50,7 @@ export function Sidebar() {
       <nav className="flex flex-col">
         {groups.map(({ group, items }, idx) => (
           <div key={group} className={cn("flex flex-col", idx > 0 && "mt-4")}>
-            <div className="px-6 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-custos-gray-400">
+            <div className="px-6 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {NAV_GROUP_LABELS[group]}
             </div>
             {items.map((item) => (

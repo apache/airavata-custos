@@ -19,13 +19,13 @@
 
 import { CircleCheckIcon, CircleXIcon, RotateCcwIcon } from "lucide-react";
 import * as React from "react";
+import type { DeliveryHistory } from "@/generated/core/types.gen";
 import { ViewTraceLink } from "@/features/core/audit/components/ViewTraceLink";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { QueryErrorState } from "@/shared/ui/ErrorState";
 import { CenteredSpinner } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Button } from "@/shared/ui/button";
-import { useUserName } from "../queries";
-import type { DeliveryDetail } from "../types";
+import { UserName } from "@/features/core/users/components/UserPicker";
 import {
   type HistoryStep,
   MAX_ATTEMPTS,
@@ -39,7 +39,7 @@ import { DeliveryStatusBadge } from "./DeliveryStatusBadge";
 export type DeliveryDetailDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  delivery: DeliveryDetail | undefined;
+  delivery: DeliveryHistory | undefined;
   runningSubscribers?: Set<string>;
   isLoading: boolean;
   error: Error | null;
@@ -52,8 +52,7 @@ export type DeliveryDetailDrawerProps = {
 };
 
 function RetriedBy({ actorId }: { actorId: string }) {
-  const name = useUserName(actorId);
-  return <span className="font-medium">{name.data ?? (actorId || "an admin")}</span>;
+  return <span className="font-medium">{actorId ? <UserName id={actorId} /> : "an admin"}</span>;
 }
 
 function StepRow({ step }: { step: HistoryStep }) {
@@ -108,7 +107,7 @@ function StepRow({ step }: { step: HistoryStep }) {
   );
 }
 
-function AttemptHistory({ delivery }: { delivery: DeliveryDetail }) {
+function AttemptHistory({ delivery }: { delivery: DeliveryHistory }) {
   const runs = historyRuns(delivery.history);
   if (runs.length === 0) {
     return <p className="text-sm text-muted-foreground">No attempts yet.</p>;
@@ -193,13 +192,13 @@ export function DeliveryDetailDrawer({
       open={open}
       onOpenChange={onOpenChange}
       width="lg"
-      title={delivery ? delivery.event.event_type : "Delivery"}
+      title={delivery?.event.event_type ?? "Delivery"}
       description={delivery ? `Handled by ${delivery.subscriber}` : undefined}
     >
       {isLoading ? (
         <CenteredSpinner label="Loading delivery" />
       ) : error ? (
-        <ErrorState message={error.message || "Could not load the delivery."} onRetry={onRefresh} />
+        <QueryErrorState error={error} what="delivery" onRetry={onRefresh} />
       ) : !delivery ? (
         <p className="text-sm text-muted-foreground">Delivery not found.</p>
       ) : (

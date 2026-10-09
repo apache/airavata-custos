@@ -16,39 +16,33 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
-import type {
-  CreateOrganizationPayload,
-  Organization,
-} from "@/features/core/organizations/schemas";
 import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
+import type {
+  GetOrganizationsByIdData,
+  Organization,
+  PostOrganizationsData,
+} from "@/generated/core/types.gen";
+import { zOrganization } from "@/generated/core/zod.gen";
+import { z } from "zod";
+import { notFound, page } from "../paging";
 
-const organizations: Organization[] = (organizationsFixture as Organization[]).map((o) => ({
-  ...o,
-}));
+const organizations: Organization[] = z.array(zOrganization).parse(organizationsFixture);
 
 export const organizationsHandlers = [
   http.get("*/api/v1/organizations", ({ request }) => {
-    const url = new URL(request.url);
-    const limit = Number(url.searchParams.get("limit") ?? organizations.length);
-    const offset = Number(url.searchParams.get("offset") ?? 0);
-    const items = organizations.slice(offset, offset + limit);
-    return HttpResponse.json({ items, total: organizations.length });
+    const { items, total } = page(new URL(request.url), organizations);
+    return HttpResponse.json({ items, total });
   }),
 
-  http.get("*/api/v1/organizations/:id", ({ params }) => {
-    const id = String(params.id);
-    const found = organizations.find((o) => o.id === id);
-    if (!found) return HttpResponse.json({ error: "organization not found" }, { status: 404 });
+  http.get<GetOrganizationsByIdData["path"]>("*/api/v1/organizations/:id", ({ params }) => {
+    const found = organizations.find((o) => o.id === params.id);
+    if (!found) return notFound("organization");
     return HttpResponse.json(found);
   }),
 
-  http.post("*/api/v1/organizations", async ({ request }) => {
-    const payload = (await request.json()) as CreateOrganizationPayload;
-    const organization: Organization = {
-      id: `org-${Date.now()}`,
-      name: payload.name,
-      originated_id: payload.originated_id ?? "",
-    };
+  http.post<never, PostOrganizationsData["body"]>("*/api/v1/organizations", async ({ request }) => {
+    const { name, originated_id = "" } = await request.json();
+    const organization: Organization = { id: `org-${Date.now()}`, name, originated_id };
     organizations.unshift(organization);
     return HttpResponse.json(organization, { status: 201 });
   }),

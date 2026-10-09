@@ -92,21 +92,6 @@ test.describe("admin traces detail drawer", () => {
     await expect(drawer.getByText(/Entities referenced by spans/)).toBeVisible();
   });
 
-  test("Retry button is aria-disabled and surfaces the coming-soon tooltip", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-    await page.locator('[data-testid^="trace-row-"]').first().click();
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
-
-    const retry = page.getByTestId("retry-tooltip-anchor");
-    await expect(retry).toHaveAttribute("aria-disabled", "true");
-    await retry.hover();
-    await expect(page.getByText(/Retry coming soon/i)).toBeVisible({ timeout: 5_000 });
-  });
-
   test("axe: no serious or critical violations on the drawer-open page", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/traces");

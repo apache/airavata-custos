@@ -112,6 +112,7 @@ func (s *Server) routes() {
 
 	s.router.RequireScoped("GET /compute-allocations/{id}/resources", s.canReadAllocation, s.listResourcesForAllocation)
 	s.router.RequirePrivilege("POST /compute-allocations/{id}/resources", models.AllocationsWrite, s.attachResourceToAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}/resources/{resourceId}", s.canReadAllocation, s.getAllocationResourceMapping)
 	s.router.RequirePrivilege("PUT /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.updateAllocationResourceMapping)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.detachResourceFromAllocation)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}/allocations", models.AllocationsRead, s.listAllocationsForResource)
