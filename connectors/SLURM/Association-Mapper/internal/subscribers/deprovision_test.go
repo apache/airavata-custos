@@ -24,6 +24,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 func deactivatedMembership() models.ComputeAllocationMembership {
@@ -78,6 +79,38 @@ func TestMembershipDeletionRemovesAssociations(t *testing.T) {
 	got := slurm.allDeletes()
 	if len(got) != 1 || got[0].User != "testuser" || got[0].Account != "test-alloc" {
 		t.Fatalf("expected the member's associations to be removed, got %+v", got)
+	}
+}
+
+// A membership deleted alongside its allocation or cluster account arrives after
+// they are gone; the delivery must succeed instead of retrying a lookup that
+// can never pass.
+func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
+	for name, gone := range map[string]func(*service.CoreServiceMock){
+		"cluster account": func(c *service.CoreServiceMock) {
+			c.GetComputeClusterUserByPairFunc = func(context.Context, string, string) (*models.ComputeClusterUser, error) {
+				return nil, service.ErrNotFound
+			}
+		},
+		"allocation": func(c *service.CoreServiceMock) {
+			c.GetComputeAllocationFunc = func(context.Context, string) (*models.ComputeAllocation, error) {
+				return nil, service.ErrNotFound
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
+			gone(core)
+			slurm := &fakeSlurmClient{}
+			err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
+				SubscribeToComputeAllocationMembershipDeletion(context.Background(), testMembership())
+			if err != nil {
+				t.Fatalf("expected success, got %v", err)
+			}
+			if n := len(slurm.allDeletes()); n != 0 {
+				t.Errorf("nothing to delete without the record, got %d deletes", n)
+			}
+		})
 	}
 }
 
