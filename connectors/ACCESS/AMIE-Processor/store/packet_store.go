@@ -21,7 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"strings"
 	"time"
 
@@ -135,22 +135,10 @@ func (s *pgPacketStore) ListPackets(ctx context.Context, f PacketListFilter) ([]
 		return nil, 0, err
 	}
 
-	limit := f.Limit
-	if limit <= 0 || limit > 200 {
-		limit = 50
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	q := fmt.Sprintf(`SELECT %s FROM amie_packets%s ORDER BY received_at DESC LIMIT %d OFFSET %d`,
-		packetColumns, where, limit, offset)
-
 	var rows []model.Packet
-	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), args...); err != nil {
-		return nil, 0, err
-	}
-	return rows, total, nil
+	err := s.db.SelectContext(ctx, &rows, s.db.Rebind(`SELECT `+packetColumns+` FROM amie_packets`+where+` ORDER BY received_at DESC LIMIT ? OFFSET ?`),
+		append(args, corestore.PageLimit(f.Limit), f.Offset)...)
+	return rows, total, err
 }
 
 func buildPacketFilter(f PacketListFilter) (string, []any) {
@@ -186,7 +174,7 @@ func buildPacketFilter(f PacketListFilter) (string, []any) {
 func (s *pgPacketStore) ListPacketEvents(ctx context.Context, packetID string) ([]model.ProcessingEvent, error) {
 	var rows []model.ProcessingEvent
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
+		`SELECT `+eventColumns+`
 		 FROM amie_processing_events WHERE packet_id = $1 ORDER BY created_at ASC`, packetID)
 	if err != nil {
 		return nil, err
@@ -204,7 +192,7 @@ func (s *pgPacketStore) GetStats(ctx context.Context, window time.Duration) ([]S
 		`SELECT TO_CHAR(received_at, 'YYYY-MM-DD') AS date, status, type, COUNT(*) AS count
 		 FROM amie_packets
 		 WHERE received_at >= $1
-		 GROUP BY TO_CHAR(received_at, 'YYYY-MM-DD'), status, type
+		 GROUP BY date, status, type
 		 ORDER BY date ASC`, since)
 	if err != nil {
 		return nil, err

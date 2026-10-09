@@ -211,7 +211,7 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		items = append(items, ClusterAccountResponse{
 			ComputeClusterUser: row.ComputeClusterUser,
-			DisplayName:        strings.TrimSpace(row.FirstName + " " + row.LastName),
+			DisplayName:        row.DisplayName,
 			Email:              row.Email,
 			ClusterName:        row.ClusterName,
 		})

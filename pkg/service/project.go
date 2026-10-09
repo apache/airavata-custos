@@ -99,25 +99,6 @@ func (s *Service) GetProjectByOriginatedID(ctx context.Context, originatedID str
 	return p, nil
 }
 
-// ListProjectsByPI returns all projects whose PI matches the given user ID.
-func (s *Service) ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
-	projects, err := s.projs.FindByPI(ctx, piUserID)
-	if err != nil {
-		return nil, fmt.Errorf("list projects by PI: %w", err)
-	}
-	return projects, nil
-}
-
-// ListProjects returns a paginated, filterable slice of projects plus a total
-// count.
-func (s *Service) ListProjects(ctx context.Context, f store.ProjectListFilter) ([]models.Project, int, error) {
-	rows, total, err := s.projs.List(ctx, f)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list projects: %w", err)
-	}
-	return rows, total, nil
-}
-
 // GetProjectWithPI returns the project joined with its PI's display fields,
 // so handlers don't fan a separate GetUser per row.
 func (s *Service) GetProjectWithPI(ctx context.Context, id string) (*store.ProjectWithPI, error) {
@@ -131,8 +112,8 @@ func (s *Service) GetProjectWithPI(ctx context.Context, id string) (*store.Proje
 	return p, nil
 }
 
-// ListProjectsWithPI is ListProjects with the PI user joined in a single
-// query.
+// ListProjectsWithPI returns a filtered page of projects with the PI user
+// joined, plus the total count.
 func (s *Service) ListProjectsWithPI(ctx context.Context, f store.ProjectListFilter) ([]store.ProjectWithPI, int, error) {
 	rows, total, err := s.projs.ListWithPI(ctx, f)
 	if err != nil {

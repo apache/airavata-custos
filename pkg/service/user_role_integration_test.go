@@ -101,6 +101,14 @@ func TestRevokeRoleFromUser_RejectsLastMetaHolder(t *testing.T) {
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Errorf("expected ErrInvalidInput (last meta holder), got %v", err)
 	}
+
+	other := seedUser(t, database, "boot2@example.edu")
+	if _, err := svc.GrantRoleToUser(ctx(), other, superAdmin.ID, boot, "second"); err != nil {
+		t.Fatalf("grant second holder: %v", err)
+	}
+	if err := svc.RevokeRoleFromUser(ctx(), boot, superAdmin.ID, other, "handover"); err != nil {
+		t.Errorf("revoke with another holder: %v", err)
+	}
 }
 
 func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {

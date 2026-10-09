@@ -62,6 +62,8 @@ type PacketEventResponse struct {
 	Message    *string `json:"message,omitempty"`
 	Timestamp  string  `json:"timestamp"`
 	DurationMs *int64  `json:"duration_ms,omitempty"`
+	TraceID    string  `json:"trace_id"`
+	SpanID     string  `json:"span_id"`
 }
 
 // PacketStatBucketResponse is a single (date, status, type) cell in the stats grid.
@@ -119,6 +121,8 @@ func packetEventResponseFrom(e model.ProcessingEvent) PacketEventResponse {
 		Status:    mapEventStatus(e.Status),
 		Timestamp: ts.UTC().Format(time.RFC3339Nano),
 		Message:   e.LastError,
+		TraceID:   e.TraceID,
+		SpanID:    e.SpanID,
 	}
 	if e.StartedAt != nil && e.FinishedAt != nil {
 		d := e.FinishedAt.Sub(*e.StartedAt).Milliseconds()

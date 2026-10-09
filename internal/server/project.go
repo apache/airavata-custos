@@ -20,7 +20,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
@@ -80,13 +79,7 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 
 // projectResponseFrom builds the API response shape from a JOIN-fetched row.
 func projectResponseFrom(p *store.ProjectWithPI) ProjectResponse {
-	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail}
-	if full := strings.TrimSpace(p.PIFirstName + " " + p.PILastName); full != "" {
-		v.ProjectPIDisplayName = full
-	} else if p.PIEmail != "" {
-		v.ProjectPIDisplayName = p.PIEmail
-	}
-	return v
+	return ProjectResponse{Project: p.Project, ProjectPIDisplayName: p.PIDisplayName, ProjectPIEmail: p.PIEmail}
 }
 
 // @Summary	Update a project's status

@@ -21,7 +21,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 
@@ -57,18 +56,9 @@ func (s *pgUserStore) List(ctx context.Context, limit, offset int) ([]models.Use
 	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {
 		return nil, 0, err
 	}
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	if offset < 0 {
-		offset = 0
-	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT $1 OFFSET $2`, limit, offset); err != nil {
+		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT $1 OFFSET $2`, PageLimit(limit), max(offset, 0)); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
@@ -96,10 +86,8 @@ func (s *pgUserStore) GetUserByOIDCSub(ctx context.Context, oidcSub string) (*mo
 	}
 	var u models.User
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+prefixed("u", userColumns)+`
-		 FROM users u
-		 JOIN user_identities ui ON ui.user_id = u.id
-		 WHERE ui.oidc_sub = $1`, oidcSub)
+		`SELECT `+userColumns+` FROM users
+		 WHERE id = (SELECT user_id FROM user_identities WHERE oidc_sub = $1)`, oidcSub)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -107,16 +95,6 @@ func (s *pgUserStore) GetUserByOIDCSub(ctx context.Context, oidcSub string) (*mo
 		return nil, err
 	}
 	return &u, nil
-}
-
-// prefixed returns the comma-separated column list with each bare column
-// prefixed by alias. Used to disambiguate joined queries.
-func prefixed(alias, columns string) string {
-	parts := strings.Split(columns, ", ")
-	for i, p := range parts {
-		parts[i] = alias + "." + p
-	}
-	return strings.Join(parts, ", ")
 }
 
 func (s *pgUserStore) FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error) {
@@ -131,7 +109,7 @@ func (s *pgUserStore) FindByOrganization(ctx context.Context, organizationID str
 
 func (s *pgUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type)
+		`INSERT INTO users (`+userColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type)
 	return err

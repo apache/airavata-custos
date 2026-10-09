@@ -32,8 +32,7 @@ import (
 // review list shows.
 type ComputeClusterUserWithUser struct {
 	models.ComputeClusterUser
-	FirstName   string `db:"first_name"`
-	LastName    string `db:"last_name"`
+	DisplayName string `db:"display_name"`
 	Email       string `db:"user_email"`
 	ClusterName string `db:"cluster_name"`
 }
@@ -130,16 +129,15 @@ func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *m
 func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
 	var rows []ComputeClusterUserWithUser
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at,
-		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note,
-		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name
+		`SELECT `+Qualify("cu", computeClusterUserColumns)+`,
+		        `+DisplayNameSQL+` AS display_name, u.email AS user_email, c.name AS cluster_name
 		   FROM compute_cluster_users cu
 		   JOIN users u            ON u.id = cu.user_id
 		   JOIN compute_clusters c ON c.id = cu.compute_cluster_id
 		  WHERE $1 = '' OR cu.approval_status = $1
 		  ORDER BY cu.created_at DESC
 		  LIMIT $2 OFFSET $3`,
-		status, limit, offset)
+		status, PageLimit(limit), max(offset, 0))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -184,11 +182,7 @@ func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM compute_cluster_users
 		 WHERE user_id = $1
-		   AND compute_cluster_id IN (
-		       SELECT compute_cluster_id FROM (
-		           SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $2
-		       ) AS s
-		   )`,
+		   AND compute_cluster_id IN (SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $2)`,
 		fromUserID, toUserID); err != nil {
 		return err
 	}

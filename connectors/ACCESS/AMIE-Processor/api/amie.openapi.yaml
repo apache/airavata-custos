@@ -14,9 +14,13 @@ definitions:
         type: string
       packet_id:
         type: string
+      span_id:
+        type: string
       status:
         type: string
       timestamp:
+        type: string
+      trace_id:
         type: string
     type: object
   PacketListResponse:

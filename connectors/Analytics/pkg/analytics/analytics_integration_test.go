@@ -339,9 +339,6 @@ func TestUsageSummary_MemberSeesOwnSliceNoMembers(t *testing.T) {
 	if got.Total != 1000 {
 		t.Errorf("total: got %d, want 1000", got.Total)
 	}
-	if got.Used != 500 {
-		t.Errorf("used: got %v, want 500", got.Used)
-	}
 	if len(got.ByResource) != 1 {
 		t.Fatalf("by_resource: got %d, want 1", len(got.ByResource))
 	}
@@ -352,11 +349,8 @@ func TestUsageSummary_MemberSeesOwnSliceNoMembers(t *testing.T) {
 	if r.UsedByCaller != 100 {
 		t.Errorf("used_by_caller: got %v, want 100 (member's own slice)", r.UsedByCaller)
 	}
-	if r.NativeUnit != "GPU-hours" {
-		t.Errorf("native_unit: got %q, want GPU-hours", r.NativeUnit)
-	}
-	if r.Cap != nil {
-		t.Errorf("cap: got %v, want null in v1", r.Cap)
+	if r.NativeUnit != "GPU-hours" || r.UsedNative != 50 {
+		t.Errorf("native: got %v %q, want 50 GPU-hours", r.UsedNative, r.NativeUnit)
 	}
 }
 

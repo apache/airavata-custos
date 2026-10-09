@@ -271,14 +271,12 @@ func (s *Service) assertHasPrivilegeTx(ctx context.Context, tx *sql.Tx, actorID 
 	if direct != nil {
 		return nil
 	}
-	roleKeys, err := s.userRoles.PrivilegesForUser(ctx, actorID)
+	viaRole, err := s.privileges.HoldsViaRole(ctx, tx, actorID, required)
 	if err != nil {
 		return fmt.Errorf("lookup actor role privileges: %w", err)
 	}
-	for _, k := range roleKeys {
-		if k == required {
-			return nil
-		}
+	if viaRole {
+		return nil
 	}
 	return fmt.Errorf("%w: actor does not hold %s", ErrInvalidInput, required)
 }

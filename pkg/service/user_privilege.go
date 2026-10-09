@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -80,8 +81,8 @@ func (s *Service) GrantPrivilege(ctx context.Context, userID string, privilege m
 
 // RevokePrivilege removes the user's grant for privilege via DELETE. The
 // full revoke history (who, when, why) is captured in audit_events. The
-// meta-privilege (privileges:grant) cannot be self-revoked and cannot be
-// removed from the last holder.
+// meta-privilege (privileges:grant) cannot be self-revoked, so the revoker,
+// who must hold it, always remains a holder.
 func (s *Service) RevokePrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID, reason string) error {
 	if userID == "" {
 		return fmt.Errorf("%w: user_id is required", ErrInvalidInput)
@@ -107,15 +108,6 @@ func (s *Service) RevokePrivilege(ctx context.Context, userID string, privilege 
 		if existing == nil {
 			return fmt.Errorf("%w: no active grant for privilege %q", ErrNotFound, privilege)
 		}
-		if privilege == models.PrivilegesGrant {
-			count, err := s.privileges.CountByPrivilege(ctx, tx, models.PrivilegesGrant)
-			if err != nil {
-				return fmt.Errorf("count meta holders: %w", err)
-			}
-			if count <= 1 {
-				return fmt.Errorf("%w: cannot revoke the last active %s", ErrInvalidInput, models.PrivilegesGrant)
-			}
-		}
 		if err := s.privileges.Delete(ctx, tx, userID, privilege); err != nil {
 			return fmt.Errorf("delete grant: %w", err)
 		}
@@ -136,23 +128,11 @@ func (s *Service) HasPrivilege(ctx context.Context, userID string, privilege mod
 	if !models.IsKnownPrivilege(privilege) {
 		return false, fmt.Errorf("%w: unknown privilege %q", ErrInvalidInput, privilege)
 	}
-	direct, err := s.privileges.Find(ctx, userID, privilege)
+	keys, err := s.privileges.Effective(ctx, userID)
 	if err != nil {
-		return false, fmt.Errorf("lookup direct privilege: %w", err)
+		return false, fmt.Errorf("lookup privileges: %w", err)
 	}
-	if direct != nil {
-		return true, nil
-	}
-	roleKeys, err := s.userRoles.PrivilegesForUser(ctx, userID)
-	if err != nil {
-		return false, fmt.Errorf("lookup role privileges: %w", err)
-	}
-	for _, k := range roleKeys {
-		if k == privilege {
-			return true, nil
-		}
-	}
-	return false, nil
+	return slices.Contains(keys, privilege), nil
 }
 
 // ListUserPrivileges returns only direct grants. Use EffectivePrivileges
@@ -174,26 +154,11 @@ func (s *Service) EffectivePrivileges(ctx context.Context, userID string) ([]mod
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
 	}
-	set := make(map[models.PrivilegeKey]struct{})
-	direct, err := s.privileges.ListByUser(ctx, userID)
+	keys, err := s.privileges.Effective(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("list direct privileges: %w", err)
+		return nil, fmt.Errorf("list privileges: %w", err)
 	}
-	for _, p := range direct {
-		set[p.Privilege] = struct{}{}
-	}
-	roleKeys, err := s.userRoles.PrivilegesForUser(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list role privileges: %w", err)
-	}
-	for _, k := range roleKeys {
-		set[k] = struct{}{}
-	}
-	out := make([]models.PrivilegeKey, 0, len(set))
-	for k := range set {
-		out = append(out, k)
-	}
-	return out, nil
+	return keys, nil
 }
 
 // ListPrivilegeHolders returns the active holders of privilege.

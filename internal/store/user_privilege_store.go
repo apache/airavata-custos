@@ -38,22 +38,6 @@ func NewUserPrivilegeStore(db *sqlx.DB) UserPrivilegeStore {
 	return &pgUserPrivilegeStore{db: db}
 }
 
-func (s *pgUserPrivilegeStore) Find(ctx context.Context, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error) {
-	var r models.UserPrivilege
-	err := s.db.GetContext(ctx, &r,
-		`SELECT `+userPrivilegeColumns+`
-		 FROM user_privileges
-		 WHERE user_id = $1 AND privilege = $2`,
-		userID, privilege)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &r, nil
-}
-
 func (s *pgUserPrivilegeStore) FindForUpdate(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error) {
 	row := tx.QueryRowContext(ctx,
 		`SELECT `+userPrivilegeColumns+`
@@ -100,20 +84,30 @@ func (s *pgUserPrivilegeStore) ListByPrivilege(ctx context.Context, privilege mo
 	return rows, nil
 }
 
-func (s *pgUserPrivilegeStore) CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error) {
+func (s *pgUserPrivilegeStore) Effective(ctx context.Context, userID string) ([]models.PrivilegeKey, error) {
+	keys := []models.PrivilegeKey{}
+	err := s.db.SelectContext(ctx, &keys,
+		`SELECT privilege FROM user_privileges WHERE user_id = $1
+		 UNION
+		 SELECT rp.privilege FROM user_roles ur JOIN role_privileges rp USING (role_id) WHERE ur.user_id = $1`, userID)
+	return keys, err
+}
+
+func (s *pgUserPrivilegeStore) CountHolders(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey, exclUserID, exclRoleID string) (int, error) {
 	var n int
 	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM user_privileges WHERE privilege = $1`, privilege).Scan(&n)
-	if err != nil {
-		return 0, err
-	}
-	return n, nil
+		`SELECT COUNT(DISTINCT user_id) FROM (
+		   SELECT user_id FROM user_privileges WHERE privilege = $1
+		   UNION ALL
+		   SELECT ur.user_id FROM user_roles ur JOIN role_privileges rp USING (role_id)
+		    WHERE rp.privilege = $1 AND (ur.user_id, ur.role_id) <> ($2, $3)
+		 ) h`, privilege, exclUserID, exclRoleID).Scan(&n)
+	return n, err
 }
 
 func (s *pgUserPrivilegeStore) Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO user_privileges
-		  (id, user_id, privilege, granted_by, granted_at, reason)
+		`INSERT INTO user_privileges (`+userPrivilegeColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		r.ID, r.UserID, r.Privilege, r.GrantedBy, r.GrantedAt, r.Reason)
 	return err
@@ -124,4 +118,16 @@ func (s *pgUserPrivilegeStore) Delete(ctx context.Context, tx *sql.Tx, userID st
 		`DELETE FROM user_privileges WHERE user_id = $1 AND privilege = $2`,
 		userID, privilege)
 	return err
+}
+
+func (s *pgUserPrivilegeStore) HoldsViaRole(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (bool, error) {
+	var one int
+	err := tx.QueryRowContext(ctx,
+		`SELECT 1 FROM user_roles ur JOIN role_privileges rp USING (role_id)
+		  WHERE ur.user_id = $1 AND rp.privilege = $2
+		  LIMIT 1 FOR SHARE OF ur`, userID, privilege).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
 }

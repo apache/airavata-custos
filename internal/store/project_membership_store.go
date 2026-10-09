@@ -53,19 +53,6 @@ func (s *pgProjectMembershipStore) FindByPair(ctx context.Context, projectID, us
 	return &pm, nil
 }
 
-func (s *pgProjectMembershipStore) FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-	var rows []models.ProjectMembership
-	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = $1
-		  ORDER BY added_time`, projectID)
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
-}
-
 // IsParticipant reports whether the user has any role on the project.
 func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID, userID string) (bool, error) {
 	var participant bool
@@ -80,7 +67,7 @@ func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID,
 
 func (s *pgProjectMembershipStore) Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
+		`INSERT INTO project_memberships (`+projectMembershipColumns+`)
 		 VALUES ($1, $2, $3, $4)
 		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
 		pm.ProjectID, pm.UserID, string(pm.Role), pm.AddedTime)
@@ -98,7 +85,7 @@ func (s *pgProjectMembershipStore) Delete(ctx context.Context, tx *sql.Tx, proje
 // ALLOCATION_MANAGER, then drops toUserID's tags on projects it leads.
 func (s *pgProjectMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
+		`INSERT INTO project_memberships (`+projectMembershipColumns+`)
 		 SELECT project_id, $2, role, added_time FROM project_memberships WHERE user_id = $1
 		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE EXCLUDED.role = 'CO_PI'`,
 		fromUserID, toUserID); err != nil {

@@ -35,8 +35,7 @@ type UserDNStore interface {
 	ListByUser(ctx context.Context, userID string) ([]model.UserDN, error)
 	// DeleteByID removes a single DN row.
 	DeleteByID(ctx context.Context, tx *sql.Tx, id string) error
-	// ReassignUser moves every DN owned by fromUserID over to toUserID,
-	// dropping duplicates that would collide with toUserID's existing rows.
+	// ReassignUser moves every DN owned by fromUserID over to toUserID.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 }
 
@@ -78,15 +77,6 @@ func (s *pgUserDNStore) DeleteByID(ctx context.Context, tx *sql.Tx, id string) e
 }
 
 func (s *pgUserDNStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	// Drop fromUserID's rows whose DN is already held by toUserID; UNIQUE(dn)
-	// would otherwise reject the UPDATE.
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM amie_user_dns
-		  WHERE user_id = $1
-		    AND dn IN (SELECT dn FROM (SELECT dn FROM amie_user_dns WHERE user_id = $2) AS s)`,
-		fromUserID, toUserID); err != nil {
-		return err
-	}
 	_, err := tx.ExecContext(ctx,
 		`UPDATE amie_user_dns SET user_id = $1 WHERE user_id = $2`,
 		toUserID, fromUserID)

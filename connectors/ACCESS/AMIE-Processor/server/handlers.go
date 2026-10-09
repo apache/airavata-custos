@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
 )
@@ -123,7 +124,7 @@ func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, PacketListResponse{
 		Packets: items,
 		Total:   total,
-		Limit:   effectiveLimit(f.Limit),
+		Limit:   f.Limit,
 		Offset:  f.Offset,
 	})
 }
@@ -221,7 +222,7 @@ func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, ReplyListResponse{
 		Replies: []any{},
 		Total:   0,
-		Limit:   effectiveLimit(parseLimit(r)),
+		Limit:   corestore.PageLimit(parseLimit(r)),
 		Offset:  parseOffset(r),
 	})
 }
@@ -293,7 +294,7 @@ func emptyPacketPage(limit, offset int) PacketListResponse {
 	return PacketListResponse{
 		Packets: []PacketResponse{},
 		Total:   0,
-		Limit:   effectiveLimit(limit),
+		Limit:   corestore.PageLimit(limit),
 		Offset:  offset,
 	}
 }
@@ -304,7 +305,7 @@ func parsePacketFilter(r *http.Request) (store.PacketListFilter, error) {
 		Status: q.Get("status"),
 		Type:   q.Get("type"),
 		Query:  q.Get("q"),
-		Limit:  parseLimit(r),
+		Limit:  corestore.PageLimit(parseLimit(r)),
 		Offset: parseOffset(r),
 	}
 	if v := q.Get("from"); v != "" {
@@ -340,13 +341,6 @@ func parseOffset(r *http.Request) int {
 		}
 	}
 	return 0
-}
-
-func effectiveLimit(l int) int {
-	if l <= 0 || l > 200 {
-		return 50
-	}
-	return l
 }
 
 func parseWindow(v string) time.Duration {

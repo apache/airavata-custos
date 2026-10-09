@@ -9,10 +9,6 @@ definitions:
         type: integer
       name:
         type: string
-      start_time:
-        type: string
-      status:
-        type: string
       used_su_amount:
         type: number
     type: object
@@ -84,15 +80,11 @@ definitions:
     type: object
   UsageResource:
     properties:
-      cap:
-        type: integer
       name:
         type: string
       native_unit:
         type: string
       resource_id:
-        type: string
-      resource_type:
         type: string
       used:
         type: number
@@ -117,8 +109,6 @@ definitions:
         type: array
       total:
         type: integer
-      used:
-        type: number
     type: object
 info:
   contact: {}

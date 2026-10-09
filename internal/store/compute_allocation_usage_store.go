@@ -93,46 +93,36 @@ func (s *pgComputeAllocationUsageStore) FindByComputeAllocationIDAndJobID(ctx co
 }
 
 func (s *pgComputeAllocationUsageStore) SumSUForAllocation(ctx context.Context, allocationID string) (int64, error) {
-	var total sql.NullInt64
+	var total int64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT CAST(ROUND(COALESCE(SUM(used_su_amount), 0)) AS BIGINT)
+		`SELECT COALESCE(SUM(used_su_amount), 0)::bigint
 		 FROM compute_allocation_usages
 		 WHERE compute_allocation_id = $1`, allocationID)
-	if err != nil {
-		return 0, err
-	}
-	return total.Int64, nil
+	return total, err
 }
 
 func (s *pgComputeAllocationUsageStore) SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error) {
-	var total sql.NullInt64
+	var total int64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT CAST(ROUND(COALESCE(SUM(used_su_amount), 0)) AS BIGINT)
+		`SELECT COALESCE(SUM(used_su_amount), 0)::bigint
 		 FROM compute_allocation_usages
 		 WHERE compute_allocation_id = $1 AND user_id = $2`, allocationID, userID)
-	if err != nil {
-		return 0, err
-	}
-	return total.Int64, nil
+	return total, err
 }
 
 func (s *pgComputeAllocationUsageStore) LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
-	var latest sql.NullTime
+	var latest *time.Time
 	err := s.db.GetContext(ctx, &latest,
 		`SELECT MAX(u.calculated_time)
 		 FROM compute_allocation_usages u
 		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
 		 WHERE a.compute_cluster_id = $1`, clusterID)
-	if err != nil || !latest.Valid {
-		return nil, err
-	}
-	return &latest.Time, nil
+	return latest, err
 }
 
 func (s *pgComputeAllocationUsageStore) Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_usages
-		     (id, compute_allocation_id, used_raw_amount, used_su_amount, calculated_time, user_id, job_id, compute_allocation_resource_id)
+		`INSERT INTO compute_allocation_usages (`+computeAllocationUsageColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		u.ID, u.ComputeAllocationID, u.UsedRawAmount, u.UsedSUAmount, u.CalculatedTime, u.UserID, u.JobID, u.ComputeAllocationResourceID)
 	return err
