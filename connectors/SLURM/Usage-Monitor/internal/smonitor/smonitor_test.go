@@ -112,7 +112,7 @@ func TestPollFirstQueryAfterAStartCoversOneStep(t *testing.T) {
 	m := NewSlurmMonitor(nil, nil, newMockCore(nil, nil), "cl-1", 0)
 	m.slurmClient = lister
 
-	m.poll()
+	m.poll(context.Background())
 
 	query := lister.filters[0]
 	if seconds := query.EndTime - query.StartTime; seconds > maxQuerySeconds {
@@ -132,7 +132,7 @@ func TestPollResumesFromTheLastRecordedUsage(t *testing.T) {
 	m.slurmClient = lister
 
 	m.resumeFromLastUsage(context.Background())
-	m.poll()
+	m.poll(context.Background())
 
 	if got, want := lister.filters[0].StartTime, lastUsage.Add(-defaultPollOverlap).Unix(); got != want {
 		t.Errorf("first query starts at %d, want %d", got, want)
@@ -151,7 +151,7 @@ func TestPollStartsOneDayBackWithoutRecordedUsage(t *testing.T) {
 	m.slurmClient = lister
 
 	m.resumeFromLastUsage(context.Background())
-	m.poll()
+	m.poll(context.Background())
 
 	if got := lister.filters[0].StartTime; got < before || got > before+1 {
 		t.Errorf("first query starts at %d, want one day and the look-back ago (%d)", got, before)
@@ -167,7 +167,7 @@ func TestPollWalksALongGapInSteps(t *testing.T) {
 
 	before := time.Now().Unix()
 	for range 3 {
-		m.poll()
+		m.poll(context.Background())
 	}
 
 	for i, query := range lister.filters {
@@ -189,8 +189,8 @@ func TestPollKeepsTheWindowAfterAFailedQuery(t *testing.T) {
 	m := newTestMonitor(newMockCore(nil, nil))
 	m.slurmClient = lister
 
-	m.poll()
-	m.poll()
+	m.poll(context.Background())
+	m.poll(context.Background())
 
 	if first, second := lister.filters[0].StartTime, lister.filters[1].StartTime; second != first {
 		t.Errorf("second query starts at %d, want the same start as the failed one (%d)", second, first)
@@ -199,7 +199,7 @@ func TestPollKeepsTheWindowAfterAFailedQuery(t *testing.T) {
 
 func TestPollRecordsRawAndSUExactly(t *testing.T) {
 	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
-	newTestMonitor(core, fixtureJob(42, "alice", "debug")).poll()
+	newTestMonitor(core, fixtureJob(42, "alice", "debug")).poll(context.Background())
 
 	calls := core.CreateComputeAllocationUsageCalls()
 	if len(calls) != 1 {
@@ -237,7 +237,7 @@ func TestPollMultiNodeDoesNotOvercount(t *testing.T) {
 			},
 		},
 	}
-	newTestMonitor(core, job).poll()
+	newTestMonitor(core, job).poll(context.Background())
 
 	calls := core.CreateComputeAllocationUsageCalls()
 	if len(calls) != 1 {
@@ -270,7 +270,7 @@ func TestPollUsesBillingTresNotThePartitionResourceType(t *testing.T) {
 			},
 		},
 	}
-	newTestMonitor(core, job).poll()
+	newTestMonitor(core, job).poll(context.Background())
 
 	calls := core.CreateComputeAllocationUsageCalls()
 	if len(calls) != 1 {
@@ -291,7 +291,7 @@ func TestPollSkipsJobWithoutBillingTres(t *testing.T) {
 		{Type: "cpu", Count: 2},
 		{Type: "node", Count: 1},
 	}
-	newTestMonitor(core, job, fixtureJob(46, "alice", "debug")).poll()
+	newTestMonitor(core, job, fixtureJob(46, "alice", "debug")).poll(context.Background())
 
 	calls := core.CreateComputeAllocationUsageCalls()
 	if len(calls) != 1 {
@@ -307,7 +307,7 @@ func TestPollSkipsJobWithoutEffectiveRate(t *testing.T) {
 	newTestMonitor(core,
 		fixtureJob(1, "alice", "unrated"), // res-unrated has no rate row
 		fixtureJob(2, "alice", "debug"),
-	).poll()
+	).poll(context.Background())
 
 	calls := core.CreateComputeAllocationUsageCalls()
 	if len(calls) != 1 {
@@ -323,7 +323,7 @@ func TestPollContinuesPastUnknownClusterUser(t *testing.T) {
 	newTestMonitor(core,
 		fixtureJob(1, "ghost", "debug"), // unknown cluster user
 		fixtureJob(2, "alice", "debug"),
-	).poll()
+	).poll(context.Background())
 
 	calls := core.CreateComputeAllocationUsageCalls()
 	if len(calls) != 1 {
