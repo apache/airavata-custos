@@ -25,6 +25,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // removeAssociationsForMembership revokes one member's access to one
@@ -37,6 +38,9 @@ import (
 // matches every partition, so one call removes the member's whole set.
 func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
+	if errors.Is(err, service.ErrNotFound) {
+		return leftToCleanup(membership, "allocation")
+	}
 	if err != nil {
 		return fmt.Errorf("get compute allocation: %w", err)
 	}
@@ -45,6 +49,9 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 		return fmt.Errorf("get compute cluster: %w", err)
 	}
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
+	if errors.Is(err, service.ErrNotFound) {
+		return leftToCleanup(membership, "cluster account")
+	}
 	if err != nil {
 		return fmt.Errorf("get compute cluster user: %w", err)
 	}
@@ -59,6 +66,15 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 	}
 	slog.Info("Removed associations for membership",
 		"user", csu.LocalUsername, "account", allocation.Name, "cluster", cluster.Name)
+	return nil
+}
+
+// leftToCleanup ends a membership revoke whose allocation or cluster account is
+// already gone. Retrying cannot bring it back; the allocation delete or the
+// reconciler removes whatever associations remain.
+func leftToCleanup(membership models.ComputeAllocationMembership, missing string) error {
+	slog.Info("Nothing to revoke for membership, its "+missing+" is gone",
+		"membership_id", membership.ID, "user_id", membership.UserID)
 	return nil
 }
 
