@@ -343,13 +343,13 @@ func (p *testPipeline) waitForDrain(t *testing.T, expectPackets int, deadline ti
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
-	var decoded int
-	if err := p.db.Get(&decoded,
-		"SELECT COUNT(*) FROM amie_packets WHERE status = 'DECODED'",
+	var processed int
+	if err := p.db.Get(&processed,
+		"SELECT COUNT(*) FROM amie_packets WHERE status = 'PROCESSED'",
 	); err != nil {
-		t.Fatalf("count decoded: %v", err)
+		t.Fatalf("count processed: %v", err)
 	}
-	return decoded
+	return processed
 }
 
 func countRows(t *testing.T, database *sqlx.DB, table string) int {

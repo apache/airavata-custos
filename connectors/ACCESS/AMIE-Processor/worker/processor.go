@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -223,6 +224,10 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 		}
 
 		finishedAt := time.Now().UTC()
+		if packet.Status == model.PacketStatusDecoded {
+			packet.Status = model.PacketStatusProcessed
+			packet.ProcessedAt = &finishedAt
+		}
 		ewp.Status = model.ProcessingStatusSucceeded
 		ewp.FinishedAt = &finishedAt
 		ewp.NextRetryAt = nil
@@ -265,7 +270,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 		// The processing transaction rolled back, so event.Attempts is the
 		// old value. Compute the effective attempt count.
 		effectiveAttempts := event.Attempts + 1
-		isRetryable := effectiveAttempts < MaxAttempts
+		isRetryable := effectiveAttempts < MaxAttempts && !errors.Is(cause, model.ErrInvalidPacket)
 
 		event.Attempts = effectiveAttempts
 		errMsg := cause.Error()

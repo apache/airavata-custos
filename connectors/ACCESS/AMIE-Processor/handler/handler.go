@@ -51,7 +51,7 @@ const amieIdentitySource = "access"
 
 func requireText(val, fieldName string) error {
 	if strings.TrimSpace(val) == "" {
-		return fmt.Errorf("'%s' must not be empty", fieldName)
+		return fmt.Errorf("%w: '%s' must not be empty", model.ErrInvalidPacket, fieldName)
 	}
 	return nil
 }
