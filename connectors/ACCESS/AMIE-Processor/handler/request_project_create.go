@@ -257,7 +257,7 @@ func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context
 	for _, name := range getResourceList(body) {
 		resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
 		if errors.Is(err, service.ErrNotFound) {
-			slog.Warn("amie: packet resource not in the cluster catalog, mapping skipped",
+			slog.WarnContext(ctx, "amie: packet resource not in the cluster catalog, mapping skipped",
 				"resource", name, "allocation_id", allocation.ID)
 			continue
 		}

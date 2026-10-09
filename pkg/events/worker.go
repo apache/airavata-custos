@@ -164,14 +164,14 @@ func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 		return
 	}
 
-	// Build the handler's context. It carries the trace id and source of the
+	// Build the handler's context. It carries the span and source of the
 	// request that published the event, so audit rows join that trace. It is
 	// detached from the worker's context, so shutdown does not cut the
 	// handler off, and it has a timeout, so a handler that never returns
 	// cannot stop the worker from moving on. `WithoutCancel` has to come first,
 	// a timeout added straight on `ctx` (instead of `WithoutCancel`) would still be canceled by shutdown.
 	handlerCtx := context.WithoutCancel(ctx)
-	handlerCtx = tracing.ContextWithTraceID(handlerCtx, row.Event.TraceID)
+	handlerCtx = tracing.ContextWithSpanContext(handlerCtx, row.Event.TraceID, row.Event.SpanID)
 	handlerCtx = audit.WithSource(handlerCtx, row.Event.Source)
 	handlerCtx, cancel := context.WithTimeout(handlerCtx, handlerTimeout)
 	defer cancel()
@@ -208,7 +208,7 @@ func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 	// The row stays pending, so the next tick runs it again. Handlers are
 	// idempotent, so a repeat after a success is harmless.
 	if recordErr != nil {
-		slog.Error("event delivery outcome not recorded", "delivery_id", row.ID, "error", recordErr)
+		slog.ErrorContext(handlerCtx, "event delivery outcome not recorded", "delivery_id", row.ID, "error", recordErr)
 	}
 }
 
@@ -264,7 +264,8 @@ func retryAudit(ctx context.Context, row models.PendingDelivery, actorID string,
 		"previous_attempts": row.Attempts,
 		"last_error":        row.LastError,
 	})
-	traceID, spanID := tracing.IDsFromContext(ctx)
+	// Without a span the ids stay empty and the audit store rejects the row.
+	traceID, spanID, _ := tracing.IDsFromContext(ctx)
 	return &models.AuditEvent{
 		ID:           uuid.NewString(),
 		EventType:    auditDeliveryRetried,
@@ -289,7 +290,8 @@ func deliveryAudit(ctx context.Context, row models.PendingDelivery, attempts int
 		details["error"] = err.Error()
 	}
 	body, _ := json.Marshal(details)
-	traceID, spanID := tracing.IDsFromContext(ctx)
+	// Without a span the ids stay empty and the audit store rejects the row.
+	traceID, spanID, _ := tracing.IDsFromContext(ctx)
 	return &models.AuditEvent{
 		ID:           uuid.NewString(),
 		EventType:    eventType,

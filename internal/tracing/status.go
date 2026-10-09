@@ -18,6 +18,7 @@
 package tracing
 
 import (
+	"slices"
 	"strings"
 	"sync"
 )
@@ -40,18 +41,23 @@ func EventStatus(eventType string) string {
 	return StatusOk
 }
 
+type traceMarkers struct {
+	start     string
+	terminals []string
+}
+
 var (
-	terminalMarkersMu sync.RWMutex
-	terminalMarkers   = map[string][]string{}
+	markersMu sync.RWMutex
+	markers   = map[string]traceMarkers{}
 )
 
-// RegisterTerminalMarkers declares the event names that close out a trace for
-// the given source. Connectors call this at boot so the core stays unaware of
-// connector-specific event names.
-func RegisterTerminalMarkers(source string, markers ...string) {
-	terminalMarkersMu.Lock()
-	defer terminalMarkersMu.Unlock()
-	terminalMarkers[source] = append(terminalMarkers[source], markers...)
+// RegisterMarkers declares the event that opens a source's work in a trace and
+// the events that close it. Connectors call this at boot so the core stays
+// unaware of connector-specific event names.
+func RegisterMarkers(source, start string, terminals ...string) {
+	markersMu.Lock()
+	defer markersMu.Unlock()
+	markers[source] = traceMarkers{start, terminals}
 }
 
 type TraceEventStatus struct {
@@ -59,49 +65,25 @@ type TraceEventStatus struct {
 	EventType string
 }
 
-func setTerminalMarkersForTest(t interface{ Cleanup(func()) }, source string, markers []string) {
-	terminalMarkersMu.Lock()
-	prev, hadPrev := terminalMarkers[source]
-	terminalMarkers[source] = markers
-	terminalMarkersMu.Unlock()
-	t.Cleanup(func() {
-		terminalMarkersMu.Lock()
-		defer terminalMarkersMu.Unlock()
-		if hadPrev {
-			terminalMarkers[source] = prev
-		} else {
-			delete(terminalMarkers, source)
-		}
-	})
-}
-
-// TraceStatus is "error" if any event errored, "ok" if a registered terminal
-// marker is present, else "in_progress".
+// TraceStatus is "error" if any event errored, "in_progress" while a source has
+// written its start marker and none of its terminals, else "ok". A source with
+// no registered markers never holds a trace in progress.
 func TraceStatus(events []TraceEventStatus) string {
-	terminalMarkersMu.RLock()
-	snapshot := make(map[string][]string, len(terminalMarkers))
-	for k, v := range terminalMarkers {
-		snapshot[k] = v
-	}
-	terminalMarkersMu.RUnlock()
-
-	hasError := false
-	hasTerminal := false
+	markersMu.RLock()
+	defer markersMu.RUnlock()
+	started, done := map[string]bool{}, map[string]bool{}
 	for _, e := range events {
 		if EventStatus(e.EventType) == StatusError {
-			hasError = true
+			return StatusError
 		}
-		for _, m := range snapshot[e.Source] {
-			if e.EventType == m {
-				hasTerminal = true
-			}
+		m, ok := markers[e.Source]
+		started[e.Source] = started[e.Source] || ok && e.EventType == m.start
+		done[e.Source] = done[e.Source] || slices.Contains(m.terminals, e.EventType)
+	}
+	for s := range started {
+		if started[s] && !done[s] {
+			return StatusInProgress
 		}
 	}
-	if hasError {
-		return StatusError
-	}
-	if hasTerminal {
-		return StatusOk
-	}
-	return StatusInProgress
+	return StatusOk
 }

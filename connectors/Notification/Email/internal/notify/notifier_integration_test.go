@@ -30,6 +30,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -70,7 +71,7 @@ func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 	if _, err := database.Exec("TRUNCATE TABLE audit_events, event_deliveries, events, event_subscriptions, compute_cluster_users, compute_clusters, users, organizations CASCADE"); err != nil {
 		t.Fatal(err)
 	}
-	ctx := context.Background()
+	ctx := tracingtest.Context()
 	bus, err := events.New(ctx, database)
 	if err != nil {
 		t.Fatal(err)

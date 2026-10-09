@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -72,7 +73,7 @@ func failDelivery(t *testing.T, svc *service.Service, bus *events.Bus) models.Pe
 		}
 		return nil
 	})
-	if _, err := svc.CreateOrganization(context.Background(), &models.Organization{OriginatedID: "org-retry", Name: "Retry Org"}); err != nil {
+	if _, err := svc.CreateOrganization(tracingtest.Context(), &models.Organization{OriginatedID: "org-retry", Name: "Retry Org"}); err != nil {
 		t.Fatalf("create organization: %v", err)
 	}
 	return runWorkerUntil(t, bus, models.EventDeliveryFailed)
@@ -167,7 +168,7 @@ func TestRetryRefusesDeliveryThatHasNotFailed(t *testing.T) {
 	_, svc, srv := setupTestStack(t)
 	bus := svc.EventBus()
 	bus.Subscribe(subscriberTest, events.OrganizationCreateEvent, func(context.Context, events.Event, any) error { return nil })
-	if _, err := svc.CreateOrganization(context.Background(), &models.Organization{OriginatedID: "org-ok", Name: "Ok Org"}); err != nil {
+	if _, err := svc.CreateOrganization(tracingtest.Context(), &models.Organization{OriginatedID: "org-ok", Name: "Ok Org"}); err != nil {
 		t.Fatalf("create organization: %v", err)
 	}
 	done := runWorkerUntil(t, bus, models.EventDeliverySucceeded)

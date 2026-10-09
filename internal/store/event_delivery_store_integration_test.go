@@ -38,6 +38,8 @@ func newEvent(createdAt time.Time) *models.Event {
 		EventType: "compute_cluster_user::create",
 		Payload:   json.RawMessage(`{"id":"cu-1","local_username":"jdoe"}`),
 		Source:    "core",
+		TraceID:   "4bf92f3577b34da6a3ce929d0e0e4736",
+		SpanID:    "00f067aa0ba902b7",
 		CreatedAt: createdAt,
 	}
 }

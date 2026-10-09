@@ -246,6 +246,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 	rootSpan := "0102030405060708"
 	childSpan := "090a0b0c0d0e0f10"
 	tree := &models.TraceNode{
+		TraceEvent: models.TraceEvent{Status: "error"},
 		Children: []*models.TraceNode{
 			{
 				TraceEvent: models.TraceEvent{
@@ -259,7 +260,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 					{
 						TraceEvent: models.TraceEvent{
 							SpanID:       childSpan,
-							ParentSpanID: rootSpan,
+							ParentSpanID: &rootSpan,
 							Source:       "comanage",
 							EventType:    "ComanageProvisioningFailed",
 							Status:       "error",
@@ -287,6 +288,9 @@ func TestGetTraceReturnsTree(t *testing.T) {
 	}
 	if body["trace_id"].(string) != raw {
 		t.Errorf("trace_id = %v", body["trace_id"])
+	}
+	if body["status"] != "error" {
+		t.Errorf("trace status = %v", body["status"])
 	}
 	treeNodes := body["tree"].([]any)
 	if len(treeNodes) != 1 {

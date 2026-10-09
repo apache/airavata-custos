@@ -43,6 +43,10 @@ var (
 	ErrUserAlreadyOIDCLinked = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
 )
 
+type TokenVerifier interface {
+	Verify(ctx context.Context, rawToken string) (*Claims, error)
+}
+
 // UserResolver maps verified OIDC claims to a Caller and the effective
 // privilege set.
 type UserResolver interface {

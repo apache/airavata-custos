@@ -20,6 +20,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -27,7 +28,8 @@ import (
 // withTestCaller installs a *identity.Caller plus a privilege set onto the
 // request context for handler tests that run without the auth middleware.
 func withTestCaller(r *http.Request, userID string, privs ...models.PrivilegeKey) *http.Request {
-	ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: userID})
+	ctx, _ := tracing.Start(r.Context(), "test.request")
+	ctx = identity.WithCaller(ctx, &identity.Caller{UserID: userID})
 	ctx = identity.WithPrivilegesForTest(ctx, privs)
 	return r.WithContext(ctx)
 }

@@ -22,7 +22,6 @@ package pipeline
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -32,8 +31,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
@@ -52,11 +49,9 @@ import (
 const testClusterID = "00000000-0000-0000-0000-000000000001"
 
 var (
-	sharedDB         *sqlx.DB
-	sharedDBOnce     sync.Once
-	sharedDBErr      error
-	tracingInitOnce  sync.Once
-	tracingInitError error
+	sharedDB     *sqlx.DB
+	sharedDBOnce sync.Once
+	sharedDBErr  error
 )
 
 func isLocalAMIEConfigAvailable() bool {
@@ -101,16 +96,6 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 	})
 	if sharedDBErr != nil {
 		t.Fatalf("setup db: %v", sharedDBErr)
-	}
-	tracingInitOnce.Do(func() {
-		_, tracingInitError = tracing.Init(tracing.InitConfig{
-			Mode:        tracing.ModeProduction,
-			Logger:      slog.Default(),
-			ServiceName: "custos",
-		})
-	})
-	if tracingInitError != nil {
-		t.Fatalf("tracing init: %v", tracingInitError)
 	}
 	truncateAll(t, sharedDB)
 	seedCluster(t, sharedDB)
@@ -279,9 +264,11 @@ func (p *testPipeline) startApproving() {
 				len(ids) == 0 || p.db.GetContext(p.ctx, &reviewer, "SELECT id FROM users LIMIT 1") != nil {
 				continue
 			}
+			ctx, span := tracing.Start(p.ctx, "test.approve")
 			for _, id := range ids {
-				_, _ = p.svc.ApproveComputeClusterUser(p.ctx, id, reviewer)
+				_, _ = p.svc.ApproveComputeClusterUser(ctx, id, reviewer)
 			}
+			span.End()
 		}
 	}()
 }
@@ -289,15 +276,6 @@ func (p *testPipeline) startApproving() {
 func (p *testPipeline) stop() {
 	p.cancel()
 	p.wg.Wait()
-	flushTracing()
-}
-
-func flushTracing() {
-	if tp, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider); ok {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = tp.ForceFlush(ctx)
-	}
 }
 
 func (p *testPipeline) fireScenario(t *testing.T, scenarioType string) {

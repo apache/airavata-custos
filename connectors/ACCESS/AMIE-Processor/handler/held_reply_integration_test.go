@@ -30,6 +30,8 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
@@ -81,10 +83,15 @@ func TestHeldReplies_ApprovalSendsHeldReplyOnce(t *testing.T) {
 	amie := &fakeAmieClient{}
 	held := NewHeldReplies(database, store.NewPacketStore(database), amie, newTestAuditService(database))
 	account := reviewedAccount(t, svc, *pkt.HeldFor)
+	ctx, delivery := tracing.Start(context.Background(), "delivery")
 	for range 2 {
-		if err := held.approved(context.Background(), account); err != nil {
+		if err := held.approved(ctx, account); err != nil {
 			t.Fatalf("approved: %v", err)
 		}
+	}
+	var chained int
+	if err := database.Get(&chained, "SELECT COUNT(*) FROM audit_events WHERE event_type = 'REPLY_SENT' AND parent_span_id = $1", delivery.SpanContext().SpanID().String()); err != nil || chained != 1 {
+		t.Errorf("REPLY_SENT rows under the delivery span: %d (%v), want 1", chained, err)
 	}
 
 	if len(amie.Replies) != 1 || amie.lastReplyType() != "notify_account_create" {
@@ -142,7 +149,7 @@ func TestHeldReplies_DenialSendsFailureWithReason(t *testing.T) {
 	if err := database.Get(&reviewer, "SELECT id FROM users LIMIT 1"); err != nil {
 		t.Fatalf("pick a reviewer: %v", err)
 	}
-	if _, err := svc.DenyComputeClusterUser(context.Background(), *pkt.HeldFor, reviewer, "not on the collaborator list"); err != nil {
+	if _, err := svc.DenyComputeClusterUser(tracingtest.Context(), *pkt.HeldFor, reviewer, "not on the collaborator list"); err != nil {
 		t.Fatalf("deny: %v", err)
 	}
 

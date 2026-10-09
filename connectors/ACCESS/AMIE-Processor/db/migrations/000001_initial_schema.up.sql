@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS amie_processing_events
     finished_at   TIMESTAMPTZ(6) NULL,
     last_error    TEXT           NULL,
     next_retry_at TIMESTAMPTZ(6) NULL     DEFAULT NULL,
+    trace_id      CHAR(32)       NOT NULL CHECK (trace_id <> ''),
+    span_id       CHAR(16)       NOT NULL CHECK (span_id <> ''),
     PRIMARY KEY (id),
     CONSTRAINT fk_amie_events_packet FOREIGN KEY (packet_id) REFERENCES amie_packets (id) ON DELETE CASCADE,
     CONSTRAINT uq_amie_events_packet_type UNIQUE (packet_id, type)

@@ -274,7 +274,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 	}
 
 	if in.ClusterAdmin {
-		slog.Info("cluster admin account created", "user_id", created.ID, "cluster_id", clusterUser.ComputeClusterID, "actor_id", in.OnboardedBy)
+		slog.InfoContext(ctx, "cluster admin account created", "user_id", created.ID, "cluster_id", clusterUser.ComputeClusterID, "actor_id", in.OnboardedBy)
 	}
 
 	return created, nil

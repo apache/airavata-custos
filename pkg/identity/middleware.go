@@ -30,7 +30,7 @@ import (
 // Middleware verifies the bearer token once, resolves the caller, and
 // attaches Caller + privilege set to the request context. Public paths
 // bypass verification entirely.
-func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
+func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
 	publicSet := make(map[string]struct{}, len(publicPaths))
 	for _, path := range publicPaths {
 		publicSet[path] = struct{}{}
@@ -56,7 +56,7 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 			return
 		}
 		if err != nil {
-			slog.Error("identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
+			slog.ErrorContext(req.Context(), "identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}

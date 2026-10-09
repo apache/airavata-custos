@@ -127,7 +127,7 @@ func subscribeTyped[T any](b *Bus, subscriber string, topic EventType, handler f
 				return handler(ctx, *v)
 			}
 		default:
-			slog.Warn("event payload has unexpected type", "type", event.Type, "got", value)
+			slog.WarnContext(ctx, "event payload has unexpected type", "type", event.Type, "got", value)
 		}
 		return nil
 	})
@@ -147,7 +147,10 @@ func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload 
 	if err != nil {
 		return fmt.Errorf("encode event payload: %w", err)
 	}
-	traceID, _ := tracing.IDsFromContext(ctx)
+	traceID, spanID, err := tracing.IDsFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("publish %s: %w", topic, err)
+	}
 	source := audit.SourceFromContext(ctx)
 	// FIXME - remove defaulting to 'core' every entry point should put its source
 	if source == "" {
@@ -160,6 +163,7 @@ func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload 
 		Payload:   body,
 		Source:    source,
 		TraceID:   traceID,
+		SpanID:    spanID,
 		CreatedAt: now,
 	}
 
@@ -212,7 +216,7 @@ func callHandler(ctx context.Context, h EventSubscriberFunc, event Event, payloa
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("subscriber panic: %v", r)
-			slog.Error("event subscriber panicked", "topic", event.Type, "panic", r, "stack", string(debug.Stack()))
+			slog.ErrorContext(ctx, "event subscriber panicked", "topic", event.Type, "panic", r, "stack", string(debug.Stack()))
 		}
 	}()
 	return h(ctx, event, payload)
@@ -248,7 +252,7 @@ func dispatchSync(ctx context.Context, h handler, event Event, payload any) erro
 			err := fmt.Errorf("subscriber panic: %v", r)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "subscriber panic")
-			slog.Error("event subscriber panicked",
+			slog.ErrorContext(ctx, "event subscriber panicked",
 				"topic", event.Type,
 				"subscriber", h.subscriber,
 				"panic", r,

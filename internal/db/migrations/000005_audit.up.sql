@@ -27,9 +27,9 @@ CREATE TABLE IF NOT EXISTS audit_events
     entity_type    VARCHAR(64)  NOT NULL DEFAULT '',
     details        TEXT         NOT NULL,
     source         VARCHAR(64)  NOT NULL DEFAULT 'core',
-    trace_id       CHAR(32) NOT NULL DEFAULT '',
-    span_id        CHAR(16) NOT NULL DEFAULT '',
-    parent_span_id CHAR(16) NOT NULL DEFAULT '',
+    trace_id       CHAR(32) NOT NULL CHECK (trace_id <> ''),
+    span_id        CHAR(16) NOT NULL CHECK (span_id <> ''),
+    parent_span_id CHAR(16) CHECK (parent_span_id <> ''),
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS idx_audit_events_entity ON audit_events (entity_id, event_time);

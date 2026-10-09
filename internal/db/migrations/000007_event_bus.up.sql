@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS events
     event_type VARCHAR(128)   NOT NULL,
     payload    JSONB          NOT NULL,
     source     VARCHAR(64)    NOT NULL,
-    trace_id   CHAR(32)       NOT NULL DEFAULT '',
+    trace_id   CHAR(32)       NOT NULL CHECK (trace_id <> ''),
+    span_id    CHAR(16)       NOT NULL CHECK (span_id <> ''),
     created_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id)
 );

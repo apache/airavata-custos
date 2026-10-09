@@ -485,6 +485,9 @@ definitions:
       source:
         description: Subsystem that published the event.
         type: string
+      span_id:
+        description: Publisher's span, the parent of its deliveries.
+        type: string
       trace_id:
         type: string
     type: object
@@ -1147,6 +1150,8 @@ paths:
           description: OK
           schema:
             properties:
+              status:
+                type: string
               trace_id:
                 type: string
               tree:

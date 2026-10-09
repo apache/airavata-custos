@@ -33,6 +33,7 @@ import (
 
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -67,7 +68,7 @@ func publish(t *testing.T, ctx context.Context, bus *Bus, topic EventType, paylo
 func auditRows(t *testing.T, database *sqlx.DB, entityID string) []models.AuditEvent {
 	t.Helper()
 	var rows []models.AuditEvent
-	if err := database.Select(&rows, "SELECT event_type, details, trace_id FROM audit_events WHERE entity_id = $1 ORDER BY event_time", entityID); err != nil {
+	if err := database.Select(&rows, "SELECT event_type, details, trace_id, parent_span_id FROM audit_events WHERE entity_id = $1 ORDER BY event_time", entityID); err != nil {
 		t.Fatalf("list audit rows: %v", err)
 	}
 	return rows
@@ -92,12 +93,12 @@ func TestPublishIsDeliveredToSubscriber(t *testing.T) {
 	var gotTrace string
 	bus.SubscribeComputeClusterUserCreated(subscriberTest, func(ctx context.Context, cu models.ComputeClusterUser) error {
 		got = cu
-		gotTrace, _ = tracing.IDsFromContext(ctx)
+		gotTrace, _, _ = tracing.IDsFromContext(ctx)
 		return nil
 	})
 
 	ctx, span := tracing.Start(context.Background(), "test.publish")
-	wantTrace, _ := tracing.IDsFromContext(ctx)
+	wantTrace, _, _ := tracing.IDsFromContext(ctx)
 	publish(t, ctx, bus, ComputeClusterUserCreateEvent, clusterUser())
 	span.End()
 	bus.deliverDue(context.Background())
@@ -118,7 +119,7 @@ func TestPublishWritesNothingWithoutSubscription(t *testing.T) {
 	database := setupTestDB(t)
 	bus := newBus(t, database)
 
-	publish(t, context.Background(), bus, UserCreateEvent, &models.User{ID: "u-1"})
+	publish(t, tracingtest.Context(), bus, UserCreateEvent, &models.User{ID: "u-1"})
 	if n := countEvents(t, database); n != 0 {
 		t.Fatalf("expected no stored events, got %d", n)
 	}
@@ -134,7 +135,7 @@ func TestPublishRollsBackWithCallerTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
-	if err := bus.Publish(context.Background(), tx, ComputeClusterUserCreateEvent, clusterUser()); err != nil {
+	if err := bus.Publish(tracingtest.Context(), tx, ComputeClusterUserCreateEvent, clusterUser()); err != nil {
 		t.Fatalf("publish: %v", err)
 	}
 	if err := tx.Rollback(); err != nil {
@@ -161,7 +162,7 @@ func TestEveryDeliveryAttemptCreatesAnAuditRow(t *testing.T) {
 	})
 
 	ctx, span := tracing.Start(context.Background(), "test.publish")
-	wantTrace, _ := tracing.IDsFromContext(ctx)
+	wantTrace, wantParent, _ := tracing.IDsFromContext(ctx)
 	publish(t, ctx, bus, ComputeClusterUserCreateEvent, clusterUser())
 	span.End()
 
@@ -184,8 +185,8 @@ func TestEveryDeliveryAttemptCreatesAnAuditRow(t *testing.T) {
 		t.Fatalf("expected the second row to carry attempt 2, got %s", rows[1].Details)
 	}
 	for _, r := range rows {
-		if r.TraceID != wantTrace {
-			t.Fatalf("audit row trace %q, want the publisher's %q", r.TraceID, wantTrace)
+		if r.TraceID != wantTrace || r.ParentSpanID == nil || *r.ParentSpanID != wantParent {
+			t.Fatalf("audit row trace %q parent %v, want the publisher's %q %q", r.TraceID, r.ParentSpanID, wantTrace, wantParent)
 		}
 	}
 }
@@ -206,7 +207,7 @@ func TestFailedDeliveryIsRetriedAfterBackoff(t *testing.T) {
 				return handler(ctx, cu)
 			})
 
-			publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
+			publish(t, tracingtest.Context(), bus, ComputeClusterUserCreateEvent, clusterUser())
 			// The second pass runs before the backoff has passed, so it must skip the row.
 			bus.deliverDue(context.Background())
 			bus.deliverDue(context.Background())
@@ -234,7 +235,7 @@ func TestDeliveryFailsAtAttemptCap(t *testing.T) {
 		return errors.New("registry 503")
 	})
 
-	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
+	publish(t, tracingtest.Context(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	// Jump the row to its last allowed attempt instead of failing it nine times.
 	pending := onlyDelivery(t, bus, models.EventDeliveryPending)
 	if err := db.TxFn(context.Background(), database, func(tx *sql.Tx) error {
@@ -257,7 +258,7 @@ func TestPermanentErrorFailsWithoutRetry(t *testing.T) {
 		return fmt.Errorf("%w: bad row", ErrPermanent)
 	})
 
-	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
+	publish(t, tracingtest.Context(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	bus.deliverDue(context.Background())
 
 	if d := onlyDelivery(t, bus, models.EventDeliveryFailed); d.Attempts != 1 {
@@ -275,7 +276,7 @@ func TestEventPublishedBeforeSubscriberLoadsIsDelivered(t *testing.T) {
 
 	// A fresh process: the subscription is saved, the handler is not loaded yet.
 	bus := newBus(t, database)
-	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
+	publish(t, tracingtest.Context(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	bus.deliverDue(context.Background())
 	if d := onlyDelivery(t, bus, models.EventDeliveryPending); d.Attempts != 0 {
 		t.Fatalf("expected the row to wait untouched, got %d attempts", d.Attempts)
@@ -303,7 +304,7 @@ func TestUnsubscribeStopsNewDeliveries(t *testing.T) {
 	if err := bus.Unsubscribe(context.Background(), subscriberTest); err != nil {
 		t.Fatalf("unsubscribe: %v", err)
 	}
-	publish(t, context.Background(), bus, ComputeClusterUserCreateEvent, clusterUser())
+	publish(t, tracingtest.Context(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	if n := countEvents(t, database); n != 0 {
 		t.Fatalf("expected no stored events after unsubscribe, got %d", n)
 	}

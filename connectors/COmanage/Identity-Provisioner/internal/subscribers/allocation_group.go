@@ -21,19 +21,30 @@ import (
 	"context"
 	"errors"
 
+	"github.com/apache/airavata-custos/internal/audit"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 func (s *ClusterUserSubscriber) handleComputeAllocationChanged(ctx context.Context, a models.ComputeAllocation) error {
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_changed")
+	defer span.End()
 	return s.syncAllocation(ctx, a.ID)
 }
 
 func (s *ClusterUserSubscriber) handleMembershipChanged(ctx context.Context, m models.ComputeAllocationMembership) error {
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.membership_changed")
+	defer span.End()
 	return s.syncAllocation(ctx, m.ComputeAllocationID)
 }
 
 func (s *ClusterUserSubscriber) handleComputeAllocationDeleted(ctx context.Context, a models.ComputeAllocation) error {
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_deleted")
+	defer span.End()
 	if a.ComputeClusterID != s.custosClusterID {
 		return nil
 	}

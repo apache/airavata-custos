@@ -30,7 +30,7 @@ import (
 
 // Delivery columns with the event table joined in.
 const eventDeliveryWithEventColumns = `d.id, d.event_id, d.subscriber, d.status, d.attempts, d.next_run_at, d.last_error, d.created_at, d.finished_at,
-	e.id AS "event.id", e.event_type AS "event.event_type", e.payload AS "event.payload", e.source AS "event.source", e.trace_id AS "event.trace_id", e.created_at AS "event.created_at"`
+	e.id AS "event.id", e.event_type AS "event.event_type", e.payload AS "event.payload", e.source AS "event.source", e.trace_id AS "event.trace_id", e.span_id AS "event.span_id", e.created_at AS "event.created_at"`
 
 type pgEventDeliveryStore struct {
 	db *sqlx.DB
@@ -78,9 +78,9 @@ func (s *pgEventDeliveryStore) DeleteSubscription(ctx context.Context, subscribe
 func (s *pgEventDeliveryStore) CreateEvent(ctx context.Context, tx *sql.Tx, e *models.Event) error {
 	// Send the raw JSON as text and let Postgres cast it to jsonb.
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO events (id, event_type, payload, source, trace_id, created_at)
-		 VALUES ($1, $2, $3::jsonb, $4, $5, $6)`,
-		e.ID, e.EventType, string(e.Payload), e.Source, e.TraceID, e.CreatedAt)
+		`INSERT INTO events (id, event_type, payload, source, trace_id, span_id, created_at)
+		 VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)`,
+		e.ID, e.EventType, string(e.Payload), e.Source, e.TraceID, e.SpanID, e.CreatedAt)
 	return err
 }
 

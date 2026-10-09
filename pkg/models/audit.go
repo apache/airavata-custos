@@ -29,5 +29,5 @@ type AuditEvent struct {
 	Source       string    `json:"source" db:"source"`           // Subsystem that produced the event (e.g., "amie", "comanage", "slurm", "core", etc.).
 	TraceID      string    `json:"trace_id" db:"trace_id"`
 	SpanID       string    `json:"span_id" db:"span_id"`
-	ParentSpanID string    `json:"parent_span_id,omitempty" db:"parent_span_id"`
+	ParentSpanID *string   `json:"parent_span_id,omitempty" db:"parent_span_id"`
 }
