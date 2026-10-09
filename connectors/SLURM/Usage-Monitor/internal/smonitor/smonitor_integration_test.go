@@ -251,7 +251,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 	}
 
 	// Call the poll method directly for testing
-	monitor.poll()
+	monitor.poll(context.Background())
 
 	t.Logf("Total CreateComputeAllocationUsage calls: %d", len(comAllcUsages))
 

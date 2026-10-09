@@ -91,7 +91,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 
 	if apiUrl == "" || user == "" || token == "" || apiVersion == "" {
 		slog.Info("SLURM API credentials not fully provided, skipping SLURM Association Mapper connector")
-		slog.Info("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token", token, "apiVersion", apiVersion)
+		slog.Info("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token_set", token != "", "apiVersion", apiVersion)
 		return nil
 	}
 

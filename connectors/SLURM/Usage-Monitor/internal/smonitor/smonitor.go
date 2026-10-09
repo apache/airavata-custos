@@ -98,22 +98,22 @@ func (m *SlurmMonitor) StartMonitor(ctx context.Context) {
 			slog.Info("Stopping SLURM usage monitor", "reason", ctx.Err())
 			return
 		case <-ticker.C:
-			m.poll()
+			m.poll(ctx)
 		}
 	}
 }
 
-func (m *SlurmMonitor) poll() {
+func (m *SlurmMonitor) poll(ctx context.Context) {
 	slog.Debug("polling SLURM usage")
-	context, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	cluster, err := m.coreService.GetComputeCluster(context, m.clusterId)
+	cluster, err := m.coreService.GetComputeCluster(ctx, m.clusterId)
 	if err != nil {
 		slog.Error("failed to get compute cluster", "error", err)
 		return
 	}
 
-	allocations, err := m.coreService.ListComputeAllocationsByCluster(context, cluster.ID)
+	allocations, err := m.coreService.ListComputeAllocationsByCluster(ctx, cluster.ID)
 	if err != nil {
 		slog.Error("failed to list compute allocations", "error", err)
 		return
@@ -132,7 +132,7 @@ func (m *SlurmMonitor) poll() {
 	m.lastMonitorTime = jobFilter.EndTime
 
 	for _, job := range jobs {
-		m.recordJob(context, job, cluster, allocations)
+		m.recordJob(ctx, job, cluster, allocations)
 	}
 
 	slog.Info("successfully polled SLURM usage", "num_allocations", len(allocations), "num_jobs", len(jobs))
