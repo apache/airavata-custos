@@ -365,6 +365,32 @@ func TestRequestAccountCreate_ApprovedAccountRepliesAtOnce(t *testing.T) {
 	}
 }
 
+// Make sure an account request for the project's PI, under any role, adds the
+// membership and leaves the PI and project roles untouched.
+func TestRequestAccountCreate_ForThePI(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	svc := newTestCoreService(database)
+	h := NewRequestAccountCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database))
+	pi := baseRPCBody()
+	for _, role := range []string{"MEMBER", "CO_PI"} {
+		body := baseRACBody()
+		body["ProjectID"], body["UserGlobalID"], body["UserEmail"], body["UserRole"] = projectID, pi["PiGlobalID"], pi["PiEmail"], role
+		pkt := insertPacket(t, database, "request_account_create", body)
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle as %s: %v", role, err)
+		}
+	}
+	if got := countRows(t, database, "compute_allocation_memberships"); got != 1 {
+		t.Errorf("memberships: got %d, want 1", got)
+	}
+	if got := countRows(t, database, "project_memberships"); got != 0 {
+		t.Errorf("project role rows: got %d, want 0", got)
+	}
+}
+
 // TestRequestAccountCreate_MissingRequiredField asserts the handler rejects a
 // packet missing a required field, without leaving partial state behind.
 // GrantNumber is one of the required fields.

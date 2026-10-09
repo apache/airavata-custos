@@ -117,8 +117,8 @@ type AllocationJobs struct {
 	Total int   `json:"total"`
 }
 
-// Service aggregates usage on top of core data. It reads through its own store
-// and leans on the core service only to load an allocation.
+// Service aggregates usage on top of core data. It reads usage through its own
+// store and allocations and roles through the core service.
 type Service struct {
 	core  *coreservice.Service
 	store Store
@@ -136,20 +136,10 @@ func (s *Service) GetAllocation(ctx context.Context, id string) (*models.Compute
 	return s.core.GetComputeAllocation(ctx, id)
 }
 
-// ProjectRoleForUser returns the caller's governance role on a project, or an
-// empty role when they hold none.
-func (s *Service) ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error) {
-	role, err := s.store.ProjectRole(ctx, projectID, userID)
-	if err != nil {
-		return "", err
-	}
-	return models.ProjectRole(role), nil
-}
-
-// IsAllocationMember reports whether the user holds an active membership on the
-// allocation.
-func (s *Service) IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error) {
-	return s.store.IsActiveMember(ctx, allocationID, userID)
+// AllocationRoleForUser returns the caller's role on the allocation, or "" for
+// none.
+func (s *Service) AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error) {
+	return s.core.AllocationRoleForUser(ctx, allocationID, userID)
 }
 
 // AllocationJobsPage returns a page of the allocation's usage records, newest
@@ -203,11 +193,15 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 	if len(projRows) == 0 {
 		return []ProjectContext{}, nil
 	}
-	ids := make([]string, len(projRows))
-	for i, p := range projRows {
-		ids[i] = p.ProjectID
+	allocs, err := s.core.ListComputeAllocationsForParticipant(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
-	allocRows, err := s.store.AllocationsForProjects(ctx, ids, userID)
+	ids := make([]string, len(allocs))
+	for i, a := range allocs {
+		ids[i] = a.ID
+	}
+	allocRows, err := s.store.AllocationsByID(ctx, ids)
 	if err != nil {
 		return nil, err
 	}

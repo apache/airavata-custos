@@ -54,6 +54,12 @@ func (s *Service) ListComputeAllocationsForParticipant(ctx context.Context, user
 	return rows, nil
 }
 
+// AllocationRoleForUser returns the user's role on the allocation, a
+// project-wide role before MEMBER, or "" for none.
+func (s *Service) AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error) {
+	return s.allocs.RoleForUser(ctx, allocationID, userID)
+}
+
 // CreateComputeAllocation persists a new compute allocation. The referenced
 // project and compute cluster must already exist. If alloc.ID is empty a new
 // UUID is generated; if Status is empty it defaults to ACTIVE.

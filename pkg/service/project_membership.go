@@ -26,9 +26,9 @@ import (
 )
 
 // EnsureProjectMembership sets the user's project role. The PI lives in
-// projects.project_pi_id: asking the PI for PI is a no-op, and any other change
-// involving the PI returns ErrPIChange. MEMBER (or "") removes the role row; the
-// user stays a member through compute_allocation_memberships.
+// projects.project_pi_id and outranks every role, so any role for the PI is
+// already held; PI for anyone else returns ErrPIChange. MEMBER (or "") removes
+// the role row; the user stays a member through compute_allocation_memberships.
 func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error {
 	if projectID == "" {
 		return fmt.Errorf("%w: project_id is required", ErrInvalidInput)
@@ -42,10 +42,10 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 		return fmt.Errorf("lookup project membership: %w", err)
 	}
 	pr := models.ProjectRole(role)
-	if isPI := existing != nil && existing.Role == models.ProjectRolePI; isPI || pr == models.ProjectRolePI {
-		if isPI && pr == models.ProjectRolePI {
-			return nil
-		}
+	switch {
+	case existing != nil && existing.Role == models.ProjectRolePI:
+		return nil
+	case pr == models.ProjectRolePI:
 		return fmt.Errorf("%w: project %q", ErrPIChange, projectID)
 	}
 	if role == "MEMBER" || role == "" {
@@ -58,26 +58,10 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 	}
 
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if existing != nil {
-			return s.projMemberships.UpdateRole(ctx, tx, projectID, userID, pr)
-		}
-		return s.projMemberships.Create(ctx, tx, &models.ProjectMembership{
+		return s.projMemberships.Upsert(ctx, tx, &models.ProjectMembership{
 			ProjectID: projectID, UserID: userID, Role: pr, AddedTime: nowUTC(),
 		})
 	})
-}
-
-// ProjectRoleForUser returns the user's governance role on a project, or an
-// empty role when they hold none.
-func (s *Service) ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error) {
-	pm, err := s.projMemberships.FindByPair(ctx, projectID, userID)
-	if err != nil {
-		return "", fmt.Errorf("lookup project role: %w", err)
-	}
-	if pm == nil {
-		return "", nil
-	}
-	return pm.Role, nil
 }
 
 // ListProjectMemberships returns every project_memberships row for the project.

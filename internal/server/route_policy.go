@@ -38,25 +38,12 @@ func (s *Server) canReadAllocation(w http.ResponseWriter, r *http.Request) bool 
 	if identity.HasPrivilege(r.Context(), models.AllocationsRead) {
 		return true
 	}
-	alloc, err := s.svc.GetComputeAllocation(r.Context(), r.PathValue("id"))
+	role, err := s.svc.AllocationRoleForUser(r.Context(), r.PathValue("id"), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return false
 	}
-	role, err := s.svc.ProjectRoleForUser(r.Context(), alloc.ProjectID, caller.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return false
-	}
-	if models.IsGovernanceRole(role) {
-		return true
-	}
-	member, err := s.svc.IsAllocationMember(r.Context(), alloc.ID, caller.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return false
-	}
-	if !member {
+	if role == "" {
 		common.WriteServiceError(w, service.ErrNotFound)
 		return false
 	}

@@ -81,10 +81,13 @@ func TestAdminProject_CreateAssignRoleAndChangePI(t *testing.T) {
 	for _, c := range []struct {
 		user, role string
 		code       int
-	}{{newPIID, "MEMBER", http.StatusConflict}, {f.piID, "PI", http.StatusConflict}} {
+	}{{newPIID, "MEMBER", http.StatusNoContent}, {f.piID, "PI", http.StatusConflict}} {
 		if rr := doWrite(t, srv, http.MethodPut, path+"/members/"+c.user, map[string]string{"role": c.role}); rr.Code != c.code {
 			t.Fatalf("PI role via %s %s: %d %s", c.user, c.role, rr.Code, rr.Body.String())
 		}
+	}
+	if roles := projectRoles(t, srv, f.projectA.ID); roles[newPIID] != "PI" {
+		t.Fatalf("PI after a MEMBER request: %v", roles)
 	}
 	if rr := doWrite(t, srv, http.MethodDelete, path, nil); rr.Code != http.StatusConflict {
 		t.Fatalf("delete with allocations: %d %s", rr.Code, rr.Body.String())

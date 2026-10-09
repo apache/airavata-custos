@@ -218,7 +218,7 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project, pr
 				return err
 			}
 			if previousPIRole != "MEMBER" {
-				if err := s.projMemberships.Create(ctx, tx, &models.ProjectMembership{
+				if err := s.projMemberships.Upsert(ctx, tx, &models.ProjectMembership{
 					ProjectID: project.ID, UserID: existing.ProjectPIID, Role: models.ProjectRole(previousPIRole), AddedTime: nowUTC(),
 				}); err != nil {
 					return err

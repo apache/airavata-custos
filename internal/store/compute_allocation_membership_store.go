@@ -32,18 +32,20 @@ import (
 const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
 
 // MembershipWithUser is the result shape of the join-based list methods. Role
-// is the user's highest role from project_roles (COALESCE'd to MEMBER when
-// none). Joined user + allocation fields stay off the core
-// ComputeAllocationMembership entity.
+// is the user's project-wide role (MEMBER without one). Joined user fields stay
+// off the core ComputeAllocationMembership entity.
 type MembershipWithUser struct {
 	models.ComputeAllocationMembership
-	Role        string
-	DisplayName string
-	Email       string
+	Role        string `db:"role"`
+	DisplayName string `db:"display_name"`
+	Email       string `db:"email"`
 	// The member's account on the allocation's cluster; empty and nil without one.
-	LocalUsername string
-	ProvisionedAt *time.Time
+	LocalUsername string     `db:"local_username"`
+	ProvisionedAt *time.Time `db:"provisioned_at"`
 }
+
+// displayNameSQL is the user's full name, or their email when the name is empty.
+const displayNameSQL = `COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.email) AS display_name`
 
 type pgComputeAllocationMembershipStore struct {
 	db *sqlx.DB
@@ -155,50 +157,24 @@ func (s *pgComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql
 }
 
 // FindByAllocationWithUser returns memberships for an allocation joined with
-// users + project_memberships so each row carries display_name, email, and
-// the project-level role (defaulted to MEMBER when no project_memberships
-// row exists).
+// users so each row carries display_name, email, and the user's project-wide
+// role (MEMBER without one).
 func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
-	type row struct {
-		models.ComputeAllocationMembership
-		Role          string     `db:"role"`
-		FirstName     string     `db:"first_name"`
-		LastName      string     `db:"last_name"`
-		UserEmail     string     `db:"user_email"`
-		LocalUsername string     `db:"local_username"`
-		ProvisionedAt *time.Time `db:"provisioned_at"`
-	}
-	var rows []row
+	rows := []MembershipWithUser{}
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
-		        m.membership_status,
-		        COALESCE(pm.role, 'MEMBER') AS role,
-		        u.first_name, u.last_name, u.email AS user_email,
+		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time, m.membership_status,
+		        COALESCE(r.role, 'MEMBER') AS role, `+displayNameSQL+`, u.email,
 		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at
 		   FROM compute_allocation_memberships m
-		   JOIN compute_allocations a    ON a.id = m.compute_allocation_id
-		   JOIN users u                  ON u.id = m.user_id
-		   LEFT JOIN project_roles pm
-		         ON pm.compute_allocation_id = m.compute_allocation_id AND pm.user_id = m.user_id AND pm.rank < 3
+		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
+		   JOIN users u ON u.id = m.user_id
+		   LEFT JOIN project_roles r
+		          ON r.project_id = a.project_id AND r.user_id = m.user_id AND r.compute_allocation_id IS NULL
 		   LEFT JOIN compute_cluster_users cu
-		         ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
+		          ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
 		  WHERE m.compute_allocation_id = $1
 		  ORDER BY m.start_time`, allocationID)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]MembershipWithUser, 0, len(rows))
-	for _, r := range rows {
-		out = append(out, MembershipWithUser{
-			ComputeAllocationMembership: r.ComputeAllocationMembership,
-			Role:                        r.Role,
-			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
-			Email:                       r.UserEmail,
-			LocalUsername:               r.LocalUsername,
-			ProvisionedAt:               r.ProvisionedAt,
-		})
-	}
-	return out, nil
+	return rows, err
 }
 
 // ProjectMember is one user on a project: role holders and holders of a
@@ -232,34 +208,18 @@ func (a *ProjectMemberAllocations) Scan(src any) error { return json.Unmarshal(s
 func (s *pgComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]ProjectMember, error) {
 	rows := []ProjectMember{}
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT u.id, $1 AS project_id, u.id AS user_id, u.email,
-		        COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.email) AS display_name,
+		`SELECT u.id, $1 AS project_id, u.id AS user_id, u.email, `+displayNameSQL+`,
 		        COALESCE(r.role, 'MEMBER') AS role,
-		        COALESCE(MIN(m.membership_status), 'ACTIVE') AS status,
-		        LEAST(MIN(m.start_time), MIN(r.added_time)) AS added_time,
+		        CASE WHEN bool_or(m.membership_status = 'ACTIVE') IS FALSE THEN MIN(m.membership_status) ELSE 'ACTIVE' END AS status,
+		        LEAST(MIN(m.start_time), r.added_time) AS added_time,
 		        COALESCE(json_agg(json_build_object('id', ca.id, 'name', ca.name, 'role', COALESCE(r.role, 'MEMBER')) ORDER BY ca.name)
 		          FILTER (WHERE ca.id IS NOT NULL), '[]') AS allocations
 		   FROM compute_allocation_memberships m
 		   JOIN compute_allocations ca ON ca.id = m.compute_allocation_id AND ca.project_id = $1
-		   FULL JOIN (SELECT DISTINCT user_id, role, added_time FROM project_roles
-		               WHERE project_id = $1 AND rank < 3) r USING (user_id)
+		   FULL JOIN (SELECT user_id, role, added_time FROM project_roles
+		               WHERE project_id = $1 AND compute_allocation_id IS NULL) r USING (user_id)
 		   JOIN users u ON u.id = user_id
-		  GROUP BY u.id, r.role
+		  GROUP BY u.id, r.role, r.added_time
 		  ORDER BY u.email`, projectID)
 	return rows, err
-}
-
-func displayName(first, last, email string) string {
-	full := ""
-	if first != "" || last != "" {
-		full = first
-		if first != "" && last != "" {
-			full += " "
-		}
-		full += last
-	}
-	if full == "" {
-		return email
-	}
-	return full
 }

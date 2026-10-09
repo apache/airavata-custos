@@ -195,6 +195,9 @@ type ComputeAllocationStore interface {
 	// FindByParticipant returns the allocations where the user holds an active
 	// membership, or a governance role on the parent project. Newest first.
 	FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
+	// RoleForUser returns the user's role on the allocation, a project-wide role
+	// before MEMBER, or "" for none.
+	RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 }
 
 // AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
@@ -348,17 +351,15 @@ type ComputeAllocationChangeRequestEventStore interface {
 // governance roles (CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
 // compute_allocation_memberships and not stored here.
 type ProjectMembershipStore interface {
-	// FindByPair returns the user's highest governance role on the project,
-	// the PI included, or nil if absent.
+	// FindByPair returns the user's project-wide role (PI, CO_PI or
+	// ALLOCATION_MANAGER), or nil if absent.
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
 	// FindByProject returns every project_memberships row for the project.
 	FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
 	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	// Create inserts a new row within the provided transaction.
-	Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
-	// UpdateRole changes the role of an existing (project, user) row.
-	UpdateRole(ctx context.Context, tx *sql.Tx, projectID, userID string, role models.ProjectRole) error
+	// Upsert inserts the (project, user) row or sets its role.
+	Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
 	// Delete removes the (project, user) row.
 	Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error
 	// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag
@@ -381,7 +382,7 @@ type ComputeAllocationMembershipStore interface {
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	// FindByAllocationWithUser is FindByAllocation joined with users so each
-	// row carries display_name, email, and the user's highest role (MEMBER by
+	// row carries display_name, email, and the user's project-wide role (MEMBER by
 	// default).
 	FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error)
 	// FindByProjectWithUser returns one row per project member with their allocations.

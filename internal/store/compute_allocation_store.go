@@ -102,13 +102,31 @@ func (s *pgComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id st
 func (s *pgComputeAllocationStore) FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
 	var rows []models.ComputeAllocation
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+computeAllocationColumns+` FROM compute_allocations
-		  WHERE id IN (SELECT compute_allocation_id FROM project_roles WHERE user_id = $1)
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations a
+		  WHERE EXISTS (SELECT 1 FROM project_roles r
+		                 WHERE r.user_id = $1 AND r.project_id = a.project_id
+		                   AND (r.compute_allocation_id IS NULL OR r.compute_allocation_id = a.id))
 		  ORDER BY start_time DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
+}
+
+// RoleForUser returns the user's role on the allocation, a project-wide role
+// before MEMBER, or "" for none.
+func (s *pgComputeAllocationStore) RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error) {
+	var role models.ProjectRole
+	err := s.db.GetContext(ctx, &role,
+		`SELECT r.role FROM compute_allocations a
+		   JOIN project_roles r ON r.project_id = a.project_id AND r.user_id = $2
+		                       AND (r.compute_allocation_id IS NULL OR r.compute_allocation_id = a.id)
+		  WHERE a.id = $1
+		  ORDER BY r.compute_allocation_id NULLS FIRST LIMIT 1`, allocationID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return role, err
 }
 
 func (s *pgComputeAllocationStore) List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error) {

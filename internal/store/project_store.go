@@ -194,7 +194,7 @@ func (s *pgProjectStore) List(ctx context.Context, f ProjectListFilter) ([]model
 func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
 	var rows []ProjectWithPI
 	err := s.db.SelectContext(ctx, &rows, projectWithPISelect+`
-	  WHERE EXISTS (SELECT 1 FROM project_roles r WHERE r.project_id = p.id AND r.user_id = $1)
+	  WHERE p.id IN (SELECT project_id FROM project_roles WHERE user_id = $1)
 	  ORDER BY p.created_time DESC`, userID)
 	if err != nil {
 		return nil, err

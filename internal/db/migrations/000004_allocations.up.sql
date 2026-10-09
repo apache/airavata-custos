@@ -206,18 +206,17 @@ CREATE OR REPLACE TRIGGER trg_compute_allocation_membership_resource_overrides_u
     BEFORE UPDATE ON compute_allocation_membership_resource_overrides
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- One row per grant and allocation: the PI and tags cover every allocation of the
--- project (NULL when it has none), active members their own. rank 0 is the PI.
+-- One row per role: the PI and tags are project-wide (compute_allocation_id
+-- NULL, covering every allocation of the project); active members hold MEMBER on
+-- their own allocation.
 CREATE OR REPLACE VIEW project_roles AS
-SELECT g.project_id, ca.id AS compute_allocation_id, g.user_id, g.role, g.rank, g.added_time
-  FROM (SELECT id AS project_id, project_pi_id AS user_id, 'PI' AS role, 0 AS rank, created_time AS added_time
-          FROM projects
-        UNION ALL
-        SELECT project_id, user_id, role, CASE role WHEN 'CO_PI' THEN 1 ELSE 2 END, added_time
-          FROM project_memberships) g
-  LEFT JOIN compute_allocations ca ON ca.project_id = g.project_id
+SELECT id AS project_id, project_pi_id AS user_id, 'PI' AS role, NULL AS compute_allocation_id, created_time AS added_time
+  FROM projects
 UNION ALL
-SELECT ca.project_id, ca.id, cam.user_id, 'MEMBER', 3, cam.start_time
+SELECT project_id, user_id, role, NULL, added_time
+  FROM project_memberships
+UNION ALL
+SELECT ca.project_id, cam.user_id, 'MEMBER', cam.compute_allocation_id, cam.start_time
   FROM compute_allocation_memberships cam
   JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
  WHERE cam.membership_status = 'ACTIVE';

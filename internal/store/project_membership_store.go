@@ -43,8 +43,7 @@ func (s *pgProjectMembershipStore) FindByPair(ctx context.Context, projectID, us
 	err := s.db.GetContext(ctx, &pm,
 		`SELECT `+projectMembershipColumns+`
 		   FROM project_roles
-		  WHERE project_id = $1 AND user_id = $2 AND rank < 3
-		  LIMIT 1`, projectID, userID)
+		  WHERE project_id = $1 AND user_id = $2 AND compute_allocation_id IS NULL`, projectID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -79,18 +78,12 @@ func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID,
 	return participant, nil
 }
 
-func (s *pgProjectMembershipStore) Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
+func (s *pgProjectMembershipStore) Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
-		 VALUES ($1, $2, $3, $4)`,
+		 VALUES ($1, $2, $3, $4)
+		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
 		pm.ProjectID, pm.UserID, string(pm.Role), pm.AddedTime)
-	return err
-}
-
-func (s *pgProjectMembershipStore) UpdateRole(ctx context.Context, tx *sql.Tx, projectID, userID string, role models.ProjectRole) error {
-	_, err := tx.ExecContext(ctx,
-		`UPDATE project_memberships SET role = $1 WHERE project_id = $2 AND user_id = $3`,
-		string(role), projectID, userID)
 	return err
 }
 
@@ -101,18 +94,19 @@ func (s *pgProjectMembershipStore) Delete(ctx context.Context, tx *sql.Tx, proje
 	return err
 }
 
-// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag per
-// project and none where toUserID is PI.
+// ReassignUser moves fromUserID's tags to toUserID, keeping CO_PI over
+// ALLOCATION_MANAGER, then drops toUserID's tags on projects it leads.
 func (s *pgProjectMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	// Rows deleted on non-PI projects are exactly fromUserID's to move; the upsert
-	// never touches a deleted row. GREATEST keeps the higher tag: 'CO_PI' > 'ALLOCATION_MANAGER'.
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
+		 SELECT project_id, $2, role, added_time FROM project_memberships WHERE user_id = $1
+		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE EXCLUDED.role = 'CO_PI'`,
+		fromUserID, toUserID); err != nil {
+		return err
+	}
 	_, err := tx.ExecContext(ctx,
-		`WITH d AS (DELETE FROM project_memberships pm USING projects p
-		  WHERE pm.project_id = p.id AND (pm.user_id = $1 OR (pm.user_id = $2 AND p.project_pi_id = $2))
-		  RETURNING pm.project_id, pm.role, pm.added_time, p.project_pi_id)
-		 INSERT INTO project_memberships (project_id, user_id, role, added_time)
-		 SELECT project_id, $2, role, added_time FROM d WHERE project_pi_id <> $2
-		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = GREATEST(project_memberships.role, EXCLUDED.role)`,
+		`DELETE FROM project_memberships pm USING projects p
+		  WHERE pm.project_id = p.id AND (pm.user_id = $1 OR (pm.user_id = $2 AND p.project_pi_id = $2))`,
 		fromUserID, toUserID)
 	return err
 }

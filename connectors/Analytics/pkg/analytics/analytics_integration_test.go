@@ -629,3 +629,46 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 		t.Errorf("non-empty days: got %d, want 2", nonEmpty)
 	}
 }
+
+// A CO_PI who is also a member sees each allocation once with undoubled usage,
+// and a project without allocations still lists for its role holder.
+func TestAnalyticsContexts_CoPIMemberAndProjectWithoutAllocations(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "copi-pi@example.edu")
+	copi := seedUser(t, database, "copi@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	empty := seedProject(t, database, pi)
+	for _, p := range []string{project, empty} {
+		if _, err := database.Exec(`INSERT INTO project_memberships (project_id, user_id, role, added_time) VALUES ($1, $2, 'CO_PI', NOW())`, p, copi); err != nil {
+			t.Fatalf("seed tag: %v", err)
+		}
+	}
+	start, end := time.Now().UTC().AddDate(0, 0, -10), time.Now().UTC().AddDate(0, 0, 20)
+	alloc1 := seedAllocation(t, database, project, cluster, 1000, start, end)
+	_ = seedAllocation(t, database, project, cluster, 2000, start, end)
+	seedAllocMember(t, database, alloc1, copi)
+	seedUsage(t, database, alloc1, seedResource(t, database, cluster, "gpu-02", "GPU_HOURS"), copi, 300, 30, time.Now().UTC().AddDate(0, 0, -1))
+
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/contexts", nil), copi))
+	var got []ProjectContext
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil || rr.Code != http.StatusOK {
+		t.Fatalf("contexts: %d %v %s", rr.Code, err, rr.Body.String())
+	}
+	allocs := map[string][]Allocation{}
+	for _, c := range got {
+		if c.Role != string(models.ProjectRoleCoPI) {
+			t.Errorf("project %s role: got %q, want CO_PI", c.ProjectID, c.Role)
+		}
+		allocs[c.ProjectID] = c.Allocations
+	}
+	if len(got) != 2 || len(allocs[project]) != 2 || len(allocs[empty]) != 0 {
+		t.Fatalf("contexts: %+v", got)
+	}
+	for _, a := range allocs[project] {
+		if a.ID == alloc1 && a.UsedSUAmount != 300 {
+			t.Errorf("alloc1 used: got %v, want 300", a.UsedSUAmount)
+		}
+	}
+}
