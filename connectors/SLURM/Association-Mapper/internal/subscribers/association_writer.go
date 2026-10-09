@@ -44,6 +44,9 @@ func tresFor(resourceType string, count int64) client.TRES {
 // and reject the user's jobs. The reconciler retries these.
 var errNotProvisioned = errors.New("cluster account not provisioned yet")
 
+// errNoResources means the allocation has no resource to map onto a partition.
+var errNoResources = errors.New("allocation has no resources")
+
 // errEmptyResourceType means the resource row has an empty resource_type. A
 // retry cannot fix the row, so the delivery is not retried.
 var errEmptyResourceType = fmt.Errorf("%w: resource type is empty", events.ErrPermanent)
@@ -101,6 +104,12 @@ func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Cont
 // producing the same record for the same key.
 func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership, existing map[assocKey]client.Association) error {
 	desired, err := a.desiredAssociationsForMembership(ctx, membership)
+	if errors.Is(err, errNoResources) {
+		// Skipping beats guessing a partition name the cluster may not have.
+		slog.WarnContext(ctx, "Allocation has no resources, no association written",
+			"allocation_id", membership.ComputeAllocationID, "user_id", membership.UserID)
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -144,11 +153,7 @@ func (a *AssociationSubscriber) desiredAssociationsForMembership(ctx context.Con
 		return nil, fmt.Errorf("list resources for allocation: %w", err)
 	}
 	if len(resources) == 0 {
-		// Nothing to map onto a partition. Skipping beats guessing a
-		// partition name the cluster may not have.
-		slog.WarnContext(ctx, "Allocation has no resources, no association written",
-			"allocation_id", allocation.ID, "user_id", membership.UserID)
-		return nil, nil
+		return nil, errNoResources
 	}
 
 	overrides, err := a.coreService.ListOverridesForMembership(ctx, membership.ID)

@@ -19,6 +19,7 @@ package subscribers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -126,6 +127,10 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 				continue
 			}
 			records, err := a.desiredAssociationsForMembership(ctx, membership)
+			// Already warned when the membership was written; nothing to sweep.
+			if errors.Is(err, errNoResources) {
+				continue
+			}
 			if err != nil {
 				slog.ErrorContext(ctx, "Association reconciler: failed to resolve desired associations",
 					"membership_id", membership.ID, "error", err)
