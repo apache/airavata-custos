@@ -42,15 +42,10 @@ import (
 	custosconfig "github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/internal/db"
 	corestore "github.com/apache/airavata-custos/internal/store"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
-
-func init() {
-	tracing.RegisterMarkers("amie", "PACKET_RECEIVED", "TRANSACTION_COMPLETE", "REPLY_SENT", "REPLY_HELD")
-}
 
 const connectorName = "amie"
 

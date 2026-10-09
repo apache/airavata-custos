@@ -55,13 +55,13 @@ expectations:
   packets:
     total_count: 12
     by_type_status:
-      - { type: request_project_create,      status: DECODED, count: 3 }
-      - { type: data_project_create,         status: DECODED, count: 1 }
-      - { type: data_account_create,         status: DECODED, count: 1 }
-      - { type: request_user_modify,         status: DECODED, count: 2 }
-      - { type: request_person_merge,        status: DECODED, count: 1 }
-      - { type: request_account_create,      status: DECODED, count: 3 }
-      - { type: inform_transaction_complete, status: DECODED, count: 1 }
+      - { type: request_project_create,      status: PROCESSED, count: 3 }
+      - { type: data_project_create,         status: PROCESSED, count: 1 }
+      - { type: data_account_create,         status: PROCESSED, count: 1 }
+      - { type: request_user_modify,         status: PROCESSED, count: 2 }
+      - { type: request_person_merge,        status: PROCESSED, count: 1 }
+      - { type: request_account_create,      status: PROCESSED, count: 3 }
+      - { type: inform_transaction_complete, status: PROCESSED, count: 1 }
 
   tables:
 

@@ -33,15 +33,10 @@ import (
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 )
-
-func init() {
-	tracing.RegisterMarkers("comanage", "ComanageProvisioningStarted", "ComanageClusterAccountAttached")
-}
 
 // Type is the connector type in the config file and the subscriber name on the bus.
 const Type = "comanage-identity-provisioner"

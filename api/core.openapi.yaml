@@ -445,6 +445,17 @@ definitions:
       user_id:
         type: string
     type: object
+  DeliveryCounts:
+    properties:
+      attempts:
+        type: integer
+      failed:
+        type: integer
+      pending:
+        type: integer
+      succeeded:
+        type: integer
+    type: object
   DeliveryHistory:
     properties:
       attempts:
@@ -695,6 +706,25 @@ definitions:
       subscriber:
         type: string
     type: object
+  TraceDelivery:
+    properties:
+      attempts:
+        type: integer
+      event_type:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      span_id:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   TraceEvent:
     properties:
       created_at:
@@ -706,6 +736,8 @@ definitions:
       entity_type:
         type: string
       event_type:
+        type: string
+      id:
         type: string
       parent_span_id:
         type: string
@@ -732,6 +764,8 @@ definitions:
         type: string
       event_type:
         type: string
+      id:
+        type: string
       parent_span_id:
         type: string
       source:
@@ -743,6 +777,8 @@ definitions:
     type: object
   TraceSummary:
     properties:
+      deliveries:
+        $ref: '#/definitions/DeliveryCounts'
       ended_at:
         type: string
       event_count:
@@ -1150,6 +1186,10 @@ paths:
           description: OK
           schema:
             properties:
+              deliveries:
+                items:
+                  $ref: '#/definitions/TraceDelivery'
+                type: array
               status:
                 type: string
               trace_id:
