@@ -114,10 +114,8 @@ func (s *Service) ListMembersForAllocation(ctx context.Context, allocationID str
 	return rows, nil
 }
 
-// ListMembersForProject derives project members from allocation memberships:
-// one row per distinct user with a membership on any of the project's
-// allocations. The project's PI is always asserted with role=PI.
-func (s *Service) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+// ListMembersForProject lists the project's members and role holders, one row per user.
+func (s *Service) ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("%w: project_id is required", ErrInvalidInput)
 	}

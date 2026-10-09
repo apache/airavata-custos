@@ -81,7 +81,7 @@ type ProjectService interface {
 	ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
 	IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	UpdateProject(ctx context.Context, project *models.Project) error
+	UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error
 	UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error)
 	DeleteProject(ctx context.Context, id string) error
 }
@@ -191,7 +191,7 @@ type ComputeAllocationMembershipService interface {
 	CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	GetComputeAllocationMembership(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
 	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
-	ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
+	ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error)
 	UpdateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)

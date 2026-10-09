@@ -20,6 +20,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -31,15 +32,14 @@ import (
 const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
 
 // MembershipWithUser is the result shape of the join-based list methods. Role
-// is project-level and comes from project_memberships (COALESCE'd to MEMBER
-// when no row exists). Joined user + allocation fields stay off the core
+// is the user's highest role from project_roles (COALESCE'd to MEMBER when
+// none). Joined user + allocation fields stay off the core
 // ComputeAllocationMembership entity.
 type MembershipWithUser struct {
 	models.ComputeAllocationMembership
-	Role           string
-	DisplayName    string
-	Email          string
-	AllocationName string
+	Role        string
+	DisplayName string
+	Email       string
 	// The member's account on the allocation's cluster; empty and nil without one.
 	LocalUsername string
 	ProvisionedAt *time.Time
@@ -178,8 +178,8 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 		   FROM compute_allocation_memberships m
 		   JOIN compute_allocations a    ON a.id = m.compute_allocation_id
 		   JOIN users u                  ON u.id = m.user_id
-		   LEFT JOIN project_memberships pm
-		         ON pm.project_id = a.project_id AND pm.user_id = m.user_id
+		   LEFT JOIN project_roles pm
+		         ON pm.compute_allocation_id = m.compute_allocation_id AND pm.user_id = m.user_id AND pm.rank < 3
 		   LEFT JOIN compute_cluster_users cu
 		         ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
 		  WHERE m.compute_allocation_id = $1
@@ -201,47 +201,52 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 	return out, nil
 }
 
-// FindByProjectWithUser returns every membership across every allocation in
-// the project, joined with the user, the owning allocation name, and the
-// project-level role. Returned rows are ordered by user; callers aggregate it
-// per-user (collapsing into the response's allocation list).
-func (s *pgComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error) {
-	type row struct {
-		models.ComputeAllocationMembership
-		Role           string `db:"role"`
-		FirstName      string `db:"first_name"`
-		LastName       string `db:"last_name"`
-		UserEmail      string `db:"user_email"`
-		AllocationName string `db:"allocation_name"`
-	}
-	var rows []row
+// ProjectMember is one user on a project: role holders and holders of a
+// membership on any of its allocations. Status is ACTIVE when any membership
+// is active or the user holds only a role.
+type ProjectMember struct {
+	ID          string                   `json:"id" db:"id"` // The user's id.
+	ProjectID   string                   `json:"project_id" db:"project_id"`
+	UserID      string                   `json:"user_id" db:"user_id"`
+	Email       string                   `json:"email" db:"email"`
+	DisplayName string                   `json:"display_name" db:"display_name"`
+	Role        string                   `json:"role" db:"role"`
+	Status      string                   `json:"status" db:"status"`
+	AddedTime   time.Time                `json:"added_time" db:"added_time"`
+	Allocations ProjectMemberAllocations `json:"allocations" db:"allocations"`
+}
+
+// ProjectMemberAllocations scans the JSON array of a member's allocations.
+type ProjectMemberAllocations []ProjectMemberAllocationRef
+
+type ProjectMemberAllocationRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Role string `json:"role"`
+}
+
+func (a *ProjectMemberAllocations) Scan(src any) error { return json.Unmarshal(src.([]byte), a) }
+
+// FindByProjectWithUser returns the project's members ordered by email; the
+// full join adds role holders without a membership.
+func (s *pgComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]ProjectMember, error) {
+	rows := []ProjectMember{}
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
-		        m.membership_status,
-		        COALESCE(pm.role, 'MEMBER') AS role,
-		        u.first_name, u.last_name, u.email AS user_email,
-		        ca.name AS allocation_name
+		`SELECT u.id, $1 AS project_id, u.id AS user_id, u.email,
+		        COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.email) AS display_name,
+		        COALESCE(r.role, 'MEMBER') AS role,
+		        COALESCE(MIN(m.membership_status), 'ACTIVE') AS status,
+		        LEAST(MIN(m.start_time), MIN(r.added_time)) AS added_time,
+		        COALESCE(json_agg(json_build_object('id', ca.id, 'name', ca.name, 'role', COALESCE(r.role, 'MEMBER')) ORDER BY ca.name)
+		          FILTER (WHERE ca.id IS NOT NULL), '[]') AS allocations
 		   FROM compute_allocation_memberships m
-		   JOIN compute_allocations ca   ON ca.id = m.compute_allocation_id
-		   JOIN users u                  ON u.id = m.user_id
-		   LEFT JOIN project_memberships pm
-		         ON pm.project_id = ca.project_id AND pm.user_id = m.user_id
-		  WHERE ca.project_id = $1
-		  ORDER BY u.email, ca.name`, projectID)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]MembershipWithUser, 0, len(rows))
-	for _, r := range rows {
-		out = append(out, MembershipWithUser{
-			ComputeAllocationMembership: r.ComputeAllocationMembership,
-			Role:                        r.Role,
-			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
-			Email:                       r.UserEmail,
-			AllocationName:              r.AllocationName,
-		})
-	}
-	return out, nil
+		   JOIN compute_allocations ca ON ca.id = m.compute_allocation_id AND ca.project_id = $1
+		   FULL JOIN (SELECT DISTINCT user_id, role, added_time FROM project_roles
+		               WHERE project_id = $1 AND rank < 3) r USING (user_id)
+		   JOIN users u ON u.id = user_id
+		  GROUP BY u.id, r.role
+		  ORDER BY u.email`, projectID)
+	return rows, err
 }
 
 func displayName(first, last, email string) string {

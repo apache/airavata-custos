@@ -52,7 +52,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"amie_audit_extras", 57},
 		{"compute_cluster_users", 4},
 		{"compute_allocation_memberships", 5},
-		{"project_memberships", 4},
+		{"project_memberships", 2},
 		// One per allocation; the supplement re-delivery does not duplicate.
 		{"compute_allocation_resource_mappings", 2},
 	}

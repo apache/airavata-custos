@@ -638,6 +638,7 @@ definitions:
       email:
         type: string
       id:
+        description: The user's id.
         type: string
       project_id:
         type: string
@@ -1000,6 +1001,17 @@ definitions:
         type: integer
       resource_time:
         type: integer
+    type: object
+  updateProjectRequest:
+    properties:
+      previous_pi_role:
+        description: 'The old PI''s role when project_pi_id changes: CO_PI, ALLOCATION_MANAGER
+          or MEMBER.'
+        type: string
+      project_pi_id:
+        type: string
+      title:
+        type: string
     type: object
   updateRoleRequest:
     properties:
@@ -3519,6 +3531,35 @@ paths:
       tags:
       - Projects
   /projects/{id}:
+    delete:
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Project has allocations
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a project without allocations
+      tags:
+      - Projects
     get:
       description: Callers without the projects read privilege only see projects they
         participate in; others return 404.
@@ -3554,6 +3595,47 @@ paths:
       summary: Get a project by ID
       tags:
       - Projects
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to change
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Project'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a project
+      tags:
+      - Projects
   /projects/{id}/members:
     get:
       parameters:
@@ -3581,6 +3663,59 @@ paths:
       security:
       - BearerAuth: []
       summary: List project members (one row per distinct user, with allocations)
+      tags:
+      - Projects
+  /projects/{id}/members/{userId}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Role
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            role:
+              type: string
+          type: object
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: PI change
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set a project member's role; MEMBER removes the role
       tags:
       - Projects
   /projects/{id}/status:

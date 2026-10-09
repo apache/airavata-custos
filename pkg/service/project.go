@@ -141,9 +141,8 @@ func (s *Service) ListProjectsWithPI(ctx context.Context, f store.ProjectListFil
 	return rows, total, nil
 }
 
-// ListProjectsForParticipant returns the projects where the user holds a
-// project membership or an active allocation membership, PI joined, newest
-// first.
+// ListProjectsForParticipant returns the projects the user has a role on, PI
+// joined, newest first.
 func (s *Service) ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error) {
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user id is required", ErrInvalidInput)
@@ -155,8 +154,7 @@ func (s *Service) ListProjectsForParticipant(ctx context.Context, userID string)
 	return rows, nil
 }
 
-// IsProjectParticipant reports whether the user participates in the project
-// through a project_memberships row or an active allocation membership.
+// IsProjectParticipant reports whether the user has any role on the project.
 func (s *Service) IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error) {
 	if projectID == "" || userID == "" {
 		return false, fmt.Errorf("%w: project id and user id are required", ErrInvalidInput)
@@ -170,7 +168,7 @@ func (s *Service) IsProjectParticipant(ctx context.Context, projectID, userID st
 
 // UpdateProject persists changes to an existing project. Fields left
 // blank/zero on the supplied record fall back to the stored value.
-func (s *Service) UpdateProject(ctx context.Context, project *models.Project) error {
+func (s *Service) UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error {
 	if project == nil || project.ID == "" {
 		return fmt.Errorf("%w: project id is required", ErrInvalidInput)
 	}
@@ -199,9 +197,33 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 	if project.CreatedTime.IsZero() {
 		project.CreatedTime = existing.CreatedTime
 	}
+	if project.ProjectPIID != existing.ProjectPIID {
+		switch previousPIRole {
+		case "CO_PI", "ALLOCATION_MANAGER", "MEMBER":
+		default:
+			return fmt.Errorf("%w: previous_pi_role must be CO_PI, ALLOCATION_MANAGER or MEMBER", ErrInvalidInput)
+		}
+		if u, err := s.users.FindByID(ctx, project.ProjectPIID); err != nil {
+			return fmt.Errorf("lookup user: %w", err)
+		} else if u == nil {
+			return fmt.Errorf("%w: user %q does not exist", ErrInvalidInput, project.ProjectPIID)
+		}
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.projs.Update(ctx, tx, project); err != nil {
 			return err
+		}
+		if project.ProjectPIID != existing.ProjectPIID {
+			if err := s.projMemberships.Delete(ctx, tx, project.ID, project.ProjectPIID); err != nil {
+				return err
+			}
+			if previousPIRole != "MEMBER" {
+				if err := s.projMemberships.Create(ctx, tx, &models.ProjectMembership{
+					ProjectID: project.ID, UserID: existing.ProjectPIID, Role: models.ProjectRole(previousPIRole), AddedTime: nowUTC(),
+				}); err != nil {
+					return err
+				}
+			}
 		}
 		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, project)
 	}); err != nil {
@@ -249,6 +271,11 @@ func (s *Service) DeleteProject(ctx context.Context, id string) error {
 	}
 	if project == nil {
 		return ErrNotFound
+	}
+	if allocs, err := s.allocs.FindByProject(ctx, id); err != nil {
+		return fmt.Errorf("lookup allocations: %w", err)
+	} else if len(allocs) > 0 {
+		return fmt.Errorf("%w: project %q still has allocations", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.projs.Delete(ctx, tx, id); err != nil {

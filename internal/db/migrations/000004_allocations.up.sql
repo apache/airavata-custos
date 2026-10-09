@@ -205,3 +205,19 @@ CREATE OR REPLACE TRIGGER trg_compute_allocation_resource_rates_updated_at
 CREATE OR REPLACE TRIGGER trg_compute_allocation_membership_resource_overrides_updated_at
     BEFORE UPDATE ON compute_allocation_membership_resource_overrides
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- One row per grant and allocation: the PI and tags cover every allocation of the
+-- project (NULL when it has none), active members their own. rank 0 is the PI.
+CREATE OR REPLACE VIEW project_roles AS
+SELECT g.project_id, ca.id AS compute_allocation_id, g.user_id, g.role, g.rank, g.added_time
+  FROM (SELECT id AS project_id, project_pi_id AS user_id, 'PI' AS role, 0 AS rank, created_time AS added_time
+          FROM projects
+        UNION ALL
+        SELECT project_id, user_id, role, CASE role WHEN 'CO_PI' THEN 1 ELSE 2 END, added_time
+          FROM project_memberships) g
+  LEFT JOIN compute_allocations ca ON ca.project_id = g.project_id
+UNION ALL
+SELECT ca.project_id, ca.id, cam.user_id, 'MEMBER', 3, cam.start_time
+  FROM compute_allocation_memberships cam
+  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
+ WHERE cam.membership_status = 'ACTIVE';

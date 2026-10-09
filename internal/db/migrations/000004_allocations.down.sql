@@ -15,6 +15,7 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
+DROP VIEW IF EXISTS project_roles;
 DROP TABLE IF EXISTS compute_allocation_membership_resource_overrides;
 DROP TABLE IF EXISTS compute_allocation_usages;
 DROP TABLE IF EXISTS compute_allocation_memberships;

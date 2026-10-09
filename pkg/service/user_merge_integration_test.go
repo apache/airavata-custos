@@ -92,3 +92,47 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 		t.Errorf("moved account belongs to %s, want the survivor %s", after.UserID, survivor)
 	}
 }
+
+// Make sure a merge keeps the higher tag per project and that the survivor
+// holds no tag on a project it leads.
+func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := func(name string) string {
+		return seedUser(t, database, fmt.Sprintf("%s-%s@example.edu", name, uuid.NewString()))
+	}
+	survivor, retiring, other := user("survivor"), user("retiring"), user("other")
+	project := func(pi string, tags map[string]string) string {
+		p, err := svc.CreateProject(ctx(), &models.Project{Title: "merge-" + uuid.NewString()[:8], ProjectPIID: pi})
+		if err != nil {
+			t.Fatalf("create project: %v", err)
+		}
+		for u, role := range tags {
+			if err := svc.EnsureProjectMembership(ctx(), p.ID, u, role); err != nil {
+				t.Fatalf("tag %s: %v", role, err)
+			}
+		}
+		return p.ID
+	}
+	led := project(retiring, map[string]string{survivor: "CO_PI"})
+	own := project(survivor, map[string]string{retiring: "ALLOCATION_MANAGER"})
+	shared := project(other, map[string]string{retiring: "CO_PI", survivor: "ALLOCATION_MANAGER"})
+
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+
+	if p, err := svc.GetProject(ctx(), led); err != nil || p.ProjectPIID != survivor {
+		t.Errorf("led project: %+v (%v), want PI %s", p, err, survivor)
+	}
+	for p, want := range map[string]string{led: "", own: "", shared: survivor + ":CO_PI"} {
+		tags, err := svc.ListProjectMemberships(ctx(), p)
+		got := ""
+		for _, m := range tags {
+			got += m.UserID + ":" + string(m.Role)
+		}
+		if err != nil || got != want {
+			t.Errorf("project %s tags: %q (%v), want %q", p, got, err, want)
+		}
+	}
+}

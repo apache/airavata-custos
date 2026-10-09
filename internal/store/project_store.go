@@ -189,19 +189,13 @@ func (s *pgProjectStore) List(ctx context.Context, f ProjectListFilter) ([]model
 	return rows, total, nil
 }
 
-// ListWithPIForParticipant returns the projects where the user holds a
-// project membership or an active allocation membership, with the PI joined,
-// newest first.
+// ListWithPIForParticipant returns the projects the user has a role on, PI
+// joined, newest first.
 func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
 	var rows []ProjectWithPI
 	err := s.db.SelectContext(ctx, &rows, projectWithPISelect+`
-	  WHERE EXISTS (SELECT 1 FROM project_memberships pm
-	                 WHERE pm.project_id = p.id AND pm.user_id = $1)
-	     OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
-	                  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
-	                 WHERE ca.project_id = p.id AND cam.user_id = $2
-	                   AND cam.membership_status = 'ACTIVE')
-	  ORDER BY p.created_time DESC`, userID, userID)
+	  WHERE EXISTS (SELECT 1 FROM project_roles r WHERE r.project_id = p.id AND r.user_id = $1)
+	  ORDER BY p.created_time DESC`, userID)
 	if err != nil {
 		return nil, err
 	}

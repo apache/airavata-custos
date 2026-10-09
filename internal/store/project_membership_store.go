@@ -42,8 +42,9 @@ func (s *pgProjectMembershipStore) FindByPair(ctx context.Context, projectID, us
 	var pm models.ProjectMembership
 	err := s.db.GetContext(ctx, &pm,
 		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = $1 AND user_id = $2`, projectID, userID)
+		   FROM project_roles
+		  WHERE project_id = $1 AND user_id = $2 AND rank < 3
+		  LIMIT 1`, projectID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -66,34 +67,12 @@ func (s *pgProjectMembershipStore) FindByProject(ctx context.Context, projectID 
 	return rows, nil
 }
 
-// FindPIByProject returns the project's PI row when one exists.
-func (s *pgProjectMembershipStore) FindPIByProject(ctx context.Context, projectID string) (*models.ProjectMembership, error) {
-	var pm models.ProjectMembership
-	err := s.db.GetContext(ctx, &pm,
-		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = $1 AND role = 'PI'`, projectID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &pm, nil
-}
-
-// IsParticipant reports whether the user has a project_memberships row or an
-// active membership on any of the project's allocations.
+// IsParticipant reports whether the user has any role on the project.
 func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID, userID string) (bool, error) {
 	var participant bool
 	err := s.db.GetContext(ctx, &participant,
-		`SELECT EXISTS (SELECT 1 FROM project_memberships
-		                 WHERE project_id = $1 AND user_id = $2)
-		     OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
-		                  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
-		                 WHERE ca.project_id = $3 AND cam.user_id = $4
-		                   AND cam.membership_status = 'ACTIVE')`,
-		projectID, userID, projectID, userID)
+		`SELECT EXISTS (SELECT 1 FROM project_roles WHERE project_id = $1 AND user_id = $2)`,
+		projectID, userID)
 	if err != nil {
 		return false, err
 	}
@@ -122,21 +101,18 @@ func (s *pgProjectMembershipStore) Delete(ctx context.Context, tx *sql.Tx, proje
 	return err
 }
 
-// ReassignUser moves all project_memberships rows from fromUserID to toUserID.
-// Rows that would collide on the survivor's PK (same project) are dropped
-// from the retiring user first; remaining rows are then re-pointed.
+// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag per
+// project and none where toUserID is PI.
 func (s *pgProjectMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM project_memberships
-		  WHERE user_id = $1
-		    AND project_id IN (SELECT project_id FROM (
-		        SELECT project_id FROM project_memberships WHERE user_id = $2
-		    ) AS s)`,
-		fromUserID, toUserID); err != nil {
-		return err
-	}
+	// Rows deleted on non-PI projects are exactly fromUserID's to move; the upsert
+	// never touches a deleted row. GREATEST keeps the higher tag: 'CO_PI' > 'ALLOCATION_MANAGER'.
 	_, err := tx.ExecContext(ctx,
-		`UPDATE project_memberships SET user_id = $1 WHERE user_id = $2`,
-		toUserID, fromUserID)
+		`WITH d AS (DELETE FROM project_memberships pm USING projects p
+		  WHERE pm.project_id = p.id AND (pm.user_id = $1 OR (pm.user_id = $2 AND p.project_pi_id = $2))
+		  RETURNING pm.project_id, pm.role, pm.added_time, p.project_pi_id)
+		 INSERT INTO project_memberships (project_id, user_id, role, added_time)
+		 SELECT project_id, $2, role, added_time FROM d WHERE project_pi_id <> $2
+		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = GREATEST(project_memberships.role, EXCLUDED.role)`,
+		fromUserID, toUserID)
 	return err
 }

@@ -129,19 +129,11 @@ func NewStore(db *sqlx.DB) Store {
 func (s *pgStore) ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error) {
 	var rows []ProjectRow
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT p.id, p.title, pm.role
-		   FROM projects p
-		   LEFT JOIN project_memberships pm
-		     ON pm.project_id = p.id AND pm.user_id = $1
-		  WHERE p.id IN (
-		        SELECT project_id FROM project_memberships WHERE user_id = $2
-		        UNION
-		        SELECT ca.project_id
-		          FROM compute_allocation_memberships cam
-		          JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
-		         WHERE cam.user_id = $3 AND cam.membership_status = 'ACTIVE'
-		  )
-		  ORDER BY p.title`, userID, userID, userID)
+		`SELECT DISTINCT ON (p.title, p.id) p.id, p.title, NULLIF(r.role, 'MEMBER') AS role
+		   FROM project_roles r
+		   JOIN projects p ON p.id = r.project_id
+		  WHERE r.user_id = $1
+		  ORDER BY p.title, p.id, r.rank`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -162,17 +154,10 @@ func (s *pgStore) AllocationsForProjects(ctx context.Context, projectIDs []strin
 		   LEFT JOIN compute_allocation_usages u
 		     ON u.compute_allocation_id = ca.id
 		  WHERE ca.project_id IN (?)
-		    AND (
-		        EXISTS (SELECT 1 FROM project_memberships pm
-		                 WHERE pm.project_id = ca.project_id AND pm.user_id = ?
-		                   AND pm.role IN ('PI', 'CO_PI', 'ALLOCATION_MANAGER'))
-		        OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
-		                    WHERE cam.compute_allocation_id = ca.id AND cam.user_id = ?
-		                      AND cam.membership_status = 'ACTIVE')
-		    )
+		    AND ca.id IN (SELECT compute_allocation_id FROM project_roles WHERE user_id = ?)
 		  GROUP BY ca.project_id, ca.id, ca.name, ca.status,
 		           ca.initial_su_amount, ca.start_time, ca.end_time
-		  ORDER BY ca.start_time`, projectIDs, userID, userID)
+		  ORDER BY ca.start_time`, projectIDs, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +270,8 @@ func (s *pgStore) MemberUsage(ctx context.Context, allocationID string) ([]Membe
 func (s *pgStore) ProjectRole(ctx context.Context, projectID, userID string) (string, error) {
 	var role string
 	err := s.db.GetContext(ctx, &role,
-		`SELECT role FROM project_memberships WHERE project_id = $1 AND user_id = $2`,
+		`SELECT role FROM project_roles WHERE project_id = $1 AND user_id = $2 AND rank < 3
+		  LIMIT 1`,
 		projectID, userID)
 	if err == sql.ErrNoRows {
 		return "", nil

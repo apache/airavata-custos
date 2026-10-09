@@ -18,8 +18,7 @@
 package server
 
 import (
-	"time"
-
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -50,32 +49,12 @@ type UserListResponse struct {
 	Total int           `json:"total"`
 }
 
-// ProjectMemberAllocationRef carries the (allocation, role) the user holds on
-// one of the project's allocations.
-type ProjectMemberAllocationRef struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
-}
-
-// ProjectMemberResponse is one row in the project members tab. Role is the
-// strongest role the user holds across the project's allocations; the raw
-// per-allocation roles live in Allocations.
-type ProjectMemberResponse struct {
-	ID          string                       `json:"id"`
-	ProjectID   string                       `json:"project_id"`
-	UserID      string                       `json:"user_id"`
-	Email       string                       `json:"email"`
-	DisplayName string                       `json:"display_name"`
-	Role        string                       `json:"role"`
-	Status      string                       `json:"status"`
-	AddedTime   time.Time                    `json:"added_time"`
-	Allocations []ProjectMemberAllocationRef `json:"allocations"`
-}
+// ProjectMemberResponse is one row in the project members tab.
+type ProjectMemberResponse = store.ProjectMember
 
 // AllocationMembershipResponse embeds the persisted membership and surfaces
 // the joined user display fields plus the project-level role (defaulted to
-// MEMBER when no project_memberships row exists).
+// MEMBER when no project_roles row exists).
 type AllocationMembershipResponse struct {
 	models.ComputeAllocationMembership
 	Role        string `json:"role"`

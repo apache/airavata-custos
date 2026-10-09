@@ -318,7 +318,7 @@ var _ CoreService = &CoreServiceMock{}
 //			ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
 //				panic("mock out the ListMembersForAllocation method")
 //			},
-//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 //				panic("mock out the ListMembersForProject method")
 //			},
 //			ListOverridesForMembershipFunc: func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error) {
@@ -426,7 +426,7 @@ var _ CoreService = &CoreServiceMock{}
 //			UpdateOrganizationFunc: func(ctx context.Context, org *models.Organization) error {
 //				panic("mock out the UpdateOrganization method")
 //			},
-//			UpdateProjectFunc: func(ctx context.Context, project *models.Project) error {
+//			UpdateProjectFunc: func(ctx context.Context, project *models.Project, previousPIRole string) error {
 //				panic("mock out the UpdateProject method")
 //			},
 //			UpdateProjectStatusFunc: func(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error) {
@@ -749,7 +749,7 @@ type CoreServiceMock struct {
 	ListMembersForAllocationFunc func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
 
 	// ListMembersForProjectFunc mocks the ListMembersForProject method.
-	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
+	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.ProjectMember, error)
 
 	// ListOverridesForMembershipFunc mocks the ListOverridesForMembership method.
 	ListOverridesForMembershipFunc func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
@@ -857,7 +857,7 @@ type CoreServiceMock struct {
 	UpdateOrganizationFunc func(ctx context.Context, org *models.Organization) error
 
 	// UpdateProjectFunc mocks the UpdateProject method.
-	UpdateProjectFunc func(ctx context.Context, project *models.Project) error
+	UpdateProjectFunc func(ctx context.Context, project *models.Project, previousPIRole string) error
 
 	// UpdateProjectStatusFunc mocks the UpdateProjectStatus method.
 	UpdateProjectStatusFunc func(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error)
@@ -1903,6 +1903,8 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// Project is the project argument value.
 			Project *models.Project
+			// PreviousPIRole is the previousPIRole argument value.
+			PreviousPIRole string
 		}
 		// UpdateProjectStatus holds details about calls to the UpdateProjectStatus method.
 		UpdateProjectStatus []struct {
@@ -5766,7 +5768,7 @@ func (mock *CoreServiceMock) ListMembersForAllocationCalls() []struct {
 }
 
 // ListMembersForProject calls ListMembersForProjectFunc.
-func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 	if mock.ListMembersForProjectFunc == nil {
 		panic("CoreServiceMock.ListMembersForProjectFunc: method is nil but CoreService.ListMembersForProject was just called")
 	}
@@ -7105,21 +7107,23 @@ func (mock *CoreServiceMock) UpdateOrganizationCalls() []struct {
 }
 
 // UpdateProject calls UpdateProjectFunc.
-func (mock *CoreServiceMock) UpdateProject(ctx context.Context, project *models.Project) error {
+func (mock *CoreServiceMock) UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error {
 	if mock.UpdateProjectFunc == nil {
 		panic("CoreServiceMock.UpdateProjectFunc: method is nil but CoreService.UpdateProject was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Project *models.Project
+		Ctx            context.Context
+		Project        *models.Project
+		PreviousPIRole string
 	}{
-		Ctx:     ctx,
-		Project: project,
+		Ctx:            ctx,
+		Project:        project,
+		PreviousPIRole: previousPIRole,
 	}
 	mock.lockUpdateProject.Lock()
 	mock.calls.UpdateProject = append(mock.calls.UpdateProject, callInfo)
 	mock.lockUpdateProject.Unlock()
-	return mock.UpdateProjectFunc(ctx, project)
+	return mock.UpdateProjectFunc(ctx, project, previousPIRole)
 }
 
 // UpdateProjectCalls gets all the calls that were made to UpdateProject.
@@ -7127,12 +7131,14 @@ func (mock *CoreServiceMock) UpdateProject(ctx context.Context, project *models.
 //
 //	len(mockedCoreService.UpdateProjectCalls())
 func (mock *CoreServiceMock) UpdateProjectCalls() []struct {
-	Ctx     context.Context
-	Project *models.Project
+	Ctx            context.Context
+	Project        *models.Project
+	PreviousPIRole string
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Project *models.Project
+		Ctx            context.Context
+		Project        *models.Project
+		PreviousPIRole string
 	}
 	mock.lockUpdateProject.RLock()
 	calls = mock.calls.UpdateProject
