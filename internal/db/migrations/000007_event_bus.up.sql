@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS events
 CREATE INDEX IF NOT EXISTS idx_events_type ON events (event_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_events_source ON events (source);
 CREATE INDEX IF NOT EXISTS idx_events_time ON events (created_at);
+CREATE INDEX IF NOT EXISTS idx_events_trace ON events (trace_id);
 
 -- One row per event subscription. The worker updates it after each try.
 -- Failed tries go to audit_events.

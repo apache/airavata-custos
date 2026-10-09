@@ -37,6 +37,7 @@ type fakeAuditStore struct {
 	traces        []models.TraceSummary
 	total         int
 	tree          *models.TraceNode
+	deliveries    []models.TraceDelivery
 	truncated     bool
 	events        []models.TraceEvent
 	sources       []string
@@ -58,12 +59,12 @@ func (f *fakeAuditStore) ListTraces(_ context.Context, filter store.TraceFilter)
 	return f.traces, f.total, nil
 }
 
-func (f *fakeAuditStore) GetTraceTree(_ context.Context, traceID string) (*models.TraceNode, bool, error) {
+func (f *fakeAuditStore) GetTraceTree(_ context.Context, traceID string) (*models.TraceNode, []models.TraceDelivery, bool, error) {
 	f.getTraceArg = traceID
 	if f.getErr != nil {
-		return nil, false, f.getErr
+		return nil, nil, false, f.getErr
 	}
-	return f.tree, f.truncated, nil
+	return f.tree, f.deliveries, f.truncated, nil
 }
 
 func (f *fakeAuditStore) ListEvents(_ context.Context, traceID, spanID string) ([]models.TraceEvent, error) {
@@ -291,6 +292,10 @@ func TestGetTraceReturnsTree(t *testing.T) {
 	}
 	if body["status"] != "error" {
 		t.Errorf("trace status = %v", body["status"])
+	}
+	// A trace with no deliveries still lists them as an empty array, not null.
+	if deliveries, ok := body["deliveries"].([]any); !ok || len(deliveries) != 0 {
+		t.Errorf("deliveries = %v, want []", body["deliveries"])
 	}
 	treeNodes := body["tree"].([]any)
 	if len(treeNodes) != 1 {

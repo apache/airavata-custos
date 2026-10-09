@@ -23,16 +23,42 @@ import (
 )
 
 type TraceSummary struct {
-	TraceID       string    `db:"trace_id" json:"trace_id"`
-	RootOperation string    `db:"root_operation" json:"root_operation"`
-	Source        string    `db:"source" json:"source"`
-	Status        string    `db:"status" json:"status"`
-	StartedAt     time.Time `db:"started_at" json:"started_at"`
-	EndedAt       time.Time `db:"ended_at" json:"ended_at"`
-	EventCount    int       `db:"event_count" json:"event_count"`
+	TraceID       string         `db:"trace_id" json:"trace_id"`
+	RootOperation string         `db:"root_operation" json:"root_operation"`
+	Source        string         `db:"source" json:"source"`
+	Status        string         `db:"status" json:"status"`
+	StartedAt     time.Time      `db:"started_at" json:"started_at"`
+	EndedAt       time.Time      `db:"ended_at" json:"ended_at"`
+	EventCount    int            `db:"event_count" json:"event_count"`
+	Deliveries    DeliveryCounts `db:"-" json:"deliveries"`
+}
+
+// DeliveryCounts says how many of a trace's deliveries are pending, done and
+// failed. Attempts is the most tries any pending one has made.
+type DeliveryCounts struct {
+	Pending   int `json:"pending"`
+	Succeeded int `json:"succeeded"`
+	Failed    int `json:"failed"`
+	Attempts  int `json:"attempts"`
+}
+
+// TraceDelivery is a connector's delivery of an event the trace published.
+// SpanID is the span of the step that published the event, so the delivery
+// can be shown under that step.
+type TraceDelivery struct {
+	ID         string              `db:"id" json:"id"`
+	TraceID    string              `db:"trace_id" json:"-"`
+	EventType  string              `db:"event_type" json:"event_type"`
+	Subscriber string              `db:"subscriber" json:"subscriber"`
+	Status     EventDeliveryStatus `db:"status" json:"status"`
+	Attempts   int                 `db:"attempts" json:"attempts"`
+	NextRunAt  time.Time           `db:"next_run_at" json:"next_run_at"`
+	LastError  *string             `db:"last_error" json:"last_error,omitempty"`
+	SpanID     string              `db:"span_id" json:"span_id"`
 }
 
 type TraceEvent struct {
+	ID           string    `db:"id" json:"id"`
 	SpanID       string    `db:"span_id" json:"span_id"`
 	ParentSpanID *string   `db:"parent_span_id" json:"parent_span_id,omitempty"`
 	Source       string    `db:"source" json:"source"`
