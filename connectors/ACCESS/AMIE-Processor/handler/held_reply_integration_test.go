@@ -97,8 +97,8 @@ func TestHeldReplies_ApprovalSendsHeldReplyOnce(t *testing.T) {
 	if len(amie.Replies) != 1 || amie.lastReplyType() != "notify_account_create" {
 		t.Fatalf("expected one notify_account_create, got %+v", amie.Replies)
 	}
-	if got := packetStatus(t, database, pkt.ID); got != model.PacketStatusDecoded {
-		t.Errorf("packet status: got %s, want %s", got, model.PacketStatusDecoded)
+	if got := packetStatus(t, database, pkt.ID); got != model.PacketStatusProcessed {
+		t.Errorf("packet status: got %s, want %s", got, model.PacketStatusProcessed)
 	}
 	var stillHeld int
 	if err := database.Get(&stillHeld, "SELECT COUNT(*) FROM amie_packets WHERE id = $1 AND (held_reply IS NOT NULL OR held_for IS NOT NULL)", pkt.ID); err != nil {

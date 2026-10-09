@@ -146,6 +146,15 @@ func (s *Service) UpdateComputeAllocationChangeRequest(ctx context.Context, req 
 	if req.RequesterID == "" {
 		req.RequesterID = existing.RequesterID
 	}
+	if req.RequestedSUAmount == 0 {
+		req.RequestedSUAmount = existing.RequestedSUAmount
+	}
+	if req.RequestedStatus == "" {
+		req.RequestedStatus = existing.RequestedStatus
+	}
+	if req.Reason == "" {
+		req.Reason = existing.Reason
+	}
 	if req.ChangeStatus == "" {
 		req.ChangeStatus = existing.ChangeStatus
 	}

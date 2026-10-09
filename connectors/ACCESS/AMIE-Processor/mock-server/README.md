@@ -80,7 +80,9 @@ curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=1-pi-only'
 
 The people come from `scenarios/people.json`. Copy `people.example.json` to `people.json` and fill in real names and emails to sign in as them. An email must be the one the person's identity provider gives at sign-in. `resource` must be the name of a resource that exists in Custos. Without `people.json` the mock uses the example file.
 
-The mock has no auth. Next to a real deployment, start it with `MOCK_AMIE_HOST=127.0.0.1`.
+The mock has no auth, so it listens on `127.0.0.1`. Set `MOCK_AMIE_HOST=0.0.0.0` to reach it from another host.
+
+Set `MOCK_AMIE_RESOURCE` to a resource in the Custos cluster catalog so the allocations it creates get a partition; the default `mock-cluster.example.edu` is skipped.
 
 ## Load test (k6)
 

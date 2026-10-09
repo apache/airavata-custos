@@ -47,6 +47,8 @@ grant_to_project_id = {}
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
 DEV_EMAIL = os.getenv("DEV_EMAIL", "").strip()
+# Set to a resource in the Custos cluster catalog so allocations get a partition.
+RESOURCE = os.getenv("MOCK_AMIE_RESOURCE", "mock-cluster.example.edu")
 
 
 def next_id():
@@ -96,16 +98,17 @@ def gen_valid_project_create():
         "ServiceUnitsAllocated": str(random.randint(1000, 50000)),
         "StartDate": "2026-01-01",
         "EndDate": "2026-12-31",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
-def gen_valid_account_create():
-    """request_account_create — user requests an account on an existing project."""
+def gen_valid_account_create(grant=None):
+    """request_account_create — user requests an account on an existing project.
+    With a grant, the ProjectID resolves once that project's create is replied to."""
     gid = str(random.randint(100000, 999999))
     return make_packet("request_account_create", {
-        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
-        "GrantNumber": f"TST{random.randint(100000, 999999)}",
+        "ProjectID": f"__GRANT__{grant}" if grant else f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "GrantNumber": grant or f"TST{random.randint(100000, 999999)}",
         "UserPersonID": f"person-{uuid.uuid4().hex[:8]}",
         "UserGlobalID": gid,
         "UserFirstName": random.choice(["Frank", "Grace", "Heidi", "Ivan", "Judy"]),
@@ -115,7 +118,7 @@ def gen_valid_account_create():
         "UserOrgCode": "MI",
         "NsfStatusCode": "GR",
         "UserDnList": [f"/C=US/O=Mock Institute/CN=User {gid}"],
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -181,7 +184,7 @@ def gen_valid_project_inactivate():
     return make_packet("request_project_inactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
         "GrantNumber": f"TST{random.randint(100000, 999999)}",
     })
 
@@ -190,7 +193,7 @@ def gen_valid_project_reactivate():
     return make_packet("request_project_reactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
         "GrantNumber": f"TST{random.randint(100000, 999999)}",
     })
 
@@ -199,7 +202,7 @@ def gen_valid_account_inactivate():
     return make_packet("request_account_inactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -207,7 +210,7 @@ def gen_valid_account_reactivate():
     return make_packet("request_account_reactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -242,7 +245,7 @@ def gen_missing_global_id():
         "UserFirstName": "NoGlobalID",
         "UserLastName": "User",
         "UserEmail": "noglobal@example.edu",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -254,7 +257,7 @@ def gen_missing_grant_number():
         "PiLastName": "User",
         "PiEmail": "nogrant@example.edu",
         "NsfStatusCode": "AC",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -266,7 +269,7 @@ def gen_missing_pi_global_id():
         "PiLastName": "Person",
         "PiEmail": "nopi@example.edu",
         "NsfStatusCode": "AC",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -309,7 +312,7 @@ def gen_dev_email_scenario():
         "ServiceUnitsAllocated": "100000",
         "StartDate": "2026-01-01",
         "EndDate": "2026-12-31",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     }))
     for grant, title, pi_first, pi_last, pi_email, pi_gid, dev_role in DEV_MEMBER_PROJECTS:
         packets.append(make_packet("request_project_create", {
@@ -327,7 +330,7 @@ def gen_dev_email_scenario():
             "ServiceUnitsAllocated": "50000",
             "StartDate": "2026-01-01",
             "EndDate": "2026-12-31",
-            "ResourceList": ["mock-cluster.example.edu"],
+            "ResourceList": [RESOURCE],
         }))
         packets.append(make_packet("request_account_create", {
             "ProjectID": f"PRJ-{grant}",
@@ -342,7 +345,7 @@ def gen_dev_email_scenario():
             "NsfStatusCode": "AC",
             "UserDnList": ["/C=US/O=Dev Lab/CN=Dev User"],
             "UserRole": dev_role,
-            "ResourceList": ["mock-cluster.example.edu"],
+            "ResourceList": [RESOURCE],
         }))
     return packets
 
@@ -404,10 +407,14 @@ def generate_all_handlers_once():
     data_user_gid = f"data-user-{random.randint(100000, 999999)}"
     data_pi_gid = f"data-pi-{random.randint(100000, 999999)}"
 
+    # Account packets join this project, so they resolve instead of failing.
+    project = gen_valid_project_create()
+    grant = project["body"]["GrantNumber"]
+
     def account_create_with_gid(gid):
         return make_packet("request_account_create", {
-            "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
-            "GrantNumber": f"TST{random.randint(100000, 999999)}",
+            "ProjectID": f"__GRANT__{grant}",
+            "GrantNumber": grant,
             "UserPersonID": f"person-{uuid.uuid4().hex[:8]}",
             "UserGlobalID": gid,
             "UserFirstName": "Test",
@@ -417,18 +424,18 @@ def generate_all_handlers_once():
             "UserOrgCode": "MI",
             "NsfStatusCode": "AC",
             "UserDnList": [],
-            "ResourceList": ["mock-cluster.example.edu"],
+            "ResourceList": [RESOURCE],
         })
 
     return [
+        project,
         # Set up: create the users that downstream handlers need.
         account_create_with_gid(primary_gid),
         account_create_with_gid(secondary_gid),
         account_create_with_gid(data_user_gid),
         account_create_with_gid(data_pi_gid),
         # One packet per handler type:
-        gen_valid_project_create(),
-        gen_valid_account_create(),
+        gen_valid_account_create(grant),
         gen_valid_user_modify(),
         gen_valid_user_modify_delete(),
         make_packet("data_account_create", {
@@ -795,5 +802,5 @@ if __name__ == "__main__":
     else:
         print("DEV_EMAIL unset; dev_email scenario will be empty")
     print()
-    # The mock has no auth. Set MOCK_AMIE_HOST=127.0.0.1 when it runs next to a real deployment.
-    app.run(host=os.getenv("MOCK_AMIE_HOST", "0.0.0.0"), port=8180, debug=False)
+    # The mock has no auth, so it listens on loopback unless MOCK_AMIE_HOST says otherwise.
+    app.run(host=os.getenv("MOCK_AMIE_HOST", "127.0.0.1"), port=8180, debug=False)

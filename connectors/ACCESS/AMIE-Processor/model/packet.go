@@ -17,7 +17,13 @@
 
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+// ErrInvalidPacket marks a packet that can never succeed as sent, so it fails without retries.
+var ErrInvalidPacket = errors.New("invalid packet")
 
 // PacketStatus represents the lifecycle state of an AMIE packet.
 type PacketStatus string

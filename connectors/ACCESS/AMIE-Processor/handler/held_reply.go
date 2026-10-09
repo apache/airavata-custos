@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -74,7 +75,7 @@ func (h *HeldReplies) Subscribe(bus *events.Bus, subscriber string) {
 }
 
 func (h *HeldReplies) approved(ctx context.Context, cu models.ComputeClusterUser) error {
-	return h.answer(ctx, cu.ID, model.PacketStatusDecoded, nil)
+	return h.answer(ctx, cu.ID, model.PacketStatusProcessed, nil)
 }
 
 // denied ends the transaction on the ACCESS side with a failure that carries
@@ -113,6 +114,10 @@ func (h *HeldReplies) answer(ctx context.Context, clusterUserID string, status m
 				return fmt.Errorf("reply to packet %s: %w", p.ID, err)
 			}
 			p.Status = status
+			if status == model.PacketStatusProcessed {
+				now := time.Now().UTC()
+				p.ProcessedAt = &now
+			}
 			p.HeldReply, p.HeldFor = nil, nil
 			if err := h.packets.Update(ctx, tx, &p); err != nil {
 				return err

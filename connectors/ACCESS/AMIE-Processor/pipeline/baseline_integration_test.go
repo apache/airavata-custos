@@ -33,7 +33,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 
 	pipe.fireScenario(t, "baseline")
 	pipe.startApproving()
-	decoded := pipe.waitForDrain(t, 12, 90*time.Second)
+	processed := pipe.waitForDrain(t, 12, 90*time.Second)
 
 	// Counts match baseline.yaml.
 	expectations := []struct {
@@ -56,8 +56,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		// One per allocation; the supplement re-delivery does not duplicate.
 		{"compute_allocation_resource_mappings", 2},
 	}
-	if decoded != 12 {
-		t.Errorf("decoded packets: got %d, want 12", decoded)
+	if processed != 12 {
+		t.Errorf("processed packets: got %d, want 12", processed)
 	}
 	for _, e := range expectations {
 		if got := countRows(t, pipe.db, e.table); got != e.want {

@@ -23,6 +23,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -160,8 +161,8 @@ func TestProcessor_SuccessFirstAttempt(t *testing.T) {
 		t.Errorf("next_retry_at: got %v, want nil", ev.NextRetryAt)
 	}
 	pkt := readPacket(t, database, ev.PacketID)
-	if pkt.Status != model.PacketStatusDecoded {
-		t.Errorf("packet status: got %q, want DECODED", pkt.Status)
+	if pkt.Status != model.PacketStatusProcessed || pkt.ProcessedAt == nil {
+		t.Errorf("packet status: got %q (processed_at %v), want PROCESSED", pkt.Status, pkt.ProcessedAt)
 	}
 	if got := countRows(t, database, "amie_processing_errors"); got != 0 {
 		t.Errorf("error rows: got %d, want 0", got)
@@ -241,6 +242,24 @@ func TestProcessor_FailThreeTimesPermanentlyFails(t *testing.T) {
 	}
 	if got := countRows(t, database, "amie_processing_errors"); got != MaxAttempts {
 		t.Errorf("error rows: got %d, want %d", got, MaxAttempts)
+	}
+}
+
+// An invalid packet cannot pass on a retry, so it fails on the first attempt.
+func TestProcessor_InvalidPacketFailsWithoutRetry(t *testing.T) {
+	database := setupTestDB(t)
+	_, eventID := seedNewEvent(t, database)
+
+	router := &fakeRouter{errors: []error{fmt.Errorf("%w: 'GrantNumber' must not be empty", model.ErrInvalidPacket)}}
+	p := newProcessor(database, router, &stubMetrics{})
+	p.processPendingEvents(context.Background())
+
+	ev := readEvent(t, database, eventID)
+	if ev.Status != model.ProcessingStatusPermanentlyFailed || ev.Attempts != 1 {
+		t.Errorf("event: status=%q attempts=%d, want PERMANENTLY_FAILED/1", ev.Status, ev.Attempts)
+	}
+	if pkt := readPacket(t, database, ev.PacketID); pkt.Status != model.PacketStatusFailed {
+		t.Errorf("packet status: got %q, want FAILED", pkt.Status)
 	}
 }
 
