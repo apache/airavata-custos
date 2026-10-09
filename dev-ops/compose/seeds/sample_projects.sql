@@ -101,7 +101,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-e874cc69f25dfd4b8d9b', 'smp-4c8ab475ba01ce29fb67', 'CHM240012 startup allocation', 'INACTIVE', '00000000-0000-0000-0000-000000000001', 500000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-4c8ab475ba01ce29fb67', 'smp-344b252c9dd481944db0', 'PI'),
   ('smp-4c8ab475ba01ce29fb67', 'smp-3cd6d104b01ef129b379', 'CO_PI'),
   ('smp-4c8ab475ba01ce29fb67', 'smp-4907af7ab30bd84e6deb', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -142,7 +141,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-d29064eb686184d12cbe', 'smp-eedc3ed54172fa1539ee', 'PHY240034 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 250000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-eedc3ed54172fa1539ee', 'smp-c8e6b563ac8f348d6069', 'PI'),
   ('smp-eedc3ed54172fa1539ee', 'smp-90f9c3a872e74ceb9b54', 'CO_PI'),
   ('smp-eedc3ed54172fa1539ee', 'smp-ae4c14e3cd98f58c2363', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -176,7 +174,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-4d0e44e3216d12f4d479', 'smp-9a75381c02101891703d', 'BIO240041 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 1200000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-9a75381c02101891703d', 'smp-2fd62ff24cea6be8de4c', 'PI'),
   ('smp-9a75381c02101891703d', 'smp-38b35e0e4b22d0d6460a', 'CO_PI'),
   ('smp-9a75381c02101891703d', 'smp-343175c9b7007d1ff0f8', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -210,7 +207,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-2551d58902d6316834f7', 'smp-739a563efab75e5ab41a', 'ATM240007 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 100000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-739a563efab75e5ab41a', 'smp-bc08d052551918510023', 'PI'),
   ('smp-739a563efab75e5ab41a', 'smp-26420ea0545ca72a32b3', 'CO_PI'),
   ('smp-739a563efab75e5ab41a', 'smp-f908bd32e57fd5c2896d', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -245,7 +241,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-e1d2a3f5f134af253407', 'smp-5591ed41e4391631471d', 'MAT240019 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 750000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-5591ed41e4391631471d', 'smp-b800fa9f20c414f38e44', 'PI'),
   ('smp-5591ed41e4391631471d', 'smp-3b164a9395896373810e', 'CO_PI'),
   ('smp-5591ed41e4391631471d', 'smp-f6343c23c6a7028f8ed7', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -285,7 +280,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-603a9403849f5bf1779d', 'smp-2acc6fcc75db53616416', 'AST240023 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 300000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-2acc6fcc75db53616416', 'smp-3cd6d104b01ef129b379', 'PI'),
   ('smp-2acc6fcc75db53616416', 'smp-626aede3f65aeb969c74', 'CO_PI'),
   ('smp-2acc6fcc75db53616416', 'smp-fa5b4cdf77ce78bd27e0', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -319,7 +313,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-50a930bb1fb569beb058', 'smp-b7545fb17c505974fac7', 'CHE240055 startup allocation', 'INACTIVE', '00000000-0000-0000-0000-000000000001', 500000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-b7545fb17c505974fac7', 'smp-90f9c3a872e74ceb9b54', 'PI'),
   ('smp-b7545fb17c505974fac7', 'smp-4907af7ab30bd84e6deb', 'CO_PI'),
   ('smp-b7545fb17c505974fac7', 'smp-598aba3fd25a5b74a2cf', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -354,7 +347,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-903e6a1acd2c67f92e00', 'smp-3df742c724053f0bbfcc', 'GEO240011 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 250000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-3df742c724053f0bbfcc', 'smp-38b35e0e4b22d0d6460a', 'PI'),
   ('smp-3df742c724053f0bbfcc', 'smp-ae4c14e3cd98f58c2363', 'CO_PI'),
   ('smp-3df742c724053f0bbfcc', 'smp-35b28b0dfed3e7dfcd36', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -388,7 +380,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-f6d592517cf3b690a68b', 'smp-46566060f3d3d2eb9420', 'CIS240068 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 1200000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-46566060f3d3d2eb9420', 'smp-26420ea0545ca72a32b3', 'PI'),
   ('smp-46566060f3d3d2eb9420', 'smp-343175c9b7007d1ff0f8', 'CO_PI'),
   ('smp-46566060f3d3d2eb9420', 'smp-02b1cd6cafbd27dd7201', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -428,7 +419,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-c9853aa7a5047707793f', 'smp-2ef2fd65182345f961cf', 'MCB240032 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 100000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-2ef2fd65182345f961cf', 'smp-3b164a9395896373810e', 'PI'),
   ('smp-2ef2fd65182345f961cf', 'smp-f908bd32e57fd5c2896d', 'CO_PI'),
   ('smp-2ef2fd65182345f961cf', 'smp-b8e82843b10d1a15b995', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -463,7 +453,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-c4071741a17cbea31f46', 'smp-0948a283a07e0b73d2f7', 'ENG240046 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 750000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-0948a283a07e0b73d2f7', 'smp-626aede3f65aeb969c74', 'PI'),
   ('smp-0948a283a07e0b73d2f7', 'smp-f6343c23c6a7028f8ed7', 'CO_PI'),
   ('smp-0948a283a07e0b73d2f7', 'smp-318427dda738e0504620', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -497,7 +486,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-de5487db358f6fb7d6fe', 'smp-c642dcb393db75aa5526', 'OCE240015 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 300000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-c642dcb393db75aa5526', 'smp-4907af7ab30bd84e6deb', 'PI'),
   ('smp-c642dcb393db75aa5526', 'smp-fa5b4cdf77ce78bd27e0', 'CO_PI'),
   ('smp-c642dcb393db75aa5526', 'smp-52fae2d4d9ff23760057', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -531,7 +519,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-ce03e036de1da6863393', 'smp-22445a61084f5764042b', 'DMS240027 startup allocation', 'INACTIVE', '00000000-0000-0000-0000-000000000001', 500000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-22445a61084f5764042b', 'smp-ae4c14e3cd98f58c2363', 'PI'),
   ('smp-22445a61084f5764042b', 'smp-598aba3fd25a5b74a2cf', 'CO_PI'),
   ('smp-22445a61084f5764042b', 'smp-8d36f8ec62cc1ab62fd5', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -572,7 +559,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-cac362e9bc8a5b73dc56', 'smp-6f71b0a457dc2d9383c7', 'EAR240038 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 250000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-6f71b0a457dc2d9383c7', 'smp-343175c9b7007d1ff0f8', 'PI'),
   ('smp-6f71b0a457dc2d9383c7', 'smp-35b28b0dfed3e7dfcd36', 'CO_PI'),
   ('smp-6f71b0a457dc2d9383c7', 'smp-344b252c9dd481944db0', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -606,7 +592,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-b1145214bc21940084fa', 'smp-f5e84bbacec87c3deb6d', 'NEU240052 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 1200000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-f5e84bbacec87c3deb6d', 'smp-f908bd32e57fd5c2896d', 'PI'),
   ('smp-f5e84bbacec87c3deb6d', 'smp-02b1cd6cafbd27dd7201', 'CO_PI'),
   ('smp-f5e84bbacec87c3deb6d', 'smp-c8e6b563ac8f348d6069', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -640,7 +625,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-7512b54990a4efa50cf6', 'smp-e483b73b4458eae0fa14', 'ECO240009 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 100000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-e483b73b4458eae0fa14', 'smp-f6343c23c6a7028f8ed7', 'PI'),
   ('smp-e483b73b4458eae0fa14', 'smp-b8e82843b10d1a15b995', 'CO_PI'),
   ('smp-e483b73b4458eae0fa14', 'smp-2fd62ff24cea6be8de4c', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -675,7 +659,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-bdb96ba1e6a5d37513db', 'smp-980231459f6b23c93e99', 'MED240061 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 750000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-980231459f6b23c93e99', 'smp-fa5b4cdf77ce78bd27e0', 'PI'),
   ('smp-980231459f6b23c93e99', 'smp-318427dda738e0504620', 'CO_PI'),
   ('smp-980231459f6b23c93e99', 'smp-bc08d052551918510023', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -715,7 +698,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-fd5e6684bf9182850ebd', 'smp-ac4de8764ba7aa98e886', 'AER240044 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 300000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-ac4de8764ba7aa98e886', 'smp-598aba3fd25a5b74a2cf', 'PI'),
   ('smp-ac4de8764ba7aa98e886', 'smp-52fae2d4d9ff23760057', 'CO_PI'),
   ('smp-ac4de8764ba7aa98e886', 'smp-b800fa9f20c414f38e44', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -749,7 +731,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-81d26521f4dc52bb030b', 'smp-0b70f6fc04a8a1f03514', 'QCN240017 startup allocation', 'INACTIVE', '00000000-0000-0000-0000-000000000001', 500000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-0b70f6fc04a8a1f03514', 'smp-35b28b0dfed3e7dfcd36', 'PI'),
   ('smp-0b70f6fc04a8a1f03514', 'smp-8d36f8ec62cc1ab62fd5', 'CO_PI'),
   ('smp-0b70f6fc04a8a1f03514', 'smp-3cd6d104b01ef129b379', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;
@@ -784,7 +765,6 @@ INSERT INTO compute_allocations (id, project_id, name, status, compute_cluster_i
   ('smp-0384acb90162ba62c422', 'smp-30a2eabc73a65a860667', 'SES240029 startup allocation', 'ACTIVE', '00000000-0000-0000-0000-000000000001', 250000, '2026-01-01 00:00:00', '2026-12-31 00:00:00')
 ON CONFLICT DO NOTHING;
 INSERT INTO project_memberships (project_id, user_id, role) VALUES
-  ('smp-30a2eabc73a65a860667', 'smp-02b1cd6cafbd27dd7201', 'PI'),
   ('smp-30a2eabc73a65a860667', 'smp-344b252c9dd481944db0', 'CO_PI'),
   ('smp-30a2eabc73a65a860667', 'smp-90f9c3a872e74ceb9b54', 'ALLOCATION_MANAGER')
 ON CONFLICT DO NOTHING;

@@ -25,15 +25,10 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// EnsureProjectMembership upserts the (project, user, role) row enforcing the
-// PI-can't-change rule and the special-role conflict policy:
-//   - same user already holds the requested role: no-op success.
-//   - PI for a different user when a PI already exists: returns ErrPIChange.
-//   - existing role is PI: returns ErrPIChange (PI cannot be downgraded).
-//   - otherwise: upsert (latest non-PI role wins).
-//
-// MEMBER calls collapse to a Delete: the user is "demoted" to derived-only
-// membership via compute_allocation_memberships.
+// EnsureProjectMembership sets the user's project role. The PI lives in
+// projects.project_pi_id and outranks every role, so any role for the PI is
+// already held; PI for anyone else returns ErrPIChange. MEMBER (or "") removes
+// the role row; the user stays a member through compute_allocation_memberships.
 func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error {
 	if projectID == "" {
 		return fmt.Errorf("%w: project_id is required", ErrInvalidInput)
@@ -42,77 +37,31 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 		return fmt.Errorf("%w: user_id is required", ErrInvalidInput)
 	}
 
-	if role == "MEMBER" || role == "" {
-		existing, err := s.projMemberships.FindByPair(ctx, projectID, userID)
-		if err != nil {
-			return fmt.Errorf("lookup project membership: %w", err)
-		}
-		if existing == nil {
-			return nil
-		}
-		if existing.Role == models.ProjectRolePI {
-			return fmt.Errorf("%w: cannot demote PI of project %q", ErrPIChange, projectID)
-		}
-		return s.inTx(ctx, func(tx *sql.Tx) error {
-			return s.projMemberships.Delete(ctx, tx, projectID, userID)
-		})
-	}
-
-	pr, ok := normalizeProjectRole(role)
-	if !ok {
-		return fmt.Errorf("%w: unknown project role %q", ErrInvalidInput, role)
-	}
-
 	existing, err := s.projMemberships.FindByPair(ctx, projectID, userID)
 	if err != nil {
 		return fmt.Errorf("lookup project membership: %w", err)
 	}
-
-	if pr == models.ProjectRolePI {
-		currentPI, err := s.projMemberships.FindPIByProject(ctx, projectID)
-		if err != nil {
-			return fmt.Errorf("lookup PI: %w", err)
-		}
-		if currentPI != nil && currentPI.UserID != userID {
-			return fmt.Errorf("%w: project %q already has PI %q",
-				ErrPIChange, projectID, currentPI.UserID)
-		}
+	pr := models.ProjectRole(role)
+	switch {
+	case existing != nil && existing.Role == models.ProjectRolePI:
+		return nil
+	case pr == models.ProjectRolePI:
+		return fmt.Errorf("%w: project %q", ErrPIChange, projectID)
 	}
-
-	if existing != nil {
-		if existing.Role == models.ProjectRolePI && pr != models.ProjectRolePI {
-			return fmt.Errorf("%w: cannot downgrade PI of project %q", ErrPIChange, projectID)
-		}
-		if existing.Role == pr {
-			return nil
-		}
+	if role == "MEMBER" || role == "" {
 		return s.inTx(ctx, func(tx *sql.Tx) error {
-			return s.projMemberships.UpdateRole(ctx, tx, projectID, userID, pr)
+			return s.projMemberships.Delete(ctx, tx, projectID, userID)
 		})
 	}
-
-	pm := &models.ProjectMembership{
-		ProjectID: projectID,
-		UserID:    userID,
-		Role:      pr,
-		AddedTime: nowUTC(),
+	if pr != models.ProjectRoleCoPI && pr != models.ProjectRoleAllocationManager {
+		return fmt.Errorf("%w: unknown project role %q", ErrInvalidInput, role)
 	}
+
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projMemberships.Create(ctx, tx, pm)
+		return s.projMemberships.Upsert(ctx, tx, &models.ProjectMembership{
+			ProjectID: projectID, UserID: userID, Role: pr, AddedTime: nowUTC(),
+		})
 	})
-}
-
-// ProjectRoleForUser returns the user's governance role on a project, or an
-// empty role when they hold none.
-func (s *Service) ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error) {
-	pm, err := s.projMemberships.FindByPair(ctx, projectID, userID)
-	if err != nil {
-		return "", fmt.Errorf("lookup project role: %w", err)
-	}
-	if pm == nil {
-		return "", nil
-	}
-	return pm.Role, nil
 }
 
 // ListProjectMemberships returns every project_memberships row for the project.
@@ -125,16 +74,4 @@ func (s *Service) ListProjectMemberships(ctx context.Context, projectID string) 
 		return nil, fmt.Errorf("list project memberships: %w", err)
 	}
 	return rows, nil
-}
-
-func normalizeProjectRole(raw string) (models.ProjectRole, bool) {
-	switch raw {
-	case "PI":
-		return models.ProjectRolePI, true
-	case "CO_PI":
-		return models.ProjectRoleCoPI, true
-	case "ALLOCATION_MANAGER":
-		return models.ProjectRoleAllocationManager, true
-	}
-	return "", false
 }

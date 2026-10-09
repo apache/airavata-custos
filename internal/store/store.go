@@ -161,9 +161,8 @@ type ProjectStore interface {
 	// ListWithPI is List joined with the PI user, replacing the per-row
 	// GetUser fan-out the handler would otherwise need.
 	ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error)
-	// ListWithPIForParticipant returns the projects where the user holds a
-	// project membership or an active allocation membership, PI joined,
-	// newest first.
+	// ListWithPIForParticipant returns the projects the user has a role on, PI
+	// joined, newest first.
 	ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error)
 }
 
@@ -196,6 +195,9 @@ type ComputeAllocationStore interface {
 	// FindByParticipant returns the allocations where the user holds an active
 	// membership, or a governance role on the parent project. Newest first.
 	FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
+	// RoleForUser returns the user's role on the allocation, a project-wide role
+	// before MEMBER, or "" for none.
+	RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 }
 
 // AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
@@ -346,27 +348,22 @@ type ComputeAllocationChangeRequestEventStore interface {
 }
 
 // ProjectMembershipStore defines persistence operations for project-level
-// governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
+// governance roles (CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
 // compute_allocation_memberships and not stored here.
 type ProjectMembershipStore interface {
-	// FindByPair returns the (project, user) row, or nil if absent.
+	// FindByPair returns the user's project-wide role (PI, CO_PI or
+	// ALLOCATION_MANAGER), or nil if absent.
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
 	// FindByProject returns every project_memberships row for the project.
 	FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
-	// FindPIByProject returns the PI row, or nil if the project has no PI yet.
-	FindPIByProject(ctx context.Context, projectID string) (*models.ProjectMembership, error)
-	// IsParticipant reports whether the user has a project_memberships row or
-	// an active membership on any of the project's allocations.
+	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	// Create inserts a new row within the provided transaction.
-	Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
-	// UpdateRole changes the role of an existing (project, user) row.
-	UpdateRole(ctx context.Context, tx *sql.Tx, projectID, userID string, role models.ProjectRole) error
+	// Upsert inserts the (project, user) row or sets its role.
+	Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
 	// Delete removes the (project, user) row.
 	Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error
-	// ReassignUser moves every project_memberships row owned by fromUserID
-	// over to toUserID, dropping fromUserID's rows on projects where toUserID
-	// already has one.
+	// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag
+	// per project and none where toUserID is PI.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 }
 
@@ -384,15 +381,12 @@ type ComputeAllocationMembershipStore interface {
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
-	// FindByAllocationWithUser is FindByAllocation joined with user +
-	// project_memberships so each row carries display_name, email, and the
-	// project-level role (defaulted to MEMBER).
+	// FindByAllocationWithUser is FindByAllocation joined with users so each
+	// row carries display_name, email, and the user's project-wide role (MEMBER by
+	// default).
 	FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error)
-	// FindByProjectWithUser returns memberships across every allocation in
-	// the project joined with users, allocation name, and project-level role.
-	// The caller aggregates per user (collapsing into the response's
-	// allocations list).
-	FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error)
+	// FindByProjectWithUser returns one row per project member with their allocations.
+	FindByProjectWithUser(ctx context.Context, projectID string) ([]ProjectMember, error)
 	// Create inserts a new membership within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
 	// Update replaces mutable fields of an existing membership within the provided transaction.

@@ -148,13 +148,12 @@ expectations:
       total_count: 5
 
     project_memberships:
-      # PI/CO_PI/ALLOCATION_MANAGER. MEMBER is derived from
-      # compute_allocation_memberships and not stored here.
-      #   BL-001: Pat (PI), Casey (CO_PI)
-      #   BL-002: Pat (PI, post-merge), Morgan (ALLOCATION_MANAGER)
-      total_count: 4
+      # CO_PI/ALLOCATION_MANAGER. The PI lives in projects.project_pi_id and
+      # MEMBER is derived from compute_allocation_memberships; neither is stored here.
+      #   BL-001: Casey (CO_PI)
+      #   BL-002: Morgan (ALLOCATION_MANAGER)
+      total_count: 2
       by_role:
-        PI: 2
         CO_PI: 1
         ALLOCATION_MANAGER: 1
 

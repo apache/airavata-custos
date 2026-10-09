@@ -49,6 +49,7 @@ func seedScopedFixtures(t *testing.T, database *sqlx.DB, svc *service.Service) s
 	suffix := time.Now().UnixNano()
 	memberID := seedUser(t, database, fmt.Sprintf("scope.member+%d@example.edu", suffix))
 	piID := seedUser(t, database, fmt.Sprintf("scope.pi+%d@example.edu", suffix))
+	otherPIID := seedUser(t, database, fmt.Sprintf("scope.pi.b+%d@example.edu", suffix))
 
 	cluster, err := svc.CreateComputeCluster(t.Context(), &models.ComputeCluster{
 		Name: fmt.Sprintf("scope-cluster-%d", suffix),
@@ -64,13 +65,10 @@ func seedScopedFixtures(t *testing.T, database *sqlx.DB, svc *service.Service) s
 		t.Fatalf("seed project A: %v", err)
 	}
 	projectB, err := svc.CreateProject(t.Context(), &models.Project{
-		Title: fmt.Sprintf("Scope Project B %d", suffix), ProjectPIID: piID,
+		Title: fmt.Sprintf("Scope Project B %d", suffix), ProjectPIID: otherPIID,
 	})
 	if err != nil {
 		t.Fatalf("seed project B: %v", err)
-	}
-	if err := svc.EnsureProjectMembership(t.Context(), projectA.ID, piID, "PI"); err != nil {
-		t.Fatalf("seed PI membership: %v", err)
 	}
 
 	allocA, err := svc.CreateComputeAllocation(t.Context(), &models.ComputeAllocation{

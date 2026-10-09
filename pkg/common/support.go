@@ -55,7 +55,7 @@ func WriteServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrNotFound):
 		WriteError(w, http.StatusNotFound, err)
-	case errors.Is(err, service.ErrAlreadyExists):
+	case errors.Is(err, service.ErrAlreadyExists), errors.Is(err, service.ErrPIChange), errors.Is(err, service.ErrInUse):
 		WriteError(w, http.StatusConflict, err)
 	case errors.Is(err, service.ErrInvalidInput):
 		WriteError(w, http.StatusBadRequest, err)

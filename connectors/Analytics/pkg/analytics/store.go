@@ -92,10 +92,8 @@ type Store interface {
 	// ProjectsForUser returns the projects the user touches through a governance
 	// role or an active allocation membership. Role is null for a plain member.
 	ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error)
-	// AllocationsForProjects returns allocations the caller may see in the given
-	// projects: all allocations where they hold a governance role, plus any
-	// allocation they are an active member of. Empty projectIDs returns no rows.
-	AllocationsForProjects(ctx context.Context, projectIDs []string, userID string) ([]AllocationRow, error)
+	// AllocationsByID returns the given allocations with their consumed credits, oldest first.
+	AllocationsByID(ctx context.Context, ids []string) ([]AllocationRow, error)
 	// TotalUsed returns the rounded total credits consumed against an allocation.
 	TotalUsed(ctx context.Context, allocationID string) (float64, error)
 	// DailyUsage returns per-day, per-resource credits for one allocation.
@@ -109,12 +107,6 @@ type Store interface {
 	// Jobs returns a page of usage records (newest first) for one allocation
 	// and the total count. A non-nil userID restricts to that user's records.
 	Jobs(ctx context.Context, allocationID string, userID *string, limit, offset int) ([]JobRow, int, error)
-	// ProjectRole returns the caller's governance role on a project, or an empty
-	// string when they hold none.
-	ProjectRole(ctx context.Context, projectID, userID string) (string, error)
-	// IsActiveMember reports whether the user holds an active membership on the
-	// allocation.
-	IsActiveMember(ctx context.Context, allocationID, userID string) (bool, error)
 }
 
 type pgStore struct {
@@ -129,31 +121,21 @@ func NewStore(db *sqlx.DB) Store {
 func (s *pgStore) ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error) {
 	var rows []ProjectRow
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT p.id, p.title, pm.role
+		`SELECT p.id, p.title, r.role
 		   FROM projects p
-		   LEFT JOIN project_memberships pm
-		     ON pm.project_id = p.id AND pm.user_id = $1
-		  WHERE p.id IN (
-		        SELECT project_id FROM project_memberships WHERE user_id = $2
-		        UNION
-		        SELECT ca.project_id
-		          FROM compute_allocation_memberships cam
-		          JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
-		         WHERE cam.user_id = $3 AND cam.membership_status = 'ACTIVE'
-		  )
-		  ORDER BY p.title`, userID, userID, userID)
+		   LEFT JOIN project_roles r ON r.project_id = p.id AND r.user_id = $1 AND r.compute_allocation_id IS NULL
+		  WHERE p.id IN (SELECT project_id FROM project_roles WHERE user_id = $1)
+		  ORDER BY p.title`, userID)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-func (s *pgStore) AllocationsForProjects(ctx context.Context, projectIDs []string, userID string) ([]AllocationRow, error) {
-	if len(projectIDs) == 0 {
+func (s *pgStore) AllocationsByID(ctx context.Context, ids []string) ([]AllocationRow, error) {
+	if len(ids) == 0 {
 		return nil, nil
 	}
-	// Members see only allocations they actively belong to, so the caller is
-	// never offered an allocation whose usage-summary would 404.
 	query, args, err := sqlx.In(
 		`SELECT ca.project_id, ca.id, ca.name, ca.status,
 		        ca.initial_su_amount, ca.start_time, ca.end_time,
@@ -161,18 +143,9 @@ func (s *pgStore) AllocationsForProjects(ctx context.Context, projectIDs []strin
 		   FROM compute_allocations ca
 		   LEFT JOIN compute_allocation_usages u
 		     ON u.compute_allocation_id = ca.id
-		  WHERE ca.project_id IN (?)
-		    AND (
-		        EXISTS (SELECT 1 FROM project_memberships pm
-		                 WHERE pm.project_id = ca.project_id AND pm.user_id = ?
-		                   AND pm.role IN ('PI', 'CO_PI', 'ALLOCATION_MANAGER'))
-		        OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
-		                    WHERE cam.compute_allocation_id = ca.id AND cam.user_id = ?
-		                      AND cam.membership_status = 'ACTIVE')
-		    )
-		  GROUP BY ca.project_id, ca.id, ca.name, ca.status,
-		           ca.initial_su_amount, ca.start_time, ca.end_time
-		  ORDER BY ca.start_time`, projectIDs, userID, userID)
+		  WHERE ca.id IN (?)
+		  GROUP BY ca.id
+		  ORDER BY ca.start_time`, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -280,32 +253,4 @@ func (s *pgStore) MemberUsage(ctx context.Context, allocationID string) ([]Membe
 		return nil, err
 	}
 	return rows, nil
-}
-
-func (s *pgStore) ProjectRole(ctx context.Context, projectID, userID string) (string, error) {
-	var role string
-	err := s.db.GetContext(ctx, &role,
-		`SELECT role FROM project_memberships WHERE project_id = $1 AND user_id = $2`,
-		projectID, userID)
-	if err == sql.ErrNoRows {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return role, nil
-}
-
-func (s *pgStore) IsActiveMember(ctx context.Context, allocationID, userID string) (bool, error) {
-	var exists bool
-	err := s.db.GetContext(ctx, &exists,
-		`SELECT EXISTS(
-		    SELECT 1 FROM compute_allocation_memberships
-		     WHERE compute_allocation_id = $1 AND user_id = $2
-		       AND membership_status = 'ACTIVE')`,
-		allocationID, userID)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
 }

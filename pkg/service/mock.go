@@ -24,6 +24,9 @@ var _ CoreService = &CoreServiceMock{}
 //			AddPrivilegeToRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the AddPrivilegeToRole method")
 //			},
+//			AllocationRoleForUserFunc: func(ctx context.Context, allocationID string, userID string) (models.ProjectRole, error) {
+//				panic("mock out the AllocationRoleForUser method")
+//			},
 //			AttachResourceToAllocationFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the AttachResourceToAllocation method")
 //			},
@@ -252,9 +255,6 @@ var _ CoreService = &CoreServiceMock{}
 //			HasPrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error) {
 //				panic("mock out the HasPrivilege method")
 //			},
-//			IsAllocationMemberFunc: func(ctx context.Context, allocationID string, userID string) (bool, error) {
-//				panic("mock out the IsAllocationMember method")
-//			},
 //			IsProjectParticipantFunc: func(ctx context.Context, projectID string, userID string) (bool, error) {
 //				panic("mock out the IsProjectParticipant method")
 //			},
@@ -318,7 +318,7 @@ var _ CoreService = &CoreServiceMock{}
 //			ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
 //				panic("mock out the ListMembersForAllocation method")
 //			},
-//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 //				panic("mock out the ListMembersForProject method")
 //			},
 //			ListOverridesForMembershipFunc: func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error) {
@@ -381,9 +381,6 @@ var _ CoreService = &CoreServiceMock{}
 //			PrivilegeCatalogFunc: func() []models.PrivilegeKey {
 //				panic("mock out the PrivilegeCatalog method")
 //			},
-//			ProjectRoleForUserFunc: func(ctx context.Context, projectID string, userID string) (models.ProjectRole, error) {
-//				panic("mock out the ProjectRoleForUser method")
-//			},
 //			RemovePrivilegeFromRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the RemovePrivilegeFromRole method")
 //			},
@@ -426,7 +423,7 @@ var _ CoreService = &CoreServiceMock{}
 //			UpdateOrganizationFunc: func(ctx context.Context, org *models.Organization) error {
 //				panic("mock out the UpdateOrganization method")
 //			},
-//			UpdateProjectFunc: func(ctx context.Context, project *models.Project) error {
+//			UpdateProjectFunc: func(ctx context.Context, project *models.Project, previousPIRole string) error {
 //				panic("mock out the UpdateProject method")
 //			},
 //			UpdateProjectStatusFunc: func(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error) {
@@ -453,6 +450,9 @@ var _ CoreService = &CoreServiceMock{}
 type CoreServiceMock struct {
 	// AddPrivilegeToRoleFunc mocks the AddPrivilegeToRole method.
 	AddPrivilegeToRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+
+	// AllocationRoleForUserFunc mocks the AllocationRoleForUser method.
+	AllocationRoleForUserFunc func(ctx context.Context, allocationID string, userID string) (models.ProjectRole, error)
 
 	// AttachResourceToAllocationFunc mocks the AttachResourceToAllocation method.
 	AttachResourceToAllocationFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
@@ -682,9 +682,6 @@ type CoreServiceMock struct {
 	// HasPrivilegeFunc mocks the HasPrivilege method.
 	HasPrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error)
 
-	// IsAllocationMemberFunc mocks the IsAllocationMember method.
-	IsAllocationMemberFunc func(ctx context.Context, allocationID string, userID string) (bool, error)
-
 	// IsProjectParticipantFunc mocks the IsProjectParticipant method.
 	IsProjectParticipantFunc func(ctx context.Context, projectID string, userID string) (bool, error)
 
@@ -749,7 +746,7 @@ type CoreServiceMock struct {
 	ListMembersForAllocationFunc func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
 
 	// ListMembersForProjectFunc mocks the ListMembersForProject method.
-	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
+	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.ProjectMember, error)
 
 	// ListOverridesForMembershipFunc mocks the ListOverridesForMembership method.
 	ListOverridesForMembershipFunc func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
@@ -811,9 +808,6 @@ type CoreServiceMock struct {
 	// PrivilegeCatalogFunc mocks the PrivilegeCatalog method.
 	PrivilegeCatalogFunc func() []models.PrivilegeKey
 
-	// ProjectRoleForUserFunc mocks the ProjectRoleForUser method.
-	ProjectRoleForUserFunc func(ctx context.Context, projectID string, userID string) (models.ProjectRole, error)
-
 	// RemovePrivilegeFromRoleFunc mocks the RemovePrivilegeFromRole method.
 	RemovePrivilegeFromRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
 
@@ -857,7 +851,7 @@ type CoreServiceMock struct {
 	UpdateOrganizationFunc func(ctx context.Context, org *models.Organization) error
 
 	// UpdateProjectFunc mocks the UpdateProject method.
-	UpdateProjectFunc func(ctx context.Context, project *models.Project) error
+	UpdateProjectFunc func(ctx context.Context, project *models.Project, previousPIRole string) error
 
 	// UpdateProjectStatusFunc mocks the UpdateProjectStatus method.
 	UpdateProjectStatusFunc func(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error)
@@ -886,6 +880,15 @@ type CoreServiceMock struct {
 			Privilege models.PrivilegeKey
 			// ActorID is the actorID argument value.
 			ActorID string
+		}
+		// AllocationRoleForUser holds details about calls to the AllocationRoleForUser method.
+		AllocationRoleForUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+			// UserID is the userID argument value.
+			UserID string
 		}
 		// AttachResourceToAllocation holds details about calls to the AttachResourceToAllocation method.
 		AttachResourceToAllocation []struct {
@@ -1471,15 +1474,6 @@ type CoreServiceMock struct {
 			// Privilege is the privilege argument value.
 			Privilege models.PrivilegeKey
 		}
-		// IsAllocationMember holds details about calls to the IsAllocationMember method.
-		IsAllocationMember []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// AllocationID is the allocationID argument value.
-			AllocationID string
-			// UserID is the userID argument value.
-			UserID string
-		}
 		// IsProjectParticipant holds details about calls to the IsProjectParticipant method.
 		IsProjectParticipant []struct {
 			// Ctx is the ctx argument value.
@@ -1766,15 +1760,6 @@ type CoreServiceMock struct {
 		// PrivilegeCatalog holds details about calls to the PrivilegeCatalog method.
 		PrivilegeCatalog []struct {
 		}
-		// ProjectRoleForUser holds details about calls to the ProjectRoleForUser method.
-		ProjectRoleForUser []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// ProjectID is the projectID argument value.
-			ProjectID string
-			// UserID is the userID argument value.
-			UserID string
-		}
 		// RemovePrivilegeFromRole holds details about calls to the RemovePrivilegeFromRole method.
 		RemovePrivilegeFromRole []struct {
 			// Ctx is the ctx argument value.
@@ -1903,6 +1888,8 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// Project is the project argument value.
 			Project *models.Project
+			// PreviousPIRole is the previousPIRole argument value.
+			PreviousPIRole string
 		}
 		// UpdateProjectStatus holds details about calls to the UpdateProjectStatus method.
 		UpdateProjectStatus []struct {
@@ -1951,6 +1938,7 @@ type CoreServiceMock struct {
 		}
 	}
 	lockAddPrivilegeToRole                                     sync.RWMutex
+	lockAllocationRoleForUser                                  sync.RWMutex
 	lockAttachResourceToAllocation                             sync.RWMutex
 	lockBootstrapSuperAdmin                                    sync.RWMutex
 	lockCreateAuditEvent                                       sync.RWMutex
@@ -2027,7 +2015,6 @@ type CoreServiceMock struct {
 	lockGrantPrivilege                                         sync.RWMutex
 	lockGrantRoleToUser                                        sync.RWMutex
 	lockHasPrivilege                                           sync.RWMutex
-	lockIsAllocationMember                                     sync.RWMutex
 	lockIsProjectParticipant                                   sync.RWMutex
 	lockLatestUsageTimeForCluster                              sync.RWMutex
 	lockListAllAuditEvents                                     sync.RWMutex
@@ -2070,7 +2057,6 @@ type CoreServiceMock struct {
 	lockMarkComputeClusterUserProvisioned                      sync.RWMutex
 	lockMergeUsers                                             sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
-	lockProjectRoleForUser                                     sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
 	lockRevokePrivilege                                        sync.RWMutex
 	lockRevokeRoleFromUser                                     sync.RWMutex
@@ -2134,6 +2120,46 @@ func (mock *CoreServiceMock) AddPrivilegeToRoleCalls() []struct {
 	mock.lockAddPrivilegeToRole.RLock()
 	calls = mock.calls.AddPrivilegeToRole
 	mock.lockAddPrivilegeToRole.RUnlock()
+	return calls
+}
+
+// AllocationRoleForUser calls AllocationRoleForUserFunc.
+func (mock *CoreServiceMock) AllocationRoleForUser(ctx context.Context, allocationID string, userID string) (models.ProjectRole, error) {
+	if mock.AllocationRoleForUserFunc == nil {
+		panic("CoreServiceMock.AllocationRoleForUserFunc: method is nil but CoreService.AllocationRoleForUser was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+		UserID:       userID,
+	}
+	mock.lockAllocationRoleForUser.Lock()
+	mock.calls.AllocationRoleForUser = append(mock.calls.AllocationRoleForUser, callInfo)
+	mock.lockAllocationRoleForUser.Unlock()
+	return mock.AllocationRoleForUserFunc(ctx, allocationID, userID)
+}
+
+// AllocationRoleForUserCalls gets all the calls that were made to AllocationRoleForUser.
+// Check the length with:
+//
+//	len(mockedCoreService.AllocationRoleForUserCalls())
+func (mock *CoreServiceMock) AllocationRoleForUserCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+	UserID       string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+	}
+	mock.lockAllocationRoleForUser.RLock()
+	calls = mock.calls.AllocationRoleForUser
+	mock.lockAllocationRoleForUser.RUnlock()
 	return calls
 }
 
@@ -4977,46 +5003,6 @@ func (mock *CoreServiceMock) HasPrivilegeCalls() []struct {
 	return calls
 }
 
-// IsAllocationMember calls IsAllocationMemberFunc.
-func (mock *CoreServiceMock) IsAllocationMember(ctx context.Context, allocationID string, userID string) (bool, error) {
-	if mock.IsAllocationMemberFunc == nil {
-		panic("CoreServiceMock.IsAllocationMemberFunc: method is nil but CoreService.IsAllocationMember was just called")
-	}
-	callInfo := struct {
-		Ctx          context.Context
-		AllocationID string
-		UserID       string
-	}{
-		Ctx:          ctx,
-		AllocationID: allocationID,
-		UserID:       userID,
-	}
-	mock.lockIsAllocationMember.Lock()
-	mock.calls.IsAllocationMember = append(mock.calls.IsAllocationMember, callInfo)
-	mock.lockIsAllocationMember.Unlock()
-	return mock.IsAllocationMemberFunc(ctx, allocationID, userID)
-}
-
-// IsAllocationMemberCalls gets all the calls that were made to IsAllocationMember.
-// Check the length with:
-//
-//	len(mockedCoreService.IsAllocationMemberCalls())
-func (mock *CoreServiceMock) IsAllocationMemberCalls() []struct {
-	Ctx          context.Context
-	AllocationID string
-	UserID       string
-} {
-	var calls []struct {
-		Ctx          context.Context
-		AllocationID string
-		UserID       string
-	}
-	mock.lockIsAllocationMember.RLock()
-	calls = mock.calls.IsAllocationMember
-	mock.lockIsAllocationMember.RUnlock()
-	return calls
-}
-
 // IsProjectParticipant calls IsProjectParticipantFunc.
 func (mock *CoreServiceMock) IsProjectParticipant(ctx context.Context, projectID string, userID string) (bool, error) {
 	if mock.IsProjectParticipantFunc == nil {
@@ -5766,7 +5752,7 @@ func (mock *CoreServiceMock) ListMembersForAllocationCalls() []struct {
 }
 
 // ListMembersForProject calls ListMembersForProjectFunc.
-func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 	if mock.ListMembersForProjectFunc == nil {
 		panic("CoreServiceMock.ListMembersForProjectFunc: method is nil but CoreService.ListMembersForProject was just called")
 	}
@@ -6512,46 +6498,6 @@ func (mock *CoreServiceMock) PrivilegeCatalogCalls() []struct {
 	return calls
 }
 
-// ProjectRoleForUser calls ProjectRoleForUserFunc.
-func (mock *CoreServiceMock) ProjectRoleForUser(ctx context.Context, projectID string, userID string) (models.ProjectRole, error) {
-	if mock.ProjectRoleForUserFunc == nil {
-		panic("CoreServiceMock.ProjectRoleForUserFunc: method is nil but CoreService.ProjectRoleForUser was just called")
-	}
-	callInfo := struct {
-		Ctx       context.Context
-		ProjectID string
-		UserID    string
-	}{
-		Ctx:       ctx,
-		ProjectID: projectID,
-		UserID:    userID,
-	}
-	mock.lockProjectRoleForUser.Lock()
-	mock.calls.ProjectRoleForUser = append(mock.calls.ProjectRoleForUser, callInfo)
-	mock.lockProjectRoleForUser.Unlock()
-	return mock.ProjectRoleForUserFunc(ctx, projectID, userID)
-}
-
-// ProjectRoleForUserCalls gets all the calls that were made to ProjectRoleForUser.
-// Check the length with:
-//
-//	len(mockedCoreService.ProjectRoleForUserCalls())
-func (mock *CoreServiceMock) ProjectRoleForUserCalls() []struct {
-	Ctx       context.Context
-	ProjectID string
-	UserID    string
-} {
-	var calls []struct {
-		Ctx       context.Context
-		ProjectID string
-		UserID    string
-	}
-	mock.lockProjectRoleForUser.RLock()
-	calls = mock.calls.ProjectRoleForUser
-	mock.lockProjectRoleForUser.RUnlock()
-	return calls
-}
-
 // RemovePrivilegeFromRole calls RemovePrivilegeFromRoleFunc.
 func (mock *CoreServiceMock) RemovePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 	if mock.RemovePrivilegeFromRoleFunc == nil {
@@ -7105,21 +7051,23 @@ func (mock *CoreServiceMock) UpdateOrganizationCalls() []struct {
 }
 
 // UpdateProject calls UpdateProjectFunc.
-func (mock *CoreServiceMock) UpdateProject(ctx context.Context, project *models.Project) error {
+func (mock *CoreServiceMock) UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error {
 	if mock.UpdateProjectFunc == nil {
 		panic("CoreServiceMock.UpdateProjectFunc: method is nil but CoreService.UpdateProject was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Project *models.Project
+		Ctx            context.Context
+		Project        *models.Project
+		PreviousPIRole string
 	}{
-		Ctx:     ctx,
-		Project: project,
+		Ctx:            ctx,
+		Project:        project,
+		PreviousPIRole: previousPIRole,
 	}
 	mock.lockUpdateProject.Lock()
 	mock.calls.UpdateProject = append(mock.calls.UpdateProject, callInfo)
 	mock.lockUpdateProject.Unlock()
-	return mock.UpdateProjectFunc(ctx, project)
+	return mock.UpdateProjectFunc(ctx, project, previousPIRole)
 }
 
 // UpdateProjectCalls gets all the calls that were made to UpdateProject.
@@ -7127,12 +7075,14 @@ func (mock *CoreServiceMock) UpdateProject(ctx context.Context, project *models.
 //
 //	len(mockedCoreService.UpdateProjectCalls())
 func (mock *CoreServiceMock) UpdateProjectCalls() []struct {
-	Ctx     context.Context
-	Project *models.Project
+	Ctx            context.Context
+	Project        *models.Project
+	PreviousPIRole string
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Project *models.Project
+		Ctx            context.Context
+		Project        *models.Project
+		PreviousPIRole string
 	}
 	mock.lockUpdateProject.RLock()
 	calls = mock.calls.UpdateProject

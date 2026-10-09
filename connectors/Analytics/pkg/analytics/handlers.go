@@ -171,19 +171,8 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 // (their own scoped view). Access comes from membership alone, never a
 // site-wide privilege.
 func (h *Handlers) allocationAccess(r *http.Request, alloc *models.ComputeAllocation, userID string) (canManage, hasAccess bool, err error) {
-	role, err := h.svc.ProjectRoleForUser(r.Context(), alloc.ProjectID, userID)
-	if err != nil {
-		return false, false, err
-	}
-	switch role {
-	case models.ProjectRolePI, models.ProjectRoleCoPI, models.ProjectRoleAllocationManager:
-		return true, true, nil
-	}
-	member, err := h.svc.IsAllocationMember(r.Context(), alloc.ID, userID)
-	if err != nil {
-		return false, false, err
-	}
-	return false, member, nil
+	role, err := h.svc.AllocationRoleForUser(r.Context(), alloc.ID, userID)
+	return models.IsGovernanceRole(role), role != "", err
 }
 
 func requireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
