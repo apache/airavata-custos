@@ -17,7 +17,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ComputeAllocation } from "../schemas";
+import type { ComputeAllocation } from "@/generated/core/types.gen";
 
 const members = [
   {
@@ -51,30 +51,28 @@ const members = [
 
 const mutation = { mutate: vi.fn(), isPending: false };
 vi.mock("../queries", () => ({
+  useMembership: () => ({}),
+  useUpdateMembership: () => mutation,
+  useSetMembershipStatus: () => mutation,
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,
-  useUpdateMember: () => mutation,
   useRemoveMember: () => mutation,
 }));
 
 import { AllocationMembersTab } from "../components/AllocationMembersTab";
 
-const allocation = { id: "alloc-001", name: "Test Allocation" } as ComputeAllocation;
+const allocation: ComputeAllocation = { id: "alloc-001", name: "Test Allocation" };
 
 describe("<AllocationMembersTab />", () => {
-  it("offers no Edit or Remove for PI or Co-PI members", () => {
-    render(<AllocationMembersTab allocation={allocation} canManage={true} />);
-    for (const name of ["Paula Ivey", "Carl Osei"]) {
-      expect(screen.queryByRole("button", { name: `Edit ${name}` })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: `Remove ${name}` })).not.toBeInTheDocument();
+  it("offers Remove for every member, whatever their project role", () => {
+    render(<AllocationMembersTab allocation={allocation} canManage={true} canRead />);
+    for (const name of ["Paula Ivey", "Carl Osei", "Mina Frey"]) {
+      expect(screen.getByRole("button", { name: `Remove ${name}` })).toBeInTheDocument();
     }
-    expect(screen.getByRole("button", { name: "Edit Mina Frey" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeInTheDocument();
   });
 
   it("offers no actions without manage permission", () => {
-    render(<AllocationMembersTab allocation={allocation} canManage={false} />);
+    render(<AllocationMembersTab allocation={allocation} canManage={false} canRead />);
     expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Edit / })).not.toBeInTheDocument();
   });
 });

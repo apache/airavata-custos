@@ -23,79 +23,77 @@ import successFixture from "@/features/core/audit/__fixtures__/trace.amie.succes
 import httpFixture from "@/features/core/audit/__fixtures__/trace.http.json";
 import inProgressFixture from "@/features/core/audit/__fixtures__/trace.in-progress.json";
 import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
+import type {
+  GetAuditEventsResponse,
+  GetAuditSourcesResponse,
+  GetAuditTracesByTraceIdData,
+  GetAuditTracesByTraceIdResponse,
+  TraceSummary,
+} from "@/generated/core/types.gen";
+import {
+  zGetAuditEventsResponse,
+  zGetAuditSourcesResponse,
+  zGetAuditTracesByTraceIdResponse,
+  zTraceSummary,
+} from "@/generated/core/zod.gen";
+import { z } from "zod";
+import { notFound, page } from "../paging";
 
-type TraceSummary = {
-  trace_id: string;
-  root_operation: string;
-  source: string;
-  status: string;
-  started_at: string;
-  ended_at: string;
-  event_count: number;
-};
+// Shift every fixture timestamp so the latest trace ends now, as a live 30d window would.
+const shift = Date.now() - Math.max(...tracesListFixture.traces.map((t) => Date.parse(t.ended_at)));
+const rebase = (fixture: unknown): unknown =>
+  JSON.parse(JSON.stringify(fixture), (_key, v) =>
+    typeof v === "string" && /^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(v)
+      ? new Date(Date.parse(v) + shift).toISOString()
+      : v,
+  );
 
-const allTraces: TraceSummary[] = (tracesListFixture as { traces: TraceSummary[] }).traces.map(
-  (t) => ({ ...t }),
-);
+const allTraces: TraceSummary[] = z.array(zTraceSummary).parse(rebase(tracesListFixture.traces));
 
-const traceDetailsById: Record<string, unknown> = {
-  [failedFixture.trace_id]: failedFixture,
-  [successFixture.trace_id]: successFixture,
-  [httpFixture.trace_id]: httpFixture,
-  [inProgressFixture.trace_id]: inProgressFixture,
-};
+const traceDetails: GetAuditTracesByTraceIdResponse[] = z
+  .array(zGetAuditTracesByTraceIdResponse)
+  .parse(rebase([failedFixture, successFixture, httpFixture, inProgressFixture]));
 
-const auditEventsById = auditEventsFixture as Record<string, { events: unknown[] }>;
+const auditEventsById: Record<string, GetAuditEventsResponse> = z
+  .record(z.string(), zGetAuditEventsResponse)
+  .parse(rebase(auditEventsFixture));
 
-function filterList(
-  rows: TraceSummary[],
-  url: URL,
-): { rows: TraceSummary[]; total: number; limit: number; offset: number } {
+const sourceList: GetAuditSourcesResponse = zGetAuditSourcesResponse.parse(sourcesFixture);
+
+// Mirrors the store: from/to match any event's created_at.
+function filterList(url: URL) {
   const sources = url.searchParams.getAll("source");
   const statuses = url.searchParams.getAll("status");
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   const q = url.searchParams.get("q")?.toLowerCase() ?? "";
-  let filtered = rows;
-  if (sources.length) filtered = filtered.filter((t) => sources.includes(t.source));
-  if (statuses.length) filtered = filtered.filter((t) => statuses.includes(t.status));
-  if (from) filtered = filtered.filter((t) => t.started_at >= from);
-  if (to) filtered = filtered.filter((t) => t.started_at <= to);
-  if (q) {
-    filtered = filtered.filter(
-      (t) =>
-        t.trace_id.toLowerCase().startsWith(q) ||
-        t.root_operation.toLowerCase().includes(q),
-    );
-  }
-  const limit = Number(url.searchParams.get("limit") ?? "50");
-  const offset = Number(url.searchParams.get("offset") ?? "0");
-  const page = filtered.slice(offset, offset + limit);
-  return { rows: page, total: filtered.length, limit, offset };
+  const filtered = allTraces.filter(
+    ({ source, status, started_at, ended_at, trace_id, root_operation }) =>
+      (!sources.length || sources.includes(source)) &&
+      (!statuses.length || statuses.includes(status)) &&
+      (!from || Date.parse(ended_at) >= Date.parse(from)) &&
+      (!to || Date.parse(started_at) <= Date.parse(to)) &&
+      (!q || trace_id.startsWith(q) || root_operation.toLowerCase().includes(q)),
+  );
+  const { items: traces, ...rest } = page(url, filtered);
+  return { traces, ...rest };
 }
 
 export const tracesHandlers = [
-  http.get("/api/v1/audit/traces", ({ request }) => {
-    const url = new URL(request.url);
-    const { rows, total, limit, offset } = filterList(allTraces, url);
-    return HttpResponse.json({ traces: rows, total, limit, offset });
-  }),
+  http.get("/api/v1/audit/traces", ({ request }) =>
+    HttpResponse.json(filterList(new URL(request.url))),
+  ),
 
-  http.get("/api/v1/audit/traces/:traceId", ({ params }) => {
-    const traceId = String(params.traceId);
-    const detail = traceDetailsById[traceId];
-    if (!detail) return HttpResponse.json({ error: "trace not found" }, { status: 404 });
+  http.get<GetAuditTracesByTraceIdData["path"]>("/api/v1/audit/traces/:trace_id", ({ params }) => {
+    const detail = traceDetails.find((d) => d.trace_id === params.trace_id);
+    if (!detail) return notFound("trace");
     return HttpResponse.json(detail);
   }),
 
   http.get("/api/v1/audit/events", ({ request }) => {
-    const url = new URL(request.url);
-    const traceId = url.searchParams.get("trace_id") ?? "";
-    const bucket = auditEventsById[traceId];
-    return HttpResponse.json({ events: bucket?.events ?? [] });
+    const traceId = new URL(request.url).searchParams.get("trace_id") ?? "";
+    return HttpResponse.json({ events: auditEventsById[traceId]?.events ?? [] });
   }),
 
-  http.get("/api/v1/audit/sources", () => {
-    return HttpResponse.json(sourcesFixture);
-  }),
+  http.get("/api/v1/audit/sources", () => HttpResponse.json(sourceList)),
 ];

@@ -15,20 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { BookUser, Fingerprint, Globe, KeyRound, type LucideIcon } from "lucide-react";
+import { BookUser, Fingerprint, Globe, KeyRound, type LucideIcon, Users } from "lucide-react";
 
-// Display metadata for the `source` field on UserIdentity (GET
-// /users/{id}/user-identities) — "the source's native identifier" per the
-// API doc, e.g. "access", "cilogon", "orcid", "nairr".
+// Display metadata for UserIdentity.source. Core sign-in writes "oidc", the
+// AMIE connector "access" and COmanage "comanage"; POST /user-identities
+// accepts any other source.
 export const IDENTITY_SOURCE_LABELS: Record<string, string> = {
+  oidc: "OIDC",
   access: "ACCESS",
+  comanage: "COmanage",
   cilogon: "CILogon",
   orcid: "ORCID",
   nairr: "NAIRR",
 };
 
 const IDENTITY_SOURCE_ICONS: Record<string, LucideIcon> = {
+  oidc: KeyRound,
   access: Globe,
+  comanage: Users,
   cilogon: KeyRound,
   orcid: BookUser,
   nairr: Fingerprint,

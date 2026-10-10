@@ -99,10 +99,10 @@ func IsKnownPrivilege(p PrivilegeKey) bool {
 // UserPrivilege is one active grant in user_privileges. Revoked grants are
 // deleted from the table; their history lives in audit_events.
 type UserPrivilege struct {
-	ID        string       `json:"id"          db:"id"`
-	UserID    string       `json:"user_id"     db:"user_id"`
-	Privilege PrivilegeKey `json:"privilege"   db:"privilege"`
-	GrantedBy *string      `json:"granted_by"  db:"granted_by"`
-	GrantedAt time.Time    `json:"granted_at"  db:"granted_at"`
-	Reason    *string      `json:"reason"      db:"reason"`
+	ID        string       `json:"id"          db:"id" binding:"required"`
+	UserID    string       `json:"user_id"     db:"user_id" binding:"required"`
+	Privilege PrivilegeKey `json:"privilege"   db:"privilege" binding:"required"`
+	GrantedBy *string      `json:"granted_by"  db:"granted_by" extensions:"x-nullable"`
+	GrantedAt time.Time    `json:"granted_at"  db:"granted_at" binding:"required"`
+	Reason    *string      `json:"reason"      db:"reason" extensions:"x-nullable"`
 }

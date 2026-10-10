@@ -52,13 +52,13 @@ const (
 )
 
 type ComputeClusterUser struct {
-	ID               string                 `json:"id"                db:"id"`
-	ComputeClusterID string                 `json:"compute_cluster_id" db:"compute_cluster_id"`
-	UserID           string                 `json:"user_id"            db:"user_id"`
-	LocalUsername    string                 `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
-	AccessLevel      ClusterAccessLevel     `json:"access_level"       db:"access_level"`
-	ProvisionedAt    *time.Time             `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
-	ApprovalStatus   ClusterAccountApproval `json:"approval_status"    db:"approval_status"`
+	ID               string                 `json:"id"                db:"id" binding:"required"`
+	ComputeClusterID string                 `json:"compute_cluster_id" db:"compute_cluster_id" binding:"required"`
+	UserID           string                 `json:"user_id"            db:"user_id" binding:"required"`
+	LocalUsername    string                 `json:"local_username"     db:"local_username" binding:"required"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	AccessLevel      ClusterAccessLevel     `json:"access_level"       db:"access_level" binding:"required"`
+	ProvisionedAt    *time.Time             `json:"provisioned_at"     db:"provisioned_at" extensions:"x-nullable"` // When the account was provisioned into the registry; nil until then.
+	ApprovalStatus   ClusterAccountApproval `json:"approval_status"    db:"approval_status" binding:"required"`
 	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
 	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
@@ -88,11 +88,11 @@ type ComputeAllocationResource struct {
 
 // Store the association amount for a parition and allocation
 type ComputeAllocationResourceMapping struct {
-	ID                          string `json:"id"                             db:"id"`
-	ComputeAllocationID         string `json:"compute_allocation_id"          db:"compute_allocation_id"`
-	ComputeAllocationResourceID string `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"`
-	ResourceAmount              int64  `json:"resource_amount"                db:"resource_amount"` // Amount of the resource allocated to this allocation (e.g., number of CPUs, GPUs).
-	ResourceTime                int64  `json:"resource_time"                  db:"resource_time"`   // Wall-clock time in minutes that the allocated amount is granted for.
+	ID                          string `json:"id"                             db:"id" binding:"required"`
+	ComputeAllocationID         string `json:"compute_allocation_id"          db:"compute_allocation_id" binding:"required"`
+	ComputeAllocationResourceID string `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id" binding:"required"`
+	ResourceAmount              int64  `json:"resource_amount"                db:"resource_amount" binding:"required"` // Amount of the resource allocated to this allocation (e.g., number of CPUs, GPUs).
+	ResourceTime                int64  `json:"resource_time"                  db:"resource_time" binding:"required"`   // Wall-clock time in minutes that the allocated amount is granted for.
 }
 
 type ComputeAllocationResourceRate struct {
@@ -116,13 +116,13 @@ type ComputeAllocationDiff struct { // Diff will occur either through a change r
 type ComputeAllocationChangeRequest struct { // Represents a request to change the allocation, e.g., requesting more SUs, requesting a reduction in SUs, etc from users or admins.
 	ID                  string           `json:"id"                    db:"id"`
 	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
-	RequestedSUAmount   int64            `json:"requested_su_amount"   db:"requested_su_amount"` // The requested allocation amount in SUs, e.g., 1200 SUs, etc.
-	RequestedStatus     AllocationStatus `json:"requested_status"      db:"requested_status"`    // ACTIVE, INACTIVE, DELETED, etc.
-	Reason              string           `json:"reason"                db:"reason"`              // The reason for the change request, e.g., "Need more SUs for upcoming jobs", "Requesting reduction in SUs due to project completion", etc.
-	ChangeStatus        string           `json:"change_status"         db:"change_status"`       // "PENDING", "APPROVED", "REJECTED", etc.
-	RequesterID         string           `json:"requester_id"          db:"requester_id"`        // The ID of the user who made the change request.
-	ApproverID          string           `json:"approver_id,omitempty" db:"approver_id"`         // The ID of the user who approved/rejected the change request, if applicable.
-	Timestamp           time.Time        `json:"timestamp"             db:"timestamp"`           // The time when the change request was made.
+	RequestedSUAmount   int64            `json:"requested_su_amount"   db:"requested_su_amount"`                             // The requested allocation amount in SUs, e.g., 1200 SUs, etc.
+	RequestedStatus     AllocationStatus `json:"requested_status"      db:"requested_status"`                                // ACTIVE, INACTIVE, DELETED, etc.
+	Reason              string           `json:"reason"                db:"reason"`                                          // The reason for the change request, e.g., "Need more SUs for upcoming jobs", "Requesting reduction in SUs due to project completion", etc.
+	ChangeStatus        string           `json:"change_status"         db:"change_status" enums:"PENDING,APPROVED,REJECTED"` // "PENDING", "APPROVED", "REJECTED", etc.
+	RequesterID         string           `json:"requester_id"          db:"requester_id"`                                    // The ID of the user who made the change request.
+	ApproverID          string           `json:"approver_id,omitempty" db:"approver_id"`                                     // The ID of the user who approved/rejected the change request, if applicable.
+	Timestamp           time.Time        `json:"timestamp"             db:"timestamp"`                                       // The time when the change request was made.
 }
 
 type ComputeAllocationChangeRequestEvent struct {

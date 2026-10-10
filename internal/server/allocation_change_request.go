@@ -229,6 +229,14 @@ func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.R
 	common.WriteJSON(w, http.StatusOK, evt)
 }
 
+// @Summary	List change requests across allocations
+// @Tags	Compute Allocation Change Requests
+// @Security	BearerAuth
+// @Produce	json
+// @Param	status	query	string	false	"Change status filter"
+// @Param	limit	query	int	false	"Maximum rows (default 50)"
+// @Success	200	{array}	models.ComputeAllocationChangeRequest
+// @Router	/compute-allocation-change-requests [get]
 func (s *Server) listChangeRequests(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	f := store.ChangeRequestListFilter{

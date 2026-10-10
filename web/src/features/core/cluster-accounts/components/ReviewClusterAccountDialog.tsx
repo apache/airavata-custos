@@ -28,17 +28,16 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
-import type { ClusterAccount } from "../schemas";
+import type { ClusterAccountResponse } from "@/generated/core/types.gen";
 
 export type ReviewAction = "approve" | "deny";
 
 export type ReviewClusterAccountDialogProps = {
-  account: ClusterAccount | null;
+  account: ClusterAccountResponse | null;
   action: ReviewAction;
   onOpenChange: (open: boolean) => void;
   onConfirm: (note: string) => void;
   isPending: boolean;
-  error?: string | null;
 };
 
 const copy: Record<ReviewAction, { title: string; description: string; button: string }> = {
@@ -62,7 +61,6 @@ export function ReviewClusterAccountDialog({
   onOpenChange,
   onConfirm,
   isPending,
-  error,
 }: ReviewClusterAccountDialogProps) {
   const [note, setNote] = React.useState("");
   const open = account !== null;
@@ -110,9 +108,6 @@ export function ReviewClusterAccountDialog({
             Your name is recorded as the approver in the audit log.
           </output>
         )}
-        {error ? (
-          <p className="text-sm text-[color:var(--tone-error-fg)]">{error}</p>
-        ) : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel

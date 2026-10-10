@@ -1,0 +1,285 @@
+basePath: /
+definitions:
+  AllocationStatus:
+    enum:
+    - ACTIVE
+    - INACTIVE
+    - DELETED
+    type: string
+    x-enum-varnames:
+    - ACTIVE
+    - INACTIVE
+    - DELETED
+  ComputeAllocationMembership:
+    properties:
+      compute_allocation_id:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      membership_status:
+        allOf:
+        - $ref: '#/definitions/AllocationStatus'
+        description: ACTIVE, INACTIVE, etc.
+      start_time:
+        type: string
+      user_id:
+        type: string
+    type: object
+  User:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      organization_id:
+        type: string
+      status:
+        $ref: '#/definitions/UserStatus'
+      type:
+        $ref: '#/definitions/UserType'
+    required:
+    - email
+    - first_name
+    - id
+    - last_name
+    - organization_id
+    - status
+    - type
+    type: object
+  UserStatus:
+    enum:
+    - PENDING
+    - ACTIVE
+    - INACTIVE
+    - SUSPENDED
+    - MERGED
+    type: string
+    x-enum-varnames:
+    - UserPending
+    - UserActive
+    - UserInactive
+    - UserSuspended
+    - UserMerged
+  UserType:
+    enum:
+    - CLUSTER_LOCAL
+    - VIRTUAL
+    - SYSTEM
+    type: string
+    x-enum-varnames:
+    - UserTypeClusterLocal
+    - UserTypeVirtual
+    - UserTypeSystem
+host: localhost:8080
+info:
+  contact: {}
+  description: REST endpoints for VIRTUAL temporary accounts, all under /connectors/temp-account/.
+  title: Temp Account Connector API
+  version: 0.1.0
+paths:
+  /connectors/temp-account/assign-allocation:
+    post:
+      consumes:
+      - application/json
+      description: Creates a compute allocation membership for a VIRTUAL user.
+      parameters:
+      - description: Membership payload; user_id and compute_allocation_id required
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeAllocationMembership'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationMembership'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Assign an allocation to a temporary account
+      tags:
+      - Temp Accounts
+  /connectors/temp-account/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user whose type must be VIRTUAL in an existing organization.
+      parameters:
+      - description: User payload; type must be VIRTUAL
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            first_name:
+              type: string
+            last_name:
+              type: string
+            middle_name:
+              type: string
+            organization_id:
+              type: string
+            type:
+              $ref: '#/definitions/UserType'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a temporary account
+      tags:
+      - Temp Accounts
+  /connectors/temp-account/membership/{user_id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeAllocationMembership'
+            type: array
+        "400":
+          description: User is not VIRTUAL
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List a temporary account's allocation memberships
+      tags:
+      - Temp Accounts
+  /connectors/temp-account/remove/{user_id}:
+    delete:
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: User is not VIRTUAL
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a temporary account
+      tags:
+      - Temp Accounts
+  /connectors/temp-account/update-allocation:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Membership payload; id, user_id and compute_allocation_id required
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeAllocationMembership'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationMembership'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a temporary account's allocation membership
+      tags:
+      - Temp Accounts
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

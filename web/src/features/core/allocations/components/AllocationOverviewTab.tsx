@@ -17,22 +17,70 @@
 
 "use client";
 
-import { useEffectiveRate } from "@/features/core/resources/queries";
+import { formatDate, formatNumber } from "@/shared/format";
+import { useCluster } from "@/features/core/clusters/queries";
+import { useEffectiveRate, useResources } from "@/features/core/resources/queries";
+import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import { useAllocationResources } from "../queries";
-import type { AttachedResource, ComputeAllocation } from "../schemas";
+import { confirmToast, toastOnSuccess } from "@/shared/ui/sonner";
+import {
+  useAllocationResourceMapping,
+  useAllocationResources,
+  useAttachResource,
+  useDetachResource,
+  useUpdateResourceMapping,
+} from "../queries";
+import type {
+  ComputeAllocation,
+  ComputeAllocationResource,
+} from "@/generated/core/types.gen";
+import { Field, FormDialog, named, num, SelectField, text } from "@/shared/ui/FormDialog";
+import { ProjectLink } from "./AllocationsList";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
+  canManage: boolean;
 };
 
-function formatNumber(n: number): string {
-  return new Intl.NumberFormat().format(n);
+// The amount and wall-clock time a resource is granted for, as a mapping or a member override.
+export function GrantFields({ amount, time }: { amount?: number; time?: number }) {
+  return (
+    <>
+      <Field
+        label="Resource amount"
+        name="amount"
+        type="number"
+        min={0}
+        required
+        defaultValue={amount}
+      />
+      <Field
+        label="Resource time (minutes)"
+        name="time"
+        type="number"
+        min={0}
+        required
+        defaultValue={time}
+      />
+    </>
+  );
 }
 
-function AllocationResourceRow({ resource }: { resource: AttachedResource }) {
+function AllocationResourceRow({
+  allocationId,
+  resource,
+  canManage,
+}: {
+  allocationId: string;
+  resource: ComputeAllocationResource;
+  canManage: boolean;
+}) {
   const rateQuery = useEffectiveRate(resource.id);
+  const update = useUpdateResourceMapping(allocationId);
+  const detach = useDetachResource(allocationId);
+  const mapping = useAllocationResourceMapping(allocationId, resource.id);
+  const path = { id: allocationId, resourceId: resource.id ?? "" };
   return (
     <li className="flex items-center justify-between rounded-md border bg-card px-3 py-2 text-sm">
       <div>
@@ -46,22 +94,125 @@ function AllocationResourceRow({ resource }: { resource: AttachedResource }) {
           </div>
         ) : null}
       </div>
-      <span className="tabular-nums">{formatNumber(resource.resource_amount)}</span>
+      <div className="flex items-center gap-2">
+        <span className="tabular-nums">
+          {mapping.data
+            ? `${formatNumber(mapping.data.resource_amount)} · ${formatNumber(mapping.data.resource_time)} min`
+            : "—"}
+        </span>
+        {canManage ? (
+          <>
+            <FormDialog
+              trigger={
+                <Button size="sm" variant="outline">
+                  Edit
+                </Button>
+              }
+              title={`Edit ${resource.name}`}
+              description="Sets the amount and wall-clock time this allocation is granted."
+              submitLabel="Save"
+              isPending={update.isPending}
+              onSubmit={(form, close) =>
+                update.mutate(
+                  {
+                    path,
+                    body: { resource_amount: num(form, "amount"), resource_time: num(form, "time") },
+                  },
+                  toastOnSuccess("Resource updated", close),
+                )
+              }
+            >
+              {mapping.isLoading ? (
+                <TableSkeleton rows={2} columns={1} />
+              ) : (
+                <GrantFields
+                  amount={mapping.data?.resource_amount}
+                  time={mapping.data?.resource_time}
+                />
+              )}
+            </FormDialog>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={detach.isPending}
+              onClick={() =>
+                confirmToast(`Detach ${resource.name} from this allocation?`, "Detach", () =>
+                  detach.mutate({ path }, toastOnSuccess("Resource detached")),
+                )
+              }
+            >
+              Detach
+            </Button>
+          </>
+        ) : null}
+      </div>
     </li>
   );
 }
 
-export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps) {
+function AttachResourceDialog({
+  allocation,
+  attached,
+}: {
+  allocation: ComputeAllocation;
+  attached: ComputeAllocationResource[];
+}) {
+  const resources = useResources();
+  const attach = useAttachResource(allocation.id ?? "");
+  const options = named(
+    resources.data?.filter(
+      (r) =>
+        r.compute_cluster_id === allocation.compute_cluster_id &&
+        !attached.some((a) => a.id === r.id),
+    ),
+  );
+  return (
+    <FormDialog
+      trigger={
+        <Button size="sm" disabled={options.length === 0}>
+          + Attach resource
+        </Button>
+      }
+      title="Attach resource"
+      description="Resources of this allocation's cluster that are not attached yet."
+      submitLabel="Attach"
+      isPending={attach.isPending}
+      onSubmit={(form, close) =>
+        attach.mutate(
+          {
+            path: { id: allocation.id ?? "" },
+            body: {
+              compute_allocation_resource_id: text(form, "resource"),
+              resource_amount: num(form, "amount"),
+              resource_time: num(form, "time"),
+            },
+          },
+          toastOnSuccess("Resource attached", close),
+        )
+      }
+    >
+      <SelectField label="Resource" name="resource" options={options} />
+      <GrantFields />
+    </FormDialog>
+  );
+}
+
+export function AllocationOverviewTab({ allocation, canManage }: AllocationOverviewTabProps) {
   const resourcesQuery = useAllocationResources(allocation.id);
+  const cluster = useCluster(allocation.compute_cluster_id).data;
 
   return (
     <div className="space-y-6">
       <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
         <dt className="text-muted-foreground">Allocation ID</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">
+          {allocation.id}
+        </dd>
 
         <dt className="text-muted-foreground">Project</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.project_id}</dd>
+        <dd className="text-foreground before:content-[':_']">
+          <ProjectLink id={allocation.project_id ?? ""} className="hover:underline" />
+        </dd>
 
         <dt className="text-muted-foreground">Name</dt>
         <dd className="text-foreground before:content-[':_']">{allocation.name}</dd>
@@ -70,25 +221,34 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
         <dd className="text-foreground before:content-[':_']">{allocation.status}</dd>
 
         <dt className="text-muted-foreground">Cluster</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.compute_cluster_id}</dd>
+        <dd className="text-foreground before:content-[':_']">
+          {cluster?.name ?? allocation.compute_cluster_id}
+        </dd>
 
         <dt className="text-muted-foreground">Initial SUs</dt>
-        <dd className="tabular-nums text-foreground before:content-[':_']">{formatNumber(allocation.initial_su_amount)}</dd>
+        <dd className="tabular-nums text-foreground before:content-[':_']">
+          {formatNumber(allocation.initial_su_amount)}
+        </dd>
 
         <dt className="text-muted-foreground">Start</dt>
-        <dd className="text-foreground before:content-[':_']">{allocation.start_time}</dd>
+        <dd className="text-foreground before:content-[':_']">{formatDate(allocation.start_time)}</dd>
 
         <dt className="text-muted-foreground">End</dt>
-        <dd className="text-foreground before:content-[':_']">{allocation.end_time}</dd>
+        <dd className="text-foreground before:content-[':_']">{formatDate(allocation.end_time)}</dd>
       </dl>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-foreground">Resources</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Resources</h2>
+          {canManage ? (
+            <AttachResourceDialog allocation={allocation} attached={resourcesQuery.data ?? []} />
+          ) : null}
+        </div>
         {resourcesQuery.isLoading ? (
           <TableSkeleton rows={2} columns={3} />
         ) : resourcesQuery.error ? (
           <ErrorState
-            message={(resourcesQuery.error as Error).message}
+            message={resourcesQuery.error.message}
             onRetry={() => resourcesQuery.refetch()}
           />
         ) : !resourcesQuery.data || resourcesQuery.data.length === 0 ? (
@@ -96,7 +256,12 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
         ) : (
           <ul className="space-y-1">
             {resourcesQuery.data.map((resource) => (
-              <AllocationResourceRow key={resource.id} resource={resource} />
+              <AllocationResourceRow
+                key={resource.id}
+                allocationId={allocation.id ?? ""}
+                resource={resource}
+                canManage={canManage}
+              />
             ))}
           </ul>
         )}

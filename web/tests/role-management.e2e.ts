@@ -25,7 +25,7 @@ test.describe("role management", () => {
 
     await expect(page.getByRole("heading", { name: "Users & Permissions" })).toBeVisible();
     await expect(page.getByText("Super Admin")).toBeVisible();
-    await expect(page.getByText("Operator")).toBeVisible();
+    await expect(page.getByText("Operator", { exact: true })).toBeVisible();
     await expect(page.getByText("Auditor")).toBeVisible();
 
     const roleName = `Billing Reviewer ${Date.now()}`;

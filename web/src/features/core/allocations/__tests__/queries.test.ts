@@ -15,65 +15,39 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { describe, expect, it } from "vitest";
-import { allocationKeys } from "../queries";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+import { type ReactNode, createElement } from "react";
+import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/shared/api/client";
+import { useCurrentSuAmount } from "../queries";
 
-describe("allocationKeys", () => {
-  it("namespaces under 'allocations'", () => {
-    expect(allocationKeys.all).toEqual(["allocations"]);
+const latestDiff = vi.hoisted(() => vi.fn());
+
+vi.mock("@/generated/core/sdk.gen", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/generated/core/sdk.gen")>()),
+  getComputeAllocationsByIdDiffsLatest: latestDiff,
+}));
+
+function currentSu() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+  return renderHook(() => useCurrentSuAmount({ id: "alloc-1", initial_su_amount: 1000 }), {
+    wrapper,
+  }).result;
+}
+
+describe("useCurrentSuAmount", () => {
+  it("takes the latest diff's SU amount", async () => {
+    latestDiff.mockResolvedValue({ new_su_amount: 1500 });
+    const result = currentSu();
+    await waitFor(() => expect(result.current.data).toBe(1500));
   });
 
-  it("list key carries the params", () => {
-    const params = { limit: 20, status: "ACTIVE" as const };
-    expect(allocationKeys.list(params)).toEqual(["allocations", "list", params]);
-  });
-
-  it("detail key carries the id", () => {
-    expect(allocationKeys.detail("alloc-1")).toEqual(["allocations", "detail", "alloc-1"]);
-  });
-
-  it("resources key extends detail", () => {
-    expect(allocationKeys.resources("alloc-1")).toEqual([
-      "allocations",
-      "detail",
-      "alloc-1",
-      "resources",
-    ]);
-  });
-
-  it("members key extends detail", () => {
-    expect(allocationKeys.members("alloc-1")).toEqual([
-      "allocations",
-      "detail",
-      "alloc-1",
-      "members",
-    ]);
-  });
-
-  it("change-requests list key carries params", () => {
-    expect(allocationKeys.changeRequests({ status: "PENDING" })).toEqual([
-      "allocations",
-      "change-requests",
-      "list",
-      { status: "PENDING" },
-    ]);
-  });
-
-  it("change-requests detail key carries the id", () => {
-    expect(allocationKeys.changeRequestDetail("cr-1")).toEqual([
-      "allocations",
-      "change-requests",
-      "detail",
-      "cr-1",
-    ]);
-  });
-
-  it("change-requests events key carries the id", () => {
-    expect(allocationKeys.changeRequestEvents("cr-1")).toEqual([
-      "allocations",
-      "change-requests",
-      "events",
-      "cr-1",
-    ]);
+  it("falls back to the initial amount before any diff exists", async () => {
+    latestDiff.mockRejectedValue(new ApiError(404, "/diffs/latest", null));
+    const result = currentSu();
+    await waitFor(() => expect(result.current.data).toBe(1000));
   });
 });

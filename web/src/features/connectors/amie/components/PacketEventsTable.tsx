@@ -17,14 +17,11 @@
 
 "use client";
 
+import type { PacketEventResponse } from "@/generated/amie/types.gen";
 import { CenteredSpinner } from "@/shared/ui/Loading";
-// ADR-0004: sanctioned cross-feature import — ViewTraceLink is the ONE primitive
-// other features may pull from core/audit. See web/CLAUDE.md "Pitfalls" §4.
-import { ViewTraceLink } from "@/features/core/audit/components/ViewTraceLink";
-import type { PacketEvent } from "../types";
 import { formatDate } from "../utils";
 
-function eventIconLabel(event: PacketEvent): string {
+function eventIconLabel(event: PacketEventResponse): string {
   switch (event.event_type) {
     case "RECEIVED":
       return "[●]";
@@ -46,7 +43,7 @@ function eventIconLabel(event: PacketEvent): string {
 }
 
 export type PacketEventsTableProps = {
-  events: PacketEvent[];
+  events: PacketEventResponse[];
   isLoading: boolean;
 };
 
@@ -81,11 +78,6 @@ export function PacketEventsTable({ events, isLoading }: PacketEventsTableProps)
               {event.duration_ms !== undefined ? ` · ${event.duration_ms}ms` : null}
             </p>
             {event.message ? <p className="mt-1 text-sm">{event.message}</p> : null}
-            {event.trace_id ? (
-              <div className="mt-1">
-                <ViewTraceLink traceId={event.trace_id} variant="text" />
-              </div>
-            ) : null}
           </div>
         </li>
       ))}

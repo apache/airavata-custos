@@ -17,24 +17,24 @@
 
 "use client";
 
-import * as React from "react";
+import type { UsageSummary } from "@/generated/analytics/types.gen";
 import { cn } from "@/lib/utils";
+import * as React from "react";
 import {
+  CHART_OTHER_COLOR,
+  type ResourceSeries,
   buildPeriods,
   buildResourceSeries,
-  CHART_OTHER_COLOR,
   formatCredits,
   formatCreditsFull,
-  formatDate,
-  type ResourceSeries,
 } from "../lib";
-import type { UsageSummary } from "../schemas";
+import { formatDay } from "@/shared/format";
 
 const PLOT_HEIGHT = 160;
 
 export function UsageOverTimeBars({ summary }: { summary: UsageSummary }) {
   const [mode, setMode] = React.useState<"day" | "week">("day");
-  const series = React.useMemo(() => buildResourceSeries(summary.by_resource), [summary]);
+  const series = React.useMemo(() => buildResourceSeries(summary.by_resource ?? []), [summary]);
   const periods = React.useMemo(() => buildPeriods(summary.daily, mode), [summary, mode]);
   const maxTotal = Math.max(1, ...periods.map((p) => p.total));
 
@@ -118,7 +118,7 @@ function Bar({
       )}
       style={{ height: plotHeight }}
       role="img"
-      aria-label={`${formatDate(period.label)}${period.isPartial ? " so far" : ""}: ${formatCreditsFull(period.total)} credits`}
+      aria-label={`${formatDay(period.label)}${period.isPartial ? " so far" : ""}: ${formatCreditsFull(period.total)} credits`}
     >
       {segments.map((seg, i) => (
         <div
@@ -147,7 +147,7 @@ function BarTooltip({
   return (
     <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden w-44 -translate-x-1/2 rounded-md border border-border bg-popover p-2 text-xs shadow-md group-hover:block">
       <div className="mb-1 font-medium">
-        {formatDate(period.label)}
+        {formatDay(period.label)}
         {period.isPartial ? " (so far)" : ""}
       </div>
       <ul className="space-y-0.5">

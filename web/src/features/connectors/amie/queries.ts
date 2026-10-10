@@ -17,141 +17,128 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  type PacketListParams,
-  type ReplyListParams,
-  type StatsParams,
-  type UnmappedListParams,
-  getPacket,
-  getPacketEvents,
-  getPacketStats,
-  linkUnmapped,
-  listPackets,
-  listReplies,
-  listUnmapped,
-  resolvePacket,
-  retryPacket,
-  retryReply,
-} from "./api";
-
-const DEFAULT_STALE_TIME = 30_000;
-const DEFAULT_GC_TIME = 5 * 60_000;
+  getConnectorsAmiePackets,
+  getConnectorsAmiePacketsById,
+  getConnectorsAmiePacketsByIdEvents,
+  getConnectorsAmiePacketsByPacketIdAudits,
+  getConnectorsAmieReplies,
+  getConnectorsAmieStats,
+  getConnectorsAmieUnmapped,
+  postConnectorsAmiePacketsByIdResolve,
+  postConnectorsAmiePacketsByIdRetry,
+  postConnectorsAmieRepliesByIdRetry,
+  postConnectorsAmieUnmappedByIdLink,
+} from "@/generated/amie/sdk.gen";
+import type {
+  GetConnectorsAmiePacketsData,
+  GetConnectorsAmieRepliesData,
+  GetConnectorsAmieStatsData,
+} from "@/generated/amie/types.gen";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export const amieKeys = {
   all: ["amie"] as const,
-  packets: (params: PacketListParams = {}) =>
-    [...amieKeys.all, "packets", "list", params] as const,
+  packets: (query: GetConnectorsAmiePacketsData["query"]) =>
+    [...amieKeys.all, "packets", "list", query] as const,
   packet: (id: string) => [...amieKeys.all, "packets", "detail", id] as const,
   events: (id: string) => [...amieKeys.all, "packets", "events", id] as const,
-  replies: (params: ReplyListParams = {}) => [...amieKeys.all, "replies", params] as const,
-  unmapped: (params: UnmappedListParams = {}) => [...amieKeys.all, "unmapped", params] as const,
-  stats: (params: StatsParams = {}) => [...amieKeys.all, "stats", params] as const,
+  audits: (id: string) => [...amieKeys.all, "packets", "audits", id] as const,
+  replies: (query: GetConnectorsAmieRepliesData["query"]) =>
+    [...amieKeys.all, "replies", query] as const,
+  unmapped: () => [...amieKeys.all, "unmapped"] as const,
+  stats: (query: GetConnectorsAmieStatsData["query"]) =>
+    [...amieKeys.all, "stats", query] as const,
 };
 
-export function usePackets(params: PacketListParams = {}) {
+export function usePackets(query: GetConnectorsAmiePacketsData["query"]) {
   return useQuery({
-    queryKey: amieKeys.packets(params),
-    queryFn: () => listPackets(params),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: amieKeys.packets(query),
+    queryFn: () => getConnectorsAmiePackets({ query }),
   });
 }
 
 export function usePacket(id: string | undefined) {
   return useQuery({
-    queryKey: id ? amieKeys.packet(id) : [...amieKeys.all, "packets", "detail", "none"],
-    queryFn: () => getPacket(id as string),
-    enabled: Boolean(id),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: amieKeys.packet(id ?? ""),
+    queryFn: id ? () => getConnectorsAmiePacketsById({ path: { id } }) : skipToken,
   });
 }
 
 export function usePacketEvents(id: string | undefined) {
   return useQuery({
-    queryKey: id ? amieKeys.events(id) : [...amieKeys.all, "packets", "events", "none"],
-    queryFn: () => getPacketEvents(id as string),
-    enabled: Boolean(id),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: amieKeys.events(id ?? ""),
+    queryFn: id ? () => getConnectorsAmiePacketsByIdEvents({ path: { id } }) : skipToken,
   });
 }
 
-export function useRetryPacket() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => retryPacket(id),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: amieKeys.all });
-    },
-  });
-}
-
-export function useResolvePacket() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => resolvePacket(id, { reason }),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: amieKeys.all });
-    },
-  });
-}
-
-export function useReplies(params: ReplyListParams = {}) {
+export function usePacketAudits(id: string | undefined) {
   return useQuery({
-    queryKey: amieKeys.replies(params),
-    queryFn: () => listReplies(params),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: amieKeys.audits(id ?? ""),
+    queryFn: id
+      ? () => getConnectorsAmiePacketsByPacketIdAudits({ path: { packet_id: id } })
+      : skipToken,
   });
 }
 
-export function useRetryReply() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => retryReply(id),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: amieKeys.all });
-    },
-  });
-}
-
-export function useUnmapped(params: UnmappedListParams = {}) {
+export function useReplies(query: GetConnectorsAmieRepliesData["query"]) {
   return useQuery({
-    queryKey: amieKeys.unmapped(params),
-    queryFn: () => listUnmapped(params),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: amieKeys.replies(query),
+    queryFn: () => getConnectorsAmieReplies({ query }),
   });
 }
 
-export function useLinkUnmapped() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      entity_type,
-      entity_id,
-    }: { id: string; entity_type: string; entity_id: string }) =>
-      linkUnmapped(id, { entity_type, entity_id }),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: amieKeys.all });
-    },
-  });
-}
-
-export function usePacketStats(params: StatsParams = { window: "30d" }) {
+export function useUnmapped() {
   return useQuery({
-    queryKey: amieKeys.stats(params),
-    queryFn: () => getPacketStats(params),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: amieKeys.unmapped(),
+    queryFn: () => getConnectorsAmieUnmapped(),
+  });
+}
+
+export function usePacketStats(query: GetConnectorsAmieStatsData["query"]) {
+  return useQuery({
+    queryKey: amieKeys.stats(query),
+    queryFn: () => getConnectorsAmieStats({ query }),
+  });
+}
+
+const AMIE_ACTIONS = {
+  retryPacket: {
+    done: "Retry queued",
+    call: (id: string) => postConnectorsAmiePacketsByIdRetry({ path: { id } }),
+  },
+  resolvePacket: {
+    done: "Marked processed",
+    call: (id: string) => postConnectorsAmiePacketsByIdResolve({ path: { id } }),
+  },
+  retryReply: {
+    done: "Reply retry queued",
+    call: (id: string) => postConnectorsAmieRepliesByIdRetry({ path: { id } }),
+  },
+  linkUnmapped: {
+    done: "Packet linked",
+    call: (id: string) => postConnectorsAmieUnmappedByIdLink({ path: { id } }),
+  },
+};
+
+// One mutation for single-item and bulk calls: every id is attempted, and any failure
+// surfaces as an error toast carrying the backend message instead of a success.
+export function useAmieAction(action: keyof typeof AMIE_ACTIONS) {
+  const client = useQueryClient();
+  const { done, call } = AMIE_ACTIONS[action];
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const failures = (await Promise.allSettled(ids.map(call))).flatMap((r) =>
+        r.status === "rejected" ? [r.reason] : [],
+      );
+      if (failures.length === 0) return ids.length;
+      const reason = failures[0] instanceof Error ? failures[0].message : String(failures[0]);
+      throw new Error(
+        ids.length > 1 ? `${failures.length} of ${ids.length} failed: ${reason}` : reason,
+      );
+    },
+    onSuccess: (count) => toast.success(count > 1 ? `${done} (${count})` : done),
+    onSettled: () => client.invalidateQueries({ queryKey: amieKeys.all }),
   });
 }

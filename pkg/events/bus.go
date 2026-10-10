@@ -92,7 +92,7 @@ func (b *Bus) Unsubscribe(ctx context.Context, subscriber string) error {
 // Not loaded means the connector did not start, so its deliveries stay pending.
 type Subscription struct {
 	models.EventSubscription
-	Loaded bool `json:"loaded"`
+	Loaded bool `json:"loaded" binding:"required"`
 }
 
 // ListSubscriptions returns every saved subscription with its loaded flag.

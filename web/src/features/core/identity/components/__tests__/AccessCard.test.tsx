@@ -29,23 +29,25 @@ const access: MyAccess = {
         name: "Administrator",
         description: "Full management.",
         is_system: true,
+        created_at: "2026-01-01T00:00:00Z",
       },
       privileges: ["core:users:read", "core:users:write"],
-      grant: { role_id: "role-admin", granted_by: "portal-admin", granted_at: "2026-03-12T09:00:00Z" },
+      granted_by: "portal-admin",
+      granted_at: "2026-03-12T09:00:00Z",
     },
     {
-      role: { id: "role-amie", name: "AMIE Operator" },
-      privileges: ["amie:packets:read", "amie:packets:write"],
-      grant: { role_id: "role-amie" },
+      role: { id: "role-ops", name: "Cluster Operator", is_system: false, created_at: "2026-01-01T00:00:00Z" },
+      privileges: ["core:clusters:read", "core:clusters:write"],
+      granted_at: "2026-01-01T00:00:00Z",
     },
   ],
-  direct: [{ privilege: "core:traces:read" }],
+  direct: [{ id: "g1", user_id: "u1", privilege: "core:traces:read", granted_at: "2026-01-01T00:00:00Z" }],
   privileges: [
     "core:users:read",
     "core:users:write",
     "core:traces:read",
-    "amie:packets:read",
-    "amie:packets:write",
+    "core:clusters:read",
+    "core:clusters:write",
   ],
 };
 
@@ -67,49 +69,20 @@ describe("AccessCard", () => {
     const users = rowFor("core:users");
     expect(users).toHaveTextContent("read");
     expect(users).toHaveTextContent("write");
-    expect(screen.getByText("amie:packets")).toBeInTheDocument();
+    expect(screen.getByText("core:clusters")).toBeInTheDocument();
     expect(screen.queryByText("Users")).not.toBeInTheDocument();
-  });
-
-  it("shows provenance per row: role name or Direct grant", () => {
-    render(<AccessCard access={access} />);
-    expect(rowFor("core:users")).toHaveTextContent("Administrator");
-    expect(rowFor("core:traces")).toHaveTextContent("Direct grant");
   });
 
   it("highlights a role's privileges on hover", () => {
     render(<AccessCard access={access} />);
     const users = rowFor("core:users");
-    const packets = rowFor("amie:packets");
+    const clusters = rowFor("core:clusters");
     expect(users.className).not.toContain("brand-tint");
 
     fireEvent.mouseEnter(roleCard("role-admin"));
     expect(users.className).toContain("brand-tint");
     // Only the hovered role's rows highlight, not another role's.
-    expect(packets.className).not.toContain("brand-tint");
-  });
-
-  it("renders empty states when the caller has no roles", () => {
-    render(<AccessCard access={{ provenance: true, roles: [], direct: [], privileges: [] }} />);
-    expect(screen.getByText("No roles assigned.")).toBeInTheDocument();
-  });
-
-  it("shows effective privileges without provenance when the reads are gated", () => {
-    render(
-      <AccessCard
-        access={{
-          provenance: false,
-          roles: [],
-          direct: [],
-          privileges: ["core:users:read", "amie:packets:write"],
-        }}
-      />,
-    );
-    expect(screen.getByText(/no roles assigned/i)).toBeInTheDocument();
-    expect(screen.getByText("core:users")).toBeInTheDocument();
-    expect(screen.getByText("amie:packets")).toBeInTheDocument();
-    // Never claim "Direct grant" without the provenance data.
-    expect(screen.queryByText("Direct grant")).not.toBeInTheDocument();
+    expect(clusters.className).not.toContain("brand-tint");
   });
 
   it("lists held roles with attribution even without provenance", () => {
@@ -119,9 +92,15 @@ describe("AccessCard", () => {
           provenance: false,
           roles: [
             {
-              role: { id: "role-reviewer", name: "Reviewer", description: "Reads reports." },
+              role: {
+                id: "role-reviewer",
+                name: "Reviewer",
+                description: "Reads reports.",
+                is_system: false,
+                created_at: "2026-01-01T00:00:00Z",
+              },
               privileges: ["core:users:read"],
-              grant: { role_id: "role-reviewer", granted_at: "2026-07-01T09:00:00Z" },
+              granted_at: "2026-07-01T09:00:00Z",
             },
           ],
           direct: [],

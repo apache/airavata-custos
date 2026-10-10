@@ -17,47 +17,31 @@
 
 "use client";
 
+import { formatDate, formatNumber } from "@/shared/format";
 import Link from "next/link";
 import * as React from "react";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { DataTable, type DataTableColumn, type DataTablePagination } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-import type { AllocationStatus, ComputeAllocation } from "../schemas";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import { STATUSES, statusLabel } from "@/shared/ui/FormDialog";
+import type { AllocationStatus, ComputeAllocation } from "@/generated/core/types.gen";
+import { useClusterName } from "@/features/core/clusters/queries";
+import { useProject } from "@/features/core/projects/queries";
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function statusLabelFor(value: string): string {
-  switch (value) {
-    case "ACTIVE":
-      return "Active";
-    case "INACTIVE":
-      return "Inactive";
-    case "DELETED":
-      return "Deleted";
-    default:
-      return "All statuses";
-  }
-}
-
-function formatSU(n: number): string {
-  return new Intl.NumberFormat().format(n);
+export function ProjectLink({ id, className }: { id: string; className?: string }) {
+  const title = useProject(id).data?.title;
+  return (
+    <Link
+      href={`/projects/${id}`}
+      className={className ?? "break-all text-sm text-muted-foreground hover:underline"}
+    >
+      {title ?? id}
+    </Link>
+  );
 }
 
 export type AllocationsListProps = {
@@ -69,6 +53,7 @@ export type AllocationsListProps = {
   onSearchChange: (next: string) => void;
   statusFilter: AllocationStatus | "all";
   onStatusFilterChange: (next: AllocationStatus | "all") => void;
+  pagination?: DataTablePagination;
 };
 
 export function AllocationsList({
@@ -80,17 +65,17 @@ export function AllocationsList({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  pagination,
 }: AllocationsListProps) {
+  const clusterName = useClusterName();
+  // The backend skips filters for callers without allocations read.
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (needle) {
-        const hay = `${row.name} ${row.project_id} ${row.id}`.toLowerCase();
-        if (!hay.includes(needle)) return false;
-      }
-      return true;
-    });
+    return rows.filter(
+      (row) =>
+        (statusFilter === "all" || row.status === statusFilter) &&
+        (row.name ?? "").toLowerCase().includes(needle),
+    );
   }, [rows, search, statusFilter]);
 
   const columns: Array<DataTableColumn<ComputeAllocation>> = [
@@ -115,38 +100,33 @@ export function AllocationsList({
     {
       key: "project",
       header: "Project",
-      sortable: true,
-      sortValue: (row) => row.project_id,
       width: "12rem",
-      cell: (row) => (
-        <Link
-          href={`/projects/${row.project_id}`}
-          className="break-all text-sm text-muted-foreground hover:underline"
-        >
-          {row.project_id}
-        </Link>
-      ),
+      cell: (row) => <ProjectLink id={row.project_id ?? ""} />,
     },
     {
       key: "cluster",
       header: "Cluster",
       sortable: true,
-      sortValue: (row) => row.compute_cluster_id,
+      sortValue: (row) => clusterName(row.compute_cluster_id),
       width: "12rem",
-      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
+      cell: (row) => (
+        <span className="break-all text-sm">
+          {clusterName(row.compute_cluster_id)}
+        </span>
+      ),
     },
     {
       key: "initial",
       header: "Initial SUs",
       sortable: true,
       sortValue: (row) => row.initial_su_amount,
-      cell: (row) => <span className="tabular-nums">{formatSU(row.initial_su_amount)}</span>,
+      cell: (row) => <span className="tabular-nums">{formatNumber(row.initial_su_amount)}</span>,
     },
     {
       key: "endDate",
       header: "End date",
       sortable: true,
-      sortValue: (row) => new Date(row.end_time),
+      sortValue: (row) => new Date(row.end_time ?? ""),
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDate(row.end_time)}</span>
       ),
@@ -177,7 +157,7 @@ export function AllocationsList({
       <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
         <Input
           type="search"
-          placeholder="Search by allocation name, project, or ID"
+          placeholder="Search by allocation name"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           aria-label="Search allocations"
@@ -185,16 +165,17 @@ export function AllocationsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as AllocationStatus | "all")}
+          onValueChange={(value) => value && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
-            <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
+            <SelectValue>{statusLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="INACTIVE">Inactive</SelectItem>
-            <SelectItem value="DELETED">Deleted</SelectItem>
+            {["all", ...STATUSES].map((s) => (
+              <SelectItem key={s} value={s}>
+                {statusLabel(s)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -209,7 +190,12 @@ export function AllocationsList({
           description="No allocations match the current filters."
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row.id ?? ""}
+          pagination={pagination}
+        />
       )}
     </div>
   );

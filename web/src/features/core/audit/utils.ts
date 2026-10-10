@@ -15,7 +15,46 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { EntityRef, RowTone, Span, Trace, UISpan } from "./types";
+import type {
+  TraceDetailResponse,
+  TraceEvent,
+  TraceNode,
+  TraceSummary,
+} from "@/generated/core/types.gen";
+
+export type RowTone = "ok" | "error" | "in-progress";
+
+// The backend ships a recursive tree; the tree view joins a flat list by
+// parent_span_id, and the header summarises the root like a list row.
+export function traceView({ trace_id, status, tree, deliveries, truncated }: TraceDetailResponse): {
+  trace: TraceSummary | undefined;
+  spans: TraceEvent[];
+  truncated: boolean;
+} {
+  const spans: TraceEvent[] = [];
+  const walk = ({ children, ...event }: TraceNode) => {
+    spans.push(event);
+    children.forEach(walk);
+  };
+  tree.forEach(walk);
+  const root = tree[0];
+  const trace = root && {
+    trace_id,
+    root_operation: root.event_type,
+    source: root.source,
+    status,
+    started_at: root.created_at,
+    ended_at: new Date(Math.max(...spans.map((s) => Date.parse(s.created_at)))).toISOString(),
+    event_count: spans.length,
+    deliveries: {
+      pending: deliveries.filter((d) => d.status === "PENDING").length,
+      succeeded: deliveries.filter((d) => d.status === "SUCCEEDED").length,
+      failed: deliveries.filter((d) => d.status === "FAILED").length,
+      attempts: Math.max(0, ...deliveries.filter((d) => d.status === "PENDING").map((d) => d.attempts)),
+    },
+  };
+  return { trace, spans, truncated };
+}
 
 // Truncate a hex id to a leading prefix for compact display in tables/badges.
 export function shortHex(value: string | undefined | null, length = 8): string {
@@ -62,57 +101,8 @@ export function formatRelative(iso: string, now: number = Date.now()): string {
   return `${Math.floor(ageMs / DAY_MS)}d ago`;
 }
 
-// Sonner is imported lazily so tests don't have to stub it when loading utils.
-export async function copyTraceId(traceId: string): Promise<void> {
-  const { toast } = await import("sonner");
-  try {
-    await navigator.clipboard.writeText(traceId);
-    toast.success("Copied", { description: shortHex(traceId, 12) });
-  } catch {
-    toast.error("Could not copy to clipboard");
-  }
-}
-
-// Run-state flags win over wire status, which wins over name heuristics.
-export function rowTone(row: UISpan): RowTone {
-  if (row.running) return "in-progress";
-  if (row.orphan && row.status == null) return "orphaned";
-  if (row.notRun) return "no-status";
-  if (row.status === 1) return "error";
-  if (row.status === 0) return "ok";
-  const a = row.name || "";
-  if (/Failed$/.test(a) || /Error/.test(a) || row.status_message) return "error";
-  if (row.status == null) return "no-status";
-  return "ok";
-}
-
-// Trace-level tone: 0->ok, 1->error, 2->no-status (cancelled rendered muted),
-// 3->orphaned. `ended_at == null` always overrides to in-progress so a live
-// trace shows the amber pulse even before its terminal status is recorded.
-export function traceTone(trace: Trace): RowTone {
-  if (trace.ended_at == null) return "in-progress";
-  switch (trace.status) {
-    case 0:
-      return "ok";
-    case 1:
-      return "error";
-    case 2:
-      return "no-status";
-    case 3:
-      return "orphaned";
-    default:
-      return "no-status";
-  }
-}
-
-// Augment a wire span with the run-state flags rowTone needs. `notRun` is
-// "skipped because parent failed": child sat null with no end_time under an
-// errored ancestor.
-export function enrichSpan(span: Span, byId: Map<string, Span>, parentIsError: boolean): UISpan {
-  const running = span.end_time == null && !parentIsError;
-  const orphan = span.parent_span_id != null && !byId.has(span.parent_span_id);
-  const notRun = parentIsError && span.status == null && span.end_time == null;
-  return { ...span, running, orphan, notRun };
+export function traceTone({ status }: TraceSummary): RowTone {
+  return status === "in_progress" ? "in-progress" : status;
 }
 
 // A code-shaped action has no whitespace and at least one `.` or `:` separator
@@ -124,14 +114,14 @@ export function isCodeShaped(action: string): boolean {
 
 // Walk every error span up to the root, collecting the path. An "error leaf"
 // is an error span with no error descendant — the precise failing row.
-export function detectErrorPath(spans: UISpan[]): {
+export function detectErrorPath(spans: TraceEvent[]): {
   pathSet: Set<string>;
   errorLeafIds: string[];
 } {
-  const byId = new Map<string, UISpan>();
+  const byId = new Map<string, TraceEvent>();
   for (const s of spans) byId.set(s.span_id, s);
 
-  const childrenOf = new Map<string, UISpan[]>();
+  const childrenOf = new Map<string, TraceEvent[]>();
   for (const s of spans) {
     if (!s.parent_span_id) continue;
     const list = childrenOf.get(s.parent_span_id) ?? [];
@@ -139,10 +129,10 @@ export function detectErrorPath(spans: UISpan[]): {
     childrenOf.set(s.parent_span_id, list);
   }
 
-  const errors = spans.filter((s) => rowTone(s) === "error");
+  const errors = spans.filter((s) => s.status === "error");
   const pathSet = new Set<string>();
   for (const e of errors) {
-    let cursor: UISpan | undefined = e;
+    let cursor: TraceEvent | undefined = e;
     while (cursor && !pathSet.has(cursor.span_id)) {
       pathSet.add(cursor.span_id);
       cursor = cursor.parent_span_id ? byId.get(cursor.parent_span_id) : undefined;
@@ -152,7 +142,7 @@ export function detectErrorPath(spans: UISpan[]): {
   const errorLeafIds: string[] = [];
   for (const e of errors) {
     const kids = childrenOf.get(e.span_id) ?? [];
-    const hasErrorDescendant = kids.some((k) => rowTone(k) === "error");
+    const hasErrorDescendant = kids.some((k) => k.status === "error");
     if (!hasErrorDescendant) errorLeafIds.push(e.span_id);
   }
 
@@ -160,16 +150,15 @@ export function detectErrorPath(spans: UISpan[]): {
 }
 
 export type TreeNode = {
-  span: UISpan;
+  span: TraceEvent;
   depth: number;
   children: TreeNode[];
   parent: TreeNode | null;
 };
 
-// Join spans into a tree by parent_span_id. Orphans (parent set but
-// unresolved) and true roots both surface as roots so retry siblings keep
-// their place.
-export function buildTree(spans: UISpan[]): {
+// Join spans into a tree by parent_span_id. A span whose parent wrote no row is
+// a root, as the backend treats it, so retry siblings keep their place.
+export function buildTree(spans: TraceEvent[]): {
   roots: TreeNode[];
   byId: Map<string, TreeNode>;
 } {
@@ -201,7 +190,7 @@ export function buildTree(spans: UISpan[]): {
 }
 
 export function subtreeHasError(node: TreeNode): boolean {
-  if (rowTone(node.span) === "error") return true;
+  if (node.span.status === "error") return true;
   for (const c of node.children) if (subtreeHasError(c)) return true;
   return false;
 }
@@ -231,41 +220,13 @@ export function flattenTree(
   return out;
 }
 
-const ENTITY_ATTR_MAP: ReadonlyArray<{ attr: string; kind: string }> = [
-  { attr: "amie.packet_id", kind: "AMIE packet" },
-  { attr: "entity.user_id", kind: "User" },
-  { attr: "entity.project_id", kind: "Project" },
-  { attr: "project.id", kind: "Project" },
-  { attr: "comanage.co_person_id", kind: "CO person" },
-  { attr: "allocation.id", kind: "Allocation" },
-  { attr: "slurm.account", kind: "Cluster account" },
-];
-
-function readAttr(span: Span, key: string): string | undefined {
-  const attrs = span.attributes;
-  if (!attrs || typeof attrs !== "object") return undefined;
-  const raw = (attrs as Record<string, unknown>)[key];
-  if (raw == null) return undefined;
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "number" || typeof raw === "boolean") return String(raw);
-  return undefined;
-}
-
-// Scan span attributes for the known entity keys and dedupe by
-// `${kind}::${primaryId}` so the same packet/user surfacing across spans
-// collapses to one card.
-export function getEntityRefs(spans: Span[]): EntityRef[] {
-  const out: EntityRef[] = [];
+// One event per referenced entity, deduped across spans.
+export function getEntityRefs(spans: TraceEvent[]): TraceEvent[] {
   const seen = new Set<string>();
-  for (const span of spans) {
-    for (const { attr, kind } of ENTITY_ATTR_MAP) {
-      const value = readAttr(span, attr);
-      if (!value) continue;
-      const key = `${kind}::${value}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({ kind, primaryId: value, attrs: { [attr]: value } });
-    }
-  }
-  return out;
+  return spans.filter(({ entity_type, entity_id }) => {
+    const key = `${entity_type}::${entity_id}`;
+    if (!entity_id || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

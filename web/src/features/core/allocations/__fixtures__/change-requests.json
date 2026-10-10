@@ -11,7 +11,7 @@
   },
   {
     "id": "cr-002",
-    "compute_allocation_id": "alloc-002",
+    "compute_allocation_id": "alloc-004",
     "requested_su_amount": 80000,
     "requested_status": "ACTIVE",
     "reason": "[EXTEND_END_DATE → 2027-09-30] Project timeline slipped, need three more months of CPU access for QC.",

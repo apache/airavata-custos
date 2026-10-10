@@ -19,7 +19,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/shared/ui/button";
 import { OrganizationsList } from "../components/OrganizationsList";
-import type { Organization } from "../schemas";
+import type { Organization } from "@/generated/core/types.gen";
 
 const org: Organization = {
   id: "org-gatech",
@@ -44,9 +44,9 @@ function renderList(overrides: Partial<React.ComponentProps<typeof Organizations
 describe("<OrganizationsList />", () => {
   it("renders a row with the organization fields", () => {
     renderList();
-    expect(screen.getByText(org.name)).toBeInTheDocument();
-    expect(screen.getByText(org.originated_id)).toBeInTheDocument();
-    expect(screen.getByText(org.id)).toBeInTheDocument();
+    expect(screen.getByText("Georgia Institute of Technology")).toBeInTheDocument();
+    expect(screen.getByText("GATECH")).toBeInTheDocument();
+    expect(screen.getByText("org-gatech")).toBeInTheDocument();
   });
 
   it("shows the empty state when there are no rows", () => {

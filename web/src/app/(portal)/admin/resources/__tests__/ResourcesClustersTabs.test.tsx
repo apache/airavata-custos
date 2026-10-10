@@ -17,10 +17,10 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Privilege } from "@/features/core/identity/types";
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 import { defineAbilitiesFor } from "@/shared/casl/abilities";
 
-let currentPrivileges: Privilege[] = [];
+let currentPrivileges: PrivilegeKey[] = [];
 
 vi.mock("@/shared/casl/AbilityProvider", () => ({
   useAbility: () => defineAbilitiesFor(currentPrivileges),

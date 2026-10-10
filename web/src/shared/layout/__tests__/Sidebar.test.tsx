@@ -17,11 +17,11 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Privilege } from "@/features/core/identity/types";
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { Sidebar } from "../Sidebar";
 
-let currentPrivileges: Privilege[] = [];
+let currentPrivileges: PrivilegeKey[] = [];
 
 vi.mock("@/shared/casl/AbilityProvider", () => ({
   useAbility: () => defineAbilitiesFor(currentPrivileges),
@@ -33,10 +33,7 @@ vi.mock("next/navigation", () => ({
 
 const NEW_ADMIN_LABELS = ["Organizations", "Resources"];
 
-const FULL_PRIVILEGES: Privilege[] = [
-  "core:organizations:read",
-  "core:clusters:read",
-];
+const FULL_PRIVILEGES: PrivilegeKey[] = ["core:organizations:read", "core:clusters:read"];
 
 beforeEach(() => {
   currentPrivileges = [];

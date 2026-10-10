@@ -29,7 +29,7 @@ import { usePrivileges } from "../queries";
 
 const server = setupServer(
   http.get("*/api/v1/user/privileges", () =>
-    HttpResponse.json({ privileges: ["core:allocations:read", "amie:packets:read"] }),
+    HttpResponse.json({ privileges: ["core:allocations:read", "core:clusters:read"] }),
   ),
 );
 
@@ -46,6 +46,6 @@ describe("usePrivileges", () => {
   it("fetches and validates the caller privileges payload", async () => {
     const { result } = renderHook(() => usePrivileges(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual(["core:allocations:read", "amie:packets:read"]);
+    expect(result.current.data).toEqual(["core:allocations:read", "core:clusters:read"]);
   });
 });

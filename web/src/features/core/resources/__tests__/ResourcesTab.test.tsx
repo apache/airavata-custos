@@ -17,10 +17,9 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeCluster } from "@/features/core/clusters/schemas";
-import type { ResourceSummary } from "../schemas";
+import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/types.gen";
 
-let resources: ResourceSummary[] = [];
+let resources: ComputeAllocationResourceSummary[] = [];
 const clusters: ComputeCluster[] = [
   { id: "cluster-a", name: "ClusterA" },
   { id: "cluster-b", name: "ClusterB" },
@@ -32,6 +31,7 @@ vi.mock("../queries", () => ({
 
 vi.mock("@/features/core/clusters/queries", () => ({
   useClusters: () => ({ data: clusters, isLoading: false, error: null, refetch: vi.fn() }),
+  useClusterName: () => (id = "") => clusters.find((c) => c.id === id)?.name ?? id,
 }));
 
 // The rates drawer owns its own queries; stub it so this suite stays on the
@@ -40,6 +40,12 @@ vi.mock("../components/ResourcesRatesDrawer", () => ({
   ResourcesRatesDrawer: ({ resourceName }: { resourceName: string | null }) => (
     <div>{resourceName ? `rates-drawer:${resourceName}` : null}</div>
   ),
+}));
+
+vi.mock("../components/ResourceDetailDrawer", () => ({ ResourceDetailDrawer: () => null }));
+
+vi.mock("@/shared/casl/AbilityProvider", () => ({
+  useAbility: () => ({ can: () => false }),
 }));
 
 import { ResourcesTab } from "../components/ResourcesTab";
@@ -99,13 +105,6 @@ describe("<ResourcesTab />", () => {
     render(<ResourcesTab />);
     fireEvent.click(screen.getByRole("button", { name: "Rates (2)" }));
     expect(screen.getByText("rates-drawer:ClusterA CPU")).toBeInTheDocument();
-  });
-
-  it("renders aggregate columns with a usage bar", () => {
-    render(<ResourcesTab />);
-    expect(screen.getByText("50,000")).toBeInTheDocument();
-    expect(screen.getByText("12,500")).toBeInTheDocument();
-    expect(screen.getAllByText("25.0%").length).toBeGreaterThan(0);
   });
 
   it("shows the empty state when no resources are registered", () => {

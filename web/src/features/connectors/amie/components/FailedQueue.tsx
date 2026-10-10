@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { PacketResponse } from "@/generated/amie/types.gen";
 import { TriangleAlertIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
@@ -24,23 +25,23 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
-import type { Packet } from "../types";
-import { ageHoursOf, formatDate } from "../utils";
+import { ageHoursOf, formatDate, pluralize } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
+import { PacketActionButtons, type PacketActions, selectColumn } from "./packetActions";
 
-export type FailedQueueProps = {
-  rows: Packet[];
+export type FailedQueueProps = PacketActions & {
+  rows: PacketResponse[];
   total: number;
   isLoading: boolean;
   error: Error | null;
   failedOver24h: number;
-  selected: Set<string>;
-  onSelectChange: (next: Set<string>) => void;
-  onRowClick: (packet: Packet) => void;
-  onRetryRow: (id: string) => void;
-  onResolveRow: (packet: Packet) => void;
-  onBulkRetry: () => void;
+  page: number;
+  pageSize: number;
+  onRowClick: (packet: PacketResponse) => void;
+  onPageChange: (page: number) => void;
   onRefresh: () => void;
+  selected: Set<string>;
+  onSelectChange: (selected: Set<string>) => void;
 };
 
 export function FailedQueue({
@@ -49,46 +50,17 @@ export function FailedQueue({
   isLoading,
   error,
   failedOver24h,
+  page,
+  pageSize,
+  onRowClick,
+  onPageChange,
+  onRefresh,
   selected,
   onSelectChange,
-  onRowClick,
-  onRetryRow,
-  onResolveRow,
-  onBulkRetry,
-  onRefresh,
+  ...actions
 }: FailedQueueProps) {
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
-
-  function toggleAll() {
-    if (allSelected) onSelectChange(new Set());
-    else onSelectChange(new Set(rows.map((r) => r.id)));
-  }
-
-  function toggleOne(id: string) {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onSelectChange(next);
-  }
-
-  const columns: DataTableColumn<Packet>[] = [
-    {
-      key: "select",
-      header: (
-        <input type="checkbox" aria-label="Select all" checked={allSelected} onChange={toggleAll} />
-      ),
-      width: "32px",
-      interactive: true,
-      cell: (row) => (
-        <input
-          type="checkbox"
-          aria-label={`Select ${row.amie_id}`}
-          checked={selected.has(row.id)}
-          onChange={() => toggleOne(row.id)}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ),
-    },
+  const columns: DataTableColumn<PacketResponse>[] = [
+    ...(actions.onRetryPackets ? [selectColumn(rows, selected, onSelectChange)] : []),
     {
       key: "amie_id",
       header: "AMIE ID",
@@ -147,7 +119,7 @@ export function FailedQueue({
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "",
       align: "right",
       interactive: true,
       cell: (row) => (
@@ -156,35 +128,11 @@ export function FailedQueue({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRowClick(row);
-            }}
+            onClick={() => onRowClick(row)}
           >
             View
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRetryRow(row.id);
-            }}
-          >
-            Retry
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onResolveRow(row);
-            }}
-          >
-            Resolve
-          </Button>
+          <PacketActionButtons ids={[row.id]} {...actions} />
         </span>
       ),
     },
@@ -199,26 +147,24 @@ export function FailedQueue({
         >
           <TriangleAlertIcon className="size-4" aria-hidden />
           <span>
-            <strong>{failedOver24h}</strong> failed packet{failedOver24h === 1 ? "" : "s"} older
+            <strong>{failedOver24h}</strong> failed {pluralize("packet", failedOver24h)} older
             than 24 hours need attention.
           </span>
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between rounded-md border bg-card p-4">
-        <p className="text-xs text-muted-foreground">
-          Pre-filtered packets with status = FAILED. Use bulk retry to requeue all selected.
-        </p>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{selected.size} selected</span>
-          <Button variant="outline" disabled={selected.size === 0} onClick={onBulkRetry}>
-            Bulk retry
-          </Button>
-        </div>
+      <div className="flex items-center gap-2 rounded-md border bg-card p-4">
+        <p className="text-xs text-muted-foreground">Pre-filtered packets with status = FAILED.</p>
+        {actions.onRetryPackets ? (
+          <div className="ml-auto flex items-center gap-2" role="toolbar" aria-label="Bulk actions">
+            <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+            <PacketActionButtons ids={[...selected]} bulk {...actions} />
+          </div>
+        ) : null}
       </div>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load queue"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
       ) : rows.length === 0 ? (
@@ -232,7 +178,8 @@ export function FailedQueue({
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
-          caption={`${total} failed packet${total === 1 ? "" : "s"}`}
+          caption={`${total} failed ${pluralize("packet", total)}`}
+          pagination={{ page, pageSize, total, onPageChange }}
         />
       )}
     </div>

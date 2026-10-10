@@ -17,48 +17,46 @@
 
 "use client";
 
-import Link from "next/link";
+import { formatDate, formatNumber } from "@/shared/format";
+// Sanctioned cross-feature import per ADR-0004.
+import { CreateAllocationDialog } from "@/features/core/allocations/components/CreateAllocationDialog";
+import { useAllocationsByProject } from "@/features/core/allocations/queries";
+import { useClusterName } from "@/features/core/clusters/queries";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-// Sanctioned cross-feature import per ADR-0004.
-import { useAllocationsByProject } from "@/features/core/allocations/queries";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import Link from "next/link";
 
 export type ProjectAllocationsTabProps = {
   projectId: string;
+  canCreate: boolean;
 };
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps) {
+export function ProjectAllocationsTab({ projectId, canCreate }: ProjectAllocationsTabProps) {
   const query = useAllocationsByProject(projectId);
+  const clusterName = useClusterName();
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
-  const rows = query.data?.items ?? [];
+  const rows = query.data ?? [];
+  const cta = canCreate ? (
+    <div className="flex justify-end">
+      <CreateAllocationDialog projectId={projectId} />
+    </div>
+  ) : null;
   if (rows.length === 0) {
     return (
-      <EmptyState
-        heading="No allocations on this project"
-        description="Allocations granted to this project will appear here."
-      />
+      <div className="space-y-3">
+        {cta}
+        <EmptyState
+          heading="No allocations on this project"
+          description="Allocations granted to this project will appear here."
+        />
+      </div>
     );
   }
 
@@ -79,14 +77,16 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
     {
       key: "cluster",
       header: "Cluster",
-      cell: (row) => <span className="text-sm">{row.compute_cluster_id}</span>,
+      cell: (row) => <span className="text-sm">{clusterName(row.compute_cluster_id)}</span>,
     },
     {
       key: "initial",
       header: "Initial SUs",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.initial_su_amount)}</span>
+        <span className="tabular-nums">
+          {formatNumber(row.initial_su_amount)}
+        </span>
       ),
     },
     {
@@ -108,5 +108,10 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
     },
   ];
 
-  return <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />;
+  return (
+    <div className="space-y-3">
+      {cta}
+      <DataTable columns={columns} rows={rows} rowKey={(row) => row.id ?? ""} />
+    </div>
+  );
 }

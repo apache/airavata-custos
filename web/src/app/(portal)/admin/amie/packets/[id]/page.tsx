@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { AmieNav } from "../../AmieNav";
+import { AmiePage } from "../../AmieNav";
 import { PacketInboxContainer } from "../PacketInboxContainer";
 
 export default async function AmiePacketDetailPage({
@@ -25,15 +25,16 @@ export default async function AmiePacketDetailPage({
 }) {
   const { id } = await params;
   return (
-    <div className="space-y-4">
-      <header className="space-y-1">
-        <h1 className="font-display text-[28px] font-bold leading-tight">AMIE packet inbox</h1>
-        <p className="text-sm text-muted-foreground">
+    <AmiePage
+      title="AMIE packet inbox"
+      description={
+        <>
           Deep link to packet <span className="font-mono">{id}</span>.
-        </p>
-      </header>
-      <AmieNav />
+        </>
+      }
+      subject="AmiePacket"
+    >
       <PacketInboxContainer initialPacketId={id} />
-    </div>
+    </AmiePage>
   );
 }

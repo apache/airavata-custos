@@ -33,17 +33,15 @@ const UNKNOWN_SOURCE: Source = { kind: "unknown", label: "" };
 
 export function buildPrivilegeRows(access: MyAccess): PrivilegeRow[] {
   const sourceByKey = new Map<string, Source>();
-  for (const rwp of access.roles) {
-    const roleId = rwp.role.id ?? "";
-    const label = rwp.role.name ?? "Role";
-    for (const key of rwp.privileges) {
+  for (const held of access.roles) {
+    const { id: roleId, name: label } = held.role;
+    for (const key of held.privileges ?? []) {
       if (!sourceByKey.has(key)) sourceByKey.set(key, { roleId, kind: "role", label });
     }
   }
   for (const grant of access.direct) {
-    const key = grant.privilege;
-    if (key && !sourceByKey.has(key)) {
-      sourceByKey.set(key, { kind: "direct", label: "Direct grant" });
+    if (!sourceByKey.has(grant.privilege)) {
+      sourceByKey.set(grant.privilege, { kind: "direct", label: "Direct grant" });
     }
   }
 

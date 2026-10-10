@@ -39,10 +39,10 @@
     },
     {
       "user_id": "msw-user",
-      "role_id": "role-amie",
+      "role_id": "role-events",
       "granted_by": "portal-admin",
       "granted_at": "2026-04-02T09:00:00Z",
-      "reason": "Operate AMIE exchange"
+      "reason": "Operate event deliveries"
     }
   ],
   "roleDetails": {
@@ -66,21 +66,15 @@
         "core:roles:manage"
       ]
     },
-    "role-amie": {
+    "role-events": {
       "role": {
-        "id": "role-amie",
-        "name": "AMIE Operator",
-        "description": "Operate the AMIE packet exchange: inspect and reply to packets.",
+        "id": "role-events",
+        "name": "Event Operator",
+        "description": "Inspect and retry event deliveries.",
         "is_system": false,
         "created_at": "2026-02-01T00:00:00Z"
       },
-      "privileges": [
-        "amie:packets:read",
-        "amie:packets:write",
-        "amie:replies:read",
-        "amie:replies:write",
-        "amie:unmapped:read"
-      ]
+      "privileges": ["core:events:manage", "core:traces:read"]
     }
   },
   "direct": [

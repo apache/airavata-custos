@@ -1,14 +1,16 @@
 {
   "trace_id": "a3b1c92d3f4e5a6b7c8d9e0f12345678",
+  "status": "error",
   "tree": [
     {
       "span_id": "0123456789abcdef",
+      "parent_span_id": "                ",
       "source": "amie",
       "event_type": "amie.process_event:request_account_create",
       "entity_type": "amie_packet",
       "entity_id": "PKT-100",
       "description": "Request to create account for user alice",
-      "status": "error",
+      "status": "ok",
       "created_at": "2026-06-08T14:21:32.412Z",
       "children": [
         {
@@ -21,22 +23,26 @@
           "description": "Resolve CO person for ePPN alice@example.edu",
           "status": "ok",
           "created_at": "2026-06-08T14:21:32.512Z",
-          "children": []
+          "children": [],
+          "id": "00000000-0000-0000-0000-000000000002"
         },
         {
           "span_id": "22222222bbbbbbbb",
           "parent_span_id": "0123456789abcdef",
           "source": "slurm",
-          "event_type": "slurm.create_account",
+          "event_type": "slurm.create_account_failed",
           "entity_type": "slurm_account",
           "entity_id": "alice.SU1",
           "description": "create account failed: cluster not reachable",
           "status": "error",
           "created_at": "2026-06-08T14:21:33.412Z",
-          "children": []
+          "children": [],
+          "id": "00000000-0000-0000-0000-000000000003"
         }
-      ]
+      ],
+      "id": "00000000-0000-0000-0000-000000000001"
     }
   ],
-  "truncated": false
+  "truncated": false,
+  "deliveries": []
 }

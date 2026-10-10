@@ -1,8 +1,10 @@
 {
   "trace_id": "c5d3eb4f516a7b8c9d0e1f2345678901",
+  "status": "ok",
   "tree": [
     {
       "span_id": "1234abcd5678ef90",
+      "parent_span_id": "                ",
       "source": "http",
       "event_type": "http.POST /users",
       "status": "ok",
@@ -17,10 +19,13 @@
           "entity_id": "USR-9001",
           "status": "ok",
           "created_at": "2026-06-08T14:15:30.020Z",
-          "children": []
+          "children": [],
+          "id": "00000000-0000-0000-0000-00000000000b"
         }
-      ]
+      ],
+      "id": "00000000-0000-0000-0000-00000000000a"
     }
   ],
-  "truncated": false
+  "truncated": false,
+  "deliveries": []
 }

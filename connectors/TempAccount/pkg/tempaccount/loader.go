@@ -17,6 +17,9 @@
 
 package tempaccount
 
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g loader.go -d .,../../internal -o ../../api --outputTypes yaml --parseDependency --useStructName
+//go:generate mv ../../api/swagger.yaml ../../api/temp-account.openapi.yaml
+
 import (
 	"context"
 	"sync"
@@ -32,6 +35,17 @@ import (
 // Type is the connector type in the config file.
 const Type = "temp-account"
 
+// LoadConnector attaches the /connectors/temp-account/* endpoints to router.
+//
+// @title	Temp Account Connector API
+// @version	0.1.0
+// @description	REST endpoints for VIRTUAL temporary accounts, all under /connectors/temp-account/.
+// @host	localhost:8080
+// @BasePath	/
+// @securityDefinitions.apikey	BearerAuth
+// @in	header
+// @name	Authorization
+// @description.BearerAuth	OIDC bearer token. Header value: `Bearer <jwt>`.
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	handlers := internal.NewHandlers(coreService)
 	handlers.RegisterRoutes(router)

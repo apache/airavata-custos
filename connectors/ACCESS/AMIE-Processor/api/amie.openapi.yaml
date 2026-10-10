@@ -1,5 +1,17 @@
 basePath: /
 definitions:
+  PacketAuditsResponse:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/TraceEvent'
+        type: array
+      packet_id:
+        type: string
+    required:
+    - events
+    - packet_id
+    type: object
   PacketEventResponse:
     properties:
       actor:
@@ -7,6 +19,15 @@ definitions:
       duration_ms:
         type: integer
       event_type:
+        enum:
+        - RECEIVED
+        - DECODED
+        - HANDLED
+        - FAILED
+        - RETRY
+        - RETRY_SCHEDULED
+        - MANUAL_RESOLVE
+        - MANUAL_LINK
         type: string
       id:
         type: string
@@ -15,9 +36,20 @@ definitions:
       packet_id:
         type: string
       status:
+        enum:
+        - SUCCEEDED
+        - RUNNING
+        - FAILED
         type: string
       timestamp:
         type: string
+    required:
+    - actor
+    - event_type
+    - id
+    - packet_id
+    - status
+    - timestamp
     type: object
   PacketListResponse:
     properties:
@@ -31,6 +63,11 @@ definitions:
         type: array
       total:
         type: integer
+    required:
+    - limit
+    - offset
+    - packets
+    - total
     type: object
   PacketResponse:
     properties:
@@ -53,11 +90,27 @@ definitions:
       source:
         type: string
       status:
+        enum:
+        - NEW
+        - DECODED
+        - PROCESSED
+        - FAILED
+        - WAITING_APPROVAL
+        - REFUSED
         type: string
       type:
         type: string
       updated_at:
         type: string
+    required:
+    - amie_id
+    - id
+    - received_at
+    - retries
+    - source
+    - status
+    - type
+    - updated_at
     type: object
   PacketStatBucketResponse:
     properties:
@@ -66,9 +119,21 @@ definitions:
       date:
         type: string
       status:
+        enum:
+        - NEW
+        - DECODED
+        - PROCESSED
+        - FAILED
+        - WAITING_APPROVAL
+        - REFUSED
         type: string
       type:
         type: string
+    required:
+    - count
+    - date
+    - status
+    - type
     type: object
   PacketStatsResponse:
     properties:
@@ -76,6 +141,8 @@ definitions:
         items:
           $ref: '#/definitions/PacketStatBucketResponse'
         type: array
+    required:
+    - byDay
     type: object
   ReplyListResponse:
     properties:
@@ -84,10 +151,56 @@ definitions:
       offset:
         type: integer
       replies:
-        items: {}
+        items:
+          $ref: '#/definitions/ReplyResponse'
         type: array
       total:
         type: integer
+    required:
+    - limit
+    - offset
+    - replies
+    - total
+    type: object
+  ReplyResponse:
+    properties:
+      id:
+        type: string
+    required:
+    - id
+    type: object
+  TraceEvent:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      entity_id:
+        type: string
+      entity_type:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: string
+      parent_span_id:
+        type: string
+      source:
+        type: string
+      span_id:
+        type: string
+      status:
+        enum:
+        - ok
+        - error
+        type: string
+    required:
+    - created_at
+    - event_type
+    - id
+    - source
+    - span_id
+    - status
     type: object
 host: localhost:8080
 info:
@@ -280,33 +393,7 @@ paths:
         "200":
           description: OK
           schema:
-            properties:
-              events:
-                items:
-                  properties:
-                    created_at:
-                      type: string
-                    description:
-                      type: string
-                    entity_id:
-                      type: string
-                    entity_type:
-                      type: string
-                    event_type:
-                      type: string
-                    parent_span_id:
-                      type: string
-                    source:
-                      type: string
-                    span_id:
-                      type: string
-                    status:
-                      type: string
-                  type: object
-                type: array
-              packet_id:
-                type: string
-            type: object
+            $ref: '#/definitions/PacketAuditsResponse'
         "400":
           description: packet_id is required
           schema:

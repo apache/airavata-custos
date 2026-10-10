@@ -17,7 +17,9 @@
 
 "use client";
 
+import type { GetConnectorsAmiePacketsData, PacketResponse } from "@/generated/amie/types.gen";
 import * as React from "react";
+import { zPacketResponse } from "@/generated/amie/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -25,25 +27,30 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import {
-  PACKET_STATUSES,
-  PACKET_TYPES,
-  type Packet,
-  type PacketStatus,
-  packetStatusLabel,
-} from "../types";
-import { ageHoursOf, formatDate } from "../utils";
+import { ageHoursOf, formatDate, packetStatusLabel } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
+import { PacketActionButtons, type PacketActions, selectColumn } from "./packetActions";
 
-export type PacketFilters = {
-  status: PacketStatus | "all";
-  type: string;
-  source: string;
-  q: string;
-};
+const PACKET_TYPES = [
+  "request_project_create",
+  "request_project_inactivate",
+  "request_project_reactivate",
+  "request_account_create",
+  "request_account_inactivate",
+  "request_account_reactivate",
+  "request_person_merge",
+  "request_user_modify",
+  "data_account_create",
+  "data_project_create",
+  "inform_transaction_complete",
+];
 
-export type PacketInboxTableProps = {
-  rows: Packet[];
+export type PacketFilters = Required<
+  Pick<NonNullable<GetConnectorsAmiePacketsData["query"]>, "status" | "type" | "q">
+>;
+
+export type PacketInboxTableProps = PacketActions & {
+  rows: PacketResponse[];
   total: number;
   isLoading: boolean;
   error: Error | null;
@@ -54,9 +61,7 @@ export type PacketInboxTableProps = {
   onSelectChange: (selected: Set<string>) => void;
   onFiltersChange: (filters: PacketFilters) => void;
   onPageChange: (page: number) => void;
-  onRowClick: (packet: Packet) => void;
-  onBulkRetry: () => void;
-  onBulkMarkProcessed: () => void;
+  onRowClick: (packet: PacketResponse) => void;
   onBulkExport: () => void;
   onRetry: () => void;
 };
@@ -74,55 +79,15 @@ export function PacketInboxTable({
   onFiltersChange,
   onPageChange,
   onRowClick,
-  onBulkRetry,
-  onBulkMarkProcessed,
   onBulkExport,
   onRetry,
+  ...actions
 }: PacketInboxTableProps) {
   const [searchDraft, setSearchDraft] = React.useState(filters.q);
   React.useEffect(() => setSearchDraft(filters.q), [filters.q]);
 
-  const allSelectable = rows.map((r) => r.id);
-  const allSelected = allSelectable.length > 0 && allSelectable.every((id) => selected.has(id));
-
-  function toggleAll() {
-    if (allSelected) {
-      onSelectChange(new Set());
-    } else {
-      onSelectChange(new Set(allSelectable));
-    }
-  }
-
-  function toggleOne(id: string) {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onSelectChange(next);
-  }
-
-  const columns: DataTableColumn<Packet>[] = [
-    {
-      key: "select",
-      header: (
-        <input
-          type="checkbox"
-          aria-label="Select all packets on this page"
-          checked={allSelected}
-          onChange={toggleAll}
-        />
-      ),
-      width: "32px",
-      interactive: true,
-      cell: (row) => (
-        <input
-          type="checkbox"
-          aria-label={`Select ${row.amie_id}`}
-          checked={selected.has(row.id)}
-          onChange={() => toggleOne(row.id)}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ),
-    },
+  const columns: DataTableColumn<PacketResponse>[] = [
+    selectColumn(rows, selected, onSelectChange),
     {
       key: "received",
       header: "Received",
@@ -158,30 +123,6 @@ export function PacketInboxTable({
       ),
     },
     {
-      key: "source",
-      header: "Source",
-      sortable: true,
-      sortValue: (row) => row.source,
-      cell: (row) => <span className="text-xs text-muted-foreground">{row.source}</span>,
-    },
-    {
-      key: "linked",
-      header: "Linked entity",
-      sortable: true,
-      sortValue: (row) =>
-        row.linked_entity
-          ? `${row.linked_entity.type}:${row.linked_entity.display_id ?? row.linked_entity.id}`
-          : null,
-      cell: (row) =>
-        row.linked_entity ? (
-          <span className="text-xs text-muted-foreground">
-            {row.linked_entity.type} · {row.linked_entity.display_id ?? row.linked_entity.id}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        ),
-    },
-    {
       key: "updated",
       header: "Last updated",
       sortable: true,
@@ -202,10 +143,7 @@ export function PacketInboxTable({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRowClick(row);
-          }}
+          onClick={() => onRowClick(row)}
         >
           View
         </Button>
@@ -227,16 +165,11 @@ export function PacketInboxTable({
           <select
             id="amie-status"
             value={filters.status}
-            onChange={(e) =>
-              onFiltersChange({
-                ...filters,
-                status: e.currentTarget.value as PacketStatus | "all",
-              })
-            }
+            onChange={(e) => onFiltersChange({ ...filters, status: e.currentTarget.value })}
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             <option value="all">All</option>
-            {PACKET_STATUSES.map((s) => (
+            {zPacketResponse.shape.status.options.map((s) => (
               <option key={s} value={s}>
                 {packetStatusLabel(s)}
               </option>
@@ -262,24 +195,11 @@ export function PacketInboxTable({
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="amie-source">Source</Label>
-          <select
-            id="amie-source"
-            value={filters.source}
-            onChange={(e) => onFiltersChange({ ...filters, source: e.currentTarget.value })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All sources</option>
-            <option value="access">access</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
           <Label htmlFor="amie-search">Search</Label>
           <Input
             id="amie-search"
             type="search"
-            placeholder="amie id, packet id, entity"
+            placeholder="amie id, packet id"
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.currentTarget.value)}
             className="w-56"
@@ -296,31 +216,16 @@ export function PacketInboxTable({
             type="button"
             variant="outline"
             disabled={selected.size === 0}
-            onClick={onBulkRetry}
-          >
-            Retry
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={selected.size === 0}
-            onClick={onBulkMarkProcessed}
-          >
-            Mark processed
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={selected.size === 0}
             onClick={onBulkExport}
           >
             Export JSON
           </Button>
+          <PacketActionButtons ids={[...selected]} bulk {...actions} />
         </div>
       </form>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load packets"} onRetry={onRetry} />
+        <ErrorState message={error.message} onRetry={onRetry} />
       ) : isLoading ? (
         <TableSkeleton />
       ) : rows.length === 0 ? (

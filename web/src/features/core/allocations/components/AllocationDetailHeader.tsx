@@ -17,45 +17,27 @@
 
 "use client";
 
+import { formatDate, formatNumber } from "@/shared/format";
 import { Calendar, Gauge, Server, UserSquare } from "lucide-react";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { ComputeAllocation } from "../schemas";
+import type { ComputeAllocation } from "@/generated/core/types.gen";
 
 export type AllocationDetailHeaderProps = {
   allocation: ComputeAllocation;
   memberCount: number;
 };
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatNumber(n: number): string {
-  return new Intl.NumberFormat().format(n);
-}
-
-function isExpired(endTime: string, now = new Date()): boolean {
+function isExpired(endTime = "", now = new Date()): boolean {
   const t = new Date(endTime).getTime();
   return Number.isFinite(t) && t < now.getTime();
 }
 
 export function AllocationDetailHeader({ allocation, memberCount }: AllocationDetailHeaderProps) {
-  const expired = allocation.status === "ACTIVE" && isExpired(allocation.end_time);
+  const { status } = allocation;
+  const expired = status === "ACTIVE" && isExpired(allocation.end_time);
   const tone: "success" | "warning" | "danger" =
-    allocation.status === "ACTIVE" && !expired
-      ? "success"
-      : allocation.status === "ACTIVE" && expired
-        ? "warning"
-        : "danger";
-  const label = expired ? "EXPIRED" : allocation.status;
+    status === "ACTIVE" ? (expired ? "warning" : "success") : "danger";
+  const label = expired ? "EXPIRED" : status;
 
   return (
     <header className="space-y-4">

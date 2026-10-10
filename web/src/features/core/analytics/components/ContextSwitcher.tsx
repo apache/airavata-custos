@@ -18,6 +18,7 @@
 "use client";
 
 import { Check, ChevronsUpDown } from "lucide-react";
+import type { Allocation, ProjectContext } from "@/generated/analytics/types.gen";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -26,10 +27,13 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { creditsBand, formatCredits, pctRemaining, type UrgencyBand } from "../lib";
-import type { AnalyticsAllocation, AnalyticsContext } from "../schemas";
 
-function balance(a: AnalyticsAllocation): string {
-  return `${formatCredits(Math.max(0, a.initial_su_amount - a.used_su_amount))} left`;
+function remaining({ initial_su_amount, used_su_amount }: Allocation): number {
+  return Math.max(0, initial_su_amount - used_su_amount);
+}
+
+function balance(a: Allocation): string {
+  return `${formatCredits(remaining(a))} left`;
 }
 
 // Draw attention to low balances only; healthy ones stay muted.
@@ -40,15 +44,13 @@ function metaClass(band: UrgencyBand): string {
 }
 
 type ContextSwitcherProps = {
-  contexts: AnalyticsContext[];
-  selectedProjectId: string | undefined;
+  contexts: ProjectContext[];
   selectedAllocationId: string | undefined;
   onSelect: (projectId: string, allocationId: string) => void;
 };
 
 export function ContextSwitcher({
   contexts,
-  selectedProjectId,
   selectedAllocationId,
   onSelect,
 }: ContextSwitcherProps) {
@@ -127,10 +129,7 @@ export function ContextSwitcher({
                     metaClass(band),
                   )}
                 >
-                  {Math.round(pct)}% ·{" "}
-                  {formatCredits(
-                    Math.max(0, allocation.initial_su_amount - allocation.used_su_amount),
-                  )}
+                  {Math.round(pct)}% · {formatCredits(remaining(allocation))}
                 </span>
               </DropdownMenuItem>
             );

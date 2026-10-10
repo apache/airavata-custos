@@ -22,11 +22,13 @@ import {
   ClipboardList,
   FolderKanban,
   HardDrive,
+  KeyRound,
   type LucideIcon,
   Send,
   Server,
   UserCog,
 } from "lucide-react";
+import type { AppAbility } from "@/shared/casl/abilities";
 
 export type AbilityCheck = { action: string; subject: string };
 
@@ -37,7 +39,8 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   group: NavGroup;
-  ability?: AbilityCheck;
+  // Shown when the caller holds any of the listed abilities.
+  ability?: AbilityCheck | AbilityCheck[];
 };
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
@@ -92,7 +95,21 @@ export const portalNav: NavItem[] = [
     label: "AMIE",
     icon: ClipboardList,
     group: "admin",
-    ability: { action: "read", subject: "AMIE" },
+    ability: [
+      { action: "read", subject: "AmiePacket" },
+      { action: "read", subject: "AmieReply" },
+      { action: "read", subject: "AmieUnmapped" },
+    ],
+  },
+  {
+    href: "/admin/temp-accounts",
+    label: "Temporary accounts",
+    icon: KeyRound,
+    group: "admin",
+    ability: [
+      { action: "read", subject: "TempAccount" },
+      { action: "write", subject: "TempAccount" },
+    ],
   },
   {
     href: "/admin/organizations",
@@ -109,3 +126,7 @@ export const portalNav: NavItem[] = [
     ability: { action: "read", subject: "Cluster" },
   },
 ];
+
+export function isNavItemVisible(item: NavItem, ability: AppAbility): boolean {
+  return !item.ability || [item.ability].flat().some((a) => ability.can(a.action, a.subject));
+}

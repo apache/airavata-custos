@@ -17,27 +17,35 @@
 
 import { http, HttpResponse } from "msw";
 import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
-import type { PrivilegeKey, Role, UserRole } from "@/generated/core/types.gen";
+import type {
+  CallerRoleGrant,
+  DeleteRolesByIdPrivilegesByKeyData,
+  DeleteUsersByIdRolesByRoleIdData,
+  GetRolesByIdData,
+  GetRolesByIdHoldersData,
+  GetUsersByIdRolesData,
+  PostRolesByIdPrivilegesData,
+  PostRolesData,
+  PostUsersByIdRolesData,
+  PrivilegeKey,
+  PutRolesByIdData,
+  Role,
+  UserRole,
+} from "@/generated/core/types.gen";
+import { zGetRolesByIdResponse, zPrivilegeKey, zUserRole } from "@/generated/core/zod.gen";
+import { notFound } from "../paging";
+import { z } from "zod";
+import { CONNECTOR_PRIVILEGES } from "./privileges";
 
-const PRIVILEGES: PrivilegeKey[] = [
-  "core:allocations:read",
-  "core:allocations:write",
-  "core:clusters:read",
-  "core:clusters:write",
-  "core:organizations:read",
-  "core:organizations:write",
-  "core:privileges:grant",
-  "core:projects:read",
-  "core:projects:write",
-  "core:roles:manage",
-  "core:traces:read",
-  "core:users:read",
-  "core:users:write",
-];
+const PRIVILEGES: PrivilegeKey[] = zPrivilegeKey.options;
+// The backend catalog also lists connector-registered keys.
+const CATALOG: string[] = [...PRIVILEGES, ...CONNECTOR_PRIVILEGES];
 
 type MockRole = Role & { privileges: PrivilegeKey[]; holders: UserRole[] };
 
 let nextRoleId = 4;
+
+const settingsGrants: UserRole[] = z.array(zUserRole).parse(settingsFixture.roles);
 
 const initialRoles: MockRole[] = [
     {
@@ -80,39 +88,54 @@ const initialRoles: MockRole[] = [
         { user_id: "u3", role_id: "role-auditor", granted_at: "2026-01-15T09:00:00Z" },
       ],
     },
-    ...Object.values(settingsFixture.roleDetails).map((detail) => ({
-      ...detail.role,
-      privileges: detail.privileges as PrivilegeKey[],
-      holders: (settingsFixture.roles as UserRole[]).filter(
-        (grant) => grant.role_id === detail.role.id,
-      ),
-    })),
+    ...z
+      .array(zGetRolesByIdResponse)
+      .parse(Object.values(settingsFixture.roleDetails))
+      .map(({ role, privileges }) => ({
+        ...role,
+        privileges: privileges ?? [],
+        holders: settingsGrants.filter((g) => g.role_id === role.id),
+      })),
   ];
 
-const roles = new Map<string, MockRole>(initialRoles.map((role) => [role.id ?? "", role]));
+const roles = new Map<string, MockRole>(initialRoles.map((role) => [role.id, role]));
 
 function publicRole(role: MockRole): Role {
   const { privileges: _privileges, holders: _holders, ...rest } = role;
   return rest;
 }
 
-function roleById(id: string): MockRole | undefined {
-  return roles.get(id);
+const nameTaken = (name: string | undefined, exceptId?: string) =>
+  Array.from(roles.values()).some(
+    (role) => role.id !== exceptId && role.name?.toLowerCase() === name?.toLowerCase(),
+  );
+
+function grantsHeldBy(userId: string): Array<{ role: MockRole; grant: UserRole }> {
+  return Array.from(roles.values()).flatMap((role) =>
+    role.holders.filter((grant) => grant.user_id === userId).map((grant) => ({ role, grant })),
+  );
+}
+
+// Shared with /me so role assignments stay consistent across handlers.
+export function callerRoleGrants(userId: string): CallerRoleGrant[] {
+  return grantsHeldBy(userId).map(({ role, grant }) => ({
+    role: publicRole(role),
+    privileges: role.privileges,
+    granted_at: grant.granted_at,
+  }));
 }
 
 export const rolesHandlers = [
-  http.get("*/api/v1/privileges/catalog", () => HttpResponse.json(PRIVILEGES)),
+  http.get("*/api/v1/privileges/catalog", () => HttpResponse.json(CATALOG)),
 
   http.get("*/api/v1/roles", () => HttpResponse.json(Array.from(roles.values()).map(publicRole))),
 
-  http.post("*/api/v1/roles", async ({ request }) => {
-    const body = (await request.json()) as { name?: string; description?: string };
+  http.post<never, PostRolesData["body"]>("*/api/v1/roles", async ({ request }) => {
+    const body = await request.json();
     const name = body.name?.trim();
     if (!name) return HttpResponse.json({ error: "role name is required" }, { status: 400 });
-    const duplicate = Array.from(roles.values()).some(
-      (role) => role.name?.toLowerCase() === name.toLowerCase(),
-    );
-    if (duplicate) return HttpResponse.json({ error: "role name already exists" }, { status: 409 });
+    if (nameTaken(name))
+      return HttpResponse.json({ error: "role name already exists" }, { status: 409 });
 
     const id = `role-custom-${nextRoleId++}`;
     const role: MockRole = {
@@ -128,90 +151,103 @@ export const rolesHandlers = [
     return HttpResponse.json(publicRole(role), { status: 201 });
   }),
 
-  http.get("*/api/v1/roles/:roleId", ({ params }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+  http.get<GetRolesByIdData["path"]>("*/api/v1/roles/:id", ({ params }) => {
+    const role = roles.get(params.id);
+    if (!role) return notFound("role");
     return HttpResponse.json({ role: publicRole(role), privileges: role.privileges });
   }),
 
-  http.put("*/api/v1/roles/:roleId", async ({ params, request }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    if (role.is_system) {
-      return HttpResponse.json({ error: "system roles cannot be renamed" }, { status: 400 });
-    }
+  http.put<PutRolesByIdData["path"], PutRolesByIdData["body"]>(
+    "*/api/v1/roles/:id",
+    async ({ params, request }) => {
+      const role = roles.get(params.id);
+      if (!role) return notFound("role");
+      // Blank fields keep the stored value; only system-role renames are refused.
+      const body = await request.json();
+      const name = body.name?.trim() || role.name;
+      if (role.is_system && name !== role.name) {
+        return HttpResponse.json({ error: "cannot rename system role" }, { status: 400 });
+      }
+      if (nameTaken(name, role.id))
+        return HttpResponse.json({ error: "role name already exists" }, { status: 409 });
 
-    const body = (await request.json()) as { name?: string; description?: string };
-    const name = body.name?.trim();
-    if (!name) return HttpResponse.json({ error: "role name is required" }, { status: 400 });
-    const duplicate = Array.from(roles.values()).some(
-      (candidate) =>
-        candidate.id !== role.id && candidate.name?.toLowerCase() === name.toLowerCase(),
-    );
-    if (duplicate) return HttpResponse.json({ error: "role name already exists" }, { status: 409 });
+      role.name = name;
+      role.description = body.description?.trim() || role.description;
+      return HttpResponse.json(publicRole(role));
+    },
+  ),
 
-    role.name = name;
-    role.description = body.description?.trim() ?? "";
-    return HttpResponse.json(publicRole(role));
-  }),
-
-  http.get("*/api/v1/roles/:roleId/holders", ({ params }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+  http.get<GetRolesByIdHoldersData["path"]>("*/api/v1/roles/:id/holders", ({ params }) => {
+    const role = roles.get(params.id);
+    if (!role) return notFound("role");
     return HttpResponse.json(role.holders);
   }),
 
-  http.post("*/api/v1/users/:userId/roles", async ({ params, request }) => {
-    const body = (await request.json()) as { role_id?: string };
-    const role = body.role_id ? roleById(body.role_id) : undefined;
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const userId = String(params.userId);
-    if (role.holders.some((holder) => holder.user_id === userId)) {
-      return HttpResponse.json({ error: "user already holds that role" }, { status: 409 });
-    }
-    const holder = {
-      user_id: userId,
-      role_id: role.id,
-      granted_at: new Date().toISOString(),
-    };
-    role.holders = [...role.holders, holder];
-    return HttpResponse.json(holder, { status: 201 });
-  }),
+  http.get<GetUsersByIdRolesData["path"]>("*/api/v1/users/:id/roles", ({ params }) =>
+    HttpResponse.json(grantsHeldBy(params.id).map(({ grant }) => grant)),
+  ),
 
-  http.delete("*/api/v1/users/:userId/roles/:roleId", ({ params }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const userId = String(params.userId);
-    if (!role.holders.some((holder) => holder.user_id === userId)) {
-      return HttpResponse.json({ error: "user does not hold that role" }, { status: 404 });
-    }
-    role.holders = role.holders.filter((holder) => holder.user_id !== userId);
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.post<PostUsersByIdRolesData["path"], PostUsersByIdRolesData["body"]>(
+    "*/api/v1/users/:id/roles",
+    async ({ params, request }) => {
+      const body = await request.json();
+      const role = roles.get(body.role_id ?? "");
+      if (!role) return notFound("role");
+      const userId = params.id;
+      if (role.holders.some((holder) => holder.user_id === userId)) {
+        return HttpResponse.json({ error: "user already holds that role" }, { status: 409 });
+      }
+      const holder: UserRole = {
+        user_id: userId,
+        role_id: role.id,
+        granted_at: new Date().toISOString(),
+      };
+      role.holders = [...role.holders, holder];
+      return HttpResponse.json(holder, { status: 201 });
+    },
+  ),
 
-  http.post("*/api/v1/roles/:roleId/privileges", async ({ params, request }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const body = (await request.json()) as { privilege?: PrivilegeKey };
-    const privilege = body.privilege;
-    if (!privilege || !PRIVILEGES.includes(privilege)) {
-      return HttpResponse.json({ error: "unknown privilege" }, { status: 400 });
-    }
-    if (role.privileges.includes(privilege)) {
-      return HttpResponse.json({ error: "role already carries that privilege" }, { status: 409 });
-    }
-    role.privileges = [...role.privileges, privilege].sort();
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.delete<DeleteUsersByIdRolesByRoleIdData["path"]>(
+    "*/api/v1/users/:id/roles/:roleId",
+    ({ params }) => {
+      const role = roles.get(params.roleId);
+      if (!role) return notFound("role");
+      const userId = params.id;
+      if (!role.holders.some((holder) => holder.user_id === userId)) {
+        return HttpResponse.json({ error: "user does not hold that role" }, { status: 404 });
+      }
+      role.holders = role.holders.filter((holder) => holder.user_id !== userId);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 
-  http.delete("*/api/v1/roles/:roleId/privileges/:key", ({ params }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const key = String(params.key) as PrivilegeKey;
-    if (!role.privileges.includes(key)) {
-      return HttpResponse.json({ error: "role does not carry that privilege" }, { status: 404 });
-    }
-    role.privileges = role.privileges.filter((privilege) => privilege !== key);
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.post<PostRolesByIdPrivilegesData["path"], PostRolesByIdPrivilegesData["body"]>(
+    "*/api/v1/roles/:id/privileges",
+    async ({ params, request }) => {
+      const role = roles.get(params.id);
+      if (!role) return notFound("role");
+      const { privilege } = await request.json();
+      if (!privilege || !CATALOG.includes(privilege)) {
+        return HttpResponse.json({ error: "unknown privilege" }, { status: 400 });
+      }
+      if (role.privileges.includes(privilege)) {
+        return HttpResponse.json({ error: "role already carries that privilege" }, { status: 409 });
+      }
+      role.privileges = [...role.privileges, privilege].sort();
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
+
+  http.delete<DeleteRolesByIdPrivilegesByKeyData["path"]>(
+    "*/api/v1/roles/:id/privileges/:key",
+    ({ params: { id, key } }) => {
+      const role = roles.get(id);
+      if (!role) return notFound("role");
+      if (!role.privileges.includes(key)) {
+        return HttpResponse.json({ error: "role does not carry that privilege" }, { status: 404 });
+      }
+      role.privileges = role.privileges.filter((privilege) => privilege !== key);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 ];

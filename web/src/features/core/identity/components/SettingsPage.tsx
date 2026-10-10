@@ -29,8 +29,12 @@ export function SettingsPage() {
   const me = useMe();
   // The backend user id from /me is authoritative for sub-resource reads;
   // session.user.id may be an email fallback.
-  const userId = me.data?.user.id;
-  const identities = useMyIdentities(userId);
+  const user = me.data?.user;
+  const userId = user?.id;
+  // /users/{id}/user-identities is admin-gated and /me carries no identities.
+  const identities = useMyIdentities(
+    me.data?.privileges?.includes("core:users:read") ? userId : undefined,
+  );
   const access = useMyAccess(userId, me.data?.privileges ?? [], me.data?.roles ?? []);
 
   return (
@@ -44,11 +48,11 @@ export function SettingsPage() {
 
       {me.isPending ? (
         <CenteredSpinner label="Loading your settings" />
-      ) : me.isError || !me.data ? (
+      ) : me.isError || !user ? (
         <ErrorState message="Could not load your profile." onRetry={() => me.refetch()} />
       ) : (
         <div className="space-y-6">
-          <ProfileCard user={me.data.user} />
+          <ProfileCard user={user} />
           {identities.data ? <IdentitiesCard identities={identities.data} /> : null}
           {access.data ? <AccessCard access={access.data} /> : null}
           <AppearanceCard />

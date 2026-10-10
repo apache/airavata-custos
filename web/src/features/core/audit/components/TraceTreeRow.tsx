@@ -19,9 +19,7 @@
 
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { RowTone } from "../types";
-import type { VisibleRow } from "../utils";
-import { isCodeShaped } from "../utils";
+import { type RowTone, type VisibleRow, isCodeShaped } from "../utils";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 
@@ -37,43 +35,10 @@ export type TraceTreeRowProps = {
   isPreciseFailure: boolean;
   isExpanded: boolean;
   hasHiddenError: boolean;
-  entityMeta?: string;
   onSelect: () => void;
   onToggle: () => void;
   rowRef: (el: HTMLDivElement | null) => void;
 };
-
-const ENTITY_KEYS: ReadonlyArray<string> = [
-  "entity.user_id",
-  "person.id",
-  "amie.packet_id",
-  "comanage.co_person_id",
-  "slurm.cluster",
-  "slurm.account",
-  "allocation.id",
-];
-
-// First matching key wins.
-export function pickEntityMeta(attributes: unknown): string | undefined {
-  if (!attributes || typeof attributes !== "object") return undefined;
-  const attrs = attributes as Record<string, unknown>;
-  for (const k of ENTITY_KEYS) {
-    const v = attrs[k];
-    if (v == null) continue;
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
-      const short = k.split(".").pop() ?? k;
-      return `${short}=${v}`;
-    }
-  }
-  return undefined;
-}
-
-function statusCode(attributes: unknown): string | number | undefined {
-  if (!attributes || typeof attributes !== "object") return undefined;
-  const v = (attributes as Record<string, unknown>)["http.status_code"];
-  if (typeof v === "string" || typeof v === "number") return v;
-  return undefined;
-}
 
 export function TraceTreeRow({
   row,
@@ -84,7 +49,6 @@ export function TraceTreeRow({
   isPreciseFailure,
   isExpanded,
   hasHiddenError,
-  entityMeta,
   onSelect,
   onToggle,
   rowRef,
@@ -92,16 +56,12 @@ export function TraceTreeRow({
   const { node, depth, hasChildren } = row;
   const span = node.span;
   const isError = tone === "error";
-  const isRunning = span.running === true;
-  const isNotRun = span.notRun === true;
-  const isOrphan = span.orphan === true;
   const capped = Math.min(depth, MAX_DEPTH);
   const overCap = depth > MAX_DEPTH;
-  const code = isCodeShaped(span.name);
-  const display = overCap ? `…/${span.name}` : span.name;
-  const errStatus = isError ? statusCode(span.attributes) : undefined;
-  const resolvedEntityMeta = entityMeta ?? pickEntityMeta(span.attributes);
-  const showEntityMeta = !isRunning && !isNotRun && Boolean(resolvedEntityMeta);
+  const name = span.event_type;
+  const code = isCodeShaped(name);
+  const display = overCap ? `…/${name}` : name;
+  const entityMeta = span.entity_id ? `${span.entity_type}=${span.entity_id}` : undefined;
 
   // Color the precise failing leaf with a faint red wash. Ancestor error rows
   // stay calm — only the rail connects them.
@@ -204,9 +164,6 @@ export function TraceTreeRow({
           <AlertTriangle className="h-3 w-3" aria-hidden="true" />
         </span>
       )}
-      {isOrphan && (
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground">(orphan)</span>
-      )}
 
       <span className="ml-0.5 shrink-0">
         <SourcePill source={source} />
@@ -216,18 +173,9 @@ export function TraceTreeRow({
         className="ml-auto flex shrink-0 items-center gap-2 overflow-hidden pl-2 text-[12px] whitespace-nowrap text-muted-foreground"
         style={{ maxWidth: "46%" }}
       >
-        {errStatus != null && (
-          <span className="overflow-hidden font-mono text-ellipsis text-[color:var(--banner-error-fg)]">
-            status={String(errStatus)}
-          </span>
+        {entityMeta && (
+          <span className="overflow-hidden font-mono text-ellipsis">{entityMeta}</span>
         )}
-        {isRunning ? (
-          <span className="overflow-hidden text-ellipsis italic">…still running</span>
-        ) : isNotRun ? (
-          <span className="overflow-hidden text-ellipsis">skipped (parent err)</span>
-        ) : showEntityMeta ? (
-          <span className="overflow-hidden font-mono text-ellipsis">{resolvedEntityMeta}</span>
-        ) : null}
         {isPreciseFailure && (
           <AlertTriangle
             className="h-3 w-3 shrink-0 text-[color:var(--banner-error-icon)]"

@@ -16,12 +16,12 @@
 // under the License.
 
 import { defineAbilitiesFor } from "@/shared/casl/abilities";
-import type { Privilege } from "@/features/core/identity/types";
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UsersNav } from "../UsersNav";
 
-let currentPrivileges: Privilege[] = [];
+let currentPrivileges: PrivilegeKey[] = [];
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/users/management",

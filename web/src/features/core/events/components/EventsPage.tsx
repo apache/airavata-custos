@@ -19,11 +19,12 @@
 
 import { RefreshCwIcon, UnplugIcon } from "lucide-react";
 import * as React from "react";
-import { toast } from "sonner";
+import { toastOnSuccess } from "@/shared/ui/sonner";
+import type { PendingDelivery } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
-  replaceShallowSearchParams,
+  setSearchParam,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -31,17 +32,27 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
-import { DELIVERY_PAGE_SIZE } from "../api";
-import { useDeliveries, useDelivery, useRetryDelivery, useSubscriptions } from "../queries";
-import type { Delivery, DeliveryView } from "../types";
+import {
+  DELIVERY_PAGE_SIZE,
+  useDeliveries,
+  useDelivery,
+  useRetryDelivery,
+  useSubscriptions,
+} from "../queries";
 import { DeliveryDetailDrawer } from "./DeliveryDetailDrawer";
 import { DeliveryTable } from "./DeliveryTable";
+
+// The list a tab shows. "waiting" is every delivery not finished yet.
+type DeliveryView = "all" | "waiting" | "failed";
 
 const VIEWS: DeliveryView[] = ["all", "waiting", "failed"];
 
 const VIEW_INFO: Record<DeliveryView, { label: string; empty: string }> = {
   all: { label: "All", empty: "No events yet." },
-  waiting: { label: "Waiting", empty: "Nothing is waiting. Every delivery has succeeded or failed." },
+  waiting: {
+    label: "Waiting",
+    empty: "Nothing is waiting. Every delivery has succeeded or failed.",
+  },
   failed: { label: "Failed", empty: "No failed deliveries." },
 };
 
@@ -49,16 +60,9 @@ function parseView(value: string | null): DeliveryView {
   return value === "waiting" || value === "failed" ? value : "all";
 }
 
-function countLabel(rows: Delivery[] | undefined): string {
+function countLabel(rows: PendingDelivery[] | undefined): string {
   if (!rows) return "";
   return rows.length >= DELIVERY_PAGE_SIZE ? `${DELIVERY_PAGE_SIZE}+` : String(rows.length);
-}
-
-function setParam(params: URLSearchParams, key: string, value: string | undefined) {
-  const next = new URLSearchParams(params.toString());
-  if (value) next.set(key, value);
-  else next.delete(key);
-  replaceShallowSearchParams(next);
 }
 
 export function EventsPage() {
@@ -69,7 +73,7 @@ export function EventsPage() {
   const [confirmRetryOnOpen, setConfirmRetryOnOpen] = React.useState(false);
 
   const ability = useAbility();
-  const canRetry = ability.can("manage", "EventDelivery");
+  const canRetry = ability.can("write", "EventDelivery");
 
   // One query per tab, so every tab shows its count.
   const all = useDeliveries();
@@ -80,37 +84,36 @@ export function EventsPage() {
 
   const subscriptions = useSubscriptions();
   const running = React.useMemo(() => {
-    if (!subscriptions.data) return undefined;
-    return new Set(subscriptions.data.filter((s) => s.loaded).map((s) => s.subscriber));
+    const items = subscriptions.data?.items;
+    if (!items) return undefined;
+    return new Set(items.flatMap((s) => (s.loaded ? [s.subscriber] : [])));
   }, [subscriptions.data]);
   const notRunning = React.useMemo(() => {
-    const names = (subscriptions.data ?? []).filter((s) => !s.loaded).map((s) => s.subscriber);
+    const items = subscriptions.data?.items ?? [];
+    const names = items.flatMap((s) => (s.loaded ? [] : [s.subscriber]));
     return [...new Set(names)];
   }, [subscriptions.data]);
 
   const connectors = React.useMemo(
-    () => [...new Set((all.data ?? []).map((d) => d.subscriber))].sort(),
+    () => [...new Set((all.data?.items ?? []).map((d) => d.subscriber))].sort(),
     [all.data],
   );
-  const rows = (current.data ?? []).filter((d) => !connector || d.subscriber === connector);
+  const rows = (current.data?.items ?? []).filter((d) => !connector || d.subscriber === connector);
 
   const detail = useDelivery(openId);
   const retry = useRetryDelivery();
 
-  function open(delivery: Delivery, confirm = false) {
+  function open(delivery: PendingDelivery, confirm = false) {
     setConfirmRetryOnOpen(confirm);
-    setParam(params, "delivery", delivery.id);
+    setSearchParam(params, "delivery", delivery.id);
   }
 
-  async function handleRetry() {
+  function handleRetry() {
     if (!openId) return;
-    try {
-      await retry.mutateAsync(openId);
-      toast.success("Retry started", { description: "The delivery will run again shortly." });
-      setConfirmRetryOnOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Retry failed");
-    }
+    retry.mutate(
+      { path: { id: openId } },
+      toastOnSuccess("Retry started", () => setConfirmRetryOnOpen(false)),
+    );
   }
 
   function refreshAll() {
@@ -134,8 +137,8 @@ export function EventsPage() {
         <output className="flex items-start gap-2 rounded-md bg-[color:var(--tone-warn-bg)] px-4 py-3 text-sm text-[color:var(--tone-warn-fg)]">
           <UnplugIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
-            Not running on this server: <span className="font-mono">{notRunning.join(", ")}</span>
-            . Their deliveries wait until the connector starts.
+            Not running on this server: <span className="font-mono">{notRunning.join(", ")}</span>.
+            Their deliveries wait until the connector starts.
           </span>
         </output>
       ) : null}
@@ -145,14 +148,14 @@ export function EventsPage() {
           <ul className="-mb-px flex flex-wrap gap-1">
             {VIEWS.map((v) => {
               const active = v === view;
-              const count = countLabel(byView[v].data);
+              const count = countLabel(byView[v].data?.items);
               const failedTab = v === "failed" && count !== "" && count !== "0";
               return (
                 <li key={v}>
                   <button
                     type="button"
                     aria-current={active ? "page" : undefined}
-                    onClick={() => setParam(params, "view", v === "all" ? undefined : v)}
+                    onClick={() => setSearchParam(params, "view", v === "all" ? null : v)}
                     className={cn(
                       "inline-flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
                       active
@@ -185,7 +188,7 @@ export function EventsPage() {
             <select
               id="events-connector"
               value={connector}
-              onChange={(e) => setParam(params, "connector", e.currentTarget.value || undefined)}
+              onChange={(e) => setSearchParam(params, "connector", e.currentTarget.value)}
               className="rounded-md border bg-background px-3 py-1.5 text-sm"
             >
               <option value="">All connectors</option>
@@ -225,7 +228,7 @@ export function EventsPage() {
       <DeliveryDetailDrawer
         open={openId != null}
         onOpenChange={(isOpen) => {
-          if (!isOpen) setParam(params, "delivery", undefined);
+          if (!isOpen) setSearchParam(params, "delivery");
         }}
         delivery={detail.data}
         runningSubscribers={running}

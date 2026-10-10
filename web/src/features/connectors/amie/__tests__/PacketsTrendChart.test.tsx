@@ -15,28 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { PacketsTrendChart } from "../components/PacketsTrendChart";
+import { fillDays } from "../components/PacketsTrendChart";
 
-describe("PacketsTrendChart", () => {
-  it("renders an empty-state when there are no buckets", () => {
-    render(<PacketsTrendChart buckets={[]} />);
-    expect(screen.getByText(/No packet activity/i)).toBeInTheDocument();
-  });
-
-  it("renders the chart container and legend when buckets exist", () => {
-    render(
-      <PacketsTrendChart
-        buckets={[
-          { date: "2026-05-20", status: "PROCESSED", type: "request_project_create", count: 5 },
-          { date: "2026-05-20", status: "FAILED", type: "request_account_create", count: 1 },
-          { date: "2026-05-21", status: "PROCESSED", type: "request_project_create", count: 7 },
-        ]}
-      />,
+describe("fillDays", () => {
+  it("zero-fills every day of the window and drops buckets outside it", () => {
+    const rows = fillDays(
+      [
+        { date: "2026-06-08", status: "FAILED", type: "request_account_create", count: 2 },
+        { date: "2026-05-01", status: "FAILED", type: "request_account_create", count: 9 },
+      ],
+      Date.parse("2026-06-08T12:00:00Z"),
     );
-    expect(screen.getByLabelText(/AMIE packets per day/i)).toBeInTheDocument();
-    expect(screen.getByText("PROCESSED")).toBeInTheDocument();
-    expect(screen.getByText("FAILED")).toBeInTheDocument();
+    expect(rows).toHaveLength(30);
+    expect(rows[0]).toMatchObject({ date: "2026-05-10", FAILED: 0 });
+    expect(rows.at(-1)).toMatchObject({ date: "2026-06-08", FAILED: 2 });
   });
 });

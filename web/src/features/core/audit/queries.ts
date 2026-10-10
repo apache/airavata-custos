@@ -17,94 +17,61 @@
 
 "use client";
 
-import { getLastTraceId, subscribeLastTraceId } from "@/shared/api/last-trace-id";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as React from "react";
 import {
-  type TraceListFilters,
-  getAuditEventsForTrace,
-  getTrace,
-  listAuditSources,
-  listTraces,
-  retryTrace,
-} from "./api";
-import { useLastTraceContext } from "./components/LastTraceProvider";
-
-const DEFAULT_STALE_TIME = 30_000;
-const DEFAULT_GC_TIME = 5 * 60_000;
+  getAuditEvents,
+  getAuditSources,
+  getAuditTraces,
+  getAuditTracesByTraceId,
+} from "@/generated/core/sdk.gen";
+import type { GetAuditTracesData } from "@/generated/core/types.gen";
+import { skipToken, useQuery } from "@tanstack/react-query";
+import { type WindowPreset, bannerBounds, windowToFromTo } from "./components/traceListUrlState";
+import { traceView } from "./utils";
 
 export const traceKeys = {
   all: ["traces"] as const,
-  lists: () => [...traceKeys.all, "list"] as const,
-  list: (filters: TraceListFilters) => [...traceKeys.lists(), filters] as const,
-  details: () => [...traceKeys.all, "detail"] as const,
-  detail: (id: string) => [...traceKeys.details(), id] as const,
+  list: (query: GetAuditTracesData["query"], window: TraceWindow) =>
+    [...traceKeys.all, "list", query, window] as const,
+  detail: (id: string) => [...traceKeys.all, "detail", id] as const,
   sources: () => [...traceKeys.all, "sources"] as const,
   audit: (id: string, spanId?: string) => [...traceKeys.all, "audit", id, spanId ?? null] as const,
 };
 
-export function useTraces(filters: TraceListFilters = {}, options?: { enabled?: boolean }) {
+// "failing24h" is the banner's 30d->24h-ago range.
+type TraceWindow = WindowPreset | "failing24h";
+
+// Bounds are computed per fetch so refetches slide the window forward.
+export function useTraces(query: GetAuditTracesData["query"], window: TraceWindow) {
   return useQuery({
-    queryKey: traceKeys.list(filters),
-    queryFn: () => listTraces(filters),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
-    enabled: options?.enabled ?? true,
+    queryKey: traceKeys.list(query, window),
+    queryFn: () => {
+      const now = Date.now();
+      const bounds = window === "failing24h" ? bannerBounds(now) : windowToFromTo(window, now);
+      return getAuditTraces({ query: { ...query, ...bounds } });
+    },
   });
 }
 
 export function useTrace(id: string | undefined) {
   return useQuery({
-    queryKey: id ? traceKeys.detail(id) : [...traceKeys.details(), "none"],
-    queryFn: () => getTrace(id as string),
-    enabled: Boolean(id),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: traceKeys.detail(id ?? ""),
+    queryFn: id ? () => getAuditTracesByTraceId({ path: { trace_id: id } }) : skipToken,
+    select: traceView,
   });
 }
 
 export function useAuditSources() {
   return useQuery({
     queryKey: traceKeys.sources(),
-    queryFn: listAuditSources,
+    queryFn: () => getAuditSources(),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
-    refetchOnWindowFocus: false,
   });
 }
 
 export function useAuditEventsForTrace(id: string | undefined, spanId?: string) {
   return useQuery({
-    queryKey: id ? traceKeys.audit(id, spanId) : [...traceKeys.all, "audit", "none"],
-    queryFn: () => getAuditEventsForTrace(id as string, spanId),
-    enabled: Boolean(id),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-    refetchOnWindowFocus: false,
+    queryKey: traceKeys.audit(id ?? "", spanId),
+    queryFn: id ? () => getAuditEvents({ query: { trace_id: id, span_id: spanId } }) : skipToken,
   });
-}
-
-export function useRetryTrace() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => retryTrace(id),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: traceKeys.all });
-    },
-  });
-}
-
-// Prefers LastTraceProvider's context value; falls back to a singleton
-// subscription so consumers rendered outside the provider still observe updates.
-export function useLastTraceId(): string | null {
-  const fromContext = useLastTraceContext();
-  const [traceId, setTraceId] = React.useState<string | null>(() => fromContext ?? null);
-  React.useEffect(() => {
-    if (fromContext !== undefined) return;
-    setTraceId(getLastTraceId());
-    return subscribeLastTraceId(setTraceId);
-  }, [fromContext]);
-  return fromContext ?? traceId;
 }

@@ -17,8 +17,8 @@
 
 "use client";
 
+import { useSession } from "next-auth/react";
 import * as React from "react";
-import { useCurrentUser } from "@/features/core/identity/queries";
 import { useRolesCatalog, useUserPageDetails, useUsers } from "@/features/core/users/queries";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -30,14 +30,11 @@ const PAGE_SIZE = 25;
 export function UsersTableContainer() {
   const ability = useAbility();
   const canReadUsers = ability.can("read", "User");
-  const canManageRoles = ability.can("manage", "Role");
-  const canReadDirectPrivileges = ability.can("manage", "PrivilegeGrant");
-  const { user: currentUser } = useCurrentUser();
+  const canManageRoles = ability.can("write", "Role");
+  const canReadDirectPrivileges = ability.can("write", "PrivilegeGrant");
+  const { data: session } = useSession();
   const [page, setPage] = React.useState(1);
-  const usersQuery = useUsers(
-    { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE },
-    { enabled: canReadUsers },
-  );
+  const usersQuery = useUsers({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }, canReadUsers);
   const rolesQuery = useRolesCatalog(canManageRoles);
   const roleReadsEnabled = canManageRoles && rolesQuery.isSuccess;
   const hydratedRows = useUserPageDetails(
@@ -59,9 +56,7 @@ export function UsersTableContainer() {
   if (usersQuery.isError) {
     return (
       <ErrorState
-        message={
-          usersQuery.error instanceof Error ? usersQuery.error.message : "Could not load users."
-        }
+        message={usersQuery.error.message}
         onRetry={() => void usersQuery.refetch()}
       />
     );
@@ -71,7 +66,7 @@ export function UsersTableContainer() {
     <UsersTable
       users={hydratedRows}
       rolesCatalog={rolesQuery.data ?? []}
-      currentUserEmail={currentUser?.email}
+      currentUserId={session?.custosUserId}
       canManageRoles={canManageRoles}
       canReadDirectPrivileges={canReadDirectPrivileges}
       page={page}

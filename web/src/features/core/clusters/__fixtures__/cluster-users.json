@@ -3,36 +3,48 @@
     "id": "ccu-a-ada",
     "compute_cluster_id": "cluster-a",
     "user_id": "user-ada-lovelace",
-    "local_username": "alovelace"
+    "local_username": "alovelace",
+    "access_level": "USER",
+    "approval_status": "APPROVED"
   },
   {
     "id": "ccu-a-grace",
     "compute_cluster_id": "cluster-a",
     "user_id": "user-grace-hopper",
-    "local_username": "ghopper"
+    "local_username": "ghopper",
+    "access_level": "USER",
+    "approval_status": "APPROVED"
   },
   {
     "id": "ccu-a-dennis",
     "compute_cluster_id": "cluster-a",
     "user_id": "user-dennis-ritchie",
-    "local_username": "dritchie"
+    "local_username": "dritchie",
+    "access_level": "USER",
+    "approval_status": "APPROVED"
   },
   {
     "id": "ccu-c-ada",
     "compute_cluster_id": "cluster-c",
     "user_id": "user-ada-lovelace",
-    "local_username": "ada"
+    "local_username": "ada",
+    "access_level": "USER",
+    "approval_status": "APPROVED"
   },
   {
     "id": "ccu-d-katherine",
     "compute_cluster_id": "cluster-d",
     "user_id": "user-katherine-johnson",
-    "local_username": "kjohnson"
+    "local_username": "kjohnson",
+    "access_level": "USER",
+    "approval_status": "APPROVED"
   },
   {
     "id": "ccu-b-donald",
     "compute_cluster_id": "cluster-b",
     "user_id": "user-donald-knuth",
-    "local_username": "dknuth"
+    "local_username": "dknuth",
+    "access_level": "USER",
+    "approval_status": "APPROVED"
   }
 ]

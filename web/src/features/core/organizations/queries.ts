@@ -17,39 +17,32 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createOrganization, listOrganizations } from "./api";
-import type { CreateOrganizationPayload } from "./schemas";
-import type { OrganizationListParams } from "./types";
+import { getOrganizations, getOrganizationsById, postOrganizations } from "@/generated/core/sdk.gen";
+import type { GetOrganizationsData } from "@/generated/core/types.gen";
+import { useInvalidating } from "@/shared/api/useInvalidating";
+import { skipToken, useQuery } from "@tanstack/react-query";
 
 export const organizationKeys = {
   all: ["organizations"] as const,
-  list: (params: OrganizationListParams = {}) =>
-    [...organizationKeys.all, "list", params] as const,
+  list: (query: GetOrganizationsData["query"]) =>
+    [...organizationKeys.all, "list", query] as const,
+  detail: (id: string) => [...organizationKeys.all, "detail", id] as const,
 };
 
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
-
-export function useOrganizations(
-  params: OrganizationListParams = {},
-  options: { enabled?: boolean } = {},
-) {
+export function useOrganizations(query: GetOrganizationsData["query"]) {
   return useQuery({
-    queryKey: organizationKeys.list(params),
-    queryFn: () => listOrganizations(params),
-    enabled: options.enabled ?? true,
-    ...DEFAULTS,
+    queryKey: organizationKeys.list(query),
+    queryFn: () => getOrganizations({ query }),
+  });
+}
+
+export function useOrganization(id: string | undefined) {
+  return useQuery({
+    queryKey: organizationKeys.detail(id ?? ""),
+    queryFn: id ? () => getOrganizationsById({ path: { id } }) : skipToken,
   });
 }
 
 export function useCreateOrganization() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreateOrganizationPayload) => createOrganization(payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: organizationKeys.all }),
-  });
+  return useInvalidating(postOrganizations<true>, organizationKeys.all);
 }

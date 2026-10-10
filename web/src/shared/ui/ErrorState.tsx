@@ -16,6 +16,7 @@
 // under the License.
 
 import { cn } from "@/lib/utils";
+import { ApiError } from "@/shared/api/client";
 import { Button } from "@/shared/ui/button";
 import { AlertCircleIcon } from "lucide-react";
 import * as React from "react";
@@ -53,5 +54,14 @@ export function ErrorState({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+// Detail views reached from older traces often point at records deleted since.
+export function QueryErrorState({ error, what, onRetry }: { error: Error; what: string; onRetry: () => void }) {
+  return error instanceof ApiError && error.status === 404 ? (
+    <ErrorState heading={`This ${what} no longer exists`} message="It may have been deleted since." />
+  ) : (
+    <ErrorState message={error.message} onRetry={onRetry} />
   );
 }

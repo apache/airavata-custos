@@ -15,15 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UsageSummary } from "@/generated/analytics/types.gen";
 import { CHART_OTHER_COLOR, CHART_SERIES_COLORS } from "../lib";
-import type { UsageSummary } from "../schemas";
 import { BudgetDonut, type BudgetSlice } from "./BudgetDonut";
 
 // Where the allocation's credit budget went, resource by resource: colored
 // sectors are each resource's draw from the shared pool, the light track is
 // what remains.
 export function ResourceBreakdown({ summary }: { summary: UsageSummary }) {
-  const ranked = [...summary.by_resource].sort((a, b) => b.used - a.used);
+  const ranked = [...(summary.by_resource ?? [])].sort((a, b) => b.used - a.used);
   const slices: BudgetSlice[] = ranked.map((r, i) => ({
     key: r.resource_id,
     label: r.name,

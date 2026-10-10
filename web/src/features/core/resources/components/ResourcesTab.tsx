@@ -18,27 +18,32 @@
 "use client";
 
 import * as React from "react";
-import { useClusters } from "@/features/core/clusters/queries";
+import { useClusterName, useClusters } from "@/features/core/clusters/queries";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { formatNumber } from "@/shared/format";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { UsageBar } from "@/shared/ui/UsageBar";
 import { useResourceSummaries } from "../queries";
-import type { ResourceSummary } from "../schemas";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/types.gen";
+import { CreateResourceDialog } from "./CreateResourceDialog";
+import { ResourceDetailDrawer } from "./ResourceDetailDrawer";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
 export function ResourcesTab() {
+  const canWrite = useAbility().can("write", "Allocation");
   const query = useResourceSummaries();
   const clustersQuery = useClusters();
   const [search, setSearch] = React.useState("");
   const [clusterId, setClusterId] = React.useState("");
-  const [ratesFor, setRatesFor] = React.useState<ResourceSummary | null>(null);
+  const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResourceSummary | null>(null);
+  const [detailId, setDetailId] = React.useState<string | null>(null);
 
   const clusters = clustersQuery.data ?? [];
-  const clusterName = (id: string) => clusters.find((c) => c.id === id)?.name ?? id;
+  const clusterName = useClusterName();
 
   const rows = query.data ?? [];
   const filtered = React.useMemo(() => {
@@ -50,7 +55,7 @@ export function ResourcesTab() {
     });
   }, [rows, search, clusterId]);
 
-  const columns: Array<DataTableColumn<ResourceSummary>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationResourceSummary>> = [
     {
       key: "name",
       header: "Resource",
@@ -82,7 +87,7 @@ export function ResourcesTab() {
       align: "right",
       cell: (row) => (
         <span className="text-sm tabular-nums text-foreground">
-          {row.total_allocated.toLocaleString()}
+          {formatNumber(row.total_allocated)}
         </span>
       ),
     },
@@ -92,27 +97,9 @@ export function ResourcesTab() {
       align: "right",
       cell: (row) => (
         <span className="text-sm tabular-nums text-foreground">
-          {row.total_used_su.toLocaleString()}
+          {formatNumber(row.total_used_su)}
         </span>
       ),
-    },
-    {
-      key: "usage",
-      header: "Used %",
-      cell: (row) => {
-        const pct = (row.total_used_su / Math.max(1, row.total_allocated)) * 100;
-        return (
-          <div className="w-32" title={`${pct.toFixed(1)}% used`}>
-            <UsageBar
-              value={row.total_used_su}
-              max={Math.max(1, row.total_allocated)}
-              label={`${pct.toFixed(1)}%`}
-              ariaLabel={`${row.name} usage ${pct.toFixed(1)} percent`}
-              size="sm"
-            />
-          </div>
-        );
-      },
     },
     {
       key: "actions",
@@ -151,20 +138,37 @@ export function ResourcesTab() {
           aria-label="Search resources"
           className="sm:w-72"
         />
+        {canWrite ? (
+          <div className="sm:ml-auto">
+            <CreateResourceDialog clusters={clusters} />
+          </div>
+        ) : null}
       </div>
 
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState heading="No resources registered." />
       ) : filtered.length === 0 ? (
         <EmptyState heading="No resources match these filters." />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => setDetailId(row.id)}
+        />
       )}
 
+      <ResourceDetailDrawer
+        resourceId={detailId}
+        clusterName={clusterName}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null);
+        }}
+      />
       <ResourcesRatesDrawer
         resourceId={ratesFor?.id ?? null}
         resourceName={ratesFor?.name ?? null}

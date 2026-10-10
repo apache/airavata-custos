@@ -17,8 +17,11 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+vi.mock("@/features/core/projects/queries", () => ({ useProject: () => ({ data: undefined }) }));
+vi.mock("@/features/core/clusters/queries", () => ({ useClusterName: () => (id = "") => id }));
+
 import { AllocationsList } from "../components/AllocationsList";
-import type { ComputeAllocation } from "../schemas";
+import type { ComputeAllocation } from "@/generated/core/types.gen";
 
 const allocation: ComputeAllocation = {
   id: "alloc-001",

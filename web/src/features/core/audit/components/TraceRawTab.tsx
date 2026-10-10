@@ -17,22 +17,22 @@
 
 "use client";
 
+import type { TraceEvent, TraceSummary } from "@/generated/core/types.gen";
+import { Button } from "@/shared/ui/button";
 import { Check, Copy } from "lucide-react";
 import * as React from "react";
-import { Button } from "@/shared/ui/button";
-import type { Span, Trace } from "../types";
+import { useCopy } from "./primitives/CopyValue";
 
 export type TraceRawTabProps = {
-  trace: Trace;
-  spans: Span[];
+  trace: TraceSummary;
+  spans: TraceEvent[];
 };
 
 type Highlighted = React.ReactNode[];
 
 // Lex the stringified JSON once and tag tokens with their semantic colors so
 // indent and punctuation render verbatim alongside coloured keys/values.
-function highlightJson(obj: unknown): { text: string; nodes: Highlighted } {
-  const text = JSON.stringify(obj, null, 2);
+function highlightJson(text: string): { text: string; nodes: Highlighted } {
   const parts: Highlighted = [];
   const re =
     /("(?:\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
@@ -66,66 +66,24 @@ function highlightJson(obj: unknown): { text: string; nodes: Highlighted } {
 }
 
 export function TraceRawTab({ trace, spans }: TraceRawTabProps) {
-  const [copied, setCopied] = React.useState(false);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [copied, copy] = useCopy();
 
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const json = React.useMemo(
-    () => ({
-      trace_id: trace.trace_id,
-      source: trace.source,
-      status: trace.status,
-      root_action: trace.root_name,
-      span_count: trace.span_count,
-      spans: spans.map((s) => ({
-        span_id: s.span_id,
-        parent_span_id: s.parent_span_id ?? null,
-        action: s.name,
-        source: trace.source,
-        status: s.status,
-        started_at: s.start_time,
-        ended_at: s.end_time ?? null,
-        ...(s.status_message ? { status_message: s.status_message } : {}),
-        summary: "",
-        attributes: (s.attributes ?? {}) as Record<string, unknown>,
-      })),
-    }),
+  const { text, nodes } = React.useMemo(
+    () => highlightJson(JSON.stringify({ ...trace, spans }, null, 2)),
     [trace, spans],
   );
-
-  const { text, nodes } = React.useMemo(() => highlightJson(json), [json]);
-
-  const onCopy = () => {
-    void (async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch {
-        // Best-effort copy; still surface the check.
-      }
-      setCopied(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 1100);
-    })();
-  };
 
   return (
     <div className="max-w-[920px]">
       <div className="mb-2.5 flex items-center justify-between">
         <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
           TRACE JSON{" "}
-          <span className="font-medium normal-case tracking-normal">
-            · {spans.length} spans
-          </span>
+          <span className="font-medium normal-case tracking-normal">· {spans.length} spans</span>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={onCopy}
+          onClick={() => copy(text)}
           aria-label={copied ? "Copied JSON" : "Copy trace JSON"}
         >
           {copied ? (

@@ -15,20 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserManagementRow } from "@/features/core/users/types";
+import type { UserManagementRow } from "@/features/core/users/queries";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { UsersTable } from "../UsersTable";
 
 const searchParamMocks = vi.hoisted(() => ({
   params: new URLSearchParams(),
-  replace: vi.fn(),
+}));
+
+vi.mock("@/shared/casl/AbilityProvider", () => ({
+  useAbility: () => defineAbilitiesFor([]),
 }));
 
 vi.mock("@/shared/hooks/useShallowSearchParams", () => ({
   useShallowSearchParams: () => searchParamMocks.params,
-  replaceShallowSearchParams: searchParamMocks.replace,
+  setSearchParam: vi.fn(),
 }));
 
 const row: UserManagementRow = {
@@ -36,7 +40,10 @@ const row: UserManagementRow = {
   email: "user@example.org",
   first_name: "Example",
   last_name: "User",
-  roles: [{ id: "role-1", name: "Administrator" }],
+  organization_id: "org-1",
+  status: "ACTIVE",
+  type: "VIRTUAL",
+  roles: [{ id: "role-1", name: "Administrator", is_system: false, created_at: "2026-01-01T00:00:00Z" }],
   identities: [{ id: "identity-1", user_id: "user-1", source: "cilogon" }],
   rolesLoading: false,
   identitiesLoading: false,
@@ -51,8 +58,8 @@ function renderTable(canManageRoles: boolean, users: UserManagementRow[] = [row]
     <QueryClientProvider client={client}>
       <UsersTable
         users={users}
-        rolesCatalog={[{ id: "role-1", name: "Administrator" }]}
-        currentUserEmail="user@example.org"
+        rolesCatalog={[{ id: "role-1", name: "Administrator", is_system: false, created_at: "2026-01-01T00:00:00Z" }]}
+        currentUserId="user-1"
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={false}
         page={1}
@@ -68,7 +75,6 @@ function renderTable(canManageRoles: boolean, users: UserManagementRow[] = [row]
 describe("UsersTable", () => {
   beforeEach(() => {
     searchParamMocks.params = new URLSearchParams();
-    searchParamMocks.replace.mockReset();
   });
 
   it("renders a hydrated user and marks the current user", () => {

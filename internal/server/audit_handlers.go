@@ -95,7 +95,7 @@ func (s *Server) handleListTraces(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	trace_id	path	string	true	"32-char lowercase hex"
-// @Success	200	{object}	object{trace_id=string,status=string,tree=[]models.TraceNode,deliveries=[]models.TraceDelivery,truncated=boolean}
+// @Success	200	{object}	TraceDetailResponse
 // @Failure	400	{object}	object{error=string}	"Malformed trace_id"
 // @Failure	404	{object}	object{error=string}	"Trace not found"
 // @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
@@ -123,14 +123,16 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 		deliveries = []models.TraceDelivery{}
 	}
 
-	resp := map[string]any{
-		"trace_id":   traceID,
-		"status":     tree.Status,
-		"tree":       tree.Children,
-		"deliveries": deliveries,
-		"truncated":  truncated,
-	}
-	common.WriteJSON(w, http.StatusOK, resp)
+	common.WriteJSON(w, http.StatusOK, TraceDetailResponse{TraceID: traceID, Status: tree.Status, Tree: tree.Children, Deliveries: deliveries, Truncated: truncated})
+}
+
+// TraceDetailResponse is one trace: its summary status, the span forest under it and its deliveries.
+type TraceDetailResponse struct {
+	TraceID    string                 `json:"trace_id" binding:"required"`
+	Status     string                 `json:"status" binding:"required" enums:"ok,error,in_progress"`
+	Tree       []*models.TraceNode    `json:"tree" binding:"required"`
+	Deliveries []models.TraceDelivery `json:"deliveries" binding:"required"`
+	Truncated  bool                   `json:"truncated" binding:"required"`
 }
 
 // @Summary	List audit events for a trace (optionally one span)

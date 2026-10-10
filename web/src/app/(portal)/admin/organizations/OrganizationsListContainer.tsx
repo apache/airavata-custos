@@ -18,71 +18,37 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
 import { CreateOrganizationDialog } from "@/features/core/organizations/components/CreateOrganizationDialog";
+import { OrganizationDrawer } from "@/features/core/organizations/components/OrganizationDrawer";
 import { OrganizationsList } from "@/features/core/organizations/components/OrganizationsList";
-import { useCreateOrganization, useOrganizations } from "@/features/core/organizations/queries";
-import type { CreateOrganizationPayload } from "@/features/core/organizations/schemas";
+import { useOrganizations } from "@/features/core/organizations/queries";
 import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
 
 const PAGE_SIZE = 50;
 
 export function OrganizationsListContainer() {
   const ability = useAbility();
-  const canCreate = ability.can("manage", "Organization");
+  const canCreate = ability.can("write", "Organization");
 
   const [page, setPage] = React.useState(1);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [createError, setCreateError] = React.useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string>();
 
   const query = useOrganizations({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
-  const createMutation = useCreateOrganization();
-
-  async function handleCreate(payload: CreateOrganizationPayload) {
-    setCreateError(null);
-    try {
-      await createMutation.mutateAsync(payload);
-      toast.success("Organization created");
-      setDialogOpen(false);
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create organization");
-    }
-  }
-
   return (
     <>
       <OrganizationsList
         rows={query.data?.items ?? []}
         isLoading={query.isLoading}
-        error={(query.error as Error | null) ?? null}
+        error={query.error}
         onRetry={() => query.refetch()}
         page={page}
         pageSize={PAGE_SIZE}
         total={query.data?.total ?? 0}
         onPageChange={setPage}
-        headerCta={
-          canCreate ? (
-            <Button
-              onClick={() => {
-                setCreateError(null);
-                setDialogOpen(true);
-              }}
-            >
-              + Create organization
-            </Button>
-          ) : null
-        }
+        onRowClick={(row) => setSelectedId(row.id)}
+        headerCta={canCreate ? <CreateOrganizationDialog /> : null}
       />
-      {canCreate ? (
-        <CreateOrganizationDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          onSubmit={handleCreate}
-          isPending={createMutation.isPending}
-          error={createError}
-        />
-      ) : null}
+      <OrganizationDrawer organizationId={selectedId} onClose={() => setSelectedId(undefined)} />
     </>
   );
 }

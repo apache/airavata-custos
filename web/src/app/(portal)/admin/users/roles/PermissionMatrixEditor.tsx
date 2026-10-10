@@ -18,15 +18,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { PermissionKey } from "@/shared/users-admin/permissions";
-import { permissionRowsFor } from "@/shared/users-admin/permissions";
+import type { PrivilegeKey } from "@/generated/core/types.gen";
+import { actionChipClass, permissionRowsFor } from "@/shared/users-admin/permissions";
 
-const ACTION_CHIP_CLASSES: Record<string, string> = {
-  read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
-  write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
-};
-const ACTION_CHIP_FALLBACK =
-  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
 const INACTIVE_CHIP_CLASS = "border border-border text-muted-foreground";
 
 export function PermissionMatrixEditor({
@@ -35,9 +29,9 @@ export function PermissionMatrixEditor({
   onTogglePermission,
   editable = true,
 }: {
-  permissions: PermissionKey[];
-  catalog?: readonly PermissionKey[];
-  onTogglePermission?: (permission: PermissionKey) => void;
+  permissions: PrivilegeKey[];
+  catalog?: readonly PrivilegeKey[];
+  onTogglePermission?: (permission: PrivilegeKey) => void;
   editable?: boolean;
 }) {
   const rows = permissionRowsFor(permissions, catalog);
@@ -57,7 +51,7 @@ export function PermissionMatrixEditor({
                 const className = cn(
                   "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
                   privilege.active
-                    ? ACTION_CHIP_CLASSES[privilege.action] ?? ACTION_CHIP_FALLBACK
+                    ? actionChipClass(privilege.action)
                     : INACTIVE_CHIP_CLASS,
                   canEdit && "cursor-pointer transition-transform hover:scale-105",
                 );

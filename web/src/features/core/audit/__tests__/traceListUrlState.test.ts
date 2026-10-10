@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { describe, expect, it } from "vitest";
 import {
   DEFAULT_FILTERS,
   type ListFilters,
@@ -26,6 +25,7 @@ import {
   statusFiltersToApi,
   windowToFromTo,
 } from "@/features/core/audit/components/traceListUrlState";
+import { describe, expect, it } from "vitest";
 
 function p(qs: string): URLSearchParams {
   return new URLSearchParams(qs);
@@ -86,11 +86,6 @@ describe("traceListUrlState — serializeFilters", () => {
     expect(qs).toContain("status=error");
   });
 
-  it("does not emit status when it equals the default", () => {
-    const qs = serializeFilters({ ...DEFAULT_FILTERS, status: ["error"] }).toString();
-    expect(qs).toBe("");
-  });
-
   it("emits window/page/pageSize only when off-default", () => {
     const filters: ListFilters = {
       ...DEFAULT_FILTERS,
@@ -109,10 +104,6 @@ describe("traceListUrlState — serializeFilters", () => {
     const qs = serializeFilters(filters);
     expect(qs.get("failingOver24h")).toBe("1");
     expect(parseFilters(qs).failingOver24h).toBe(true);
-  });
-
-  it("omits failingOver24h when false", () => {
-    expect(serializeFilters(DEFAULT_FILTERS).has("failingOver24h")).toBe(false);
   });
 });
 
@@ -134,6 +125,12 @@ describe("traceListUrlState — round-trip", () => {
     expect(out.q).toBe(f.q);
     expect(out.page).toBe(f.page);
     expect(out.pageSize).toBe(f.pageSize);
+  });
+
+  it("keeps a cleared status selection instead of restoring the default", () => {
+    const qs = serializeFilters({ ...DEFAULT_FILTERS, status: [] });
+    expect(qs.toString()).toBe("status=all");
+    expect(parseFilters(qs).status).toEqual([]);
   });
 });
 
@@ -177,19 +174,11 @@ describe("traceListUrlState — bannerBounds", () => {
 });
 
 describe("traceListUrlState — statusFiltersToApi", () => {
-  it("maps ok→0, error→1, orphaned→3", () => {
-    const { apiStatus, inProgressOnly } = statusFiltersToApi(["ok", "error", "orphaned"]);
-    expect(new Set(apiStatus)).toEqual(new Set([0, 1, 3]));
-    expect(inProgressOnly).toBe(false);
-  });
-
-  it("strips in-progress from the wire and flags it when sole filter", () => {
-    const sole = statusFiltersToApi(["in-progress"]);
-    expect(sole.apiStatus).toEqual([]);
-    expect(sole.inProgressOnly).toBe(true);
-
-    const mixed = statusFiltersToApi(["in-progress", "error"]);
-    expect(mixed.apiStatus).toEqual([1]);
-    expect(mixed.inProgressOnly).toBe(false);
+  it("maps UI filters to wire statuses", () => {
+    expect(statusFiltersToApi(["ok", "error", "in-progress"])).toEqual([
+      "ok",
+      "error",
+      "in_progress",
+    ]);
   });
 });

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UsageDailyBucket, UsageResource } from "./schemas";
+import type { UsageDailyBucket, UsageResource } from "@/generated/analytics/types.gen";
 
 // Categorical series colors; chart-5 is the neutral used for "Other".
 export const CHART_SERIES_COLORS = [
@@ -151,15 +151,6 @@ export function formatNative(n: number): string {
 export function formatPercent(n: number): string {
   if (n > 0 && n < 1) return "<1%";
   return `${Math.round(n)}%`;
-}
-
-// "Aug 1, 2026"
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 // "Jul 14, 09:12"

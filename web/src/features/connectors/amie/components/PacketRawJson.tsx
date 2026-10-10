@@ -25,7 +25,7 @@ export type PacketRawJsonProps = {
 };
 
 export default function PacketRawJson({ rawJson }: PacketRawJsonProps) {
-  let parsed: unknown;
+  let parsed: object;
   try {
     parsed = JSON.parse(rawJson);
   } catch {
@@ -35,7 +35,7 @@ export default function PacketRawJson({ rawJson }: PacketRawJsonProps) {
   }
   return (
     <div className="overflow-x-auto rounded-md border bg-background p-3 text-xs">
-      <JsonView data={parsed as object} style={defaultStyles} />
+      <JsonView data={parsed} style={defaultStyles} />
     </div>
   );
 }

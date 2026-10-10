@@ -30,6 +30,16 @@ const modules: ModuleSpec[] = [
     ),
     output: path.join(webRoot, "src", "generated", "amie"),
   },
+  {
+    name: "analytics",
+    input: path.join(repoRoot, "connectors", "Analytics", "api", "analytics.openapi.yaml"),
+    output: path.join(webRoot, "src", "generated", "analytics"),
+  },
+  {
+    name: "temp-account",
+    input: path.join(repoRoot, "connectors", "TempAccount", "api", "temp-account.openapi.yaml"),
+    output: path.join(webRoot, "src", "generated", "temp-account"),
+  },
 ];
 
 async function main() {
@@ -38,9 +48,14 @@ async function main() {
       input: mod.input,
       output: { path: mod.output, postProcess: [] },
       plugins: [
-        { name: "@hey-api/client-fetch" },
+        {
+          name: "@hey-api/client-fetch",
+          baseUrl: "/api/v1",
+          runtimeConfigPath: "@/shared/api/client",
+          throwOnError: true,
+        },
         { name: "@hey-api/typescript" },
-        { name: "@hey-api/sdk" },
+        { name: "@hey-api/sdk", responseStyle: "data" },
         {
           name: "zod",
           definitions: { types: { infer: true } },

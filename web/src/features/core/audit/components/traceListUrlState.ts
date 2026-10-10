@@ -19,7 +19,7 @@
 // parseFilters tolerant of pasted/manipulated URLs — stray values collapse to
 // defaults instead of widening the TanStack cache key.
 
-export type StatusFilter = "error" | "ok" | "in-progress" | "orphaned";
+export type StatusFilter = "error" | "ok" | "in-progress";
 export type WindowPreset = "24h" | "7d" | "30d";
 
 export type ListFilters = {
@@ -42,19 +42,13 @@ export const DEFAULT_FILTERS: ListFilters = {
   failingOver24h: false,
 };
 
-const VALID_STATUS: ReadonlyArray<StatusFilter> = ["error", "ok", "in-progress", "orphaned"];
+const VALID_STATUS: ReadonlyArray<StatusFilter> = ["error", "ok", "in-progress"];
 const VALID_SOURCES: ReadonlyArray<string> = ["amie", "comanage", "slurm", "http", "core"];
 const VALID_WINDOWS: ReadonlyArray<WindowPreset> = ["24h", "7d", "30d"];
 const VALID_PAGE_SIZES: ReadonlyArray<number> = [25, 50, 100];
 
-// API status codes: ok=0, error=1, cancelled=2, orphaned=3. `in-progress` is
-// a UI-only filter (ended_at == null); never sent to the wire.
-const STATUS_TO_API: Record<StatusFilter, number | null> = {
-  ok: 0,
-  error: 1,
-  orphaned: 3,
-  "in-progress": null,
-};
+// An empty status selection must survive the URL, where absence means default.
+const ALL_STATUS = "all";
 
 type SearchParamsLike = {
   getAll: (key: string) => string[];
@@ -96,6 +90,7 @@ export function serializeFilters(filters: ListFilters): URLSearchParams {
   const params = new URLSearchParams();
   const sortedStatus = [...filters.status].sort();
   if (!arraysEqual(sortedStatus, [...DEFAULT_FILTERS.status].sort())) {
+    if (!sortedStatus.length) params.append("status", ALL_STATUS);
     for (const s of sortedStatus) params.append("status", s);
   }
   for (const s of [...filters.source].sort()) params.append("source", s);
@@ -130,24 +125,8 @@ export function windowToFromTo(win: WindowPreset, now: number): { from: string; 
   return { from, to };
 }
 
-// Map UI status filters to backend numeric codes; `in-progress` is filtered
-// client-side and contributes no API status param.
-export function statusFiltersToApi(status: StatusFilter[]): {
-  apiStatus: number[];
-  inProgressOnly: boolean;
-} {
-  const apiStatus: number[] = [];
-  let hasInProgress = false;
-  for (const s of status) {
-    const code = STATUS_TO_API[s];
-    if (code == null) {
-      hasInProgress = true;
-    } else {
-      apiStatus.push(code);
-    }
-  }
-  const inProgressOnly = hasInProgress && apiStatus.length === 0;
-  return { apiStatus, inProgressOnly };
+export function statusFiltersToApi(status: StatusFilter[]): string[] {
+  return status.map((s) => s.replace("-", "_"));
 }
 
 // Bounds shared by the 24h failure banner and the "Failing >24h" filter:

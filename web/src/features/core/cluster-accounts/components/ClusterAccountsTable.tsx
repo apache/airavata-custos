@@ -17,15 +17,16 @@
 
 "use client";
 
+import { formatDate } from "@/shared/format";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
-import type { ClusterAccount } from "../schemas";
+import type { ClusterAccountResponse, ComputeClusterUser } from "@/generated/core/types.gen";
 
-export function clusterAccountStatus(row: ClusterAccount): {
+export function clusterAccountStatus(row: ComputeClusterUser): {
   variant: StatusBadgeVariant;
   label: string;
 } {
@@ -38,21 +39,15 @@ export function clusterAccountStatus(row: ClusterAccount): {
   return { variant: "warning", label: "Pending approval" };
 }
 
-function formatDate(iso?: string | null): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
 export type ClusterAccountsTableProps = {
-  rows: ClusterAccount[];
+  rows: ClusterAccountResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
   canReview: boolean;
-  onApprove: (row: ClusterAccount) => void;
-  onDeny: (row: ClusterAccount) => void;
+  onApprove: (row: ClusterAccountResponse) => void;
+  onDeny: (row: ClusterAccountResponse) => void;
+  onRowClick?: (row: ClusterAccountResponse) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -68,13 +63,14 @@ export function ClusterAccountsTable({
   canReview,
   onApprove,
   onDeny,
+  onRowClick,
   page,
   pageSize,
   total,
   onPageChange,
   emptyHeading,
 }: ClusterAccountsTableProps) {
-  const columns: Array<DataTableColumn<ClusterAccount>> = [
+  const columns: Array<DataTableColumn<ClusterAccountResponse>> = [
     {
       key: "user",
       header: "User",
@@ -149,6 +145,7 @@ export function ClusterAccountsTable({
       columns={columns}
       rows={rows}
       rowKey={(row) => row.id}
+      onRowClick={onRowClick}
       pagination={{ page, pageSize, total, onPageChange }}
     />
   );

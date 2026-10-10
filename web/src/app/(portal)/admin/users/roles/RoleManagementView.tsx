@@ -21,12 +21,14 @@ import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { UsersNav } from "../UsersNav";
+import { PrivilegeHoldersCard } from "./PrivilegeHoldersCard";
 import { RoleFormDialog } from "./RoleFormDialog";
 import { RolesGrid } from "./RolesGrid";
 
 export function RoleManagementView() {
   const ability = useAbility();
-  const canManageRoles = ability.can("manage", "Role");
+  const canManageRoles = ability.can("write", "Role");
+  const canGrant = ability.can("write", "PrivilegeGrant");
 
   if (!canManageRoles) {
     return (
@@ -46,6 +48,7 @@ export function RoleManagementView() {
         rightSlot={<RoleFormDialog triggerRender={<Button />} triggerContent="Create role" />}
       />
       <RolesGrid />
+      {canGrant ? <PrivilegeHoldersCard /> : null}
     </div>
   );
 }

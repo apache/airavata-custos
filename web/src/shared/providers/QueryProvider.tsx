@@ -25,6 +25,14 @@ import {
 } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { useAuthErrorHandler } from "@/shared/auth/useAuthErrorHandler";
+import { toastError } from "@/shared/ui/sonner";
+
+declare module "@tanstack/react-query" {
+  interface Register {
+    // inlineError: the caller renders the failure itself, so no toast.
+    mutationMeta: { inlineError?: boolean };
+  }
+}
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const handleAuthError = useAuthErrorHandler();
@@ -32,7 +40,13 @@ export function QueryProvider({ children }: { children: ReactNode }) {
     () =>
       new QueryClient({
         queryCache: new QueryCache({ onError: handleAuthError }),
-        mutationCache: new MutationCache({ onError: handleAuthError }),
+        // Every mutation failure toasts here; call sites add only their success toast.
+        mutationCache: new MutationCache({
+          onError: (error, _variables, _context, mutation) => {
+            handleAuthError(error);
+            if (!mutation.meta?.inlineError) toastError(error);
+          },
+        }),
         defaultOptions: {
           queries: {
             staleTime: 30_000,

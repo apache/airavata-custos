@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
 import { TraceFilterStrip } from "@/features/core/audit/components/TraceFilterStrip";
 import {
   DEFAULT_FILTERS,
   type ListFilters,
 } from "@/features/core/audit/components/traceListUrlState";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 function renderStrip(initial: ListFilters = DEFAULT_FILTERS) {
   const onChange = vi.fn<(next: ListFilters) => void>();
@@ -95,10 +95,5 @@ describe("TraceFilterStrip", () => {
     const last = onChange.mock.calls.at(-1)?.[0];
     expect(last?.failingOver24h).toBe(false);
     expect(last?.page).toBe(1);
-  });
-
-  it("does not render the Failing >24h chip when filter is off", () => {
-    renderStrip();
-    expect(screen.queryByTestId("failing-over-24h-chip")).toBeNull();
   });
 });

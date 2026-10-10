@@ -16,8 +16,13 @@
 // under the License.
 
 import { redirect } from "next/navigation";
+import { auth } from "@/shared/auth/auth";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
+import { AMIE_TABS } from "./tabs";
 
-// /admin/amie has no content of its own; bounce to the canonical Inbox tab.
-export default function AmieIndex() {
-  redirect("/admin/amie/packets");
+// /admin/amie has no content of its own; bounce to the first tab the caller can read.
+export default async function AmieIndex() {
+  const ability = defineAbilitiesFor((await auth())?.privileges ?? []);
+  const first = AMIE_TABS.find((tab) => ability.can("read", tab.subject));
+  redirect(first?.href ?? "/admin/amie/packets");
 }

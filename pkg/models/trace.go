@@ -23,56 +23,56 @@ import (
 )
 
 type TraceSummary struct {
-	TraceID       string         `db:"trace_id" json:"trace_id"`
-	RootOperation string         `db:"root_operation" json:"root_operation"`
-	Source        string         `db:"source" json:"source"`
-	Status        string         `db:"status" json:"status"`
-	StartedAt     time.Time      `db:"started_at" json:"started_at"`
-	EndedAt       time.Time      `db:"ended_at" json:"ended_at"`
-	EventCount    int            `db:"event_count" json:"event_count"`
-	Deliveries    DeliveryCounts `db:"-" json:"deliveries"`
+	TraceID       string         `db:"trace_id" json:"trace_id" binding:"required"`
+	RootOperation string         `db:"root_operation" json:"root_operation" binding:"required"`
+	Source        string         `db:"source" json:"source" binding:"required"`
+	Status        string         `db:"status" json:"status" binding:"required" enums:"ok,error,in_progress"`
+	StartedAt     time.Time      `db:"started_at" json:"started_at" binding:"required"`
+	EndedAt       time.Time      `db:"ended_at" json:"ended_at" binding:"required"`
+	EventCount    int            `db:"event_count" json:"event_count" binding:"required"`
+	Deliveries    DeliveryCounts `db:"-" json:"deliveries" binding:"required"`
 }
 
 // DeliveryCounts says how many of a trace's deliveries are pending, done and
 // failed. Attempts is the most tries any pending one has made.
 type DeliveryCounts struct {
-	Pending   int `json:"pending"`
-	Succeeded int `json:"succeeded"`
-	Failed    int `json:"failed"`
-	Attempts  int `json:"attempts"`
+	Pending   int `json:"pending" binding:"required"`
+	Succeeded int `json:"succeeded" binding:"required"`
+	Failed    int `json:"failed" binding:"required"`
+	Attempts  int `json:"attempts" binding:"required"`
 }
 
 // TraceDelivery is a connector's delivery of an event the trace published.
 // SpanID is the span of the step that published the event, so the delivery
 // can be shown under that step.
 type TraceDelivery struct {
-	ID         string              `db:"id" json:"id"`
+	ID         string              `db:"id" json:"id" binding:"required"`
 	TraceID    string              `db:"trace_id" json:"-"`
-	EventType  string              `db:"event_type" json:"event_type"`
-	Subscriber string              `db:"subscriber" json:"subscriber"`
-	Status     EventDeliveryStatus `db:"status" json:"status"`
-	Attempts   int                 `db:"attempts" json:"attempts"`
-	NextRunAt  time.Time           `db:"next_run_at" json:"next_run_at"`
-	LastError  *string             `db:"last_error" json:"last_error,omitempty"`
-	SpanID     string              `db:"span_id" json:"span_id"`
+	EventType  string              `db:"event_type" json:"event_type" binding:"required"`
+	Subscriber string              `db:"subscriber" json:"subscriber" binding:"required"`
+	Status     EventDeliveryStatus `db:"status" json:"status" binding:"required"`
+	Attempts   int                 `db:"attempts" json:"attempts" binding:"required"`
+	NextRunAt  time.Time           `db:"next_run_at" json:"next_run_at" binding:"required"`
+	LastError  *string             `db:"last_error" json:"last_error,omitempty" extensions:"x-nullable"`
+	SpanID     string              `db:"span_id" json:"span_id" binding:"required"`
 }
 
 type TraceEvent struct {
-	ID           string    `db:"id" json:"id"`
-	SpanID       string    `db:"span_id" json:"span_id"`
+	ID           string    `db:"id" json:"id" binding:"required"`
+	SpanID       string    `db:"span_id" json:"span_id" binding:"required"`
 	ParentSpanID *string   `db:"parent_span_id" json:"parent_span_id,omitempty"`
-	Source       string    `db:"source" json:"source"`
-	EventType    string    `db:"event_type" json:"event_type"`
+	Source       string    `db:"source" json:"source" binding:"required"`
+	EventType    string    `db:"event_type" json:"event_type" binding:"required"`
 	EntityType   string    `db:"entity_type" json:"entity_type,omitempty"`
 	EntityID     string    `db:"entity_id" json:"entity_id,omitempty"`
 	Description  string    `db:"description" json:"description,omitempty"`
-	Status       string    `db:"status" json:"status"`
-	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+	Status       string    `db:"status" json:"status" binding:"required" enums:"ok,error"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at" binding:"required"`
 }
 
 type TraceNode struct {
 	TraceEvent
-	Children []*TraceNode `json:"children"`
+	Children []*TraceNode `json:"children" binding:"required"`
 }
 
 // MarshalJSON ensures Children is emitted as [] (not null) so clients

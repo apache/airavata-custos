@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Delivery, HistoryEntry } from "./types";
+import type { AuditEvent, PendingDelivery } from "@/generated/core/types.gen";
 
 // Matches maxAttempts in pkg/events/worker.go.
 export const MAX_ATTEMPTS = 10;
@@ -24,7 +24,10 @@ export type DeliveryState = "succeeded" | "failed" | "retrying" | "waiting" | "n
 
 // A pending delivery whose connector is not running waits until it starts,
 // so it is shown apart from one that is simply queued.
-export function deliveryState(delivery: Delivery, runningSubscribers?: Set<string>): DeliveryState {
+export function deliveryState(
+  delivery: PendingDelivery,
+  runningSubscribers?: Set<string>,
+): DeliveryState {
   if (delivery.status === "SUCCEEDED") return "succeeded";
   if (delivery.status === "FAILED") return "failed";
   if (runningSubscribers && !runningSubscribers.has(delivery.subscriber)) return "not-running";
@@ -45,7 +48,7 @@ function parseDetails(details: string): Record<string, unknown> {
   }
 }
 
-export function historyStep(entry: HistoryEntry): HistoryStep {
+export function historyStep(entry: AuditEvent): HistoryStep {
   const d = parseDetails(entry.details);
   switch (entry.event_type) {
     case "EVENT_DELIVERY_SUCCEEDED":
@@ -71,9 +74,9 @@ export function historyStep(entry: HistoryEntry): HistoryStep {
 
 // A retry starts the attempt count over, so the history is split into runs at
 // each retry to keep the attempt numbers readable.
-export function historyRuns(history: HistoryEntry[]): HistoryStep[][] {
+export function historyRuns(history?: AuditEvent[] | null): HistoryStep[][] {
   const runs: HistoryStep[][] = [[]];
-  for (const entry of history) {
+  for (const entry of history ?? []) {
     const step = historyStep(entry);
     if (step.kind === "retry") runs.push([step]);
     else runs.at(-1)?.push(step);

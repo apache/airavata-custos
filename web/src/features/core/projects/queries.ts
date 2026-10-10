@@ -17,112 +17,94 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { allocationKeys } from "@/features/core/allocations/queries";
 import {
-  addProjectMember,
-  createProject,
-  getProject,
-  listProjectMembers,
-  listProjects,
-  removeProjectMember,
-  updateProjectMember,
-  updateProjectStatus,
-} from "./api";
-import type {
-  AddProjectMemberPayload,
-  CreateProjectPayload,
-  UpdateProjectMemberPayload,
-  UpdateProjectStatusPayload,
-} from "./schemas";
-import type { ProjectListParams } from "./types";
+  deleteProjectsById,
+  getProjects,
+  getProjectsById,
+  getProjectsByIdMembers,
+  postProjects,
+  putProjectsById,
+  putProjectsByIdMembersByUserId,
+  putProjectsByIdStatus,
+} from "@/generated/core/sdk.gen";
+import type { GetProjectsData } from "@/generated/core/types.gen";
+import { useInvalidating } from "@/shared/api/useInvalidating";
+import {
+  type QueryClient,
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 export const projectKeys = {
   all: ["projects"] as const,
-  list: (params: ProjectListParams = {}) => [...projectKeys.all, "list", params] as const,
+  list: (query: GetProjectsData["query"]) => [...projectKeys.all, "list", query] as const,
   detail: (id: string) => [...projectKeys.all, "detail", id] as const,
   members: (projectId: string) => [...projectKeys.all, "members", projectId] as const,
 };
 
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
+// Allocation member rows carry the project role.
+function invalidateAllocationMembers(client: QueryClient) {
+  client.invalidateQueries({
+    queryKey: allocationKeys.all,
+    predicate: (q) => q.queryKey.at(-1) === "members",
+  });
+}
 
-export function useProjects(params: ProjectListParams = {}) {
+export function useProjects(query: GetProjectsData["query"]) {
   return useQuery({
-    queryKey: projectKeys.list(params),
-    queryFn: () => listProjects(params),
-    ...DEFAULTS,
+    queryKey: projectKeys.list(query),
+    queryFn: () => getProjects({ query }),
   });
 }
 
 export function useProject(id: string | undefined) {
   return useQuery({
-    queryKey: id ? projectKeys.detail(id) : [...projectKeys.all, "detail", "none"],
-    queryFn: () => getProject(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
+    queryKey: projectKeys.detail(id ?? ""),
+    queryFn: id ? () => getProjectsById({ path: { id } }) : skipToken,
   });
 }
 
 export function useProjectMembers(projectId: string | undefined) {
   return useQuery({
-    queryKey: projectId
-      ? projectKeys.members(projectId)
-      : [...projectKeys.all, "members", "none"],
-    queryFn: () => listProjectMembers(projectId as string),
-    enabled: Boolean(projectId),
-    ...DEFAULTS,
+    queryKey: projectKeys.members(projectId ?? ""),
+    queryFn: projectId ? () => getProjectsByIdMembers({ path: { id: projectId } }) : skipToken,
   });
 }
 
 export function useCreateProject() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreateProjectPayload) => createProject(payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all }),
-  });
+  return useInvalidating(postProjects<true>, projectKeys.all);
 }
 
-export function useUpdateProjectStatus() {
+export function useUpdateProject() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateProjectStatusPayload }) =>
-      updateProjectStatus(id, payload),
-    onSuccess: (_data, variables) => {
+    mutationFn: putProjectsById<true>,
+    onSuccess: () => {
       client.invalidateQueries({ queryKey: projectKeys.all });
-      client.invalidateQueries({ queryKey: projectKeys.detail(variables.id) });
+      // A PI change retags project roles shown on allocation member rows.
+      invalidateAllocationMembers(client);
     },
   });
 }
 
-export function useAddProjectMember(projectId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: AddProjectMemberPayload) => addProjectMember(projectId, payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
-  });
+export function useUpdateProjectStatus() {
+  return useInvalidating(putProjectsByIdStatus<true>, projectKeys.all);
 }
 
-export function useUpdateProjectMember(projectId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      memberId,
-      payload,
-    }: {
-      memberId: string;
-      payload: UpdateProjectMemberPayload;
-    }) => updateProjectMember(projectId, memberId, payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
-  });
+export function useDeleteProject() {
+  return useInvalidating(deleteProjectsById<true>, [...projectKeys.all, "list"]);
 }
 
-export function useRemoveProjectMember(projectId: string) {
+export function useSetProjectRole() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (memberId: string) => removeProjectMember(projectId, memberId),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
+    mutationFn: putProjectsByIdMembersByUserId<true>,
+    onSuccess: (_data, { path }) => {
+      client.invalidateQueries({ queryKey: projectKeys.members(path.id) });
+      invalidateAllocationMembers(client);
+    },
   });
 }

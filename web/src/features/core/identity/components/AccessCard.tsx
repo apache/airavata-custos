@@ -17,40 +17,19 @@
 
 "use client";
 
+import { formatDate } from "@/shared/format";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/shared/ui/badge";
+import { actionChipClass } from "@/shared/users-admin/permissions";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { buildPrivilegeRows } from "../privileges";
-import type { MyAccess } from "../queries";
-import type { RoleWithPrivileges, UserRole } from "../schemas";
+import type { HeldRole, MyAccess } from "../queries";
 
-function formatDate(iso?: string): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
-function grantedLine(grant: UserRole): string | null {
-  const when = formatDate(grant.granted_at);
-  const by = grant.granted_by;
-  if (when && by) return `Granted ${when} · by ${by}`;
-  if (when) return `Granted ${when}`;
-  if (by) return `Granted by ${by}`;
-  return null;
-}
+const grantedLine = ({ granted_at, granted_by }: HeldRole) =>
+  `Granted ${formatDate(granted_at)}${granted_by ? ` · by ${granted_by}` : ""}`;
 
 const columnHeading = "mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase";
-
-// Same chip treatment as the users-admin read/write boxes; verbs outside the
-// read/write pair (grant, manage) get the accent tone.
-const ACTION_CHIP_CLASSES: Record<string, string> = {
-  read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
-  write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
-};
-const ACTION_CHIP_FALLBACK =
-  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
 
 export function AccessCard({ access }: { access: MyAccess }) {
   const [activeRole, setActiveRole] = useState<string | null>(null);
@@ -101,7 +80,7 @@ export function AccessCard({ access }: { access: MyAccess }) {
                           key={action}
                           className={cn(
                             "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
-                            ACTION_CHIP_CLASSES[action] ?? ACTION_CHIP_FALLBACK,
+                            actionChipClass(action),
                           )}
                         >
                           {action}
@@ -138,7 +117,7 @@ function RolesColumn({
   activeRole,
   onHover,
 }: {
-  roles: RoleWithPrivileges[];
+  roles: HeldRole[];
   activeRole: string | null;
   onHover: (roleId: string | null) => void;
 }) {
@@ -147,9 +126,8 @@ function RolesColumn({
   }
   return (
     <div className="space-y-2.5">
-      {roles.map((rwp) => {
-        const roleId = rwp.role.id ?? "";
-        const granted = grantedLine(rwp.grant);
+      {roles.map((held) => {
+        const roleId = held.role.id;
         return (
           <div
             key={roleId}
@@ -162,17 +140,17 @@ function RolesColumn({
             )}
           >
             <div className="mb-0.5 flex items-center gap-2">
-              <span className="font-semibold">{rwp.role.name}</span>
-              {rwp.role.is_system ? (
+              <span className="font-semibold">{held.role.name}</span>
+              {held.role.is_system ? (
                 <Badge className="bg-[color:var(--brand-tint)] text-[color:var(--brand)]">
                   SYSTEM
                 </Badge>
               ) : null}
             </div>
-            {rwp.role.description ? (
-              <div className="text-[13px] text-muted-foreground">{rwp.role.description}</div>
+            {held.role.description ? (
+              <div className="text-[13px] text-muted-foreground">{held.role.description}</div>
             ) : null}
-            {granted ? <div className="mt-1.5 text-xs text-muted-foreground">{granted}</div> : null}
+            <div className="mt-1.5 text-xs text-muted-foreground">{grantedLine(held)}</div>
           </div>
         );
       })}

@@ -17,27 +17,20 @@
 
 "use client";
 
-import { ArrowRight } from "lucide-react";
-import * as React from "react";
+import type { TraceSummary } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/shared/ui/ErrorState";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
-import type { Trace } from "../types";
-import {
-  formatAbsoluteUtc,
-  formatRelative,
-  isCodeShaped,
-  shortHex,
-  traceTone,
-} from "../utils";
+import { ArrowRight } from "lucide-react";
+import { formatAbsoluteUtc, formatRelative, isCodeShaped, shortHex, traceTone } from "../utils";
 import { CopyValue } from "./primitives/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 
 export type TraceTableProps = {
-  traces: Trace[];
+  traces: TraceSummary[];
   total: number;
   page: number;
   pageSize: number;
@@ -55,28 +48,21 @@ const HEADERS = ["Started", "Trace ID", "Root action", "Source", "Spans"];
 const PAGE_SIZES = [25, 50, 100];
 const SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5"];
 
-function TraceRow({ trace, onView }: { trace: Trace; onView(id: string): void }) {
+function TraceRow({ trace, onView }: { trace: TraceSummary; onView(id: string): void }) {
+  const { trace_id, root_operation, source, started_at, event_count } = trace;
   const tone = traceTone(trace);
   const isErr = tone === "error";
   const isRunning = tone === "in-progress";
-  const actionMono = isCodeShaped(trace.root_name);
-
-  // Derived error subtitle — backend doesn't ship a standalone error_summary
-  // on the list shape, so we fall back to root event error text.
-  const errorSummary = React.useMemo(() => {
-    if (!isErr) return null;
-    const ev = trace.root_event as { error?: string } | null | undefined;
-    return (typeof ev?.error === "string" && ev.error) || null;
-  }, [isErr, trace.root_event]);
+  const actionMono = isCodeShaped(root_operation);
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard nav routed through the inner <button>; row mouse handler is a pointer convenience
     <div
-      data-testid={`trace-row-${trace.trace_id}`}
+      data-testid={`trace-row-${trace_id}`}
       data-tone={tone}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("button")) return;
-        onView(trace.trace_id);
+        onView(trace_id);
       }}
       className={cn(
         "group relative grid cursor-pointer items-center border-b border-[color:var(--border)]",
@@ -94,21 +80,21 @@ function TraceRow({ trace, onView }: { trace: Trace; onView(id: string): void })
 
       <button
         type="button"
-        onClick={() => onView(trace.trace_id)}
-        aria-label={`Open trace ${shortHex(trace.trace_id, 8)}`}
+        onClick={() => onView(trace_id)}
+        aria-label={`Open trace ${shortHex(trace_id, 8)}`}
         className="sr-only focus:not-sr-only focus:absolute focus:inset-0 focus:rounded-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />
 
       <span
         className="text-[13px] text-foreground tabular-nums"
-        title={formatAbsoluteUtc(trace.started_at)}
+        title={formatAbsoluteUtc(started_at)}
       >
-        {formatRelative(trace.started_at)}
+        {formatRelative(started_at)}
       </span>
 
       <span className="font-mono text-[13px] text-foreground">
-        <CopyValue value={trace.trace_id} label="trace ID">
-          <span>{shortHex(trace.trace_id, 8)}…</span>
+        <CopyValue value={trace_id} label="trace ID">
+          <span>{shortHex(trace_id, 8)}…</span>
         </CopyValue>
       </span>
 
@@ -116,20 +102,12 @@ function TraceRow({ trace, onView }: { trace: Trace; onView(id: string): void })
         <div className="flex min-w-0 items-center gap-2">
           <StatusPill tone={tone} dotOnly />
           <span
-            className={cn(
-              "truncate text-[13px] text-foreground",
-              actionMono ? "font-mono" : "",
-            )}
-            title={trace.root_name}
+            className={cn("truncate text-[13px] text-foreground", actionMono ? "font-mono" : "")}
+            title={root_operation}
           >
-            {trace.root_name}
+            {root_operation}
           </span>
         </div>
-        {isErr && errorSummary && (
-          <div className="ml-4 mt-0.5 truncate text-[12.5px] font-medium text-[color:var(--banner-error-fg)]">
-            {errorSummary}
-          </div>
-        )}
         {isRunning && (
           <div className="ml-4 mt-0.5 truncate text-[12.5px] italic text-[color:var(--tone-warn-fg)]">
             …still running
@@ -138,12 +116,12 @@ function TraceRow({ trace, onView }: { trace: Trace; onView(id: string): void })
       </div>
 
       <span>
-        <SourcePill source={String(trace.source)} />
+        <SourcePill source={source} />
       </span>
 
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-          {trace.span_count}
+          {event_count}
         </span>
         <span
           aria-hidden="true"
@@ -206,9 +184,10 @@ export function TraceTable({
   onPageSizeChange,
   onRetry,
 }: TraceTableProps) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // total counts traces before the status filter, so a page can hold fewer
+  // rows than pageSize while later pages still have matches.
   const prevDisabled = page <= 1;
-  const nextDisabled = page >= totalPages || total === 0;
+  const nextDisabled = page * pageSize >= total;
 
   return (
     <div className="flex flex-col gap-3" data-testid="trace-table-region">
@@ -254,9 +233,9 @@ export function TraceTable({
         </Button>
         <div className="flex items-center gap-4">
           <span>
-            Page <strong className="text-foreground">{page}</strong> of {totalPages} ·{" "}
-            <strong className="text-foreground">{total}</strong>{" "}
-            {total === 1 ? "trace" : "traces"}
+            Page <strong className="text-foreground">{page}</strong> ·{" "}
+            <strong className="text-foreground">{traces.length}</strong>{" "}
+            {traces.length === 1 ? "trace" : "traces"} shown
           </span>
           <label className="inline-flex items-center gap-2">
             <span className="text-xs">Rows</span>

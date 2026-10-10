@@ -18,7 +18,7 @@
 "use client";
 
 import { useRoleDetails } from "@/features/core/users/queries";
-import type { Role } from "@/features/core/users/schemas";
+import type { Role } from "@/generated/core/types.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -31,6 +31,8 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { confirmToast } from "@/shared/ui/sonner";
+import { toggleId } from "@/shared/users-admin/permissions";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { PrivilegeList } from "./PrivilegeList";
@@ -50,24 +52,19 @@ export function RoleAssignMenu({
   triggerLabel,
   isCurrentUser,
   isPending,
-  error,
 }: {
   roles: Role[];
   heldRoleIds: Set<string>;
-  onSave: (roleIds: string[], reason?: string) => Promise<boolean>;
+  onSave: (roleIds: string[], reason: string | undefined, onSaved: () => void) => void;
   triggerLabel: string;
   isCurrentUser: boolean;
   isPending: boolean;
-  error: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState("");
-  const details = useRoleDetails(
-    roles.flatMap((role) => (role.id ? [role.id] : [])),
-    open,
-  );
-  const detailById = new Map(details.roles.map((role) => [role.id, role]));
+  const details = useRoleDetails(roles.map((role) => role.id), open);
+  const detailById = new Map(details.details.map((detail) => [detail.role.id, detail]));
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -77,29 +74,25 @@ export function RoleAssignMenu({
     }
   }
 
-  function toggleDraft(roleId: string) {
-    setDraftIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(roleId)) next.delete(roleId);
-      else next.add(roleId);
-      return next;
-    });
-  }
-
-  async function handleSave() {
+  function handleSave() {
     const removedIds = [...heldRoleIds].filter((roleId) => !draftIds.has(roleId));
-    const removesOwnRoleManager =
+    const removesOwnAdminAccess =
       isCurrentUser &&
-      removedIds.some((roleId) => detailById.get(roleId)?.privileges.includes("core:roles:manage"));
-    const confirmationMessage = removesOwnRoleManager
-      ? "This may remove your own ability to manage roles. Continue with these changes?"
+      removedIds.some((roleId) =>
+        detailById
+          .get(roleId)
+          ?.privileges?.some(
+            (key) => key === "core:roles:manage" || key === "core:privileges:grant",
+          ),
+      );
+    const confirmationMessage = removesOwnAdminAccess
+      ? "This may remove your own ability to manage roles or grant privileges. Continue with these changes?"
       : isCurrentUser && removedIds.length > 0 && details.isError
         ? "Some role privileges are unavailable, so these changes may remove your own access. Continue?"
         : null;
-    if (confirmationMessage && !window.confirm(confirmationMessage)) {
-      return;
-    }
-    if (await onSave([...draftIds], reason.trim() || undefined)) setOpen(false);
+    const save = () => onSave([...draftIds], reason.trim() || undefined, () => setOpen(false));
+    if (confirmationMessage) confirmToast(confirmationMessage, "Continue", save);
+    else save();
   }
 
   const hasChanges = !setsEqual(draftIds, heldRoleIds);
@@ -126,8 +119,8 @@ export function RoleAssignMenu({
         <div className="-mx-4 max-h-[28rem] overflow-y-auto">
           <ul className="space-y-3 px-6 pt-3 pb-4">
             {roles.map((role) => {
-              const assigned = role.id ? draftIds.has(role.id) : false;
-              const privileges = role.id ? (detailById.get(role.id)?.privileges ?? []) : [];
+              const assigned = draftIds.has(role.id);
+              const privileges = detailById.get(role.id)?.privileges ?? [];
 
               return (
                 <li key={role.id} className="overflow-hidden rounded-lg border border-border">
@@ -145,7 +138,9 @@ export function RoleAssignMenu({
                       variant={assigned ? "secondary" : "default"}
                       size="sm"
                       className="shrink-0"
-                      onClick={() => role.id && toggleDraft(role.id)}
+                      onClick={() =>
+                        setDraftIds((prev) => toggleId(prev, role.id))
+                      }
                       disabled={isPending}
                     >
                       {assigned ? "Unassign" : "Assign"}
@@ -179,11 +174,6 @@ export function RoleAssignMenu({
           />
         </div>
 
-        {error ? (
-          <p role="alert" className="text-sm text-[color:var(--custos-red-600)]">
-            {error}
-          </p>
-        ) : null}
         <DialogFooter className="-mt-5">
           <Button
             variant="outline"
@@ -194,7 +184,7 @@ export function RoleAssignMenu({
             Cancel
           </Button>
           <Button
-            onClick={() => void handleSave()}
+            onClick={handleSave}
             type="button"
             disabled={!hasChanges || isPending || details.isLoading}
           >
