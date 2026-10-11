@@ -21,100 +21,69 @@ import { signInAs } from "./fixtures/auth";
 
 const SEVERITIES = ["serious", "critical"] as const;
 
-test.describe("admin traces detail drawer", () => {
-  test("clicking a row opens the drawer, reload persists it, Esc closes it", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
+async function openFailedTrace(page: import("@playwright/test").Page) {
+  await signInAs(page, "admin");
+  await page.goto("/admin/traces");
+  const row = page.locator('[data-testid^="trace-row-"][data-status="failed"]').first();
+  await expect(row).toBeVisible({ timeout: 20_000 });
+  await row.click();
+  await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
+}
 
-    const firstRow = page.locator('[data-testid^="trace-row-"]').first();
-    await expect(firstRow).toBeVisible({ timeout: 20_000 });
-    await firstRow.click();
+test.describe("admin tracing drawer", () => {
+  test("opens on the failing step with its error, survives reload, Esc closes it", async ({
+    page,
+  }) => {
+    await openFailedTrace(page);
+    await expect(page).toHaveURL(/[?&]trace=[0-9a-f]{32}\b/);
 
-    await expect(page).toHaveURL(/[?&]trace=[0-9a-f]{32}\b/, { timeout: 10_000 });
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
+    const failing = page.getByTestId("failing-step");
+    await expect(failing).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("step-error")).toContainText(/401 Unauthorized/);
 
     await page.reload();
     await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("failing-step")).toBeVisible();
 
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("trace-detail-drawer")).toHaveCount(0, { timeout: 10_000 });
-    await expect(page).not.toHaveURL(/[?&]trace=[0-9a-f]{32}\b/);
+    await expect(page).not.toHaveURL(/[?&]trace=/);
   });
 
-  test("Tree is the default tab and renders the span tree", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-    await page.locator('[data-testid^="trace-row-"]').first().click();
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
-
-    await expect(page.getByRole("tree", { name: /trace span tree/i })).toBeVisible({
-      timeout: 10_000,
-    });
+  // The delivery header is where an admin goes to retry; it must say how the
+  // delivery ended and hand over to the Events page with the delivery open.
+  test("the failed delivery links to its delivery in Events", async ({ page }) => {
+    await openFailedTrace(page);
+    const delivery = page
+      .getByRole("treeitem")
+      .filter({ hasText: "comanage-identity-provisioner" })
+      .first();
+    await expect(delivery).toContainText("Failed after 10 tries");
+    await delivery.click();
+    await expect(page).toHaveURL(/[?&]step=d%3A|[?&]step=d:/);
+    const link = page
+      .getByTestId("step-panel")
+      .getByRole("link", { name: /Open delivery in Events/ });
+    await expect(link).toHaveAttribute("href", /\/admin\/events\?delivery=/);
   });
 
-  test("Tree tab on a failed trace shows the error chip", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await page.locator('[data-testid^="trace-row-"][data-tone="error"]').first().click();
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId("trace-error-chip")).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("switching tabs surfaces Overview, Raw, and Linked entities content", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-    await page.locator('[data-testid^="trace-row-"]').first().click();
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
-
-    const drawer = page.getByTestId("trace-detail-drawer");
-
-    await page.getByRole("tab", { name: /^Overview$/ }).click();
-    await expect(drawer.getByText(/^Trace ID$/)).toBeVisible();
-    await expect(drawer.getByText(/^Span count$/)).toBeVisible();
+  test("selecting a step and switching to Raw keeps the selection in the URL", async ({ page }) => {
+    await openFailedTrace(page);
+    const published = page
+      .getByRole("treeitem")
+      .filter({ hasText: /^Published/ })
+      .first();
+    await published.click();
+    await expect(page).toHaveURL(/[?&]step=h/);
+    await expect(page.getByTestId("step-panel")).toContainText(/Sent to 2 connectors/);
 
     await page.getByRole("tab", { name: /^Raw$/ }).click();
-    await expect(drawer.getByRole("button", { name: /copy trace JSON/i })).toBeVisible();
-
-    await page.getByRole("tab", { name: /^Linked entities$/ }).click();
-    await expect(drawer.getByText(/Entities referenced by spans/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /copy trace JSON/i })).toBeVisible();
+    await expect(page).toHaveURL(/[?&]step=h/);
   });
 
-  test("Retry button is aria-disabled and surfaces the coming-soon tooltip", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-    await page.locator('[data-testid^="trace-row-"]').first().click();
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
-
-    const retry = page.getByTestId("retry-tooltip-anchor");
-    await expect(retry).toHaveAttribute("aria-disabled", "true");
-    await retry.hover();
-    await expect(page.getByText(/Retry coming soon/i)).toBeVisible({ timeout: 5_000 });
-  });
-
-  test("axe: no serious or critical violations on the drawer-open page", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-    await page.locator('[data-testid^="trace-row-"]').first().click();
-    await expect(page.getByTestId("trace-detail-drawer")).toBeVisible({ timeout: 10_000 });
+  test("axe: no serious or critical violations with the drawer open", async ({ page }) => {
+    await openFailedTrace(page);
     await page.waitForLoadState("networkidle");
 
     const results = await new AxeBuilder({ page })
