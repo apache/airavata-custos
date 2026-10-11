@@ -72,6 +72,12 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	if site.LogoURL == "" {
 		site.LogoURL = strings.TrimSuffix(site.PortalURL, "/") + "/brand/logo/custos-mark.png"
 	}
+	if dir := get("templates_dir"); dir != "" {
+		if err := notify.LoadTemplates(dir); err != nil {
+			return err
+		}
+		slog.Info("email notifications: using templates from", "dir", dir)
+	}
 
 	sender, err := notify.NewSMTP(host, port, username, password, from)
 	if err != nil {

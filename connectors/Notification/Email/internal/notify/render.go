@@ -21,6 +21,9 @@ import (
 	"bytes"
 	"embed"
 	htmltemplate "html/template"
+	"io/fs"
+	"os"
+	"path/filepath"
 	texttemplate "text/template"
 )
 
@@ -62,12 +65,55 @@ type emailTemplate struct {
 var templates = map[string]emailTemplate{}
 
 func init() {
-	for _, name := range []string{RequestReceived, AccountReady, RequestDenied} {
-		templates[name] = emailTemplate{
-			text: texttemplate.Must(texttemplate.ParseFS(templateFS, "templates/"+name+".txt.tmpl")),
-			html: htmltemplate.Must(htmltemplate.ParseFS(templateFS, "templates/layout.html.tmpl", "templates/"+name+".html.tmpl")),
-		}
+	if err := LoadTemplates(""); err != nil {
+		panic(err)
 	}
+}
+
+// LoadTemplates parses the emails from the built-in files. A file of the same
+// name in the template dir replaces the built-in one, so a deployment can restyle the layout.
+func LoadTemplates(dir string) error {
+	read := func(name string) (string, error) {
+		if dir != "" {
+			b, err := os.ReadFile(filepath.Join(dir, name))
+			if err == nil {
+				return string(b), nil
+			}
+			if !os.IsNotExist(err) {
+				return "", err
+			}
+		}
+		b, err := fs.ReadFile(templateFS, "templates/"+name)
+		return string(b), err
+	}
+	layout, err := read("layout.html.tmpl")
+	if err != nil {
+		return err
+	}
+	loaded := map[string]emailTemplate{}
+	for _, name := range []string{RequestReceived, AccountReady, RequestDenied} {
+		text, err := read(name + ".txt.tmpl")
+		if err != nil {
+			return err
+		}
+		html, err := read(name + ".html.tmpl")
+		if err != nil {
+			return err
+		}
+		var t emailTemplate
+		if t.text, err = texttemplate.New(name + ".txt.tmpl").Parse(text); err != nil {
+			return err
+		}
+		if t.html, err = htmltemplate.New("layout.html.tmpl").Parse(layout); err != nil {
+			return err
+		}
+		if t.html, err = t.html.New(name + ".html.tmpl").Parse(html); err != nil {
+			return err
+		}
+		loaded[name] = t
+	}
+	templates = loaded
+	return nil
 }
 
 // Render builds the subject and both bodies of the named email.
