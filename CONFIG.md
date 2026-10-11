@@ -155,6 +155,26 @@ connectors:
             hard_limit_inodes: 1000000
 ```
 
+#### Storage Unix-Provisioner
+
+```yaml
+  unix-provisioner:
+    type: "unix-storage-provisioner"
+    enabled: true
+    clusters:
+      - id: "cluster-001"
+        ssh:
+          user: "root"
+          hostname: "admin.example.org"
+          identity: "/etc/custos/unix_ed25519"   # optional
+        # config/custos.yaml holds the full list.
+        targets:
+          - path: "/home/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+```
+
 #### AMIE Processor
 
 ```yaml
@@ -247,6 +267,7 @@ When a connector is disabled:
 - `slurm-usage-monitor` - SLURM Usage Monitor
 - `comanage-identity-provisioner` - COmanage Identity Provisioner
 - `vast-storage-provisioner` - Storage VAST-Provisioner
+- `unix-storage-provisioner` - Storage Unix-Provisioner
 - `amie-processor` - AMIE Processor
 
 New connector types can be added by:
