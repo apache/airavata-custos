@@ -30,12 +30,10 @@ import (
 )
 
 const (
-	traceIDHexLen     = 32
-	spanIDHexLen      = 16
-	maxTraceListLimit = 200
-	defaultTraceLimit = 50
-	maxTraceOffset    = 1_000_000
-	maxAuditWindow    = 365 * 24 * time.Hour
+	traceIDHexLen  = 32
+	spanIDHexLen   = 16
+	maxTraceOffset = 1_000_000
+	maxAuditWindow = 365 * 24 * time.Hour
 )
 
 func (s *Server) requireAuditStore(w http.ResponseWriter) (store.AuditTraceStore, bool) {
@@ -227,14 +225,9 @@ func parseTraceFilter(r *http.Request) (store.TraceFilter, error) {
 		if err != nil || n < 0 {
 			return f, errors.New("invalid limit")
 		}
-		if n > maxTraceListLimit {
-			n = maxTraceListLimit
-		}
 		f.Limit = n
 	}
-	if f.Limit == 0 {
-		f.Limit = defaultTraceLimit
-	}
+	f.Limit = store.PageLimit(f.Limit)
 	if raw := q.Get("offset"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 0 {

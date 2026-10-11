@@ -98,9 +98,8 @@ func (s *pgComputeAllocationMembershipResourceOverrideStore) FindByResource(ctx 
 
 func (s *pgComputeAllocationMembershipResourceOverrideStore) Create(ctx context.Context, tx *sql.Tx, o *models.ComputeAllocationMembershipResourceOverride) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_membership_resource_overrides
-             (id, compute_allocation_membership_id, compute_allocation_resource_id, override_resource_amount, override_resource_time)
-         VALUES ($1, $2, $3, $4, $5)`,
+		`INSERT INTO compute_allocation_membership_resource_overrides (`+computeAllocationMembershipResourceOverrideColumns+`)
+		 VALUES ($1, $2, $3, $4, $5)`,
 		o.ID, o.ComputeAllocationMembershipID, o.ComputeAllocationResourceID, o.OverrideResourceAmount, o.OverrideResourceTime)
 	return err
 }

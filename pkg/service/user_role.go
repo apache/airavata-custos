@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -343,67 +344,21 @@ func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Ro
 // assertNotLastMetaHolderTx refuses revoke if it would leave no holder of
 // privileges:grant or roles:manage anywhere in the system.
 func (s *Service) assertNotLastMetaHolderTx(ctx context.Context, tx *sql.Tx, userID, roleID string) error {
+	rolePrivs, err := s.roles.ListPrivileges(ctx, roleID)
+	if err != nil {
+		return fmt.Errorf("list role privileges: %w", err)
+	}
 	for _, key := range []models.PrivilegeKey{models.PrivilegesGrant, models.RolesManage} {
-		rolePrivs, err := s.roles.ListPrivileges(ctx, roleID)
-		if err != nil {
-			return fmt.Errorf("list role privileges: %w", err)
-		}
-		grants := false
-		for _, k := range rolePrivs {
-			if k == key {
-				grants = true
-				break
-			}
-		}
-		if !grants {
+		if !slices.Contains(rolePrivs, key) {
 			continue
 		}
-		count, err := s.countUsersHoldingPrivilegeTx(ctx, tx, key)
+		count, err := s.privileges.CountHolders(ctx, tx, key, userID, roleID)
 		if err != nil {
 			return fmt.Errorf("count holders of %s: %w", key, err)
 		}
-		// Would the revoke drop count to 0? Only if this user is the lone
-		// holder AND has no other source for this key.
-		if count <= 1 {
-			other, err := s.userHasPrivilegeOutsideTx(ctx, tx, userID, key, roleID)
-			if err != nil {
-				return fmt.Errorf("check alternative source: %w", err)
-			}
-			if !other {
-				return fmt.Errorf("%w: cannot revoke; would leave no holder of %s", ErrInvalidInput, key)
-			}
+		if count == 0 {
+			return fmt.Errorf("%w: cannot revoke; would leave no holder of %s", ErrInvalidInput, key)
 		}
 	}
 	return nil
-}
-
-func (s *Service) countUsersHoldingPrivilegeTx(ctx context.Context, tx *sql.Tx, key models.PrivilegeKey) (int, error) {
-	var n int
-	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(DISTINCT user_id) FROM (
-		   SELECT user_id FROM user_privileges WHERE privilege = $1
-		   UNION
-		   SELECT ur.user_id FROM user_roles ur
-		     JOIN role_privileges rp ON rp.role_id = ur.role_id
-		     WHERE rp.privilege = $2
-		 ) AS holders`, key, key).Scan(&n)
-	return n, err
-}
-
-// userHasPrivilegeOutsideTx checks if userID gets the privilege from any
-// source other than excludeRoleID.
-func (s *Service) userHasPrivilegeOutsideTx(ctx context.Context, tx *sql.Tx, userID string, key models.PrivilegeKey, excludeRoleID string) (bool, error) {
-	var n int
-	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM (
-		   SELECT 1 FROM user_privileges WHERE user_id = $1 AND privilege = $2
-		   UNION ALL
-		   SELECT 1 FROM user_roles ur
-		     JOIN role_privileges rp ON rp.role_id = ur.role_id
-		     WHERE ur.user_id = $3 AND ur.role_id <> $4 AND rp.privilege = $5
-		 ) AS sources`, userID, key, userID, excludeRoleID, key).Scan(&n)
-	if err != nil {
-		return false, err
-	}
-	return n > 0, nil
 }

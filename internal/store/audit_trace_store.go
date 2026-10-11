@@ -54,25 +54,12 @@ type AuditTraceStore interface {
 	ListSources(ctx context.Context) ([]string, error)
 }
 
-// auditTraceSelect projects audit_events into the trace-view shape. Every
+// traceEventColumns projects audit_events into the trace-view shape. Every
 // subsystem (core and each connector) writes its audit rows here, tagged by
 // `source`. Connector-specific references (e.g. AMIE's packet_id / event_id
 // on amie_audit_extras) live on connector-owned tables and are joined
 // only by the connector-specific endpoints.
-const auditTraceSelect = `
-SELECT
-    id,
-    trace_id,
-    span_id,
-    parent_span_id,
-    source,
-    event_type,
-    entity_type,
-    entity_id,
-    details      AS description,
-    event_time   AS created_at
-FROM audit_events
-`
+const traceEventColumns = `id, trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, details AS description, event_time AS created_at`
 
 type pgAuditTraceStore struct {
 	db *sqlx.DB
@@ -115,7 +102,7 @@ func (r rowEvent) toTraceEvent() models.TraceEvent {
 func (s *pgAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([]models.TraceSummary, int, error) {
 	if len(f.Statuses) > 0 {
 		whereSQL, args := buildTraceWhere(f)
-		byTrace, err := s.traceRows(ctx, `trace_id IN (SELECT trace_id FROM (`+auditTraceSelect+`) u `+whereSQL+`)`, args...)
+		byTrace, err := s.traceRows(ctx, `trace_id IN (SELECT trace_id FROM audit_events `+whereSQL+`)`, args...)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -132,30 +119,21 @@ func (s *pgAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([]mo
 	}
 	whereSQL, args := buildTraceWhere(f)
 
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-
-	countQuery := `SELECT COUNT(*) FROM (
-		SELECT trace_id FROM (` + auditTraceSelect + `) u ` + whereSQL + `
-		GROUP BY trace_id
-	) g`
 	var total int
-	if err := s.db.GetContext(ctx, &total, s.db.Rebind(countQuery), args...); err != nil {
+	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(DISTINCT trace_id) FROM audit_events `+whereSQL), args...); err != nil {
 		return nil, 0, fmt.Errorf("audit_trace_store: count: %w", err)
 	}
 
 	listQuery := `SELECT trace_id,
-	        MIN(created_at) AS started_at,
-	        MAX(created_at) AS ended_at,
+	        MIN(event_time) AS started_at,
+	        MAX(event_time) AS ended_at,
 	        COUNT(*)        AS event_count
-	  FROM (` + auditTraceSelect + `) u ` + whereSQL + `
+	  FROM audit_events ` + whereSQL + `
 	  GROUP BY trace_id
-	  ORDER BY MAX(created_at) DESC
+	  ORDER BY MAX(event_time) DESC
 	  LIMIT ? OFFSET ?`
 	listArgs := append([]any{}, args...)
-	listArgs = append(listArgs, limit, f.Offset)
+	listArgs = append(listArgs, PageLimit(f.Limit), f.Offset)
 
 	type listRow struct {
 		TraceID    string    `db:"trace_id"`
@@ -286,10 +264,10 @@ func deliveryCounts(deliveries []models.TraceDelivery) models.DeliveryCounts {
 
 // traceRows loads the rows of every trace matching where, oldest first, keyed by trace.
 func (s *pgAuditTraceStore) traceRows(ctx context.Context, where string, args ...any) (map[string][]rowEvent, error) {
-	q := `SELECT id, trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
-	  FROM (` + auditTraceSelect + `) u
+	q := `SELECT ` + traceEventColumns + `
+	  FROM audit_events
 	  WHERE ` + where + `
-	  ORDER BY created_at ASC, span_id ASC`
+	  ORDER BY event_time ASC, span_id ASC`
 	var rows []rowEvent
 	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), args...); err != nil {
 		return nil, fmt.Errorf("audit_trace_store: rows: %w", err)
@@ -359,20 +337,11 @@ func buildTree(rows []rowEvent) *models.TraceNode {
 }
 
 func (s *pgAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID string) ([]models.TraceEvent, error) {
-	q := `SELECT id, trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
-	  FROM (` + auditTraceSelect + `) u
-	  WHERE trace_id = ?`
-	args := []any{traceID}
-	if spanID != "" {
-		q += ` AND span_id = ?`
-		args = append(args, spanID)
+	byTrace, err := s.traceRows(ctx, `trace_id = ? AND (? = '' OR span_id = ?)`, traceID, spanID, spanID)
+	if err != nil {
+		return nil, err
 	}
-	q += ` ORDER BY created_at ASC, span_id ASC`
-
-	var rows []rowEvent
-	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), args...); err != nil {
-		return nil, fmt.Errorf("audit_trace_store: events: %w", err)
-	}
+	rows := byTrace[traceID]
 	out := make([]models.TraceEvent, len(rows))
 	for i, r := range rows {
 		out[i] = r.toTraceEvent()
@@ -389,30 +358,26 @@ func buildTraceWhere(f TraceFilter) (string, []any) {
 	var args []any
 
 	if len(f.Sources) > 0 {
-		placeholders := make([]string, len(f.Sources))
-		for i, src := range f.Sources {
-			placeholders[i] = "?"
-			args = append(args, src)
-		}
-		clauses = append(clauses, "u.source IN ("+strings.Join(placeholders, ",")+")")
+		clauses = append(clauses, "source = ANY(?)")
+		args = append(args, f.Sources)
 	}
 	if !f.From.IsZero() {
-		clauses = append(clauses, "u.created_at >= ?")
+		clauses = append(clauses, "event_time >= ?")
 		args = append(args, f.From)
 	}
 	if !f.To.IsZero() {
-		clauses = append(clauses, "u.created_at <= ?")
+		clauses = append(clauses, "event_time <= ?")
 		args = append(args, f.To)
 	}
 	// An admin looking into a problem usually searches by a username or an entity id.
 	// Usernames are only in the details text, and the caller always sends a time window, so that scan stays small.
 	if f.Q != "" {
-		clauses = append(clauses, "(u.trace_id ILIKE ? OR u.event_type ILIKE ? OR u.entity_id = ? OR u.description ILIKE ?)")
-		args = append(args, strings.ToLower(f.Q)+"%", "%"+f.Q+"%", f.Q, "%"+f.Q+"%")
+		clauses = append(clauses, "(trace_id ILIKE ? OR event_type ILIKE ? OR entity_id = ? OR details ILIKE ?)")
+		args = append(args, f.Q+"%", "%"+f.Q+"%", f.Q, "%"+f.Q+"%")
 	}
 
 	if f.traceIDs != nil {
-		clauses = append(clauses, "u.trace_id = ANY(?)")
+		clauses = append(clauses, "trace_id = ANY(?)")
 		args = append(args, f.traceIDs)
 	}
 

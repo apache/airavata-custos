@@ -74,9 +74,9 @@ func (s *pgComputeAllocationResourceRateStore) FindEffective(ctx context.Context
 		 FROM compute_allocation_resource_rates
 		 WHERE compute_allocation_resource_id = $1
 		   AND start_time <= $2
-		   AND end_time   >  $3
+		   AND end_time   >  $2
 		 ORDER BY start_time DESC
-		 LIMIT 1`, resourceID, at, at)
+		 LIMIT 1`, resourceID, at)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -88,8 +88,7 @@ func (s *pgComputeAllocationResourceRateStore) FindEffective(ctx context.Context
 
 func (s *pgComputeAllocationResourceRateStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_resource_rates
-		     (id, compute_allocation_resource_id, rate, start_time, end_time)
+		`INSERT INTO compute_allocation_resource_rates (`+computeAllocationResourceRateColumns+`)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		r.ID, r.ComputeAllocationResourceID, r.Rate, r.StartTime, r.EndTime)
 	return err

@@ -152,22 +152,9 @@ func (s *pgComputeAllocationStore) List(ctx context.Context, f AllocationListFil
 	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM compute_allocations`+clause), args...); err != nil {
 		return nil, 0, err
 	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	query := `SELECT ` + computeAllocationColumns + ` FROM compute_allocations` + clause +
-		` ORDER BY start_time DESC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
 	var rows []models.ComputeAllocation
-	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(`SELECT `+computeAllocationColumns+` FROM compute_allocations`+clause+` ORDER BY start_time DESC LIMIT ? OFFSET ?`),
+		append(args, PageLimit(f.Limit), max(f.Offset, 0))...); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

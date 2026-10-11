@@ -40,13 +40,11 @@ const roleMember = "MEMBER"
 
 // Allocation is one allocation with its consumed credits.
 type Allocation struct {
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`
-	Status          string    `json:"status"`
-	InitialSUAmount int64     `json:"initial_su_amount"`
-	UsedSUAmount    float64   `json:"used_su_amount"`
-	StartTime       time.Time `json:"start_time"`
-	EndTime         time.Time `json:"end_time"`
+	ID              string    `json:"id"                db:"id"`
+	Name            string    `json:"name"              db:"name"`
+	InitialSUAmount int64     `json:"initial_su_amount" db:"initial_su_amount"`
+	UsedSUAmount    float64   `json:"used_su_amount"    db:"used_su_amount"`
+	EndTime         time.Time `json:"end_time"          db:"end_time"`
 }
 
 // ProjectContext is one project the caller belongs to, their role on it, and
@@ -67,30 +65,28 @@ type UsageDailyBucket struct {
 }
 
 // UsageResource aggregates one resource's consumption, including the caller's
-// own slice. Cap is null in v1 (per-resource caps are time-varying).
+// own slice.
 type UsageResource struct {
-	ResourceID   string  `json:"resource_id"`
-	Name         string  `json:"name"`
-	ResourceType string  `json:"resource_type"`
-	Used         float64 `json:"used"`
-	Cap          *int64  `json:"cap"`
-	UsedNative   float64 `json:"used_native"`
-	NativeUnit   string  `json:"native_unit"`
-	UsedByCaller float64 `json:"used_by_caller"`
+	ResourceID   string  `json:"resource_id"    db:"id"`
+	Name         string  `json:"name"           db:"name"`
+	Used         float64 `json:"used"           db:"used"`
+	UsedNative   float64 `json:"used_native"    db:"used_native"`
+	NativeUnit   string  `json:"native_unit"    db:"-"`
+	UsedByCaller float64 `json:"used_by_caller" db:"used_by_caller"`
+	ResourceType string  `json:"-"              db:"resource_type"`
 }
 
 // UsageMember is one member's consumption against an allocation.
 type UsageMember struct {
-	UserID string  `json:"user_id"`
-	Name   string  `json:"name"`
-	Used   float64 `json:"used"`
+	UserID string  `json:"user_id" db:"user_id"`
+	Name   string  `json:"name"    db:"name"`
+	Used   float64 `json:"used"    db:"used"`
 }
 
 // UsageSummary is the aggregated usage for one allocation. ByMember is null
 // unless the caller may see per-member data.
 type UsageSummary struct {
 	Total      int64              `json:"total"`
-	Used       float64            `json:"used"`
 	Daily      []UsageDailyBucket `json:"daily"`
 	ByResource []UsageResource    `json:"by_resource"`
 	ByMember   []UsageMember      `json:"by_member"`
@@ -208,15 +204,7 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 
 	byProject := make(map[string][]Allocation, len(projRows))
 	for _, a := range allocRows {
-		byProject[a.ProjectID] = append(byProject[a.ProjectID], Allocation{
-			ID:              a.ID,
-			Name:            a.Name,
-			Status:          a.Status,
-			InitialSUAmount: a.InitialSUAmount,
-			UsedSUAmount:    a.UsedSUAmount,
-			StartTime:       a.StartTime,
-			EndTime:         a.EndTime,
-		})
+		byProject[a.ProjectID] = append(byProject[a.ProjectID], a.Allocation)
 	}
 
 	out := make([]ProjectContext, 0, len(projRows))
@@ -243,12 +231,6 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 // controls whether the per-member breakdown is populated; when false ByMember
 // is left nil so the response serializes it as null.
 func (s *Service) AllocationUsageSummary(ctx context.Context, alloc *models.ComputeAllocation, callerID string, includeMembers bool) (*UsageSummary, error) {
-	// Round the total the same way the per-resource and daily sums do, so the
-	// headline reconciles with the breakdowns (used_su_amount is a DOUBLE).
-	used, err := s.store.TotalUsed(ctx, alloc.ID)
-	if err != nil {
-		return nil, err
-	}
 	daily, err := s.store.DailyUsage(ctx, alloc.ID)
 	if err != nil {
 		return nil, err
@@ -257,43 +239,22 @@ func (s *Service) AllocationUsageSummary(ctx context.Context, alloc *models.Comp
 	if err != nil {
 		return nil, err
 	}
+	for i := range resources {
+		resources[i].NativeUnit = nativeUnit(resources[i].ResourceType)
+	}
 
 	summary := &UsageSummary{
 		Total:      alloc.InitialSUAmount,
-		Used:       used,
 		Daily:      buildDailyBuckets(alloc.StartTime, daily),
-		ByResource: buildResourceBreakdown(resources),
+		ByResource: resources,
 	}
 
 	if includeMembers {
-		members, err := s.store.MemberUsage(ctx, alloc.ID)
-		if err != nil {
+		if summary.ByMember, err = s.store.MemberUsage(ctx, alloc.ID); err != nil {
 			return nil, err
 		}
-		out := make([]UsageMember, 0, len(members))
-		for _, m := range members {
-			out = append(out, UsageMember{UserID: m.UserID, Name: m.Name, Used: m.Used})
-		}
-		summary.ByMember = out
 	}
 	return summary, nil
-}
-
-func buildResourceBreakdown(rows []ResourceRow) []UsageResource {
-	out := make([]UsageResource, 0, len(rows))
-	for _, r := range rows {
-		out = append(out, UsageResource{
-			ResourceID:   r.ResourceID,
-			Name:         r.Name,
-			ResourceType: r.ResourceType,
-			Used:         r.Used,
-			Cap:          nil,
-			UsedNative:   r.UsedNative,
-			NativeUnit:   nativeUnit(r.ResourceType),
-			UsedByCaller: r.UsedByCaller,
-		})
-	}
-	return out
 }
 
 // buildDailyBuckets returns a continuous per-day series from the allocation

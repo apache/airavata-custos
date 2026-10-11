@@ -39,21 +39,6 @@ func NewComputeAllocationResourceMappingStore(db *sqlx.DB) ComputeAllocationReso
 	return &pgComputeAllocationResourceMappingStore{db: db}
 }
 
-func (s *pgComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
-	var m models.ComputeAllocationResourceMapping
-	err := s.db.GetContext(ctx, &m,
-		`SELECT `+computeAllocationResourceMappingColumns+`
-		 FROM compute_allocation_resource_mappings
-		 WHERE id = $1`, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &m, nil
-}
-
 func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
@@ -73,16 +58,11 @@ func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context
 func (s *pgComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
-		`SELECT r.id, r.name, r.resource_type, r.resource_amount, r.compute_cluster_id
-		 FROM compute_allocation_resources r
-		 JOIN compute_allocation_resource_mappings m
-		     ON m.compute_allocation_resource_id = r.id
-		 WHERE m.compute_allocation_id = $1
-		 ORDER BY r.name`, allocationID)
-	if err != nil {
-		return nil, err
-	}
-	return resources, nil
+		`SELECT `+computeAllocationResourceColumns+`
+		 FROM compute_allocation_resources
+		 WHERE id IN (SELECT compute_allocation_resource_id FROM compute_allocation_resource_mappings WHERE compute_allocation_id = $1)
+		 ORDER BY name`, allocationID)
+	return resources, err
 }
 
 func (s *pgComputeAllocationResourceMappingStore) FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {
@@ -100,8 +80,7 @@ func (s *pgComputeAllocationResourceMappingStore) FindAllocationsByResource(ctx 
 
 func (s *pgComputeAllocationResourceMappingStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_resource_mappings
-		     (id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time)
+		`INSERT INTO compute_allocation_resource_mappings (`+computeAllocationResourceMappingColumns+`)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		m.ID, m.ComputeAllocationID, m.ComputeAllocationResourceID, m.ResourceAmount, m.ResourceTime)
 	return err

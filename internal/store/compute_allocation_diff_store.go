@@ -84,8 +84,7 @@ func (s *pgComputeAllocationDiffStore) FindLatestByAllocation(ctx context.Contex
 
 func (s *pgComputeAllocationDiffStore) Create(ctx context.Context, tx *sql.Tx, d *models.ComputeAllocationDiff) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_diffs
-		     (id, compute_allocation_id, diff_type, new_su_amount, status, timestamp, description)
+		`INSERT INTO compute_allocation_diffs (`+computeAllocationDiffColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		d.ID, d.ComputeAllocationID, d.DiffType, d.NewSUAmount, string(d.Status), d.Timestamp, d.Description)
 	return err

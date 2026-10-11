@@ -23,6 +23,8 @@ import (
 	"errors"
 	"time"
 
+	corestore "github.com/apache/airavata-custos/internal/store"
+
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/jmoiron/sqlx"
 )
@@ -43,10 +45,12 @@ func NewEventStore(db *sqlx.DB) EventStore {
 	return &pgEventStore{db: db}
 }
 
+const eventColumns = `id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at, trace_id, span_id`
+
 func (s *pgEventStore) FindByID(ctx context.Context, id string) (*model.ProcessingEvent, error) {
 	var e model.ProcessingEvent
 	err := s.db.GetContext(ctx, &e,
-		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
+		`SELECT `+eventColumns+`
 		 FROM amie_processing_events WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -58,34 +62,22 @@ func (s *pgEventStore) FindByID(ctx context.Context, id string) (*model.Processi
 }
 
 func (s *pgEventStore) FindTop50EventsToProcess(ctx context.Context, statuses []model.ProcessingStatus, now time.Time) ([]model.EventWithPacket, error) {
-	query := `SELECT e.id, e.packet_id, e.type, e.status, e.attempts, e.created_at, e.started_at, e.finished_at, e.last_error, e.next_retry_at, e.trace_id, e.span_id,
-	                  p.amie_id AS packet_amie_id, p.type AS packet_type, p.raw_json AS packet_raw_json
-	           FROM amie_processing_events e
-	           JOIN amie_packets p ON e.packet_id = p.id
-	           WHERE e.status IN (?)
-	             AND (e.next_retry_at IS NULL OR e.next_retry_at <= ?)
-	           ORDER BY e.created_at ASC
-	           LIMIT 50`
-
-	// Expand the IN clause for the status slice.
-	query, args, err := sqlx.In(query, statuses, now)
-	if err != nil {
-		return nil, err
-	}
-	// Rebind numbers the expanded placeholders for the driver.
-	query = s.db.Rebind(query)
-
 	var results []model.EventWithPacket
-	err = s.db.SelectContext(ctx, &results, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	return results, nil
+	err := s.db.SelectContext(ctx, &results,
+		`SELECT `+corestore.Qualify("e", eventColumns)+`,
+		        p.amie_id AS packet_amie_id, p.type AS packet_type, p.raw_json AS packet_raw_json
+		   FROM amie_processing_events e
+		   JOIN amie_packets p ON e.packet_id = p.id
+		  WHERE e.status = ANY($1)
+		    AND (e.next_retry_at IS NULL OR e.next_retry_at <= $2)
+		  ORDER BY e.created_at ASC
+		  LIMIT 50`, statuses, now)
+	return results, err
 }
 
 func (s *pgEventStore) Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at, trace_id, span_id)
+		`INSERT INTO amie_processing_events (`+eventColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		e.ID, e.PacketID, e.Type, e.Status, e.Attempts,
 		e.CreatedAt, e.StartedAt, e.FinishedAt,

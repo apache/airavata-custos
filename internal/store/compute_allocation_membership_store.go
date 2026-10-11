@@ -44,9 +44,6 @@ type MembershipWithUser struct {
 	ProvisionedAt *time.Time `db:"provisioned_at"`
 }
 
-// displayNameSQL is the user's full name, or their email when the name is empty.
-const displayNameSQL = `COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.email) AS display_name`
-
 type pgComputeAllocationMembershipStore struct {
 	db *sqlx.DB
 }
@@ -85,19 +82,6 @@ func (s *pgComputeAllocationMembershipStore) FindByPair(ctx context.Context, all
 	return &m, nil
 }
 
-func (s *pgComputeAllocationMembershipStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
-	var rows []models.ComputeAllocationMembership
-	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+computeAllocationMembershipColumns+`
-		 FROM compute_allocation_memberships
-		 WHERE compute_allocation_id = $1
-		 ORDER BY start_time`, allocationID)
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
-}
-
 func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 	var rows []models.ComputeAllocationMembership
 	err := s.db.SelectContext(ctx, &rows,
@@ -113,9 +97,7 @@ func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, use
 
 func (s *pgComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_memberships
-		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		`INSERT INTO compute_allocation_memberships (`+computeAllocationMembershipColumns+`) VALUES ($1, $2, $3, $4, $5, $6)`,
 		m.ID, m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus))
 	return err
 }
@@ -137,11 +119,7 @@ func (s *pgComputeAllocationMembershipStore) ReassignUser(ctx context.Context, t
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM compute_allocation_memberships
 		 WHERE user_id = $1
-		   AND compute_allocation_id IN (
-		       SELECT compute_allocation_id FROM (
-		           SELECT compute_allocation_id FROM compute_allocation_memberships WHERE user_id = $2
-		       ) AS s
-		   )`,
+		   AND compute_allocation_id IN (SELECT compute_allocation_id FROM compute_allocation_memberships WHERE user_id = $2)`,
 		fromUserID, toUserID); err != nil {
 		return err
 	}
@@ -162,8 +140,8 @@ func (s *pgComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql
 func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
 	rows := []MembershipWithUser{}
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time, m.membership_status,
-		        COALESCE(r.role, 'MEMBER') AS role, `+displayNameSQL+`, u.email,
+		`SELECT `+Qualify("m", computeAllocationMembershipColumns)+`,
+		        COALESCE(r.role, 'MEMBER') AS role, `+DisplayNameSQL+` AS display_name, u.email,
 		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at
 		   FROM compute_allocation_memberships m
 		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
@@ -208,9 +186,9 @@ func (a *ProjectMemberAllocations) Scan(src any) error { return json.Unmarshal(s
 func (s *pgComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]ProjectMember, error) {
 	rows := []ProjectMember{}
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT u.id, $1 AS project_id, u.id AS user_id, u.email, `+displayNameSQL+`,
+		`SELECT u.id, $1 AS project_id, u.id AS user_id, u.email, `+DisplayNameSQL+` AS display_name,
 		        COALESCE(r.role, 'MEMBER') AS role,
-		        CASE WHEN bool_or(m.membership_status = 'ACTIVE') IS FALSE THEN MIN(m.membership_status) ELSE 'ACTIVE' END AS status,
+		        CASE WHEN bool_and(m.membership_status <> 'ACTIVE') THEN MIN(m.membership_status) ELSE 'ACTIVE' END AS status,
 		        LEAST(MIN(m.start_time), r.added_time) AS added_time,
 		        COALESCE(json_agg(json_build_object('id', ca.id, 'name', ca.name, 'role', COALESCE(r.role, 'MEMBER')) ORDER BY ca.name)
 		          FILTER (WHERE ca.id IS NOT NULL), '[]') AS allocations

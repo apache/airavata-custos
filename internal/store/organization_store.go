@@ -36,10 +36,12 @@ func NewOrganizationStore(db *sqlx.DB) OrganizationStore {
 	return &pgOrganizationStore{db: db}
 }
 
+const organizationColumns = `id, originated_id, name`
+
 func (s *pgOrganizationStore) FindByID(ctx context.Context, id string) (*models.Organization, error) {
 	var o models.Organization
 	err := s.db.GetContext(ctx, &o,
-		`SELECT id, originated_id, name FROM organizations WHERE id = $1`, id)
+		`SELECT `+organizationColumns+` FROM organizations WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,7 +54,7 @@ func (s *pgOrganizationStore) FindByID(ctx context.Context, id string) (*models.
 func (s *pgOrganizationStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Organization, error) {
 	var o models.Organization
 	err := s.db.GetContext(ctx, &o,
-		`SELECT id, originated_id, name FROM organizations WHERE originated_id = $1`, originatedID)
+		`SELECT `+organizationColumns+` FROM organizations WHERE originated_id = $1`, originatedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -67,18 +69,9 @@ func (s *pgOrganizationStore) List(ctx context.Context, limit, offset int) ([]mo
 	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM organizations`); err != nil {
 		return nil, 0, err
 	}
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	if offset < 0 {
-		offset = 0
-	}
 	var rows []models.Organization
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT id, originated_id, name FROM organizations ORDER BY name LIMIT $1 OFFSET $2`, limit, offset); err != nil {
+		`SELECT `+organizationColumns+` FROM organizations ORDER BY name LIMIT $1 OFFSET $2`, PageLimit(limit), max(offset, 0)); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
@@ -86,7 +79,7 @@ func (s *pgOrganizationStore) List(ctx context.Context, limit, offset int) ([]mo
 
 func (s *pgOrganizationStore) Create(ctx context.Context, tx *sql.Tx, o *models.Organization) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)`,
+		`INSERT INTO organizations (`+organizationColumns+`) VALUES ($1, $2, $3)`,
 		o.ID, o.OriginatedID, o.Name)
 	return err
 }

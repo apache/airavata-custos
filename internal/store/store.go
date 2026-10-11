@@ -20,10 +20,28 @@ package store
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// Qualify prefixes each column in a comma-separated list with alias.
+func Qualify(alias, cols string) string {
+	return alias + "." + strings.ReplaceAll(cols, ", ", ", "+alias+".")
+}
+
+// DisplayNameSQL is the full name of the users row aliased u, or its email
+// when the name is blank.
+const DisplayNameSQL = `COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.email)`
+
+// PageLimit defaults a page size to 50 and caps it at 200.
+func PageLimit(n int) int {
+	if n <= 0 {
+		return 50
+	}
+	return min(n, 200)
+}
 
 // UserStore defines persistence operations for users.
 type UserStore interface {
@@ -140,8 +158,6 @@ type ProjectStore interface {
 	FindByID(ctx context.Context, id string) (*models.Project, error)
 	// FindByOriginatedID returns the project matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
-	// FindByPI returns all projects whose PI matches the given user ID.
-	FindByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	// Create inserts a new project within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, p *models.Project) error
 	// Update replaces mutable fields of an existing project within the provided transaction.
@@ -152,21 +168,18 @@ type ProjectStore interface {
 	ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a project by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
-	// List returns a paginated, filtered slice of projects plus the total
-	// count matching the filter (ignoring limit/offset).
-	List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error)
 	// FindByIDWithPI is FindByID joined with the PI user, so a single query
 	// returns everything the portal needs to render a project header.
 	FindByIDWithPI(ctx context.Context, id string) (*ProjectWithPI, error)
-	// ListWithPI is List joined with the PI user, replacing the per-row
-	// GetUser fan-out the handler would otherwise need.
+	// ListWithPI returns a filtered page of projects with the PI user joined,
+	// plus the total count matching the filter (ignoring limit/offset).
 	ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error)
 	// ListWithPIForParticipant returns the projects the user has a role on, PI
 	// joined, newest first.
 	ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error)
 }
 
-// ProjectListFilter selects which projects ProjectStore.List returns.
+// ProjectListFilter selects which projects ProjectStore.ListWithPI returns.
 type ProjectListFilter struct {
 	PIID   string
 	Status string
@@ -246,8 +259,6 @@ type ComputeAllocationResourceStore interface {
 // ComputeAllocationResourceMappingStore defines persistence operations for
 // the join table linking compute allocations and compute allocation resources.
 type ComputeAllocationResourceMappingStore interface {
-	// FindByID returns the mapping with the given ID, or nil if it does not exist.
-	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error)
 	// FindByPair returns the mapping for a (allocation, resource) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error)
 	// FindResourcesByAllocation returns every resource attached to the given allocation.
@@ -354,8 +365,6 @@ type ProjectMembershipStore interface {
 	// FindByPair returns the user's project-wide role (PI, CO_PI or
 	// ALLOCATION_MANAGER), or nil if absent.
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
-	// FindByProject returns every project_memberships row for the project.
-	FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
 	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	// Upsert inserts the (project, user) row or sets its role.
@@ -375,9 +384,6 @@ type ComputeAllocationMembershipStore interface {
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
 	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error)
-	// FindByAllocation returns every membership recorded against the given
-	// allocation, ordered by start_time ascending.
-	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
@@ -488,24 +494,18 @@ type RoleStore interface {
 
 // UserRoleStore covers role assignments. Revoke is DELETE; history lives in audit_events.
 type UserRoleStore interface {
-	Find(ctx context.Context, userID, roleID string) (*models.UserRole, error)
 	FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error)
 	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
 	ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error)
 	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
-	ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error)
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error
 	Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error
-	PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
-	UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error)
 }
 
 // UserPrivilegeStore defines persistence operations for fine-grained admin
 // privileges. Only active grants live in the table; revoke is DELETE. The
 // full grant/revoke history is in audit_events.
 type UserPrivilegeStore interface {
-	// Find returns the active grant for (userID, privilege), or nil.
-	Find(ctx context.Context, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error)
 	// FindForUpdate returns the active grant inside a tx with SELECT FOR
 	// UPDATE so the caller can serialize grant / revoke decisions.
 	FindForUpdate(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error)
@@ -513,13 +513,19 @@ type UserPrivilegeStore interface {
 	ListByUser(ctx context.Context, userID string) ([]models.UserPrivilege, error)
 	// ListByPrivilege returns every active holder of the given privilege.
 	ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
-	// CountByPrivilege returns the number of active holders inside a tx.
-	// Used to enforce the last-meta-holder guard when revoking PrivilegesGrant.
-	CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
+	// Effective returns the user's direct grants united with every privilege
+	// their roles carry.
+	Effective(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
+	// CountHolders counts users holding privilege directly or through a role,
+	// leaving out exclUserID's assignment of exclRoleID.
+	CountHolders(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey, exclUserID, exclRoleID string) (int, error)
 	// Create inserts a new grant inside the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error
 	// Delete removes the grant for (userID, privilege) inside the provided tx.
 	Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error
+	// HoldsViaRole reports whether userID holds privilege through a role,
+	// share-locking the assignment so a concurrent revoke of it waits.
+	HoldsViaRole(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (bool, error)
 }
 
 // ComputeAllocationUsageStore defines persistence operations for the

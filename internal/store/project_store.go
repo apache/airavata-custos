@@ -44,20 +44,17 @@ const projectColumns = `id, originated_id, title, origination, project_pi_id, st
 // portal-facing payload from a single SQL round trip.
 type ProjectWithPI struct {
 	models.Project
-	PIFirstName string `db:"pi_first_name"`
-	PILastName  string `db:"pi_last_name"`
-	PIEmail     string `db:"pi_email"`
+	PIDisplayName string `db:"pi_display_name"`
+	PIEmail       string `db:"pi_email"`
 }
 
 // projectWithPISelect joins users so a single query returns everything the
 // portal needs to render a project row.
-const projectWithPISelect = `SELECT p.id, p.originated_id, p.title, p.origination, p.project_pi_id,
-        p.status, p.created_time,
-        COALESCE(u.first_name, '') AS pi_first_name,
-        COALESCE(u.last_name, '')  AS pi_last_name,
-        COALESCE(u.email, '')      AS pi_email
+var projectWithPISelect = `SELECT ` + Qualify("p", projectColumns) + `,
+        ` + DisplayNameSQL + ` AS pi_display_name,
+        u.email AS pi_email
    FROM projects p
-   LEFT JOIN users u ON u.id = p.project_pi_id`
+   JOIN users u ON u.id = p.project_pi_id`
 
 // FindByIDWithPI returns the project joined with its PI's display fields, or
 // nil if no project matches.
@@ -99,19 +96,9 @@ func (s *pgProjectStore) FindByOriginatedID(ctx context.Context, originatedID st
 	return &p, nil
 }
 
-func (s *pgProjectStore) FindByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
-	var projects []models.Project
-	err := s.db.SelectContext(ctx, &projects,
-		`SELECT `+projectColumns+` FROM projects WHERE project_pi_id = $1`, piUserID)
-	if err != nil {
-		return nil, err
-	}
-	return projects, nil
-}
-
 func (s *pgProjectStore) Create(ctx context.Context, tx *sql.Tx, p *models.Project) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status, created_time)
+		`INSERT INTO projects (`+projectColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		p.ID, p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.Status, p.CreatedTime)
 	return err
@@ -144,51 +131,6 @@ func (s *pgProjectStore) Delete(ctx context.Context, tx *sql.Tx, id string) erro
 	return err
 }
 
-func (s *pgProjectStore) List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error) {
-	where := []string{}
-	args := []any{}
-	if f.PIID != "" {
-		where = append(where, `project_pi_id = ?`)
-		args = append(args, f.PIID)
-	}
-	if f.Status != "" {
-		where = append(where, `status = ?`)
-		args = append(args, f.Status)
-	}
-	if f.Query != "" {
-		where = append(where, `(title ILIKE ? OR originated_id ILIKE ?)`)
-		q := "%" + f.Query + "%"
-		args = append(args, q, q)
-	}
-	clause := ""
-	if len(where) > 0 {
-		clause = " WHERE " + strings.Join(where, " AND ")
-	}
-	var total int
-	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM projects`+clause), args...); err != nil {
-		return nil, 0, err
-	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	query := `SELECT ` + projectColumns + ` FROM projects` + clause +
-		` ORDER BY created_time DESC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
-	var rows []models.Project
-	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
-		return nil, 0, err
-	}
-	return rows, total, nil
-}
-
 // ListWithPIForParticipant returns the projects the user has a role on, PI
 // joined, newest first.
 func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
@@ -202,8 +144,6 @@ func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID st
 	return rows, nil
 }
 
-// ListWithPI is List joined with the PI user. Replaces per-row GetUser calls
-// the handler used to fan out across the result set.
 func (s *pgProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error) {
 	where := []string{}
 	args := []any{}
@@ -228,21 +168,9 @@ func (s *pgProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([
 	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM projects p`+clause), args...); err != nil {
 		return nil, 0, err
 	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	query := projectWithPISelect + clause + ` ORDER BY p.created_time DESC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
 	var rows []ProjectWithPI
-	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(projectWithPISelect+clause+` ORDER BY p.created_time DESC LIMIT ? OFFSET ?`),
+		append(args, PageLimit(f.Limit), max(f.Offset, 0))...); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

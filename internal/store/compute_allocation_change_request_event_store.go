@@ -84,8 +84,7 @@ func (s *pgComputeAllocationChangeRequestEventStore) FindLatestByChangeRequest(c
 
 func (s *pgComputeAllocationChangeRequestEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.ComputeAllocationChangeRequestEvent) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_change_request_events
-		     (id, compute_allocation_change_request_id, event_type, description, timestamp)
+		`INSERT INTO compute_allocation_change_request_events (`+computeAllocationChangeRequestEventColumns+`)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		e.ID, e.ComputeAllocationChangeRequestID, e.EventType, e.Description, e.Timestamp)
 	return err

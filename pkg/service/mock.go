@@ -330,12 +330,6 @@ var _ CoreService = &CoreServiceMock{}
 //			ListPrivilegeHoldersFunc: func(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error) {
 //				panic("mock out the ListPrivilegeHolders method")
 //			},
-//			ListProjectMembershipsFunc: func(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-//				panic("mock out the ListProjectMemberships method")
-//			},
-//			ListProjectsByPIFunc: func(ctx context.Context, piUserID string) ([]models.Project, error) {
-//				panic("mock out the ListProjectsByPI method")
-//			},
 //			ListProjectsForParticipantFunc: func(ctx context.Context, userID string) ([]store.ProjectWithPI, error) {
 //				panic("mock out the ListProjectsForParticipant method")
 //			},
@@ -756,12 +750,6 @@ type CoreServiceMock struct {
 
 	// ListPrivilegeHoldersFunc mocks the ListPrivilegeHolders method.
 	ListPrivilegeHoldersFunc func(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
-
-	// ListProjectMembershipsFunc mocks the ListProjectMemberships method.
-	ListProjectMembershipsFunc func(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
-
-	// ListProjectsByPIFunc mocks the ListProjectsByPI method.
-	ListProjectsByPIFunc func(ctx context.Context, piUserID string) ([]models.Project, error)
 
 	// ListProjectsForParticipantFunc mocks the ListProjectsForParticipant method.
 	ListProjectsForParticipantFunc func(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
@@ -1645,20 +1633,6 @@ type CoreServiceMock struct {
 			// Privilege is the privilege argument value.
 			Privilege models.PrivilegeKey
 		}
-		// ListProjectMemberships holds details about calls to the ListProjectMemberships method.
-		ListProjectMemberships []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// ProjectID is the projectID argument value.
-			ProjectID string
-		}
-		// ListProjectsByPI holds details about calls to the ListProjectsByPI method.
-		ListProjectsByPI []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// PiUserID is the piUserID argument value.
-			PiUserID string
-		}
 		// ListProjectsForParticipant holds details about calls to the ListProjectsForParticipant method.
 		ListProjectsForParticipant []struct {
 			// Ctx is the ctx argument value.
@@ -2040,8 +2014,6 @@ type CoreServiceMock struct {
 	lockListOverridesForMembership                             sync.RWMutex
 	lockListOverridesForResource                               sync.RWMutex
 	lockListPrivilegeHolders                                   sync.RWMutex
-	lockListProjectMemberships                                 sync.RWMutex
-	lockListProjectsByPI                                       sync.RWMutex
 	lockListProjectsForParticipant                             sync.RWMutex
 	lockListRatesForResource                                   sync.RWMutex
 	lockListResourcesForAllocation                             sync.RWMutex
@@ -5892,78 +5864,6 @@ func (mock *CoreServiceMock) ListPrivilegeHoldersCalls() []struct {
 	mock.lockListPrivilegeHolders.RLock()
 	calls = mock.calls.ListPrivilegeHolders
 	mock.lockListPrivilegeHolders.RUnlock()
-	return calls
-}
-
-// ListProjectMemberships calls ListProjectMembershipsFunc.
-func (mock *CoreServiceMock) ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-	if mock.ListProjectMembershipsFunc == nil {
-		panic("CoreServiceMock.ListProjectMembershipsFunc: method is nil but CoreService.ListProjectMemberships was just called")
-	}
-	callInfo := struct {
-		Ctx       context.Context
-		ProjectID string
-	}{
-		Ctx:       ctx,
-		ProjectID: projectID,
-	}
-	mock.lockListProjectMemberships.Lock()
-	mock.calls.ListProjectMemberships = append(mock.calls.ListProjectMemberships, callInfo)
-	mock.lockListProjectMemberships.Unlock()
-	return mock.ListProjectMembershipsFunc(ctx, projectID)
-}
-
-// ListProjectMembershipsCalls gets all the calls that were made to ListProjectMemberships.
-// Check the length with:
-//
-//	len(mockedCoreService.ListProjectMembershipsCalls())
-func (mock *CoreServiceMock) ListProjectMembershipsCalls() []struct {
-	Ctx       context.Context
-	ProjectID string
-} {
-	var calls []struct {
-		Ctx       context.Context
-		ProjectID string
-	}
-	mock.lockListProjectMemberships.RLock()
-	calls = mock.calls.ListProjectMemberships
-	mock.lockListProjectMemberships.RUnlock()
-	return calls
-}
-
-// ListProjectsByPI calls ListProjectsByPIFunc.
-func (mock *CoreServiceMock) ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
-	if mock.ListProjectsByPIFunc == nil {
-		panic("CoreServiceMock.ListProjectsByPIFunc: method is nil but CoreService.ListProjectsByPI was just called")
-	}
-	callInfo := struct {
-		Ctx      context.Context
-		PiUserID string
-	}{
-		Ctx:      ctx,
-		PiUserID: piUserID,
-	}
-	mock.lockListProjectsByPI.Lock()
-	mock.calls.ListProjectsByPI = append(mock.calls.ListProjectsByPI, callInfo)
-	mock.lockListProjectsByPI.Unlock()
-	return mock.ListProjectsByPIFunc(ctx, piUserID)
-}
-
-// ListProjectsByPICalls gets all the calls that were made to ListProjectsByPI.
-// Check the length with:
-//
-//	len(mockedCoreService.ListProjectsByPICalls())
-func (mock *CoreServiceMock) ListProjectsByPICalls() []struct {
-	Ctx      context.Context
-	PiUserID string
-} {
-	var calls []struct {
-		Ctx      context.Context
-		PiUserID string
-	}
-	mock.lockListProjectsByPI.RLock()
-	calls = mock.calls.ListProjectsByPI
-	mock.lockListProjectsByPI.RUnlock()
 	return calls
 }
 

@@ -99,7 +99,7 @@ func (s *pgAuditEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.Au
 	}
 	e.Source = cmp.Or(e.Source, audit.SourceFromContext(ctx), "core")
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO audit_events (id, event_type, event_time, entity_id, entity_type, details, source, trace_id, span_id, parent_span_id)
+		`INSERT INTO audit_events (`+auditEventColumns+`)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		e.ID, e.EventType, e.EventTime, e.EntityID, e.EntityType, e.Details, e.Source, e.TraceID, e.SpanID, e.ParentSpanID)
 	return err

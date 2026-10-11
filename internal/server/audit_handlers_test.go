@@ -174,7 +174,7 @@ func TestListTracesAppliesDefaultLimit(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d", resp.StatusCode)
 	}
-	if fs.listFilter.Limit != defaultTraceLimit {
+	if fs.listFilter.Limit != 50 {
 		t.Errorf("default limit = %d", fs.listFilter.Limit)
 	}
 }
@@ -187,7 +187,7 @@ func TestListTracesCapsLimitAt200(t *testing.T) {
 		t.Fatalf("get: %v", err)
 	}
 	defer resp.Body.Close()
-	if fs.listFilter.Limit != maxTraceListLimit {
+	if fs.listFilter.Limit != 200 {
 		t.Errorf("limit cap = %d", fs.listFilter.Limit)
 	}
 }

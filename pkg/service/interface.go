@@ -78,7 +78,6 @@ type ProjectService interface {
 	CreateProject(ctx context.Context, project *models.Project) (*models.Project, error)
 	GetProject(ctx context.Context, id string) (*models.Project, error)
 	GetProjectByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
-	ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
 	IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error
@@ -183,7 +182,6 @@ type ComputeAllocationChangeRequestEventService interface {
 // ProjectMembershipService exposes project-level governance roles.
 type ProjectMembershipService interface {
 	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
-	ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
 }
 
 // ComputeAllocationMembershipService exposes allocation memberships.
