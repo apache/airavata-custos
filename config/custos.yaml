@@ -115,6 +115,36 @@ connectors:
             group: "{allocation}"
             mode: "2700"
 
+  unix-provisioner:
+    type: "unix-storage-provisioner"
+    enabled: false
+    clusters:
+      - id: "${CUSTOS_CLUSTER_ID}"
+        ssh:
+          user: "${UNIX_SSH_USER}"
+          hostname: "${UNIX_SSH_HOSTNAME}"
+        targets:
+          - path: "/home/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+          - path: "/scratch/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+          - path: "/project/{allocation}"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2750"
+          - path: "/project/{allocation}/shared"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2770"
+          - path: "/project/{allocation}/{user}"
+            owner: "{user}"
+            group: "{allocation}"
+            mode: "2700"
+
   amie-processor:
     type: "amie-processor"
     enabled: true
