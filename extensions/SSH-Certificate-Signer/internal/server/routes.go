@@ -34,6 +34,9 @@ type Handlers struct {
 	Admin             http.HandlerFunc
 	Certificates      http.HandlerFunc
 	CertificateDetail http.HandlerFunc
+	CertificateRevoke http.HandlerFunc
+	AdminCertificates http.HandlerFunc
+	AdminCertificate  http.HandlerFunc
 	UserInfo          http.HandlerFunc
 }
 
@@ -41,6 +44,7 @@ func NewRouter(
 	cfg *config.Config,
 	authenticator *auth.ClientAuthenticator,
 	oidcValidator *auth.OIDCValidator,
+	coreAuthorizer auth.CoreAuthorizer,
 	handlers Handlers,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -77,7 +81,13 @@ func NewRouter(
 
 		r.Get("/api/v1/certificates", handlers.Certificates)
 		r.Get("/api/v1/certificates/{serial}", handlers.CertificateDetail)
+		r.Post("/api/v1/certificates/{serial}/revoke", handlers.CertificateRevoke)
 		r.Get("/api/v1/userinfo", handlers.UserInfo)
+
+		r.With(CorePrivilegeMiddleware(coreAuthorizer, auth.SignerCertificatesRead)).
+			Get("/api/v1/admin/certificates", handlers.AdminCertificates)
+		r.With(CorePrivilegeMiddleware(coreAuthorizer, auth.SignerCertificatesRead)).
+			Get("/api/v1/admin/certificates/{serial}", handlers.AdminCertificate)
 	})
 
 	return r

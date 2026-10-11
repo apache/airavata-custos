@@ -38,6 +38,8 @@ vault:
   timeout_seconds: 10
 
 signer:
+  # Custos Core resolves effective administrator privileges for signer admin APIs.
+  core_api_base_url: http://localhost:8080  # env: CORE_API_BASE_URL
   ca:
     rotation:
       period_hours: 2160              # 90 days
