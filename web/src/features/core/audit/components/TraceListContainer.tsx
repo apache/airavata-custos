@@ -1,41 +1,41 @@
-// Licensed to the Apache Software Foundation (ASF) under one
-// or more contributor license agreements.  See the NOTICE file
-// distributed with this work for additional information
-// regarding copyright ownership.  The ASF licenses this file
-// to you under the Apache License, Version 2.0 (the
-// "License"); you may not use this file except in compliance
-// with the License.  You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 "use client";
 
-import { AlertTriangle, ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import * as React from "react";
 import { cn } from "@/lib/utils";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { LastSyncedBadge } from "@/shared/ui/LastSyncedBadge";
+import { AlertTriangle, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { useAuditSources, useTraces } from "../queries";
-import type { Trace } from "../types";
-import { traceTone } from "../utils";
+import { listStatus } from "../utils";
 import { TraceDetailDrawer } from "./TraceDetailDrawer";
 import { TraceFilterStrip } from "./TraceFilterStrip";
 import { TraceTable } from "./TraceTable";
 import {
   DEFAULT_FILTERS,
   type ListFilters,
-  bannerBounds,
   hasActiveFilters,
   parseFilters,
   serializeFilters,
@@ -48,12 +48,8 @@ export type TraceListContainerProps = {
 };
 
 const TRACE_PARAM = "trace";
-
-function syncUrl(filters: ListFilters, traceId: string | null) {
-  const next = serializeFilters(filters);
-  if (traceId) next.set(TRACE_PARAM, traceId);
-  replaceShallowSearchParams(next);
-}
+const DRAWER_PARAMS = ["trace", "step", "span", "tab"];
+const WINDOW_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days" } as const;
 
 export function TraceListContainer({ initialTraceId }: TraceListContainerProps = {}) {
   const params = useShallowSearchParams();
@@ -64,82 +60,53 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
   const drawerOpen = traceParam !== null || initialTraceId != null;
 
   const updateFilters = React.useCallback(
-    (next: ListFilters) => syncUrl(next, activeTraceId),
-    [activeTraceId],
+    (next: ListFilters) => {
+      const search = serializeFilters(next);
+      for (const key of DRAWER_PARAMS) {
+        const value = params.get(key);
+        if (value) search.set(key, value);
+      }
+      replaceShallowSearchParams(search);
+    },
+    [params],
   );
 
-  // Stable `now` per-mount keeps the from/to window from drifting between
-  // re-renders (and changing the TanStack cache key).
+  // One `now` per mount keeps the from/to window, and so the query key, stable
+  // between renders.
   const nowRef = React.useRef<number>(Date.now());
-  const failing24h = React.useMemo(() => bannerBounds(nowRef.current), []);
   const { from, to } = React.useMemo(
     () => windowToFromTo(filters.window, nowRef.current),
     [filters.window],
   );
-
-  const { apiStatus, inProgressOnly } = React.useMemo(
+  const { apiStatus, keep } = React.useMemo(
     () => statusFiltersToApi(filters.status),
     [filters.status],
   );
 
-  // failingOver24h overrides status/window and pins the 30d->24h window so the
-  // banner click lands on exactly the rows the count came from.
   const apiFilters = React.useMemo(
-    () =>
-      filters.failingOver24h
-        ? {
-            status: [1] as number[],
-            source: filters.source.length ? filters.source : undefined,
-            from: failing24h.from,
-            to: failing24h.to,
-            q: filters.q || undefined,
-            limit: filters.pageSize,
-            offset: (filters.page - 1) * filters.pageSize,
-          }
-        : {
-            status: apiStatus.length ? apiStatus : undefined,
-            source: filters.source.length ? filters.source : undefined,
-            from,
-            to,
-            q: filters.q || undefined,
-            limit: filters.pageSize,
-            offset: (filters.page - 1) * filters.pageSize,
-          },
-    [
-      filters.failingOver24h,
-      apiStatus,
-      filters.source,
-      filters.q,
-      filters.page,
-      filters.pageSize,
+    () => ({
+      status: apiStatus.length ? apiStatus : undefined,
+      source: filters.source.length ? filters.source : undefined,
       from,
       to,
-      failing24h,
-    ],
+      q: filters.q || undefined,
+      limit: filters.pageSize,
+      offset: (filters.page - 1) * filters.pageSize,
+    }),
+    [apiStatus, filters.source, filters.q, filters.page, filters.pageSize, from, to],
   );
 
   const tracesQuery = useTraces(apiFilters);
   const sourcesQuery = useAuditSources();
-  const visibleTraces: Trace[] = React.useMemo(() => {
-    const rows = tracesQuery.data?.traces ?? [];
-    if (inProgressOnly) return rows.filter((t) => t.ended_at == null);
-    return rows;
-  }, [tracesQuery.data, inProgressOnly]);
+  const visibleTraces = React.useMemo(
+    () => (tracesQuery.data?.traces ?? []).filter((t) => keep(listStatus(t))),
+    [tracesQuery.data, keep],
+  );
 
-  const total = inProgressOnly
-    ? visibleTraces.length
-    : (tracesQuery.data?.total ?? 0);
-
-  // 24h-failing banner — separate query so it survives any active filter.
-  const failingQuery = useTraces({
-    status: [1],
-    from: failing24h.from,
-    to: failing24h.to,
-    limit: 1,
-  });
+  // The banner counts failed traces in the window whatever the filters say.
+  const failingQuery = useTraces({ status: ["error"], from, to, limit: 1 });
   const failingCount = failingQuery.data?.total ?? 0;
-  const showBanner =
-    !failingQuery.isLoading && failingCount > 0 && !filters.failingOver24h;
+  const showBanner = failingCount > 0 && !filters.status.includes("failed");
 
   const onView = React.useCallback(
     (traceId: string) => {
@@ -152,9 +119,6 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
 
   const closeDrawer = React.useCallback(() => {
     const next = serializeFilters(filters);
-    next.delete(TRACE_PARAM);
-    next.delete("span");
-    next.delete("tab");
     if (initialTraceId) {
       router.push(`/admin/traces${next.toString() ? `?${next.toString()}` : ""}`);
       return;
@@ -162,48 +126,32 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
     replaceShallowSearchParams(next);
   }, [filters, initialTraceId, router]);
 
-  const onPageChange = React.useCallback(
-    (next: number) => updateFilters({ ...filters, page: Math.max(1, next) }),
-    [filters, updateFilters],
-  );
-  const onPageSizeChange = React.useCallback(
-    (next: number) => updateFilters({ ...filters, pageSize: next, page: 1 }),
-    [filters, updateFilters],
-  );
-
-  const applyFailingPreset = React.useCallback(() => {
-    updateFilters({
-      ...DEFAULT_FILTERS,
-      failingOver24h: true,
-      pageSize: filters.pageSize,
-    });
-  }, [filters.pageSize, updateFilters]);
-
   const dataUpdatedAt = tracesQuery.dataUpdatedAt;
   const syncedAt = dataUpdatedAt ? new Date(dataUpdatedAt) : new Date(nowRef.current);
-
-  // Sanity check — confirm tone derivation stays loaded.
-  void traceTone;
+  const refresh = () => {
+    void tracesQuery.refetch();
+    void failingQuery.refetch();
+  };
 
   return (
     <div className="w-full pb-12 pt-2">
       <header className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-[28px] font-bold leading-tight tracking-[-0.01em] text-foreground">
-            Traces
+            Tracing
           </h1>
           <p className="mt-1.5 max-w-[560px] text-sm text-muted-foreground">
-            Investigate where a flow broke and retry from the failed step.
+            Follow a request from where it started through the event bus to each connector.
           </p>
         </div>
-        <LastSyncedBadge syncedAt={syncedAt} onRefetch={() => tracesQuery.refetch()} />
+        <LastSyncedBadge syncedAt={syncedAt} onRefetch={refresh} />
       </header>
 
       {showBanner && (
         // biome-ignore lint/a11y/useSemanticElements: role="status" promotes the banner to a polite live region; section is the landmark.
         <section
           role="status"
-          aria-label="Failing traces alert"
+          aria-label="Failed traces"
           data-testid="failing-banner"
           className={cn(
             "mt-4 flex items-center gap-3 rounded-[10px] border px-4 py-3",
@@ -215,15 +163,15 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
             aria-hidden="true"
           />
           <span className="text-[13.5px]">
-            <strong>{failingCount}</strong>{" "}
-            {failingCount === 1 ? "trace" : "traces"} failing for over 24h
+            <strong>{failingCount}</strong> {failingCount === 1 ? "trace needs" : "traces need"}{" "}
+            attention
           </span>
           <button
             type="button"
-            onClick={applyFailingPreset}
+            onClick={() => updateFilters({ ...filters, status: ["failed"], page: 1 })}
             className="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-[color:var(--banner-error-fg)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Investigate <ArrowRight className="h-3.5 w-3.5" />
+            Show them <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </section>
       )}
@@ -239,15 +187,17 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
       <div className="mt-4">
         <TraceTable
           traces={visibleTraces}
-          total={total}
+          total={filters.status.length ? visibleTraces.length : (tracesQuery.data?.total ?? 0)}
           page={filters.page}
           pageSize={filters.pageSize}
           loading={tracesQuery.isLoading}
           error={tracesQuery.error as Error | null}
           hasActiveFilters={hasActiveFilters(filters)}
+          windowLabel={WINDOW_LABEL[filters.window]}
           onView={onView}
-          onPageChange={onPageChange}
-          onPageSizeChange={onPageSizeChange}
+          onPageChange={(next) => updateFilters({ ...filters, page: Math.max(1, next) })}
+          onPageSizeChange={(next) => updateFilters({ ...filters, pageSize: next, page: 1 })}
+          onClearFilters={() => updateFilters({ ...DEFAULT_FILTERS, pageSize: filters.pageSize })}
           onRetry={() => tracesQuery.refetch()}
         />
       </div>

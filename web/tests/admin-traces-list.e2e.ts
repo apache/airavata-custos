@@ -21,57 +21,32 @@ import { signInAs } from "./fixtures/auth";
 
 const SEVERITIES = ["serious", "critical"] as const;
 
-test.describe("admin traces list", () => {
-  test("renders the page, default error filter, and at least one error row", async ({ page }) => {
+test.describe("admin tracing list", () => {
+  // The banner is the on-call entry point: it counts failed traces and one
+  // click narrows the list to them.
+  test("banner counts failed traces and Show them applies the Failed filter", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/traces");
-
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Tracing$/ })).toBeVisible({
       timeout: 20_000,
     });
 
-    await expect(page.getByRole("button", { name: /^error$/i })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const banner = page.getByTestId("failing-banner");
+    await expect(banner).toContainText(/traces need attention/, { timeout: 20_000 });
+    await banner.getByRole("button", { name: /Show them/ }).click();
 
-    const errorRows = page.locator('[data-testid^="trace-row-"][data-tone="error"]');
-    await expect(errorRows.first()).toBeVisible({ timeout: 20_000 });
-  });
-
-  test("toggling to the ok pill updates the URL and re-fetches", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await page.getByRole("button", { name: /^error$/i }).click();
-    await page.getByRole("button", { name: /^ok$/i }).click();
-
-    await expect(page).toHaveURL(/[?&]status=ok\b/, { timeout: 10_000 });
-
-    await expect(page.getByTestId("trace-table-loading")).toHaveCount(0, { timeout: 15_000 });
-  });
-
-  test("clicking a row pushes ?trace=<id>", async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    const firstRow = page.locator('[data-testid^="trace-row-"]').first();
-    await expect(firstRow).toBeVisible({ timeout: 20_000 });
-    await firstRow.click();
-
-    await expect(page).toHaveURL(/[?&]trace=[0-9a-f]{32}\b/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/[?&]status=failed\b/, { timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "Failed", pressed: true })).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="trace-row-"][data-status="failed"]').first(),
+    ).toBeVisible();
+    await expect(page.locator('[data-testid^="trace-row-"][data-status="done"]')).toHaveCount(0);
   });
 
   test("axe: no serious or critical violations on the list page", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Tracing$/ })).toBeVisible({
       timeout: 20_000,
     });
     await page.waitForLoadState("networkidle");
