@@ -565,6 +565,7 @@ definitions:
     - core:projects:write
     - core:users:read
     - core:users:write
+    - core:users:activity:read
     - core:organizations:read
     - core:organizations:write
     - core:traces:read
@@ -581,6 +582,7 @@ definitions:
     - ProjectsWrite
     - UsersRead
     - UsersWrite
+    - UsersActivityRead
     - OrganizationsRead
     - OrganizationsWrite
     - TracesRead
@@ -683,6 +685,11 @@ definitions:
     - ProjectActive
     - ProjectInactive
     - ProjectDeleted
+  RecordLoginEventResult:
+    properties:
+      recorded:
+        type: boolean
+    type: object
   Role:
     properties:
       created_at:
@@ -811,8 +818,100 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/UserStatus'
+      timezone:
+        type: string
       type:
         $ref: '#/definitions/UserType'
+    type: object
+  UserActivityAnalytics:
+    properties:
+      active_users:
+        description: ActiveUsers counts users with a recorded sign-in within the window.
+        type: integer
+      dormant_over_90_days:
+        type: integer
+      generated_at:
+        type: string
+      lifetime_active_days:
+        type: integer
+      lifetime_login_count:
+        type: integer
+      oldest_never_created_at:
+        type: string
+      prior_active_users:
+        type: integer
+      total_users:
+        type: integer
+      trend:
+        items:
+          $ref: '#/definitions/UserActivityTrendPoint'
+        type: array
+      users_ever_logged_in:
+        type: integer
+      window_active_days:
+        type: integer
+      window_days:
+        type: integer
+      window_login_count:
+        type: integer
+    type: object
+  UserActivityListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/UserActivityRow'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      status:
+        type: string
+      total:
+        type: integer
+      window_days:
+        type: integer
+    type: object
+  UserActivityRow:
+    properties:
+      current_streak:
+        type: integer
+      email:
+        type: string
+      inactive_days:
+        type: integer
+      last_login:
+        description: LastLogin is the most recent recorded sign-in timestamp.
+        type: string
+      login_count:
+        description: LoginCount is the lifetime number of recorded sign-ins.
+        type: integer
+      login_day_count:
+        description: LoginDayCount is the lifetime number of local calendar days with
+          a sign-in.
+        type: integer
+      name:
+        type: string
+      role_names:
+        items:
+          type: string
+        type: array
+      user_id:
+        type: string
+      window_login_count:
+        type: integer
+    type: object
+  UserActivityTrendPoint:
+    properties:
+      active_users:
+        description: ActiveUsers counts distinct users who signed in on this local
+          calendar date.
+        type: integer
+      date:
+        type: string
+      login_count:
+        description: LoginCount sums recorded sign-ins on this local calendar date.
+        type: integer
     type: object
   UserAllocationSUTotalResponse:
     properties:
@@ -3303,6 +3402,44 @@ paths:
       summary: Get the caller's user record, effective privileges, and roles
       tags:
       - Caller
+  /me/login-events:
+    post:
+      consumes:
+      - application/json
+      description: Records one sign-in for the authenticated caller. Identity and
+        timing come from the verified OIDC token, never the request body, and the
+        body must be empty or `{}`. Repeating the call for the same token is idempotent
+        and answers 200 without changing any counts.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Already recorded for this token
+          schema:
+            $ref: '#/definitions/RecordLoginEventResult'
+        "201":
+          description: Sign-in recorded
+          schema:
+            $ref: '#/definitions/RecordLoginEventResult'
+        "400":
+          description: Body is not empty, or the token carries no usable session evidence
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: No authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Record the caller's sign-in
+      tags:
+      - Users
   /organizations:
     get:
       parameters:
@@ -3396,6 +3533,7 @@ paths:
         - core:projects:write
         - core:users:read
         - core:users:write
+        - core:users:activity:read
         - core:organizations:read
         - core:organizations:write
         - core:traces:read
@@ -4045,6 +4183,7 @@ paths:
         - core:projects:write
         - core:users:read
         - core:users:write
+        - core:users:activity:read
         - core:organizations:read
         - core:organizations:write
         - core:traces:read
@@ -4419,6 +4558,53 @@ paths:
       summary: Update a user's name
       tags:
       - Users
+  /users/{id}/activity/analytics:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Activity window in user-local calendar days (1-365, default 30)
+        in: query
+        name: window
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserActivityAnalytics'
+        "400":
+          description: Invalid window
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks core:users:activity:read
+          schema:
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+            type: object
+        "404":
+          description: No such OIDC-linked user
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Aggregate sign-in analytics for one user with an OIDC-linked identity
+      tags:
+      - Users
   /users/{id}/change-requests:
     get:
       parameters:
@@ -4650,6 +4836,7 @@ paths:
         - core:projects:write
         - core:users:read
         - core:users:write
+        - core:users:activity:read
         - core:organizations:read
         - core:organizations:write
         - core:traces:read
@@ -4903,6 +5090,110 @@ paths:
       summary: List a user's identities
       tags:
       - User Identities
+  /users/activity:
+    get:
+      description: 'One row per user with an OIDC-linked identity. `window` and `status`
+        are applied before pagination, and the response echoes both so a caller can
+        detect an unfiltered answer. Sign-in statuses are disjoint: active has signed
+        in within the window, dormant has signed in earlier, never has no recorded
+        sign-in.'
+      parameters:
+      - description: Activity window in user-local calendar days (1-365)
+        in: query
+        name: window
+        required: true
+        type: integer
+      - description: all | active | dormant | never
+        in: query
+        name: status
+        required: true
+        type: string
+      - description: Substring match on name or email
+        in: query
+        name: query
+        type: string
+      - description: Page size (default 10, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      - description: name | last_login | login_count (default last_login)
+        in: query
+        name: sort
+        type: string
+      - description: asc | desc (default desc)
+        in: query
+        name: direction
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserActivityListResponse'
+        "400":
+          description: Invalid window, status, sort or direction
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks core:users:activity:read
+          schema:
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List sign-in activity for users with an OIDC-linked identity
+      tags:
+      - Users
+  /users/activity/analytics:
+    get:
+      description: Population-wide sign-in activity over the requested window. Supplemental
+        fields (`prior_active_users`, `dormant_over_90_days`, `oldest_never_created_at`)
+        may be null when the population cannot produce them.
+      parameters:
+      - description: Activity window in user-local calendar days (1-365, default 30)
+        in: query
+        name: window
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserActivityAnalytics'
+        "400":
+          description: Invalid window
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks core:users:activity:read
+          schema:
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Aggregate sign-in analytics for all users with an OIDC-linked identity
+      tags:
+      - Users
   /users/merge:
     post:
       consumes:
