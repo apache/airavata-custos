@@ -1,0 +1,44 @@
+{
+  "deliveries": [
+    {
+      "id": "ea1ca0b0-2817-403e-b14e-d7808201c118",
+      "event_type": "compute_cluster_user::create",
+      "subscriber": "email-notifier",
+      "status": "SUCCEEDED",
+      "attempts": 1,
+      "next_run_at": "2026-10-09T20:29:05.367026-04:00",
+      "span_id": "b325129142f16ab0"
+    }
+  ],
+  "status": "ok",
+  "trace_id": "52b684557ae202d9c9063fd157390130",
+  "tree": [
+    {
+      "id": "713a47c7-e3a2-41e1-b992-827186399881",
+      "span_id": "8ba71e38fcd37e6f",
+      "parent_span_id": "b325129142f16ab0",
+      "source": "email-notifier",
+      "event_type": "NOTIFICATION_SENT",
+      "entity_type": "compute_cluster_user",
+      "entity_id": "fdb22023-452f-4085-8b07-a8e3be08915d",
+      "description": "{\"channel\":\"email\",\"recipient\":\"nvasquez@example.edu\",\"template\":\"request-received\"}",
+      "status": "ok",
+      "created_at": "2026-10-09T20:29:05.389901-04:00",
+      "children": []
+    },
+    {
+      "id": "85ba9a4a-90f3-4b6e-82c5-f5313388e098",
+      "span_id": "8ba71e38fcd37e6f",
+      "parent_span_id": "b325129142f16ab0",
+      "source": "email-notifier",
+      "event_type": "EVENT_DELIVERY_SUCCEEDED",
+      "entity_type": "event_delivery",
+      "entity_id": "ea1ca0b0-2817-403e-b14e-d7808201c118",
+      "description": "{\"attempt\":1,\"event_type\":\"compute_cluster_user::create\",\"subscriber\":\"email-notifier\"}",
+      "status": "ok",
+      "created_at": "2026-10-09T20:29:05.390488-04:00",
+      "children": []
+    }
+  ],
+  "truncated": false
+}
