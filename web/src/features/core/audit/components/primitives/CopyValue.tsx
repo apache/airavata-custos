@@ -17,9 +17,9 @@
 
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Check, Copy } from "lucide-react";
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 export type CopyValueProps = {
   value: string;
@@ -62,11 +62,11 @@ export function CopyValue({ value, label, explicit = false, className, children 
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center gap-1.5 font-mono text-xs text-foreground",
+        "inline-flex items-center gap-1.5 font-mono text-xs text-foreground",
         className,
       )}
     >
-      <span className="min-w-0 truncate">{children ?? value}</span>
+      <span className="truncate">{children ?? value}</span>
       <button
         type="button"
         onClick={handleCopy}

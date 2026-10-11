@@ -1,25 +1,33 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
-import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
-import { listTraces } from "@/features/core/audit/api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import auditEventsFixture from "@/features/core/audit/__fixtures__/audit-events.json";
+import failedFixture from "@/features/core/audit/__fixtures__/trace.amie.failed.json";
+import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
+import {
+  RetryApiError,
+  getAuditEventsForTrace,
+  getTrace,
+  listAuditSources,
+  listTraces,
+  retryTrace,
+} from "@/features/core/audit/api";
+import { ApiError } from "@/shared/api/client";
 
 const fetchMock = vi.fn();
 
@@ -32,47 +40,121 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
+    status: init.status ?? 200,
+    headers: { "content-type": "application/json", ...(init.headers ?? {}) },
   });
 }
 
-function requestedUrl(): string {
-  const input = fetchMock.mock.calls[0]?.[0];
-  return typeof input === "string" ? input : (input as Request).url;
-}
+const traceId = "a3b1c92d3f4e5a6b7c8d9e0f12345678";
 
 describe("audit api", () => {
-  // Make sure multi-value filters go on the wire as repeated params, sorted, so
-  // the same filters always build the same URL and the same query cache key.
-  it("listTraces sends sorted repeated params", async () => {
+  it("listTraces serializes filters as repeated params on /audit/traces", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(tracesListFixture));
     await listTraces({
-      source: ["core", "amie"],
-      status: ["in_progress", "error"],
-      from: "2026-10-01T00:00:00Z",
-      q: "jsmith",
+      source: ["amie", "http"],
+      status: [0, 1],
+      from: "2026-05-01T00:00:00Z",
+      to: "2026-06-01T00:00:00Z",
+      q: "alice",
       limit: 50,
-      offset: 50,
+      offset: 0,
     });
-    const url = new URL(requestedUrl(), "http://localhost");
-    expect(url.pathname.endsWith("/audit/traces")).toBe(true);
-    expect(url.searchParams.getAll("source")).toEqual(["amie", "core"]);
-    expect(url.searchParams.getAll("status")).toEqual(["error", "in_progress"]);
-    expect(url.searchParams.get("q")).toBe("jsmith");
-    expect(url.searchParams.get("offset")).toBe("50");
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url).toMatch(/\/audit\/traces\?/);
+    expect(url).toContain("source=amie");
+    expect(url).toContain("source=http");
+    expect(url).toContain("status=ok");
+    expect(url).toContain("status=error");
+    expect(url).toContain("q=alice");
+    expect(url).toContain("limit=50");
   });
 
-  // Make sure a response that does not match the wire shape is rejected at the
-  // boundary instead of reaching the components half parsed.
-  it("listTraces rejects a payload without delivery counts", async () => {
-    const broken = {
-      ...tracesListFixture,
-      traces: [{ ...tracesListFixture.traces[0], deliveries: undefined }],
-    };
-    fetchMock.mockResolvedValueOnce(jsonResponse(broken));
-    await expect(listTraces()).rejects.toThrow();
+  it("listTraces sorts multi-value source filters for cache-key stability", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(tracesListFixture));
+    await listTraces({ source: ["http", "amie"], status: [1, 0] });
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url.indexOf("source=amie")).toBeLessThan(url.indexOf("source=http"));
+  });
+
+  it("listTraces adapts backend fields onto the UI shape", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(tracesListFixture));
+    const out = await listTraces();
+    expect(out.traces.length).toBeGreaterThan(0);
+    const first = out.traces[0];
+    expect(first?.root_name).toBe("amie.process_event:request_account_create");
+    expect(first?.span_count).toBe(14);
+    expect(first?.status).toBe(1);
+  });
+
+  it("listTraces marks zero-time ended_at as null (in-progress override)", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(tracesListFixture));
+    const out = await listTraces();
+    const inProgress = out.traces.find((t) => t.ended_at == null);
+    expect(inProgress).toBeDefined();
+  });
+
+  it("listTraces rejects payloads that fail schema validation", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ traces: [{ trace_id: "not-hex" }], total: 0, limit: 0, offset: 0 }),
+    );
+    await expect(listTraces()).rejects.toBeInstanceOf(Error);
+  });
+
+  it("getTrace hits the detail route and flattens the tree", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(failedFixture));
+    const detail = await getTrace(failedFixture.trace_id);
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url).toContain(`/audit/traces/${failedFixture.trace_id}`);
+    expect(detail.spans.length).toBeGreaterThan(1);
+    expect(detail.trace.trace_id).toBe(failedFixture.trace_id);
+  });
+
+  it("listAuditSources hits /audit/sources and returns the array", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ sources: ["amie", "core"] }),
+    );
+    const out = await listAuditSources();
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url).toContain("/audit/sources");
+    expect(out).toEqual(["amie", "core"]);
+  });
+
+  it("retryTrace POSTs to /audit/traces/{id}/retry and resolves on 202", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 202 }));
+    await retryTrace(traceId);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(init.method).toBe("POST");
+    expect(url).toContain(`/audit/traces/${traceId}/retry`);
+  });
+
+  it("retryTrace throws a typed RetryApiError on 409", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ error: "source not registered" }, { status: 409 }),
+    );
+    const err = await retryTrace(traceId).catch((e) => e);
+    expect(err).toBeInstanceOf(RetryApiError);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as RetryApiError).status).toBe(409);
+    expect((err as RetryApiError).body.error).toBe("source not registered");
+  });
+
+  it("retryTrace falls back to bare ApiError when the body is not the envelope", async () => {
+    fetchMock.mockResolvedValueOnce(new Response("<html>500</html>", { status: 500 }));
+    const err = await retryTrace(traceId).catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err).not.toBeInstanceOf(RetryApiError);
+  });
+
+  it("getAuditEventsForTrace passes trace_id and span_id query params", async () => {
+    const bucket = (auditEventsFixture as Record<string, { events: unknown[] }>)[traceId];
+    fetchMock.mockResolvedValueOnce(jsonResponse({ events: bucket?.events ?? [] }));
+    await getAuditEventsForTrace(traceId, "1000000000000006");
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url).toContain("/audit/events");
+    expect(url).toContain(`trace_id=${traceId}`);
+    expect(url).toContain("span_id=1000000000000006");
   });
 });

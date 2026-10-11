@@ -1,50 +1,60 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
-// URL <-> filter mapping for the trace list. Stray values collapse to defaults
-// so a pasted URL never widens the query cache key.
+// URL <-> filter mapping for the trace list. Hardcoded whitelists keep
+// parseFilters tolerant of pasted/manipulated URLs — stray values collapse to
+// defaults instead of widening the TanStack cache key.
 
-import type { ListStatus, TraceStatus } from "../types";
-
+export type StatusFilter = "error" | "ok" | "in-progress" | "orphaned";
 export type WindowPreset = "24h" | "7d" | "30d";
 
 export type ListFilters = {
-  status: ListStatus[];
+  status: StatusFilter[];
   source: string[];
   window: WindowPreset;
   q: string;
   page: number;
   pageSize: number;
+  failingOver24h: boolean;
 };
 
 export const DEFAULT_FILTERS: ListFilters = {
-  status: [],
+  status: ["error"],
   source: [],
-  window: "7d",
+  window: "30d",
   q: "",
   page: 1,
   pageSize: 50,
+  failingOver24h: false,
 };
 
-export const STATUS_FILTERS: ReadonlyArray<ListStatus> = ["failed", "retrying", "waiting", "done"];
+const VALID_STATUS: ReadonlyArray<StatusFilter> = ["error", "ok", "in-progress", "orphaned"];
+const VALID_SOURCES: ReadonlyArray<string> = ["amie", "comanage", "slurm", "http", "core"];
 const VALID_WINDOWS: ReadonlyArray<WindowPreset> = ["24h", "7d", "30d"];
 const VALID_PAGE_SIZES: ReadonlyArray<number> = [25, 50, 100];
+
+// API status codes: ok=0, error=1, cancelled=2, orphaned=3. `in-progress` is
+// a UI-only filter (ended_at == null); never sent to the wire.
+const STATUS_TO_API: Record<StatusFilter, number | null> = {
+  ok: 0,
+  error: 1,
+  orphaned: 3,
+  "in-progress": null,
+};
 
 type SearchParamsLike = {
   getAll: (key: string) => string[];
@@ -54,10 +64,13 @@ type SearchParamsLike = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function parseFilters(params: SearchParamsLike): ListFilters {
-  const status = params
-    .getAll("status")
-    .filter((s): s is ListStatus => STATUS_FILTERS.includes(s as ListStatus));
-  const source = params.getAll("source").filter((s) => /^[a-z][a-z0-9-]*$/.test(s));
+  const rawStatus = params.getAll("status");
+  const status = rawStatus.length
+    ? (rawStatus.filter((s): s is StatusFilter =>
+        VALID_STATUS.includes(s as StatusFilter),
+      ) as StatusFilter[])
+    : DEFAULT_FILTERS.status;
+  const source = params.getAll("source").filter((s) => VALID_SOURCES.includes(s));
   const winRaw = params.get("window");
   const window: WindowPreset = VALID_WINDOWS.includes(winRaw as WindowPreset)
     ? (winRaw as WindowPreset)
@@ -66,13 +79,25 @@ export function parseFilters(params: SearchParamsLike): ListFilters {
   const pageRaw = Number.parseInt(params.get("page") ?? "", 10);
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : DEFAULT_FILTERS.page;
   const pageSizeRaw = Number.parseInt(params.get("pageSize") ?? "", 10);
-  const pageSize = VALID_PAGE_SIZES.includes(pageSizeRaw) ? pageSizeRaw : DEFAULT_FILTERS.pageSize;
-  return { status, source, window, q, page, pageSize };
+  const pageSize = VALID_PAGE_SIZES.includes(pageSizeRaw)
+    ? pageSizeRaw
+    : DEFAULT_FILTERS.pageSize;
+  const failingOver24h = params.get("failingOver24h") === "1";
+  return { status, source, window, q, page, pageSize, failingOver24h };
+}
+
+function arraysEqual<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 export function serializeFilters(filters: ListFilters): URLSearchParams {
   const params = new URLSearchParams();
-  for (const s of [...filters.status].sort()) params.append("status", s);
+  const sortedStatus = [...filters.status].sort();
+  if (!arraysEqual(sortedStatus, [...DEFAULT_FILTERS.status].sort())) {
+    for (const s of sortedStatus) params.append("status", s);
+  }
   for (const s of [...filters.source].sort()) params.append("source", s);
   if (filters.window !== DEFAULT_FILTERS.window) params.set("window", filters.window);
   if (filters.q) params.set("q", filters.q);
@@ -80,15 +105,21 @@ export function serializeFilters(filters: ListFilters): URLSearchParams {
   if (filters.pageSize !== DEFAULT_FILTERS.pageSize) {
     params.set("pageSize", String(filters.pageSize));
   }
+  if (filters.failingOver24h) params.set("failingOver24h", "1");
   return params;
 }
 
 export function hasActiveFilters(filters: ListFilters): boolean {
+  const statusChanged = !arraysEqual(
+    [...filters.status].sort(),
+    [...DEFAULT_FILTERS.status].sort(),
+  );
   return (
-    filters.status.length > 0 ||
+    statusChanged ||
     filters.source.length > 0 ||
     filters.window !== DEFAULT_FILTERS.window ||
-    filters.q.length > 0
+    filters.q.length > 0 ||
+    filters.failingOver24h
   );
 }
 
@@ -99,18 +130,31 @@ export function windowToFromTo(win: WindowPreset, now: number): { from: string; 
   return { from, to };
 }
 
-// Retrying and Waiting are both in_progress on the wire. When only one of them
-// is picked the page filters the rows it got.
-export function statusFiltersToApi(status: ListStatus[]): {
-  apiStatus: TraceStatus[];
-  keep: (s: ListStatus) => boolean;
+// Map UI status filters to backend numeric codes; `in-progress` is filtered
+// client-side and contributes no API status param.
+export function statusFiltersToApi(status: StatusFilter[]): {
+  apiStatus: number[];
+  inProgressOnly: boolean;
 } {
-  const apiStatus = new Set<TraceStatus>();
+  const apiStatus: number[] = [];
+  let hasInProgress = false;
   for (const s of status) {
-    if (s === "failed") apiStatus.add("error");
-    else if (s === "done") apiStatus.add("ok");
-    else apiStatus.add("in_progress");
+    const code = STATUS_TO_API[s];
+    if (code == null) {
+      hasInProgress = true;
+    } else {
+      apiStatus.push(code);
+    }
   }
-  const keep = (s: ListStatus) => status.length === 0 || status.includes(s);
-  return { apiStatus: [...apiStatus], keep };
+  const inProgressOnly = hasInProgress && apiStatus.length === 0;
+  return { apiStatus, inProgressOnly };
+}
+
+// Bounds shared by the 24h failure banner and the "Failing >24h" filter:
+// traces that started between 30 days ago and 24 hours ago.
+export function bannerBounds(now: number): { from: string; to: string } {
+  return {
+    from: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    to: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+  };
 }

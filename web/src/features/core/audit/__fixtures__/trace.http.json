@@ -1,0 +1,26 @@
+{
+  "trace_id": "c5d3eb4f516a7b8c9d0e1f2345678901",
+  "tree": [
+    {
+      "span_id": "1234abcd5678ef90",
+      "source": "http",
+      "event_type": "http.POST /users",
+      "status": "ok",
+      "created_at": "2026-06-08T14:15:30.000Z",
+      "children": [
+        {
+          "span_id": "cccc1111dddd2222",
+          "parent_span_id": "1234abcd5678ef90",
+          "source": "core",
+          "event_type": "user.create",
+          "entity_type": "user",
+          "entity_id": "USR-9001",
+          "status": "ok",
+          "created_at": "2026-06-08T14:15:30.020Z",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "truncated": false
+}

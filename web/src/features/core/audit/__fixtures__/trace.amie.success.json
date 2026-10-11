@@ -1,0 +1,40 @@
+{
+  "trace_id": "b4c2da3e405f6b7c8d9e0f1234567890",
+  "tree": [
+    {
+      "span_id": "fedcba9876543210",
+      "source": "amie",
+      "event_type": "amie.process_event:request_project_create",
+      "entity_type": "amie_packet",
+      "entity_id": "PKT-101",
+      "description": "Request to create project BIO130001",
+      "status": "ok",
+      "created_at": "2026-06-08T14:19:01.000Z",
+      "children": [
+        {
+          "span_id": "aaaaaaaa11111111",
+          "parent_span_id": "fedcba9876543210",
+          "source": "core",
+          "event_type": "project.create",
+          "entity_type": "project",
+          "entity_id": "BIO130001",
+          "status": "ok",
+          "created_at": "2026-06-08T14:19:01.500Z",
+          "children": []
+        },
+        {
+          "span_id": "bbbbbbbb22222222",
+          "parent_span_id": "fedcba9876543210",
+          "source": "slurm",
+          "event_type": "slurm.attach_project",
+          "entity_type": "slurm_account",
+          "entity_id": "BIO130001",
+          "status": "ok",
+          "created_at": "2026-06-08T14:19:02.150Z",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "truncated": false
+}
