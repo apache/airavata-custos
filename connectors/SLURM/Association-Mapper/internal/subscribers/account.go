@@ -80,13 +80,13 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 		return err
 	}
 
-	slurmAccount := client.Account{
-		Name:         computeAllocation.Name,
+	account := client.Account{
+		Name:         slurmAccount(computeAllocation.Name),
 		Description:  computeAllocation.Name,
 		Organization: organization.Name,
 	}
 
-	err = a.slurmClient.CreateAccount(slurmAccount, cluster.Name) // TODO: where to get cluster name from?
+	err = a.slurmClient.CreateAccount(account, cluster.Name) // TODO: where to get cluster name from?
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create SLURM account", "error", err)
 		span.RecordError(err)
@@ -96,7 +96,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 	}
 
 	a.recordAuditEvent(ctx, "ComputeAllocationCreationSucceeded", "compute_allocation", computeAllocation.ID, "Successfully created SLURM account for compute allocation.")
-	slog.InfoContext(ctx, "Successfully created SLURM account for compute allocation", "account", slurmAccount)
+	slog.InfoContext(ctx, "Successfully created SLURM account for compute allocation", "account", account)
 	return nil
 }
 
@@ -230,7 +230,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 	}
 
 	association := client.Association{
-		Account: allocation.Name,
+		Account: slurmAccount(allocation.Name),
 		Cluster: cluster.Name,
 		Limits:  limits,
 	}

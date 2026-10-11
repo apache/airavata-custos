@@ -224,7 +224,7 @@ func (a *AssociationSubscriber) managedAccounts(ctx context.Context, clusterID s
 	}
 	names := make(map[string]struct{}, len(allocations))
 	for _, allocation := range allocations {
-		names[allocation.Name] = struct{}{}
+		names[slurmAccount(allocation.Name)] = struct{}{}
 	}
 	return names, nil
 }

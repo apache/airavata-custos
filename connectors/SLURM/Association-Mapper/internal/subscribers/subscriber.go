@@ -19,6 +19,7 @@ package subscribers
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
@@ -26,6 +27,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+// The Slurm account for an allocation. Slurm wants lowercase names in its accounting database.
+func slurmAccount(allocationName string) string {
+	return strings.ToLower(allocationName)
+}
 
 // SlurmClient is the subset of the REST client the subscribers use.
 type SlurmClient interface {

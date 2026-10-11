@@ -58,7 +58,7 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 
 	filter := client.AssocFilter{
 		Cluster: cluster.Name,
-		Account: allocation.Name,
+		Account: slurmAccount(allocation.Name),
 		User:    csu.LocalUsername,
 	}
 	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
@@ -87,7 +87,7 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 	}
 	filter := client.AssocFilter{
 		Cluster: cluster.Name,
-		Account: allocation.Name,
+		Account: slurmAccount(allocation.Name),
 	}
 	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
 		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)

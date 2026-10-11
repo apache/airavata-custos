@@ -70,6 +70,7 @@ func (f *fakeSlurmClient) all() []client.Association {
 }
 
 type mockOpts struct {
+	allocationName    string
 	allocationStatus  models.AllocationStatus
 	unmanagedAccounts bool
 	provisionedAt     *time.Time
@@ -87,9 +88,13 @@ func coreMock(o mockOpts) *service.CoreServiceMock {
 	if resources == nil {
 		resources = []models.ComputeAllocationResource{{ID: "res-1", Name: "compute", ResourceType: "cpu"}}
 	}
+	allocName := o.allocationName
+	if allocName == "" {
+		allocName = "test-alloc"
+	}
 	return &service.CoreServiceMock{
 		GetComputeAllocationFunc: func(ctx context.Context, id string) (*models.ComputeAllocation, error) {
-			return &models.ComputeAllocation{ID: id, Name: "test-alloc", ComputeClusterID: "cluster-1", Status: allocStatus}, nil
+			return &models.ComputeAllocation{ID: id, Name: allocName, ComputeClusterID: "cluster-1", Status: allocStatus}, nil
 		},
 		GetComputeClusterFunc: func(ctx context.Context, id string) (*models.ComputeCluster, error) {
 			return &models.ComputeCluster{ID: id, Name: "testcluster"}, nil
@@ -114,7 +119,7 @@ func coreMock(o mockOpts) *service.CoreServiceMock {
 				return nil, nil
 			}
 			return []models.ComputeAllocation{
-				{ID: "alloc-1", Name: "test-alloc", ComputeClusterID: clusterID, Status: allocStatus},
+				{ID: "alloc-1", Name: allocName, ComputeClusterID: clusterID, Status: allocStatus},
 			}, nil
 		},
 		ListComputeClustersFunc: func(ctx context.Context) ([]models.ComputeCluster, error) {
@@ -169,6 +174,20 @@ func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
 	}
 	if got[0].User != "testuser" || got[0].Account != "test-alloc" || got[0].Partition != "compute" {
 		t.Errorf("unexpected association: %+v", got[0])
+	}
+}
+
+// Make sure the Slurm account is the allocation name in lowercase, since the accounting database expects lowercase names.
+func TestMembershipCreationLowercasesTheAccount(t *testing.T) {
+	core := coreMock(mockOpts{allocationName: "Q2-2026-Climate", provisionedAt: ago(time.Minute)})
+	slurm := &fakeSlurmClient{}
+	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
+		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got := slurm.all(); len(got) != 1 || got[0].Account != "q2-2026-climate" {
+		t.Errorf("unexpected associations: %+v", got)
 	}
 }
 

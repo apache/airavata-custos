@@ -21,6 +21,7 @@ import (
 	"context"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
@@ -146,9 +147,9 @@ func (m *SlurmMonitor) poll(ctx context.Context) {
 // job so one bad lookup cannot abort the rest of the poll cycle.
 func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluster *models.ComputeCluster, allocations []models.ComputeAllocation) {
 	slog.InfoContext(ctx, "Job object", "job", job)
-	targetAccount := job.Account
+	// Accounts are created in lowercase
 	for _, alloc := range allocations {
-		if alloc.Name != targetAccount {
+		if !strings.EqualFold(alloc.Name, job.Account) {
 			continue
 		}
 		slog.InfoContext(ctx, "found matching compute allocation for SLURM job", "job_id", job.JobID, "allocation_id", alloc.ID)

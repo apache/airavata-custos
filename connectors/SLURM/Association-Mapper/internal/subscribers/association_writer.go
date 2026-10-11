@@ -168,7 +168,7 @@ func (a *AssociationSubscriber) desiredAssociationsForMembership(ctx context.Con
 	out := make([]client.Association, 0, len(resources))
 	for _, resource := range resources {
 		out = append(out, client.Association{
-			Account:   allocation.Name,
+			Account:   slurmAccount(allocation.Name),
 			Cluster:   cluster.Name,
 			User:      csu.LocalUsername,
 			Partition: resource.Name,
