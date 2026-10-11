@@ -23,6 +23,20 @@ Emails users about their cluster account: when a request is received,
 when the account is ready, and when a request is denied. Settings are in the
 `email-notifier` block of `config/custos.yaml`.
 
+## Custom email templates
+
+The emails are the Go templates in `internal/notify/templates/`. To change
+them for a deployment, copy the files you want to change into a directory
+on the server and set `EMAIL_TEMPLATES_DIR` to it. A file there replaces
+the built-in file with the same name. The others stay as they are. The
+server does not start if a file in there does not parse.
+
+- `layout.html.tmpl` is the HTML shell around every email. Most styling is here.
+- `request-received`, `account-ready` and `request-denied` each have an
+  `.html.tmpl` for the body and a `.txt.tmpl` for the subject and plain text.
+
+The fields a template can use are in `Data` in `internal/notify/render.go`.
+
 ## Send the emails to your inbox
 
 `internal/notify/live_send_test.go` sends all three emails with sample data

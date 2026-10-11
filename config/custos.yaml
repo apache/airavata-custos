@@ -154,3 +154,5 @@ connectors:
     cluster_host: "${EMAIL_CLUSTER_HOST}"
     # A square PNG. Defaults to the portal's /brand/logo/custos-mark.png.
     logo_url: "${EMAIL_LOGO_URL}"
+    # Optional. A directory with custom email templates.
+    templates_dir: "${EMAIL_TEMPLATES_DIR}"
