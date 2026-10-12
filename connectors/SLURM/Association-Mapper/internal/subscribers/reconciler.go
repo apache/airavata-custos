@@ -19,7 +19,6 @@ package subscribers
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"time"
 
@@ -126,35 +125,30 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			if membership.MembershipStatus != models.ACTIVE {
 				continue
 			}
-			records, err := a.desiredAssociationsForMembership(ctx, membership)
-			// Already warned when the membership was written; nothing to sweep.
-			if errors.Is(err, errNoResources) {
-				continue
-			}
+			record, err := a.desiredAssociationForMembership(ctx, membership)
 			if err != nil {
-				slog.ErrorContext(ctx, "Association reconciler: failed to resolve desired associations",
+				slog.ErrorContext(ctx, "Association reconciler: failed to resolve desired association",
 					"membership_id", membership.ID, "error", err)
 				return
 			}
-			for _, record := range records {
-				desired[keyOf(record)] = struct{}{}
+			if record == nil {
+				continue
 			}
+			desired[keyOf(*record)] = struct{}{}
 			// The grace only holds back the write. The association is still
 			// desired, so a member provisioned moments ago is never pruned.
 			if !a.readyForAssociation(csu) {
 				continue
 			}
-			for _, record := range records {
-				if got, ok := existing[keyOf(record)]; ok && sameLimits(record, got) {
-					continue
-				}
-				if err := a.slurmClient.UpsertAssociation(record); err != nil {
-					slog.ErrorContext(ctx, "Association reconciler: failed to upsert association",
-						"membership_id", membership.ID, "error", err)
-					continue
-				}
-				written++
+			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) {
+				continue
 			}
+			if err := a.slurmClient.UpsertAssociation(*record); err != nil {
+				slog.ErrorContext(ctx, "Association reconciler: failed to upsert association",
+					"membership_id", membership.ID, "error", err)
+				continue
+			}
+			written++
 		}
 	}
 

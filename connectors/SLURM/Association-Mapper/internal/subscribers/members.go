@@ -72,8 +72,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 	}
 	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
 
-	// One writer for every path so the association record stays identical
-	// for a given (cluster, account, user, partition) key.
+	// Every path writes through the same function, so a member's record is always built the same way.
 	if err := a.upsertAssociationsForMembership(fetchCtx, membership); err != nil {
 		if errors.Is(err, errNotProvisioned) {
 			// Expected on a first-time account: provisioning is still in
