@@ -97,9 +97,20 @@ func newProcessor(database *sqlx.DB, router processorRouter, met *stubMetrics) *
 		router,
 		met,
 		service.NewAuditService(corestore.NewAuditEventStore(database), store.NewAuditExtrasStore(database)),
+		&stubReplier{},
 		database,
 		cfg,
 	)
+}
+
+// stubReplier keeps the replies the processor sends to AMIE.
+type stubReplier struct {
+	replies []map[string]any
+}
+
+func (s *stubReplier) ReplyToPacket(_ context.Context, _ int64, reply map[string]any) error {
+	s.replies = append(s.replies, reply)
+	return nil
 }
 
 func readEvent(t *testing.T, database *sqlx.DB, id string) *model.ProcessingEvent {

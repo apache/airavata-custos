@@ -442,6 +442,25 @@ func TestRequestProjectCreate_NegativeTransferDeducts(t *testing.T) {
 	}
 }
 
+// Make sure a project packet whose PI has no email is rejected as invalid and creates nothing.
+func TestRequestProjectCreate_MissingPIEmailIsInvalid(t *testing.T) {
+	database := setupTestDB(t)
+	body := baseRPCBody()
+	delete(body, "PiEmail")
+	pkt := insertPacket(t, database, "request_project_create", body)
+	h := NewRequestProjectCreateHandler(newTestCoreService(database), testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+
+	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	})
+	if !errors.Is(err, model.ErrInvalidPacket) {
+		t.Fatalf("error: got %v, want an invalid packet error", err)
+	}
+	if got := countRows(t, database, "organizations"); got != 0 {
+		t.Errorf("organizations: got %d, want 0", got)
+	}
+}
+
 // TestRequestProjectCreate_MissingGrantNumber asserts the handler rejects a
 // packet missing a the protocol-required field, without mutating the DB.
 func TestRequestProjectCreate_MissingGrantNumber(t *testing.T) {

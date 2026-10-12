@@ -75,6 +75,9 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err := requireText(piGlobalID, "PiGlobalID"); err != nil {
 		return err
 	}
+	if err := requireText(getString(body, "PiEmail"), "PiEmail"); err != nil {
+		return err
+	}
 	if h.clusterID == "" {
 		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}

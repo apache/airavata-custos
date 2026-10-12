@@ -74,6 +74,9 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err := requireText(userGlobalID, "UserGlobalID"); err != nil {
 		return err
 	}
+	if err := requireText(getString(body, "UserEmail"), "UserEmail"); err != nil {
+		return err
+	}
 	if h.clusterID == "" {
 		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}
