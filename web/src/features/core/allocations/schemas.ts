@@ -39,7 +39,7 @@ export const computeAllocationSchema = z.object({
   name: z.string(),
   status: allocationStatusSchema,
   compute_cluster_id: z.string(),
-  initial_su_amount: z.number().int(),
+  initial_su_amount: z.number(),
   start_time: z.string(),
   end_time: z.string(),
 });
@@ -108,7 +108,7 @@ export const allocationMembershipListSchema = z.array(allocationMembershipSchema
 export const changeRequestSchema = z.object({
   id: z.string(),
   compute_allocation_id: z.string(),
-  requested_su_amount: z.number().int().nonnegative(),
+  requested_su_amount: z.number().nonnegative(),
   requested_status: allocationStatusSchema,
   reason: z.string(),
   change_status: changeRequestStatusSchema,
@@ -169,7 +169,7 @@ export type UpdateMembershipPayload = z.infer<typeof updateMembershipPayloadSche
 
 export const createChangeRequestPayloadSchema = z.object({
   compute_allocation_id: z.string().min(1),
-  requested_su_amount: z.number().int().nonnegative(),
+  requested_su_amount: z.number().nonnegative(),
   requested_status: allocationStatusSchema,
   reason: z.string().min(1),
   requester_id: z.string().min(1),
@@ -181,7 +181,7 @@ export const updateChangeRequestPayloadSchema = z
     change_status: changeRequestStatusSchema.optional(),
     approver_id: z.string().optional(),
     reason: z.string().optional(),
-    requested_su_amount: z.number().int().nonnegative().optional(),
+    requested_su_amount: z.number().nonnegative().optional(),
     requested_status: allocationStatusSchema.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "patch is empty" });

@@ -219,24 +219,25 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 	})
 }
 
-// ensureAllocation creates a ComputeAllocation for the project on first
-// delivery. On repeat delivery (supplement / renewal / extension / adjustment),
-// the existing row is preserved and a ComputeAllocationDiff is recorded
-// capturing the grant event. InitialSUAmount on the parent row stays as the
-// original grant; effective SUs = InitialSUAmount + sum(grant diffs).
+// ensureAllocation creates the allocation on a project's first packet.
+// A later packet for the project changes the allocation it already has.
 func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+	su, err := getNumber(body, "ServiceUnitsAllocated")
+	if err != nil {
+		return nil, err
+	}
 	existing, err := h.svc.ListComputeAllocationsByProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("list allocations: %w", err)
 	}
 	if len(existing) > 0 {
-		return h.recordAllocationDiff(ctx, body, &existing[0])
+		// A grant has one allocation, active or not. This handler never makes a second.
+		return h.changeAllocation(ctx, body, &existing[0], su)
+	}
+	if su < 0 {
+		return nil, fmt.Errorf("%w: negative service units for a project with no allocation", model.ErrInvalidPacket)
 	}
 
-	su, err := getInt64(body, "ServiceUnitsAllocated")
-	if err != nil {
-		return nil, err
-	}
 	start, err := getDate(body, "StartDate")
 	if err != nil {
 		return nil, err
@@ -316,29 +317,45 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, al
 	return created, true, nil
 }
 
-// recordAllocationDiff writes a ComputeAllocationDiff for a re-delivered
-// request_project_create against an existing allocation (the AMIE pattern for
-// supplements / renewals / extensions / adjustments). DiffType is the upper-cased
-// AllocationType from the packet body; falls back to "GRANT" when AMIE did not supply one.
-// NewSUAmount carries this packet's ServiceUnitsAllocated, the delta granted
-// by this event, not the cumulative total.
-func (h *RequestProjectCreateHandler) recordAllocationDiff(ctx context.Context, body map[string]any, existing *models.ComputeAllocation) (*models.ComputeAllocation, error) {
-	su, err := getInt64(body, "ServiceUnitsAllocated")
-	if err != nil {
-		return nil, err
-	}
+// changeAllocation applies a repeat packet by its AllocationType and keeps a
+// diff row as history. See "Allocation types" in ../README.md.
+func (h *RequestProjectCreateHandler) changeAllocation(ctx context.Context, body map[string]any, alloc *models.ComputeAllocation, su float64) (*models.ComputeAllocation, error) {
 	diffType := strings.ToUpper(strings.TrimSpace(getString(body, "AllocationType")))
 	if diffType == "" {
 		diffType = "GRANT"
 	}
+	switch diffType {
+	case "RENEWAL":
+		start, err := getDate(body, "StartDate")
+		if err != nil {
+			return nil, err
+		}
+		end, err := getDate(body, "EndDate")
+		if err != nil {
+			return nil, err
+		}
+		alloc.InitialSUAmount, alloc.StartTime, alloc.EndTime = su, start, end
+	case "EXTENSION":
+		end, err := getDate(body, "EndDate")
+		if err != nil {
+			return nil, err
+		}
+		alloc.EndTime = end
+	default:
+		// NEW, TRANSFER, SUPPLEMENT, ADJUSTMENT, ADVANCE. The amount is signed, so a negative transfer deducts.
+		alloc.InitialSUAmount += su
+	}
+	if err := h.svc.UpdateComputeAllocation(ctx, alloc); err != nil {
+		return nil, fmt.Errorf("change allocation: %w", err)
+	}
 	if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
-		ComputeAllocationID: existing.ID,
+		ComputeAllocationID: alloc.ID,
 		DiffType:            diffType,
 		NewSUAmount:         su,
 		Status:              models.ACTIVE,
-		Description:         fmt.Sprintf("AMIE %s of %d SUs", diffType, su),
+		Description:         fmt.Sprintf("AMIE %s of %g SUs", diffType, su),
 	}); err != nil {
 		return nil, fmt.Errorf("record allocation diff: %w", err)
 	}
-	return existing, nil
+	return alloc, nil
 }

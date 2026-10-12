@@ -28,6 +28,8 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/pkg/models"
+	coreservice "github.com/apache/airavata-custos/pkg/service"
+	"github.com/jmoiron/sqlx"
 )
 
 // baseRPCBody returns a fully populated request_project_create body with
@@ -176,10 +178,10 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 
 	var alloc struct {
-		ProjectID        string `db:"project_id"`
-		Name             string `db:"name"`
-		InitialSUAmount  int64  `db:"initial_su_amount"`
-		ComputeClusterID string `db:"compute_cluster_id"`
+		ProjectID        string  `db:"project_id"`
+		Name             string  `db:"name"`
+		InitialSUAmount  float64 `db:"initial_su_amount"`
+		ComputeClusterID string  `db:"compute_cluster_id"`
 	}
 	if err := database.Get(&alloc,
 		"SELECT project_id, name, initial_su_amount, compute_cluster_id FROM compute_allocations LIMIT 1",
@@ -190,7 +192,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 		t.Errorf("allocation.project_id: got %q, want %q", alloc.ProjectID, proj.ID)
 	}
 	if alloc.InitialSUAmount != 1000 {
-		t.Errorf("allocation.initial_su_amount: got %d, want 1000", alloc.InitialSUAmount)
+		t.Errorf("allocation.initial_su_amount: got %g, want 1000", alloc.InitialSUAmount)
 	}
 	if alloc.ComputeClusterID != testClusterID {
 		t.Errorf("allocation.compute_cluster_id: got %q, want %q", alloc.ComputeClusterID, testClusterID)
@@ -241,10 +243,8 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 }
 
-// TestRequestProjectCreate_SupplementIsIdempotent asserts the protocol supplement
-// rule: re-delivery of request_project_create against the same GrantNumber
-// MUST NOT create a second Project or a second base Allocation. The grant
-// event is recorded as a compute_allocation_diffs row instead.
+// Make sure a supplement for a known grant adds its SUs to the existing
+// allocation and records a history row, without a second project or allocation.
 func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 	database := setupTestDB(t)
 
@@ -285,8 +285,8 @@ func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 	}
 
 	var diff struct {
-		DiffType    string `db:"diff_type"`
-		NewSUAmount int64  `db:"new_su_amount"`
+		DiffType    string  `db:"diff_type"`
+		NewSUAmount float64 `db:"new_su_amount"`
 	}
 	if err := database.Get(&diff,
 		"SELECT diff_type, new_su_amount FROM compute_allocation_diffs LIMIT 1",
@@ -297,7 +297,108 @@ func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 		t.Errorf("diff.diff_type: got %q, want SUPPLEMENT", diff.DiffType)
 	}
 	if diff.NewSUAmount != 500 {
-		t.Errorf("diff.new_su_amount: got %d, want 500 (this packet's delta only, not cumulative)", diff.NewSUAmount)
+		t.Errorf("diff.new_su_amount: got %g, want 500 (this packet's delta only, not cumulative)", diff.NewSUAmount)
+	}
+	if got := allocationAfter(t, database); got.InitialSUAmount != 1500 {
+		t.Errorf("initial_su_amount: got %g, want 1500", got.InitialSUAmount)
+	}
+}
+
+// deliverTwice runs the base project packet, then a second one for the same grant with the given fields changed.
+func deliverTwice(t *testing.T, changes map[string]any) (*sqlx.DB, *coreservice.Service) {
+	t.Helper()
+	database := setupTestDB(t)
+	svc := newTestCoreService(database)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+
+	second := baseRPCBody()
+	for k, v := range changes {
+		second[k] = v
+	}
+	for _, body := range []map[string]any{baseRPCBody(), second} {
+		pkt := insertPacket(t, database, "request_project_create", body)
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+	}
+	return database, svc
+}
+
+func allocationAfter(t *testing.T, database *sqlx.DB) models.ComputeAllocation {
+	t.Helper()
+	var a models.ComputeAllocation
+	if err := database.Get(&a,
+		"SELECT id, initial_su_amount, start_time, end_time FROM compute_allocations LIMIT 1",
+	); err != nil {
+		t.Fatalf("read allocation: %v", err)
+	}
+	return a
+}
+
+// Make sure a renewal replaces the SUs and the dates, so usage from the
+// earlier period stops counting and usage up to the new end date counts exactly.
+func TestRequestProjectCreate_RenewalReplacesGrant(t *testing.T) {
+	database, svc := deliverTwice(t, map[string]any{
+		"AllocationType":        "renewal",
+		"RecordID":              "rec-bl-001-renew",
+		"ServiceUnitsAllocated": "2000",
+		"StartDate":             "2027-01-01",
+		"EndDate":               "2028-01-01",
+	})
+
+	got := allocationAfter(t, database)
+	if got.InitialSUAmount != 2000 {
+		t.Errorf("initial_su_amount: got %g, want 2000", got.InitialSUAmount)
+	}
+	if got.StartTime.UTC().Format("2006-01-02") != "2027-01-01" || got.EndTime.UTC().Format("2006-01-02") != "2028-01-01" {
+		t.Errorf("dates: got %s to %s, want 2027-01-01 to 2028-01-01", got.StartTime, got.EndTime)
+	}
+
+	if _, err := database.Exec(
+		`INSERT INTO compute_allocation_usages (id, compute_allocation_id, used_su_amount, calculated_time)
+		 VALUES ('old-usage', $1, 800, '2026-06-01'), ('new-usage', $1, 0.25, '2028-01-01 23:00:00+00')`, got.ID); err != nil {
+		t.Fatalf("insert usage: %v", err)
+	}
+	used, err := svc.GetTotalSUUsageForAllocation(context.Background(), got.ID)
+	if err != nil {
+		t.Fatalf("usage: %v", err)
+	}
+	if used != 0.25 {
+		t.Errorf("usage after renewal: got %g, want 0.25", used)
+	}
+}
+
+// Make sure an extension moves only the end date and leaves the SUs alone.
+func TestRequestProjectCreate_ExtensionMovesEndDate(t *testing.T) {
+	database, _ := deliverTwice(t, map[string]any{
+		"AllocationType":        "extension",
+		"RecordID":              "rec-bl-001-ext",
+		"ServiceUnitsAllocated": "0",
+		"EndDate":               "2027-06-01",
+	})
+
+	got := allocationAfter(t, database)
+	if got.InitialSUAmount != 1000 {
+		t.Errorf("initial_su_amount: got %g, want 1000", got.InitialSUAmount)
+	}
+	if got.EndTime.UTC().Format("2006-01-02") != "2027-06-01" {
+		t.Errorf("end date: got %s, want 2027-06-01", got.EndTime)
+	}
+}
+
+// Make sure a negative transfer deducts its exact amount, fraction included,
+// from the existing allocation.
+func TestRequestProjectCreate_NegativeTransferDeducts(t *testing.T) {
+	database, _ := deliverTwice(t, map[string]any{
+		"AllocationType":        "transfer",
+		"RecordID":              "rec-bl-001-out",
+		"ServiceUnitsAllocated": "-300.5",
+	})
+
+	if got := allocationAfter(t, database); got.InitialSUAmount != 699.5 {
+		t.Errorf("initial_su_amount: got %g, want 699.5", got.InitialSUAmount)
 	}
 }
 

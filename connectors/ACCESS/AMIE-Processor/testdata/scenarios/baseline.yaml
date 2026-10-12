@@ -104,9 +104,9 @@ expectations:
     compute_allocations:
       total_count: 2
       rows:
-        # Supplement deltas go into compute_allocation_diffs, not into initial_su_amount.
+        # The 5000 SU supplement is added to BL-001 and kept as a history row.
         - { name: BL-001, status: ACTIVE, compute_cluster_id: "${AMIE_CLUSTER_ID}",
-            initial_su_amount: 10000,
+            initial_su_amount: 15000,
             start_time: "2026-01-01 00:00:00", end_time: "2026-12-31 00:00:00",
             project_id: { from: "projects.id where originated_id=BL-001" } }
         - { name: BL-002, status: ACTIVE, compute_cluster_id: "${AMIE_CLUSTER_ID}",
