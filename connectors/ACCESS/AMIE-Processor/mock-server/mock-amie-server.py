@@ -57,20 +57,38 @@ def next_id():
     return packet_counter
 
 
+EXPECTED_REPLY = {
+    "request_project_create": "notify_project_create",
+    "request_account_create": "notify_account_create",
+    "request_project_inactivate": "notify_project_inactivate",
+    "request_project_reactivate": "notify_project_reactivate",
+    "request_account_inactivate": "notify_account_inactivate",
+    "request_account_reactivate": "notify_account_reactivate",
+}
+
+
 def make_packet(packet_type, body, transaction_id=None):
     rec_id = next_id()
+    expected = EXPECTED_REPLY.get(packet_type, "inform_transaction_complete")
     return {
-        "header": {
-            "packet_rec_id": rec_id,
-            "transaction_id": transaction_id or f"TXN-{uuid.uuid4().hex[:8]}",
-            "packet_type": packet_type,
-            "type_id": 1,
-            "local_site_name": "MockSite",
-            "remote_site_name": "TGCDB",
-            "packet_state": "in_progress",
-            "packet_timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        },
+        "DATA_TYPE": "Packet",
         "type": packet_type,
+        "header": {
+            "expected_reply_list": [{"type": expected, "timeout": 30240}],
+            "packet_id": 0,
+            "trans_rec_id": next_id(),
+            "transaction_id": transaction_id or 0,
+            "remote_site_name": "TESTSITE",
+            "local_site_name": "TGCDB",
+            "originating_site_name": "TGCDB",
+            "outgoing_flag": 1,
+            "packet_rec_id": rec_id,
+            "packet_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime()),
+            "client_state": None,
+            "packet_state": "in-progress",
+            "client_json": None,
+            "transaction_state": "in-progress",
+        },
         "body": body,
     }
 
@@ -641,16 +659,35 @@ def load_site():
 
 
 def person_fields(prefix, key, site):
+    """The person's fields as ACCESS sends them, prefixed Pi or User. The
+    optional ones come from the person's entry in people.json."""
     person = site["people"][key]
-    return {
-        f"{prefix}GlobalID": f"e2e-{key}",
+    fields = {
+        f"{prefix}GlobalID": person.get("global_id", f"e2e-{key}"),
         f"{prefix}FirstName": person["first"],
         f"{prefix}LastName": person["last"],
         f"{prefix}Email": person["email"],
         f"{prefix}Organization": site["org"],
         f"{prefix}OrgCode": site["org_code"],
-        "NsfStatusCode": "AC",
+        "NsfStatusCode": person.get("nsf_status", "AC"),
     }
+    for key_in_file, field in [
+        ("phone", "BusinessPhoneNumber"),
+        ("address", "StreetAddress"),
+        ("address2", "StreetAddress2"),
+        ("city", "City"),
+        ("zip", "Zip"),
+        ("country", "Country"),
+        ("dn_list", "DnList"),
+        ("requested_logins", "RequestedLoginList"),
+    ]:
+        if key_in_file in person:
+            fields[f"{prefix}{field}"] = person[key_in_file]
+    if "degree" in person:
+        fields["AcademicDegree"] = [{"Field": person["degree"]["field"], "Degree": person["degree"]["degree"]}]
+    if "site_person_ids" in person:
+        fields["SitePersonId"] = [{"Site": s["site"], "PersonID": s["person_id"]} for s in person["site_person_ids"]]
+    return fields
 
 
 def gen_from_file(name):
@@ -676,6 +713,8 @@ def gen_from_file(name):
             "ResourceList": [resource],
             "AllocatedResource": resource,
             "RecordID": f"XRAS-{random.randint(100000, 999999)}-{resource}",
+            "RecordIdentity": {"RecordID": f"rpc.{random.randint(100000, 999999)}"},
+            "Sfos": [{"Number": "0"}],
             "AllocationType": project.get("allocation_type", "new"),
             "RequestType": "new",
             "GrantType": "Research",
