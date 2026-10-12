@@ -21,27 +21,29 @@
 
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
+import { keepFocus } from "@/shared/ui/focus";
 import { Search } from "lucide-react";
 import * as React from "react";
-import type { ListStatus } from "../types";
-import { STATUS_WORDS } from "../utils";
+import type { TraceStatus } from "../types";
+import { TRACE_STATUS_WORDS } from "../utils";
 import { type ListFilters, STATUS_FILTERS, type WindowPreset } from "./traceListUrlState";
 
 export type TraceFilterStripProps = {
   value: ListFilters;
   onChange(next: ListFilters): void;
   sourceOptions?: ReadonlyArray<string>;
+  sourcesError?: Error | null;
+  onRetrySources?: () => void;
 };
 
-const DEFAULT_SOURCE_OPTIONS = ["amie", "comanage", "core", "slurm"] as const;
 const WINDOW_OPTIONS: WindowPreset[] = ["24h", "7d", "30d"];
 
-const STATUS_DOT: Record<ListStatus, string> = {
-  failed: "bg-[color:var(--tone-error-fg)]",
-  retrying: "bg-[color:var(--tone-warn-fg)]",
-  waiting: "bg-[color:var(--tone-info-fg)]",
-  done: "bg-[color:var(--tone-ok-fg)]",
+const STATUS_DOT: Record<TraceStatus, string> = {
+  error: "bg-[color:var(--tone-error-fg)]",
+  in_progress: "bg-[color:var(--tone-warn-fg)]",
+  ok: "bg-[color:var(--tone-ok-fg)]",
 };
 
 function FilterPill({
@@ -65,7 +67,7 @@ function FilterPill({
         "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         radio ? "rounded-[14px]" : "rounded-md",
         active
-          ? "border-[color:var(--brand)] bg-[color:var(--brand-tint)] text-[color:var(--brand)]"
+          ? "border-[color:var(--brand)] bg-[color:var(--brand-tint)] text-foreground"
           : "border-[color:var(--border-strong)] bg-card text-foreground hover:bg-muted",
       )}
     >
@@ -91,7 +93,13 @@ function Divider() {
   );
 }
 
-export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilterStripProps) {
+export function TraceFilterStrip({
+  value,
+  onChange,
+  sourceOptions,
+  sourcesError,
+  onRetrySources,
+}: TraceFilterStripProps) {
   // The search is debounced before it reaches the URL, so the list does not
   // refetch on every keystroke.
   const [search, setSearch] = React.useState(value.q);
@@ -108,12 +116,13 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
   }, [value.q]);
   const debounced = useDebounce(search, 300);
   React.useEffect(() => {
-    if (debounced === valueRef.current.q) return;
-    lastRemote.current = debounced;
-    onChangeRef.current({ ...valueRef.current, q: debounced, page: 1 });
+    const q = debounced.trim();
+    if (q === valueRef.current.q) return;
+    lastRemote.current = q;
+    onChangeRef.current({ ...valueRef.current, q, page: 1 });
   }, [debounced]);
 
-  const toggleStatus = (id: ListStatus) => {
+  const toggleStatus = (id: TraceStatus) => {
     const has = value.status.includes(id);
     const next = has ? value.status.filter((s) => s !== id) : [...value.status, id];
     onChange({ ...value, status: next, page: 1 });
@@ -130,7 +139,12 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
     onChange({ ...value, window: w, page: 1 });
   };
 
-  const sources = sourceOptions ?? DEFAULT_SOURCE_OPTIONS;
+  const sources = sourceOptions ?? value.source;
+  const sourceGroup = React.useRef<HTMLFieldSetElement>(null);
+  const retrySources = () => {
+    keepFocus(() => sourceGroup.current?.querySelector("button") ?? null);
+    onRetrySources?.();
+  };
 
   return (
     <Card className="rounded-xl px-4 py-3 shadow-sm" data-testid="trace-filter-strip">
@@ -148,7 +162,7 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
                   aria-hidden="true"
                   className={cn("size-[7px] rounded-full", STATUS_DOT[id])}
                 />
-                {STATUS_WORDS[id]}
+                {TRACE_STATUS_WORDS[id]}
               </FilterPill>
             ))}
           </div>
@@ -156,15 +170,28 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
 
         <Divider />
 
-        <fieldset className="flex items-center gap-2">
+        <fieldset ref={sourceGroup} className="flex items-center gap-2">
           <GroupLegend>SOURCE</GroupLegend>
-          <div className="flex flex-wrap gap-1.5">
-            {sources.map((s) => (
-              <FilterPill key={s} active={value.source.includes(s)} onClick={() => toggleSource(s)}>
-                {s}
-              </FilterPill>
-            ))}
-          </div>
+          {sourcesError ? (
+            <span role="alert" className="inline-flex items-center gap-2 text-[12.5px]">
+              Couldn't load sources.
+              <Button size="sm" variant="outline" onClick={retrySources}>
+                Try again
+              </Button>
+            </span>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {sources.map((s) => (
+                <FilterPill
+                  key={s}
+                  active={value.source.includes(s)}
+                  onClick={() => toggleSource(s)}
+                >
+                  {s}
+                </FilterPill>
+              ))}
+            </div>
+          )}
         </fieldset>
 
         <Divider />
@@ -190,7 +217,7 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search trace, user, cluster account, packet"
+          placeholder="Search traces"
           aria-label="Search traces"
           className={cn(
             "h-[38px] w-full rounded-md border bg-card pl-9 pr-3 text-[13.5px] text-foreground outline-none",

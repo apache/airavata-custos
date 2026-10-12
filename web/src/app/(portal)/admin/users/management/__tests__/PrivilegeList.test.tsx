@@ -17,7 +17,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { groupPrivileges, PrivilegeList } from "../PrivilegeList";
+import { PrivilegeList, groupPrivileges } from "../PrivilegeList";
 
 describe("PrivilegeList", () => {
   it("groups real read/write keys without inventing write", () => {

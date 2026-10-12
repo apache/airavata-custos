@@ -24,9 +24,18 @@ export type EmptyStateProps = {
   description?: React.ReactNode;
   cta?: React.ReactNode;
   className?: string;
+  // Sits under the page's h1; a page-level notice is the page's only heading.
+  as?: "h1" | "h2";
 };
 
-export function EmptyState({ icon, heading, description, cta, className }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  heading,
+  description,
+  cta,
+  className,
+  as: Heading = "h2",
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -39,9 +48,18 @@ export function EmptyState({ icon, heading, description, cta, className }: Empty
           {icon}
         </div>
       ) : null}
-      <h3 className="font-heading text-base font-medium text-foreground">{heading}</h3>
+      <Heading className="font-heading text-base font-medium text-foreground">{heading}</Heading>
       {description ? <p className="max-w-md text-sm text-muted-foreground">{description}</p> : null}
       {cta ? <div className="mt-2">{cta}</div> : null}
     </div>
+  );
+}
+
+// The list slot of a caller who may create these records but not read them; `things` is plural.
+export function WriteOnlyNotice({ things }: { things: string }) {
+  return (
+    <p className="rounded-md border border-dashed bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+      Your account can't list {things}.
+    </p>
   );
 }

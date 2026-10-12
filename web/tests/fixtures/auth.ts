@@ -80,7 +80,9 @@ const NAMES: Record<Persona, string> = {
   admin: "Test Admin",
 };
 
-export async function signInAs(page: Page, persona: Persona = "admin") {
+// extra: privileges beyond the persona's, for one spec's area.
+export async function signInAs(page: Page, persona: Persona = "admin", extra: string[] = []) {
+  const privileges = [...PRIVILEGES[persona], ...extra];
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) {
     throw new Error("NEXTAUTH_SECRET must be set for the cookie-injection fixture");
@@ -94,7 +96,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
       custosUserId: `test-${persona}`,
       name: NAMES[persona],
       email: `${persona}@custos.local`,
-      privileges: PRIVILEGES[persona],
+      privileges,
       accessToken: "test-mock-bearer",
     },
   });
@@ -114,7 +116,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
     // it and scope abilities to this persona.
     {
       name: "custos.test-privileges",
-      value: PRIVILEGES[persona].join(","),
+      value: privileges.join(","),
       url,
       httpOnly: false,
       secure: false,

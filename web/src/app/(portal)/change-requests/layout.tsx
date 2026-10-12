@@ -15,9 +15,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { PermissionGate } from "@/shared/casl/PermissionGate";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
 import type { ReactNode } from "react";
-import { ChangeRequestsPermissionGate } from "./PermissionGate";
 
 export default function ChangeRequestsLayout({ children }: { children: ReactNode }) {
-  return <ChangeRequestsPermissionGate>{children}</ChangeRequestsPermissionGate>;
+  return (
+    <PermissionGate
+      crumb="Change request"
+      read={["Allocation"]}
+      title={ROUTE_LABELS["/change-requests"]}
+    >
+      {children}
+    </PermissionGate>
+  );
 }

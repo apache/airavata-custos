@@ -17,48 +17,25 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import type { AllocationStatus, ComputeAllocation } from "@/generated/core/types.gen";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { formatSU } from "@/shared/format";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTablePagination,
+  NameCell,
+  PastLastPage,
+} from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
+import { STATUSES, statusLabel } from "@/shared/ui/FormDialog";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-import type { AllocationStatus, ComputeAllocation } from "../schemas";
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function statusLabelFor(value: string): string {
-  switch (value) {
-    case "ACTIVE":
-      return "Active";
-    case "INACTIVE":
-      return "Inactive";
-    case "DELETED":
-      return "Deleted";
-    default:
-      return "All statuses";
-  }
-}
-
-function formatSU(n: number): string {
-  return new Intl.NumberFormat().format(n);
-}
+import { AllocationStatusLabel, knownDay } from "./AllocationStatusLabel";
+import { CreateAllocationDialog } from "./CreateAllocationDialog";
 
 export type AllocationsListProps = {
   rows: ComputeAllocation[];
@@ -69,6 +46,7 @@ export type AllocationsListProps = {
   onSearchChange: (next: string) => void;
   statusFilter: AllocationStatus | "all";
   onStatusFilterChange: (next: AllocationStatus | "all") => void;
+  pagination?: DataTablePagination;
 };
 
 export function AllocationsList({
@@ -80,19 +58,11 @@ export function AllocationsList({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  pagination,
 }: AllocationsListProps) {
-  const filtered = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (needle) {
-        const hay = `${row.name} ${row.project_id} ${row.id}`.toLowerCase();
-        if (!hay.includes(needle)) return false;
-      }
-      return true;
-    });
-  }, [rows, search, statusFilter]);
-
+  // Allocation read lists every allocation; without it the backend scopes the list to the caller.
+  const ability = useAbility();
+  const readsAll = ability.can("read", "Allocation");
   const columns: Array<DataTableColumn<ComputeAllocation>> = [
     {
       key: "name",
@@ -102,38 +72,14 @@ export function AllocationsList({
       width: "14rem",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
-          <Link
+          <NameCell
             href={`/allocations/${row.id}`}
+            text={row.name}
             className="font-medium text-foreground hover:underline"
-          >
-            {row.name}
-          </Link>
+          />
           <span className="hidden font-mono text-xs text-muted-foreground">{row.id}</span>
         </div>
       ),
-    },
-    {
-      key: "project",
-      header: "Project",
-      sortable: true,
-      sortValue: (row) => row.project_id,
-      width: "12rem",
-      cell: (row) => (
-        <Link
-          href={`/projects/${row.project_id}`}
-          className="break-all text-sm text-muted-foreground hover:underline"
-        >
-          {row.project_id}
-        </Link>
-      ),
-    },
-    {
-      key: "cluster",
-      header: "Cluster",
-      sortable: true,
-      sortValue: (row) => row.compute_cluster_id,
-      width: "12rem",
-      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
     },
     {
       key: "initial",
@@ -148,7 +94,7 @@ export function AllocationsList({
       sortable: true,
       sortValue: (row) => new Date(row.end_time),
       cell: (row) => (
-        <span className="text-sm text-muted-foreground">{formatDate(row.end_time)}</span>
+        <span className="text-sm text-muted-foreground">{knownDay(row.end_time)}</span>
       ),
     },
     {
@@ -157,9 +103,10 @@ export function AllocationsList({
       sortable: true,
       sortValue: (row) => row.status,
       cell: (row) => (
-        <StatusBadge
-          variant={statusBadgeVariantFromAllocationStatus(row.status)}
-          label={row.status}
+        <AllocationStatusLabel
+          status={row.status}
+          startTime={row.start_time}
+          endTime={row.end_time}
         />
       ),
     },
@@ -167,17 +114,24 @@ export function AllocationsList({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-[28px] font-bold leading-tight">Allocations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Compute resources granted to you across projects.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[28px] font-bold leading-tight">
+            {ROUTE_LABELS["/allocations"]}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {readsAll
+              ? "All compute allocations."
+              : "Compute resources granted to you across projects."}
+          </p>
+        </div>
+        {ability.can("write", "Allocation") ? <CreateAllocationDialog /> : null}
       </div>
 
       <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
         <Input
           type="search"
-          placeholder="Search by allocation name, project, or ID"
+          placeholder="Search by allocation name"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           aria-label="Search allocations"
@@ -185,31 +139,55 @@ export function AllocationsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as AllocationStatus | "all")}
+          onValueChange={(value) => value && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
-            <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
+            <SelectValue>{statusLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="INACTIVE">Inactive</SelectItem>
-            <SelectItem value="DELETED">Deleted</SelectItem>
+            {["all", ...STATUSES].map((s) => (
+              <SelectItem key={s} value={s}>
+                {statusLabel(s)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} columns={6} />
+        <TableSkeleton rows={6} columns={4} />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={onRetry} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          heading="No allocations yet"
-          description="No allocations match the current filters."
+        <ErrorState onRetry={onRetry} />
+      ) : rows.length === 0 && pagination && pagination.page > 1 ? (
+        <PastLastPage
+          things="allocations"
+          page={pagination.page}
+          onPageChange={pagination.onPageChange}
         />
+      ) : rows.length === 0 ? (
+        search.trim() || statusFilter !== "all" ? (
+          <EmptyState
+            heading="No matching allocations"
+            description="No allocations match the current filters."
+          />
+        ) : (
+          <EmptyState
+            heading="No allocations yet"
+            description={
+              readsAll
+                ? "Allocations appear here once they are created."
+                : "Allocations you are a member of appear here."
+            }
+          />
+        )
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          caption="Allocations"
+          columns={columns}
+          rows={rows}
+          rowKey={(row) => row.id}
+          pagination={pagination}
+        />
       )}
     </div>
   );

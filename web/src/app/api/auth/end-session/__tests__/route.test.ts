@@ -32,10 +32,10 @@ vi.mock("@/lib/env", () => ({
 
 import { GET } from "../route";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
-function discoveryResponse(body: unknown, ok = true): Response {
+function discoveryResponse(body: { end_session_endpoint?: string }, ok = true): Response {
   return new Response(JSON.stringify(body), { status: ok ? 200 : 500 });
 }
 
@@ -55,7 +55,7 @@ describe("end-session route", () => {
       discoveryResponse({ end_session_endpoint: "https://idp.example.org/logout" }),
     );
     const res = await GET(request());
-    const location = new URL(res.headers.get("location") as string);
+    const location = new URL(res.headers.get("location") ?? "");
     expect(location.origin + location.pathname).toBe("https://idp.example.org/logout");
     expect(location.searchParams.get("id_token_hint")).toBe("id-token-abc");
     expect(location.searchParams.get("post_logout_redirect_uri")).toBe(
@@ -73,6 +73,33 @@ describe("end-session route", () => {
     fetchMock.mockResolvedValueOnce(discoveryResponse({}));
     const res = await GET(new NextRequest("http://localhost:3000/api/auth/end-session"));
     expect(res.headers.get("location")).toBe("https://portal.example.org/");
+  });
+
+  it.each([
+    "https://evil.example",
+    "//evil.example",
+    "/\\evil.example",
+    "/\t/evil.example",
+    "evil",
+  ])("falls back to the root for the off-site callback %s", async (callbackUrl) => {
+    fetchMock.mockResolvedValueOnce(discoveryResponse({}));
+    const res = await GET(
+      new NextRequest(
+        `http://localhost:3000/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      ),
+    );
+    expect(res.headers.get("location")).toBe("https://portal.example.org/");
+  });
+
+  it("keeps an absolute callback on the portal origin", async () => {
+    fetchMock.mockResolvedValueOnce(discoveryResponse({}));
+    const callbackUrl = "https://portal.example.org/projects?tab=members#top";
+    const res = await GET(
+      new NextRequest(
+        `http://localhost:3000/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      ),
+    );
+    expect(res.headers.get("location")).toBe(callbackUrl);
   });
 
   it("redirects locally when discovery fails", async () => {
@@ -99,15 +126,11 @@ describe("end-session route", () => {
     fetchMock.mockResolvedValueOnce(discoveryResponse({}));
     const req = new NextRequest("http://localhost:3000/api/auth/end-session", {
       headers: {
-        cookie:
-          "__Secure-custos.session-token.0=aaa; __Secure-custos.session-token.1=bbb",
+        cookie: "__Secure-custos.session-token.0=aaa; __Secure-custos.session-token.1=bbb",
       },
     });
     const res = await GET(req);
-    for (const name of [
-      "__Secure-custos.session-token.0",
-      "__Secure-custos.session-token.1",
-    ]) {
+    for (const name of ["__Secure-custos.session-token.0", "__Secure-custos.session-token.1"]) {
       const cookie = res.cookies.get(name);
       expect(cookie?.value).toBe("");
       expect(cookie?.maxAge).toBe(0);

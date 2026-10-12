@@ -16,70 +16,16 @@
 // under the License.
 
 import { cn } from "@/lib/utils";
+import { actionChipClass } from "./permissions";
 
-function Cell({
-  label,
-  active,
-  activeClass,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  activeClass: string;
-  onClick?: () => void;
-}) {
-  const title = label === "read" ? "Read" : "Write";
-  const className = cn(
-    "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
-    active ? activeClass : "border border-border text-muted-foreground",
-    onClick && "cursor-pointer transition-transform hover:scale-105",
-  );
-  if (!onClick) {
-    return (
-      <span title={title} className={className}>
-        {label}
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-pressed={active}
-      aria-label={`${title}${active ? ", granted" : ", not granted"}`}
-      onClick={onClick}
-      className={className}
-    >
-      {label}
-    </button>
-  );
-}
+const CHIP = "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium";
 
-export function PermissionRW({
-  read,
-  write,
-  onToggleRead,
-  onToggleWrite,
-}: {
-  read: boolean;
-  write: boolean;
-  onToggleRead?: () => void;
-  onToggleWrite?: () => void;
-}) {
+// Only granted actions show, so "not granted" never rests on styling alone.
+export function PermissionRW({ read, write }: { read: boolean; write: boolean }) {
   return (
     <div className="flex items-center gap-1">
-      <Cell
-        label="read"
-        active={read}
-        activeClass="bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]"
-        onClick={onToggleRead}
-      />
-      <Cell
-        label="write"
-        active={write}
-        activeClass="bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]"
-        onClick={onToggleWrite}
-      />
+      {read ? <span className={cn(CHIP, actionChipClass("read"))}>read</span> : null}
+      {write ? <span className={cn(CHIP, actionChipClass("write"))}>write</span> : null}
     </div>
   );
 }

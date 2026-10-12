@@ -27,14 +27,7 @@ const options = [
 
 describe("GroupByChip", () => {
   it("renders trigger with label and current value", () => {
-    render(
-      <GroupByChip
-        label="Group by"
-        value="resource"
-        options={options}
-        onChange={vi.fn()}
-      />,
-    );
+    render(<GroupByChip label="Group by" value="resource" options={options} onChange={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: /Group by/i });
     expect(trigger).toBeInTheDocument();
     expect(trigger).toHaveTextContent("Resource");
@@ -42,9 +35,7 @@ describe("GroupByChip", () => {
 
   it("clicking an option fires onChange", () => {
     const onChange = vi.fn();
-    render(
-      <GroupByChip label="Group by" value="resource" options={options} onChange={onChange} />,
-    );
+    render(<GroupByChip label="Group by" value="resource" options={options} onChange={onChange} />);
     fireEvent.click(screen.getByRole("button", { name: /Group by/i }));
     // Menu items render with role=menuitem.
     const projectItem = screen.getByRole("menuitem", { name: "Project" });
@@ -53,9 +44,7 @@ describe("GroupByChip", () => {
   });
 
   it("marks current value with data-current attribute", () => {
-    render(
-      <GroupByChip label="Group by" value="project" options={options} onChange={vi.fn()} />,
-    );
+    render(<GroupByChip label="Group by" value="project" options={options} onChange={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: /Group by/i }));
     const projectItem = screen.getByRole("menuitem", { name: "Project" });
     expect(projectItem.getAttribute("data-current")).not.toBeNull();
@@ -68,12 +57,7 @@ describe("GroupByChipGroup", () => {
   it("wraps children in an accessible group", () => {
     const { container } = render(
       <GroupByChipGroup>
-        <GroupByChip
-          label="Group by"
-          value="resource"
-          options={options}
-          onChange={vi.fn()}
-        />
+        <GroupByChip label="Group by" value="resource" options={options} onChange={vi.fn()} />
       </GroupByChipGroup>,
     );
     const root = container.firstElementChild as HTMLElement;

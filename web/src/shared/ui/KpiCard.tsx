@@ -49,8 +49,8 @@ export type KpiCardProps = {
 // "up" isn't always "good" — wait-time-down is positive, cost-up is negative.
 // Tone drives color so the caller stays in charge of semantics.
 const toneStyles: Record<KpiDeltaTone, string> = {
-  positive: "bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]",
-  negative: "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)]",
+  positive: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+  negative: "bg-[color:var(--tone-error-bg)] text-[color:var(--tone-error-fg)]",
   neutral: "bg-muted text-muted-foreground",
 };
 

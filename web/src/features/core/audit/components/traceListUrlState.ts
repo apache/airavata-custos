@@ -20,12 +20,14 @@
 // URL <-> filter mapping for the trace list. Stray values collapse to defaults
 // so a pasted URL never widens the query cache key.
 
-import type { ListStatus, TraceStatus } from "../types";
+import { pageParam } from "@/shared/hooks/usePageClamp";
+import { normalizeQueryId } from "@/shared/layout/nav";
+import type { TraceStatus } from "../types";
 
 export type WindowPreset = "24h" | "7d" | "30d";
 
 export type ListFilters = {
-  status: ListStatus[];
+  status: TraceStatus[];
   source: string[];
   window: WindowPreset;
   q: string;
@@ -42,7 +44,15 @@ export const DEFAULT_FILTERS: ListFilters = {
   pageSize: 50,
 };
 
-export const STATUS_FILTERS: ReadonlyArray<ListStatus> = ["failed", "retrying", "waiting", "done"];
+export const STATUS_FILTERS: ReadonlyArray<TraceStatus> = ["error", "in_progress", "ok"];
+const TRACE_ID = /^[0-9a-f]{32}$/;
+
+// A ?trace= id: 32 hex, lowercased, else undefined, so no request is made for it.
+export function queryTraceId(value: string | null | undefined): string | undefined {
+  const id = normalizeQueryId(value);
+  return id && TRACE_ID.test(id) ? id : undefined;
+}
+
 const VALID_WINDOWS: ReadonlyArray<WindowPreset> = ["24h", "7d", "30d"];
 const VALID_PAGE_SIZES: ReadonlyArray<number> = [25, 50, 100];
 
@@ -53,21 +63,26 @@ type SearchParamsLike = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function parseFilters(params: SearchParamsLike): ListFilters {
+// sources is GET /audit/sources; until it loads, any named source is kept.
+export function parseFilters(
+  params: SearchParamsLike,
+  sources?: ReadonlyArray<string>,
+): ListFilters {
   const status = params
     .getAll("status")
-    .filter((s): s is ListStatus => STATUS_FILTERS.includes(s as ListStatus));
-  const source = params.getAll("source").filter((s) => /^[a-z][a-z0-9-]*$/.test(s));
+    .filter((s): s is TraceStatus => STATUS_FILTERS.includes(s as TraceStatus));
+  const source = params
+    .getAll("source")
+    .filter((s) => (sources ? sources.includes(s) : s.trim() !== ""));
   const winRaw = params.get("window");
   const window: WindowPreset = VALID_WINDOWS.includes(winRaw as WindowPreset)
     ? (winRaw as WindowPreset)
     : DEFAULT_FILTERS.window;
-  const q = (params.get("q") ?? "").trim();
-  const pageRaw = Number.parseInt(params.get("page") ?? "", 10);
-  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : DEFAULT_FILTERS.page;
-  const pageSizeRaw = Number.parseInt(params.get("pageSize") ?? "", 10);
-  const pageSize = VALID_PAGE_SIZES.includes(pageSizeRaw) ? pageSizeRaw : DEFAULT_FILTERS.pageSize;
-  return { status, source, window, q, page, pageSize };
+  const q = normalizeQueryId(params.get("q")) ?? "";
+  const pageSizeRaw = params.get("pageSize") ?? "";
+  const pageSize =
+    VALID_PAGE_SIZES.find((n) => String(n) === pageSizeRaw) ?? DEFAULT_FILTERS.pageSize;
+  return { status, source, window, q, page: pageParam(params), pageSize };
 }
 
 export function serializeFilters(filters: ListFilters): URLSearchParams {
@@ -92,25 +107,8 @@ export function hasActiveFilters(filters: ListFilters): boolean {
   );
 }
 
-export function windowToFromTo(win: WindowPreset, now: number): { from: string; to: string } {
+// Presets send no `to`, so the server reads up to now and a refresh shows new traces.
+export function windowFrom(win: WindowPreset, now: number): string {
   const days = win === "24h" ? 1 : win === "7d" ? 7 : 30;
-  const to = new Date(now).toISOString();
-  const from = new Date(now - days * DAY_MS).toISOString();
-  return { from, to };
-}
-
-// Retrying and Waiting are both in_progress on the wire. When only one of them
-// is picked the page filters the rows it got.
-export function statusFiltersToApi(status: ListStatus[]): {
-  apiStatus: TraceStatus[];
-  keep: (s: ListStatus) => boolean;
-} {
-  const apiStatus = new Set<TraceStatus>();
-  for (const s of status) {
-    if (s === "failed") apiStatus.add("error");
-    else if (s === "done") apiStatus.add("ok");
-    else apiStatus.add("in_progress");
-  }
-  const keep = (s: ListStatus) => status.length === 0 || status.includes(s);
-  return { apiStatus: [...apiStatus], keep };
+  return new Date(now - days * DAY_MS).toISOString();
 }

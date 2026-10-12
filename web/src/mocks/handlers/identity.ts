@@ -15,41 +15,74 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
+import type {
+  GetUserIdentitiesByIdData,
+  GetUserIdentitiesOidcSubjectsByOidcSubData,
+  GetUserIdentitiesSourcesBySourceExternalByExternalIdData,
+  GetUsersByIdPrivilegesData,
+  GetUsersByIdUserIdentitiesData,
+  PutUsersByIdData,
+  User,
+  UserIdentity,
+} from "@/generated/core/types.gen";
+import { zUser, zUserIdentity, zUserPrivilege } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
+import { listJson, notFound } from "../paging";
 import { effectivePrivileges } from "./privileges";
-
-type RoleDetail = (typeof fixture.roleDetails)[keyof typeof fixture.roleDetails];
+import { callerRoleGrants } from "./roles";
 
 // Per-run mutable copy so PUT /users/{id} name edits are visible on the next
 // /me read within a session.
-let user = { ...fixture.user };
+let user: User = zUser.parse(fixture.user);
+const identities = z.array(zUserIdentity).parse(fixture.identities);
+const direct = z.array(zUserPrivilege).parse(fixture.direct);
+
+const found = (identity: UserIdentity | undefined) =>
+  identity ? HttpResponse.json(identity) : notFound("user identity");
 
 export const identityHandlers = [
-  http.get("*/api/v1/me", () => HttpResponse.json({ user, privileges: effectivePrivileges() })),
-  http.get("*/api/v1/users/:id/user-identities", ({ params }) =>
-    HttpResponse.json(String(params.id) === fixture.user.id ? fixture.identities : []),
+  http.get("*/api/v1/me", () =>
+    HttpResponse.json({
+      user,
+      privileges: effectivePrivileges(),
+      roles: callerRoleGrants(user.id),
+    }),
   ),
-  http.get("*/api/v1/users/:id/roles", ({ params }) =>
-    HttpResponse.json(String(params.id) === fixture.user.id ? fixture.roles : []),
+  http.get<GetUserIdentitiesOidcSubjectsByOidcSubData["path"]>(
+    "*/api/v1/user-identities/oidc-subjects/:oidcSub",
+    ({ params }) => found(identities.find((i) => i.oidc_sub && i.oidc_sub === params.oidcSub)),
   ),
-  http.get("*/api/v1/roles/:roleId", ({ params }) => {
-    const detail = (fixture.roleDetails as Record<string, RoleDetail | undefined>)[
-      String(params.roleId)
-    ];
-    if (!detail) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    return HttpResponse.json(detail);
-  }),
-  http.get("*/api/v1/users/:id/privileges", ({ params }) =>
-    HttpResponse.json(String(params.id) === fixture.user.id ? fixture.direct : []),
+  http.get<GetUserIdentitiesSourcesBySourceExternalByExternalIdData["path"]>(
+    "*/api/v1/user-identities/sources/:source/external/:externalId",
+    ({ params }) =>
+      found(
+        identities.find((i) => i.source === params.source && i.external_id === params.externalId),
+      ),
   ),
-  http.put("*/api/v1/users/:id", async ({ request }) => {
-    const body = (await request.json()) as {
-      first_name?: string;
-      middle_name?: string;
-      last_name?: string;
-    };
-    user = { ...user, ...body };
-    return HttpResponse.json(user);
-  }),
+  http.get<GetUserIdentitiesByIdData["path"]>("*/api/v1/user-identities/:id", ({ params }) =>
+    found(identities.find((i) => i.id === params.id)),
+  ),
+  http.get<GetUsersByIdUserIdentitiesData["path"]>(
+    "*/api/v1/users/:id/user-identities",
+    ({ params }) => listJson(params.id === user.id ? identities : []),
+  ),
+  http.get<GetUsersByIdPrivilegesData["path"]>("*/api/v1/users/:id/privileges", ({ params }) =>
+    listJson(params.id === user.id ? direct : []),
+  ),
+  http.put<PutUsersByIdData["path"], PutUsersByIdData["body"]>(
+    "*/api/v1/users/:id",
+    async ({ request }) => {
+      // Blank names keep the stored value, as in the backend.
+      const { first_name, middle_name, last_name } = await request.json();
+      user = {
+        ...user,
+        first_name: first_name || user.first_name,
+        middle_name: middle_name || user.middle_name,
+        last_name: last_name || user.last_name,
+      };
+      return HttpResponse.json(user);
+    },
+  ),
 ];

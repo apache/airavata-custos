@@ -15,16 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Delivery, HistoryEntry } from "./types";
+import type { AuditEvent, PendingDelivery } from "@/generated/core/types.gen";
 
 // Matches maxAttempts in pkg/events/worker.go.
 export const MAX_ATTEMPTS = 10;
+
+// The per-run try budget; an admin retry starts a new run.
+export function leftThisRun(attempts = 0): string {
+  return `${MAX_ATTEMPTS - attempts} of ${MAX_ATTEMPTS} left this run`;
+}
 
 export type DeliveryState = "succeeded" | "failed" | "retrying" | "waiting" | "not-running";
 
 // A pending delivery whose connector is not running waits until it starts,
 // so it is shown apart from one that is simply queued.
-export function deliveryState(delivery: Delivery, runningSubscribers?: Set<string>): DeliveryState {
+export function deliveryState(
+  delivery: PendingDelivery,
+  runningSubscribers?: Set<string>,
+): DeliveryState {
   if (delivery.status === "SUCCEEDED") return "succeeded";
   if (delivery.status === "FAILED") return "failed";
   if (runningSubscribers && !runningSubscribers.has(delivery.subscriber)) return "not-running";
@@ -32,11 +40,11 @@ export function deliveryState(delivery: Delivery, runningSubscribers?: Set<strin
 }
 
 export type HistoryStep =
-  | { kind: "attempt"; at: string; attempt: number; ok: boolean; error?: string }
-  | { kind: "retry"; at: string; actorId: string; previousAttempts: number }
-  | { kind: "other"; at: string; label: string };
+  | { kind: "attempt"; at?: string; attempt: number; ok: boolean; error?: string }
+  | { kind: "retry"; at?: string }
+  | { kind: "other"; at?: string; label?: string };
 
-function parseDetails(details: string): Record<string, unknown> {
+function parseDetails(details = ""): Record<string, unknown> {
   try {
     const parsed: unknown = JSON.parse(details);
     return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
@@ -45,7 +53,7 @@ function parseDetails(details: string): Record<string, unknown> {
   }
 }
 
-export function historyStep(entry: HistoryEntry): HistoryStep {
+function historyStep(entry: AuditEvent, attempt: number): HistoryStep {
   const d = parseDetails(entry.details);
   switch (entry.event_type) {
     case "EVENT_DELIVERY_SUCCEEDED":
@@ -53,28 +61,25 @@ export function historyStep(entry: HistoryEntry): HistoryStep {
       return {
         kind: "attempt",
         at: entry.event_time,
-        attempt: Number(d.attempt) || 0,
+        attempt,
         ok: entry.event_type === "EVENT_DELIVERY_SUCCEEDED",
         error: typeof d.error === "string" ? d.error : undefined,
       };
     case "EVENT_DELIVERY_RETRIED":
-      return {
-        kind: "retry",
-        at: entry.event_time,
-        actorId: typeof d.actor_id === "string" ? d.actor_id : "",
-        previousAttempts: Number(d.previous_attempts) || 0,
-      };
+      return { kind: "retry", at: entry.event_time };
     default:
       return { kind: "other", at: entry.event_time, label: entry.event_type };
   }
 }
 
-// A retry starts the attempt count over, so the history is split into runs at
-// each retry to keep the attempt numbers readable.
-export function historyRuns(history: HistoryEntry[]): HistoryStep[][] {
+// The history is split into runs at each admin retry. Attempts are numbered
+// continuously across runs, as the trace numbers its tries; the server's count restarts.
+export function historyRuns(history?: AuditEvent[] | null): HistoryStep[][] {
   const runs: HistoryStep[][] = [[]];
-  for (const entry of history) {
-    const step = historyStep(entry);
+  let attempts = 0;
+  for (const entry of history ?? []) {
+    const step = historyStep(entry, attempts + 1);
+    if (step.kind === "attempt") attempts++;
     if (step.kind === "retry") runs.push([step]);
     else runs.at(-1)?.push(step);
   }
@@ -86,9 +91,9 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
 // "3 min ago" for the past and "in 3 min" for the future.
-export function relativeTime(iso: string, now: number = Date.now()): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return iso;
+export function relativeTime(iso: string | undefined, now: number = Date.now()): string {
+  const t = Date.parse(iso ?? "");
+  if (Number.isNaN(t)) return iso ?? "";
   const diff = t - now;
   const ms = Math.abs(diff);
   if (ms < MINUTE) return diff > 0 ? "in less than a minute" : "just now";
@@ -99,10 +104,4 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
         ? `${Math.floor(ms / HOUR)}h`
         : `${Math.floor(ms / DAY)}d`;
   return diff > 0 ? `in ${text}` : `${text} ago`;
-}
-
-export function absoluteTime(iso: string | undefined): string {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }

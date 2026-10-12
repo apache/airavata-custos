@@ -24,10 +24,18 @@ test.describe("change request approver queue", () => {
     await page.goto("/change-requests");
     await expect(page.getByRole("heading", { name: /^Change requests$/ })).toBeVisible();
 
-    const approveBtn = page.getByRole("button", { name: /^Approve cr-001$/ });
+    const approveBtn = page.getByRole("button", {
+      name: /^Approve change request .* request 05000002$/,
+    });
     await expect(approveBtn).toBeVisible({ timeout: 15_000 });
+    // Request 05000001 belongs to an ACCESS project; origination never hides a decision.
+    await expect(
+      page.getByRole("button", {
+        name: /^Approve change request .* request 05000001$/,
+      }),
+    ).toBeVisible();
     await approveBtn.click();
-    await expect(page.getByText(/approved cr-001/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Approved the change request")).toBeVisible({ timeout: 15_000 });
   });
 
   test("admin can reject a pending request", async ({ page }) => {
@@ -35,9 +43,11 @@ test.describe("change request approver queue", () => {
     await page.goto("/change-requests");
     await expect(page.getByRole("heading", { name: /^Change requests$/ })).toBeVisible();
 
-    const rejectBtn = page.getByRole("button", { name: /^Reject cr-002$/ });
+    const rejectBtn = page.getByRole("button", {
+      name: /^Reject change request .* request 05000002$/,
+    });
     await expect(rejectBtn).toBeVisible({ timeout: 15_000 });
     await rejectBtn.click();
-    await expect(page.getByText(/rejected cr-002/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Rejected the change request")).toBeVisible({ timeout: 15_000 });
   });
 });

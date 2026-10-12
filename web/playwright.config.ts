@@ -24,6 +24,7 @@ const sharedSecret = "test-secret-for-playwright-cookie-fixture-only-32chars";
 export default defineConfig({
   testDir: "./tests",
   testMatch: /.*\.e2e\.ts/,
+  globalSetup: "./tests/warm-up.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

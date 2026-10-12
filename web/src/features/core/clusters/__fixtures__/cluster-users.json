@@ -1,38 +1,56 @@
 [
   {
-    "id": "ccu-a-ada",
-    "compute_cluster_id": "cluster-a",
-    "user_id": "user-ada-lovelace",
-    "local_username": "alovelace"
+    "id": "03000002-0000-4000-8000-000003000002",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
+    "user_id": "24000004-0000-4000-8000-000024000004",
+    "local_username": "alovelace",
+    "access_level": "USER",
+    "approval_status": "APPROVED",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-a-grace",
-    "compute_cluster_id": "cluster-a",
-    "user_id": "user-grace-hopper",
-    "local_username": "ghopper"
+    "id": "03000004-0000-4000-8000-000003000004",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
+    "user_id": "24000011-0000-4000-8000-000024000011",
+    "local_username": "ghopper",
+    "access_level": "USER",
+    "approval_status": "APPROVED",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-a-dennis",
-    "compute_cluster_id": "cluster-a",
-    "user_id": "user-dennis-ritchie",
-    "local_username": "dritchie"
+    "id": "03000003-0000-4000-8000-000003000003",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
+    "user_id": "24000009-0000-4000-8000-000024000009",
+    "local_username": "dritchie",
+    "access_level": "USER",
+    "approval_status": "APPROVED",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-c-ada",
-    "compute_cluster_id": "cluster-c",
-    "user_id": "user-ada-lovelace",
-    "local_username": "ada"
+    "id": "03000008-0000-4000-8000-000003000008",
+    "compute_cluster_id": "04000003-0000-4000-8000-000004000003",
+    "user_id": "24000004-0000-4000-8000-000024000004",
+    "local_username": "ada",
+    "access_level": "USER",
+    "approval_status": "APPROVED",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-d-katherine",
-    "compute_cluster_id": "cluster-d",
-    "user_id": "user-katherine-johnson",
-    "local_username": "kjohnson"
+    "id": "03000009-0000-4000-8000-000003000009",
+    "compute_cluster_id": "04000004-0000-4000-8000-000004000004",
+    "user_id": "24000016-0000-4000-8000-000024000016",
+    "local_username": "kjohnson",
+    "access_level": "USER",
+    "approval_status": "APPROVED",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-b-donald",
-    "compute_cluster_id": "cluster-b",
-    "user_id": "user-donald-knuth",
-    "local_username": "dknuth"
+    "id": "03000007-0000-4000-8000-000003000007",
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002",
+    "user_id": "24000010-0000-4000-8000-000024000010",
+    "local_username": "dknuth",
+    "access_level": "USER",
+    "approval_status": "APPROVED",
+    "provisioned_at": null
   }
 ]

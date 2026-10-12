@@ -19,33 +19,37 @@
 
 "use client";
 
+import { relativeTime } from "@/features/core/events/utils";
 import { cn } from "@/lib/utils";
-import { ApiError } from "@/shared/api/client";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { useCanonicalParams } from "@/shared/hooks/useShallowSearchParams";
+import { QueryErrorState } from "@/shared/ui/ErrorState";
 import { TabsRouter, type TabsRouterTab } from "@/shared/ui/TabsRouter";
 import { Button, buttonVariants } from "@/shared/ui/button";
+import { useFocusOrigin, wrapTab } from "@/shared/ui/focus";
+import { Link } from "@/shared/ui/link";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { RefreshCw, X } from "lucide-react";
-import Link from "next/link";
 import * as React from "react";
 import { useTrace } from "../queries";
 import type { TraceDetail } from "../types";
 import {
+  buildFlow,
   countRows,
+  detailStatus,
   entityLinks,
-  formatAbsoluteUtc,
-  formatRelative,
   isCodeShaped,
   originTitle,
   rootStep,
   shortHex,
 } from "../utils";
-import { TraceFlowTab } from "./TraceFlowTab";
+import { DrawerLeaveContext, RelatedTracesLink } from "./RelatedTracesLink";
+import { TraceFlowTab, useFlowParams } from "./TraceFlowTab";
 import { TraceRawTab } from "./TraceRawTab";
 import { CopyValue } from "./primitives/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
+import { Timestamp } from "./primitives/Timestamp";
 
 export type TraceDetailDrawerProps = {
   traceId: string | null;
@@ -83,25 +87,38 @@ export function TraceDetailDrawer({ traceId, open, onClose }: TraceDetailDrawerP
   const { data, isLoading, error, refetch, isFetching } = useTrace(
     open && traceId ? traceId : undefined,
   );
-  const notFound = error instanceof ApiError && error.status === 404;
+  const returnTo = useFocusOrigin(open, traceId ?? undefined);
+  const leaving = React.useRef(false);
+  const leave = React.useCallback(() => {
+    leaving.current = true;
+  }, []);
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(v) => !v && onClose()}>
+    // Non-modal, so a press on another trace row swaps the drawer; Tab wraps within it.
+    <DialogPrimitive.Root
+      open={open}
+      modal={false}
+      onOpenChange={(next, details) => {
+        if (next) return;
+        const target = details.event?.target;
+        if (
+          details.reason === "outside-press" &&
+          target instanceof Element &&
+          target.closest("[data-drawer-trigger]")
+        )
+          return details.cancel();
+        onClose();
+      }}
+    >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop
-          className={cn(
-            "fixed inset-0 z-50",
-            reducedMotion
-              ? null
-              : "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-          )}
-          style={{
-            background: "var(--drawer-scrim)",
-            transitionDuration: reducedMotion ? "0ms" : "180ms",
-          }}
-        />
         <DialogPrimitive.Popup
           data-testid="trace-detail-drawer"
+          finalFocus={() => {
+            const left = leaving.current;
+            leaving.current = false;
+            return left ? false : returnTo();
+          }}
+          onKeyDown={wrapTab}
           className={cn(
             "fixed inset-y-0 right-0 z-50 flex flex-col bg-[color:var(--card)] outline-none",
             reducedMotion
@@ -119,41 +136,25 @@ export function TraceDetailDrawer({ traceId, open, onClose }: TraceDetailDrawerP
           </DialogPrimitive.Title>
 
           {isLoading ? (
-            <>
+            <output aria-label="Loading" className="block">
               <div className="px-6 pt-[18px]">
                 <HeaderSkeleton />
               </div>
               <BodySkeleton />
-            </>
+            </output>
           ) : error ? (
-            <div className="flex h-full flex-col">
+            <DrawerError>
               <div className="flex items-center justify-end px-6 pt-[18px]">
-                <CloseButton onClose={onClose} />
+                <CloseButton />
               </div>
               <div className="flex-1 px-6 py-10">
-                {notFound ? (
-                  <ErrorState
-                    heading="No trace with this id"
-                    message="It may be older than what we keep."
-                    onRetry={onClose}
-                    retryLabel="Back to traces"
-                  />
-                ) : (
-                  <ErrorState
-                    message={(error as Error).message ?? "Could not load trace."}
-                    onRetry={() => refetch()}
-                    retryLabel="Retry"
-                  />
-                )}
+                <QueryErrorState error={error} what="trace" onRetry={() => refetch()} />
               </div>
-            </div>
+            </DrawerError>
           ) : data ? (
-            <DrawerContent
-              detail={data}
-              onClose={onClose}
-              onRefresh={() => refetch()}
-              refreshing={isFetching}
-            />
+            <DrawerLeaveContext.Provider value={leave}>
+              <DrawerContent detail={data} onRefresh={() => refetch()} refreshing={isFetching} />
+            </DrawerLeaveContext.Provider>
           ) : null}
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
@@ -161,23 +162,37 @@ export function TraceDetailDrawer({ traceId, open, onClose }: TraceDetailDrawerP
   );
 }
 
+// A trace that failed to load renders no tabs and no steps, so their params are dropped.
+function DrawerError({ children }: { children: React.ReactNode }) {
+  useCanonicalParams({ tab: undefined, step: undefined, span: undefined });
+  return <div className="flex h-full flex-col">{children}</div>;
+}
+
 type DrawerContentProps = {
   detail: TraceDetail;
-  onClose: () => void;
   onRefresh: () => void;
   refreshing: boolean;
 };
 
-function DrawerContent({ detail, onClose, onRefresh, refreshing }: DrawerContentProps) {
+function DrawerContent({ detail, onRefresh, refreshing }: DrawerContentProps) {
   const root = rootStep(detail);
   const title = root ? originTitle(root) : "Trace";
   const stepCount = React.useMemo(() => countRows(detail.tree), [detail.tree]);
+  const model = React.useMemo(() => buildFlow(detail), [detail]);
+  const { stepParam, spanParam } = useFlowParams(model);
   const entities = React.useMemo(() => entityLinks(detail), [detail]);
   const related = root?.entity_id;
+  const started = detail.tree[0]?.created_at;
 
   const tabs: TabsRouterTab[] = React.useMemo(
     () => [
-      { value: "flow", label: "Flow", content: <TraceFlowTab detail={detail} /> },
+      {
+        value: "flow",
+        label: "Flow",
+        content: (
+          <TraceFlowTab detail={detail} model={model} stepParam={stepParam} spanParam={spanParam} />
+        ),
+      },
       {
         value: "raw",
         label: "Raw",
@@ -188,13 +203,13 @@ function DrawerContent({ detail, onClose, onRefresh, refreshing }: DrawerContent
         ),
       },
     ],
-    [detail, stepCount],
+    [detail, model, stepParam, spanParam, stepCount],
   );
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex-shrink-0 px-6 pt-[18px]">
-        <div className="flex items-start gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex flex-wrap items-center gap-2.5">
               <span className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
@@ -203,16 +218,7 @@ function DrawerContent({ detail, onClose, onRefresh, refreshing }: DrawerContent
               <span className="min-w-0 truncate font-mono text-xs text-foreground">
                 <CopyValue value={detail.trace_id} label="trace ID" explicit />
               </span>
-              <StatusPill
-                status={
-                  detail.status === "error"
-                    ? "failed"
-                    : detail.status === "in_progress"
-                      ? "retrying"
-                      : "done"
-                }
-                label={detail.status === "in_progress" ? "In progress" : undefined}
-              />
+              <StatusPill status={detailStatus(detail)} live />
               {root && <SourcePill source={root.source} size="sm" />}
             </div>
             <h2
@@ -238,21 +244,16 @@ function DrawerContent({ detail, onClose, onRefresh, refreshing }: DrawerContent
                   )}
                 </span>
               ))}
-              {root && (
-                <span title={formatAbsoluteUtc(root.created_at)}>
-                  Started {formatRelative(root.created_at)}
-                </span>
-              )}
+              {started && <Timestamp iso={started}>Started {relativeTime(started)}</Timestamp>}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
             {related && (
-              <Link
-                href={`/admin/traces?q=${encodeURIComponent(related)}&window=30d`}
+              <RelatedTracesLink
+                entityId={related}
+                entityType={root?.entity_type}
                 className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Related traces
-              </Link>
+              />
             )}
             <Button
               variant="outline"
@@ -260,11 +261,12 @@ function DrawerContent({ detail, onClose, onRefresh, refreshing }: DrawerContent
               onClick={onRefresh}
               aria-label="Refresh trace"
               disabled={refreshing}
+              focusableWhenDisabled
             >
               <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
               <span>Refresh</span>
             </Button>
-            <CloseButton onClose={onClose} />
+            <CloseButton />
           </div>
         </div>
       </div>
@@ -281,18 +283,21 @@ function DrawerContent({ detail, onClose, onRefresh, refreshing }: DrawerContent
   );
 }
 
-function CloseButton({ onClose }: { onClose: () => void }) {
+function CloseButton() {
   return (
-    <Button
-      variant="outline"
-      size="icon-sm"
-      onClick={onClose}
-      aria-label="Close"
-      autoFocus
-      data-testid="drawer-close"
+    <DialogPrimitive.Close
+      render={
+        <Button
+          variant="outline"
+          size="icon-sm"
+          aria-label="Close"
+          autoFocus
+          data-testid="drawer-close"
+        />
+      }
     >
       <X className="h-4 w-4" />
-    </Button>
+    </DialogPrimitive.Close>
   );
 }
 

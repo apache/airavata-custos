@@ -27,7 +27,7 @@ test.describe("admin tracing list", () => {
   test("banner counts failed traces and Show them applies the Failed filter", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Tracing$/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
       timeout: 20_000,
     });
 
@@ -35,7 +35,7 @@ test.describe("admin tracing list", () => {
     await expect(banner).toContainText(/traces need attention/, { timeout: 20_000 });
     await banner.getByRole("button", { name: /Show them/ }).click();
 
-    await expect(page).toHaveURL(/[?&]status=failed\b/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/[?&]status=error\b/, { timeout: 10_000 });
     await expect(page.getByRole("button", { name: "Failed", pressed: true })).toBeVisible();
     await expect(
       page.locator('[data-testid^="trace-row-"][data-status="failed"]').first(),
@@ -43,10 +43,17 @@ test.describe("admin tracing list", () => {
     await expect(page.locator('[data-testid^="trace-row-"][data-status="done"]')).toHaveCount(0);
   });
 
+  // Make sure filters the list ignored leave the address bar, and an accepted one stays normalised.
+  test("rewrites the URL to the filters it applied", async ({ page }) => {
+    await signInAs(page, "admin");
+    await page.goto("/admin/traces?source=bogus&status=bogus&status=ok&page=2abc");
+    await expect(page).toHaveURL(/\/admin\/traces\?status=ok$/, { timeout: 20_000 });
+  });
+
   test("axe: no serious or critical violations on the list page", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/traces");
-    await expect(page.getByRole("heading", { name: /^Tracing$/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Traces$/ })).toBeVisible({
       timeout: 20_000,
     });
     await page.waitForLoadState("networkidle");

@@ -17,26 +17,12 @@
 
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useClusterAccounts } from "@/features/core/cluster-accounts/queries";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
-
-const TABS = [
-  { href: "/admin/users/management", label: "User Management" },
-  {
-    href: "/admin/users/cluster-accounts",
-    label: "Cluster Accounts",
-    ability: { action: "read", subject: "Cluster" } as const,
-    badge: "pending-cluster-accounts",
-  },
-  {
-    href: "/admin/users/roles",
-    label: "Role Management",
-    ability: { action: "manage", subject: "Role" } as const,
-  },
-] as const;
+import { ROUTE_LABELS, USERS_TABS, isNavItemVisible } from "@/shared/layout/nav";
+import { Link } from "@/shared/ui/link";
+import { usePathname } from "next/navigation";
 
 // Shows how many accounts wait for approval, so the admin sees it from the
 // other tabs too.
@@ -57,9 +43,7 @@ function PendingClusterAccountsBadge() {
 export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
   const pathname = usePathname();
   const ability = useAbility();
-  const tabs = TABS.filter(
-    (tab) => !("ability" in tab) || ability.can(tab.ability.action, tab.ability.subject),
-  );
+  const tabs = USERS_TABS.filter((tab) => isNavItemVisible(tab, ability));
 
   return (
     <nav
@@ -80,8 +64,10 @@ export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
                     : "border-b-2 border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
-                {tab.label}
-                {"badge" in tab ? <PendingClusterAccountsBadge /> : null}
+                {ROUTE_LABELS[tab.href]}
+                {tab.href === "/admin/users/cluster-accounts" && ability.can("read", "Cluster") ? (
+                  <PendingClusterAccountsBadge />
+                ) : null}
               </Link>
             </li>
           );

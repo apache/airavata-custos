@@ -17,19 +17,22 @@
 
 "use client";
 
-import { useSession } from "next-auth/react";
+import { isGone, useOnGone } from "@/shared/api/useOnGone";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { useShallowSearchParams } from "@/shared/hooks/useShallowSearchParams";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { CardSkeleton } from "@/shared/ui/Loading";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
+import { QueryErrorState } from "@/shared/ui/ErrorState";
+import { DetailLoading } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
-import { useAllocation, useAllocationMembers } from "../queries";
+import { useAllocation, useAllocationMembers, useRefreshAllocationLists } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
 import { AllocationMembersTab } from "./AllocationMembersTab";
 import { AllocationOverviewTab } from "./AllocationOverviewTab";
 import { AllocationUsageTab } from "./AllocationUsageTab";
+import { useDrawerParams } from "./useDrawerParam";
 
 export type AllocationDetailProps = {
   allocationId: string;
@@ -37,64 +40,80 @@ export type AllocationDetailProps = {
 
 export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const ability = useAbility();
-  const { data: session } = useSession();
   const allocationQuery = useAllocation(allocationId);
-  const membersQuery = useAllocationMembers(allocationId);
-  useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
+  useOnGone(isGone(allocationQuery.error), useRefreshAllocationLists());
+  // Sub-reads wait for the allocation, so a hidden one does not fan out into more 404s.
+  const membersQuery = useAllocationMembers(allocationQuery.data ? allocationId : undefined);
+  useBreadcrumbLabel(allocationId, allocationQuery.data?.name ?? "Allocation");
+  // Change requests and diffs require the allocations read privilege; the page itself is scoped.
+  const canRead = ability.can("read", "Allocation");
+  // Every list drawer opens for readers only.
+  const tab = useShallowSearchParams().get("tab");
+  useDrawerParams(canRead ? tab : null);
 
-  if (allocationQuery.isLoading) return <CardSkeleton />;
+  if (allocationQuery.isLoading) return <DetailLoading title={ROUTE_LABELS["/allocations"]} />;
   if (allocationQuery.error) {
     return (
-      <ErrorState
-        message={(allocationQuery.error as Error).message}
+      <QueryErrorState
+        error={allocationQuery.error}
+        what="allocation"
         onRetry={() => allocationQuery.refetch()}
+        as="h1"
+        page
       />
     );
   }
   const allocation = allocationQuery.data;
   if (!allocation) return null;
 
-  const canManage = ability.can("manage", "Allocation");
-  const memberCount = membersQuery.data?.length ?? 0;
+  const canManage = ability.can("write", "Allocation");
 
   return (
     <section className="space-y-6">
-      <AllocationDetailHeader allocation={allocation} memberCount={memberCount} />
+      <AllocationDetailHeader allocation={allocation} memberCount={membersQuery.data?.length} />
       <TabsRouter
         defaultValue="overview"
         tabs={[
           {
             value: "overview",
             label: "Overview",
-            content: <AllocationOverviewTab allocation={allocation} />,
-          },
-          {
-            value: "members",
-            label: "Members",
-            content: <AllocationMembersTab allocation={allocation} canManage={canManage} />,
-          },
-          {
-            value: "change-requests",
-            label: "Change requests",
             content: (
-              <AllocationChangeRequestsTab
+              <AllocationOverviewTab
                 allocation={allocation}
-                canSubmit={canManage}
-                requesterId={session?.user?.id ?? ""}
+                canManage={canManage}
+                canRead={canRead}
               />
             ),
           },
           {
+            value: "members",
+            label: "Members",
+            content: (
+              <AllocationMembersTab
+                allocation={allocation}
+                canManage={canManage}
+                canRead={canRead}
+              />
+            ),
+          },
+          {
+            value: "change-requests",
+            label: "Change requests",
+            content: <AllocationChangeRequestsTab allocation={allocation} canSubmit={canManage} />,
+          },
+          {
             value: "usage",
             label: "Usage",
-            content: <AllocationUsageTab allocation={allocation} />,
+            content: (
+              <AllocationUsageTab allocation={allocation} canRead={canRead} canManage={canManage} />
+            ),
           },
           {
             value: "history",
             label: "History",
-            content: <AllocationHistoryTab allocation={allocation} />,
+            content: <AllocationHistoryTab allocation={allocation} canManage={canManage} />,
           },
-        ]}
+        ].filter((tab) => canRead || (tab.value !== "change-requests" && tab.value !== "history"))}
       />
     </section>
   );

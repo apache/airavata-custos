@@ -15,53 +15,34 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
+import type { PostUsersData, User } from "@/generated/core/types.gen";
+import { zUser } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { page } from "../paging";
 
-const roles = Object.values(fixture.roleDetails).map((detail) => detail.role);
+const users = [zUser.parse(fixture.user)];
 
 export const usersHandlers = [
   http.get("*/api/v1/users", ({ request }) => {
-    const url = new URL(request.url);
-    const limit = Number(url.searchParams.get("limit") ?? 25);
-    const offset = Number(url.searchParams.get("offset") ?? 0);
-    const users = [fixture.user];
-    return HttpResponse.json({
-      items: users.slice(offset, offset + limit),
-      total: users.length,
-    });
+    const { items, total } = page(new URL(request.url), users);
+    return HttpResponse.json({ items, total });
   }),
-  http.post("*/api/v1/users", async ({ request }) => {
-    const body = (await request.json()) as {
-      email?: string;
-      first_name?: string;
-      last_name?: string;
-      portal_admin?: boolean;
+  http.post<never, PostUsersData["body"]>("*/api/v1/users", async ({ request }) => {
+    const { email = "", first_name = "", last_name = "", portal_admin } = await request.json();
+    if (users.some((u) => u.email === email)) {
+      return HttpResponse.json({ error: "user already exists" }, { status: 409 });
+    }
+    const user: User = {
+      id: crypto.randomUUID(),
+      organization_id: fixture.user.organization_id,
+      email,
+      first_name,
+      last_name,
+      status: "PENDING",
+      type: portal_admin ? "SYSTEM" : "CLUSTER_LOCAL",
     };
-    return HttpResponse.json(
-      {
-        id: "user-created-1",
-        organization_id: "system",
-        email: body.email,
-        first_name: body.first_name ?? "",
-        last_name: body.last_name ?? "",
-        status: "PENDING",
-        type: body.portal_admin ? "SYSTEM" : "CLUSTER_LOCAL",
-      },
-      { status: 201 },
-    );
+    users.push(user);
+    return HttpResponse.json(user, { status: 201 });
   }),
-  http.get("*/api/v1/roles", () => HttpResponse.json(roles)),
-  http.post("*/api/v1/users/:id/roles", async ({ params, request }) => {
-    const body = (await request.json()) as { role_id?: string };
-    return HttpResponse.json(
-      {
-        user_id: String(params.id),
-        role_id: body.role_id,
-        granted_at: new Date().toISOString(),
-      },
-      { status: 201 },
-    );
-  }),
-  http.delete("*/api/v1/users/:id/roles/:roleId", () => new HttpResponse(null, { status: 204 })),
 ];

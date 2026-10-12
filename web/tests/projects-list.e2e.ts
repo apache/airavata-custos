@@ -25,16 +25,17 @@ test.describe("projects list", () => {
     await page.goto("/projects");
     await expect(page.getByRole("heading", { name: /^Projects$/ })).toBeVisible();
 
-    const firstRow = page.locator('a[href^="/projects/project-"]').first();
+    const firstRow = page.locator('a[href^="/projects/"]').first();
     await expect(firstRow).toBeVisible({ timeout: 15_000 });
     await firstRow.click();
-    await expect(page).toHaveURL(/\/projects\/project-/);
+    await expect(page).toHaveURL(/\/projects\/[0-9a-f]{8}-/);
   });
 
   test("status filter updates URL state", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/projects");
-    await page.getByLabel(/filter by status/i).selectOption("INACTIVE");
+    await page.getByRole("combobox", { name: /filter by status/i }).click();
+    await page.getByRole("option", { name: "Inactive" }).click();
     await expect(page).toHaveURL(/[?&]status=INACTIVE/);
   });
 
@@ -42,9 +43,7 @@ test.describe("projects list", () => {
     await signInAs(page, "admin");
     await page.goto("/projects");
     await expect(page.getByRole("heading", { name: /^Projects$/ })).toBeVisible();
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     const blocking = results.violations.filter(
       (v) => v.impact === "serious" || v.impact === "critical",
     );

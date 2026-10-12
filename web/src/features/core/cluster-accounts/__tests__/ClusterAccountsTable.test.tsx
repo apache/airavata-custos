@@ -15,86 +15,50 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import type { ClusterAccountResponse } from "@/generated/core/types.gen";
+import { clusterAccounts } from "@/mocks/handlers/clusters";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import fixture from "../__fixtures__/cluster-accounts.json";
 import { ClusterAccountsTable, clusterAccountStatus } from "../components/ClusterAccountsTable";
-import type { ClusterAccount } from "../schemas";
 
-const rows = fixture as ClusterAccount[];
-const byId = (id: string) => rows.find((r) => r.id === id) as ClusterAccount;
+const rows = clusterAccounts;
+const byId = (id: string) => rows.find((r) => r.id === id) ?? expect.unreachable(id);
 
-function renderTable(canReview: boolean, shown: ClusterAccount[] = rows) {
-  const onApprove = vi.fn();
-  const onDeny = vi.fn();
+function renderTable(shown: ClusterAccountResponse[] = rows) {
   render(
     <ClusterAccountsTable
       rows={shown}
       isLoading={false}
       error={null}
-      canReview={canReview}
-      onApprove={onApprove}
-      onDeny={onDeny}
       page={1}
       pageSize={25}
       total={shown.length}
       onPageChange={vi.fn()}
-      emptyHeading="Nothing waiting for approval."
+      emptyHeading="Nothing waiting for approval"
     />,
   );
-  return { onApprove, onDeny };
 }
 
 describe("clusterAccountStatus", () => {
   // Make sure an approved account reads as provisioning until it exists on
   // the cluster, so the admin can tell approval from a working login.
   it("tells approved from active by provisioned_at", () => {
-    expect(clusterAccountStatus(byId("ccu-approved-1")).label).toBe("Approved · provisioning");
-    expect(clusterAccountStatus(byId("ccu-active-1")).label).toBe("Active");
-    expect(clusterAccountStatus(byId("ccu-pending-1")).label).toBe("Pending approval");
-    expect(clusterAccountStatus(byId("ccu-denied-1")).label).toBe("Denied");
+    expect(clusterAccountStatus(byId("03000006-0000-4000-8000-000003000006")).label).toBe(
+      "Approved · provisioning",
+    );
+    expect(clusterAccountStatus(byId("03000005-0000-4000-8000-000003000005")).label).toBe("Active");
+    expect(clusterAccountStatus(byId("03000011-0000-4000-8000-000003000011")).label).toBe(
+      "Pending approval",
+    );
+    expect(clusterAccountStatus(byId("03000010-0000-4000-8000-000003000010")).label).toBe("Denied");
   });
 });
 
 describe("ClusterAccountsTable", () => {
-  // Make sure a pending account offers both decisions, a denied one can only
-  // be approved, and an approved one cannot be reviewed again.
-  it("offers the decisions each status allows", () => {
-    renderTable(true);
-    const pending = screen.getByText("jdoe").closest("tr") as HTMLElement;
-    expect(pending.querySelector("button")).not.toBeNull();
-    expect(pending.textContent).toContain("Deny");
-    expect(pending.textContent).toContain("Approve");
-
-    const denied = screen.getByText("sokafor").closest("tr") as HTMLElement;
-    expect(denied.textContent).toContain("Approve");
-    expect(denied.textContent).not.toContain("Deny");
-
-    const approved = screen.getByText("wzhang").closest("tr") as HTMLElement;
-    expect(approved.querySelector("button")).toBeNull();
-  });
-
-  // Make sure a reader without the write privilege sees the list but no
-  // decision buttons.
-  it("hides the decisions without the review privilege", () => {
-    renderTable(false);
-    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Deny" })).toBeNull();
-    expect(screen.getByText("jdoe")).toBeInTheDocument();
-  });
-
-  it("hands the clicked account to the approve and deny callbacks", () => {
-    const { onApprove, onDeny } = renderTable(true, [byId("ccu-pending-1")]);
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-    expect(onApprove).toHaveBeenCalledWith(expect.objectContaining({ id: "ccu-pending-1" }));
-    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
-    expect(onDeny).toHaveBeenCalledWith(expect.objectContaining({ id: "ccu-pending-1" }));
-  });
-
   // Make sure the reason an admin gave is visible on the denied row, since it
   // is the only place the portal shows it.
   it("shows the denial note on the row", () => {
-    renderTable(false, [byId("ccu-denied-1")]);
+    renderTable([byId("03000010-0000-4000-8000-000003000010")]);
     expect(screen.getByText("Not on the approved collaborator list.")).toBeInTheDocument();
   });
 });

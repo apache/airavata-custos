@@ -17,29 +17,29 @@
 
 "use client";
 
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { PendingDelivery } from "@/generated/core/types.gen";
+import { formatTimestamp } from "@/shared/format";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Button } from "@/shared/ui/button";
-import type { Delivery } from "../types";
-import { MAX_ATTEMPTS, absoluteTime, deliveryState, relativeTime } from "../utils";
+import { deliveryState, leftThisRun, relativeTime } from "../utils";
 import { DeliveryStatusBadge } from "./DeliveryStatusBadge";
 
 export type DeliveryTableProps = {
-  rows: Delivery[];
+  rows: PendingDelivery[];
   runningSubscribers?: Set<string>;
   canRetry: boolean;
   empty: React.ReactNode;
-  onOpen: (delivery: Delivery) => void;
-  onRetry: (delivery: Delivery) => void;
+  onOpen: (delivery: PendingDelivery) => void;
+  onRetry: (delivery: PendingDelivery) => void;
 };
 
-function whenCell(row: Delivery) {
+function whenCell(row: PendingDelivery) {
   // A delivery that is retrying matters by when it runs next, not when it was made.
   if (row.status === "PENDING" && row.attempts > 0) {
-    return (
-      <span title={absoluteTime(row.next_run_at)}>next try {relativeTime(row.next_run_at)}</span>
-    );
+    return <Timestamp iso={row.next_run_at}>next try {relativeTime(row.next_run_at)}</Timestamp>;
   }
-  return <span title={absoluteTime(row.created_at)}>{relativeTime(row.created_at)}</span>;
+  return <Timestamp iso={row.created_at}>{relativeTime(row.created_at)}</Timestamp>;
 }
 
 export function DeliveryTable({
@@ -50,17 +50,27 @@ export function DeliveryTable({
   onOpen,
   onRetry,
 }: DeliveryTableProps) {
-  const columns: DataTableColumn<Delivery>[] = [
+  const columns: DataTableColumn<PendingDelivery>[] = [
+    {
+      key: "event",
+      header: "Event",
+      // The opener names its delivery, not only the event type many rows share.
+      cell: (row) => (
+        <>
+          <span className="font-mono text-xs">{row.event.event_type}</span>
+          <span className="sr-only">
+            {" "}
+            for {row.subscriber}, created {formatTimestamp(row.created_at)}, delivery{" "}
+            {row.id.slice(0, 8)}
+          </span>
+        </>
+      ),
+    },
     {
       key: "status",
       header: "Status",
       width: "130px",
       cell: (row) => <DeliveryStatusBadge state={deliveryState(row, runningSubscribers)} />,
-    },
-    {
-      key: "event",
-      header: "Event",
-      cell: (row) => <span className="font-mono text-xs">{row.event.event_type}</span>,
     },
     {
       key: "connector",
@@ -74,20 +84,23 @@ export function DeliveryTable({
     },
     {
       key: "attempts",
-      header: "Attempts",
+      header: "Tries",
       align: "right",
-      width: "90px",
+      width: "150px",
       cell: (row) => (
         <span className="text-xs tabular-nums">
-          {row.attempts} / {MAX_ATTEMPTS}
+          {row.status === "PENDING"
+            ? leftThisRun(row.attempts)
+            : `${row.attempts} ${row.attempts === 1 ? "try" : "tries"} this run`}
         </span>
       ),
     },
     {
       key: "error",
       header: "Last error",
+      // The server keeps the last error after a later try succeeds.
       cell: (row) =>
-        row.last_error ? (
+        row.last_error && row.status !== "SUCCEEDED" ? (
           <span
             title={row.last_error}
             className="line-clamp-1 max-w-80 text-xs text-[color:var(--tone-error-fg)]"
@@ -95,7 +108,7 @@ export function DeliveryTable({
             {row.last_error}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">-</span>
+          <span className="text-xs text-muted-foreground">—</span>
         ),
     },
     {
@@ -121,7 +134,7 @@ export function DeliveryTable({
             type="button"
             variant="outline"
             size="sm"
-            aria-label={`Retry ${row.event.event_type} for ${row.subscriber}`}
+            aria-label={`Retry ${row.event.event_type} for ${row.subscriber}, delivery ${row.id.slice(0, 8)}`}
             onClick={(e) => {
               e.stopPropagation();
               onRetry(row);

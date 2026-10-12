@@ -23,16 +23,19 @@ test.describe("role management", () => {
     await signInAs(page, "admin");
     await page.goto("/admin/users/roles");
 
-    await expect(page.getByRole("heading", { name: "Users & Permissions" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Users & permissions" })).toBeVisible();
     await expect(page.getByText("Super Admin")).toBeVisible();
-    await expect(page.getByText("Operator")).toBeVisible();
+    await expect(page.getByText("Operator", { exact: true })).toBeVisible();
     await expect(page.getByText("Auditor")).toBeVisible();
 
     const roleName = `Billing Reviewer ${Date.now()}`;
     await page.getByRole("button", { name: "Create role" }).click();
     await page.getByLabel("Name").fill(roleName);
     await page.getByLabel("Description").fill("Reviews allocation billing reports.");
-    await page.getByRole("button", { name: "read", exact: true }).first().click();
+    await page
+      .getByRole("button", { name: / read$/ })
+      .first()
+      .click();
     await page.getByRole("button", { name: "Create role" }).click();
 
     await expect(page.getByText("Role created")).toBeVisible();
@@ -40,7 +43,10 @@ test.describe("role management", () => {
 
     await page.getByRole("button", { name: "Edit" }).last().click();
     await expect(page.getByRole("dialog", { name: "Edit role" })).toBeVisible();
-    await page.getByRole("button", { name: "write", exact: true }).first().click();
+    await page
+      .getByRole("button", { name: / write$/ })
+      .first()
+      .click();
     await page.getByRole("button", { name: "Save changes" }).click();
 
     await expect(page.getByText("Role updated")).toBeVisible();

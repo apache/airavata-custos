@@ -15,17 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ProjectResponse } from "@/generated/core/types.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectsList } from "../components/ProjectsList";
-import type { Project } from "../schemas";
 
-const project: Project = {
-  id: "project-001",
+const project: ProjectResponse = {
+  id: "19000001-0000-4000-8000-000019000001",
   originated_id: "BIO130000",
   title: "Genomic Sequencing Pipeline",
   origination: "ACCESS",
-  project_pi_id: "user-pi-001",
+  project_pi_id: "24000020-0000-4000-8000-000024000020",
   status: "ACTIVE",
   created_time: "2026-04-01T00:00:00.000Z",
 };
@@ -51,26 +51,24 @@ describe("<ProjectsList />", () => {
     expect(link).toHaveAttribute("href", `/projects/${project.id}`);
   });
 
-  it("shows the empty state when no rows match the filters", () => {
-    renderList({ rows: [] });
-    expect(screen.getByRole("heading", { name: /no projects yet/i })).toBeInTheDocument();
+  it("words the empty state by whether a filter is set", () => {
+    const { unmount } = renderList({ rows: [] });
+    expect(screen.getByRole("heading", { name: "No projects yet" })).toBeInTheDocument();
+    unmount();
+    renderList({ rows: [], search: "genomics" });
+    expect(screen.getByRole("heading", { name: "No matching projects" })).toBeInTheDocument();
   });
 
-  it("filters by status", () => {
-    const inactive: Project = {
-      ...project,
-      id: "project-002",
-      title: "Archived Project",
-      status: "INACTIVE",
-    };
-    renderList({ rows: [project, inactive], statusFilter: "INACTIVE" });
-    expect(screen.queryByRole("link", { name: project.title })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: inactive.title })).toBeInTheDocument();
+  it("describes the list as every project to Project readers", () => {
+    renderList({ canReadAll: true });
+    expect(screen.getByText("All projects.")).toBeInTheDocument();
   });
 
   it("surfaces an error state with a retry callback", () => {
     const onRetry = vi.fn();
     renderList({ error: new Error("boom"), onRetry });
-    expect(screen.getByText(/boom/)).toBeInTheDocument();
+    expect(screen.queryByText(/boom/)).toBeNull();
+    screen.getByRole("button", { name: "Try again" }).click();
+    expect(onRetry).toHaveBeenCalled();
   });
 });

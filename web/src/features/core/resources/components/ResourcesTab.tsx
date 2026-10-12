@@ -17,30 +17,59 @@
 
 "use client";
 
-import * as React from "react";
 import { useClusters } from "@/features/core/clusters/queries";
-import { Button } from "@/shared/ui/button";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/types.gen";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { formatNumber, formatSU } from "@/shared/format";
+import {
+  replaceShallowSearchParams,
+  useCanonicalParams,
+  useShallowSearchParams,
+} from "@/shared/hooks/useShallowSearchParams";
+import { queryUuid } from "@/shared/layout/nav";
+import { DataTable, type DataTableColumn, NameCell } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { UsageBar } from "@/shared/ui/UsageBar";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import * as React from "react";
 import { useResourceSummaries } from "../queries";
-import type { ResourceSummary } from "../schemas";
+import { CreateResourceDialog } from "./CreateResourceDialog";
+import { ResourceDetailDrawer } from "./ResourceDetailDrawer";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
 export function ResourcesTab() {
+  const ability = useAbility();
+  const canReadClusters = ability.can("read", "Cluster");
+  const canCreate = ability.can("write", "Allocation");
   const query = useResourceSummaries();
-  const clustersQuery = useClusters();
+  const clusters = useClusters(canReadClusters);
+  // Without Cluster read the cluster column and filter are omitted; a bare cluster id names nothing.
+  const clusterName = (id: string) =>
+    clusters.data?.find((c) => c.id === id)?.name ?? (clusters.isSuccess ? "Unknown cluster" : "—");
   const [search, setSearch] = React.useState("");
   const [clusterId, setClusterId] = React.useState("");
-  const [ratesFor, setRatesFor] = React.useState<ResourceSummary | null>(null);
-
-  const clusters = clustersQuery.data ?? [];
-  const clusterName = (id: string) => clusters.find((c) => c.id === id)?.name ?? id;
+  const params = useShallowSearchParams();
+  const detailId = queryUuid(params.get("resource")) ?? null;
+  const ratesId = queryUuid(params.get("rates")) ?? null;
+  // One drawer at a time: opening either closes the other.
+  const openDrawer = (key: "resource" | "rates", id: string | null) => {
+    const next = new URLSearchParams(params);
+    next.delete("resource");
+    next.delete("rates");
+    if (id) next.set(key, id);
+    replaceShallowSearchParams(next);
+  };
+  const setDetailId = (id: string | null) => openDrawer("resource", id);
+  const setRatesId = (id: string | null) => openDrawer("rates", id);
+  useCanonicalParams({ resource: detailId ?? undefined, rates: ratesId ?? undefined });
 
   const rows = query.data ?? [];
+  const clusterOptions = [...new Set(rows.map((row) => row.compute_cluster_id))]
+    .filter(Boolean)
+    .map((id) => [id, clusterName(id)] as const)
+    .sort(([, a], [, b]) => a.localeCompare(b));
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -50,24 +79,45 @@ export function ResourcesTab() {
     });
   }, [rows, search, clusterId]);
 
-  const columns: Array<DataTableColumn<ResourceSummary>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationResourceSummary>> = [
     {
       key: "name",
       header: "Resource",
       cell: (row) => (
         <div>
-          <div className="font-medium text-foreground">{row.name}</div>
-          <div className="text-xs text-muted-foreground">{row.resource_type}</div>
+          <NameCell text={row.name} className="font-medium text-foreground" />
+          <NameCell text={row.resource_type} className="text-xs text-muted-foreground" />
         </div>
       ),
     },
+    // Beside the name, so an open rates drawer never covers the triggers it swaps between.
     {
-      key: "cluster",
-      header: "Cluster",
+      key: "rates",
+      header: "Rates",
+      interactive: true,
       cell: (row) => (
-        <span className="text-sm text-foreground">{clusterName(row.compute_cluster_id)}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setRatesId(row.id)}
+          data-row-opener="rates"
+          aria-label={`Rates (${row.rate_count}) of ${row.name}`}
+        >
+          Rates ({row.rate_count})
+        </Button>
       ),
     },
+    ...(canReadClusters
+      ? [
+          {
+            key: "cluster",
+            header: "Cluster",
+            cell: (row: ComputeAllocationResourceSummary) => (
+              <NameCell text={clusterName(row.compute_cluster_id)} />
+            ),
+          },
+        ]
+      : []),
     {
       key: "allocation_count",
       header: "Allocations",
@@ -82,7 +132,7 @@ export function ResourcesTab() {
       align: "right",
       cell: (row) => (
         <span className="text-sm tabular-nums text-foreground">
-          {row.total_allocated.toLocaleString()}
+          {formatNumber(row.total_allocated)}
         </span>
       ),
     },
@@ -91,38 +141,7 @@ export function ResourcesTab() {
       header: "Used SU",
       align: "right",
       cell: (row) => (
-        <span className="text-sm tabular-nums text-foreground">
-          {row.total_used_su.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: "usage",
-      header: "Used %",
-      cell: (row) => {
-        const pct = (row.total_used_su / Math.max(1, row.total_allocated)) * 100;
-        return (
-          <div className="w-32" title={`${pct.toFixed(1)}% used`}>
-            <UsageBar
-              value={row.total_used_su}
-              max={Math.max(1, row.total_allocated)}
-              label={`${pct.toFixed(1)}%`}
-              ariaLabel={`${row.name} usage ${pct.toFixed(1)} percent`}
-              size="sm"
-            />
-          </div>
-        );
-      },
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "right",
-      interactive: true,
-      cell: (row) => (
-        <Button variant="outline" size="sm" onClick={() => setRatesFor(row)}>
-          Rates ({row.rate_count})
-        </Button>
+        <span className="text-sm tabular-nums text-foreground">{formatSU(row.total_used_su)}</span>
       ),
     },
   ];
@@ -130,19 +149,21 @@ export function ResourcesTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center">
-        <select
-          value={clusterId}
-          onChange={(e) => setClusterId(e.target.value)}
-          aria-label="Filter by cluster"
-          className="h-9 rounded-md border bg-background px-3 text-sm sm:w-56"
-        >
-          <option value="">All clusters</option>
-          {clusters.map((cluster) => (
-            <option key={cluster.id} value={cluster.id}>
-              {cluster.name}
-            </option>
-          ))}
-        </select>
+        {canReadClusters ? (
+          <select
+            value={clusterId}
+            onChange={(e) => setClusterId(e.target.value)}
+            aria-label="Filter by cluster"
+            className="h-9 rounded-md border bg-background px-3 text-sm sm:w-56"
+          >
+            <option value="">All clusters</option>
+            {clusterOptions.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <Input
           type="search"
           placeholder="Search resources"
@@ -151,25 +172,42 @@ export function ResourcesTab() {
           aria-label="Search resources"
           className="sm:w-72"
         />
+        {canCreate ? (
+          <div className="sm:ml-auto">
+            <CreateResourceDialog clusters={clusters.data} />
+          </div>
+        ) : null}
       </div>
 
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
-        <EmptyState heading="No resources registered." />
+        <EmptyState heading="No resources registered" />
       ) : filtered.length === 0 ? (
-        <EmptyState heading="No resources match these filters." />
+        <EmptyState heading="No resources match these filters" />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          caption="Resources"
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => setDetailId(row.id)}
+        />
       )}
 
-      <ResourcesRatesDrawer
-        resourceId={ratesFor?.id ?? null}
-        resourceName={ratesFor?.name ?? null}
+      <ResourceDetailDrawer
+        resourceId={detailId}
         onOpenChange={(open) => {
-          if (!open) setRatesFor(null);
+          if (!open) setDetailId(null);
+        }}
+      />
+      <ResourcesRatesDrawer
+        resourceId={ratesId}
+        resourceName={rows.find((row) => row.id === ratesId)?.name ?? null}
+        onOpenChange={(open) => {
+          if (!open) setRatesId(null);
         }}
       />
     </div>

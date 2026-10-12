@@ -17,34 +17,48 @@
 
 "use client";
 
-import type { Project } from "../schemas";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { ProjectResponse } from "@/generated/core/types.gen";
+import { statusLabel } from "@/shared/ui/FormDialog";
+import { emailBeside } from "@/shared/users-admin/displayName";
+import { originationLabel } from "../format";
 
 export type ProjectOverviewTabProps = {
-  project: Project;
+  project: ProjectResponse;
 };
 
 export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
   return (
-    <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
+    <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
       <dt className="text-muted-foreground">Project ID</dt>
-      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.id}</dd>
+      <dd className="font-mono text-foreground sm:before:font-sans sm:before:content-[':_']">
+        {project.id}
+      </dd>
 
       <dt className="text-muted-foreground">Originated ID</dt>
-      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.originated_id || "—"}</dd>
+      <dd className="font-mono text-foreground [overflow-wrap:anywhere] sm:before:font-sans sm:before:content-[':_']">
+        {project.originated_id || "—"}
+      </dd>
 
       <dt className="text-muted-foreground">Title</dt>
-      <dd className="text-foreground before:content-[':_']">{project.title}</dd>
+      <dd className="text-foreground [overflow-wrap:anywhere] sm:before:content-[':_']">
+        {project.title}
+      </dd>
 
       <dt className="text-muted-foreground">Origination</dt>
-      <dd className="text-foreground before:content-[':_']">{project.origination}</dd>
+      <dd className="text-foreground sm:before:content-[':_']">
+        {originationLabel(project.origination)}
+      </dd>
 
       <dt className="text-muted-foreground">PI</dt>
-      <dd className="text-foreground before:content-[':_']">
+      <dd className="text-foreground sm:before:content-[':_']">
         {project.project_pi_display_name ? (
           <>
             {project.project_pi_display_name}
-            {project.project_pi_email ? (
-              <span className="ml-2 text-xs text-muted-foreground">({project.project_pi_email})</span>
+            {emailBeside(project.project_pi_display_name, project.project_pi_email) ? (
+              <span className="ml-2 text-xs text-muted-foreground">
+                ({project.project_pi_email})
+              </span>
             ) : null}
           </>
         ) : (
@@ -53,10 +67,12 @@ export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
       </dd>
 
       <dt className="text-muted-foreground">Status</dt>
-      <dd className="text-foreground before:content-[':_']">{project.status}</dd>
+      <dd className="text-foreground sm:before:content-[':_']">{statusLabel(project.status)}</dd>
 
       <dt className="text-muted-foreground">Created</dt>
-      <dd className="text-foreground before:content-[':_']">{project.created_time}</dd>
+      <dd className="text-foreground sm:before:content-[':_']">
+        <Timestamp iso={project.created_time} />
+      </dd>
     </dl>
   );
 }

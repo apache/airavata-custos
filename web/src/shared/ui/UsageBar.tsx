@@ -29,9 +29,9 @@ export type UsageBarProps = {
 
 function thresholdColor(ratio: number): string {
   // 100%+ flips to green per Figma — full bars read "done", not "danger".
-  if (ratio >= 1) return "bg-[color:var(--custos-green-500)]";
-  if (ratio >= 0.9) return "bg-[color:var(--custos-red-500)]";
-  if (ratio >= 0.75) return "bg-[color:var(--custos-amber-500)]";
+  if (ratio >= 1) return "bg-[color:var(--fill-ok)]";
+  if (ratio >= 0.9) return "bg-[color:var(--fill-error)]";
+  if (ratio >= 0.75) return "bg-[color:var(--fill-warn)]";
   return "bg-brand";
 }
 
@@ -108,10 +108,8 @@ export function SharedUsageBar({
         className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
       >
         <div className="h-full bg-brand" style={{ width: `${minePct}%` }} />
-        {/* Lighter brand-blue hatch for rest-of-pool segment — no semantic token
-            exists for "brand tint between --brand-tint and --brand". */}
         <div
-          className="h-full bg-[color:var(--custos-blue-300)] bg-[image:repeating-linear-gradient(45deg,transparent_0_4px,rgba(255,255,255,0.45)_4px_8px)]"
+          className="h-full bg-[color:var(--chart-1-soft)] bg-[image:repeating-linear-gradient(45deg,transparent_0_4px,rgba(255,255,255,0.45)_4px_8px)]"
           style={{ width: `${restPct}%` }}
         />
       </div>

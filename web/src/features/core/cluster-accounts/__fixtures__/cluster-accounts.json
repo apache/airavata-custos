@@ -1,69 +1,69 @@
 [
   {
-    "id": "ccu-pending-1",
-    "compute_cluster_id": "cluster-a",
-    "user_id": "user-jane-doe",
+    "id": "03000011-0000-4000-8000-000003000011",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
+    "user_id": "24000012-0000-4000-8000-000024000012",
     "local_username": "jdoe",
     "access_level": "USER",
-    "provisioned_at": null,
     "approval_status": "PENDING",
     "display_name": "Jane Doe",
     "email": "jdoe@example.edu",
-    "cluster_name": "cluster-a"
+    "cluster_name": "ClusterA",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-pending-2",
-    "compute_cluster_id": "cluster-b",
-    "user_id": "user-marcus-lee",
+    "id": "03000012-0000-4000-8000-000003000012",
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002",
+    "user_id": "24000017-0000-4000-8000-000024000017",
     "local_username": "mlee",
     "access_level": "USER",
-    "provisioned_at": null,
     "approval_status": "PENDING",
     "display_name": "Marcus Lee",
     "email": "mlee@example.edu",
-    "cluster_name": "cluster-b"
+    "cluster_name": "ClusterB",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-approved-1",
-    "compute_cluster_id": "cluster-a",
-    "user_id": "user-wei-zhang",
+    "id": "03000006-0000-4000-8000-000003000006",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
+    "user_id": "24000028-0000-4000-8000-000024000028",
     "local_username": "wzhang",
     "access_level": "USER",
-    "provisioned_at": null,
     "approval_status": "APPROVED",
     "reviewed_at": "2026-09-29T14:00:00Z",
-    "reviewed_by": "user-admin",
+    "reviewed_by": "24000005-0000-4000-8000-000024000005",
     "display_name": "Wei Zhang",
     "email": "wzhang@example.edu",
-    "cluster_name": "cluster-a"
+    "cluster_name": "ClusterA",
+    "provisioned_at": null
   },
   {
-    "id": "ccu-active-1",
-    "compute_cluster_id": "cluster-a",
-    "user_id": "user-tom-becker",
+    "id": "03000005-0000-4000-8000-000003000005",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
+    "user_id": "24000027-0000-4000-8000-000024000027",
     "local_username": "tbecker",
     "access_level": "USER",
     "provisioned_at": "2026-09-27T09:30:00Z",
     "approval_status": "APPROVED",
     "reviewed_at": "2026-09-26T16:10:00Z",
-    "reviewed_by": "user-admin",
+    "reviewed_by": "24000005-0000-4000-8000-000024000005",
     "display_name": "Tom Becker",
     "email": "tbecker@example.edu",
-    "cluster_name": "cluster-a"
+    "cluster_name": "ClusterA"
   },
   {
-    "id": "ccu-denied-1",
-    "compute_cluster_id": "cluster-b",
-    "user_id": "user-sam-okafor",
+    "id": "03000010-0000-4000-8000-000003000010",
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002",
+    "user_id": "24000024-0000-4000-8000-000024000024",
     "local_username": "sokafor",
     "access_level": "USER",
-    "provisioned_at": null,
     "approval_status": "DENIED",
     "reviewed_at": "2026-09-24T11:00:00Z",
-    "reviewed_by": "user-admin",
+    "reviewed_by": "24000005-0000-4000-8000-000024000005",
     "review_note": "Not on the approved collaborator list.",
     "display_name": "Sam Okafor",
     "email": "sokafor@example.edu",
-    "cluster_name": "cluster-b"
+    "cluster_name": "ClusterB",
+    "provisioned_at": null
   }
 ]

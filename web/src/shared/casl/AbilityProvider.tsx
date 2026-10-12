@@ -17,10 +17,13 @@
 
 "use client";
 
+import { usePrivileges } from "@/features/core/identity/queries";
+import { routeLabel } from "@/shared/layout/nav";
+import { DetailLoading } from "@/shared/ui/Loading";
 import { AbilityProvider as CaslAbilityProvider, useAbility as useCaslAbility } from "@casl/react";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { type ReactNode, useMemo } from "react";
-import { usePrivileges } from "@/features/core/identity/queries";
 import { type AppAbility, defineAbilitiesFor } from "./abilities";
 
 export function AbilityProvider({ children }: { children: ReactNode }) {
@@ -34,5 +37,20 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAbility(): AppAbility {
-  return useCaslAbility() as AppAbility;
+  return useCaslAbility();
+}
+
+// Page content, whose reads are gated on abilities, waits for /user/privileges: the session list
+// can be stale, and a read it still allows would 403.
+export function PrivilegesLoaded({ children }: { children: ReactNode }) {
+  const path = usePathname();
+  if (!usePrivileges().isPending) return children;
+  const parts = path.split("/");
+  // The section's label is the h1 every page under it shows (AMIE, Users & permissions).
+  // "/" redirects to Allocations, whose heading it shows meanwhile.
+  const title =
+    path === "/"
+      ? routeLabel("/allocations")
+      : parts.map((_, i) => routeLabel(parts.slice(0, i + 1).join("/"))).find(Boolean);
+  return <DetailLoading title={title} />;
 }

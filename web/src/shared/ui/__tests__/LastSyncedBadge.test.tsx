@@ -43,15 +43,13 @@ describe("LastSyncedBadge", () => {
     expect(container.firstElementChild?.getAttribute("data-tint")).toBe("fresh");
   });
 
-  it("flips to stale tint between 1h and 24h and applies the amber color token", () => {
+  it("flips to stale tint between 1h and 24h and applies the warn tone", () => {
     const syncedAt = new Date(NOW.getTime() - 3 * 60 * 60 * 1000);
     const { container } = render(<LastSyncedBadge syncedAt={syncedAt} now={NOW} />);
     const badge = container.firstElementChild;
     expect(badge?.getAttribute("data-tint")).toBe("stale");
-    // Amber tint is sourced from `--custos-amber-*` semantic tokens; assert
-    // the class is present so a stylesheet refactor that drops it fails here.
-    expect(badge?.className ?? "").toMatch(/var\(--custos-amber-50\)/);
-    expect(badge?.className ?? "").toMatch(/var\(--custos-amber-700\)/);
+    expect(badge?.className ?? "").toMatch(/var\(--tone-warn-bg\)/);
+    expect(badge?.className ?? "").toMatch(/var\(--tone-warn-fg\)/);
   });
 
   it("does not stay fresh once the sync crosses the 1h boundary", () => {

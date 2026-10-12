@@ -64,13 +64,9 @@ export function ForecastBar({
 
   const exhaustBeforeEnd = exhaust && end ? exhaust.getTime() < end.getTime() : null;
   const markerTone =
-    exhaustBeforeEnd === true
-      ? "bg-[color:var(--custos-red-500)]"
-      : "bg-[color:var(--custos-gray-500)]";
+    exhaustBeforeEnd === true ? "bg-[color:var(--fill-error)]" : "bg-muted-foreground";
   const captionTone =
-    exhaustBeforeEnd === true
-      ? "text-[color:var(--custos-red-700)]"
-      : "text-muted-foreground";
+    exhaustBeforeEnd === true ? "text-[color:var(--tone-error-fg)]" : "text-muted-foreground";
 
   let caption: string | null = null;
   if (exhaust) {
@@ -92,9 +88,7 @@ export function ForecastBar({
           projected={projected}
           capacity={capacity}
           ariaLabel={
-            label
-              ? `${label}: ${used} used of ${capacity}, projected ${projected}`
-              : undefined
+            label ? `${label}: ${used} used of ${capacity}, projected ${projected}` : undefined
           }
         />
         <span

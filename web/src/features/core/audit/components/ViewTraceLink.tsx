@@ -17,15 +17,15 @@
 
 "use client";
 
-import { ExternalLinkIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import type * as React from "react";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { ExternalLinkIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import type * as React from "react";
 import { shortHex } from "../utils";
 
 export type ViewTraceLinkProps = {
@@ -35,9 +35,8 @@ export type ViewTraceLinkProps = {
 };
 
 /**
- * Sanctioned cross-feature export (ADR-0004).
- * This is the ONE primitive that other features may import from `core/audit`.
- * Phase 7 (`features/connectors/amie`) imports it for packet event rows.
+ * Sanctioned cross-feature export (ADR-0004), alongside the `primitives/` pills
+ * and `eventLabels`.
  * Do NOT add additional cross-feature exports to this folder.
  */
 export function ViewTraceLink({ traceId, spanId, variant = "text" }: ViewTraceLinkProps) {
@@ -62,6 +61,7 @@ export function ViewTraceLink({ traceId, spanId, variant = "text" }: ViewTraceLi
     : `/admin/traces/${encodeURIComponent(traceId)}${spanId ? `?span=${encodeURIComponent(spanId)}` : ""}`;
 
   const handleClick = (e: React.MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     if (onAdminTraces) replaceShallowSearchParams(params);
     else router.push(target);
@@ -87,9 +87,9 @@ export function ViewTraceLink({ traceId, spanId, variant = "text" }: ViewTraceLi
     <a
       href={target}
       onClick={handleClick}
-      className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+      className="text-xs text-link underline-offset-4 hover:underline"
     >
-      View trace →
+      View trace <span aria-hidden="true">→</span>
     </a>
   );
 }

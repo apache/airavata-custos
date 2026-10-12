@@ -25,7 +25,7 @@ test.describe("admin AMIE inbox", () => {
   test("admin lands on the inbox, sees the trend chart and at least one row", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/amie/packets");
-    await expect(page.getByRole("heading", { name: /AMIE packet inbox/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "AMIE", level: 1 })).toBeVisible({
       timeout: 20_000,
     });
     await expect(page.getByLabel(/AMIE packets per day/i)).toBeVisible({ timeout: 15_000 });
@@ -36,7 +36,7 @@ test.describe("admin AMIE inbox", () => {
   test("filtering by FAILED narrows the list to failed packets only", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/amie/packets");
-    await expect(page.getByRole("heading", { name: /AMIE packet inbox/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "AMIE", level: 1 })).toBeVisible({
       timeout: 20_000,
     });
 
@@ -52,7 +52,7 @@ test.describe("admin AMIE inbox", () => {
   test("axe: no serious or critical violations on the inbox", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/amie/packets");
-    await expect(page.getByRole("heading", { name: /AMIE packet inbox/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "AMIE", level: 1 })).toBeVisible({
       timeout: 20_000,
     });
     await page.waitForLoadState("networkidle");

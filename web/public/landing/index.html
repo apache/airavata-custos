@@ -22,9 +22,22 @@
   The logo is the shared brand asset at /brand/logo/; the rest is
   self-contained.
 -->
+<!doctype html>
+<html lang="en">
 <title>Custos Portal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<script>
+    // Same theme as the portal: the stored custos.theme, light by default, the OS only for "system".
+    try {
+        var theme = localStorage.getItem("custos.theme");
+        if (theme !== "system") {
+            theme = theme === "dark" ? "dark" : "light";
+            document.documentElement.dataset.theme = theme;
+            document.documentElement.style.colorScheme = theme;
+        }
+    } catch (e) {}
+</script>
 <style>
     :root {
         /* Brand. The mark's own gradient runs #F83700 to #FE8C00; the tokens
@@ -300,7 +313,10 @@
         margin: 48px 0 0;
     }
 
+    /* The figure reads above its term. */
     .stat {
+        display: flex;
+        flex-direction: column-reverse;
         background: var(--panel);
         padding: 18px 20px;
         border-top: 2px solid transparent;
@@ -311,15 +327,16 @@
     .stat:nth-child(3) { border-top-color: #FC7300; }
     .stat:last-child { border-top-color: var(--brand-warm); }
 
-    .stat b {
+    .stat dd {
         display: block;
+        margin: 0;
         font-size: 24px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         letter-spacing: -0.01em;
     }
 
-    .stat span {
+    .stat dt {
         display: block;
         margin-top: 2px;
         font-size: 12px;
@@ -516,6 +533,14 @@
     </div>
 </header>
 
+<!-- Shows the reason a sign-in attempt failed when the flow redirects back here
+     with ?authError, until dismissed: top-right over the page, in flow under the
+     header on phones so it never covers the logo. Styled and scripted after the footer. -->
+<div id="auth-banner">
+    <p id="auth-banner-text" role="alert"></p>
+    <button type="button" id="auth-banner-dismiss" aria-label="Dismiss">&times;</button>
+</div>
+
 <main id="content">
     <div class="wrap hero">
         <p class="eyebrow mono">Research computing platform</p>
@@ -532,10 +557,10 @@
         </div>
 
         <dl class="stats mono">
-            <div class="stat"><b>128</b><span>GPUs</span></div>
-            <div class="stat"><b>4,096</b><span>CPU cores</span></div>
-            <div class="stat"><b>48 TB</b><span>System memory</span></div>
-            <div class="stat"><b>2 PB</b><span>Shared storage</span></div>
+            <div class="stat"><dt>GPUs</dt><dd>128</dd></div>
+            <div class="stat"><dt>CPU cores</dt><dd>4,096</dd></div>
+            <div class="stat"><dt>System memory</dt><dd>48 TB</dd></div>
+            <div class="stat"><dt>Shared storage</dt><dd>2 PB</dd></div>
         </dl>
     </div>
 
@@ -686,9 +711,6 @@
     </div>
 </footer>
 
-<!-- Shows the reason a sign-in attempt failed when the flow redirects back here
-     with ?authError, then auto-dismisses. Kept self-contained like the rest. -->
-<div id="auth-banner" role="alert" aria-live="polite"></div>
 <style>
     #auth-banner {
         position: fixed;
@@ -706,12 +728,36 @@
         line-height: 1.4;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
     }
+    #auth-banner p {
+        margin: 0;
+    }
+    #auth-banner button {
+        flex: none;
+        margin: -4px -6px -4px 0;
+        padding: 0 6px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: inherit;
+        font: inherit;
+        font-size: 18px;
+        line-height: 1.4;
+        cursor: pointer;
+    }
+    #auth-banner button:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 1px;
+    }
     #auth-banner.show {
-        display: block;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
         animation: auth-banner-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     #auth-banner.hide {
-        display: block;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
         animation: auth-banner-out 360ms ease both;
     }
     @keyframes auth-banner-in {
@@ -721,6 +767,13 @@
     @keyframes auth-banner-out {
         from { opacity: 1; transform: translateY(0); }
         to { opacity: 0; transform: translateY(-14px); }
+    }
+    @media (max-width: 480px) {
+        #auth-banner {
+            position: static;
+            max-width: none;
+            margin: 12px 16px 0;
+        }
     }
     @media (prefers-reduced-motion: reduce) {
         #auth-banner.show,
@@ -750,18 +803,26 @@
     (function () {
         var MESSAGES = {
             session_expired: "Your session expired. Sign in again to continue.",
-            identity_not_linked: "Your identity isn't linked to a portal user yet. Ask an administrator to link it.",
-            AccessDenied: "Your account isn't permitted to sign in.",
+            identity_not_linked: "Your sign-in is not linked to a portal account. Ask an administrator to check your account.",
+            user_disabled: "Your account is not active. Ask an administrator to reactivate it.",
+            AccessDenied: "Your account isn't permitted to sign in. Ask an administrator for access.",
             Configuration: "Sign-in is misconfigured. Contact your administrator.",
             OAuthCallback: "Sign-in didn't complete. Try again.",
             OAuthSignin: "Sign-in didn't complete. Try again.",
             Verification: "Sign-in didn't complete. Try again."
         };
         var params = new URLSearchParams(window.location.search);
+        // Signing in again returns to the page the session expired on; the sign-in route keeps it same-origin.
+        var callbackUrl = params.get("callbackUrl");
+        if (callbackUrl) {
+            document.querySelectorAll('a[href="/api/auth/federated-sign-in"]').forEach(function (a) {
+                a.href = "/api/auth/federated-sign-in?callbackUrl=" + encodeURIComponent(callbackUrl);
+            });
+        }
         var code = params.get("authError");
         if (!code) return;
         var el = document.getElementById("auth-banner");
-        el.textContent = MESSAGES[code] || "Sign-in failed. Try again.";
+        document.getElementById("auth-banner-text").textContent = MESSAGES[code] || "Sign-in failed. Try again.";
         params.delete("authError");
         var qs = params.toString();
         window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
@@ -772,16 +833,18 @@
         function reveal() {
             requestAnimationFrame(function () {
                 el.classList.add("show");
-                window.setTimeout(function () {
-                    el.classList.remove("show");
-                    el.classList.add("hide");
-                    window.setTimeout(function () {
-                        el.style.display = "none";
-                        el.classList.remove("hide");
-                    }, 360);
-                }, 6000);
             });
         }
+        document.getElementById("auth-banner-dismiss").addEventListener("click", function () {
+            var signIn = document.querySelector('a[href^="/api/auth/federated-sign-in"]');
+            if (signIn) signIn.focus();
+            el.classList.remove("show");
+            el.classList.add("hide");
+            window.setTimeout(function () {
+                el.style.display = "none";
+                el.classList.remove("hide");
+            }, 360);
+        });
         if (document.readyState === "complete") {
             reveal();
         } else {

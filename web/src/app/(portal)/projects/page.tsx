@@ -15,8 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { ProjectsListContainer } from "./ProjectsListContainer";
 
+export const metadata = pageMetadata("/projects");
+
 export default function ProjectsPage() {
-  return <ProjectsListContainer />;
+  return (
+    <>
+      <DeclaredParams keys={["q", "status", "page"]} />
+      <ProjectsListContainer />
+    </>
+  );
 }

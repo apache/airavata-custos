@@ -24,18 +24,21 @@ import {
   CircleXIcon,
   ClockIcon,
   type LucideIcon,
+  RotateCcwIcon,
   RotateCwIcon,
 } from "lucide-react";
 import type { ListStatus } from "../../types";
 import { STATUS_WORDS } from "../../utils";
 
-export type PillStatus = ListStatus | "ok" | "error" | "muted";
+export type PillStatus = ListStatus | "ok" | "error" | "past" | "muted";
 
 export type StatusPillProps = {
   status: PillStatus;
   label?: string;
   size?: "sm" | "md";
   className?: string;
+  // A live region, for a status that changes in place; list pills stay plain text.
+  live?: boolean;
 };
 
 const STYLES: Record<PillStatus, { icon: LucideIcon; className: string; word: string }> = {
@@ -69,6 +72,11 @@ const STYLES: Record<PillStatus, { icon: LucideIcon; className: string; word: st
     className: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
     word: STATUS_WORDS.done,
   },
+  past: {
+    icon: RotateCcwIcon,
+    className: "bg-muted text-muted-foreground",
+    word: "Retried",
+  },
   muted: {
     icon: CircleDashedIcon,
     className: "border border-dashed border-border bg-muted text-muted-foreground",
@@ -76,12 +84,13 @@ const STYLES: Record<PillStatus, { icon: LucideIcon; className: string; word: st
   },
 };
 
-export function StatusPill({ status, label, size = "md", className }: StatusPillProps) {
+export function StatusPill({ status, label, size = "md", className, live }: StatusPillProps) {
   const { icon: Icon, className: tone, word } = STYLES[status];
   const text = label ?? word;
+  const Pill = live ? "output" : "span";
   return (
-    <output
-      aria-label={`Status: ${text}`}
+    <Pill
+      aria-label={live ? `Status: ${text}` : undefined}
       className={cn(
         "inline-flex items-center gap-1 rounded-md font-semibold whitespace-nowrap leading-none tabular-nums",
         size === "sm" ? "h-5 px-1.5 text-[11px]" : "h-[22px] px-2 text-xs",
@@ -89,8 +98,8 @@ export function StatusPill({ status, label, size = "md", className }: StatusPill
         className,
       )}
     >
-      <Icon className={size === "sm" ? "size-3" : "size-3.5"} aria-hidden="true" />
+      <Icon className={cn("shrink-0", size === "sm" ? "size-3" : "size-3.5")} aria-hidden="true" />
       {text}
-    </output>
+    </Pill>
   );
 }

@@ -17,77 +17,67 @@
 
 "use client";
 
-import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import * as React from "react";
+import { JsonBlock } from "@/features/core/audit/components/primitives/JsonBlock";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { PacketResponse } from "@/generated/amie/types.gen";
 import { cn } from "@/lib/utils";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { enumLabel } from "@/shared/format";
+import { ErrorState, QueryErrorState } from "@/shared/ui/ErrorState";
 import { CenteredSpinner } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
-import { Button } from "@/shared/ui/button";
-import type { Packet, PacketEvent } from "../types";
-import { ageHoursOf, formatDate } from "../utils";
+import { keepFocus } from "@/shared/ui/focus";
+import { Link } from "@/shared/ui/link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import * as React from "react";
+import { usePacket, usePacketAudits, usePacketEvents } from "../queries";
+import { ageHoursOf } from "../utils";
+import { PacketAuditList } from "./PacketAuditList";
 import { PacketEventsTable } from "./PacketEventsTable";
 import { PacketStatusBadge } from "./PacketStatusBadge";
 
-// react-json-view-lite + its stylesheet is ~110 kB; load only when the user
-// opens the Raw JSON tab so the inbox first paint stays small.
-const PacketRawJson = dynamic(() => import("./PacketRawJson"), {
-  ssr: false,
-  loading: () => <CenteredSpinner label="Loading JSON viewer" />,
-});
-
-function entityHref(type: string, id: string): string | null {
-  if (type === "project") return `/allocations?project=${encodeURIComponent(id)}`;
-  return null;
+// The payload indented when it parses, else as received.
+function rawText(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
 }
 
 export type PacketDetailDrawerProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  packet: Packet | undefined;
-  events: PacketEvent[];
-  isLoading: boolean;
-  eventsLoading: boolean;
-  error: Error | null;
-  canRetry: boolean;
-  canResolve: boolean;
-  onRetry: () => void;
-  onResolve: (reason: string) => void;
-  onRefresh: () => void;
+  packetId: string | undefined;
+  onClose: () => void;
 };
 
-const TAB_VALUES = ["overview", "raw", "timeline", "linked"] as const;
-type TabValue = (typeof TAB_VALUES)[number];
+type StateStep = { label: string; reached: boolean; at: string | undefined };
 
-const STATE_BREADCRUMB: Array<{
-  key: string;
-  label: string;
-  whenAt: (p: Packet) => string | undefined;
-}> = [
-  { key: "received", label: "NEW", whenAt: (p) => p.received_at },
-  { key: "decoded", label: "DECODED", whenAt: (p) => p.decoded_at },
-  {
-    key: "terminal",
-    label: "PROCESSED | FAILED",
-    whenAt: (p) =>
-      p.status === "PROCESSED"
-        ? p.processed_at
-        : p.status === "FAILED"
-          ? p.updated_at
-          : undefined,
-  },
-];
+// The last step names the state the packet settled in, after DECODED if it got that far;
+// until then, the expected PROCESSED.
+// Only PROCESSED has a time of its own: updated_at is not moved by a refusal, a hold or a failure.
+function stateSteps(p: PacketResponse): StateStep[] {
+  const settled = p.status !== "NEW" && p.status !== "DECODED";
+  const decoded: StateStep = { label: "DECODED", reached: Boolean(p.decoded_at), at: p.decoded_at };
+  return [
+    { label: "NEW", reached: true, at: p.received_at },
+    ...(settled && !decoded.reached ? [] : [decoded]),
+    settled
+      ? {
+          label: p.status,
+          reached: true,
+          at: p.status === "PROCESSED" ? p.processed_at : undefined,
+        }
+      : { label: "PROCESSED", reached: false, at: undefined },
+  ];
+}
 
-function StateMachineBreadcrumb({ packet }: { packet: Packet }) {
+export function StateMachineBreadcrumb({ packet }: { packet: PacketResponse }) {
+  const steps = stateSteps(packet);
   return (
     <ol className="flex flex-wrap items-center gap-2 text-xs" aria-label="State machine">
-      {STATE_BREADCRUMB.map((step, i) => {
-        const at = step.whenAt(packet);
-        const reached = Boolean(at);
+      {steps.map(({ label, reached, at }, i) => {
         return (
-          <React.Fragment key={step.key}>
+          <React.Fragment key={label}>
             <li
               className={cn(
                 "rounded-md border px-2 py-1",
@@ -96,14 +86,12 @@ function StateMachineBreadcrumb({ packet }: { packet: Packet }) {
                   : "border-border bg-muted/30 text-muted-foreground",
               )}
             >
-              <span className="font-medium">{step.label}</span>
-              {reached ? (
-                <time className="ml-2 tabular-nums text-muted-foreground" dateTime={at}>
-                  {formatDate(at)}
-                </time>
+              <span className="font-medium">{enumLabel(label)}</span>
+              {at ? (
+                <Timestamp iso={at} className="ml-2 tabular-nums text-muted-foreground" />
               ) : null}
             </li>
-            {i < STATE_BREADCRUMB.length - 1 ? <span aria-hidden="true">→</span> : null}
+            {i < steps.length - 1 ? <span aria-hidden="true">→</span> : null}
           </React.Fragment>
         );
       })}
@@ -111,7 +99,21 @@ function StateMachineBreadcrumb({ packet }: { packet: Packet }) {
   );
 }
 
-function OverviewTab({ packet }: { packet: Packet }) {
+function HeldReplyNotice() {
+  const ability = useAbility();
+  return (
+    <div className="rounded-md bg-[color:var(--tone-warn-bg)] p-3 text-sm text-[color:var(--tone-warn-fg)]">
+      The reply to ACCESS is held on the cluster account.{" "}
+      {ability.can("read", "Cluster") ? (
+        <Link href="/admin/users/cluster-accounts?status=ALL" className="font-medium underline">
+          Cluster accounts
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+function OverviewTab({ packet }: { packet: PacketResponse }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -123,215 +125,100 @@ function OverviewTab({ packet }: { packet: Packet }) {
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <dt className="text-muted-foreground">Source</dt>
         <dd>{packet.source}</dd>
-        <dt className="text-muted-foreground">Retries</dt>
+        <dt className="text-muted-foreground">Failed attempts</dt>
         <dd>{packet.retries}</dd>
         <dt className="text-muted-foreground">Received</dt>
-        <dd className="tabular-nums">{formatDate(packet.received_at)}</dd>
+        <dd className="tabular-nums">
+          <Timestamp iso={packet.received_at} />
+        </dd>
         <dt className="text-muted-foreground">Decoded</dt>
-        <dd className="tabular-nums">{formatDate(packet.decoded_at)}</dd>
+        <dd className="tabular-nums">
+          {packet.decoded_at ? <Timestamp iso={packet.decoded_at} /> : "—"}
+        </dd>
         <dt className="text-muted-foreground">Processed</dt>
-        <dd className="tabular-nums">{formatDate(packet.processed_at)}</dd>
-        <dt className="text-muted-foreground">Updated</dt>
-        <dd className="tabular-nums">{formatDate(packet.updated_at)}</dd>
+        <dd className="tabular-nums">
+          {packet.processed_at ? <Timestamp iso={packet.processed_at} /> : "—"}
+        </dd>
       </dl>
-      {packet.status === "WAITING_APPROVAL" ? (
-        <div className="rounded-md bg-[color:var(--tone-warn-bg)] p-3 text-sm text-[color:var(--tone-warn-fg)]">
-          The reply to ACCESS is held until an admin reviews the cluster account.{" "}
-          <Link href="/admin/users/cluster-accounts" className="font-medium underline">
-            Review cluster accounts
-          </Link>
-        </div>
-      ) : null}
+      {packet.status === "WAITING_APPROVAL" ? <HeldReplyNotice /> : null}
       {packet.status === "REFUSED" ? (
         <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
           An admin denied the cluster account. ACCESS was sent a failure with the reason.
         </div>
       ) : null}
-      {packet.last_error ? (
-        <div className="rounded-md border border-[color:var(--custos-red-200)] bg-[color:var(--custos-red-50)] p-3 text-sm text-[color:var(--custos-red-700)]">
+      {/* The server keeps the last error after a later attempt succeeds. */}
+      {packet.last_error && packet.status !== "PROCESSED" ? (
+        <div className="rounded-md border border-[color:var(--banner-error-border)] bg-[color:var(--banner-error-bg)] p-3 text-sm text-[color:var(--banner-error-fg)]">
           <strong>Last error:</strong> {packet.last_error}
         </div>
       ) : null}
-      {packet.decoded_payload ? (
-        <section aria-labelledby="amie-decoded-heading" className="space-y-2">
-          <h3 id="amie-decoded-heading" className="text-sm font-semibold">
-            Decoded payload
-          </h3>
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 rounded-md border bg-muted/20 p-3 text-xs">
-            {Object.entries(packet.decoded_payload).map(([key, value]) => (
-              <React.Fragment key={key}>
-                <dt className="text-muted-foreground">{key}</dt>
-                <dd className="break-all">
-                  {typeof value === "object" ? JSON.stringify(value) : String(value)}
-                </dd>
-              </React.Fragment>
-            ))}
-          </dl>
-        </section>
-      ) : null}
     </div>
   );
 }
 
-function RawJsonTab({ packet }: { packet: Packet }) {
-  if (!packet.raw_json) {
-    return <p className="text-sm text-muted-foreground">No raw payload available.</p>;
-  }
-  return <PacketRawJson rawJson={packet.raw_json} />;
-}
-
-function LinkedEntityTab({ packet }: { packet: Packet }) {
-  if (!packet.linked_entity) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        This packet is not yet linked to a domain entity. Use the reconciliation queue to link it
-        manually.
-      </p>
-    );
-  }
-  const href = entityHref(packet.linked_entity.type, packet.linked_entity.id);
-  return (
-    <div className="space-y-2 text-sm">
-      <p className="text-muted-foreground">Linked entity</p>
-      <p>
-        <span className="font-medium">{packet.linked_entity.type}</span> ·{" "}
-        <span className="font-mono">
-          {packet.linked_entity.display_id ?? packet.linked_entity.id}
-        </span>
-      </p>
-      {href ? (
-        <Link href={href} className="text-brand hover:underline">
-          View in portal →
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
-export function PacketDetailDrawer({
-  open,
-  onOpenChange,
-  packet,
-  events,
-  isLoading,
-  eventsLoading,
-  error,
-  canRetry,
-  canResolve,
-  onRetry,
-  onResolve,
-  onRefresh,
-}: PacketDetailDrawerProps) {
-  const [tab, setTab] = React.useState<TabValue>("overview");
-  const [resolveOpen, setResolveOpen] = React.useState(false);
-  const [reason, setReason] = React.useState("");
-
-  React.useEffect(() => {
-    if (!open) {
-      setTab("overview");
-      setResolveOpen(false);
-      setReason("");
-    }
-  }, [open]);
+export function PacketDetailDrawer({ packetId, onClose }: PacketDetailDrawerProps) {
+  const query = usePacket(packetId);
+  const packet = query.data;
+  const events = usePacketEvents(packet?.id);
+  const audits = usePacketAudits(packet?.id);
+  const tabList = React.useRef<HTMLDivElement>(null);
+  // The retried error state unmounts with its button; focus stays on the tab it reloaded.
+  const reload = (q: { refetch: () => unknown }) => () => {
+    keepFocus(() => tabList.current?.querySelector<HTMLElement>('[aria-selected="true"]') ?? null);
+    q.refetch();
+  };
 
   return (
     <SideDrawer
-      open={open}
-      onOpenChange={onOpenChange}
+      open={packetId != null}
+      recordKey={packetId}
+      onOpenChange={(open) => (open ? null : onClose())}
       width="lg"
       title={packet ? `Packet ${packet.amie_id}` : "Packet"}
       description={packet ? `${packet.type} · ${packet.id}` : undefined}
     >
-      {isLoading ? (
+      {query.isLoading ? (
         <CenteredSpinner label="Loading packet" />
-      ) : error ? (
-        <ErrorState message={error.message ?? "Failed to load packet"} onRetry={onRefresh} />
-      ) : !packet ? (
-        <p className="text-sm text-muted-foreground">Packet not found.</p>
-      ) : (
-        <div className="space-y-5">
-          <TabsPrimitive.Root
-            value={tab}
-            onValueChange={(v) => typeof v === "string" && setTab(v as TabValue)}
-          >
-            <TabsPrimitive.List className="flex gap-1 border-b border-border/80">
-              {[
-                { value: "overview", label: "Overview" },
-                { value: "raw", label: "Raw JSON" },
-                { value: "timeline", label: "Timeline" },
-                { value: "linked", label: "Linked entity" },
-              ].map((t) => (
-                <TabsPrimitive.Tab
-                  key={t.value}
-                  value={t.value}
-                  className={cn(
-                    "relative -mb-px inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-foreground transition-colors",
-                    "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    "data-[active]:border-b-2 data-[active]:border-brand data-[active]:text-foreground",
-                  )}
-                >
-                  {t.label}
-                </TabsPrimitive.Tab>
-              ))}
-            </TabsPrimitive.List>
-            <TabsPrimitive.Panel value="overview" className="pt-4">
-              <OverviewTab packet={packet} />
-            </TabsPrimitive.Panel>
-            <TabsPrimitive.Panel value="raw" className="pt-4">
-              <RawJsonTab packet={packet} />
-            </TabsPrimitive.Panel>
-            <TabsPrimitive.Panel value="timeline" className="pt-4">
-              <PacketEventsTable events={events} isLoading={eventsLoading} />
-            </TabsPrimitive.Panel>
-            <TabsPrimitive.Panel value="linked" className="pt-4">
-              <LinkedEntityTab packet={packet} />
-            </TabsPrimitive.Panel>
-          </TabsPrimitive.Root>
-
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-4">
-            {canRetry ? (
-              <Button variant="outline" onClick={onRetry}>
-                Retry
-              </Button>
-            ) : null}
-            {canResolve ? (
-              resolveOpen ? (
-                <form
-                  className="flex flex-1 items-end gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (reason.trim().length < 3) return;
-                    onResolve(reason);
-                    setResolveOpen(false);
-                    setReason("");
-                  }}
-                >
-                  <label className="flex flex-1 flex-col gap-1 text-xs">
-                    <span className="text-muted-foreground">Resolution reason</span>
-                    <input
-                      className="rounded-md border bg-background px-3 py-1.5 text-sm"
-                      placeholder="Manual resolution — what was done?"
-                      value={reason}
-                      onChange={(e) => setReason(e.currentTarget.value)}
-                      required
-                      minLength={3}
-                    />
-                  </label>
-                  <Button type="submit" disabled={reason.trim().length < 3}>
-                    Confirm resolve
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={() => setResolveOpen(false)}>
-                    Cancel
-                  </Button>
-                </form>
-              ) : (
-                <Button variant="outline" onClick={() => setResolveOpen(true)}>
-                  Resolve manually…
-                </Button>
-              )
-            ) : null}
-          </div>
-        </div>
+      ) : query.error ? (
+        <QueryErrorState
+          error={query.error}
+          what="packet"
+          onRetry={() => query.refetch()}
+          as="h3"
+        />
+      ) : !packet ? null : (
+        <Tabs defaultValue="overview">
+          <TabsList variant="line" ref={tabList}>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="audit">Audit</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="pt-4">
+            <OverviewTab packet={packet} />
+          </TabsContent>
+          <TabsContent value="raw" className="pt-4">
+            {packet.raw_json ? (
+              <JsonBlock text={rawText(packet.raw_json)} label="Packet JSON" />
+            ) : (
+              <p className="text-sm text-muted-foreground">No raw payload available.</p>
+            )}
+          </TabsContent>
+          <TabsContent value="timeline" className="pt-4">
+            {events.error ? (
+              <ErrorState error={events.error} onRetry={reload(events)} as="h3" />
+            ) : (
+              <PacketEventsTable events={events.data ?? []} isLoading={events.isLoading} />
+            )}
+          </TabsContent>
+          <TabsContent value="audit" className="pt-4">
+            {audits.error ? (
+              <ErrorState error={audits.error} onRetry={reload(audits)} as="h3" />
+            ) : (
+              <PacketAuditList events={audits.data?.events ?? []} isLoading={audits.isLoading} />
+            )}
+          </TabsContent>
+        </Tabs>
       )}
     </SideDrawer>
   );

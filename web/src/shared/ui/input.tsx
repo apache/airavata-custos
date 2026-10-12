@@ -20,16 +20,32 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+// The API trims text, so a required value needs a non-space character. Browsers apply the
+// pattern to text-like types only, and a mismatch reads the title in place of their generic message.
+const NOT_BLANK = ".*\\S.*";
+
+function Input({ className, type, onInvalid, onInput, ...props }: React.ComponentProps<"input">) {
+  const guard = Boolean(props.required) && props.pattern === undefined;
+  const message = props.title ?? "Enter a value, not only spaces.";
   return (
     <InputPrimitive
       type={type}
+      onInvalid={(e) => {
+        if (guard && e.currentTarget.validity.patternMismatch)
+          e.currentTarget.setCustomValidity(message);
+        onInvalid?.(e);
+      }}
+      onInput={(e) => {
+        if (guard) e.currentTarget.setCustomValidity("");
+        onInput?.(e);
+      }}
       data-slot="input"
       className={cn(
         "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         className,
       )}
       {...props}
+      {...(guard ? { pattern: NOT_BLANK, title: message } : {})}
     />
   );
 }

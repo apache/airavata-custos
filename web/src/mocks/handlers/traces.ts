@@ -25,35 +25,46 @@ import createdDone from "@/features/core/audit/__fixtures__/trace.created.done.j
 import deniedDone from "@/features/core/audit/__fixtures__/trace.denied.done.json";
 import packetFailed from "@/features/core/audit/__fixtures__/trace.packet.failed.json";
 import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
+import type { TraceNode } from "@/generated/core/types.gen";
+import {
+  zGetAuditSourcesResponse,
+  zGetAuditTracesByTraceIdResponse,
+  zGetAuditTracesResponse,
+} from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 
-type TraceSummary = (typeof tracesListFixture)["traces"][number];
+const { traces } = zGetAuditTracesResponse.parse(tracesListFixture);
+const sources = zGetAuditSourcesResponse.parse(sourcesFixture);
 
 // The fixtures were captured at one moment. Shift them so they always sit
 // inside the list's default window.
-const captured = Date.parse(tracesListFixture.traces[0]?.started_at ?? new Date().toISOString());
+const captured = Date.parse(traces[0]?.started_at ?? new Date().toISOString());
 const shift = Date.now() - 20 * 60_000 - captured;
 const shifted = (iso: string) => new Date(Date.parse(iso) + shift).toISOString();
 
-const allTraces: TraceSummary[] = tracesListFixture.traces.map((t) => ({
+const allTraces = traces.map((t) => ({
   ...t,
   started_at: shifted(t.started_at),
   ended_at: shifted(t.ended_at),
 }));
 
 const traceDetailsById: Record<string, unknown> = Object.fromEntries(
-  [approveFailed, approveRetrying, approveDone, deniedDone, packetFailed, createdDone].map((d) => [
-    d.trace_id,
-    {
-      ...d,
-      tree: shiftTree(d.tree as TreeNode[]),
-      deliveries: d.deliveries.map((x) => ({ ...x, next_run_at: shifted(x.next_run_at) })),
-    },
-  ]),
+  [approveFailed, approveRetrying, approveDone, deniedDone, packetFailed, createdDone]
+    .map((d) => zGetAuditTracesByTraceIdResponse.parse(d))
+    .map((d) => [
+      d.trace_id,
+      {
+        ...d,
+        tree: shiftTree(d.tree),
+        deliveries: d.deliveries.map((x) => ({
+          ...x,
+          next_run_at: shifted(x.next_run_at),
+        })),
+      },
+    ]),
 );
 
-type TreeNode = { created_at: string; children: TreeNode[] } & Record<string, unknown>;
-function shiftTree(nodes: TreeNode[]): TreeNode[] {
+function shiftTree(nodes: TraceNode[]): TraceNode[] {
   return nodes.map((n) => ({
     ...n,
     created_at: shifted(n.created_at),
@@ -70,8 +81,8 @@ function filterList(url: URL) {
   let filtered = allTraces;
   if (sources.length) filtered = filtered.filter((t) => sources.includes(t.source));
   if (statuses.length) filtered = filtered.filter((t) => statuses.includes(t.status));
-  if (from) filtered = filtered.filter((t) => t.started_at >= from);
-  if (to) filtered = filtered.filter((t) => t.started_at <= to);
+  if (from) filtered = filtered.filter((t) => Date.parse(t.started_at) >= Date.parse(from));
+  if (to) filtered = filtered.filter((t) => Date.parse(t.started_at) <= Date.parse(to));
   if (q) {
     filtered = filtered.filter(
       (t) =>
@@ -98,5 +109,5 @@ export const tracesHandlers = [
     return HttpResponse.json(detail);
   }),
 
-  http.get("/api/v1/audit/sources", () => HttpResponse.json(sourcesFixture)),
+  http.get("/api/v1/audit/sources", () => HttpResponse.json(sources)),
 ];

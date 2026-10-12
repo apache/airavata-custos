@@ -23,6 +23,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { useLandmark } from "@/shared/ui/landmark";
 
 export type GroupByOption = {
   value: string;
@@ -39,9 +40,11 @@ export type GroupByChipProps = {
 
 export function GroupByChip({ label, value, options, onChange, className }: GroupByChipProps) {
   const current = options.find((o) => o.value === value);
+  const landmark = useLandmark();
   return (
     <MenuPrimitive.Root>
       <MenuPrimitive.Trigger
+        ref={landmark.anchor}
         render={
           <Button variant="outline" size="sm" className={className}>
             <span className="text-muted-foreground">{label}:</span>
@@ -50,8 +53,12 @@ export function GroupByChip({ label, value, options, onChange, className }: Grou
           </Button>
         }
       />
-      <MenuPrimitive.Portal>
-        <MenuPrimitive.Positioner sideOffset={4} className="z-50 outline-none">
+      <MenuPrimitive.Portal container={landmark.container}>
+        <MenuPrimitive.Positioner
+          positionMethod="fixed"
+          sideOffset={4}
+          className="z-50 outline-none"
+        >
           <MenuPrimitive.Popup
             className={cn(
               "z-50 min-w-40 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10",
@@ -68,7 +75,10 @@ export function GroupByChip({ label, value, options, onChange, className }: Grou
                   data-current={isCurrent ? "" : undefined}
                 >
                   {isCurrent ? (
-                    <Check aria-hidden="true" className="absolute left-2 h-3.5 w-3.5 stroke-[1.5]" />
+                    <Check
+                      aria-hidden="true"
+                      className="absolute left-2 h-3.5 w-3.5 stroke-[1.5]"
+                    />
                   ) : null}
                   <span>{opt.label}</span>
                 </MenuPrimitive.Item>

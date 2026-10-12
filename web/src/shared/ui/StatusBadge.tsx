@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { AllocationStatus } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
-import type { AllocationStatus, ChangeRequestStatus } from "@/shared/api/domain";
 
 export type StatusBadgeVariant =
   | "active"
@@ -75,7 +75,7 @@ export function StatusBadge({ variant, label, className }: StatusBadgeProps) {
 }
 
 export function statusBadgeVariantFromAllocationStatus(
-  status: AllocationStatus,
+  status: AllocationStatus | undefined,
 ): StatusBadgeVariant {
   if (status === "ACTIVE") return "active";
   if (status === "INACTIVE") return "inactive";
@@ -83,7 +83,7 @@ export function statusBadgeVariantFromAllocationStatus(
 }
 
 export function statusBadgeVariantFromChangeRequest(
-  status: ChangeRequestStatus,
+  status: string | undefined,
 ): StatusBadgeVariant {
   if (status === "PENDING") return "pending";
   if (status === "APPROVED") return "approved";

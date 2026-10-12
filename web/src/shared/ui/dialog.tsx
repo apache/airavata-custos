@@ -22,10 +22,43 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { useConfirmBar } from "@/shared/ui/confirm";
+import { useFocusOrigin } from "@/shared/ui/focus";
+import { dismissConfirm } from "@/shared/ui/sonner";
 import { XIcon } from "lucide-react";
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+const ReturnFocus = React.createContext<(() => HTMLElement | null | false) | undefined>(undefined);
+
+// Opening a dialog withdraws a standing confirmation, and one raised in it ends with it. Escape
+// withdraws a standing confirmation first; a second Escape closes the dialog. On close, focus goes
+// back to the trigger, or to its region when the trigger is gone; `finalFocus` names another
+// target (a dialog raised inside a drawer).
+function Dialog({
+  open,
+  onOpenChange,
+  finalFocus,
+  ...props
+}: DialogPrimitive.Root.Props & { finalFocus?: () => HTMLElement | null }) {
+  const origin = useFocusOrigin(Boolean(open));
+  const returnTo = finalFocus ?? origin;
+  React.useEffect(() => {
+    if (!open) return;
+    dismissConfirm();
+    return () => void dismissConfirm();
+  }, [open]);
+  return (
+    <ReturnFocus.Provider value={open === undefined ? undefined : returnTo}>
+      <DialogPrimitive.Root
+        data-slot="dialog"
+        open={open}
+        onOpenChange={(next, details) => {
+          if (!next && dismissConfirm() && details.reason === "escape-key") return details.cancel();
+          onOpenChange?.(next, details);
+        }}
+        {...props}
+      />
+    </ReturnFocus.Provider>
+  );
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
@@ -65,18 +98,23 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
 }) {
+  const returnTo = React.useContext(ReturnFocus);
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
+        finalFocus={returnTo}
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
         )}
         {...props}
       >
-        {children}
+        {/* The body scrolls, not the popup, so popups portalled into the dialog are not clipped. */}
+        <div className="-m-4 grid max-h-[calc(100dvh-2rem)] gap-[inherit] overflow-y-auto p-4">
+          <ConfirmHost>{children}</ConfirmHost>
+        </div>
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
@@ -88,6 +126,28 @@ function DialogContent({
         )}
       </DialogPrimitive.Popup>
     </DialogPortal>
+  );
+}
+
+// A confirmation raised in a dialog renders inside it, just above its footer actions (or last when
+// it has none); it is sticky, so it stays on screen while the dialog scrolls.
+const ConfirmSlot = React.createContext<{ bar: React.ReactNode; claim: () => () => void } | null>(
+  null,
+);
+
+function ConfirmHost({ children }: { children: React.ReactNode }) {
+  const bar = useConfirmBar();
+  const [footers, setFooters] = React.useState(0);
+  const claim = React.useCallback(() => {
+    setFooters((n) => n + 1);
+    return () => setFooters((n) => n - 1);
+  }, []);
+  const slot = React.useMemo(() => ({ bar, claim }), [bar, claim]);
+  return (
+    <ConfirmSlot.Provider value={slot}>
+      {children}
+      {footers ? null : bar}
+    </ConfirmSlot.Provider>
   );
 }
 
@@ -105,20 +165,26 @@ function DialogFooter({
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean;
 }) {
+  const slot = React.useContext(ConfirmSlot);
+  const claim = slot?.claim;
+  React.useLayoutEffect(() => claim?.(), [claim]);
   return (
-    <div
-      data-slot="dialog-footer"
-      className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>
-      )}
-    </div>
+    <>
+      {slot?.bar}
+      <div
+        data-slot="dialog-footer"
+        className={cn(
+          "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        {showCloseButton && (
+          <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -126,7 +192,10 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-heading text-base leading-none font-medium", className)}
+      className={cn(
+        "font-heading text-base leading-snug font-medium [overflow-wrap:anywhere]",
+        className,
+      )}
       {...props}
     />
   );

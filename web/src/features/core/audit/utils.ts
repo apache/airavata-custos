@@ -17,10 +17,18 @@
  * under the License.
  */
 
-import type { ListStatus, Step, StepNode, TraceDelivery, TraceDetail, TraceSummary } from "./types";
-
-// Must match the backend's retry limit.
-export const MAX_DELIVERY_TRIES = 10;
+import { leftThisRun, relativeTime } from "@/features/core/events/utils";
+import { enumLabel } from "@/shared/format";
+import { EVENT_LABELS } from "./eventLabels";
+import type {
+  ListStatus,
+  Step,
+  StepNode,
+  TraceDelivery,
+  TraceDetail,
+  TraceStatus,
+  TraceSummary,
+} from "./types";
 
 // Rows the event worker writes for a delivery try carry this entity type.
 export const DELIVERY_ENTITY = "event_delivery";
@@ -40,37 +48,6 @@ export function formatOffset(ms: number): string {
   return `+${Math.floor(ms / 3_600_000)}h`;
 }
 
-export function formatAbsoluteUtc(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `${d.toISOString().replace("T", " ").replace("Z", "")} UTC`;
-}
-
-const MIN_MS = 60 * 1000;
-const HOUR_MS = 60 * MIN_MS;
-const DAY_MS = 24 * HOUR_MS;
-
-export function formatRelative(iso: string, now: number = Date.now()): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return iso;
-  const ageMs = Math.max(0, now - t);
-  if (ageMs < MIN_MS) return "just now";
-  if (ageMs < HOUR_MS) return `${Math.floor(ageMs / MIN_MS)} min ago`;
-  if (ageMs < DAY_MS) return `${Math.floor(ageMs / HOUR_MS)}h ago`;
-  return `${Math.floor(ageMs / DAY_MS)}d ago`;
-}
-
-// "in 4m" for a time ahead, "now" once it has passed.
-export function formatUntil(iso: string, now: number = Date.now()): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return iso;
-  const ms = t - now;
-  if (ms <= 0) return "now";
-  if (ms < MIN_MS) return `in ${Math.ceil(ms / 1000)}s`;
-  if (ms < HOUR_MS) return `in ${Math.ceil(ms / MIN_MS)}m`;
-  return `in ${Math.ceil(ms / HOUR_MS)}h`;
-}
-
 // A code-shaped name has no whitespace and a `.`, `:` or `_` in it, so event
 // types and span names render in mono while plain titles stay in sans.
 export function isCodeShaped(name: string): boolean {
@@ -80,24 +57,37 @@ export function isCodeShaped(name: string): boolean {
 
 // ---------- status words ----------
 
-export function listStatus(t: TraceSummary): ListStatus {
-  if (t.status === "error") return "failed";
-  if (t.status === "in_progress") return t.deliveries.attempts > 0 ? "retrying" : "waiting";
+// attempts is the most tries any pending delivery has made. Retrying and waiting differ in icon only:
+// every unfinished trace or delivery reads "Waiting", as the status filter and the Events tab do.
+export function listStatus(status: TraceStatus, attempts: number): ListStatus {
+  if (status === "error") return "failed";
+  if (status === "in_progress") return attempts > 0 ? "retrying" : "waiting";
   return "done";
 }
 
 export function listStatusLabel(t: TraceSummary): string {
-  const s = listStatus(t);
-  if (s === "retrying") return `Retrying ${t.deliveries.attempts} of ${MAX_DELIVERY_TRIES}`;
+  const s = listStatus(t.status, t.deliveries.attempts);
+  if (s === "retrying") return `Waiting, ${leftThisRun(t.deliveries.attempts)}`;
   return STATUS_WORDS[s];
 }
 
 export const STATUS_WORDS: Record<ListStatus, string> = {
   failed: "Failed",
-  retrying: "Retrying",
+  retrying: "Waiting",
   waiting: "Waiting",
   done: "Done",
 };
+
+export const TRACE_STATUS_WORDS: Record<TraceStatus, string> = {
+  error: "Failed",
+  in_progress: "Waiting",
+  ok: "Done",
+};
+
+export function detailStatus(detail: TraceDetail): ListStatus {
+  const pending = detail.deliveries.filter((d) => d.status === "PENDING").map((d) => d.attempts);
+  return listStatus(detail.status, Math.max(0, ...pending));
+}
 
 export function deliveryListStatus(d: TraceDelivery): ListStatus {
   if (d.status === "FAILED") return "failed";
@@ -105,53 +95,25 @@ export function deliveryListStatus(d: TraceDelivery): ListStatus {
   return d.attempts > 0 ? "retrying" : "waiting";
 }
 
-export function deliveryLabel(d: TraceDelivery): string {
+// tries counts the delivery's try rows, which continue across admin retries.
+export function deliveryLabel(d: TraceDelivery, tries: number): string {
+  const n = Math.max(tries, d.attempts);
   switch (deliveryListStatus(d)) {
     case "failed":
-      return `Failed after ${d.attempts} ${d.attempts === 1 ? "try" : "tries"}`;
+      return `Failed after ${n} ${n === 1 ? "try" : "tries"}`;
     case "retrying":
-      return `Retrying, try ${d.attempts} of ${MAX_DELIVERY_TRIES}`;
+      return `Waiting after try ${n}, ${leftThisRun(d.attempts)}`;
     case "waiting":
       return "Waiting";
     default:
-      return d.attempts > 1 ? `Done after ${d.attempts} tries` : "Done";
+      return n > 1 ? `Done after ${n} tries` : "Done";
   }
-}
-
-// The source pill for a connector, from its subscriber name.
-function connectorSource(subscriber: string): string {
-  return subscriber.split("-")[0] ?? subscriber;
 }
 
 // ---------- names ----------
 
-const PLAIN_NAMES: Record<string, string> = {
-  CLUSTER_ACCOUNT_APPROVED: "Account approved",
-  CLUSTER_ACCOUNT_DENIED: "Account denied",
-  CLUSTER_ADMIN_ACCOUNT_CREATED: "Admin account created",
-  PACKET_RECEIVED: "Packet received",
-  REPLY_SENT: "Reply sent",
-  REPLY_HELD: "Reply held for approval",
-  CREATE_PERSON: "Person created",
-  CREATE_ACCOUNT: "Account created",
-  CREATE_PROJECT: "Project created",
-  CREATE_ALLOCATION: "Allocation created",
-  CREATE_MEMBERSHIP: "Membership created",
-  TRANSACTION_COMPLETE: "Transaction complete",
-  NOTIFICATION_SENT: "Email sent",
-  USER_BOOTSTRAPPED: "Admin user bootstrapped",
-  ROLE_BOOTSTRAPPED: "Role bootstrapped",
-  EVENT_DELIVERY_SUCCEEDED: "Delivery succeeded",
-  EVENT_DELIVERY_FAILED: "Delivery failed",
-  EVENT_DELIVERY_RETRIED: "Delivery retried by an admin",
-  ComanageProvisioningStarted: "Provisioning started",
-  ComanageProvisioningFailed: "Provisioning failed",
-  ComanageClusterAccountAttached: "Cluster account attached",
-  PosixUsernameBuildFailed: "Username could not be built",
-};
-
 export function plainName(eventType: string): string | null {
-  return PLAIN_NAMES[eventType] ?? null;
+  return EVENT_LABELS[eventType] ?? null;
 }
 
 // ---------- details ----------
@@ -175,8 +137,10 @@ export function parseDetails(description: string | undefined): ParsedDetails {
       // not JSON after all
     }
   }
-  const pairs = text.match(/\b[\w.]+=[^\s]+/g);
-  if (pairs && pairs.length > 0 && text.replace(/\b[\w.]+=[^\s]+/g, "").trim() === "") {
+  // Free text that merely contains `q=x` (a URL, say) stays text.
+  // A key starts the text or follows whitespace, so `?q=` inside a value never splits.
+  const pairs = /^[\w.]+=/.test(text) ? text.match(/(?<!\S)[\w.]+=[^\s]+/g) : null;
+  if (pairs && pairs.length > 0 && text.replace(/(?<!\S)[\w.]+=[^\s]+/g, "").trim() === "") {
     const entries = pairs.map((p): [string, string] => {
       const i = p.indexOf("=");
       return [p.slice(0, i), p.slice(i + 1)];
@@ -186,7 +150,7 @@ export function parseDetails(description: string | undefined): ParsedDetails {
   if (pairs && pairs.length > 0) {
     // `step=x err=some text with spaces`: the last value runs to the end.
     const entries: Array<[string, string]> = [];
-    const re = /\b([\w.]+)=/g;
+    const re = /(?<!\S)([\w.]+)=/g;
     const keys: Array<{ key: string; start: number; end: number }> = [];
     let m: RegExpExecArray | null = re.exec(text);
     while (m) {
@@ -262,6 +226,8 @@ export type FlowModel = {
   steps: Map<string, FlowStep>;
   // Try row id, or the span a try row shares with the connector's own rows, to the delivery id.
   tryOf: Map<string, string>;
+  // Delivery id to its try count, continuous across admin retries.
+  tryCounts: Map<string, number>;
   ownerOfSpan: Map<string, string>;
   spanRows: Map<string, FlowStep[]>;
   stepCount: number;
@@ -279,8 +245,9 @@ export type FlowRow =
       depth: number;
       title: string;
       source: string;
-      status: ListStatus | "ok" | "error" | "muted";
+      status: ListStatus | "ok" | "error" | "past" | "muted";
       delivery?: TraceDelivery;
+      tries?: number;
       expanded: boolean;
       onPath: boolean;
     }
@@ -324,9 +291,27 @@ function foldKey(deliveryId: string): string {
   return `f:${deliveryId}`;
 }
 
-function tryNumber(step: Step, index: number): number {
-  const n = Number(detailValue(step, "attempt"));
-  return Number.isFinite(n) && n > 0 ? n : index + 1;
+// The try's place among the delivery's tries, continuous across admin retries,
+// which reset the server's attempt counter and do not count themselves.
+function tryNumber(node: FlowStep, tries: FlowStep[]): number {
+  return tries.slice(0, tries.indexOf(node) + 1).filter((t) => tryOutcome(t.step) !== "retried")
+    .length;
+}
+
+// "Delivery retried by Ada Admin", from the actor the retry row names.
+export function retriedLabel(step: Step): string {
+  const actor = step.description?.match(/requested by (.+)$/)?.[1];
+  return actor ? `Delivery retried by ${actor}` : (plainName(step.event_type) ?? step.event_type);
+}
+
+// "Try 2 failed" for a delivery's try row, as its row reads; undefined for any other step.
+export function tryTitle(model: FlowModel, step: Step): string | undefined {
+  const deliveryId = model.tryOf.get(step.id);
+  const node = model.steps.get(step.id);
+  const outcome = tryOutcome(step);
+  if (!deliveryId || !node || outcome === "retried") return undefined;
+  const tries = [...model.steps.values()].filter((n) => model.tryOf.get(n.step.id) === deliveryId);
+  return `Try ${tryNumber(node, tries)} ${outcome}`;
 }
 
 function tryOutcome(step: Step): "failed" | "succeeded" | "retried" {
@@ -440,6 +425,12 @@ export function buildFlow(detail: TraceDetail): FlowModel {
     hopsBySpan,
     steps,
     tryOf,
+    tryCounts: new Map(
+      [...triesByDelivery].map(([id, tries]) => [
+        id,
+        tries.filter((t) => tryOutcome(t.step) !== "retried").length,
+      ]),
+    ),
     ownerOfSpan,
     spanRows,
     stepCount: steps.size,
@@ -464,10 +455,19 @@ export function buildFlow(detail: TraceDetail): FlowModel {
   for (const d of detail.deliveries) everything.add(deliveryKey(d.id));
   for (const d of detail.deliveries) everything.add(foldKey(d.id));
   const display = flattenFlow(model, everything);
-  const candidates = display.flatMap((row) => {
+  // A done trace has no failing step, and an origin attempt a later origin superseded is a past try.
+  const attempts = groups.filter((g) => g.kind === "origin");
+  const superseded = (node: FlowStep): boolean => {
+    let root = node;
+    while (root.parent) root = root.parent;
+    const i = attempts.findIndex((g) => g.root === root || g.siblings.includes(root));
+    return i >= 0 && i < attempts.length - 1;
+  };
+  const candidates = (detail.status === "ok" ? [] : display).flatMap((row) => {
     if (row.kind !== "step" || row.step.status !== "error") return [];
     const deliveryId = deliveryOf(row.node);
     if (deliveryId && deliveriesById.get(deliveryId)?.status === "SUCCEEDED") return [];
+    if (!deliveryId && superseded(row.node)) return [];
     return [row];
   });
   const nonTry = new Set(
@@ -476,7 +476,7 @@ export function buildFlow(detail: TraceDetail): FlowModel {
   model.errorStepIds = candidates
     .filter((r) => !tryOf.has(r.step.id) || !nonTry.has(deliveryOf(r.node)))
     .map((r) => r.step.id);
-  model.failingStepId = model.errorStepIds[0] ?? null;
+  model.failingStepId = model.errorStepIds.at(-1) ?? null;
 
   if (model.failingStepId) {
     const failing = steps.get(model.failingStepId);
@@ -569,23 +569,26 @@ export function flattenFlow(
       key: dg.key,
       depth,
       title: delivery.subscriber,
-      source: connectorSource(delivery.subscriber),
+      source: delivery.subscriber,
       status: deliveryListStatus(delivery),
       delivery,
+      tries: model.tryCounts.get(delivery.id) ?? 0,
       expanded: isOpen,
       onPath: onPath(dg.key),
     });
     if (!isOpen) return;
     const foldOpen = expanded.has(foldKey(delivery.id));
-    const shown: Array<{ node: FlowStep; index: number } | { fold: number }> = [];
+    const shown: Array<{ node: FlowStep } | { fold: number }> = [];
     if (tries.length > 3 && !foldOpen) {
       const first = tries[0];
       const last = tries[tries.length - 1];
-      if (first) shown.push({ node: first, index: 0 });
-      shown.push({ fold: tries.length - 2 });
-      if (last) shown.push({ node: last, index: tries.length - 1 });
+      if (first) shown.push({ node: first });
+      shown.push({
+        fold: tries.slice(1, -1).filter((t) => tryOutcome(t.step) !== "retried").length,
+      });
+      if (last) shown.push({ node: last });
     } else {
-      tries.forEach((node, index) => shown.push({ node, index }));
+      for (const node of tries) shown.push({ node });
     }
     for (const item of shown) {
       if ("fold" in item) {
@@ -613,16 +616,16 @@ export function flattenFlow(
         node: item.node,
         onPath: onPath(item.node.step.id),
         failing: item.node.step.id === model.failingStepId,
-        try: { n: tryNumber(item.node.step, item.index), outcome: tryOutcome(item.node.step) },
+        try: { n: tryNumber(item.node, tries), outcome: tryOutcome(item.node.step) },
       });
     }
     if (delivery.status === "PENDING") {
       const text =
         delivery.attempts === 0
           ? tries.length === 0
-            ? `Waiting for the first try, ${formatUntil(delivery.next_run_at, now)}`
+            ? `Waiting for the first try, ${relativeTime(delivery.next_run_at, now)}`
             : "Waiting"
-          : `Next try ${formatUntil(delivery.next_run_at, now)}, ${MAX_DELIVERY_TRIES - delivery.attempts} left`;
+          : `Next try ${relativeTime(delivery.next_run_at, now)}, ${leftThisRun(delivery.attempts)}`;
       rows.push({ kind: "ghost", key: `w:${delivery.id}`, depth: depth + 1, text });
     }
   };
@@ -649,7 +652,7 @@ export function flattenFlow(
         depth: 0,
         title: originTitle(g.root.step),
         source: g.root.step.source,
-        status: members.some((m) => originStatus(m, model) === "error") ? "error" : "ok",
+        status: originGroupStatus(members, model),
         expanded: isOpen,
         onPath: onPath(g.key),
       });
@@ -774,17 +777,23 @@ function countSteps(node: FlowStep, model: FlowModel): number {
   return n;
 }
 
-function originStatus(root: FlowStep, model: FlowModel): "ok" | "error" {
+// An origin whose errors are no longer failing steps, such as an AMIE attempt a later one superseded, is a past try.
+function originGroupStatus(members: FlowStep[], model: FlowModel): "ok" | "error" | "past" {
+  let past = false;
   const visit = (node: FlowStep): boolean => {
-    if (node.step.status === "error") return true;
+    if (node.step.status === "error") {
+      if (model.errorStepIds.includes(node.step.id)) return true;
+      past = true;
+    }
     return node.children.some(
       (c) => !model.tryOf.has(c.step.id) && !model.ownerOfSpan.has(c.step.span_id) && visit(c),
     );
   };
-  return visit(root) ? "error" : "ok";
+  if (members.some(visit)) return "error";
+  return past ? "past" : "ok";
 }
 
-// "Account approved for jsmith", or the event type when there is no plain name.
+// "Cluster account approved for jsmith", or the event type when there is no plain name.
 export function originTitle(step: Step): string {
   const name = plainName(step.event_type) ?? step.event_type;
   const username = usernameOf(step);
@@ -807,6 +816,8 @@ const ENTITY_KINDS: Record<string, { kind: string; href: ((id: string) => string
   user: { kind: "User", href: null },
   organization: { kind: "Organization", href: null },
 };
+
+export const entityKind = (type: string) => ENTITY_KINDS[type]?.kind ?? enumLabel(type);
 
 // The things the trace is about, in the order they first appear. Delivery
 // rows name the delivery, which is not an entity the admin opens from here.

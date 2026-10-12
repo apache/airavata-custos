@@ -17,14 +17,19 @@
 
 "use client";
 
-import {
-  MutationCache,
-  QueryCache,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { ApiError, type KnownError, errorCopy } from "@/shared/api/client";
 import { useAuthErrorHandler } from "@/shared/auth/useAuthErrorHandler";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
+
+declare module "@tanstack/react-query" {
+  interface Register {
+    // inlineError: the caller renders the failure itself, so no toast. errors: the causes master
+    // returns for this mutation, worded; anything else toasts errorCopy's generic copy.
+    mutationMeta: { inlineError?: boolean; errors?: readonly KnownError[] };
+  }
+}
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const handleAuthError = useAuthErrorHandler();
@@ -32,13 +37,22 @@ export function QueryProvider({ children }: { children: ReactNode }) {
     () =>
       new QueryClient({
         queryCache: new QueryCache({ onError: handleAuthError }),
-        mutationCache: new MutationCache({ onError: handleAuthError }),
+        // Every mutation failure toasts here; call sites add only their success toast.
+        mutationCache: new MutationCache({
+          onError: (error, _variables, _context, mutation) => {
+            handleAuthError(error);
+            if (!mutation.meta?.inlineError) toast.error(errorCopy(error, mutation.meta?.errors));
+          },
+        }),
         defaultOptions: {
           queries: {
             staleTime: 30_000,
             gcTime: 5 * 60_000,
             refetchOnWindowFocus: false,
-            retry: 1,
+            // A client error (missing record, no privilege, disabled account) fails the same way twice.
+            retry: (failures, error) =>
+              failures < 1 &&
+              !(error instanceof ApiError && error.status >= 400 && error.status < 500),
           },
           mutations: { retry: 0 },
         },

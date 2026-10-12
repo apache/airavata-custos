@@ -17,46 +17,39 @@
 
 "use client";
 
-import type { Role } from "@/features/core/users/schemas";
-import type { UserManagementRow } from "@/features/core/users/types";
+import { type UserManagementRow, useUser, useUserRow } from "@/features/core/users/queries";
+import type { Role, UserStatus } from "@/generated/core/types.gen";
+import { enumLabel } from "@/shared/format";
+import { useSearchDraft } from "@/shared/hooks/usePageClamp";
 import {
   replaceShallowSearchParams,
+  setSearchParam,
+  useCanonicalParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { normalizeQueryId, queryUuid } from "@/shared/layout/nav";
+import { DataTable, type DataTableColumn, NameCell, PastLastPage } from "@/shared/ui/DataTable";
+import { QueryErrorState } from "@/shared/ui/ErrorState";
+import { SideDrawer } from "@/shared/ui/SideDrawer";
+import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
+import { Badge } from "@/shared/ui/badge";
 import { Input } from "@/shared/ui/input";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { displayName } from "@/shared/users-admin/displayName";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
-import { IdentitiesCell } from "./IdentitiesCell";
+import { BadgesCell } from "./BadgesCell";
+import { IdentityLookupBox } from "./IdentityLookupBox";
 import { PermissionsDrawer } from "./PermissionsDrawer";
-import { RolesCell } from "./RolesCell";
-import { IDENTITY_SOURCE_LABELS, identitySourceLabel } from "./identities";
+import { IDENTITY_SOURCE_LABELS, identitySourceIcon, identitySourceLabel } from "./identities";
 
-function fullNameFor(user: UserManagementRow): string {
-  const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
-  return name || user.email;
-}
-
-// PENDING means the account exists but nobody has signed in as it yet. The
-// status flips on first sign-in, not when cluster provisioning finishes.
-function UserStatusBadge({ status }: { status: string | undefined }) {
-  switch (status) {
-    case "ACTIVE":
-      return <StatusBadge variant="active" />;
-    case "PENDING":
-      return <StatusBadge variant="pending" label="Awaiting sign-in" />;
-    case "SUSPENDED":
-      return <StatusBadge variant="warning" label="Suspended" />;
-    case "INACTIVE":
-      return <StatusBadge variant="inactive" />;
-    case "MERGED":
-      return <StatusBadge variant="inactive" label="Merged" />;
-    default:
-      return <span className="text-muted-foreground">—</span>;
-  }
-}
+const STATUS_VARIANTS: Record<UserStatus, StatusBadgeVariant> = {
+  ACTIVE: "active",
+  PENDING: "pending",
+  SUSPENDED: "warning",
+  INACTIVE: "inactive",
+  MERGED: "inactive",
+};
 
 function useExpandableRow() {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
@@ -72,34 +65,46 @@ function useExpandableRow() {
 export function UsersTable({
   users,
   rolesCatalog,
-  currentUserEmail,
+  rolesReady,
+  currentUserId,
   canManageRoles,
   canReadDirectPrivileges,
   page,
   pageSize,
   total,
-  onPageChange,
-  toolbarAction,
 }: {
   users: UserManagementRow[];
   rolesCatalog: Role[];
-  currentUserEmail: string | undefined;
+  // The catalog has loaded, so a ?role= outside it can be dropped.
+  rolesReady: boolean;
+  currentUserId: string | undefined;
   canManageRoles: boolean;
   canReadDirectPrivileges: boolean;
   page: number;
   pageSize: number;
   total: number;
-  onPageChange: (page: number) => void;
-  toolbarAction?: React.ReactNode;
 }) {
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const expandedRow = useExpandableRow();
   const searchParams = useShallowSearchParams();
-  const search = searchParams.get("q") ?? "";
-  const roleFilter = searchParams.get("role") ?? "all";
-  const identityFilter = searchParams.get("identity") ?? "all";
+  // ?user= holds the open user, so traces can link straight to them and a reload keeps the drawer.
+  const selectedId = queryUuid(searchParams.get("user")) ?? null;
+  const setSelectedId = (id: string | null) => setSearchParam(searchParams, "user", id);
+  const expandedRow = useExpandableRow();
+  const search = (searchParams.get("q") ?? "").trim();
+  const [searchDraft, setSearchDraft] = useSearchDraft(search, (q) => updateFilterParam("q", q));
+  const rawRole = normalizeQueryId(searchParams.get("role"));
+  const roleFilter =
+    (canManageRoles && rolesCatalog.find((role) => role.id === rawRole)?.id) || "all";
+  const rawIdentity = searchParams.get("identity") ?? "";
+  const identityFilter = Object.hasOwn(IDENTITY_SOURCE_LABELS, rawIdentity) ? rawIdentity : "all";
+  const applied = (value: string) => (value === "all" ? undefined : value);
+  useCanonicalParams({
+    q: search || undefined,
+    identity: applied(identityFilter),
+    user: selectedId ?? undefined,
+    ...(canManageRoles && !rolesReady ? {} : { role: applied(roleFilter) }),
+  });
   const filtersActive =
-    Boolean(search.trim()) || (canManageRoles && roleFilter !== "all") || identityFilter !== "all";
+    Boolean(search) || (canManageRoles && roleFilter !== "all") || identityFilter !== "all";
 
   function roleLabelFor(value: string): string {
     if (value === "all") return "All roles";
@@ -109,33 +114,43 @@ export function UsersTable({
   function identityLabelFor(value: string): string {
     return value === "all" ? "All external identities" : identitySourceLabel(value);
   }
-  const selectedUser = users.find((user) => user.id === selectedId) ?? null;
+  const pageUser = users.find((user) => user.id === selectedId);
+  const lookupId = pageUser ? undefined : (selectedId ?? undefined);
+  const lookedUpUser = useUserRow(lookupId, rolesCatalog, canManageRoles);
+  const lookup = useUser(lookupId);
+  const selectedUser = pageUser ?? lookedUpUser ?? null;
 
-  function resetSelection() {
-    setSelectedId(null);
-    expandedRow.clear();
+  // The search filters only this page; the other filters return to page 1 and close the drawer.
+  function updateFilterParam(key: string, value: string | null) {
+    const next = new URLSearchParams(searchParams);
+    if (value && value !== "all") next.set(key, value);
+    else next.delete(key);
+    if (key !== "q") {
+      next.delete("user");
+      next.delete("page");
+      expandedRow.clear();
+    }
+    replaceShallowSearchParams(next);
   }
 
-  function updateFilterParam(key: string, value: string | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (!value || value === "all") params.delete(key);
-    else params.set(key, value);
-    replaceShallowSearchParams(params);
-    if (key !== "q") {
-      resetSelection();
-      onPageChange(1);
-    }
+  function goToPage(nextPage: number) {
+    const next = new URLSearchParams(searchParams);
+    next.delete("user");
+    if (nextPage > 1) next.set("page", String(nextPage));
+    else next.delete("page");
+    expandedRow.clear();
+    replaceShallowSearchParams(next);
   }
 
   function isCurrentUser(row: UserManagementRow): boolean {
-    return Boolean(currentUserEmail) && row.email === currentUserEmail;
+    return row.id === currentUserId;
   }
 
   const filteredUsers = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
+    const needle = search.toLowerCase();
     return users.filter((user) => {
       if (needle) {
-        const haystack = `${fullNameFor(user)} ${user.email}`.toLowerCase();
+        const haystack = `${displayName(user)} ${user.email}`.toLowerCase();
         if (!haystack.includes(needle)) return false;
       }
       if (canManageRoles && roleFilter !== "all") {
@@ -163,12 +178,12 @@ export function UsersTable({
   const columns: Array<DataTableColumn<UserManagementRow>> = [
     {
       key: "username",
-      header: "Username",
+      header: "Name",
       cell: (row) => (
-        <span className="font-medium text-foreground">
-          {fullNameFor(row)}
+        <span className="flex items-baseline font-medium text-foreground">
+          <NameCell text={displayName(row)} />
           {isCurrentUser(row) ? (
-            <span className="ml-1.5 font-normal text-muted-foreground">(You)</span>
+            <span className="ml-1.5 shrink-0 font-normal text-muted-foreground">(You)</span>
           ) : null}
         </span>
       ),
@@ -176,7 +191,7 @@ export function UsersTable({
     {
       key: "email",
       header: "Email",
-      cell: (row) => <span className="text-muted-foreground">{row.email}</span>,
+      cell: (row) => <NameCell text={row.email} className="text-muted-foreground" />,
     },
   ];
 
@@ -187,13 +202,21 @@ export function UsersTable({
       width: "260px",
       interactive: true,
       cell: (row) => (
-        <RolesCell
-          roles={row.roles}
+        <BadgesCell
+          items={row.roles}
+          label="Roles"
+          className="w-[260px]"
           isLoading={row.rolesLoading}
           hasError={row.rolesError}
           expanded={row.id === expandedRow.expandedId}
           onToggleExpand={() => expandedRow.toggle(row.id)}
-        />
+        >
+          {(role) => (
+            <Badge key={role.id} variant="outline">
+              {role.name}
+            </Badge>
+          )}
+        </BadgesCell>
       ),
     });
   }
@@ -202,22 +225,36 @@ export function UsersTable({
     {
       key: "status",
       header: "Status",
-      width: "180px",
-      cell: (row) => <UserStatusBadge status={row.status} />,
+      width: "160px",
+      cell: (row) => (
+        <StatusBadge variant={STATUS_VARIANTS[row.status]} label={enumLabel(row.status)} />
+      ),
     },
     {
       key: "identities",
-      header: "External Identities",
+      header: "External identities",
       width: "220px",
       interactive: true,
       cell: (row) => (
-        <IdentitiesCell
-          identities={row.identities}
+        <BadgesCell
+          items={row.identities}
+          label="Identities"
+          className="w-[220px]"
           isLoading={row.identitiesLoading}
           hasError={row.identitiesError}
           expanded={row.id === expandedRow.expandedId}
           onToggleExpand={() => expandedRow.toggle(row.id)}
-        />
+        >
+          {(identity) => {
+            const Icon = identitySourceIcon(identity.source);
+            return (
+              <Badge key={identity.id} variant="outline">
+                <Icon data-icon="inline-start" />
+                {identitySourceLabel(identity.source)}
+              </Badge>
+            );
+          }}
+        </BadgesCell>
       ),
     },
     {
@@ -230,12 +267,12 @@ export function UsersTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-center">
         <Input
           type="search"
-          placeholder="Search this page by username or email"
-          value={search}
-          onChange={(event) => updateFilterParam("q", event.target.value)}
+          placeholder="Search by name or email"
+          value={searchDraft}
+          onChange={(event) => setSearchDraft(event.target.value)}
           aria-label="Search users on this page"
           className="sm:w-72"
         />
@@ -258,7 +295,10 @@ export function UsersTable({
           value={identityFilter}
           onValueChange={(value) => updateFilterParam("identity", value)}
         >
-          <SelectTrigger aria-label="Filter this page by external identity" className="h-9 w-56 px-3">
+          <SelectTrigger
+            aria-label="Filter this page by external identity"
+            className="h-9 w-56 px-3"
+          >
             <SelectValue>{(value: string) => identityLabelFor(value)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -270,7 +310,9 @@ export function UsersTable({
             ))}
           </SelectContent>
         </Select>
-        {toolbarAction}
+        <div className="sm:ml-auto">
+          <IdentityLookupBox onResolve={setSelectedId} />
+        </div>
       </div>
 
       {filtersActive ? (
@@ -280,43 +322,56 @@ export function UsersTable({
         </p>
       ) : null}
 
-      <DataTable
-        columns={columns}
-        rows={filteredUsers}
-        rowKey={(row) => row.id}
-        onRowClick={(row) => {
-          expandedRow.collapseUnless(row.id);
-          setSelectedId((previous) => (previous === row.id ? null : row.id));
-        }}
-        rowClassName={(row) =>
-          isCurrentUser(row)
-            ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
-            : undefined
-        }
-        empty={
-          <span className="text-sm text-muted-foreground">
-            {filtersActive ? "No users match on this page." : "No users found."}
-          </span>
-        }
-        pagination={{
-          page,
-          pageSize,
-          total,
-          onPageChange: (nextPage) => {
-            resetSelection();
-            onPageChange(nextPage);
-          },
-        }}
-      />
+      {users.length === 0 && page > 1 ? (
+        <PastLastPage things="users" page={page} onPageChange={goToPage} />
+      ) : (
+        <DataTable
+          caption="Users"
+          columns={columns}
+          rows={filteredUsers}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => {
+            const id = row.id;
+            expandedRow.collapseUnless(id);
+            setSelectedId(selectedId === id ? null : id);
+          }}
+          rowClassName={(row) =>
+            isCurrentUser(row)
+              ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
+              : undefined
+          }
+          empty={
+            <span className="text-sm text-muted-foreground">
+              {filtersActive ? "No users match on this page." : "No users found."}
+            </span>
+          }
+          pagination={{ page, pageSize, total, onPageChange: goToPage }}
+        />
+      )}
       <PermissionsDrawer
         key={selectedUser?.id ?? "closed"}
         user={selectedUser}
         rolesCatalog={rolesCatalog}
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={canReadDirectPrivileges}
-        currentUserEmail={currentUserEmail}
+        currentUserId={currentUserId}
         onClose={() => setSelectedId(null)}
       />
+      <SideDrawer
+        open={Boolean(lookup.error)}
+        recordKey={selectedId ?? undefined}
+        onOpenChange={(open) => (open ? null : setSelectedId(null))}
+        title="User"
+      >
+        {lookup.error ? (
+          <QueryErrorState
+            error={lookup.error}
+            what="user"
+            as="h3"
+            onRetry={() => lookup.refetch()}
+          />
+        ) : null}
+      </SideDrawer>
     </div>
   );
 }

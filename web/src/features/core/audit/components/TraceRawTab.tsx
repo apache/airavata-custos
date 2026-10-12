@@ -23,74 +23,17 @@ import { Button } from "@/shared/ui/button";
 import { Check, Copy } from "lucide-react";
 import * as React from "react";
 import type { TraceDetail } from "../types";
+import { useCopy } from "./primitives/CopyValue";
+import { JsonBlock } from "./primitives/JsonBlock";
 
 export type TraceRawTabProps = {
   detail: TraceDetail;
   stepCount: number;
 };
 
-type Highlighted = React.ReactNode[];
-
-// Lex the stringified JSON once and tag tokens with their semantic colors so
-// indent and punctuation render verbatim alongside colored keys and values.
-function highlightJson(obj: unknown): { text: string; nodes: Highlighted } {
-  const text = JSON.stringify(obj, null, 2);
-  const parts: Highlighted = [];
-  const re =
-    /("(?:\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  // biome-ignore lint/suspicious/noAssignInExpressions: idiomatic regex loop
-  while ((m = re.exec(text))) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    const tok = m[0];
-    const isKey = tok.startsWith('"') && tok.trimEnd().endsWith(":");
-    const isStr = tok.startsWith('"') && !isKey;
-    const isBool = /^(true|false|null)$/.test(tok);
-    const color = isKey
-      ? "var(--syntax-key)"
-      : isStr
-        ? "var(--syntax-str)"
-        : isBool
-          ? "var(--syntax-bool)"
-          : "var(--syntax-num)";
-    const tokenType = isKey ? "key" : isStr ? "str" : isBool ? "bool" : "num";
-    parts.push(
-      <span key={`tk-${key++}`} data-token={tokenType} style={{ color }}>
-        {tok}
-      </span>,
-    );
-    last = m.index + tok.length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return { text, nodes: parts };
-}
-
 export function TraceRawTab({ detail, stepCount }: TraceRawTabProps) {
-  const [copied, setCopied] = React.useState(false);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const { text, nodes } = React.useMemo(() => highlightJson(detail), [detail]);
-
-  const onCopy = () => {
-    void (async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch {
-        // Best-effort copy; still show the check.
-      }
-      setCopied(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 1100);
-    })();
-  };
+  const [copied, copy] = useCopy();
+  const text = React.useMemo(() => JSON.stringify(detail, null, 2), [detail]);
 
   return (
     <div className="max-w-[920px]">
@@ -105,7 +48,7 @@ export function TraceRawTab({ detail, stepCount }: TraceRawTabProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={onCopy}
+          onClick={() => copy(text)}
           aria-label={copied ? "Copied JSON" : "Copy trace JSON"}
         >
           {copied ? (
@@ -116,12 +59,7 @@ export function TraceRawTab({ detail, stepCount }: TraceRawTabProps) {
           <span>{copied ? "Copied" : "Copy JSON"}</span>
         </Button>
       </div>
-      <pre
-        data-testid="trace-raw-json"
-        className="m-0 overflow-auto rounded-[10px] border border-[color:var(--border)] bg-[color:var(--muted-2)] p-4 font-mono text-xs leading-[1.6] text-foreground"
-      >
-        {nodes}
-      </pre>
+      <JsonBlock text={text} label="Trace JSON" data-testid="trace-raw-json" />
     </div>
   );
 }

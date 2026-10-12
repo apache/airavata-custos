@@ -22,7 +22,7 @@ test.describe("admin resources & clusters read-only sweep", () => {
   test("clusters tab opens a drawer with local users", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /Resources & clusters/ })).toBeVisible({
       timeout: 20_000,
     });
 
@@ -35,14 +35,14 @@ test.describe("admin resources & clusters read-only sweep", () => {
   test("resources tab opens a rates drawer with rate rows", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /Resources & clusters/ })).toBeVisible({
       timeout: 20_000,
     });
 
     await page.getByRole("tab", { name: /^resources$/i }).click();
     await page
       .getByRole("row", { name: /ClusterA CPU/ })
-      .getByRole("button", { name: /^Rates \(\d+\)$/ })
+      .getByRole("button", { name: /^Rates \(\d+\) of / })
       .click();
 
     await expect(page.getByText("Rates: ClusterA CPU")).toBeVisible({ timeout: 15_000 });
@@ -51,17 +51,17 @@ test.describe("admin resources & clusters read-only sweep", () => {
     await expect(page.getByText("0.04")).toBeVisible();
   });
 
-  test("admin adds a rate that becomes active and supersedes the current one", async ({ page }) => {
+  test("admin adds a rate that becomes active and overrides the current one", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /Resources & clusters/ })).toBeVisible({
       timeout: 20_000,
     });
 
     await page.getByRole("tab", { name: /^resources$/i }).click();
     await page
       .getByRole("row", { name: /ClusterA GPU/ })
-      .getByRole("button", { name: /^Rates \(\d+\)$/ })
+      .getByRole("button", { name: /^Rates \(\d+\) of / })
       .click();
     await expect(page.getByText("Rates: ClusterA GPU")).toBeVisible({ timeout: 15_000 });
 
@@ -69,10 +69,10 @@ test.describe("admin resources & clusters read-only sweep", () => {
     await page.getByLabel("Rate", { exact: true }).fill("0.77");
     await page.getByRole("button", { name: "Add rate" }).click();
 
-    await expect(page.getByText("Rate added.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Rate added")).toBeVisible({ timeout: 15_000 });
     const newRow = page.getByRole("row", { name: /0\.77/ });
     await expect(newRow.getByText("ACTIVE")).toBeVisible();
     // The former current rate stays in its window but loses the tie-break.
-    await expect(page.getByText("SUPERSEDED")).toBeVisible();
+    await expect(page.getByText(/^Overridden until /)).toBeVisible();
   });
 });

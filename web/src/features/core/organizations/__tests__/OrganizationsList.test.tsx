@@ -15,14 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import type { Organization } from "@/generated/core/types.gen";
 import { Button } from "@/shared/ui/button";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { OrganizationsList } from "../components/OrganizationsList";
-import type { Organization } from "../schemas";
 
 const org: Organization = {
-  id: "org-gatech",
+  id: "15000001-0000-4000-8000-000015000001",
   name: "Georgia Institute of Technology",
   originated_id: "GATECH",
 };
@@ -49,9 +49,28 @@ describe("<OrganizationsList />", () => {
     expect(screen.getByText(org.id)).toBeInTheDocument();
   });
 
+  it("truncates a long name and originated ID and keeps each whole in the title", () => {
+    const name = "N".repeat(255);
+    const originated = "X".repeat(255);
+    renderList({ rows: [{ ...org, name, originated_id: originated }] });
+    for (const long of [name, originated]) {
+      expect(screen.getByText(long)).toHaveAttribute("title", long);
+      expect(screen.getByText(long)).toHaveClass("truncate");
+    }
+  });
+
   it("shows the empty state when there are no rows", () => {
     renderList({ rows: [], total: 0 });
     expect(screen.getByRole("heading", { name: /no organizations yet/i })).toBeInTheDocument();
+  });
+
+  it("offers the first page when the URL page is past the end", () => {
+    const { props } = renderList({ rows: [], total: 3, page: 4 });
+    expect(
+      screen.getByRole("heading", { name: "No organizations on page 4" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "First page" }));
+    expect(props.onPageChange).toHaveBeenCalledWith(1);
   });
 
   it("renders the create CTA only when one is provided", () => {
@@ -75,6 +94,8 @@ describe("<OrganizationsList />", () => {
   it("surfaces an error state with a retry callback", () => {
     const onRetry = vi.fn();
     renderList({ error: new Error("boom"), onRetry });
-    expect(screen.getByText(/boom/)).toBeInTheDocument();
+    expect(screen.queryByText(/boom/)).toBeNull();
+    screen.getByRole("button", { name: "Try again" }).click();
+    expect(onRetry).toHaveBeenCalled();
   });
 });

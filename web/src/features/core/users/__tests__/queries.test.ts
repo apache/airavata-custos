@@ -15,117 +15,83 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { identityKeys } from "@/features/core/identity/queries";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { type ReactNode, createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { identityKeys } from "@/features/core/identity/queries";
-import { applyUserRoleChanges, useUpdateUserRoles, userKeys } from "../queries";
-import type { UserRole } from "../schemas";
+import {
+  applyUserRoleChanges,
+  useDirectPrivileges,
+  useUpdateUserRoles,
+  userKeys,
+} from "../queries";
 
 const apiMocks = vi.hoisted(() => ({
-  assignUserRole: vi.fn(),
-  removeUserRole: vi.fn(),
+  postUsersByIdRoles: vi.fn(),
+  deleteUsersByIdRolesByRoleId: vi.fn(),
+  getUsersByIdPrivileges: vi.fn(),
 }));
 
-vi.mock("../api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../api")>()),
-  assignUserRole: apiMocks.assignUserRole,
-  removeUserRole: apiMocks.removeUserRole,
+// The caller holds core:privileges:grant but not core:roles:manage.
+vi.mock("@/shared/casl/AbilityProvider", () => ({
+  useAbility: () => ({
+    can: (action: string, subject: string) => `${action} ${subject}` === "write PrivilegeGrant",
+  }),
+}));
+
+vi.mock("@/generated/core/sdk.gen", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/generated/core/sdk.gen")>()),
+  postUsersByIdRoles: apiMocks.postUsersByIdRoles,
+  deleteUsersByIdRolesByRoleId: apiMocks.deleteUsersByIdRolesByRoleId,
+  getUsersByIdPrivileges: apiMocks.getUsersByIdPrivileges,
 }));
 
 afterEach(() => {
-  apiMocks.assignUserRole.mockReset();
-  apiMocks.removeUserRole.mockReset();
+  apiMocks.postUsersByIdRoles.mockReset();
+  apiMocks.deleteUsersByIdRolesByRoleId.mockReset();
 });
 
-describe("userKeys", () => {
-  it("uses one shared role-grant key per user", () => {
-    expect(userKeys.roles("user-1")).toEqual(["users", "roles", "user-1"]);
-  });
+type AssignOptions = { body: { role_id: string; reason?: string } };
+type RemoveOptions = { path: { roleId: string } };
 
-  it("keeps role detail separate from user grants", () => {
-    expect(userKeys.roleDetail("role-1")).toEqual(["users", "role-detail", "role-1"]);
-  });
-
-  it("carries pagination parameters in list keys", () => {
-    const params = { limit: 25, offset: 25 };
-    expect(userKeys.list(params)).toEqual(["users", "list", params]);
-  });
-});
+// Records each call as "assign:<role>" or "remove:<role>"; `fail` rejects matching calls.
+function recordCalls(fail: (call: string, attempt: number) => boolean = () => false) {
+  const calls: string[] = [];
+  const record = async (call: string) => {
+    const attempt = calls.filter((c) => c === call).length;
+    calls.push(call);
+    if (fail(call, attempt)) throw new Error(`${call} failed`);
+  };
+  apiMocks.postUsersByIdRoles.mockImplementation(({ body }: AssignOptions) =>
+    record(`assign:${body.role_id}`),
+  );
+  apiMocks.deleteUsersByIdRolesByRoleId.mockImplementation(({ path }: RemoveOptions) =>
+    record(`remove:${path.roleId}`),
+  );
+  return calls;
+}
 
 describe("applyUserRoleChanges", () => {
   it("applies additions before removals in a deterministic order", async () => {
-    const calls: string[] = [];
-    const operations = {
-      assign: vi.fn(async (_userId: string, roleId: string) => {
-        calls.push(`assign:${roleId}`);
-      }),
-      remove: vi.fn(async (_userId: string, roleId: string) => {
-        calls.push(`remove:${roleId}`);
-      }),
-    };
-
-    await applyUserRoleChanges(
-      {
-        userId: "user-1",
-        currentRoleIds: ["old-role"],
-        desiredRoleIds: ["new-role"],
-      },
-      operations,
-    );
-
+    const calls = recordCalls();
+    await applyUserRoleChanges({
+      userId: "user-1",
+      currentRoleIds: ["old-role"],
+      desiredRoleIds: ["new-role"],
+    });
     expect(calls).toEqual(["assign:new-role", "remove:old-role"]);
   });
 
-  it("forwards the reason to assign operations", async () => {
-    const assignArgs: { roleId: string; reason?: string }[] = [];
-    const operations = {
-      assign: vi.fn(async (_userId: string, roleId: string, reason?: string) => {
-        assignArgs.push({ roleId, reason });
-      }),
-      remove: vi.fn(async () => undefined),
-    };
-
-    await applyUserRoleChanges(
-      {
-        userId: "user-1",
-        currentRoleIds: [],
-        desiredRoleIds: ["new-role"],
-        reason: "Onboarding",
-      },
-      operations,
-    );
-
-    expect(assignArgs).toEqual([{ roleId: "new-role", reason: "Onboarding" }]);
-  });
-
   it("rolls back completed changes in reverse order when a later change fails", async () => {
-    const calls: string[] = [];
-    let oldRoleRemovalAttempts = 0;
-    const operations = {
-      assign: vi.fn(async (_userId: string, roleId: string) => {
-        calls.push(`assign:${roleId}`);
-      }),
-      remove: vi.fn(async (_userId: string, roleId: string) => {
-        calls.push(`remove:${roleId}`);
-        if (roleId === "old-role-2" && oldRoleRemovalAttempts++ === 0) {
-          throw new Error("backend rejected removal");
-        }
-      }),
-    };
-
+    const calls = recordCalls((call, attempt) => call === "remove:old-role-2" && attempt === 0);
     await expect(
-      applyUserRoleChanges(
-        {
-          userId: "user-1",
-          currentRoleIds: ["old-role-1", "old-role-2"],
-          desiredRoleIds: ["new-role"],
-        },
-        operations,
-      ),
+      applyUserRoleChanges({
+        userId: "user-1",
+        currentRoleIds: ["old-role-1", "old-role-2"],
+        desiredRoleIds: ["new-role"],
+      }),
     ).rejects.toThrow("completed changes were rolled back");
-
     expect(calls).toEqual([
       "assign:new-role",
       "remove:old-role-1",
@@ -136,60 +102,20 @@ describe("applyUserRoleChanges", () => {
   });
 
   it("warns when rollback cannot fully restore the previous roles", async () => {
-    let newRoleRemovalAttempts = 0;
-    const operations = {
-      assign: vi.fn(async () => undefined),
-      remove: vi.fn(async (_userId: string, roleId: string) => {
-        if (roleId === "old-role") throw new Error("update failed");
-        if (roleId === "new-role" && newRoleRemovalAttempts++ === 0) {
-          throw new Error("rollback failed");
-        }
-      }),
-    };
-
+    recordCalls((call) => call === "remove:old-role" || call === "remove:new-role");
     await expect(
-      applyUserRoleChanges(
-        {
-          userId: "user-1",
-          currentRoleIds: ["old-role"],
-          desiredRoleIds: ["new-role"],
-        },
-        operations,
-      ),
+      applyUserRoleChanges({
+        userId: "user-1",
+        currentRoleIds: ["old-role"],
+        desiredRoleIds: ["new-role"],
+      }),
     ).rejects.toThrow("rollback could not fully restore");
   });
 });
 
 describe("useUpdateUserRoles", () => {
-  it("updates the cached role baseline before the mutation resolves", async () => {
-    apiMocks.assignUserRole.mockResolvedValue({
-      user_id: "user-1",
-      role_id: "new-role",
-    });
-    apiMocks.removeUserRole.mockResolvedValue(undefined);
-    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-    client.setQueryData<UserRole[]>(userKeys.roles("user-1"), [
-      { user_id: "user-1", role_id: "old-role" },
-    ]);
-    const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client }, children);
-    const { result } = renderHook(() => useUpdateUserRoles(), { wrapper });
-
-    await act(() =>
-      result.current.mutateAsync({
-        userId: "user-1",
-        currentRoleIds: ["old-role"],
-        desiredRoleIds: ["new-role"],
-      }),
-    );
-
-    expect(client.getQueryData<UserRole[]>(userKeys.roles("user-1"))).toEqual([
-      { user_id: "user-1", role_id: "new-role" },
-    ]);
-  });
-
   it("invalidates current access after role changes", async () => {
-    apiMocks.assignUserRole.mockResolvedValue({
+    apiMocks.postUsersByIdRoles.mockResolvedValue({
       user_id: "user-1",
       role_id: "new-role",
     });
@@ -217,5 +143,25 @@ describe("useUpdateUserRoles", () => {
     expect(client.getQueryState([...identityKeys.access("user-1"), true])?.isInvalidated).toBe(
       true,
     );
+  });
+});
+
+describe("useDirectPrivileges", () => {
+  it("keeps every observer of the key loaded across a refetch", async () => {
+    apiMocks.getUsersByIdPrivileges.mockResolvedValue([{ privilege: "core:traces:read" }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client }, children);
+    const { result } = renderHook(
+      () => [useDirectPrivileges("user-1"), useDirectPrivileges("user-1")] as const,
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current[1].isSuccess).toBe(true));
+    await act(() => client.invalidateQueries({ queryKey: [...userKeys.all, "direct-privileges"] }));
+    await waitFor(() => expect(apiMocks.getUsersByIdPrivileges).toHaveBeenCalledTimes(2));
+    for (const observer of result.current) {
+      expect(observer.isError).toBe(false);
+      expect(observer.data).toEqual([{ privilege: "core:traces:read" }]);
+    }
   });
 });

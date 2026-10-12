@@ -17,20 +17,42 @@
 
 "use client";
 
-import * as React from "react";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import type { ComputeCluster } from "@/generated/core/types.gen";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import {
+  replaceShallowSearchParams,
+  useCanonicalParams,
+  useShallowSearchParams,
+} from "@/shared/hooks/useShallowSearchParams";
+import { queryUuid } from "@/shared/layout/nav";
+import { DataTable, type DataTableColumn, NameCell } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
+import { Input } from "@/shared/ui/input";
+import * as React from "react";
 import { useClusters } from "../queries";
-import type { ComputeCluster } from "../schemas";
 import { ClusterUsersDrawer } from "./ClusterUsersDrawer";
+import { CreateClusterDialog } from "./CreateClusterDialog";
 
 export function ClustersTab() {
+  const canWrite = useAbility().can("write", "Cluster");
   const query = useClusters();
   const [search, setSearch] = React.useState("");
-  const [selected, setSelected] = React.useState<ComputeCluster | null>(null);
+  const params = useShallowSearchParams();
+  const selectedId = queryUuid(params.get("cluster")) ?? null;
+  // An opened account belongs to the open cluster, so it closes with it.
+  const setSelectedId = (id: string | null) => {
+    const next = new URLSearchParams(params);
+    next.delete("account");
+    if (id) next.set("cluster", id);
+    else next.delete("cluster");
+    replaceShallowSearchParams(next);
+  };
+  useCanonicalParams({
+    cluster: selectedId ?? undefined,
+    account: (selectedId && queryUuid(params.get("account"))) || undefined,
+  });
 
   const rows = query.data ?? [];
   const filtered = React.useMemo(() => {
@@ -43,7 +65,7 @@ export function ClustersTab() {
     {
       key: "name",
       header: "Cluster",
-      cell: (row) => <span className="font-medium text-foreground">{row.name}</span>,
+      cell: (row) => <NameCell text={row.name} className="font-medium text-foreground" />,
     },
     {
       key: "id",
@@ -54,7 +76,7 @@ export function ClustersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
         <Input
           type="search"
           placeholder="Search clusters"
@@ -63,30 +85,32 @@ export function ClustersTab() {
           aria-label="Search clusters"
           className="sm:w-72"
         />
+        {canWrite ? <CreateClusterDialog /> : null}
       </div>
 
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
-        <EmptyState heading="No clusters registered." />
+        <EmptyState heading="No clusters registered" />
       ) : filtered.length === 0 ? (
-        <EmptyState heading="No clusters match this search." />
+        <EmptyState heading="No clusters match this search" />
       ) : (
         <DataTable
+          caption="Clusters"
           columns={columns}
           rows={filtered}
           rowKey={(row) => row.id}
-          onRowClick={(row) => setSelected(row)}
+          onRowClick={(row) => setSelectedId(row.id)}
         />
       )}
 
       <ClusterUsersDrawer
-        clusterId={selected?.id ?? null}
-        clusterName={selected?.name ?? null}
+        clusterId={selectedId}
+        canWrite={canWrite}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) setSelectedId(null);
         }}
       />
     </div>

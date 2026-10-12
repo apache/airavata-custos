@@ -17,17 +17,12 @@
 
 "use client";
 
-import { Link2 } from "lucide-react";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { UserIdentity } from "@/generated/core/types.gen";
+import { formatDate } from "@/shared/format";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import type { UserIdentity } from "../schemas";
-
-function formatDate(iso?: string): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
+import { Link2 } from "lucide-react";
 
 export function IdentitiesCard({ identities }: { identities: UserIdentity[] }) {
   return (
@@ -45,14 +40,10 @@ export function IdentitiesCard({ identities }: { identities: UserIdentity[] }) {
       ) : (
         <ul className="divide-y divide-border border-t border-border">
           {identities.map((identity) => {
-            const linked = formatDate(identity.created_at);
             return (
-              <li
-                key={identity.id ?? `${identity.source}-${identity.external_id}`}
-                className="flex flex-wrap items-center gap-3 px-6 py-3.5"
-              >
+              <li key={identity.id} className="flex flex-wrap items-center gap-3 px-6 py-3.5">
                 <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <span className="min-w-[88px] font-semibold">{identity.source ?? "—"}</span>
+                <span className="min-w-[88px] font-semibold">{identity.source}</span>
                 <span className="flex-1 font-mono text-[13px]">
                   {identity.external_id || identity.email || "—"}
                 </span>
@@ -61,8 +52,13 @@ export function IdentitiesCard({ identities }: { identities: UserIdentity[] }) {
                 ) : (
                   <Badge variant="secondary">Registry</Badge>
                 )}
-                {linked ? (
-                  <span className="ml-auto text-xs text-muted-foreground">Linked {linked}</span>
+                {identity.created_at ? (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Linked{" "}
+                    <Timestamp iso={identity.created_at}>
+                      {formatDate(identity.created_at)}
+                    </Timestamp>
+                  </span>
                 ) : null}
               </li>
             );

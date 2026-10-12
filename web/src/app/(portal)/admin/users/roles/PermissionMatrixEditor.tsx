@@ -17,16 +17,10 @@
 
 "use client";
 
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
-import type { PermissionKey } from "@/shared/users-admin/permissions";
-import { permissionRowsFor } from "@/shared/users-admin/permissions";
+import { actionChipClass, permissionRowsFor } from "@/shared/users-admin/permissions";
 
-const ACTION_CHIP_CLASSES: Record<string, string> = {
-  read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
-  write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
-};
-const ACTION_CHIP_FALLBACK =
-  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
 const INACTIVE_CHIP_CLASS = "border border-border text-muted-foreground";
 
 export function PermissionMatrixEditor({
@@ -35,9 +29,9 @@ export function PermissionMatrixEditor({
   onTogglePermission,
   editable = true,
 }: {
-  permissions: PermissionKey[];
-  catalog?: readonly PermissionKey[];
-  onTogglePermission?: (permission: PermissionKey) => void;
+  permissions: PrivilegeKey[];
+  catalog?: readonly PrivilegeKey[];
+  onTogglePermission?: (permission: PrivilegeKey) => void;
   editable?: boolean;
 }) {
   const rows = permissionRowsFor(permissions, catalog);
@@ -45,20 +39,23 @@ export function PermissionMatrixEditor({
 
   return (
     <div>
-      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Effective Privileges
-      </h4>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Effective privileges
+      </h3>
       <ul className="space-y-2">
         {rows.map((row) => (
-          <li key={row.section} className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-mono text-foreground">{row.section}</span>
+          <li
+            key={row.section}
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm"
+          >
+            <span className="min-w-0 font-mono text-foreground [overflow-wrap:anywhere]">
+              {row.section}
+            </span>
             <div className="flex flex-wrap justify-end gap-1">
               {row.actions.map((privilege) => {
                 const className = cn(
                   "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
-                  privilege.active
-                    ? ACTION_CHIP_CLASSES[privilege.action] ?? ACTION_CHIP_FALLBACK
-                    : INACTIVE_CHIP_CLASS,
+                  privilege.active ? actionChipClass(privilege.action) : INACTIVE_CHIP_CLASS,
                   canEdit && "cursor-pointer transition-transform hover:scale-105",
                 );
                 if (!canEdit) {
@@ -73,6 +70,7 @@ export function PermissionMatrixEditor({
                     key={privilege.key}
                     type="button"
                     title={privilege.key}
+                    aria-label={`${row.section} ${privilege.action}`}
                     aria-pressed={privilege.active}
                     onClick={() => onTogglePermission(privilege.key)}
                     className={className}

@@ -1,7 +1,7 @@
 {
   "user": {
-    "id": "msw-user",
-    "organization_id": "msw-org",
+    "id": "3a8e1f64-9c2b-4d57-b0e3-6f4a2c8d1b95",
+    "organization_id": "14000001-0000-4000-8000-000014000001",
     "first_name": "Elena",
     "middle_name": "",
     "last_name": "Vasquez",
@@ -11,8 +11,8 @@
   },
   "identities": [
     {
-      "id": "ident-1",
-      "user_id": "msw-user",
+      "id": "10000001-0000-4000-8000-000010000001",
+      "user_id": "3a8e1f64-9c2b-4d57-b0e3-6f4a2c8d1b95",
       "source": "cilogon",
       "external_id": "elena.vasquez@access-ci.org",
       "email": "elena.vasquez@access-ci.org",
@@ -20,8 +20,8 @@
       "created_at": "2026-03-12T09:00:00Z"
     },
     {
-      "id": "ident-2",
-      "user_id": "msw-user",
+      "id": "10000002-0000-4000-8000-000010000002",
+      "user_id": "3a8e1f64-9c2b-4d57-b0e3-6f4a2c8d1b95",
       "source": "comanage",
       "external_id": "CO-4821",
       "email": "elena.vasquez@sample.example.edu",
@@ -31,24 +31,24 @@
   ],
   "roles": [
     {
-      "user_id": "msw-user",
-      "role_id": "role-admin",
+      "user_id": "3a8e1f64-9c2b-4d57-b0e3-6f4a2c8d1b95",
+      "role_id": "22000001-0000-4000-8000-000022000001",
       "granted_by": "portal-admin",
       "granted_at": "2026-03-12T09:00:00Z",
       "reason": "Initial administrator"
     },
     {
-      "user_id": "msw-user",
-      "role_id": "role-amie",
+      "user_id": "3a8e1f64-9c2b-4d57-b0e3-6f4a2c8d1b95",
+      "role_id": "22000003-0000-4000-8000-000022000003",
       "granted_by": "portal-admin",
       "granted_at": "2026-04-02T09:00:00Z",
-      "reason": "Operate AMIE exchange"
+      "reason": "Operate event deliveries"
     }
   ],
   "roleDetails": {
-    "role-admin": {
+    "22000001-0000-4000-8000-000022000001": {
       "role": {
-        "id": "role-admin",
+        "id": "22000001-0000-4000-8000-000022000001",
         "name": "Administrator",
         "description": "Full management of users, projects, allocations, and clusters.",
         "is_system": true,
@@ -66,27 +66,21 @@
         "core:roles:manage"
       ]
     },
-    "role-amie": {
+    "22000003-0000-4000-8000-000022000003": {
       "role": {
-        "id": "role-amie",
-        "name": "AMIE Operator",
-        "description": "Operate the AMIE packet exchange: inspect and reply to packets.",
+        "id": "22000003-0000-4000-8000-000022000003",
+        "name": "Event Operator",
+        "description": "Inspect and retry event deliveries.",
         "is_system": false,
         "created_at": "2026-02-01T00:00:00Z"
       },
-      "privileges": [
-        "amie:packets:read",
-        "amie:packets:write",
-        "amie:replies:read",
-        "amie:replies:write",
-        "amie:unmapped:read"
-      ]
+      "privileges": ["core:events:manage", "core:traces:read"]
     }
   },
   "direct": [
     {
-      "id": "grant-1",
-      "user_id": "msw-user",
+      "id": "09000001-0000-4000-8000-000009000001",
+      "user_id": "3a8e1f64-9c2b-4d57-b0e3-6f4a2c8d1b95",
       "privilege": "core:traces:read",
       "granted_by": "portal-admin",
       "granted_at": "2026-05-01T09:00:00Z",

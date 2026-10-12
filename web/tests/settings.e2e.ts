@@ -26,9 +26,12 @@ test.describe("settings", () => {
   }) => {
     await signInAs(page, "admin");
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: /account menu/i })).toBeVisible({
-      timeout: 30_000,
-    });
+    // The trigger gains aria-expanded once hydrated; a click before that is lost.
+    await expect(page.getByRole("button", { name: /account menu/i })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+      { timeout: 30_000 },
+    );
 
     // Open the account menu and navigate to Settings.
     await page.getByRole("button", { name: /account menu/i }).click();
@@ -41,10 +44,12 @@ test.describe("settings", () => {
     });
 
     // The identity cards render against the seeded MSW fixtures.
-    await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "Roles", exact: true })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByRole("heading", { name: "Effective privileges" })).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: "Effective privileges", exact: true }),
+    ).toBeVisible({
       timeout: 30_000,
     });
 

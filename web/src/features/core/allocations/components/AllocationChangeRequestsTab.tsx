@@ -17,94 +17,62 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { Button } from "@/shared/ui/button";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { ComputeAllocation, ComputeAllocationChangeRequest } from "@/generated/core/types.gen";
+import { formatDate, pluralize } from "@/shared/format";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import { useChangeRequests } from "../queries";
-import type { ChangeRequest, ComputeAllocation } from "../schemas";
+import { Button } from "@/shared/ui/button";
+import * as React from "react";
+import { useAllocationChangeRequests } from "../queries";
+import { ViewRequest, requestSummary, requestedChangeColumns } from "./ChangeRequestApproverQueue";
 import { ChangeRequestSubmitDrawer } from "./ChangeRequestSubmitDrawer";
+import { MemberName } from "./MemberName";
 
 export type AllocationChangeRequestsTabProps = {
   allocation: ComputeAllocation;
   canSubmit: boolean;
-  requesterId: string;
 };
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 export function AllocationChangeRequestsTab({
   allocation,
   canSubmit,
-  requesterId,
 }: AllocationChangeRequestsTabProps) {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const query = useChangeRequests({ allocation_id: allocation.id });
+  const query = useAllocationChangeRequests(allocation.id);
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState onRetry={() => query.refetch()} />;
   }
-  const rows = query.data ?? [];
+  const rows = [...(query.data ?? [])].sort(
+    (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp),
+  );
 
-  const columns: Array<DataTableColumn<ChangeRequest>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationChangeRequest>> = [
     {
       key: "submitted",
       header: "Submitted",
       cell: (row) => (
-        <span className="text-sm text-muted-foreground">{formatDate(row.timestamp)}</span>
+        <Timestamp iso={row.timestamp} className="text-sm text-muted-foreground">
+          {formatDate(row.timestamp)}
+        </Timestamp>
       ),
     },
     {
       key: "requester",
       header: "Requester",
-      cell: (row) => <span className="font-mono text-xs">{row.requester_id}</span>,
+      cell: (row) => <MemberName id={row.requester_id} allocationId={row.compute_allocation_id} />,
     },
-    {
-      key: "amount",
-      header: "Requested SUs",
-      align: "right",
-      cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => (
-        <StatusBadge
-          variant={statusBadgeVariantFromChangeRequest(row.change_status)}
-          label={row.change_status}
-        />
-      ),
-    },
+    ...requestedChangeColumns,
     {
       key: "actions",
       header: "",
       align: "right",
       interactive: true,
-      cell: (row) => (
-        <Button variant="ghost" size="sm" render={<Link href={`/change-requests/${row.id}`} />}>
-          View
-        </Button>
-      ),
+      cell: (row) => <ViewRequest id={row.id} name={requestSummary(row)} />,
     },
   ];
 
@@ -118,24 +86,31 @@ export function AllocationChangeRequestsTab({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {rows.length} request{rows.length === 1 ? "" : "s"}
+          {rows.length} {pluralize("request", rows.length)}
         </p>
         {headerCta}
       </div>
       {rows.length === 0 ? (
         <EmptyState
           heading="No change requests"
-          description={canSubmit ? "Submit a request when this allocation needs more SUs or more time." : "There are no change requests for this allocation."}
+          description={
+            canSubmit
+              ? "Submit a request when this allocation needs a new SU total or a status change."
+              : "There are no change requests for this allocation."
+          }
         />
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
+        <DataTable
+          caption="Change requests"
+          columns={columns}
+          rows={rows}
+          rowKey={(row) => row.id}
+        />
       )}
       <ChangeRequestSubmitDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        allocationId={allocation.id}
-        requesterId={requesterId}
-        currentSuAmount={allocation.initial_su_amount}
+        allocation={allocation}
       />
     </div>
   );

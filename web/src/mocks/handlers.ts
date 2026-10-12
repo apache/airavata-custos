@@ -21,18 +21,17 @@ import { amieHandlers } from "./handlers/amie";
 import { analyticsHandlers } from "./handlers/analytics";
 import { clustersHandlers } from "./handlers/clusters";
 import { eventsHandlers } from "./handlers/events";
-import { healthzHandlers } from "./handlers/healthz";
 import { identityHandlers } from "./handlers/identity";
 import { organizationsHandlers } from "./handlers/organizations";
 import { privilegesHandlers } from "./handlers/privileges";
 import { projectsHandlers } from "./handlers/projects";
 import { resourcesHandlers } from "./handlers/resources";
 import { rolesHandlers } from "./handlers/roles";
+import { tempAccountHandlers } from "./handlers/tempAccount";
 import { tracesHandlers } from "./handlers/traces";
 import { usersHandlers } from "./handlers/users";
 
 export const handlers: RequestHandler[] = [
-  ...healthzHandlers,
   ...privilegesHandlers,
   ...rolesHandlers,
   ...identityHandlers,
@@ -40,6 +39,7 @@ export const handlers: RequestHandler[] = [
   ...analyticsHandlers,
   ...projectsHandlers,
   ...organizationsHandlers,
+  ...tempAccountHandlers,
   ...allocationsHandlers,
   ...tracesHandlers,
   ...eventsHandlers,

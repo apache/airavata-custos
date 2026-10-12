@@ -15,11 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { AnalyticsPage } from "@/features/core/analytics/components/AnalyticsPage";
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 
-export const metadata: Metadata = { title: "Analytics" };
+export const metadata = pageMetadata("/analytics");
 
 export default function AnalyticsRoute() {
-  return <AnalyticsPage />;
+  return (
+    <>
+      <DeclaredParams keys={["project", "allocation"]} />
+      <AnalyticsPage />
+    </>
+  );
 }

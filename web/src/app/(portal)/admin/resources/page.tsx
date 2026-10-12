@@ -15,12 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
+import { pageMetadata } from "@/shared/layout/nav";
 import { ResourcesClustersTabs } from "./ResourcesClustersTabs";
 
-export const metadata: Metadata = {
-  title: "Resources & Clusters",
-};
+export const metadata = pageMetadata("/admin/resources");
 
 export default function AdminResourcesPage() {
   return <ResourcesClustersTabs />;

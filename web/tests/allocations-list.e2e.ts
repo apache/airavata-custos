@@ -25,10 +25,10 @@ test.describe("allocations list", () => {
     await page.goto("/allocations");
     await expect(page.getByRole("heading", { name: /^Allocations$/ })).toBeVisible();
 
-    const firstRow = page.locator('a[href^="/allocations/alloc-"]').first();
+    const firstRow = page.locator('a[href^="/allocations/"]').first();
     await expect(firstRow).toBeVisible({ timeout: 15_000 });
     await firstRow.click();
-    await expect(page).toHaveURL(/\/allocations\/alloc-/);
+    await expect(page).toHaveURL(/\/allocations\/[0-9a-f]{8}-/);
   });
 
   // Make sure a user with no privileges can open their allocations.
@@ -36,7 +36,7 @@ test.describe("allocations list", () => {
     await signInAs(page, "researcher");
     await page.goto("/allocations");
     await expect(page.getByRole("heading", { name: /^Allocations$/ })).toBeVisible();
-    await expect(page.locator('a[href^="/allocations/alloc-"]').first()).toBeVisible({
+    await expect(page.locator('a[href^="/allocations/"]').first()).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -44,7 +44,8 @@ test.describe("allocations list", () => {
   test("status filter updates URL state", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/allocations");
-    await page.getByLabel(/filter by status/i).selectOption("INACTIVE");
+    await page.getByRole("combobox", { name: /filter by status/i }).click();
+    await page.getByRole("option", { name: "Inactive" }).click();
     await expect(page).toHaveURL(/[?&]status=INACTIVE/);
   });
 

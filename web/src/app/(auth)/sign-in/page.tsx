@@ -15,18 +15,29 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { auth } from "@/shared/auth/auth";
+import { sameOriginUrl } from "@/shared/auth/sameOrigin";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 type SearchParams = Promise<{ error?: string; callbackUrl?: string }>;
 
 // There is no custom sign-in screen: the landing page is the single entry
 // point. On an auth error we send the signed-out user back to the landing,
-// which shows the reason as a banner; otherwise straight to the IdP.
+// which shows the reason as a banner; a signed-in Custos user goes straight to the callback, and
+// anyone else to the IdP.
 export default async function SignInPage(props: { searchParams: SearchParams }) {
   const { error, callbackUrl } = await props.searchParams;
-  if (error) {
-    redirect(`/?authError=${encodeURIComponent(error)}`);
+  // A sign-in whose Custos user could not be resolved goes back to the IdP, or the notice loops.
+  if (!error && (await auth())?.custosUserId) {
+    const h = await headers();
+    const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+    const { pathname, search, hash } = sameOriginUrl(callbackUrl, origin);
+    redirect(pathname + search + hash);
   }
-  const suffix = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : "";
-  redirect(`/api/auth/federated-sign-in${suffix}`);
+  const suffix = callbackUrl ? `callbackUrl=${encodeURIComponent(callbackUrl)}` : "";
+  if (error) {
+    redirect(`/?authError=${encodeURIComponent(error)}${suffix && `&${suffix}`}`);
+  }
+  redirect(`/api/auth/federated-sign-in${suffix && `?${suffix}`}`);
 }

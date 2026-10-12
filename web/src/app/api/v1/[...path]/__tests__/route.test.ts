@@ -68,4 +68,30 @@ describe("api v1 proxy route", () => {
     expect(response.status).toBe(204);
     expect(await response.text()).toBe("");
   });
+
+  it("forwards a path value holding slashes or dots as one segment", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await POST(
+      new NextRequest("http://localhost:3000/api/v1/projects/p1/members/..%2Fstatus", {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ path: ["projects", "p1", "members", "../status"] }) },
+    );
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      "https://core.example.org/projects/p1/members/..%2Fstatus",
+    );
+  });
+
+  it("answers 502 with a readable error when the backend cannot be reached", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
+    const response = await POST(
+      new NextRequest("http://localhost:3000/api/v1/roles/role-1/privileges", { method: "POST" }),
+      ctx,
+    );
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: "the Custos server could not be reached",
+      code: "upstream_unreachable",
+    });
+  });
 });

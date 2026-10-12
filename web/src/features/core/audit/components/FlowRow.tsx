@@ -20,6 +20,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { enumLabel, formatUtc } from "@/shared/format";
 import {
   AlertTriangleIcon,
   ChevronRightIcon,
@@ -36,10 +37,10 @@ import type { FlowRow as FlowRowModel } from "../utils";
 import {
   deliveryLabel,
   errorText,
-  formatAbsoluteUtc,
   formatOffset,
   isCodeShaped,
   plainName,
+  retriedLabel,
   shortHex,
   usernameOf,
 } from "../utils";
@@ -71,7 +72,7 @@ function Rails({ rails, depth, onPath }: { rails: boolean[]; depth: number; onPa
           aria-hidden="true"
           className={cn(
             "absolute top-0 bottom-0 w-0.5",
-            red ? "bg-[color:var(--custos-red-500)]" : "bg-[color:var(--border-strong)]",
+            red ? "bg-[color:var(--fill-error)]" : "bg-[color:var(--border-strong)]",
           )}
           style={{ left: i * INDENT + GUTTER / 2 - 1 }}
         />
@@ -81,7 +82,7 @@ function Rails({ rails, depth, onPath }: { rails: boolean[]; depth: number; onPa
           aria-hidden="true"
           className={cn(
             "absolute top-1/2 h-0.5 -translate-y-1/2",
-            onPath ? "bg-[color:var(--custos-red-500)]" : "bg-[color:var(--border-strong)]",
+            onPath ? "bg-[color:var(--fill-error)]" : "bg-[color:var(--border-strong)]",
           )}
           style={{ left: (depth - 1) * INDENT + GUTTER / 2, width: INDENT - GUTTER / 2 }}
         />
@@ -225,31 +226,35 @@ export function FlowRow(props: FlowRowProps) {
             )}
           />
         </Marker>
-        <span
-          className={cn(
-            "min-w-0 truncate text-[13px] font-semibold text-foreground",
-            row.status === "muted" && "font-medium text-muted-foreground",
-            isCodeShaped(row.title) && "font-mono text-[12.5px]",
-          )}
-          title={row.title}
-        >
-          {row.delivery ? (
-            <>
-              <span className="font-medium text-muted-foreground">Delivery to </span>
-              <span className="font-mono text-[12.5px]">{row.title}</span>
-            </>
-          ) : (
-            row.title
+        {/* Below sm the pills wrap under the label, so it keeps at least 8ch. */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 py-1 sm:flex-nowrap">
+          <span
+            className={cn(
+              "min-w-[8ch] truncate text-[13px] font-semibold text-foreground",
+              row.status === "muted" && "font-medium text-muted-foreground",
+              isCodeShaped(row.title) && "font-mono text-[12.5px]",
+            )}
+            title={row.title}
+          >
+            {row.delivery ? (
+              <>
+                <span className="font-medium text-muted-foreground">Delivery to </span>
+                <span className="font-mono text-[12.5px]">{row.title}</span>
+              </>
+            ) : (
+              row.title
+            )}
+          </span>
+          {row.source && <SourcePill source={row.source} size="sm" />}
+          {row.status !== "muted" && (
+            <StatusPill
+              status={row.status}
+              label={row.delivery ? deliveryLabel(row.delivery, row.tries ?? 0) : undefined}
+              size="sm"
+              className="h-auto min-h-5 max-w-full py-0.5 leading-tight whitespace-normal sm:whitespace-nowrap"
+            />
           )}
         </span>
-        {row.source && <SourcePill source={row.source} size="sm" />}
-        {row.status !== "muted" && (
-          <StatusPill
-            status={row.status}
-            label={row.delivery ? deliveryLabel(row.delivery) : undefined}
-            size="sm"
-          />
-        )}
       </div>
     );
   }
@@ -292,13 +297,13 @@ export function FlowRow(props: FlowRowProps) {
   const isError = step.status === "error";
   const label = plainName(step.event_type) ?? step.event_type;
   const err = errorText(step);
-  const username = usernameOf(step);
+  const subject = usernameOf(step);
   const meta = err
     ? err
-    : username
-      ? username
+    : subject
+      ? subject
       : step.entity_type && step.entity_id
-        ? `${step.entity_type} ${shortHex(step.entity_id, 8)}`
+        ? `${enumLabel(step.entity_type)} ${shortHex(step.entity_id, 8)}`
         : "";
   const offset = Date.parse(step.created_at) - Date.parse(props.startedAt);
   let marker: React.ReactNode;
@@ -314,7 +319,7 @@ export function FlowRow(props: FlowRowProps) {
   } else if (isError) {
     marker = <CircleXIcon className="size-3.5 text-[color:var(--tone-error-fg)]" />;
   } else {
-    marker = <span className="size-2 rounded-full bg-[color:var(--custos-gray-400)]" />;
+    marker = <span className="size-2 rounded-full bg-[color:var(--muted-foreground)]" />;
   }
 
   return (
@@ -333,7 +338,7 @@ export function FlowRow(props: FlowRowProps) {
         isError && !selected && "bg-[color:var(--tone-error-bg)]",
         row.failing &&
           !selected &&
-          "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[color:var(--custos-red-500)]",
+          "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[color:var(--fill-error)]",
         selected && rowSelected,
       )}
     >
@@ -342,7 +347,7 @@ export function FlowRow(props: FlowRowProps) {
       <Marker>{marker}</Marker>
       <span
         className="w-[60px] shrink-0 text-right font-mono text-[11.5px] tabular-nums text-muted-foreground"
-        title={formatAbsoluteUtc(step.created_at)}
+        title={formatUtc(step.created_at)}
       >
         {formatOffset(offset)}
       </span>
@@ -356,7 +361,11 @@ export function FlowRow(props: FlowRowProps) {
         )}
         title={step.event_type}
       >
-        {row.try ? `Try ${row.try.n} ${row.try.outcome}` : label}
+        {!row.try
+          ? label
+          : row.try.outcome === "retried"
+            ? retriedLabel(step)
+            : `Try ${row.try.n} ${row.try.outcome}`}
       </span>
       {!row.try && step.source !== props.groupSource && (
         <SourcePill source={step.source} size="sm" />

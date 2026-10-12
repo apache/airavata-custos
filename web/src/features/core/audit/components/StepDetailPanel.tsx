@@ -19,29 +19,34 @@
 
 "use client";
 
+import { useSubscriptions } from "@/features/core/events/queries";
+import { leftThisRun, relativeTime } from "@/features/core/events/utils";
 import { cn } from "@/lib/utils";
+import { enumLabel } from "@/shared/format";
 import { buttonVariants } from "@/shared/ui/button";
+import { useScrollStop } from "@/shared/ui/focus";
 import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
+import { tokenLabel } from "../eventLabels";
 import type { Step, TraceDelivery } from "../types";
 import type { FlowModel, FlowRow } from "../utils";
 import {
-  MAX_DELIVERY_TRIES,
   deliveryLabel,
   deliveryListStatus,
   errorText,
-  formatAbsoluteUtc,
   formatOffset,
-  formatRelative,
-  formatUntil,
   isCodeShaped,
   parseDetails,
   plainName,
+  retriedLabel,
+  tryTitle,
 } from "../utils";
+import { RelatedTracesLink } from "./RelatedTracesLink";
 import { CopyValue } from "./primitives/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
+import { Timestamp } from "./primitives/Timestamp";
 
 export type StepDetailPanelProps = {
   row: FlowRow | null;
@@ -53,9 +58,9 @@ export type StepDetailPanelProps = {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-4">
-      <h4 className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+      <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
         {title}
-      </h4>
+      </h3>
       {children}
     </section>
   );
@@ -65,16 +70,19 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   return (
     <div className="flex min-h-[30px] items-start gap-3 text-[13px]">
       <span className="w-[88px] shrink-0 pt-[1px] text-muted-foreground">{label}</span>
-      <div className="min-w-0 flex-1 break-all text-foreground">{children}</div>
+      <div className="min-w-0 flex-1 text-foreground [overflow-wrap:anywhere]">{children}</div>
     </div>
   );
 }
 
 function ErrorBox({ text }: { text: string }) {
+  const scrollStop = useScrollStop<HTMLPreElement>();
   return (
     <pre
       data-testid="step-error"
-      className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-[color:var(--tone-error-bg)] p-3 font-mono text-xs text-[color:var(--tone-error-fg)]"
+      {...scrollStop}
+      aria-label="Error"
+      className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere] rounded-md bg-[color:var(--tone-error-bg)] p-3 font-mono text-xs text-[color:var(--tone-error-fg)]"
     >
       {text}
     </pre>
@@ -99,8 +107,8 @@ function Details({ description }: { description: string | undefined }) {
   if ("text" in parsed) {
     return (
       <Section title="Details">
-        <pre className="whitespace-pre-wrap rounded-md border border-border bg-[color:var(--muted-2)] p-3 font-mono text-xs text-foreground">
-          {parsed.text}
+        <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] rounded-md border border-border bg-[color:var(--muted-2)] p-3 font-mono text-xs text-foreground">
+          {tokenLabel(parsed.text)}
         </pre>
       </Section>
     );
@@ -119,7 +127,7 @@ function Details({ description }: { description: string | undefined }) {
             <dt className="w-[120px] shrink-0 font-mono text-[11.5px] text-muted-foreground">
               {k}
             </dt>
-            <dd className="min-w-0 flex-1 font-mono break-all">
+            <dd className="min-w-0 flex-1 font-mono [overflow-wrap:anywhere]">
               <CopyValue value={v} label={k} explicit>
                 <span className="whitespace-pre-wrap">{v}</span>
               </CopyValue>
@@ -136,17 +144,17 @@ function Ids({ step, traceId }: { step?: Step; traceId: string }) {
     <Section title="Ids">
       {step && (
         <Fact label="Step">
-          <CopyValue value={step.id} label="step id" />
+          <CopyValue value={step.id} label="step ID" />
         </Fact>
       )}
       {step && (
         <Fact label="Span">
-          <CopyValue value={step.span_id} label="span id" />
+          <CopyValue value={step.span_id} label="span ID" />
         </Fact>
       )}
       {step?.parent_span_id && (
         <Fact label="Parent span">
-          <CopyValue value={step.parent_span_id} label="parent span id" />
+          <CopyValue value={step.parent_span_id} label="parent span ID" />
         </Fact>
       )}
       <Fact label="Trace">
@@ -158,6 +166,10 @@ function Ids({ step, traceId }: { step?: Step; traceId: string }) {
 
 function StepBody({ step, model, traceId }: { step: Step; model: FlowModel; traceId: string }) {
   const name = plainName(step.event_type);
+  const title =
+    step.event_type === "EVENT_DELIVERY_RETRIED"
+      ? retriedLabel(step)
+      : (tryTitle(model, step) ?? name ?? step.event_type);
   const err = errorText(step);
   const deliveryId = model.tryOf.get(step.id) ?? model.ownerOfSpan.get(step.span_id);
   const delivery = deliveryId
@@ -176,7 +188,7 @@ function StepBody({ step, model, traceId }: { step: Step; model: FlowModel; trac
       <div
         className={cn("text-[15px] font-bold text-foreground", !name && "font-mono text-[13.5px]")}
       >
-        {name ?? step.event_type}
+        {title}
       </div>
       {name && (
         <div className="mt-0.5 font-mono text-[12px] text-muted-foreground">{step.event_type}</div>
@@ -188,30 +200,31 @@ function StepBody({ step, model, traceId }: { step: Step; model: FlowModel; trac
       {err && <ErrorBox text={err} />}
       <Section title="Facts">
         <Fact label="Time">
-          <span className="tabular-nums">{formatAbsoluteUtc(step.created_at)}</span>
-          <span className="text-muted-foreground"> ({formatRelative(step.created_at)})</span>
+          <Timestamp iso={step.created_at} precise className="tabular-nums" />
+          <span className="text-muted-foreground"> ({relativeTime(step.created_at)})</span>
         </Fact>
         <Fact label="Offset">
           <span className="font-mono tabular-nums">{formatOffset(offset)}</span>
         </Fact>
         {step.entity_type && step.entity_id && (
           <Fact label="Entity">
-            <span className="text-muted-foreground">{step.entity_type} </span>
+            <span className="text-muted-foreground">{enumLabel(step.entity_type)} </span>
             <CopyValue value={step.entity_id} label={step.entity_type} />
             <div className="mt-1">
-              <Link
-                href={`/admin/traces?q=${encodeURIComponent(step.entity_id)}&window=30d`}
-                className="text-[12.5px] text-[color:var(--brand)] hover:underline"
-              >
-                Related traces
-              </Link>
+              <RelatedTracesLink
+                entityId={step.entity_id}
+                entityType={step.entity_type}
+                className="text-[12.5px] text-foreground underline-offset-4 hover:underline"
+              />
             </div>
           </Fact>
         )}
         {delivery && (
           <Fact label="Delivery">
             <span className="font-mono text-[12.5px]">{delivery.subscriber}</span>
-            <span className="text-muted-foreground">, {deliveryLabel(delivery).toLowerCase()}</span>
+            <span className="text-muted-foreground">
+              , {deliveryLabel(delivery, model.tryCounts.get(delivery.id) ?? 0).toLowerCase()}
+            </span>
           </Fact>
         )}
       </Section>
@@ -222,8 +235,19 @@ function StepBody({ step, model, traceId }: { step: Step; model: FlowModel; trac
   );
 }
 
-function DeliveryBody({ delivery, traceId }: { delivery: TraceDelivery; traceId: string }) {
+function DeliveryBody({
+  delivery,
+  tries,
+  traceId,
+}: {
+  delivery: TraceDelivery;
+  tries: number;
+  traceId: string;
+}) {
   const status = deliveryListStatus(delivery);
+  const loaded = useSubscriptions().data?.items?.find(
+    (s) => s.subscriber === delivery.subscriber && s.event_type === delivery.event_type,
+  )?.loaded;
   return (
     <>
       <div className="text-[13.5px] font-bold text-foreground">
@@ -231,37 +255,44 @@ function DeliveryBody({ delivery, traceId }: { delivery: TraceDelivery; traceId:
         <span className="font-mono">{delivery.subscriber}</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <StatusPill status={status} label={deliveryLabel(delivery)} size="sm" />
+        <StatusPill status={status} label={deliveryLabel(delivery, tries)} size="sm" />
       </div>
-      {delivery.last_error && <ErrorBox text={delivery.last_error} />}
+      {delivery.last_error && delivery.status !== "SUCCEEDED" && (
+        <ErrorBox text={delivery.last_error} />
+      )}
       <Section title="Facts">
         <Fact label="Event">
           <span className="font-mono text-[12.5px]">{delivery.event_type}</span>
         </Fact>
         <Fact label="Tries">
-          <span className="tabular-nums">
-            {delivery.attempts} of {MAX_DELIVERY_TRIES}
-          </span>
+          <span className="tabular-nums">{Math.max(tries, delivery.attempts)}</span>
+          {delivery.status === "PENDING" && (
+            <span className="text-muted-foreground"> ({leftThisRun(delivery.attempts)})</span>
+          )}
         </Fact>
         {delivery.status === "PENDING" && (
           <Fact label="Next try">
-            <span className="tabular-nums">{formatUntil(delivery.next_run_at)}</span>
+            <span className="tabular-nums">{relativeTime(delivery.next_run_at)}</span>
             <span className="text-muted-foreground">
               {" "}
-              ({formatAbsoluteUtc(delivery.next_run_at)})
+              (<Timestamp iso={delivery.next_run_at} className="tabular-nums" />)
             </span>
           </Fact>
         )}
         {delivery.status === "PENDING" && delivery.attempts === 0 && (
           <p className="mt-1 text-[12.5px] text-muted-foreground">
-            No try yet. The connector may not be running.
+            {loaded === undefined
+              ? "No try yet."
+              : loaded
+                ? "No try yet. The connector is running and tries it when it is due."
+                : "No try yet. The connector is not running on this server."}
           </p>
         )}
       </Section>
       <OpenDeliveryButton delivery={delivery} />
       <Section title="Ids">
         <Fact label="Delivery">
-          <CopyValue value={delivery.id} label="delivery id" />
+          <CopyValue value={delivery.id} label="delivery ID" />
         </Fact>
         <Fact label="Trace">
           <CopyValue value={traceId} label="trace ID" />
@@ -278,7 +309,7 @@ export function StepDetailPanel({ row, model, traceId, className }: StepDetailPa
   } else if (row.kind === "step") {
     body = <StepBody step={row.step} model={model} traceId={traceId} />;
   } else if (row.kind === "group" && row.delivery) {
-    body = <DeliveryBody delivery={row.delivery} traceId={traceId} />;
+    body = <DeliveryBody delivery={row.delivery} tries={row.tries ?? 0} traceId={traceId} />;
   } else if (row.kind === "group") {
     body = (
       <>
@@ -314,7 +345,11 @@ export function StepDetailPanel({ row, model, traceId, className }: StepDetailPa
           <ul className="space-y-1.5">
             {row.deliveries.map((d) => (
               <li key={d.id} className="flex items-center gap-2 text-[12.5px]">
-                <StatusPill status={deliveryListStatus(d)} label={deliveryLabel(d)} size="sm" />
+                <StatusPill
+                  status={deliveryListStatus(d)}
+                  label={deliveryLabel(d, model.tryCounts.get(d.id) ?? 0)}
+                  size="sm"
+                />
                 <span className="truncate font-mono">{d.subscriber}</span>
               </li>
             ))}

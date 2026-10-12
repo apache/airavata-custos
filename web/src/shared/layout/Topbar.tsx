@@ -17,20 +17,19 @@
 
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { SidebarMenuButton } from "./Sidebar";
 import { UserPill } from "./UserPill";
 import { useNavHistory } from "./useNavHistory";
 
 function NavArrows() {
   const router = useRouter();
   const { canGoBack, canGoForward } = useNavHistory();
-  const baseClass =
+  const className =
     "h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/40 hover:text-foreground";
-  const disabledClass = "opacity-50 cursor-not-allowed";
   return (
     <div className="flex items-center gap-1">
       <Button
@@ -38,7 +37,8 @@ function NavArrows() {
         size="icon"
         aria-label="Go back"
         disabled={!canGoBack}
-        className={cn(baseClass, !canGoBack && disabledClass)}
+        focusableWhenDisabled
+        className={className}
         onClick={() => router.back()}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -48,7 +48,8 @@ function NavArrows() {
         size="icon"
         aria-label="Go forward"
         disabled={!canGoForward}
-        className={cn(baseClass, !canGoForward && disabledClass)}
+        focusableWhenDisabled
+        className={className}
         onClick={() => router.forward()}
       >
         <ChevronRight className="h-4 w-4" />
@@ -57,15 +58,16 @@ function NavArrows() {
   );
 }
 
-export function Topbar() {
+export function Topbar({ breadcrumbs }: { breadcrumbs: boolean }) {
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-background px-8">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 border-b border-border bg-background px-4 md:gap-4 md:px-8">
+      <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-4">
+        <SidebarMenuButton />
         <NavArrows />
-        <Breadcrumbs />
+        {breadcrumbs ? <Breadcrumbs /> : null}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-4">
         <UserPill />
       </div>
     </header>

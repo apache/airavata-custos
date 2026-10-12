@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UsageMember } from "@/generated/analytics/types.gen";
 import { CHART_OTHER_COLOR, CHART_SERIES_COLORS } from "../lib";
-import type { UsageMember } from "../schemas";
 import { BudgetDonut, type BudgetSlice } from "./BudgetDonut";
 
 const TOP_MEMBERS = 5;

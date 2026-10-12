@@ -78,18 +78,18 @@ const toneToVariant: Record<MetaTone, StatusBadgeVariant> = {
 
 export function MetaItem(props: MetaItemProps) {
   if (props.variant === "status") {
-    const variant: StatusBadgeProps["variant"] = props.tone
-      ? toneToVariant[props.tone]
-      : "active";
-    return <StatusBadge variant={variant} label={String(props.value)} className={props.className} />;
+    const variant: StatusBadgeProps["variant"] = props.tone ? toneToVariant[props.tone] : "active";
+    return (
+      <StatusBadge variant={variant} label={String(props.value)} className={props.className} />
+    );
   }
 
   const { icon: Icon, label, value, className } = props;
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {Icon ? <Icon className="h-4 w-4 stroke-[1.5] text-muted-foreground" /> : null}
-      {label ? <span className="text-muted-foreground">{label} :</span> : null}
-      <span className="font-medium text-foreground">{value}</span>
+      {label ? <span className="text-muted-foreground">{label}:</span> : null}
+      <span className="min-w-0 font-medium text-foreground [overflow-wrap:anywhere]">{value}</span>
     </div>
   );
 }

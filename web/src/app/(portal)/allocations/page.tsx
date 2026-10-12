@@ -15,8 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { AllocationsListContainer } from "./AllocationsListContainer";
 
+export const metadata = pageMetadata("/allocations");
+
 export default function AllocationsPage() {
-  return <AllocationsListContainer />;
+  return (
+    <>
+      <DeclaredParams keys={["q", "status", "page"]} />
+      <AllocationsListContainer />
+    </>
+  );
 }

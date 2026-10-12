@@ -17,40 +17,22 @@
 
 "use client";
 
-import { useState } from "react";
-import { Lock, Pencil } from "lucide-react";
+import type { User } from "@/generated/core/types.gen";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { edited, useFreshOnOpen } from "@/shared/ui/FormDialog";
+import { CardSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
-import { useUpdateMyName } from "../queries";
-import type { UserProfile } from "../schemas";
-
-function displayName(user: UserProfile): string {
-  const full = [user.first_name, user.middle_name, user.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  return full || user.email || "Unknown user";
-}
-
-function initials(user: UserProfile): string {
-  const source = displayName(user);
-  const parts = source.split(/\s+/).filter(Boolean);
-  const first = parts.at(0) ?? source;
-  const last = parts.at(-1) ?? "";
-  const chars = parts.length >= 2 ? `${first.charAt(0)}${last.charAt(0)}` : source.slice(0, 2);
-  return chars.toUpperCase();
-}
-
-function formatDate(iso?: string): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
+import { toastOnSuccess } from "@/shared/ui/sonner";
+import { displayName, emailBeside, initials } from "@/shared/users-admin/displayName";
+import { Lock, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useMe, useUpdateMyName } from "../queries";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -63,49 +45,98 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function ProfileCard({ user }: { user: UserProfile }) {
+export function ProfileCard({
+  user,
+  organizationName,
+  showsIdentities = false,
+}: {
+  user: User;
+  // Absent when the caller may not read organizations.
+  organizationName?: string;
+  // The page shows the identities card, so the lock note may mention identities.
+  showsIdentities?: boolean;
+}) {
   const [editing, setEditing] = useState(false);
-  const [first, setFirst] = useState(user.first_name ?? "");
+  const [first, setFirst] = useState(user.first_name);
   const [middle, setMiddle] = useState(user.middle_name ?? "");
-  const [last, setLast] = useState(user.last_name ?? "");
-  const update = useUpdateMyName(user.id);
+  const [last, setLast] = useState(user.last_name);
+  const update = useUpdateMyName();
+  const canEdit = useAbility().can("write", "User");
+  const me = useMe();
+  const fresh = useFreshOnOpen(me, editing);
+  const current = me.data?.user ?? user;
 
-  function openEdit() {
-    setFirst(user.first_name ?? "");
-    setMiddle(user.middle_name ?? "");
-    setLast(user.last_name ?? "");
-    setEditing(true);
-  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: prefills once the opening read lands
+  useEffect(() => {
+    if (!editing || !fresh.ready) return;
+    setFirst(current.first_name);
+    setMiddle(current.middle_name ?? "");
+    setLast(current.last_name);
+  }, [editing, fresh.ready]);
+
+  const stored = {
+    first_name: current.first_name,
+    middle_name: current.middle_name ?? "",
+    last_name: current.last_name,
+  };
+  // PUT replaces the whole name, so every part is sent.
+  const body = edited(stored, {
+    first_name: first.trim(),
+    middle_name: middle.trim(),
+    last_name: last.trim(),
+  });
+  // First and last names are required, so only a changed one may not be blank.
+  const blank = (["first_name", "last_name"] as const).some(
+    (key) => body?.[key] === "" && stored[key] !== "",
+  );
 
   function onSave() {
-    update.mutate(
-      { first_name: first, middle_name: middle, last_name: last },
-      { onSuccess: () => setEditing(false) },
+    if (!body) return setEditing(false);
+    toastOnSuccess(update.mutateAsync({ path: { id: user.id }, body }), "Profile updated", () =>
+      setEditing(false),
     );
   }
-
-  const memberSince = formatDate(undefined);
 
   return (
     <Card className="gap-0 divide-y divide-border py-0">
       <div className="flex items-center gap-4 px-6 py-5">
         <Avatar className="h-14 w-14 border-2 border-brand text-lg">
-          <AvatarFallback>{initials(user)}</AvatarFallback>
+          <AvatarFallback>{initials(displayName(user))}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <div className="truncate text-base font-semibold">{displayName(user)}</div>
-          <div className="truncate text-sm text-muted-foreground">{user.email}</div>
+          <div className="truncate text-base font-semibold">
+            {displayName(user) || "Unknown user"}
+          </div>
+          <div className="truncate text-sm text-muted-foreground">
+            {emailBeside(displayName(user), user.email)}
+          </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
           {user.status === "ACTIVE" ? <StatusBadge variant="active" /> : null}
-          <Button variant="outline" size="sm" onClick={openEdit} disabled={editing}>
-            <Pencil className="h-3.5 w-3.5" />
-            Edit name
-          </Button>
+          {canEdit ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditing(true)}
+              disabled={editing}
+              focusableWhenDisabled
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit name
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      {editing ? (
+      {editing && !fresh.ready ? (
+        <div className="px-6 py-5">
+          {fresh.error ? (
+            <ErrorState error={fresh.error} onRetry={() => me.refetch()} />
+          ) : (
+            <CardSkeleton />
+          )}
+        </div>
+      ) : editing ? (
         <div className="px-6 py-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -113,6 +144,7 @@ export function ProfileCard({ user }: { user: UserProfile }) {
               <Input
                 id="settings-first-name"
                 className="mt-1"
+                maxLength={255}
                 value={first}
                 onChange={(e) => setFirst(e.target.value)}
               />
@@ -122,6 +154,7 @@ export function ProfileCard({ user }: { user: UserProfile }) {
               <Input
                 id="settings-middle-name"
                 className="mt-1"
+                maxLength={255}
                 placeholder="Optional"
                 value={middle}
                 onChange={(e) => setMiddle(e.target.value)}
@@ -132,13 +165,21 @@ export function ProfileCard({ user }: { user: UserProfile }) {
               <Input
                 id="settings-last-name"
                 className="mt-1"
+                maxLength={255}
                 value={last}
                 onChange={(e) => setLast(e.target.value)}
               />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2">
-            <Button variant="brand" size="sm" onClick={onSave} disabled={update.isPending}>
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={onSave}
+              pending={update.isPending}
+              disabled={blank}
+              focusableWhenDisabled
+            >
               {update.isPending ? "Saving…" : "Save"}
             </Button>
             <Button
@@ -146,12 +187,15 @@ export function ProfileCard({ user }: { user: UserProfile }) {
               size="sm"
               onClick={() => setEditing(false)}
               disabled={update.isPending}
+              focusableWhenDisabled
             >
               Cancel
             </Button>
             <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
               <Lock className="h-3 w-3" />
-              Email and linked identities are managed by your identity provider.
+              {showsIdentities
+                ? "Email and linked identities are managed by your identity provider."
+                : "Email is managed by your identity provider."}
             </span>
           </div>
         </div>
@@ -159,10 +203,9 @@ export function ProfileCard({ user }: { user: UserProfile }) {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 px-6 py-5">
         <Field label="Username">
-          <span className="font-mono text-[13px]">{user.email?.split("@")[0] ?? "—"}</span>
+          <span className="font-mono text-[13px]">{user.email.split("@")[0] || "—"}</span>
         </Field>
-        <Field label="Organization">{user.organization_id ?? "—"}</Field>
-        <Field label="Member since">{memberSince ?? "—"}</Field>
+        {organizationName ? <Field label="Organization">{organizationName}</Field> : null}
       </div>
     </Card>
   );

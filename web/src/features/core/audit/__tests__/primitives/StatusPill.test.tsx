@@ -22,10 +22,17 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 describe("StatusPill", () => {
-  // Make sure the status is announced in words, never by color alone.
-  it("names the status for screen readers", () => {
-    render(<StatusPill status="retrying" label="Retrying 4 of 10" />);
-    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Status: Retrying 4 of 10");
-    expect(screen.getByText("Retrying 4 of 10")).toBeInTheDocument();
+  // Make sure only a pill that changes in place is a live region, so a list does not announce every row.
+  it("is a live region only when asked", () => {
+    const { rerender } = render(
+      <StatusPill status="retrying" label="Waiting, 6 of 10 left this run" />,
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByText("Waiting, 6 of 10 left this run")).toBeInTheDocument();
+    rerender(<StatusPill status="retrying" label="Waiting, 6 of 10 left this run" live />);
+    expect(screen.getByRole("status")).toHaveAttribute(
+      "aria-label",
+      "Status: Waiting, 6 of 10 left this run",
+    );
   });
 });

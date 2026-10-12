@@ -17,7 +17,7 @@
 
 import { describe, expect, it } from "vitest";
 import { deliveryFixtures } from "../__fixtures__/deliveries";
-import { deliveryState, historyRuns } from "../utils";
+import { deliveryState, historyRuns, relativeTime } from "../utils";
 
 function fixture(id: string) {
   const delivery = deliveryFixtures.find((d) => d.id === id);
@@ -26,16 +26,15 @@ function fixture(id: string) {
 }
 
 describe("historyRuns", () => {
-  // Make sure an admin retry starts a new run, so the restarted attempt numbers are not mixed with the old ones.
-  it("splits the history into runs at each admin retry", () => {
-    const runs = historyRuns(fixture("dlv-failed-1").history);
+  // Make sure an admin retry starts a new run and attempts keep counting, as the trace numbers its tries.
+  it("splits the history into runs at each admin retry, numbering attempts continuously", () => {
+    const runs = historyRuns(fixture("07000001-0000-4000-8000-000007000001").history);
 
     expect(runs.map((run) => run.map((step) => step.kind))).toEqual([
       ["attempt", "attempt"],
       ["retry", "attempt"],
     ]);
-    expect(runs[1]?.[0]).toMatchObject({ kind: "retry", actorId: "user-admin", previousAttempts: 2 });
-    expect(runs[1]?.[1]).toMatchObject({ kind: "attempt", attempt: 1, ok: false });
+    expect(runs[1]?.[1]).toMatchObject({ kind: "attempt", attempt: 3, ok: false });
   });
 });
 
@@ -44,7 +43,21 @@ describe("deliveryState", () => {
   it("marks a pending delivery as not running when its connector is not loaded", () => {
     const running = new Set(["comanage-identity-provisioner", "slurm-association-mapper"]);
 
-    expect(deliveryState(fixture("dlv-waiting-1"), running)).toBe("not-running");
-    expect(deliveryState(fixture("dlv-retrying-1"), running)).toBe("retrying");
+    expect(deliveryState(fixture("07000004-0000-4000-8000-000007000004"), running)).toBe(
+      "not-running",
+    );
+    expect(deliveryState(fixture("07000003-0000-4000-8000-000007000003"), running)).toBe(
+      "retrying",
+    );
+  });
+});
+
+describe("relativeTime", () => {
+  // Make sure Events and the trace, which share this formatter, round a next try the same way.
+  it("rounds down in both directions", () => {
+    const now = Date.parse("2026-10-09T00:00:00Z");
+    expect(relativeTime("2026-10-09T01:59:00Z", now)).toBe("in 1h");
+    expect(relativeTime("2026-10-09T00:53:30Z", now)).toBe("in 53 min");
+    expect(relativeTime("2026-10-08T23:57:00Z", now)).toBe("3 min ago");
   });
 });

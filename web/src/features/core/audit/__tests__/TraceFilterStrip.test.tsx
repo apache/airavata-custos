@@ -46,7 +46,7 @@ describe("TraceFilterStrip", () => {
   // they narrow the list.
   it("starts with every status off and the 7 day window on", () => {
     renderStrip();
-    for (const name of ["Failed", "Retrying", "Waiting", "Done"]) {
+    for (const name of ["Failed", "Waiting", "Done"]) {
       expect(screen.getByRole("button", { name, pressed: false })).toBeInTheDocument();
     }
     expect(screen.getByRole("button", { name: "7d", pressed: true })).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe("TraceFilterStrip", () => {
   it("resets to page 1 when a status is toggled", () => {
     const { onChange } = renderStrip({ ...DEFAULT_FILTERS, page: 3 });
     fireEvent.click(screen.getByRole("button", { name: "Failed" }));
-    expect(onChange.mock.calls.at(-1)?.[0]).toMatchObject({ status: ["failed"], page: 1 });
+    expect(onChange.mock.calls.at(-1)?.[0]).toMatchObject({ status: ["error"], page: 1 });
   });
 
   // Make sure typing does not refetch on every keystroke.

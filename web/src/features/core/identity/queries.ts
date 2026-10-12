@@ -17,91 +17,83 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
-import { apiFetch } from "@/shared/api/client";
 import {
   getMe,
-  getMyDirectPrivileges,
-  getMyIdentities,
-  getMyRolesWithPrivileges,
-  updateMyName,
-} from "./api";
-import { privilegesResponseSchema } from "./schemas";
-import type {
-  CallerRoleGrant,
-  RoleWithPrivileges,
-  UserNameUpdate,
-  UserPrivilege,
-} from "./schemas";
-import type { CurrentUser, Privilege } from "./types";
+  getRolesById,
+  getUserPrivileges,
+  getUsersByIdPrivileges,
+  getUsersByIdRoles,
+  getUsersByIdUserIdentities,
+  putUsersById,
+} from "@/generated/core/sdk.gen";
+import type { CallerRoleGrant, PrivilegeKey, UserPrivilege } from "@/generated/core/types.gen";
+import { listOf } from "@/shared/api/listOf";
+import { useInvalidating } from "@/shared/api/useInvalidating";
+import {
+  type QueryClient,
+  type QueryKey,
+  hashKey,
+  skipToken,
+  useQuery,
+} from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 
 export const identityKeys = {
   all: ["identity"] as const,
-  current: () => [...identityKeys.all, "current"] as const,
   privileges: () => [...identityKeys.all, "privileges"] as const,
   me: () => [...identityKeys.all, "me"] as const,
   identities: (userId: string) => [...identityKeys.all, "identities", userId] as const,
   access: (userId: string) => [...identityKeys.all, "access", userId] as const,
 };
 
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
-
 export function useCurrentUser() {
-  const { data: session, status } = useSession();
-  const user: CurrentUser | null = session?.user
-    ? {
-        id: session.user.id ?? session.user.email ?? "",
-        email: session.user.email ?? "",
-        name: session.user.name ?? session.user.email ?? "",
-        privileges: session.privileges ?? [],
-      }
-    : null;
-  return { user, status };
+  const user = useSession().data?.user;
+  return { user: user ? { id: user.id ?? user.email ?? "" } : null };
 }
 
 export function usePrivileges() {
-  const { status } = useSession();
+  const { data: session } = useSession();
   return useQuery({
     queryKey: identityKeys.privileges(),
-    queryFn: async (): Promise<Privilege[]> => {
-      const raw = await apiFetch("/user/privileges");
-      return privilegesResponseSchema.parse(raw);
-    },
-    enabled: status === "authenticated",
-    ...DEFAULTS,
+    queryFn: async () => (await getUserPrivileges()).privileges,
+    // A refused sign-in has no Custos user, and its lookup would only answer 403.
+    enabled: Boolean(session?.custosUserId),
   });
 }
 
+// After a change that may touch the caller's own privileges: those refetch first and the views
+// they gate re-render, so a read the change revoked is disabled before the given keys refresh.
+export async function refreshAfterPrivilegeChange(client: QueryClient, ...keys: QueryKey[]) {
+  await client.invalidateQueries({ queryKey: identityKeys.privileges() });
+  // Observers apply a re-rendered `enabled` in an effect; this lets that render land.
+  await new Promise((resolve) => setTimeout(resolve));
+  const privileges = hashKey(identityKeys.privileges());
+  await Promise.all(
+    keys.map((queryKey) =>
+      client.invalidateQueries({ queryKey, predicate: (q) => q.queryHash !== privileges }),
+    ),
+  );
+}
+
+// Waits for the privileges read, so a refused sign-in is decided by that one lookup.
 export function useMe() {
-  const { status } = useSession();
-  return useQuery({
-    queryKey: identityKeys.me(),
-    queryFn: getMe,
-    enabled: status === "authenticated",
-    ...DEFAULTS,
-  });
+  const signedIn = usePrivileges().isSuccess;
+  return useQuery({ queryKey: identityKeys.me(), queryFn: () => getMe(), enabled: signedIn });
 }
 
 export function useMyIdentities(userId: string | undefined) {
   return useQuery({
-    queryKey: userId ? identityKeys.identities(userId) : [...identityKeys.all, "identities", "none"],
-    queryFn: () => getMyIdentities(userId as string),
-    enabled: Boolean(userId),
-    ...DEFAULTS,
+    queryKey: identityKeys.identities(userId ?? ""),
+    queryFn: userId
+      ? () => getUsersByIdUserIdentities({ path: { id: userId } }).then(listOf)
+      : skipToken,
   });
 }
 
 export type MyAccess = {
-  roles: RoleWithPrivileges[];
+  roles: CallerRoleGrant[];
   direct: UserPrivilege[];
-  privileges: Privilege[];
-  // False when the caller lacks the admin read gates; the card then never
-  // labels a privilege row "Direct grant".
+  privileges: PrivilegeKey[];
   provenance: boolean;
 };
 
@@ -109,44 +101,37 @@ export type MyAccess = {
 // unattributed keys stay unlabeled instead of claiming "Direct grant".
 export function useMyAccess(
   userId: string | undefined,
-  effective: Privilege[],
+  effective: PrivilegeKey[],
   heldRoles: CallerRoleGrant[],
 ) {
   const provenance =
     effective.includes("core:roles:manage") && effective.includes("core:privileges:grant");
-  const heldKey = heldRoles.map((g) => g.role.id ?? "").join(",");
+  const heldKey = heldRoles.map((g) => g.role.id).join(",");
   return useQuery({
-    queryKey: userId
-      ? [...identityKeys.access(userId), provenance, heldKey]
-      : [...identityKeys.all, "access", "none"],
-    queryFn: async (): Promise<MyAccess> => {
-      if (!provenance) {
-        const roles = heldRoles.map((g) => ({
-          role: g.role,
-          privileges: g.privileges,
-          grant: {
-            user_id: userId as string,
-            role_id: g.role.id ?? "",
-            granted_at: g.granted_at,
-          },
-        }));
-        return { roles, direct: [], privileges: effective, provenance };
-      }
-      const [roles, direct] = await Promise.all([
-        getMyRolesWithPrivileges(userId as string),
-        getMyDirectPrivileges(userId as string),
-      ]);
-      return { roles, direct, privileges: effective, provenance };
-    },
-    enabled: Boolean(userId),
-    ...DEFAULTS,
+    queryKey: [...identityKeys.access(userId ?? ""), provenance, heldKey],
+    queryFn: userId
+      ? async (): Promise<MyAccess> => {
+          if (!provenance) {
+            return { roles: heldRoles, direct: [], privileges: effective, provenance: false };
+          }
+          const path = { id: userId };
+          const [grants, direct] = await Promise.all([
+            getUsersByIdRoles({ path }).then(listOf),
+            getUsersByIdPrivileges({ path }).then(listOf),
+          ]);
+          // No user-scoped roles-with-privileges endpoint exists; join each grant
+          // with its role's privilege detail.
+          const roles = await Promise.all(
+            grants.map(({ role_id, granted_at }) =>
+              getRolesById({ path: { id: role_id } }).then((d) => ({ ...d, granted_at })),
+            ),
+          );
+          return { roles, direct, privileges: effective, provenance };
+        }
+      : skipToken,
   });
 }
 
-export function useUpdateMyName(userId: string | undefined) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (name: UserNameUpdate) => updateMyName(userId as string, name),
-    onSuccess: () => client.invalidateQueries({ queryKey: identityKeys.me() }),
-  });
+export function useUpdateMyName() {
+  return useInvalidating(putUsersById<true>, identityKeys.me());
 }

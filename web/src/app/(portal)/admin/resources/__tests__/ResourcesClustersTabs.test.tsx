@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { PrivilegeKey } from "@/generated/core/types.gen";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Privilege } from "@/features/core/identity/types";
-import { defineAbilitiesFor } from "@/shared/casl/abilities";
 
-let currentPrivileges: Privilege[] = [];
+let currentPrivileges: PrivilegeKey[] = [];
 
 vi.mock("@/shared/casl/AbilityProvider", () => ({
   useAbility: () => defineAbilitiesFor(currentPrivileges),
@@ -40,6 +40,7 @@ vi.mock("@/shared/ui/TabsRouter", () => ({
 vi.mock("@/features/core/clusters/components/ClustersTab", () => ({
   ClustersTab: () => <div>clusters-tab</div>,
 }));
+vi.mock("@/features/core/clusters/queries", () => ({ useClusters: () => ({ data: undefined }) }));
 vi.mock("@/features/core/resources/components/ResourcesTab", () => ({
   ResourcesTab: () => <div>resources-tab</div>,
 }));

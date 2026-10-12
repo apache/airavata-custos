@@ -17,28 +17,58 @@
 
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
+import { ROUTE_LABELS, normalizeRouteId } from "@/shared/layout/nav";
+import { NotPermitted } from "@/shared/ui/ErrorState";
+import { Link } from "@/shared/ui/link";
+import { usePathname } from "next/navigation";
+import type * as React from "react";
+import { AMIE_TABS } from "./tabs";
 
-const TABS = [
-  { href: "/admin/amie/packets", label: "Inbox" },
-  { href: "/admin/amie/failed", label: "Failed" },
-  { href: "/admin/amie/replies", label: "Replies" },
-  { href: "/admin/amie/reconcile", label: "Reconcile" },
-] as const;
+// Shared AMIE console page: heading, section tabs, and a read gate on the section's subject.
+export function AmiePage({
+  description,
+  subject,
+  children,
+}: {
+  description: React.ReactNode;
+  subject: (typeof AMIE_TABS)[number]["subject"];
+  children: React.ReactNode;
+}) {
+  const canRead = useAbility().can("read", subject);
+  const packetSegment = usePathname()?.match(/^\/admin\/amie\/packets\/([^/]+)$/)?.[1];
+  // A caller who cannot read the packet still sees what the crumb points at, never its id.
+  useBreadcrumbLabel(canRead ? undefined : normalizeRouteId(packetSegment), "Packet");
+  return (
+    <div className="space-y-4">
+      <header className="space-y-1">
+        <h1 className="font-display text-[28px] font-bold leading-tight">
+          {ROUTE_LABELS["/admin/amie"]}
+        </h1>
+        {canRead ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      </header>
+      <AmieNav />
+      {canRead ? children : <NotPermitted />}
+    </div>
+  );
+}
 
-export function AmieNav() {
+function AmieNav() {
   const pathname = usePathname();
+  const ability = useAbility();
+  const tabs = AMIE_TABS.filter((tab) => ability.can("read", tab.subject));
   return (
     <nav aria-label="AMIE console sections" className="border-b border-border/60">
       <ul className="-mb-px flex flex-wrap gap-1">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = pathname === tab.href || pathname?.startsWith(`${tab.href}/`);
           return (
             <li key={tab.href}>
               <Link
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "inline-flex items-center px-4 py-2 text-sm font-medium transition-colors",
                   active

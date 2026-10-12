@@ -15,9 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { PermissionGate } from "@/shared/casl/PermissionGate";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
 import type { ReactNode } from "react";
-import { TracePermissionGate } from "./PermissionGate";
 
 export default function TracesLayout({ children }: { children: ReactNode }) {
-  return <TracePermissionGate>{children}</TracePermissionGate>;
+  return (
+    <PermissionGate crumb="Trace" read={["Trace"]} title={ROUTE_LABELS["/admin/traces"]}>
+      {children}
+    </PermissionGate>
+  );
 }

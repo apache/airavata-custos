@@ -38,7 +38,7 @@ describe("design-tokens/colors.css", () => {
     expect(tokens).toContain("--primary: oklch(0.205 0 0)");
     expect(tokens).toContain("--primary-foreground: oklch(0.985 0 0)");
     expect(tokens).toContain("--brand: var(--custos-orange-500)");
-    expect(tokens).toContain("--brand-foreground: #ffffff");
+    expect(tokens).toContain("--brand-foreground: var(--custos-gray-900)");
     expect(tokens).toContain("--brand-tint: var(--custos-orange-50)");
   });
 

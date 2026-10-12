@@ -21,19 +21,17 @@ import { signInAs } from "./fixtures/auth";
 test.describe("change request submit", () => {
   test("PI persona opens drawer, fills, submits", async ({ page }) => {
     await signInAs(page, "manager");
-    await page.goto("/allocations/alloc-001");
-    await expect(
-      page.getByRole("heading", { name: /Genomic Sequencing - GPU Pool/i }),
-    ).toBeVisible();
+    await page.goto("/allocations/01000004-0000-4000-8000-000001000004");
+    await expect(page.getByRole("heading", { name: /Catalyst Discovery - Legacy/i })).toBeVisible();
 
     await page.getByRole("tab", { name: /^change requests$/i }).click();
     await page.getByRole("button", { name: /submit change request/i }).click();
 
-    await expect(
-      page.getByRole("heading", { name: /submit change request/i }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /submit change request/i })).toBeVisible({
+      timeout: 15_000,
+    });
 
-    await page.getByLabel(/additional sus requested/i).fill("10000");
+    await page.getByLabel("Requested SUs").fill("10000");
     await page
       .getByLabel(/reason/i)
       .fill("Need additional SUs for the final modeling run before paper submission deadline.");

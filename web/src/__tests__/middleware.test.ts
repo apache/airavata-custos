@@ -19,9 +19,9 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { middleware } from "../middleware";
 
-function request(cookie?: string) {
+function request(cookie?: string, path = "/") {
   const headers = cookie ? { cookie } : undefined;
-  return new NextRequest("http://localhost:3000/", { headers });
+  return new NextRequest(`http://localhost:3000${path}`, { headers });
 }
 
 describe("root middleware", () => {
@@ -43,5 +43,18 @@ describe("root middleware", () => {
   it("recognizes chunked session cookies", () => {
     const res = middleware(request("__Secure-custos.session-token.0=abc"));
     expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
+  it("redirects a padded or uppercase record id to its canonical path", () => {
+    const res = middleware(
+      request(
+        "custos.session-token=abc",
+        "/projects/%20AAAAAAAA-0000-4000-8000-000000000001?tab=members",
+      ),
+    );
+    expect(res.status).toBe(308);
+    expect(res.headers.get("location")).toBe(
+      "http://localhost:3000/projects/aaaaaaaa-0000-4000-8000-000000000001?tab=members",
+    );
   });
 });

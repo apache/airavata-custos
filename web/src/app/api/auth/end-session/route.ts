@@ -15,16 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type NextRequest, NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env";
 import { auth } from "@/shared/auth/auth";
+import { sameOriginUrl } from "@/shared/auth/sameOrigin";
+import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const SESSION_COOKIES = [
-  "custos.session-token",
-  "__Secure-custos.session-token",
-];
+const SESSION_COOKIES = ["custos.session-token", "__Secure-custos.session-token"];
 
 // Cookies are deleted on the redirect response itself; sign-out must not
 // depend on an IdP logout hop, which some issuers do not have.
@@ -34,9 +32,7 @@ function clearAuthCookies(request: NextRequest, res: NextResponse) {
     // Browsers reject __Secure- deletions that aren't marked Secure.
     const secure = name.startsWith("__Secure-");
     // Oversized sessions get chunked into name.0, name.1, ...
-    const chunks = requestCookies
-      .filter((c) => c.name.startsWith(`${name}.`))
-      .map((c) => c.name);
+    const chunks = requestCookies.filter((c) => c.name.startsWith(`${name}.`)).map((c) => c.name);
     for (const target of [name, ...chunks]) {
       res.cookies.set({ name: target, value: "", path: "/", maxAge: 0, httpOnly: true, secure });
     }
@@ -58,10 +54,10 @@ async function discoverEndSessionEndpoint(issuer: string): Promise<string | null
 }
 
 export async function GET(request: NextRequest) {
-  const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/";
-  // Behind a reverse proxy request.nextUrl.origin is the internal address.
-  const origin = serverEnv.NEXTAUTH_URL ?? request.nextUrl.origin;
-  const postLogout = new URL(callbackUrl, origin).toString();
+  const postLogout = sameOriginUrl(
+    request.nextUrl.searchParams.get("callbackUrl"),
+    request.nextUrl.origin,
+  ).toString();
 
   const session = await auth();
   const idToken = session?.idToken ?? null;

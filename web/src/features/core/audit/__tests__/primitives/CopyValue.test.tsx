@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { CopyValue } from "@/features/core/audit/components/primitives/CopyValue";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CopyValue } from "@/features/core/audit/components/primitives/CopyValue";
 
 describe("CopyValue", () => {
   const writeText = vi.fn().mockResolvedValue(undefined);

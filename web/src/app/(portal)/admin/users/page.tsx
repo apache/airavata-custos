@@ -15,9 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { auth } from "@/shared/auth/auth";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
+import { USERS_TABS, isNavItemVisible } from "@/shared/layout/nav";
 import { redirect } from "next/navigation";
 
-// /admin/users has no content of its own; bounce to the canonical tab.
-export default function AdminUsersIndex() {
-  redirect("/admin/users/management");
+// /admin/users has no content of its own; bounce to the first tab the caller can open.
+export default async function AdminUsersIndex() {
+  const ability = defineAbilitiesFor((await auth())?.privileges ?? []);
+  const tab = USERS_TABS.find((t) => isNavItemVisible(t, ability));
+  redirect((tab ?? USERS_TABS[0]).href);
 }

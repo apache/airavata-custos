@@ -17,22 +17,24 @@
 
 "use client";
 
-import * as React from "react";
+import type { Allocation, ProjectContext } from "@/generated/analytics/types.gen";
 import {
   replaceShallowSearchParams,
+  useCanonicalParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { normalizeQueryId } from "@/shared/layout/nav";
+import * as React from "react";
 import { pctRemaining } from "./lib";
-import type { AnalyticsAllocation, AnalyticsContext } from "./schemas";
 
 // The lowest-remaining allocation across all contexts — the one most likely to
 // need attention, used as the landing default when the URL says nothing.
 function mostAtRisk(
-  contexts: AnalyticsContext[],
-): { project: AnalyticsContext; allocation: AnalyticsAllocation } | undefined {
-  let best: { project: AnalyticsContext; allocation: AnalyticsAllocation; pct: number } | undefined;
+  contexts: ProjectContext[],
+): { project: ProjectContext; allocation: Allocation } | undefined {
+  let best: { project: ProjectContext; allocation: Allocation; pct: number } | undefined;
   for (const c of contexts) {
-    for (const a of c.allocations) {
+    for (const a of c.allocations ?? []) {
       const pct = pctRemaining(a.initial_su_amount, a.used_su_amount);
       if (!best || pct < best.pct) best = { project: c, allocation: a, pct };
     }
@@ -42,37 +44,49 @@ function mostAtRisk(
 
 // Resolves the selected project and allocation. An explicit allocation in the
 // URL wins, then an explicit project (its first allocation), else the page lands
-// on the most-at-risk allocation. Selection persists in the URL.
-export function useAnalyticsSelection(contexts: AnalyticsContext[]) {
+// on the most-at-risk allocation. Selection persists in the URL; once contexts load,
+// a project or allocation outside the caller's contexts is dropped from it and
+// `unavailable` says so, and the accepted ones are rewritten in normalised form.
+export function useAnalyticsSelection(contexts: ProjectContext[], loaded: boolean) {
   const params = useShallowSearchParams();
-  const projectParam = params.get("project");
-  const allocationParam = params.get("allocation");
+  const projectParam = normalizeQueryId(params.get("project"));
+  const allocationParam = normalizeQueryId(params.get("allocation"));
+  const [unavailable, setUnavailable] = React.useState(false);
+  const owner = contexts.find((c) => c.allocations?.some((a) => a.id === allocationParam));
+  const knownProject = contexts.find((c) => c.project_id === projectParam);
+  const missing = loaded && ((!!allocationParam && !owner) || (!!projectParam && !knownProject));
+
+  React.useEffect(() => {
+    if (missing) setUnavailable(true);
+  }, [missing]);
+  useCanonicalParams(
+    loaded
+      ? {
+          project: projectParam && (owner ?? knownProject)?.project_id,
+          allocation: owner ? allocationParam : undefined,
+        }
+      : {},
+  );
 
   const { project, allocation } = React.useMemo<{
-    project: AnalyticsContext | undefined;
-    allocation: AnalyticsAllocation | undefined;
+    project: ProjectContext | undefined;
+    allocation: Allocation | undefined;
   }>(() => {
-    if (allocationParam) {
-      for (const c of contexts) {
-        const a = c.allocations.find((x) => x.id === allocationParam);
-        if (a) return { project: c, allocation: a };
-      }
-    }
-    if (projectParam) {
-      const c = contexts.find((x) => x.project_id === projectParam);
-      if (c) return { project: c, allocation: c.allocations[0] };
-    }
+    const a = owner?.allocations?.find((x) => x.id === allocationParam);
+    if (owner && a) return { project: owner, allocation: a };
+    if (knownProject) return { project: knownProject, allocation: knownProject.allocations?.[0] };
     const best = mostAtRisk(contexts);
     if (best) return { project: best.project, allocation: best.allocation };
-    return { project: contexts[0], allocation: contexts[0]?.allocations[0] };
-  }, [contexts, projectParam, allocationParam]);
+    return { project: contexts[0], allocation: contexts[0]?.allocations?.[0] };
+  }, [contexts, owner, knownProject, allocationParam]);
 
   const select = React.useCallback((projectId: string, allocationId: string) => {
+    setUnavailable(false);
     const next = new URLSearchParams(window.location.search);
     next.set("project", projectId);
     next.set("allocation", allocationId);
     replaceShallowSearchParams(next);
   }, []);
 
-  return { project, allocation, select };
+  return { project, allocation, select, unavailable };
 }

@@ -48,11 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(
-        "light h-full antialiased",
-        inter.variable,
-        manrope.variable,
-      )}
+      className={cn("light h-full scroll-pt-16 antialiased", inter.variable, manrope.variable)}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">

@@ -86,4 +86,3 @@ export function StatCard(props: StatCardProps) {
     </div>
   );
 }
-

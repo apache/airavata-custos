@@ -17,12 +17,13 @@
 
 "use client";
 
-import type * as React from "react";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import type { Organization } from "@/generated/core/types.gen";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
+import { DataTable, type DataTableColumn, NameCell, PastLastPage } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { ErrorState, NotPermitted } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import type { Organization } from "../schemas";
+import type * as React from "react";
 
 export type OrganizationsListProps = {
   rows: Organization[];
@@ -34,6 +35,9 @@ export type OrganizationsListProps = {
   total: number;
   onPageChange: (page: number) => void;
   headerCta?: React.ReactNode;
+  onRowClick?: (row: Organization) => void;
+  // A write-only caller sees the header and its create control, not the list.
+  notPermitted?: boolean;
 };
 
 export function OrganizationsList({
@@ -46,18 +50,23 @@ export function OrganizationsList({
   total,
   onPageChange,
   headerCta,
+  onRowClick,
+  notPermitted = false,
 }: OrganizationsListProps) {
   const columns: Array<DataTableColumn<Organization>> = [
     {
       key: "name",
       header: "Name",
-      cell: (row) => <span className="font-medium text-foreground">{row.name}</span>,
+      cell: (row) => <NameCell text={row.name} className="font-medium text-foreground" />,
     },
     {
       key: "originated_id",
       header: "Originated ID",
       cell: (row) => (
-        <span className="font-mono text-xs text-muted-foreground">{row.originated_id}</span>
+        <NameCell
+          text={row.originated_id || "—"}
+          className="max-w-[24ch] font-mono text-xs text-muted-foreground"
+        />
       ),
     },
     {
@@ -71,7 +80,9 @@ export function OrganizationsList({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-[28px] font-bold leading-tight">Organizations</h1>
+          <h1 className="font-display text-[28px] font-bold leading-tight">
+            {ROUTE_LABELS["/admin/organizations"]}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Institutions and resource providers registered in Custos.
           </p>
@@ -79,17 +90,23 @@ export function OrganizationsList({
         {headerCta ? <div>{headerCta}</div> : null}
       </div>
 
-      {isLoading ? (
+      {notPermitted ? (
+        <NotPermitted />
+      ) : isLoading ? (
         <CardSkeleton />
       ) : error ? (
-        <ErrorState message={error.message} onRetry={onRetry} />
+        <ErrorState error={error} onRetry={onRetry} />
+      ) : rows.length === 0 && page > 1 ? (
+        <PastLastPage things="organizations" page={page} onPageChange={onPageChange} />
       ) : rows.length === 0 ? (
-        <EmptyState heading="No organizations yet." />
+        <EmptyState heading="No organizations yet" />
       ) : (
         <DataTable
+          caption="Organizations"
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          onRowClick={onRowClick}
           pagination={{ page, pageSize, total, onPageChange }}
         />
       )}

@@ -27,7 +27,7 @@ test.describe("admin events", () => {
 
     await page.getByRole("button", { name: /Retry compute_cluster_user::approve/ }).click();
     const drawer = page.getByRole("dialog");
-    await expect(drawer.getByRole("heading", { name: "Attempt history" })).toBeVisible();
+    await expect(drawer.getByRole("heading", { name: "Try history" })).toBeVisible();
     await drawer.getByRole("button", { name: "Retry now" }).click();
 
     await expect(page.getByText("Retry started")).toBeVisible();

@@ -15,88 +15,100 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { recordTraceId } from "./last-trace-id";
+import type { CreateClientConfig } from "@/generated/core/client.gen";
+import { z } from "zod";
+
+const errorBodySchema = z.object({
+  error: z.string().optional(),
+  code: z.string().optional(),
+});
+type ApiErrorBody = z.infer<typeof errorBodySchema> | string | null;
 
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly path: string,
-    public readonly body: unknown,
+    public readonly body: ApiErrorBody,
     message?: string,
   ) {
-    super(message ?? `API ${status} on ${path}`);
+    super(message ?? `The request failed (HTTP ${status})`);
     this.name = "ApiError";
   }
 }
 
-export type ApiFetchInit = Omit<RequestInit, "body"> & {
-  body?: unknown;
+// The machine-readable code of an ApiError body ({"code": "user_disabled"}), else null.
+export function errorCode(error: unknown): string | null {
+  if (!(error instanceof ApiError) || !error.body || typeof error.body !== "object") return null;
+  return error.body.code ?? null;
+}
+
+// A cause master returns for a request, worded for the user: matched on status and, when given,
+// on master's error text, which is never shown.
+export type KnownError = { status: number; when?: RegExp; copy: string };
+
+// What a failed request tells the user: the first known cause it matches, else a generic refusal
+// (4xx) or retry prompt (5xx, network). A plain Error is the portal's own worded refusal.
+export function errorCopy(error: unknown, known: readonly KnownError[] = []): string {
+  if (!(error instanceof ApiError))
+    return error instanceof Error && error.name === "Error"
+      ? error.message
+      : "Something went wrong. Try again.";
+  const text = typeof error.body === "string" ? error.body : (error.body?.error ?? "");
+  const cause = known.find((k) => k.status === error.status && (k.when?.test(text) ?? true));
+  if (cause) return cause.copy;
+  return error.status < 500 ? "This change was refused." : "Something went wrong. Try again.";
+}
+
+function parseErrorBody(text: string): ApiErrorBody {
+  try {
+    return errorBodySchema.parse(JSON.parse(text));
+  } catch {
+    return text || null;
+  }
+}
+
+// Under the mock backend, requests wait for the worker; pages still render on the server, so a
+// server redirect stays an HTTP redirect.
+const mockWorker =
+  process.env.NEXT_PUBLIC_PORTAL_USE_MSW === "true" && typeof window !== "undefined"
+    ? import("@/mocks/browser")
+        .then(({ worker }) =>
+          worker.start({
+            onUnhandledRequest: "bypass",
+            serviceWorker: { url: "/mockServiceWorker.js" },
+          }),
+        )
+        .catch((err) => console.error("MSW worker failed to start", err))
+    : undefined;
+
+// Every generated SDK client fetches through here; non-2xx responses throw ApiError.
+const portalFetch: typeof fetch = async (input, init) => {
+  await mockWorker;
+  const response = await fetch(input, init);
+  if (response.ok) return response;
+  const url = input instanceof Request ? input.url : String(input);
+  const body = parseErrorBody(await response.text());
+  // The backend reports {"error": "..."}, the sign-in refusals with a "code" beside it.
+  const message = typeof body === "object" ? body?.error : undefined;
+  throw new ApiError(response.status, url, body, message || undefined);
 };
 
-const PORTAL_API_PREFIX = "/api/v1";
-
-function buildUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  if (normalized.startsWith(PORTAL_API_PREFIX)) return normalized;
-  return `${PORTAL_API_PREFIX}${normalized}`;
+// GETs a portal API path (e.g. "/audit/traces") as JSON through the same error handling.
+export async function apiFetch<T = unknown>(path: string): Promise<T> {
+  const response = await portalFetch(`/api/v1${path}`, { headers: { accept: "application/json" } });
+  return (await response.json()) as T;
 }
 
-async function parseBody(response: Response): Promise<unknown> {
-  const contentType = response.headers.get("content-type") ?? "";
-  if (response.status === 204) return null;
-  if (contentType.includes("application/json")) {
-    try {
-      return await response.json();
-    } catch {
-      return null;
-    }
-  }
-  try {
-    return await response.text();
-  } catch {
-    return null;
-  }
-}
+// URL parsing resolves "." and ".." as dot segments even when escaped, so a request with such a path
+// value would reach another route; it is refused before it is sent.
+const refuseDotSegments = async (data: unknown) => {
+  const { url, path } = data as { url: string; path?: Record<string, unknown> };
+  const dot = Object.values(path ?? {}).find((value) => value === "." || value === "..");
+  if (dot !== undefined) throw new ApiError(400, url, null, `"${dot}" is not a valid ID`);
+};
 
-// The backend reports errors as {"error": "..."}; surface that text so dialogs
-// show the guard message instead of a generic "API 409 on ...".
-function errorMessageFromBody(body: unknown): string | undefined {
-  if (body && typeof body === "object" && "error" in body) {
-    const { error } = body as { error: unknown };
-    if (typeof error === "string" && error.length > 0) return error;
-  }
-  return undefined;
-}
-
-export async function apiFetch<T = unknown>(path: string, init: ApiFetchInit = {}): Promise<T> {
-  const url = buildUrl(path);
-  const headers = new Headers(init.headers);
-  let body: BodyInit | undefined;
-
-  if (init.body !== undefined && init.body !== null) {
-    if (
-      typeof init.body === "string" ||
-      init.body instanceof FormData ||
-      init.body instanceof Blob
-    ) {
-      body = init.body as BodyInit;
-    } else {
-      if (!headers.has("content-type")) headers.set("content-type", "application/json");
-      body = JSON.stringify(init.body);
-    }
-  }
-
-  if (!headers.has("accept")) headers.set("accept", "application/json");
-
-  const response = await fetch(url, { ...init, body, headers });
-  // Backend HTTP middleware sets X-Trace-Id; capture so callers can deep-link.
-  const traceId = response.headers.get("x-trace-id");
-  if (traceId) recordTraceId(traceId);
-  const parsed = await parseBody(response);
-
-  if (!response.ok) {
-    throw new ApiError(response.status, url, parsed, errorMessageFromBody(parsed));
-  }
-  return parsed as T;
-}
+export const createClientConfig: CreateClientConfig = (config) => ({
+  ...config,
+  fetch: portalFetch,
+  requestValidator: refuseDotSegments,
+});
