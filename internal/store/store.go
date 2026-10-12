@@ -513,8 +513,8 @@ type UserPrivilegeStore interface {
 type ComputeAllocationUsageStore interface {
 	// FindByID returns the usage with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationUsage, error)
-	// FindByAllocation returns every usage event recorded against the given
-	// allocation, ordered by calculated_time ascending.
+	// FindByAllocation returns the usage events of the allocation's current
+	// period, ordered by calculated_time ascending.
 	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 	// FindByUser returns every usage event attributed to the given user,
 	// ordered by calculated_time ascending.
@@ -522,12 +522,12 @@ type ComputeAllocationUsageStore interface {
 	// FindByComputeAllocationIDAndJobID returns the usage event for the given
 	// compute allocation ID and job ID, or nil if it does not exist.
 	FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
-	// SumSUForAllocation returns the total SUs consumed against the given
-	// allocation across all usage events.
-	SumSUForAllocation(ctx context.Context, allocationID string) (int64, error)
-	// SumSUForUserInAllocation returns the total SUs consumed by the given
-	// user against the given allocation.
-	SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	// SumSUForAllocation returns the SUs consumed against the allocation
+	// between its start and end dates. A renewal moves the dates, so usage
+	// from the earlier period stops counting.
+	SumSUForAllocation(ctx context.Context, allocationID string) (float64, error)
+	// SumSUForUserInAllocation is SumSUForAllocation for one user.
+	SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error)
 	// LatestCalculatedTimeForCluster returns the latest calculated_time of usage
 	// recorded against the cluster's allocations, or nil when there is none.
 	LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error)

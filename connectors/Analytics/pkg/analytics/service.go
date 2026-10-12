@@ -43,7 +43,7 @@ type Allocation struct {
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
 	Status          string    `json:"status"`
-	InitialSUAmount int64     `json:"initial_su_amount"`
+	InitialSUAmount float64   `json:"initial_su_amount"`
 	UsedSUAmount    float64   `json:"used_su_amount"`
 	StartTime       time.Time `json:"start_time"`
 	EndTime         time.Time `json:"end_time"`
@@ -89,7 +89,7 @@ type UsageMember struct {
 // UsageSummary is the aggregated usage for one allocation. ByMember is null
 // unless the caller may see per-member data.
 type UsageSummary struct {
-	Total      int64              `json:"total"`
+	Total      float64            `json:"total"`
 	Used       float64            `json:"used"`
 	Daily      []UsageDailyBucket `json:"daily"`
 	ByResource []UsageResource    `json:"by_resource"`
@@ -243,8 +243,6 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 // controls whether the per-member breakdown is populated; when false ByMember
 // is left nil so the response serializes it as null.
 func (s *Service) AllocationUsageSummary(ctx context.Context, alloc *models.ComputeAllocation, callerID string, includeMembers bool) (*UsageSummary, error) {
-	// Round the total the same way the per-resource and daily sums do, so the
-	// headline reconciles with the breakdowns (used_su_amount is a DOUBLE).
 	used, err := s.store.TotalUsed(ctx, alloc.ID)
 	if err != nil {
 		return nil, err

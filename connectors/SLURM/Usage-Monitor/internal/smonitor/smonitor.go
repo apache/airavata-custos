@@ -76,7 +76,7 @@ func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreServi
 	}
 }
 
-// resumeFromLastUsage starts polling from where the last usage was recorded.
+// resumeFromLastUsage starts polling from the end of the last recorded job.
 func (m *SlurmMonitor) resumeFromLastUsage(ctx context.Context) {
 	last, err := m.coreService.LatestUsageTimeForCluster(ctx, m.clusterId)
 	if err != nil {
@@ -217,7 +217,7 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 			ComputeAllocationID:         alloc.ID,
 			UsedRawAmount:               calculatedRawAmount,
 			UsedSUAmount:                calculatedRawAmount * rate.Rate,
-			CalculatedTime:              time.Now(),
+			CalculatedTime:              time.Unix(job.Time.End, 0),
 			UserID:                      user.UserID,
 			JobID:                       jobId,
 			ComputeAllocationResourceID: resource.ID,
