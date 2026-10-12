@@ -98,7 +98,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	amie := amieclient.New(cfg)
 
 	dispatcher := handler.NewRouter(
-		handler.NewRequestProjectCreateHandler(coreService, clusterID, amie, auditSvc),
+		handler.NewRequestProjectCreateHandler(coreService, clusterID, amie, auditSvc, loadResourceAliases(connectorConfig)),
 		handler.NewRequestAccountCreateHandler(coreService, clusterID, amie, auditSvc),
 		handler.NewRequestProjectInactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestProjectReactivateHandler(coreService, amie, auditSvc),
@@ -219,6 +219,23 @@ func loadClusterID(connectorConfig *custosconfig.ConnectorConfig) string {
 		}
 	}
 	return os.Getenv("AMIE_CLUSTER_ID")
+}
+
+func loadResourceAliases(connectorConfig *custosconfig.ConnectorConfig) map[string]string {
+	aliases := map[string]string{}
+	if connectorConfig == nil {
+		return aliases
+	}
+	raw, err := connectorConfig.GetNestedConfig("resource_aliases")
+	if err != nil {
+		return aliases
+	}
+	for name, v := range raw {
+		if local, ok := v.(string); ok && local != "" {
+			aliases[name] = local
+		}
+	}
+	return aliases
 }
 
 func durationEnv(key string, fallback time.Duration) time.Duration {

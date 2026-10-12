@@ -69,7 +69,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -248,7 +248,7 @@ func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": firstPkt.Type, "body": first}, firstPkt, "")
@@ -307,7 +307,7 @@ func TestRequestProjectCreate_MissingGrantNumber(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -344,7 +344,7 @@ func TestRequestProjectCreate_ReplyFailurePropagates(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{FailWith: errors.New("simulated AMIE outage")}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -369,7 +369,7 @@ func TestRequestProjectCreate_AttachesRegisteredResources(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	resource, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
 		Name:             "compute.access-ci.org",
@@ -424,6 +424,46 @@ func TestRequestProjectCreate_AttachesRegisteredResources(t *testing.T) {
 	}
 	if got := countAuditActions(t, database, secondPkt.ID, model.AuditAttachResource); got != 0 {
 		t.Errorf("audit ATTACH_RESOURCE on re-delivery: got %d, want 0", got)
+	}
+}
+
+// Make sure a packet resource with an alias in the custos.yaml config attaches the catalog resource the alias points to.
+func TestRequestProjectCreate_AttachesAliasedResource(t *testing.T) {
+	database := setupTestDB(t)
+
+	svc := newTestCoreService(database)
+	audit := newTestAuditService(database)
+	amie := &fakeAmieClient{}
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, map[string]string{
+		"compute.access-ci.org": "gpu-b200",
+	})
+
+	resource, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
+		Name:             "gpu-b200",
+		ResourceType:     "gres/gpu:b200",
+		ResourceAmount:   16,
+		ComputeClusterID: testClusterID,
+	})
+	if err != nil {
+		t.Fatalf("seed catalog resource: %v", err)
+	}
+
+	body := baseRPCBody()
+	pkt := insertPacket(t, database, "request_project_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle returned error: %v", err)
+	}
+
+	var resourceID string
+	if err := database.Get(&resourceID,
+		"SELECT compute_allocation_resource_id FROM compute_allocation_resource_mappings LIMIT 1",
+	); err != nil {
+		t.Fatalf("read mapping: %v", err)
+	}
+	if resourceID != resource.ID {
+		t.Errorf("mapping.resource_id: got %q, want %q", resourceID, resource.ID)
 	}
 }
 

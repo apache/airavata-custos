@@ -63,7 +63,7 @@ func seedProjectForRAC(t *testing.T, database *sqlx.DB) string {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": rpcPkt.Type, "body": rpcBody}, rpcPkt, "")

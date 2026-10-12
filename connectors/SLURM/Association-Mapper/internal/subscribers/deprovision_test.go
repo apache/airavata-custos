@@ -197,9 +197,9 @@ func TestReconcilerRemovesStaleAssociation(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{existing: []client.Association{
 		// desired
-		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
 		// left behind by a membership that is gone
-		{Account: "test-alloc", Cluster: "testcluster", User: "ghost", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "ghost"},
 	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
@@ -207,7 +207,7 @@ func TestReconcilerRemovesStaleAssociation(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("expected the stale association to be removed, got %d deletes", len(got))
 	}
-	if got[0].User != "ghost" || got[0].Partition != "compute" {
+	if got[0].User != "ghost" {
 		t.Errorf("removed the wrong association: %+v", got[0])
 	}
 }
@@ -220,7 +220,7 @@ func TestReconcilerDoesNotPruneWhenNothingIsDesired(t *testing.T) {
 		memberships:   nil, // nobody entitled to anything
 	})
 	slurm := &fakeSlurmClient{existing: []client.Association{
-		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
 	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
@@ -237,7 +237,7 @@ func TestReconcilerLeavesUnmanagedAccountsAlone(t *testing.T) {
 		unmanagedAccounts: true, // core reports no allocations on this cluster
 	})
 	slurm := &fakeSlurmClient{existing: []client.Association{
-		{Account: "someone-elses-account", Cluster: "testcluster", User: "outsider", Partition: "compute"},
+		{Account: "someone-elses-account", Cluster: "testcluster", User: "outsider"},
 	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
@@ -254,7 +254,7 @@ func TestReconcilerLeavesAccountLevelAssociationsAlone(t *testing.T) {
 		memberships:   []models.ComputeAllocationMembership{testMembership()},
 	})
 	slurm := &fakeSlurmClient{existing: []client.Association{
-		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
 		{Account: "test-alloc", Cluster: "testcluster", User: ""}, // account-level
 	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
@@ -272,7 +272,7 @@ func TestReconcilerDoesNotPruneAssociationsInsideGrace(t *testing.T) {
 		memberships:   []models.ComputeAllocationMembership{testMembership()},
 	})
 	slurm := &fakeSlurmClient{existing: []client.Association{
-		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
 	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
@@ -290,7 +290,7 @@ func TestReconcilerRemovesAssociationsForInactiveAllocation(t *testing.T) {
 		memberships:      []models.ComputeAllocationMembership{testMembership()},
 	})
 	slurm := &fakeSlurmClient{existing: []client.Association{
-		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
 	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 

@@ -124,6 +124,12 @@ connectors:
       api_key: "${AMIE_API_KEY}"
     cluster:
       id: "${AMIE_CLUSTER_ID}"
+    # Packet resource names that are not catalog names. Each entry maps the
+    # name in a packet's ResourceList to the catalog resource it stands for.
+    # resource_aliases:
+    #   my-gpu.site.access-ci.org: gpu-a100
+    #   my-cpu.site.access-ci.org: cpu-general
+    resource_aliases: {}
     polling:
       poll_interval: "30s"
       worker_interval: "5s"

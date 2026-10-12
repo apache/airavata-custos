@@ -78,7 +78,9 @@ curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=1-pi-only'
 | `4a-one-project` | one project where one person has two accounts |
 | `4b-merge` | merges those two accounts. Send it after `4a-one-project` has finished. |
 
-The people come from `scenarios/people.json`. Copy `people.example.json` to `people.json` and fill in real names and emails to sign in as them. An email must be the one the person's identity provider gives at sign-in. `resource` must be the name of a resource that exists in Custos. Without `people.json` the mock uses the example file.
+The people come from `scenarios/people.json`. Copy `people.example.json` to `people.json` and fill in real names and emails to sign in as them. An email must be the one the person's identity provider gives at sign-in. `resource` must be the name of a resource that exists in Custos, or one mapped under `resource_aliases` in the connector config. Without `people.json` the mock uses the example file.
+
+A project can set its own `resource` and `allocation_type` (`new`, `transfer`, `supplement`), to send what a real site sends, such as the whole cluster resource name instead of a partition.
 
 The mock has no auth, so it listens on `127.0.0.1`. Set `MOCK_AMIE_HOST=0.0.0.0` to reach it from another host.
 

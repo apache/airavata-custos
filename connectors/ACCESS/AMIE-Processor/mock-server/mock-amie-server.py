@@ -660,15 +660,26 @@ def gen_from_file(name):
     packets = []
     for project in config.get("projects", []):
         grant = project["grant"]
+        # A project can name its own resource, the way ACCESS names the whole
+        # cluster resource rather than a partition.
+        resource = project.get("resource", site["resource"])
         packets.append(make_packet("request_project_create", {
             "GrantNumber": grant,
+            "ChargeNumber": grant,
+            "ProposalNumber": grant,
             "PfosNumber": f"PFOS-{grant}",
             "ProjectTitle": project["title"],
+            "Abstract": project.get("abstract", project["title"]),
             "ServiceUnitsAllocated": str(project["su"]),
             "StartDate": start.isoformat(),
             "EndDate": (start + timedelta(days=365)).isoformat(),
-            "ResourceList": [site["resource"]],
-            "AllocationType": "new",
+            "ResourceList": [resource],
+            "AllocatedResource": resource,
+            "RecordID": f"XRAS-{random.randint(100000, 999999)}-{resource}",
+            "AllocationType": project.get("allocation_type", "new"),
+            "RequestType": "new",
+            "GrantType": "Research",
+            "BoardType": "Explore",
             **person_fields("Pi", project["pi"], site),
         }))
         for key, role in project.get("users", {}).items():
@@ -677,7 +688,7 @@ def gen_from_file(name):
                 "GrantNumber": grant,
                 "UserPersonID": f"e2e-{key}-person",
                 "UserRole": role,
-                "ResourceList": [site["resource"]],
+                "ResourceList": [resource],
                 **person_fields("User", key, site),
             }))
     for merge in config.get("merges", []):
