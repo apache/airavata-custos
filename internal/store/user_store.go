@@ -57,15 +57,6 @@ func (s *pgUserStore) List(ctx context.Context, limit, offset int) ([]models.Use
 	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {
 		return nil, 0, err
 	}
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	if offset < 0 {
-		offset = 0
-	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT $1 OFFSET $2`, limit, offset); err != nil {

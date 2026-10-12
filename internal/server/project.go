@@ -187,12 +187,13 @@ func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
+	limit, offset := common.Paged(q)
 	f := store.ProjectListFilter{
 		PIID:   q.Get("pi_id"),
 		Status: q.Get("status"),
 		Query:  q.Get("q"),
-		Limit:  atoiOr(q.Get("limit"), 50),
-		Offset: atoiOr(q.Get("offset"), 0),
+		Limit:  limit,
+		Offset: offset,
 	}
 	rows, total, err := s.svc.ListProjectsWithPI(r.Context(), f)
 	if err != nil {

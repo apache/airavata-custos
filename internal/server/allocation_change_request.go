@@ -231,9 +231,10 @@ func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.R
 
 func (s *Server) listChangeRequests(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	limit, _ := common.Paged(q)
 	f := store.ChangeRequestListFilter{
 		Status: q.Get("status"),
-		Limit:  atoiOr(q.Get("limit"), 50),
+		Limit:  limit,
 	}
 	rows, err := s.svc.ListChangeRequests(r.Context(), f)
 	if err != nil {
