@@ -124,7 +124,7 @@ func (h *RequestProjectReactivateHandler) reactivateAllocationsAndPI(ctx context
 			if m.UserID != project.ProjectPIID {
 				continue
 			}
-			if _, err := h.svc.UpdateMembershipStatus(ctx, m.ID, models.ACTIVE); err != nil {
+			if _, err := h.svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.ACTIVE); err != nil {
 				return fmt.Errorf("reactivate PI membership %s: %w", m.ID, err)
 			}
 			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReactivateMembership, "compute_allocation_membership", m.ID,

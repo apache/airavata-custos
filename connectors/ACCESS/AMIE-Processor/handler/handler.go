@@ -139,7 +139,7 @@ func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globa
 // the given status. Returns the rows that were updated. Silently returns an
 // empty slice when the project or user is unknown, the reply still goes back
 // to AMIE but no state changes.
-func flipUserMemberships(ctx context.Context, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
+func flipUserMemberships(ctx context.Context, tx *sql.Tx, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
 	project, err := svc.GetProject(ctx, projectID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
@@ -161,7 +161,7 @@ func flipUserMemberships(ctx context.Context, svc *service.Service, projectID, u
 			if m.UserID != userID {
 				continue
 			}
-			flipped, err := svc.UpdateMembershipStatus(ctx, m.ID, status)
+			flipped, err := svc.UpdateMembershipStatusTx(ctx, tx, m.ID, status)
 			if err != nil {
 				return nil, fmt.Errorf("update membership %s: %w", m.ID, err)
 			}

@@ -114,7 +114,7 @@ func (h *RequestProjectInactivateHandler) deactivateAllocations(ctx context.Cont
 			return fmt.Errorf("list memberships for allocation %s: %w", a.ID, err)
 		}
 		for _, m := range members {
-			if _, err := h.svc.UpdateMembershipStatus(ctx, m.ID, models.INACTIVE); err != nil {
+			if _, err := h.svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.INACTIVE); err != nil {
 				return fmt.Errorf("inactivate membership %s: %w", m.ID, err)
 			}
 			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "compute_allocation_membership", m.ID,
