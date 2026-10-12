@@ -22,6 +22,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestWriteJSON_NilSliceEncodesAsEmptyArray(t *testing.T) {
@@ -59,5 +61,15 @@ func TestWriteJSON_NilBodyWritesNothing(t *testing.T) {
 	WriteJSON(rr, http.StatusNoContent, nil)
 	if rr.Body.Len() != 0 {
 		t.Errorf("nil body: got %q, want empty", rr.Body.String())
+	}
+}
+
+func TestWriteServiceError_MapsConstraintViolations(t *testing.T) {
+	for code, want := range map[string]int{"23505": http.StatusConflict, "23503": http.StatusBadRequest, "22001": http.StatusBadRequest} {
+		rr := httptest.NewRecorder()
+		WriteServiceError(rr, &pgconn.PgError{Code: code, Message: "driver detail"})
+		if rr.Code != want || strings.Contains(rr.Body.String(), "driver detail") {
+			t.Errorf("%s: got %d %s, want %d without the driver message", code, rr.Code, rr.Body.String(), want)
+		}
 	}
 }

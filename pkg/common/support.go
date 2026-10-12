@@ -25,6 +25,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -52,6 +54,7 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 }
 
 func WriteServiceError(w http.ResponseWriter, err error) {
+	var pgErr *pgconn.PgError
 	switch {
 	case errors.Is(err, service.ErrNotFound):
 		WriteError(w, http.StatusNotFound, err)
@@ -59,6 +62,10 @@ func WriteServiceError(w http.ResponseWriter, err error) {
 		WriteError(w, http.StatusConflict, err)
 	case errors.Is(err, service.ErrInvalidInput):
 		WriteError(w, http.StatusBadRequest, err)
+	case errors.As(err, &pgErr) && pgErr.Code == "23505":
+		WriteError(w, http.StatusConflict, service.ErrAlreadyExists)
+	case errors.As(err, &pgErr) && (pgErr.Code == "23503" || pgErr.Code == "22001"):
+		WriteError(w, http.StatusBadRequest, service.ErrInvalidInput)
 	default:
 		// Avoid leaking driver messages to clients; log the full error.
 		slog.Error("internal server error", "error", err.Error())
