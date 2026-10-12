@@ -85,19 +85,6 @@ func (s *pgComputeAllocationMembershipStore) FindByPair(ctx context.Context, all
 	return &m, nil
 }
 
-func (s *pgComputeAllocationMembershipStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
-	var rows []models.ComputeAllocationMembership
-	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+computeAllocationMembershipColumns+`
-		 FROM compute_allocation_memberships
-		 WHERE compute_allocation_id = $1
-		 ORDER BY start_time`, allocationID)
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
-}
-
 func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 	var rows []models.ComputeAllocationMembership
 	err := s.db.SelectContext(ctx, &rows,

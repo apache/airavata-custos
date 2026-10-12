@@ -99,16 +99,6 @@ func (s *pgProjectStore) FindByOriginatedID(ctx context.Context, originatedID st
 	return &p, nil
 }
 
-func (s *pgProjectStore) FindByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
-	var projects []models.Project
-	err := s.db.SelectContext(ctx, &projects,
-		`SELECT `+projectColumns+` FROM projects WHERE project_pi_id = $1`, piUserID)
-	if err != nil {
-		return nil, err
-	}
-	return projects, nil
-}
-
 func (s *pgProjectStore) Create(ctx context.Context, tx *sql.Tx, p *models.Project) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status, created_time)
@@ -144,51 +134,6 @@ func (s *pgProjectStore) Delete(ctx context.Context, tx *sql.Tx, id string) erro
 	return err
 }
 
-func (s *pgProjectStore) List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error) {
-	where := []string{}
-	args := []any{}
-	if f.PIID != "" {
-		where = append(where, `project_pi_id = ?`)
-		args = append(args, f.PIID)
-	}
-	if f.Status != "" {
-		where = append(where, `status = ?`)
-		args = append(args, f.Status)
-	}
-	if f.Query != "" {
-		where = append(where, `(title ILIKE ? OR originated_id ILIKE ?)`)
-		q := "%" + f.Query + "%"
-		args = append(args, q, q)
-	}
-	clause := ""
-	if len(where) > 0 {
-		clause = " WHERE " + strings.Join(where, " AND ")
-	}
-	var total int
-	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM projects`+clause), args...); err != nil {
-		return nil, 0, err
-	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	query := `SELECT ` + projectColumns + ` FROM projects` + clause +
-		` ORDER BY created_time DESC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
-	var rows []models.Project
-	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
-		return nil, 0, err
-	}
-	return rows, total, nil
-}
-
 // ListWithPIForParticipant returns the projects the user has a role on, PI
 // joined, newest first.
 func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
@@ -202,7 +147,7 @@ func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID st
 	return rows, nil
 }
 
-// ListWithPI is List joined with the PI user. Replaces per-row GetUser calls
+// ListWithPI returns a filtered page of projects with the PI user joined. Replaces per-row GetUser calls
 // the handler used to fan out across the result set.
 func (s *pgProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error) {
 	where := []string{}

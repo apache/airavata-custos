@@ -63,15 +63,3 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 		})
 	})
 }
-
-// ListProjectMemberships returns every project_memberships row for the project.
-func (s *Service) ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-	if projectID == "" {
-		return nil, fmt.Errorf("%w: project_id is required", ErrInvalidInput)
-	}
-	rows, err := s.projMemberships.FindByProject(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("list project memberships: %w", err)
-	}
-	return rows, nil
-}
