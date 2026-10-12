@@ -143,15 +143,6 @@ func (s *pgComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql
 	return err
 }
 
-func (s *pgComputeAllocationMembershipStore) DeleteByUser(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeAllocationMembership, error) {
-	rows, err := tx.QueryContext(ctx, `DELETE FROM compute_allocation_memberships WHERE user_id = $1 RETURNING `+computeAllocationMembershipColumns, userID)
-	if err != nil {
-		return nil, err
-	}
-	var removed []models.ComputeAllocationMembership
-	return removed, sqlx.StructScan(rows, &removed)
-}
-
 // FindByAllocationWithUser returns memberships for an allocation joined with
 // users so each row carries display_name, email, and the user's project-wide
 // role (MEMBER without one).

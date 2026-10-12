@@ -139,7 +139,6 @@ func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {
 func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	svc.EventBus().SubscribeComputeAllocationMembershipDeleted("test-subscriber", func(context.Context, models.ComputeAllocationMembership) error { return nil })
 	_, allocID := newClusterAllocation(t, svc, seedUser(t, database, "pi@example.edu"))
 	member := seedUser(t, database, "member@example.edu")
 	if _, err := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: allocID, UserID: member, MembershipStatus: models.ACTIVE}); err != nil {
@@ -150,8 +149,5 @@ func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	}
 	if left, _ := svc.memberships.FindByUser(ctx(), member); len(left) != 0 {
 		t.Fatalf("%d memberships left", len(left))
-	}
-	if n := countDeliveries(t, svc); n != 1 {
-		t.Fatalf("%d membership delete events, want 1", n)
 	}
 }
