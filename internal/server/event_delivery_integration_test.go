@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -160,6 +161,19 @@ func TestGetDeliveryUnknownIDIsNotFound(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	if rr := getDelivery(t, srv, "no-such-delivery"); rr.Code != http.StatusNotFound {
 		t.Fatalf("status: got %d, want 404", rr.Code)
+	}
+}
+
+// Make sure the deliveries list is an empty array, not null, when there are no events.
+func TestListDeliveriesWithNoEventsIsEmptyArray(t *testing.T) {
+	_, _, srv := setupTestStack(t)
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/events/deliveries", nil), "u-1", models.TracesRead))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rr.Code)
+	}
+	if body := strings.TrimSpace(rr.Body.String()); body != `{"items":[]}` {
+		t.Fatalf("body: got %s, want {\"items\":[]}", body)
 	}
 }
 

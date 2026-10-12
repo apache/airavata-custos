@@ -25,8 +25,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// inAllocationPeriod keeps usage rows (u) from jobs that ended within their allocation's
-// (ca) start and end dates. The end date counts as a whole day.
+// The end date counts as a whole day.
 const inAllocationPeriod = `u.calculated_time >= ca.start_time AND u.calculated_time < ca.end_time + INTERVAL '1 day'`
 
 // ProjectRow is a project the caller is involved with plus the

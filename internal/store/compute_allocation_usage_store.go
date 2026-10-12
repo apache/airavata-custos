@@ -30,8 +30,7 @@ import (
 
 const computeAllocationUsageColumns = "id, compute_allocation_id, used_raw_amount, used_su_amount, calculated_time, user_id, job_id, compute_allocation_resource_id"
 
-// inAllocationPeriod keeps usage rows (u) from jobs that ended within their
-// allocation's (a) start and end dates. The end date counts as a whole day.
+// The end date counts as a whole day.
 const inAllocationPeriod = `u.calculated_time >= a.start_time AND u.calculated_time < a.end_time + INTERVAL '1 day'`
 
 type pgComputeAllocationUsageStore struct {

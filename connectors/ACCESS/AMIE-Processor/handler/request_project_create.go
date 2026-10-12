@@ -219,8 +219,7 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 	})
 }
 
-// ensureAllocation creates the allocation on a project's first packet.
-// A later packet for the project changes the allocation it already has.
+// ensureAllocation also changes the allocation when the project already has one.
 func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
 	su, err := getNumber(body, "ServiceUnitsAllocated")
 	if err != nil {
