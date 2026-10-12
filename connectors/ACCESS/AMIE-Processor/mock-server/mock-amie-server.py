@@ -670,7 +670,7 @@ def gen_from_file(name):
             "PfosNumber": f"PFOS-{grant}",
             "ProjectTitle": project["title"],
             "Abstract": project.get("abstract", project["title"]),
-            "ServiceUnitsAllocated": str(project["su"]),
+            "ServiceUnitsAllocated": f"{project['su']}.0",
             "StartDate": start.isoformat(),
             "EndDate": (start + timedelta(days=365)).isoformat(),
             "ResourceList": [resource],
