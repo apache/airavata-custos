@@ -131,6 +131,7 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	}); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)
 	}
+	s.InvalidateAllIdentities()
 	return survivor, nil
 }
 

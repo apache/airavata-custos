@@ -245,5 +245,6 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	}); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
+	s.InvalidateAllIdentities()
 	return nil
 }

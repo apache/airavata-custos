@@ -149,7 +149,8 @@ CREATE TABLE IF NOT EXISTS compute_allocation_memberships
     PRIMARY KEY (id),
     CONSTRAINT uq_compute_allocation_memberships_allocation_user UNIQUE (compute_allocation_id, user_id),
     CONSTRAINT fk_compute_allocation_memberships_allocation FOREIGN KEY (compute_allocation_id)
-        REFERENCES compute_allocations (id) ON DELETE CASCADE
+        REFERENCES compute_allocations (id) ON DELETE CASCADE,
+    CONSTRAINT fk_compute_allocation_memberships_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_compute_allocation_memberships_user ON compute_allocation_memberships (user_id);
 CREATE INDEX IF NOT EXISTS idx_compute_allocation_memberships_status ON compute_allocation_memberships (membership_status);
