@@ -140,6 +140,9 @@ func (s *Service) UpdateComputeAllocationChangeRequest(ctx context.Context, req 
 	if existing == nil {
 		return nil, ErrNotFound
 	}
+	if req.ChangeStatus != "" && existing.ChangeStatus != "PENDING" {
+		return nil, fmt.Errorf("%w: change request is already %s", ErrInvalidInput, existing.ChangeStatus)
+	}
 	if req.ComputeAllocationID == "" {
 		req.ComputeAllocationID = existing.ComputeAllocationID
 	}
@@ -175,34 +178,47 @@ func (s *Service) UpdateComputeAllocationChangeRequest(ctx context.Context, req 
 	approved := req.ChangeStatus == "APPROVED" && existing.ChangeStatus != "APPROVED"
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		locked, err := s.changeRequests.FindByIDTx(ctx, tx, req.ID)
+		if err != nil {
+			return err
+		}
+		if locked == nil {
+			return ErrNotFound
+		}
+		if locked.ChangeStatus != existing.ChangeStatus {
+			return fmt.Errorf("%w: change request changed concurrently", ErrInvalidInput)
+		}
 		if err := s.changeRequests.Update(ctx, tx, req); err != nil {
 			return err
 		}
-		return s.changeEvents.Create(ctx, tx, &models.ComputeAllocationChangeRequestEvent{
+		if err := s.changeEvents.Create(ctx, tx, &models.ComputeAllocationChangeRequestEvent{
 			ID:                               newID(),
 			ComputeAllocationChangeRequestID: req.ID,
 			EventType:                        eventType,
 			Description:                      eventDescription,
 			Timestamp:                        nowUTC(),
-		})
-	}); err != nil {
-		return nil, fmt.Errorf("update compute allocation change request: %w", err)
-	}
-
-	if approved {
+		}); err != nil {
+			return err
+		}
+		if !approved {
+			return nil
+		}
 		diffStatus := req.RequestedStatus
 		if diffStatus == "" {
 			diffStatus = models.ACTIVE
 		}
-		if _, err := s.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+		if _, err := s.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 			ComputeAllocationID: req.ComputeAllocationID,
 			DiffType:            "CHANGE_REQUEST_APPROVED",
 			NewSUAmount:         req.RequestedSUAmount,
 			Status:              diffStatus,
 			Description:         fmt.Sprintf("Applied approved change request %s", req.ID),
 		}); err != nil {
-			return nil, fmt.Errorf("record approved change request diff: %w", err)
+			return fmt.Errorf("record approved change request diff: %w", err)
 		}
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("update compute allocation change request: %w", err)
 	}
 	return req, nil
 }

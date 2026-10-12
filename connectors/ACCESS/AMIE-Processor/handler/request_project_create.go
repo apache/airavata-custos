@@ -110,7 +110,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_PROJECT: %w", err)
 	}
 
-	allocation, err := h.ensureAllocation(ctx, body, project.ID, grantNumber)
+	allocation, err := h.ensureAllocation(ctx, tx, body, project.ID, grantNumber)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure allocation: %w", err)
 	}
@@ -220,13 +220,13 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 // the existing row is preserved and a ComputeAllocationDiff is recorded
 // capturing the grant event. InitialSUAmount on the parent row stays as the
 // original grant; effective SUs = InitialSUAmount + sum(grant diffs).
-func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
 	existing, err := h.svc.ListComputeAllocationsByProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("list allocations: %w", err)
 	}
 	if len(existing) > 0 {
-		return h.recordAllocationDiff(ctx, body, &existing[0])
+		return h.recordAllocationDiff(ctx, tx, body, &existing[0])
 	}
 
 	su, err := getInt64(body, "ServiceUnitsAllocated")
@@ -318,7 +318,7 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, al
 // AllocationType from the packet body; falls back to "GRANT" when AMIE did not supply one.
 // NewSUAmount carries this packet's ServiceUnitsAllocated, the delta granted
 // by this event, not the cumulative total.
-func (h *RequestProjectCreateHandler) recordAllocationDiff(ctx context.Context, body map[string]any, existing *models.ComputeAllocation) (*models.ComputeAllocation, error) {
+func (h *RequestProjectCreateHandler) recordAllocationDiff(ctx context.Context, tx *sql.Tx, body map[string]any, existing *models.ComputeAllocation) (*models.ComputeAllocation, error) {
 	su, err := getInt64(body, "ServiceUnitsAllocated")
 	if err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func (h *RequestProjectCreateHandler) recordAllocationDiff(ctx context.Context, 
 	if diffType == "" {
 		diffType = "GRANT"
 	}
-	if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+	if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 		ComputeAllocationID: existing.ID,
 		DiffType:            diffType,
 		NewSUAmount:         su,

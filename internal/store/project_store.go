@@ -86,6 +86,19 @@ func (s *pgProjectStore) FindByID(ctx context.Context, id string) (*models.Proje
 	return &p, nil
 }
 
+func (s *pgProjectStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.Project, error) {
+	var r models.Project
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
+		`SELECT `+projectColumns+` FROM projects WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
 func (s *pgProjectStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error) {
 	var p models.Project
 	err := s.db.GetContext(ctx, &p,

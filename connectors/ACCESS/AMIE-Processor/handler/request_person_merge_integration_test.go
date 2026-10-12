@@ -512,12 +512,6 @@ func TestRequestPersonMerge_UnknownRetiringOrSurviving(t *testing.T) {
 // a ReplyToPacket failure to the caller so the processor can decide to retry.
 // The REPLY_SENT audit row must NOT be written when the reply did not actually
 // go out.
-//
-// As with the analogous test in request_project_create_integration_test.go:
-// the merge itself goes through service.MergeUsers, which opens its own
-// transaction. So the surviving/retiring state changes commit independently
-// of the handler tx; we do not assert rollback shape here, only the (1)
-// error propagation and (2) audit invariant.
 func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 	database := setupTestDB(t)
 	seed := seedMergeUsers(t, database)
@@ -546,6 +540,10 @@ func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 	}
 	if len(amie.Replies) != 0 {
 		t.Errorf("amie reply count on failed reply: got %d, want 0", len(amie.Replies))
+	}
+	// A merge left committed would make the retry skip the DN move and the held-packet reprocessing.
+	if got := getUserStatus(t, database, seed.retiringID); got == string(models.UserMerged) {
+		t.Errorf("retiring user after failed reply: got %q, want it unmerged", got)
 	}
 }
 

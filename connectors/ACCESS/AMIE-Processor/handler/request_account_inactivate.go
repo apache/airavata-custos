@@ -65,7 +65,7 @@ func (h *RequestAccountInactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		return err
 	}
 
-	flipped, err := flipUserMemberships(ctx, h.svc, projectID, personID, models.INACTIVE)
+	flipped, err := flipUserMemberships(ctx, tx, h.svc, projectID, personID, models.INACTIVE)
 	if err != nil {
 		return fmt.Errorf("request_account_inactivate: flip memberships: %w", err)
 	}
