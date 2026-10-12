@@ -388,6 +388,46 @@ func TestRequestProjectCreate_ExtensionMovesEndDate(t *testing.T) {
 	}
 }
 
+// Make sure a project packet for an inactivated project sets the project, its
+// allocation and the PI's membership back to active.
+func TestRequestProjectCreate_ReactivatesInactiveProject(t *testing.T) {
+	database := setupTestDB(t)
+	seedProjectForRAC(t, database)
+	for _, q := range []string{
+		"UPDATE projects SET status = 'INACTIVE'",
+		"UPDATE compute_allocations SET status = 'INACTIVE'",
+		"UPDATE compute_allocation_memberships SET membership_status = 'INACTIVE'",
+	} {
+		if _, err := database.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+
+	svc := newTestCoreService(database)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+	body := baseRPCBody()
+	pkt := insertPacket(t, database, "request_project_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+
+	var statuses []string
+	if err := database.Select(&statuses,
+		`SELECT status FROM projects
+		 UNION ALL SELECT status FROM compute_allocations
+		 UNION ALL SELECT membership_status FROM compute_allocation_memberships`); err != nil {
+		t.Fatalf("read statuses: %v", err)
+	}
+	for _, s := range statuses {
+		if s != "ACTIVE" {
+			t.Errorf("statuses: got %v, want all ACTIVE", statuses)
+			break
+		}
+	}
+}
+
 // Make sure a negative transfer deducts its exact amount, fraction included,
 // from the existing allocation.
 func TestRequestProjectCreate_NegativeTransferDeducts(t *testing.T) {

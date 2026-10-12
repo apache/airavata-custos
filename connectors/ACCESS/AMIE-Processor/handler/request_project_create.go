@@ -207,6 +207,10 @@ func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, u
 
 func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, title, piID string) (*models.Project, error) {
 	if p, err := h.svc.GetProjectByOriginatedID(ctx, originatedID); err == nil {
+		// The spec says a project packet for an inactive project reactivates it.
+		if p.Status != models.ProjectActive {
+			return h.svc.UpdateProjectStatus(ctx, p.ID, models.ProjectActive)
+		}
 		return p, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return nil, err
@@ -299,8 +303,8 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, al
 	}
 	for _, m := range existing {
 		if m.UserID == piID {
-			cm := m.ComputeAllocationMembership
-			return &cm, false, nil
+			active, err := reactivate(ctx, h.svc, m.ComputeAllocationMembership)
+			return active, false, err
 		}
 	}
 	created, err := h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
@@ -344,6 +348,7 @@ func (h *RequestProjectCreateHandler) changeAllocation(ctx context.Context, body
 		// NEW, TRANSFER, SUPPLEMENT, ADJUSTMENT, ADVANCE. The amount is signed, so a negative transfer deducts.
 		alloc.InitialSUAmount += su
 	}
+	alloc.Status = models.ACTIVE
 	if err := h.svc.UpdateComputeAllocation(ctx, alloc); err != nil {
 		return nil, fmt.Errorf("change allocation: %w", err)
 	}
