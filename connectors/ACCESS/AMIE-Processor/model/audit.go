@@ -22,6 +22,7 @@ type AuditAction string
 
 const (
 	AuditPacketReceived       AuditAction = "PACKET_RECEIVED"
+	AuditPacketFailed         AuditAction = "PACKET_FAILED"
 	AuditCreatePerson         AuditAction = "CREATE_PERSON"
 	AuditUpdatePerson         AuditAction = "UPDATE_PERSON"
 	AuditDeletePerson         AuditAction = "DELETE_PERSON"

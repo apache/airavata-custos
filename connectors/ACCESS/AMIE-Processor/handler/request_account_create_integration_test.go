@@ -365,6 +365,40 @@ func TestRequestAccountCreate_ApprovedAccountRepliesAtOnce(t *testing.T) {
 	}
 }
 
+// Make sure an account request for an inactivated member of an active
+// allocation sets the membership back to active.
+func TestRequestAccountCreate_ReactivatesInactiveMember(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	body := baseRACBody()
+	body["ProjectID"] = projectID
+
+	svc := newTestCoreService(database)
+	h := NewRequestAccountCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database))
+	handle := func() {
+		pkt := insertPacket(t, database, "request_account_create", body)
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+	}
+	handle()
+	const member = "user_id = (SELECT id FROM users WHERE email = $1)"
+	if _, err := database.Exec("UPDATE compute_allocation_memberships SET membership_status = 'INACTIVE' WHERE "+member, body["UserEmail"]); err != nil {
+		t.Fatalf("inactivate membership: %v", err)
+	}
+	handle()
+
+	var status string
+	if err := database.Get(&status, "SELECT membership_status FROM compute_allocation_memberships WHERE "+member, body["UserEmail"]); err != nil {
+		t.Fatalf("read membership: %v", err)
+	}
+	if status != "ACTIVE" {
+		t.Errorf("membership_status: got %s, want ACTIVE", status)
+	}
+}
+
 // Make sure an account request for the project's PI, under any role, adds the
 // membership and leaves the PI and project roles untouched.
 func TestRequestAccountCreate_ForThePI(t *testing.T) {

@@ -217,7 +217,7 @@ func newTestPipeline(t *testing.T) *testPipeline {
 
 	met := metrics.NewWithRegistry(prometheus.NewRegistry())
 	poller := worker.NewPoller(amieClient, packetStore, eventStore, met, database, cfg)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, database, cfg)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, amieClient, database, cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	pipe := &testPipeline{
