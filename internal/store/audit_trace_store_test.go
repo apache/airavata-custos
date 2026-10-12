@@ -98,7 +98,7 @@ func TestBuildTraceWhereEmpty(t *testing.T) {
 
 func TestBuildTraceWhereSources(t *testing.T) {
 	w, args := buildTraceWhere(TraceFilter{Sources: []string{"amie", "comanage"}})
-	if !strings.Contains(w, "u.source IN (?,?)") {
+	if !strings.Contains(w, "source IN (?,?)") {
 		t.Errorf("where = %q, missing IN clause", w)
 	}
 	if len(args) != 2 {
@@ -110,10 +110,10 @@ func TestBuildTraceWhereTimeAndQ(t *testing.T) {
 	from := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 	to := from.Add(24 * time.Hour)
 	w, args := buildTraceWhere(TraceFilter{From: from, To: to, Q: "create"})
-	if !strings.Contains(w, "u.created_at >= ?") || !strings.Contains(w, "u.created_at <= ?") {
+	if !strings.Contains(w, "event_time >= ?") || !strings.Contains(w, "event_time <= ?") {
 		t.Errorf("where missing time clauses: %q", w)
 	}
-	if !strings.Contains(w, "u.trace_id ILIKE ?") || !strings.Contains(w, "u.entity_id = ?") || !strings.Contains(w, "u.description ILIKE ?") {
+	if !strings.Contains(w, "trace_id ILIKE ?") || !strings.Contains(w, "entity_id = ?") || !strings.Contains(w, "details ILIKE ?") {
 		t.Errorf("where missing a search clause: %q", w)
 	}
 	// 2 timestamps + 4 search values
