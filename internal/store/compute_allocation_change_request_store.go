@@ -109,25 +109,18 @@ func (s *pgComputeAllocationChangeRequestStore) Delete(ctx context.Context, tx *
 }
 
 func (s *pgComputeAllocationChangeRequestStore) List(ctx context.Context, f ChangeRequestListFilter) ([]models.ComputeAllocationChangeRequest, error) {
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
 	if f.Status != "" {
 		var rows []models.ComputeAllocationChangeRequest
 		err := s.db.SelectContext(ctx, &rows,
 			`SELECT `+computeAllocationChangeRequestColumns+
 				` FROM compute_allocation_change_requests WHERE change_status = $1`+
-				` ORDER BY timestamp DESC LIMIT $2`, f.Status, limit)
+				` ORDER BY timestamp DESC LIMIT $2`, f.Status, f.Limit)
 		return rows, err
 	}
 	var rows []models.ComputeAllocationChangeRequest
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationChangeRequestColumns+
 			` FROM compute_allocation_change_requests`+
-			` ORDER BY timestamp DESC LIMIT $1`, limit)
+			` ORDER BY timestamp DESC LIMIT $1`, f.Limit)
 	return rows, err
 }

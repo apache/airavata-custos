@@ -86,8 +86,8 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 // @Success	200	{object}	UserListResponse
 // @Router	/users [get]
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	rows, total, err := s.svc.ListUsers(r.Context(), atoiOr(q.Get("limit"), 50), atoiOr(q.Get("offset"), 0))
+	limit, offset := common.Paged(r.URL.Query())
+	rows, total, err := s.svc.ListUsers(r.Context(), limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

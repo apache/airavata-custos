@@ -103,7 +103,7 @@ func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 // @Router	/connectors/amie/packets [get]
 func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
-		common.WriteJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
+		common.WriteJSON(w, http.StatusOK, emptyPacketPage(common.Paged(r.URL.Query())))
 		return
 	}
 	f, err := parsePacketFilter(r)
@@ -123,7 +123,7 @@ func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, PacketListResponse{
 		Packets: items,
 		Total:   total,
-		Limit:   effectiveLimit(f.Limit),
+		Limit:   f.Limit,
 		Offset:  f.Offset,
 	})
 }
@@ -218,11 +218,12 @@ type ReplyListResponse struct {
 // @Success	200	{object}	ReplyListResponse
 // @Router	/connectors/amie/replies [get]
 func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
+	limit, offset := common.Paged(r.URL.Query())
 	common.WriteJSON(w, http.StatusOK, ReplyListResponse{
 		Replies: []any{},
 		Total:   0,
-		Limit:   effectiveLimit(parseLimit(r)),
-		Offset:  parseOffset(r),
+		Limit:   limit,
+		Offset:  offset,
 	})
 }
 
@@ -235,7 +236,7 @@ func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 // @Success	200	{object}	PacketListResponse
 // @Router	/connectors/amie/unmapped [get]
 func (h *Handlers) listUnmapped(w http.ResponseWriter, r *http.Request) {
-	common.WriteJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
+	common.WriteJSON(w, http.StatusOK, emptyPacketPage(common.Paged(r.URL.Query())))
 }
 
 // @Summary	Retry an AMIE packet (not yet implemented)
@@ -293,19 +294,20 @@ func emptyPacketPage(limit, offset int) PacketListResponse {
 	return PacketListResponse{
 		Packets: []PacketResponse{},
 		Total:   0,
-		Limit:   effectiveLimit(limit),
+		Limit:   limit,
 		Offset:  offset,
 	}
 }
 
 func parsePacketFilter(r *http.Request) (store.PacketListFilter, error) {
 	q := r.URL.Query()
+	limit, offset := common.Paged(q)
 	f := store.PacketListFilter{
 		Status: q.Get("status"),
 		Type:   q.Get("type"),
 		Query:  q.Get("q"),
-		Limit:  parseLimit(r),
-		Offset: parseOffset(r),
+		Limit:  limit,
+		Offset: offset,
 	}
 	if v := q.Get("from"); v != "" {
 		t, err := time.Parse(time.RFC3339Nano, v)
@@ -322,31 +324,6 @@ func parsePacketFilter(r *http.Request) (store.PacketListFilter, error) {
 		f.To = t
 	}
 	return f, nil
-}
-
-func parseLimit(r *http.Request) int {
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			return n
-		}
-	}
-	return 0
-}
-
-func parseOffset(r *http.Request) int {
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			return n
-		}
-	}
-	return 0
-}
-
-func effectiveLimit(l int) int {
-	if l <= 0 || l > 200 {
-		return 50
-	}
-	return l
 }
 
 func parseWindow(v string) time.Duration {

@@ -202,7 +202,8 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	status := models.ClusterAccountApproval(q.Get("approval_status"))
-	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, atoiOr(q.Get("limit"), 50), atoiOr(q.Get("offset"), 0))
+	limit, offset := common.Paged(q)
+	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

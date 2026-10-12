@@ -173,19 +173,8 @@ func (s *pgProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([
 	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM projects p`+clause), args...); err != nil {
 		return nil, 0, err
 	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
 	query := projectWithPISelect + clause + ` ORDER BY p.created_time DESC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
+	args = append(args, f.Limit, f.Offset)
 	var rows []ProjectWithPI
 	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
 		return nil, 0, err

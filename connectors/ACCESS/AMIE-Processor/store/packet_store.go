@@ -135,16 +135,8 @@ func (s *pgPacketStore) ListPackets(ctx context.Context, f PacketListFilter) ([]
 		return nil, 0, err
 	}
 
-	limit := f.Limit
-	if limit <= 0 || limit > 200 {
-		limit = 50
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
 	q := fmt.Sprintf(`SELECT %s FROM amie_packets%s ORDER BY received_at DESC LIMIT %d OFFSET %d`,
-		packetColumns, where, limit, offset)
+		packetColumns, where, f.Limit, f.Offset)
 
 	var rows []model.Packet
 	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), args...); err != nil {
