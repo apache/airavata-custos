@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { ComputeCluster } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -24,7 +25,6 @@ import { CardSkeleton } from "@/shared/ui/Loading";
 import { Input } from "@/shared/ui/input";
 import * as React from "react";
 import { useClusters } from "../queries";
-import type { ComputeCluster } from "../schemas";
 import { ClusterUsersDrawer } from "./ClusterUsersDrawer";
 
 export function ClustersTab() {

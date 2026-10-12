@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { UserNameUpdateRequest, UserPrivilege } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
@@ -27,8 +28,7 @@ import {
   getMyRolesWithPrivileges,
   updateMyName,
 } from "./api";
-import { privilegesResponseSchema } from "./schemas";
-import type { CallerRoleGrant, RoleWithPrivileges, UserNameUpdate, UserPrivilege } from "./schemas";
+import { type CallerRoleGrant, type RoleWithPrivileges, privilegesResponseSchema } from "./schemas";
 import type { CurrentUser, Privilege } from "./types";
 
 export const identityKeys = {
@@ -147,7 +147,7 @@ export function useMyAccess(
 export function useUpdateMyName(userId: string | undefined) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (name: UserNameUpdate) => {
+    mutationFn: async (name: UserNameUpdateRequest) => {
       if (!userId) throw new Error("No signed-in user");
       return updateMyName(userId, name);
     },

@@ -21,9 +21,6 @@
 // they are; there is no adapted UI shape.
 
 import {
-  zDeliveryCounts,
-  zEventDeliveryStatus,
-  zGetAuditSourcesResponse,
   zGetAuditTracesByTraceIdResponse,
   zGetAuditTracesResponse,
   zTraceDelivery,
@@ -40,10 +37,6 @@ const spanIdHexSchema = z.string().regex(/^[0-9a-f]{16}$/, "span_id must be 16-c
 
 export const traceStatusSchema = z.enum(["ok", "error", "in_progress"]);
 export const stepStatusSchema = z.enum(["ok", "error"]);
-export const deliveryStatusSchema = zEventDeliveryStatus;
-
-export const deliveryCountsSchema = zDeliveryCounts;
-
 export const traceSummarySchema = zTraceSummary.extend({
   trace_id: traceIdHexSchema,
   status: traceStatusSchema,
@@ -76,5 +69,3 @@ export const traceDetailSchema = zGetAuditTracesByTraceIdResponse.extend({
   tree: z.array(stepNodeSchema),
   deliveries: z.array(traceDeliverySchema),
 });
-
-export const traceSourceListSchema = zGetAuditSourcesResponse;

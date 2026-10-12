@@ -17,13 +17,13 @@
 
 "use client";
 
-import * as React from "react";
+import type { Job } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { useAllocationJobs } from "../queries";
+import * as React from "react";
 import { CHART_OTHER_COLOR, formatCredits, formatDateTime, formatNative } from "../lib";
-import type { AnalyticsJob } from "../schemas";
+import { useAllocationJobs } from "../queries";
 
 const PAGE_SIZE = 10;
 
@@ -129,7 +129,7 @@ function JobRow({
   showUser,
   color,
 }: {
-  job: AnalyticsJob;
+  job: Job;
   showUser: boolean;
   color: string;
 }) {

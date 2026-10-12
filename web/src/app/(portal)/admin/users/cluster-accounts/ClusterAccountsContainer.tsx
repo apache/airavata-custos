@@ -27,10 +27,7 @@ import {
   useClusterAccounts,
   useDenyClusterAccount,
 } from "@/features/core/cluster-accounts/queries";
-import type {
-  ClusterAccount,
-  ClusterAccountApproval,
-} from "@/features/core/cluster-accounts/schemas";
+import type { ClusterAccountApproval, ClusterAccountResponse } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
@@ -65,7 +62,7 @@ export function ClusterAccountsContainer() {
   const filter = readFilter(params);
   const [page, setPage] = React.useState(1);
   const [review, setReview] = React.useState<{
-    account: ClusterAccount;
+    account: ClusterAccountResponse;
     action: ReviewAction;
   } | null>(null);
   const [reviewError, setReviewError] = React.useState<string | null>(null);
@@ -90,7 +87,7 @@ export function ClusterAccountsContainer() {
   }
 
   function openReview(action: ReviewAction) {
-    return (account: ClusterAccount) => {
+    return (account: ClusterAccountResponse) => {
       setReviewError(null);
       setReview({ account, action });
     };

@@ -17,8 +17,9 @@
  * under the License.
  */
 
+import { zGetAuditSourcesResponse } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import { traceDetailSchema, traceListSchema, traceSourceListSchema } from "./schemas";
+import { traceDetailSchema, traceListSchema } from "./schemas";
 import type { TraceDetail, TraceListResponse, TraceStatus } from "./types";
 
 export type TraceListFilters = {
@@ -54,5 +55,5 @@ export async function getTrace(traceId: string): Promise<TraceDetail> {
 }
 
 export async function listAuditSources(): Promise<string[]> {
-  return traceSourceListSchema.parse(await apiFetch("/audit/sources")).sources;
+  return zGetAuditSourcesResponse.parse(await apiFetch("/audit/sources")).sources;
 }

@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zProjectResponse } from "@/generated/core/zod.gen";
 import { describe, expect, it } from "vitest";
 import {
   addProjectMemberPayloadSchema,
   createProjectPayloadSchema,
   projectListEnvelopeSchema,
   projectMemberSchema,
-  projectSchema,
   updateProjectMemberPayloadSchema,
   updateProjectStatusPayloadSchema,
 } from "../schemas";
@@ -50,10 +50,10 @@ const validMember = {
 
 describe("projectSchema", () => {
   it("accepts a backend-shaped project", () => {
-    expect(projectSchema.safeParse(validProject).success).toBe(true);
+    expect(zProjectResponse.safeParse(validProject).success).toBe(true);
   });
   it("rejects an invalid status", () => {
-    expect(projectSchema.safeParse({ ...validProject, status: "FOO" }).success).toBe(false);
+    expect(zProjectResponse.safeParse({ ...validProject, status: "FOO" }).success).toBe(false);
   });
 });
 

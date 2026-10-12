@@ -15,12 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zComputeAllocation, zComputeAllocationChangeRequestEvent } from "@/generated/core/zod.gen";
 import { describe, expect, it } from "vitest";
 import {
   allocationMembershipSchema,
-  changeRequestEventSchema,
   changeRequestSchema,
-  computeAllocationSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
@@ -62,12 +61,10 @@ const validChangeRequest = {
 
 describe("computeAllocationSchema", () => {
   it("accepts a backend-shaped allocation", () => {
-    expect(computeAllocationSchema.safeParse(validAllocation).success).toBe(true);
+    expect(zComputeAllocation.safeParse(validAllocation).success).toBe(true);
   });
   it("rejects an invalid status", () => {
-    expect(computeAllocationSchema.safeParse({ ...validAllocation, status: "FOO" }).success).toBe(
-      false,
-    );
+    expect(zComputeAllocation.safeParse({ ...validAllocation, status: "FOO" }).success).toBe(false);
   });
 });
 
@@ -115,7 +112,7 @@ describe("changeRequestSchema", () => {
 describe("changeRequestEventSchema", () => {
   it("accepts a valid event", () => {
     expect(
-      changeRequestEventSchema.safeParse({
+      zComputeAllocationChangeRequestEvent.safeParse({
         id: "evt-001",
         compute_allocation_change_request_id: "cr-001",
         event_type: "CREATED",

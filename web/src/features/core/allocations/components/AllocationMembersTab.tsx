@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -26,7 +27,7 @@ import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import * as React from "react";
 import { useAddMember, useAllocationMembers, useRemoveMember, useUpdateMember } from "../queries";
-import type { AllocationMembership, ComputeAllocation, CreateMembershipPayload } from "../schemas";
+import type { AllocationMembership, CreateMembershipPayload } from "../schemas";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { MemberEditDialog, type MemberEditPayload } from "./MemberEditDialog";
 

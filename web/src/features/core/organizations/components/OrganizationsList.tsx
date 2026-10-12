@@ -17,12 +17,12 @@
 
 "use client";
 
-import type * as React from "react";
+import type { Organization } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import type { Organization } from "../schemas";
+import type * as React from "react";
 
 export type OrganizationsListProps = {
   rows: Organization[];

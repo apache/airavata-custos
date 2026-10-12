@@ -16,12 +16,12 @@
 // under the License.
 
 import { identityKeys } from "@/features/core/identity/queries";
+import type { UserRole } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { type ReactNode, createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyUserRoleChanges, useUpdateUserRoles, userKeys } from "../queries";
-import type { UserRole } from "../schemas";
 
 const apiMocks = vi.hoisted(() => ({
   assignUserRole: vi.fn(),

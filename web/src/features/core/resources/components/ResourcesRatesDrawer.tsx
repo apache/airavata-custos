@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { ComputeAllocationResourceRate } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -31,13 +32,7 @@ import * as React from "react";
 import { type DefaultValues, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useCreateResourceRate, useEffectiveRate, useResourceRates } from "../queries";
-import {
-  type CreateRateForm,
-  type Rate,
-  type RateStatus,
-  classifyRate,
-  createRateSchema,
-} from "../schemas";
+import { type CreateRateForm, type RateStatus, classifyRate, createRateSchema } from "../schemas";
 
 const STATUS_VARIANT: Record<RateStatus, StatusBadgeVariant> = {
   ACTIVE: "active",
@@ -274,7 +269,7 @@ export function ResourcesRatesDrawer({
             </tr>
           </thead>
           <tbody>
-            {history.map((rate: Rate) => {
+            {history.map((rate: ComputeAllocationResourceRate) => {
               const status = classifyRate(rate, history);
               return (
                 <tr key={rate.id} className="border-t border-border/60">

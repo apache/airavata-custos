@@ -17,7 +17,7 @@
 
 "use client";
 
-import * as React from "react";
+import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -28,12 +28,12 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
-import type { ClusterAccount } from "../schemas";
+import * as React from "react";
 
 export type ReviewAction = "approve" | "deny";
 
 export type ReviewClusterAccountDialogProps = {
-  account: ClusterAccount | null;
+  account: ClusterAccountResponse | null;
   action: ReviewAction;
   onOpenChange: (open: boolean) => void;
   onConfirm: (note: string) => void;
@@ -110,9 +110,7 @@ export function ReviewClusterAccountDialog({
             Your name is recorded as the approver in the audit log.
           </output>
         )}
-        {error ? (
-          <p className="text-sm text-[color:var(--tone-error-fg)]">{error}</p>
-        ) : null}
+        {error ? <p className="text-sm text-[color:var(--tone-error-fg)]">{error}</p> : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel

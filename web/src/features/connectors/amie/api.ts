@@ -15,6 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type {
+  GetConnectorsAmieStatsData,
+  GetConnectorsAmieUnmappedData,
+} from "@/generated/amie/types.gen";
 import { apiFetch } from "@/shared/api/client";
 import { z } from "zod";
 import {
@@ -109,10 +113,7 @@ export async function retryReply(id: string): Promise<{ queued: true }> {
   return retryReplyResponseSchema.parse(raw);
 }
 
-export type UnmappedListParams = {
-  limit?: number;
-  offset?: number;
-};
+export type UnmappedListParams = NonNullable<GetConnectorsAmieUnmappedData["query"]>;
 
 export async function listUnmapped(params: UnmappedListParams = {}): Promise<PacketListResponse> {
   const raw = await apiFetch(`/connectors/amie/unmapped${qs(params)}`);
@@ -131,9 +132,7 @@ export async function linkUnmapped(
   return packetSchema.parse(raw);
 }
 
-export type StatsParams = {
-  window?: string;
-};
+export type StatsParams = NonNullable<GetConnectorsAmieStatsData["query"]>;
 
 export async function getPacketStats(
   params: StatsParams = { window: "30d" },

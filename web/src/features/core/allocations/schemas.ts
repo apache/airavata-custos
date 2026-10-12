@@ -15,46 +15,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocationListResponse } from "@/generated/core/zod.gen";
 import {
+  type ComputeAllocation,
   zAllocationMembershipResponse,
   zAllocationStatus,
-  zComputeAllocation,
   zComputeAllocationChangeRequest,
-  zComputeAllocationChangeRequestEvent,
   zComputeAllocationChangeRequestInput,
-  zComputeAllocationDiff,
-  type zComputeAllocationListResponse,
-  type zComputeAllocationMembership,
   zComputeAllocationMembershipInput,
-  zComputeAllocationResource,
-  zComputeAllocationUsage,
-  zComputeCluster,
 } from "@/generated/core/zod.gen";
 import { z } from "zod";
-
-export const allocationStatusSchema = zAllocationStatus;
-export type AllocationStatus = z.infer<typeof allocationStatusSchema>;
 
 export const changeRequestStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 export type ChangeRequestStatus = z.infer<typeof changeRequestStatusSchema>;
 
-export const computeClusterSchema = zComputeCluster;
-export type ComputeCluster = z.infer<typeof computeClusterSchema>;
-
-export const computeAllocationSchema = zComputeAllocation;
-export type ComputeAllocation = z.infer<typeof computeAllocationSchema>;
-
-export type ComputeAllocationList = z.infer<typeof zComputeAllocationListResponse> & {
+export type ComputeAllocationList = ComputeAllocationListResponse & {
   items: ComputeAllocation[];
 };
-
-// GET /compute-allocations/{id}/resources returns the resource records joined
-// through the allocation's mappings; per-allocation amounts are not exposed.
-export const attachedResourceSchema = zComputeAllocationResource;
-export type AttachedResource = z.infer<typeof attachedResourceSchema>;
-
-export const allocationDiffSchema = zComputeAllocationDiff;
-export type AllocationDiff = z.infer<typeof allocationDiffSchema>;
 
 export const allocationMembershipRoleSchema = z.enum([
   "PI",
@@ -70,19 +47,11 @@ export const allocationMembershipSchema = zAllocationMembershipResponse.extend({
 });
 export type AllocationMembership = z.infer<typeof allocationMembershipSchema>;
 
-export type ComputeAllocationMembership = z.infer<typeof zComputeAllocationMembership>;
-
 // ChangeStatus is a free-form string on the Go side; we narrow to the documented enum.
 export const changeRequestSchema = zComputeAllocationChangeRequest.extend({
   change_status: changeRequestStatusSchema,
 });
 export type ChangeRequest = z.infer<typeof changeRequestSchema>;
-
-export const changeRequestEventSchema = zComputeAllocationChangeRequestEvent;
-export type ChangeRequestEvent = z.infer<typeof changeRequestEventSchema>;
-
-export const allocationUsageSchema = zComputeAllocationUsage;
-export type AllocationUsage = z.infer<typeof allocationUsageSchema>;
 
 // role is not on the Go membership; the backend ignores it.
 export const createMembershipPayloadSchema = zComputeAllocationMembershipInput.extend({
@@ -90,7 +59,7 @@ export const createMembershipPayloadSchema = zComputeAllocationMembershipInput.e
   user_id: z.string().min(1),
   start_time: z.string().min(1),
   end_time: z.string().min(1),
-  membership_status: allocationStatusSchema.default("ACTIVE"),
+  membership_status: zAllocationStatus.default("ACTIVE"),
   role: allocationMembershipRoleSchema.optional(),
 });
 export type CreateMembershipPayload = z.input<typeof createMembershipPayloadSchema>;
@@ -104,7 +73,7 @@ export type UpdateMembershipPayload = z.infer<typeof updateMembershipPayloadSche
 export const createChangeRequestPayloadSchema = zComputeAllocationChangeRequestInput.extend({
   compute_allocation_id: z.string().min(1),
   requested_su_amount: z.number().nonnegative(),
-  requested_status: allocationStatusSchema,
+  requested_status: zAllocationStatus,
   reason: z.string().min(1),
   requester_id: z.string().min(1),
 });

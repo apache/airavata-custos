@@ -15,22 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import {
-  zClusterAccountApproval,
-  zClusterAccountResponse,
-  type zGetComputeClusterUsersResponse,
-  type zPostComputeClusterUsersByIdApproveResponse,
+import type {
+  ClusterAccountResponse,
+  zGetComputeClusterUsersResponse,
 } from "@/generated/core/zod.gen";
 import type { z } from "zod";
 
-export const clusterAccountApprovalSchema = zClusterAccountApproval;
-export type ClusterAccountApproval = z.infer<typeof clusterAccountApprovalSchema>;
-
-export const clusterAccountSchema = zClusterAccountResponse;
-export type ClusterAccount = z.infer<typeof clusterAccountSchema>;
-
 export type ClusterAccountListResponse = z.infer<typeof zGetComputeClusterUsersResponse> & {
-  items: ClusterAccount[];
+  items: ClusterAccountResponse[];
 };
-
-export type ReviewedClusterUser = z.infer<typeof zPostComputeClusterUsersByIdApproveResponse>;

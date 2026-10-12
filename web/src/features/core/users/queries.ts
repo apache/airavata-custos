@@ -18,6 +18,7 @@
 "use client";
 
 import { identityKeys } from "@/features/core/identity/queries";
+import type { Role, User, UserRole } from "@/generated/core/zod.gen";
 import {
   skipToken,
   useMutation,
@@ -36,7 +37,7 @@ import {
   listUsers,
   removeUserRole,
 } from "./api";
-import type { CreateUserPayload, Role, User, UserRole } from "./schemas";
+import type { CreateUserPayload } from "./schemas";
 import type {
   RoleWithPrivileges,
   UpdateUserRolesInput,

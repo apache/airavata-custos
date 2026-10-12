@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeCluster, ComputeClusterUser } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeCluster, ComputeClusterUser } from "../schemas";
 
 let clusters: ComputeCluster[] = [];
 let users: ComputeClusterUser[] = [];

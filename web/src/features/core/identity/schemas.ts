@@ -16,6 +16,8 @@
 // under the License.
 
 import {
+  type Role,
+  type UserRole,
   zCallerRoleGrant,
   zGetMeResponse,
   zGetRolesByIdResponse,
@@ -23,12 +25,7 @@ import {
   zGetUsersByIdPrivilegesResponse,
   zGetUsersByIdRolesResponse,
   zGetUsersByIdUserIdentitiesResponse,
-  zPutUsersByIdBody,
-  zRole,
   zUser,
-  zUserIdentity,
-  zUserPrivilege,
-  zUserRole,
 } from "@/generated/core/zod.gen";
 import { z } from "zod";
 
@@ -39,19 +36,6 @@ const privilegeKeysSchema = z
   .array(privilegeKeySchema)
   .nullable()
   .transform((value) => value ?? []);
-
-export const userPrivilegeSchema = zUserPrivilege;
-export const userRoleSchema = zUserRole;
-export const roleSchema = zRole;
-export const userSchema = zUser;
-export const userIdentitySchema = zUserIdentity;
-
-export const roleWithPrivilegesSchema = z.object({
-  role: zRole,
-  privileges: z.array(privilegeKeySchema),
-  // The caller's grant for this role (granted_at, granted_by, reason).
-  grant: userRoleSchema,
-});
 
 export const privilegesResponseSchema = zGetUserPrivilegesResponse
   .extend({ privileges: z.array(privilegeKeySchema) })
@@ -87,13 +71,7 @@ export const roleDetailResponseSchema = zGetRolesByIdResponse.extend({
   privileges: privilegeKeysSchema,
 });
 
-export const userNameUpdateSchema = zPutUsersByIdBody;
-
 export type PrivilegeKey = z.infer<typeof privilegeKeySchema>;
-export type UserProfile = z.infer<typeof zUser>;
-export type UserIdentity = z.infer<typeof zUserIdentity>;
-export type UserRole = z.infer<typeof userRoleSchema>;
-export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
-export type RoleWithPrivileges = z.infer<typeof roleWithPrivilegesSchema>;
+// The caller's grant for a role, joined with the role and its privilege keys.
+export type RoleWithPrivileges = { role: Role; privileges: PrivilegeKey[]; grant: UserRole };
 export type CallerRoleGrant = z.infer<typeof callerRoleGrantSchema>;
-export type UserNameUpdate = z.infer<typeof userNameUpdateSchema>;

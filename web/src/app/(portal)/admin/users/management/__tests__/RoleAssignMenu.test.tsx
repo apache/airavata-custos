@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Role } from "@/features/core/users/schemas";
+import type { Role } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RoleAssignMenu } from "../RoleAssignMenu";

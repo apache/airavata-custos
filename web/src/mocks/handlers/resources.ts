@@ -17,8 +17,8 @@
 
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import type { Rate } from "@/features/core/resources/schemas";
 import {
+  type ComputeAllocationResourceRate,
   zComputeAllocationResource,
   zComputeAllocationResourceRate,
   zPostComputeAllocationResourceRatesBody,
@@ -29,7 +29,7 @@ import { z } from "zod";
 const resources = z.array(zComputeAllocationResource).parse(resourcesFixture);
 const rates = z.array(zComputeAllocationResourceRate).parse(ratesFixture);
 
-function ratesFor(resourceId: string): Rate[] {
+function ratesFor(resourceId: string): ComputeAllocationResourceRate[] {
   return rates.filter((r) => r.compute_allocation_resource_id === resourceId);
 }
 
@@ -80,7 +80,7 @@ export const resourcesHandlers = [
 
   http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
     const body = zPostComputeAllocationResourceRatesBody.parse(await request.json());
-    const created: Rate = {
+    const created: ComputeAllocationResourceRate = {
       id: `rate-${Date.now()}`,
       compute_allocation_resource_id: String(body.compute_allocation_resource_id),
       rate: Number(body.rate),

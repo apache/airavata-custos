@@ -16,33 +16,33 @@
 // under the License.
 
 import type { PostUsersByIdRolesData } from "@/generated/core/types.gen";
+import {
+  type Role,
+  type User,
+  type UserIdentity,
+  type UserRole,
+  zUser,
+  zUserRole,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
+  type CreateUserPayload,
+  type RoleDetail,
+  type UserListResponse,
+  type UserPrivilege,
   createUserPayloadSchema,
-  grantRoleResponseSchema,
   roleDetailResponseSchema,
   rolesResponseSchema,
   userIdentitiesResponseSchema,
   userListResponseSchema,
   userPrivilegesResponseSchema,
   userRolesResponseSchema,
-  userSchema,
-} from "./schemas";
-import type {
-  CreateUserPayload,
-  Role,
-  RoleDetail,
-  User,
-  UserIdentity,
-  UserListResponse,
-  UserPrivilege,
-  UserRole,
 } from "./schemas";
 import type { UserListParams } from "./types";
 
 export async function createUser(payload: CreateUserPayload): Promise<User> {
   const body = createUserPayloadSchema.parse(payload);
-  return userSchema.parse(await apiFetch("/users", { method: "POST", body }));
+  return zUser.parse(await apiFetch("/users", { method: "POST", body }));
 }
 
 export async function listUsers(params: UserListParams = {}): Promise<UserListResponse> {
@@ -83,7 +83,7 @@ export async function assignUserRole(
     role_id: roleId,
     ...(trimmed ? { reason: trimmed } : {}),
   };
-  return grantRoleResponseSchema.parse(
+  return zUserRole.parse(
     await apiFetch(`/users/${userId}/roles`, {
       method: "POST",
       body,

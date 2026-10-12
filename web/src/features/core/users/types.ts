@@ -15,12 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Role, User, UserIdentity } from "./schemas";
+import type { GetUsersData } from "@/generated/core/types.gen";
+import type { Role, User, UserIdentity } from "@/generated/core/zod.gen";
 
-export type UserListParams = {
-  limit?: number;
-  offset?: number;
-};
+export type UserListParams = NonNullable<GetUsersData["query"]>;
 
 export type RoleWithPrivileges = Role & {
   privileges: string[];

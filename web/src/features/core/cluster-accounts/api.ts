@@ -17,12 +17,13 @@
 
 import type { PostComputeClusterUsersByIdDenyData } from "@/generated/core/types.gen";
 import {
+  type ComputeClusterUser,
   zGetComputeClusterUsersResponse,
   zPostComputeClusterUsersByIdApproveResponse,
   zPostComputeClusterUsersByIdDenyResponse,
 } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import type { ClusterAccountListResponse, ReviewedClusterUser } from "./schemas";
+import type { ClusterAccountListResponse } from "./schemas";
 import type { ClusterAccountListParams } from "./types";
 
 export async function listClusterAccounts(
@@ -39,13 +40,13 @@ export async function listClusterAccounts(
   return { ...list, items: list.items ?? [] };
 }
 
-export async function approveClusterAccount(id: string): Promise<ReviewedClusterUser> {
+export async function approveClusterAccount(id: string): Promise<ComputeClusterUser> {
   return zPostComputeClusterUsersByIdApproveResponse.parse(
     await apiFetch(`/compute-cluster-users/${id}/approve`, { method: "POST" }),
   );
 }
 
-export async function denyClusterAccount(id: string, note: string): Promise<ReviewedClusterUser> {
+export async function denyClusterAccount(id: string, note: string): Promise<ComputeClusterUser> {
   const body: PostComputeClusterUsersByIdDenyData["body"] = { note };
   return zPostComputeClusterUsersByIdDenyResponse.parse(
     await apiFetch(`/compute-cluster-users/${id}/deny`, { method: "POST", body }),

@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export type OrganizationListParams = {
-  limit?: number;
-  offset?: number;
-};
+import type { GetOrganizationsData } from "@/generated/core/types.gen";
+
+export type OrganizationListParams = NonNullable<GetOrganizationsData["query"]>;

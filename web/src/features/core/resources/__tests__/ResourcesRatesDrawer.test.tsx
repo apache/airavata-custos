@@ -15,34 +15,44 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocationResourceRate } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { createResourceRate } from "../api";
-import type { Rate } from "../schemas";
 
 // Windows are anchored far in the past/future so classifyRate stays stable
 // regardless of the wall clock at test time (assumes now is 2011..2098).
-const expiredRate: Rate = rate(
+const expiredRate: ComputeAllocationResourceRate = rate(
   "rate-expired",
   0.03,
   "2000-01-01T00:00:00Z",
   "2001-01-01T00:00:00Z",
 );
-const supersededRate: Rate = rate(
+const supersededRate: ComputeAllocationResourceRate = rate(
   "rate-super",
   0.04,
   "2001-01-01T00:00:00Z",
   "2100-01-01T00:00:00Z",
 );
-const activeRate: Rate = rate("rate-active", 0.05, "2010-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
-const scheduledRate: Rate = rate(
+const activeRate: ComputeAllocationResourceRate = rate(
+  "rate-active",
+  0.05,
+  "2010-01-01T00:00:00Z",
+  "2100-01-01T00:00:00Z",
+);
+const scheduledRate: ComputeAllocationResourceRate = rate(
   "rate-sched",
   0.06,
   "2099-01-01T00:00:00Z",
   "2100-01-01T00:00:00Z",
 );
 
-function rate(id: string, value: number, start: string, end: string): Rate {
+function rate(
+  id: string,
+  value: number,
+  start: string,
+  end: string,
+): ComputeAllocationResourceRate {
   return {
     id,
     compute_allocation_resource_id: "res-1",
@@ -52,8 +62,8 @@ function rate(id: string, value: number, start: string, end: string): Rate {
   };
 }
 
-let rates: Rate[] = [];
-let effective: Rate | undefined;
+let rates: ComputeAllocationResourceRate[] = [];
+let effective: ComputeAllocationResourceRate | undefined;
 let canManage = true;
 const mutation = { mutateAsync: vi.fn<typeof createResourceRate>(), isPending: false };
 

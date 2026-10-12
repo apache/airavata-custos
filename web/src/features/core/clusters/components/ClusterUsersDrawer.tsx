@@ -17,12 +17,12 @@
 
 "use client";
 
+import type { ComputeClusterUser } from "@/generated/core/zod.gen";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { useClusterUsers } from "../queries";
-import type { ComputeClusterUser } from "../schemas";
 
 export type ClusterUsersDrawerProps = {
   clusterId: string | null;

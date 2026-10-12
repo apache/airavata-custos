@@ -16,10 +16,8 @@
 // under the License.
 
 import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
-import {
-  type Organization,
-  createOrganizationPayloadSchema,
-} from "@/features/core/organizations/schemas";
+import { createOrganizationPayloadSchema } from "@/features/core/organizations/schemas";
+import type { Organization } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 
 const organizations: Organization[] = organizationsFixture.map((o) => ({

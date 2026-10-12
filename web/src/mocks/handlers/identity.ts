@@ -16,8 +16,7 @@
 // under the License.
 
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
-import { userSchema } from "@/features/core/identity/schemas";
-import { zPutUsersByIdBody } from "@/generated/core/zod.gen";
+import { zPutUsersByIdBody, zUser } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 import { effectivePrivileges } from "./privileges";
 
@@ -25,7 +24,7 @@ const roleDetails = new Map(Object.entries(fixture.roleDetails));
 
 // Per-run mutable copy so PUT /users/{id} name edits are visible on the next
 // /me read within a session.
-let user = userSchema.parse(fixture.user);
+let user = zUser.parse(fixture.user);
 
 export const identityHandlers = [
   http.get("*/api/v1/me", () =>
@@ -47,7 +46,7 @@ export const identityHandlers = [
   ),
   http.put("*/api/v1/users/:id", async ({ request }) => {
     const body = zPutUsersByIdBody.parse(await request.json());
-    user = userSchema.parse({ ...user, ...body });
+    user = zUser.parse({ ...user, ...body });
     return HttpResponse.json(user);
   }),
 ];

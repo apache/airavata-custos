@@ -18,7 +18,6 @@
 import {
   zAuditEvent,
   zEvent,
-  zEventDeliveryStatus,
   zGetEventsDeliveriesByIdResponse,
   zGetEventsDeliveriesResponse,
   zGetEventsSubscriptionsResponse,
@@ -27,8 +26,6 @@ import {
   zUser,
 } from "@/generated/core/zod.gen";
 import { z } from "zod";
-
-export const deliveryStatusSchema = zEventDeliveryStatus;
 
 // The trace id column is fixed width, so a missing trace comes back as spaces.
 const traceIdSchema = z.string().transform((s) => s.trim());

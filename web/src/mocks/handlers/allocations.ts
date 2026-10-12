@@ -25,32 +25,34 @@ import usageFixture from "@/features/core/allocations/__fixtures__/usage.json";
 import {
   type AllocationMembership,
   type ChangeRequest,
-  type ChangeRequestEvent,
-  type ComputeAllocation,
-  allocationDiffSchema,
   allocationMembershipSchema,
-  allocationUsageSchema,
-  attachedResourceSchema,
-  changeRequestEventSchema,
   changeRequestSchema,
-  computeAllocationSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
   updateMembershipPayloadSchema,
 } from "@/features/core/allocations/schemas";
+import {
+  type ComputeAllocation,
+  type ComputeAllocationChangeRequestEvent,
+  zComputeAllocation,
+  zComputeAllocationChangeRequestEvent,
+  zComputeAllocationDiff,
+  zComputeAllocationResource,
+  zComputeAllocationUsage,
+} from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
 const byId = <T extends z.ZodType>(row: T) => z.record(z.string(), z.array(row));
 
-const allocations = z.array(computeAllocationSchema).parse(allocationsFixture);
-const resourcesByAlloc = byId(attachedResourceSchema).parse(resourcesFixture);
-const usageByAlloc = byId(allocationUsageSchema).parse(usageFixture);
-const diffsByAlloc = byId(allocationDiffSchema).parse(diffsFixture);
+const allocations = z.array(zComputeAllocation).parse(allocationsFixture);
+const resourcesByAlloc = byId(zComputeAllocationResource).parse(resourcesFixture);
+const usageByAlloc = byId(zComputeAllocationUsage).parse(usageFixture);
+const diffsByAlloc = byId(zComputeAllocationDiff).parse(diffsFixture);
 const membersByAlloc = byId(allocationMembershipSchema).parse(membersFixture);
 const changeRequests = z.array(changeRequestSchema).parse(changeRequestsFixture);
-const eventsByCr = byId(changeRequestEventSchema).parse(eventsFixture);
+const eventsByCr = byId(zComputeAllocationChangeRequestEvent).parse(eventsFixture);
 
 let memberSeq = 1000;
 let crSeq = 1000;
@@ -62,7 +64,7 @@ function ensureMembersBucket(allocId: string): AllocationMembership[] {
   return bucket;
 }
 
-function ensureEventsBucket(crId: string): ChangeRequestEvent[] {
+function ensureEventsBucket(crId: string): ComputeAllocationChangeRequestEvent[] {
   const bucket = eventsByCr[crId] ?? [];
   eventsByCr[crId] = bucket;
   return bucket;

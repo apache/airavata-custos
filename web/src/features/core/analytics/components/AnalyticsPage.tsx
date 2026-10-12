@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { Allocation } from "@/generated/analytics/zod.gen";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -24,7 +25,7 @@ import { ChartColumn } from "lucide-react";
 import * as React from "react";
 import { buildResourceSeries } from "../lib";
 import { useAnalyticsContexts, useUsageSummary } from "../queries";
-import type { AnalyticsAllocation, AnalyticsContext, UsageSummary } from "../schemas";
+import type { AnalyticsContext, UsageSummary } from "../schemas";
 import { useAnalyticsSelection } from "../useAnalyticsSelection";
 import { ContextSwitcher } from "./ContextSwitcher";
 import { HERO_TILE_COUNT, HeroTiles } from "./HeroTiles";
@@ -112,7 +113,7 @@ function AnalyticsBody({
   onRetrySummary,
 }: {
   project: AnalyticsContext;
-  allocation: AnalyticsAllocation;
+  allocation: Allocation;
   isManager: boolean;
   summary: UsageSummary | undefined;
   summaryLoading: boolean;

@@ -18,13 +18,13 @@
 import contexts from "@/features/core/analytics/__fixtures__/contexts.json";
 import jobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
 import summaries from "@/features/core/analytics/__fixtures__/usage-summary.json";
-import { analyticsJobSchema } from "@/features/core/analytics/schemas";
+import { zJob } from "@/generated/analytics/zod.gen";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
 const summaryById = new Map<string, unknown>(Object.entries(summaries));
 const jobsById = z
-  .record(z.string(), z.object({ callerId: z.string(), jobs: z.array(analyticsJobSchema) }))
+  .record(z.string(), z.object({ callerId: z.string(), jobs: z.array(zJob) }))
   .parse(jobsFixture);
 
 // The fixture bakes the privacy rule per allocation: the researcher project's

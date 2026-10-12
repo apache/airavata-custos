@@ -19,7 +19,7 @@
 
 import { AllocationsList } from "@/features/core/allocations/components/AllocationsList";
 import { useAllocations } from "@/features/core/allocations/queries";
-import type { AllocationStatus } from "@/features/core/allocations/schemas";
+import type { AllocationStatus } from "@/generated/core/zod.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,

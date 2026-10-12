@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AllocationsList } from "../components/AllocationsList";
-import type { ComputeAllocation } from "../schemas";
 
 const allocation: ComputeAllocation = {
   id: "alloc-001",

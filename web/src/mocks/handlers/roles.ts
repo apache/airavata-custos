@@ -16,8 +16,10 @@
 // under the License.
 
 import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
-import type { PrivilegeKey, Role, UserRole } from "@/generated/core/types.gen";
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 import {
+  type Role,
+  type UserRole,
   zPostRolesBody,
   zPostRolesByIdPrivilegesBody,
   zPostUsersByIdRolesBody,

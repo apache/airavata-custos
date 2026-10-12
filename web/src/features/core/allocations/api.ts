@@ -16,6 +16,12 @@
 // under the License.
 
 import {
+  type ComputeAllocation,
+  type ComputeAllocationChangeRequestEvent,
+  type ComputeAllocationDiff,
+  type ComputeAllocationMembership,
+  type ComputeAllocationResource,
+  type ComputeAllocationUsage,
   zGetComputeAllocationChangeRequestsByIdEventsResponse,
   zGetComputeAllocationsByIdDiffsResponse,
   zGetComputeAllocationsByIdResourcesResponse,
@@ -27,15 +33,9 @@ import {
 } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
-  type AllocationDiff,
   type AllocationMembership,
-  type AllocationUsage,
-  type AttachedResource,
   type ChangeRequest,
-  type ChangeRequestEvent,
-  type ComputeAllocation,
   type ComputeAllocationList,
-  type ComputeAllocationMembership,
   type CreateChangeRequestPayload,
   type CreateMembershipPayload,
   type UpdateChangeRequestPayload,
@@ -69,17 +69,17 @@ export async function getAllocation(id: string): Promise<ComputeAllocation> {
   return zGetComputeAllocationsByIdResponse.parse(raw);
 }
 
-export async function listAllocationResources(id: string): Promise<AttachedResource[]> {
+export async function listAllocationResources(id: string): Promise<ComputeAllocationResource[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/resources`);
   return zGetComputeAllocationsByIdResourcesResponse.parse(raw ?? []);
 }
 
-export async function listAllocationDiffs(id: string): Promise<AllocationDiff[]> {
+export async function listAllocationDiffs(id: string): Promise<ComputeAllocationDiff[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/diffs`);
   return zGetComputeAllocationsByIdDiffsResponse.parse(raw ?? []);
 }
 
-export async function listAllocationUsage(id: string): Promise<AllocationUsage[]> {
+export async function listAllocationUsage(id: string): Promise<ComputeAllocationUsage[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/usages`);
   return zGetComputeAllocationsByIdUsagesResponse.parse(raw ?? []);
 }
@@ -186,7 +186,9 @@ export async function rejectChangeRequest(
   });
 }
 
-export async function listChangeRequestEvents(id: string): Promise<ChangeRequestEvent[]> {
+export async function listChangeRequestEvents(
+  id: string,
+): Promise<ComputeAllocationChangeRequestEvent[]> {
   const raw = await apiFetch(`/compute-allocation-change-requests/${id}/events`);
   return zGetComputeAllocationChangeRequestsByIdEventsResponse.parse(raw ?? []);
 }

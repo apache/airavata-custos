@@ -16,7 +16,6 @@
 // under the License.
 
 import {
-  zGetProjectsByIdResponse,
   zGetProjectsResponse,
   zPostProjectsBody,
   zProjectMemberAllocationRef,
@@ -26,12 +25,6 @@ import {
   zPutProjectsByIdStatusBody,
 } from "@/generated/core/zod.gen";
 import { z } from "zod";
-
-export const projectStatusSchema = zProjectStatus;
-export type ProjectStatus = z.infer<typeof projectStatusSchema>;
-
-export const projectSchema = zGetProjectsByIdResponse;
-export type Project = z.infer<typeof projectSchema>;
 
 export const projectListEnvelopeSchema = zGetProjectsResponse.transform((value) => ({
   ...value,
@@ -51,7 +44,7 @@ export type ProjectMemberAllocation = z.infer<typeof projectMemberAllocationSche
 
 export const projectMemberSchema = zProjectMemberResponse.extend({
   role: projectMemberRoleSchema,
-  status: projectStatusSchema,
+  status: zProjectStatus,
   allocations: z
     .array(projectMemberAllocationSchema)
     .nullable()
@@ -60,7 +53,6 @@ export const projectMemberSchema = zProjectMemberResponse.extend({
 export type ProjectMember = z.infer<typeof projectMemberSchema>;
 
 export const projectMembersResponseSchema = z.array(projectMemberSchema);
-export type ProjectMembersResponse = z.infer<typeof projectMembersResponseSchema>;
 
 export const createProjectPayloadSchema = zPostProjectsBody.pick({ originated_id: true }).extend({
   title: z.string().min(1).max(200),

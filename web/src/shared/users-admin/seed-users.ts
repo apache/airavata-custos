@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserIdentity } from "@/generated/core/types.gen";
+import type { UserIdentity } from "@/generated/core/zod.gen";
 import { ROLE_AUDITOR, ROLE_OPERATOR, ROLE_SUPER_ADMIN } from "./roles-catalog";
 import type { UserRow } from "./types";
 

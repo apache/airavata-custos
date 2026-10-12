@@ -18,10 +18,10 @@
 "use client";
 
 import { useEffectiveRate } from "@/features/core/resources/queries";
+import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { useAllocationResources } from "../queries";
-import type { AttachedResource, ComputeAllocation } from "../schemas";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
@@ -31,7 +31,7 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat().format(n);
 }
 
-function AllocationResourceRow({ resource }: { resource: AttachedResource }) {
+function AllocationResourceRow({ resource }: { resource: ComputeAllocationResource }) {
   const rateQuery = useEffectiveRate(resource.id);
   return (
     <li className="flex items-center justify-between rounded-md border bg-card px-3 py-2 text-sm">

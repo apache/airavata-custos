@@ -18,6 +18,7 @@
 "use client";
 
 import { useClusters } from "@/features/core/clusters/queries";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -27,7 +28,6 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import * as React from "react";
 import { useResourceSummaries } from "../queries";
-import type { ResourceSummary } from "../schemas";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
 export function ResourcesTab() {
@@ -35,7 +35,7 @@ export function ResourcesTab() {
   const clustersQuery = useClusters();
   const [search, setSearch] = React.useState("");
   const [clusterId, setClusterId] = React.useState("");
-  const [ratesFor, setRatesFor] = React.useState<ResourceSummary | null>(null);
+  const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResourceSummary | null>(null);
 
   const clusters = clustersQuery.data ?? [];
   const clusterName = (id: string) => clusters.find((c) => c.id === id)?.name ?? id;
@@ -50,7 +50,7 @@ export function ResourcesTab() {
     });
   }, [rows, search, clusterId]);
 
-  const columns: Array<DataTableColumn<ResourceSummary>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationResourceSummary>> = [
     {
       key: "name",
       header: "Resource",

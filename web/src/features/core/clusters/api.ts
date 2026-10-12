@@ -16,12 +16,13 @@
 // under the License.
 
 import {
+  type ComputeCluster,
+  type ComputeClusterUser,
   zGetComputeClustersByIdResponse,
   zGetComputeClustersByIdUsersResponse,
   zGetComputeClustersResponse,
 } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import type { ComputeCluster, ComputeClusterUser } from "./schemas";
 
 // The backend serializes empty lists as JSON null (Go nil slice).
 const clusterListSchema = zGetComputeClustersResponse.nullable();

@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -26,7 +27,7 @@ import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import * as React from "react";
 import { useChangeRequests } from "../queries";
-import type { ChangeRequest, ComputeAllocation } from "../schemas";
+import type { ChangeRequest } from "../schemas";
 import { ChangeRequestSubmitDrawer } from "./ChangeRequestSubmitDrawer";
 
 export type AllocationChangeRequestsTabProps = {

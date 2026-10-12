@@ -15,15 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { type ClusterAccountResponse, zClusterAccountResponse } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
 import { ClusterAccountsTable, clusterAccountStatus } from "../components/ClusterAccountsTable";
-import { type ClusterAccount, clusterAccountSchema } from "../schemas";
 
-const rows = clusterAccountSchema.array().parse(fixture);
+const rows = zClusterAccountResponse.array().parse(fixture);
 
-function byId(id: string): ClusterAccount {
+function byId(id: string): ClusterAccountResponse {
   const row = rows.find((r) => r.id === id);
   if (!row) throw new Error(`no fixture ${id}`);
   return row;
@@ -35,7 +35,7 @@ function rowOf(text: string): HTMLTableRowElement {
   return row;
 }
 
-function renderTable(canReview: boolean, shown: ClusterAccount[] = rows) {
+function renderTable(canReview: boolean, shown: ClusterAccountResponse[] = rows) {
   const onApprove = vi.fn();
   const onDeny = vi.fn();
   render(

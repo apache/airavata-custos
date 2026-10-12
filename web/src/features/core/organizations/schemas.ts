@@ -15,15 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import {
-  zGetOrganizationsResponse,
-  zOrganization,
-  zPostOrganizationsBody,
-} from "@/generated/core/zod.gen";
+import { zGetOrganizationsResponse, zPostOrganizationsBody } from "@/generated/core/zod.gen";
 import { z } from "zod";
-
-export const organizationSchema = zOrganization;
-export type Organization = z.infer<typeof organizationSchema>;
 
 export const organizationListEnvelopeSchema = zGetOrganizationsResponse.transform((value) => ({
   ...value,

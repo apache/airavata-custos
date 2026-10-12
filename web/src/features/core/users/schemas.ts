@@ -25,11 +25,7 @@ import {
   zGetRolesResponse,
   zGetUsersResponse,
   zPostUsersBody,
-  zRole,
-  zUser,
-  zUserIdentity,
   zUserPrivilege,
-  zUserRole,
 } from "@/generated/core/zod.gen";
 import { z } from "zod";
 
@@ -40,10 +36,6 @@ export {
   userRolesResponseSchema,
 };
 
-export const userSchema = zUser;
-export const roleSchema = zRole;
-export const userIdentitySchema = zUserIdentity;
-export const userRoleSchema = zUserRole;
 export const userPrivilegeSchema = zUserPrivilege.extend({ privilege: privilegeKeySchema });
 
 export const userListResponseSchema = zGetUsersResponse.transform((value) => ({
@@ -56,14 +48,8 @@ export const userPrivilegesResponseSchema = z
   .nullable()
   .transform((value) => value ?? []);
 
-export const grantRoleResponseSchema = userRoleSchema;
-
 export const createUserPayloadSchema = zPostUsersBody.required({ email: true });
 
-export type User = z.infer<typeof userSchema>;
-export type Role = z.infer<typeof roleSchema>;
-export type UserIdentity = z.infer<typeof userIdentitySchema>;
-export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
 export type UserListResponse = z.infer<typeof userListResponseSchema>;
 export type RoleDetail = z.infer<typeof roleDetailResponseSchema>;

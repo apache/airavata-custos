@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { AllocationStatus, ComputeAllocation } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -26,7 +27,6 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import Link from "next/link";
 import * as React from "react";
-import type { AllocationStatus, ComputeAllocation } from "../schemas";
 
 function formatDate(iso: string): string {
   try {

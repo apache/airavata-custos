@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
 
-let diffs: AllocationDiff[] = [];
+let diffs: ComputeAllocationDiff[] = [];
 
 vi.mock("../queries", () => ({
   useAllocationDiffs: () => ({ data: diffs, isLoading: false, error: null, refetch: vi.fn() }),

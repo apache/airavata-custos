@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation, ComputeAllocationUsage } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationUsage, ComputeAllocation } from "../schemas";
 
-let usage: AllocationUsage[] = [];
+let usage: ComputeAllocationUsage[] = [];
 
 vi.mock("../queries", () => ({
   useAllocationUsage: () => ({ data: usage, isLoading: false, error: null, refetch: vi.fn() }),
@@ -51,7 +51,7 @@ const allocation: ComputeAllocation = {
   posix_group: null,
 };
 
-function usageRow(overrides: Partial<AllocationUsage>): AllocationUsage {
+function usageRow(overrides: Partial<ComputeAllocationUsage>): ComputeAllocationUsage {
   return {
     id: "use-x",
     compute_allocation_id: "alloc-003",

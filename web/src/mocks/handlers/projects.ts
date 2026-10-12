@@ -18,19 +18,18 @@
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import {
-  type Project,
   type ProjectMember,
   addProjectMemberPayloadSchema,
   createProjectPayloadSchema,
   projectMemberSchema,
-  projectSchema,
   updateProjectMemberPayloadSchema,
   updateProjectStatusPayloadSchema,
 } from "@/features/core/projects/schemas";
+import { type ProjectResponse, zProjectResponse } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
-const projects: Project[] = z.array(projectSchema).parse(projectsFixture);
+const projects: ProjectResponse[] = z.array(zProjectResponse).parse(projectsFixture);
 const membersByProject: Record<string, ProjectMember[]> = z
   .record(z.string(), z.array(projectMemberSchema))
   .parse(membersFixture);
@@ -42,7 +41,7 @@ function ensureMembersBucket(projectId: string): ProjectMember[] {
   return membersByProject[projectId];
 }
 
-function filterProjects(url: URL): Project[] {
+function filterProjects(url: URL): ProjectResponse[] {
   const q = url.searchParams.get("q")?.toLowerCase() ?? "";
   const status = url.searchParams.get("status");
   const piId = url.searchParams.get("pi_id");
@@ -76,7 +75,7 @@ export const projectsHandlers = [
 
   http.post("*/api/v1/projects", async ({ request }) => {
     const payload = createProjectPayloadSchema.parse(await request.json());
-    const project: Project = {
+    const project: ProjectResponse = {
       id: `project-${Date.now()}`,
       originated_id: payload.originated_id ?? "",
       title: payload.title,

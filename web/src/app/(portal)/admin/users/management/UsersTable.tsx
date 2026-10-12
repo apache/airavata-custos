@@ -17,15 +17,15 @@
 
 "use client";
 
-import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { Input } from "@/shared/ui/input";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
@@ -258,7 +258,10 @@ export function UsersTable({
           value={identityFilter}
           onValueChange={(value) => updateFilterParam("identity", value)}
         >
-          <SelectTrigger aria-label="Filter this page by external identity" className="h-9 w-56 px-3">
+          <SelectTrigger
+            aria-label="Filter this page by external identity"
+            className="h-9 w-56 px-3"
+          >
             <SelectValue>{(value: string) => identityLabelFor(value)}</SelectValue>
           </SelectTrigger>
           <SelectContent>

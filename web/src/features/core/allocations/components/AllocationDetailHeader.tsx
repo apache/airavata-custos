@@ -17,9 +17,9 @@
 
 "use client";
 
-import { Calendar, Gauge, Server, UserSquare } from "lucide-react";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { ComputeAllocation } from "../schemas";
+import { Calendar, Gauge, Server, UserSquare } from "lucide-react";
 
 export type AllocationDetailHeaderProps = {
   allocation: ComputeAllocation;

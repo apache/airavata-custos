@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PermissionsDrawer } from "../PermissionsDrawer";

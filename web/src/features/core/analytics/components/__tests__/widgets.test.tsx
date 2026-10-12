@@ -15,15 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Allocation, UsageMember, UsageResource } from "@/generated/analytics/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type {
-  AnalyticsAllocation,
-  AnalyticsContext,
-  UsageMember,
-  UsageResource,
-  UsageSummary,
-} from "../../schemas";
+import type { AnalyticsContext, UsageSummary } from "../../schemas";
 import { ContextSwitcher } from "../ContextSwitcher";
 import { HeroTiles } from "../HeroTiles";
 import { MemberBreakdown } from "../MemberBreakdown";
@@ -31,7 +26,7 @@ import { ResourceBreakdown } from "../ResourceBreakdown";
 
 const NOW = new Date("2026-07-14T12:00:00Z");
 
-function alloc(overrides: Partial<AnalyticsAllocation> = {}): AnalyticsAllocation {
+function alloc(overrides: Partial<Allocation> = {}): Allocation {
   return {
     id: "a1",
     name: "Alloc One",
@@ -44,7 +39,7 @@ function alloc(overrides: Partial<AnalyticsAllocation> = {}): AnalyticsAllocatio
   };
 }
 
-function ctx(role: AnalyticsContext["role"], allocations: AnalyticsAllocation[]): AnalyticsContext {
+function ctx(role: AnalyticsContext["role"], allocations: Allocation[]): AnalyticsContext {
   return {
     project_id: "p1",
     project_name: "Project One",

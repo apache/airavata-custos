@@ -36,12 +36,9 @@ const listOf = <T extends z.ZodType>(item: T) =>
 export const analyticsRoleSchema = z.enum(["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"]);
 export type AnalyticsRole = z.infer<typeof analyticsRoleSchema>;
 
-export const analyticsAllocationSchema = zAllocation;
-export type AnalyticsAllocation = z.infer<typeof analyticsAllocationSchema>;
-
 export const analyticsContextSchema = zProjectContext.extend({
   role: analyticsRoleSchema,
-  allocations: listOf(analyticsAllocationSchema),
+  allocations: listOf(zAllocation),
 });
 export type AnalyticsContext = z.infer<typeof analyticsContextSchema>;
 
@@ -52,27 +49,17 @@ export const usageDailyBucketSchema = zUsageDailyBucket.extend({
 });
 export type UsageDailyBucket = z.infer<typeof usageDailyBucketSchema>;
 
-// cap is null in v1: per-resource caps are time-varying and not yet computed.
-export const usageResourceSchema = zUsageResource;
-export type UsageResource = z.infer<typeof usageResourceSchema>;
-
-export const usageMemberSchema = zUsageMember;
-export type UsageMember = z.infer<typeof usageMemberSchema>;
-
 export const usageSummarySchema = zUsageSummary.extend({
   daily: listOf(usageDailyBucketSchema),
-  by_resource: listOf(usageResourceSchema),
+  by_resource: listOf(zUsageResource),
   // null means the caller may not see per-member data; [] means a manager on an
   // allocation with no usage yet. The distinction drives whether the widget
   // renders at all.
-  by_member: z.array(usageMemberSchema).nullable(),
+  by_member: z.array(zUsageMember).nullable(),
 });
 export type UsageSummary = z.infer<typeof usageSummarySchema>;
 
-export const analyticsJobSchema = zJob;
-export type AnalyticsJob = z.infer<typeof analyticsJobSchema>;
-
 export const allocationJobsSchema = zAllocationJobs.extend({
-  jobs: listOf(analyticsJobSchema),
+  jobs: listOf(zJob),
 });
 export type AllocationJobs = z.infer<typeof allocationJobsSchema>;

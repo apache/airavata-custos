@@ -18,12 +18,12 @@
 "use client";
 
 import { useResourceSummaries } from "@/features/core/resources/queries";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { UsageBar } from "@/shared/ui/UsageBar";
 import { useAllocationUsage } from "../queries";
-import type { ComputeAllocation } from "../schemas";
 
 export type AllocationUsageTabProps = {
   allocation: ComputeAllocation;

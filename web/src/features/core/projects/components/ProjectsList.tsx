@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { ProjectResponse, ProjectStatus } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -27,7 +28,6 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import Link from "next/link";
 import * as React from "react";
-import type { Project, ProjectStatus } from "../schemas";
 
 function statusLabelFor(value: string): string {
   switch (value) {
@@ -43,7 +43,7 @@ function statusLabelFor(value: string): string {
 }
 
 export type ProjectsListProps = {
-  rows: Project[];
+  rows: ProjectResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
@@ -77,7 +77,7 @@ export function ProjectsList({
     });
   }, [rows, search, statusFilter]);
 
-  const columns: Array<DataTableColumn<Project>> = [
+  const columns: Array<DataTableColumn<ProjectResponse>> = [
     {
       key: "title",
       header: "Project",

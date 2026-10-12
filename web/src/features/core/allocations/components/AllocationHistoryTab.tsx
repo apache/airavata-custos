@@ -17,13 +17,13 @@
 
 "use client";
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
 import { useAllocationDiffs } from "../queries";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
 
 export type AllocationHistoryTabProps = {
   allocation: ComputeAllocation;
@@ -58,7 +58,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     return <EmptyState heading="No history recorded for this allocation." />;
   }
 
-  const columns: Array<DataTableColumn<AllocationDiff>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationDiff>> = [
     {
       key: "when",
       header: "When",

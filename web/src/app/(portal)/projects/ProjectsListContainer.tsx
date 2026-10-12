@@ -19,7 +19,7 @@
 
 import { NewProjectCta, ProjectsList } from "@/features/core/projects/components/ProjectsList";
 import { useProjects } from "@/features/core/projects/queries";
-import type { ProjectStatus } from "@/features/core/projects/schemas";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,

@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UserIdentity } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { UserIdentity } from "../../schemas";
 import { IdentitiesCard } from "../IdentitiesCard";
 
 describe("IdentitiesCard", () => {

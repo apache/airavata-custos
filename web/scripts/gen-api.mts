@@ -56,7 +56,7 @@ async function main() {
         { name: "@hey-api/typescript" },
         {
           name: "zod",
-          definitions: { types: { infer: true } },
+          definitions: { types: { infer: { case: "PascalCase", name: "{{name}}" } } },
         },
       ],
     });
