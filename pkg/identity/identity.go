@@ -41,6 +41,7 @@ var (
 	ErrNoUserMatchesEmail    = fmt.Errorf("%w: no user matches email", ErrNotLinked)
 	ErrUserNotPending        = fmt.Errorf("%w: user is not pending", ErrNotLinked)
 	ErrUserAlreadyOIDCLinked = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
+	ErrUserDisabled          = errors.New("user is disabled")
 )
 
 type TokenVerifier interface {

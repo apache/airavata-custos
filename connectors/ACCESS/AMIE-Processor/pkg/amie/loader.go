@@ -201,7 +201,7 @@ func loadConfig(connectorConfig *custosconfig.ConnectorConfig) amieclient.Config
 		cfg.ConnectTimeout = durationEnv("AMIE_CONNECT_TIMEOUT", 5*time.Second)
 	}
 	if cfg.ReadTimeout == 0 {
-		cfg.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 20*time.Second)
+		cfg.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 60*time.Second)
 	}
 	if !pollerEnabledSet {
 		cfg.PollerEnabled = boolEnv("AMIE_POLLER_ENABLED", true)

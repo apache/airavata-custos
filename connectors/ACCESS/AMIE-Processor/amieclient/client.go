@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -52,7 +53,7 @@ func New(cfg Config) *Client {
 		httpClient: &http.Client{
 			Timeout: cfg.ReadTimeout,
 			Transport: &http.Transport{
-				ResponseHeaderTimeout: cfg.ConnectTimeout,
+				DialContext: (&net.Dialer{Timeout: cfg.ConnectTimeout}).DialContext,
 			},
 		},
 		baseURL:  strings.TrimRight(cfg.BaseURL, "/"),

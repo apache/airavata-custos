@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -192,18 +193,22 @@ func ensureOrganization(ctx context.Context, svc *service.Service, code, name st
 	})
 }
 
-// getInt64 reads a string-encoded integer from a packet body field. AMIE
-// transmits numeric fields like ServiceUnitsAllocated as JSON strings.
-func getInt64(body map[string]any, key string) (int64, error) {
+// getNumber reads a number from a packet body field. AMIE sends numbers like
+// ServiceUnitsAllocated as JSON strings, with a decimal point ("1000.0").
+func getNumber(body map[string]any, key string) (float64, error) {
 	raw := getString(body, key)
 	if raw == "" {
 		return 0, fmt.Errorf("'%s' is empty", key)
 	}
-	n, err := strconv.ParseInt(raw, 10, 64)
+	f, err := strconv.ParseFloat(raw, 64)
 	if err != nil {
-		return 0, fmt.Errorf("'%s' is not an integer: %w", key, err)
+		return 0, fmt.Errorf("'%s' is not a number: %w", key, err)
 	}
-	return n, nil
+	// ParseFloat accepts "NaN" and "Inf", which would break every later sum.
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, fmt.Errorf("%w: '%s' is not a finite number", model.ErrInvalidPacket, key)
+	}
+	return f, nil
 }
 
 // getDate reads a YYYY-MM-DD string from a packet body field. Returns the

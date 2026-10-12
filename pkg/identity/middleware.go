@@ -55,6 +55,10 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []str
 			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked", "OIDC identity is not linked to a portal user")
 			return
 		}
+		if errors.Is(err, ErrUserDisabled) {
+			writeJSONError(w, http.StatusForbidden, "user_disabled", "User account is disabled")
+			return
+		}
 		if err != nil {
 			slog.ErrorContext(req.Context(), "identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
