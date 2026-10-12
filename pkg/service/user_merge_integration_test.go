@@ -23,6 +23,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -126,11 +127,9 @@ func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {
 		t.Errorf("led project: %+v (%v), want PI %s", p, err, survivor)
 	}
 	for p, want := range map[string]string{led: "", own: "", shared: survivor + ":CO_PI"} {
-		tags, err := svc.ListProjectMemberships(ctx(), p)
-		got := ""
-		for _, m := range tags {
-			got += m.UserID + ":" + string(m.Role)
-		}
+		var tags []string
+		err := database.SelectContext(ctx(), &tags, `SELECT user_id || ':' || role FROM project_memberships WHERE project_id = $1`, p)
+		got := strings.Join(tags, "")
 		if err != nil || got != want {
 			t.Errorf("project %s tags: %q (%v), want %q", p, got, err, want)
 		}

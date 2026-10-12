@@ -53,19 +53,6 @@ func (s *pgProjectMembershipStore) FindByPair(ctx context.Context, projectID, us
 	return &pm, nil
 }
 
-func (s *pgProjectMembershipStore) FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-	var rows []models.ProjectMembership
-	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = $1
-		  ORDER BY added_time`, projectID)
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
-}
-
 // IsParticipant reports whether the user has any role on the project.
 func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID, userID string) (bool, error) {
 	var participant bool

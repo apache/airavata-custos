@@ -140,8 +140,6 @@ type ProjectStore interface {
 	FindByID(ctx context.Context, id string) (*models.Project, error)
 	// FindByOriginatedID returns the project matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
-	// FindByPI returns all projects whose PI matches the given user ID.
-	FindByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	// Create inserts a new project within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, p *models.Project) error
 	// Update replaces mutable fields of an existing project within the provided transaction.
@@ -152,21 +150,18 @@ type ProjectStore interface {
 	ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a project by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
-	// List returns a paginated, filtered slice of projects plus the total
-	// count matching the filter (ignoring limit/offset).
-	List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error)
 	// FindByIDWithPI is FindByID joined with the PI user, so a single query
 	// returns everything the portal needs to render a project header.
 	FindByIDWithPI(ctx context.Context, id string) (*ProjectWithPI, error)
-	// ListWithPI is List joined with the PI user, replacing the per-row
-	// GetUser fan-out the handler would otherwise need.
+	// ListWithPI returns a filtered page of projects with the PI user joined,
+	// plus the total count matching the filter (ignoring limit/offset).
 	ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error)
 	// ListWithPIForParticipant returns the projects the user has a role on, PI
 	// joined, newest first.
 	ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error)
 }
 
-// ProjectListFilter selects which projects ProjectStore.List returns.
+// ProjectListFilter selects which projects ProjectStore.ListWithPI returns.
 type ProjectListFilter struct {
 	PIID   string
 	Status string
@@ -246,8 +241,6 @@ type ComputeAllocationResourceStore interface {
 // ComputeAllocationResourceMappingStore defines persistence operations for
 // the join table linking compute allocations and compute allocation resources.
 type ComputeAllocationResourceMappingStore interface {
-	// FindByID returns the mapping with the given ID, or nil if it does not exist.
-	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error)
 	// FindByPair returns the mapping for a (allocation, resource) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error)
 	// FindResourcesByAllocation returns every resource attached to the given allocation.
@@ -354,8 +347,6 @@ type ProjectMembershipStore interface {
 	// FindByPair returns the user's project-wide role (PI, CO_PI or
 	// ALLOCATION_MANAGER), or nil if absent.
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
-	// FindByProject returns every project_memberships row for the project.
-	FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
 	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	// Upsert inserts the (project, user) row or sets its role.
@@ -375,15 +366,12 @@ type ComputeAllocationMembershipStore interface {
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
 	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error)
-	// FindByAllocation returns every membership recorded against the given
-	// allocation, ordered by start_time ascending.
-	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
-	// FindByAllocationWithUser is FindByAllocation joined with users so each
-	// row carries display_name, email, and the user's project-wide role (MEMBER by
-	// default).
+	// FindByAllocationWithUser returns the allocation's memberships joined with
+	// users so each row carries display_name, email, and the user's project-wide
+	// role (MEMBER by default).
 	FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error)
 	// FindByProjectWithUser returns one row per project member with their allocations.
 	FindByProjectWithUser(ctx context.Context, projectID string) ([]ProjectMember, error)
@@ -488,16 +476,13 @@ type RoleStore interface {
 
 // UserRoleStore covers role assignments. Revoke is DELETE; history lives in audit_events.
 type UserRoleStore interface {
-	Find(ctx context.Context, userID, roleID string) (*models.UserRole, error)
 	FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error)
 	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
 	ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error)
 	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
-	ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error)
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error
 	Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error
 	PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
-	UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error)
 }
 
 // UserPrivilegeStore defines persistence operations for fine-grained admin

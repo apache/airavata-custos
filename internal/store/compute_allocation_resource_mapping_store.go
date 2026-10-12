@@ -39,21 +39,6 @@ func NewComputeAllocationResourceMappingStore(db *sqlx.DB) ComputeAllocationReso
 	return &pgComputeAllocationResourceMappingStore{db: db}
 }
 
-func (s *pgComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
-	var m models.ComputeAllocationResourceMapping
-	err := s.db.GetContext(ctx, &m,
-		`SELECT `+computeAllocationResourceMappingColumns+`
-		 FROM compute_allocation_resource_mappings
-		 WHERE id = $1`, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &m, nil
-}
-
 func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
