@@ -166,6 +166,7 @@ func (s *Service) UpdateUserIdentity(ctx context.Context, e *models.UserIdentity
 	}); err != nil {
 		return fmt.Errorf("update user identity: %w", err)
 	}
+	s.InvalidateAllIdentities()
 	return nil
 }
 
@@ -189,5 +190,6 @@ func (s *Service) DeleteUserIdentity(ctx context.Context, id string) error {
 	}); err != nil {
 		return fmt.Errorf("delete user identity: %w", err)
 	}
+	s.InvalidateAllIdentities()
 	return nil
 }

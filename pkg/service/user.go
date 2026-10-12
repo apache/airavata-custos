@@ -237,6 +237,16 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		// compute_allocation_memberships has no user foreign key, so nothing cascades.
+		memberships, err := s.memberships.DeleteByUser(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		for i := range memberships {
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipDeleteEvent, &memberships[i]); err != nil {
+				return err
+			}
+		}
 		if err := s.users.Delete(ctx, tx, id); err != nil {
 			return err
 		}
@@ -244,5 +254,6 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	}); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
+	s.InvalidateAllIdentities()
 	return nil
 }

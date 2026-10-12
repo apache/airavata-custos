@@ -294,3 +294,39 @@ func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
 		t.Fatal("no UserIdentityCreateEvent published on identity link")
 	}
 }
+
+func TestResolveCaller_DropsTheCachedCallerOnIdentityChange(t *testing.T) {
+	cases := map[string]func(svc *Service, user, other, identityID string) error{
+		"identity deleted": func(svc *Service, _, _, id string) error { return svc.DeleteUserIdentity(ctx(), id) },
+		"identity rebound": func(svc *Service, _, _, id string) error {
+			return svc.UpdateUserIdentity(ctx(), &models.UserIdentity{ID: id, OIDCSub: "sub-other"})
+		},
+		"user deleted": func(svc *Service, user, _, _ string) error { return svc.DeleteUser(ctx(), user) },
+		"user merged": func(svc *Service, user, other, _ string) error {
+			_, err := svc.MergeUsers(ctx(), other, user)
+			return err
+		},
+	}
+	for name, change := range cases {
+		t.Run(name, func(t *testing.T) {
+			database := setupTestDB(t)
+			svc := newTestService(database)
+			user := seedUser(t, database, "cached@example.edu")
+			seedOIDCIdentity(t, database, user, "sub-cached", "cached@example.edu")
+			var identityID string
+			if err := database.Get(&identityID, "SELECT id FROM user_identities WHERE user_id = $1", user); err != nil {
+				t.Fatalf("read identity: %v", err)
+			}
+			claims := &identity.Claims{Sub: "sub-cached", Email: "cached@example.edu", EmailVerified: true}
+			if _, _, err := svc.ResolveCaller(ctx(), claims); err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if err := change(svc, user, seedUser(t, database, "survivor@example.edu"), identityID); err != nil {
+				t.Fatalf("change: %v", err)
+			}
+			if caller, _, err := svc.ResolveCaller(ctx(), claims); err == nil && caller.UserID == user {
+				t.Fatal("cached caller survived the change")
+			}
+		})
+	}
+}

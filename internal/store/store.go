@@ -384,6 +384,8 @@ type ComputeAllocationMembershipStore interface {
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a membership by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// DeleteByUser removes a user's memberships within the provided transaction and returns them.
+	DeleteByUser(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeAllocationMembership, error)
 }
 
 // ComputeAllocationMembershipResourceOverrideStore defines persistence
