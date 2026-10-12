@@ -143,3 +143,23 @@ func TestTraceReportsItsDeliveriesAndIsFoundByEntity(t *testing.T) {
 		t.Fatalf("deliveries=%+v, want both, by subscriber, under the publisher's span", deliveries)
 	}
 }
+
+func TestListTracesFilterKeepsWholeTraceFigures(t *testing.T) {
+	database := setupTestDB(t)
+	const traceID = "00000000000000000000000000000d00"
+	if _, err := database.Exec(`DELETE FROM audit_events WHERE trace_id = $1`, traceID); err != nil {
+		t.Fatalf("clean: %v", err)
+	}
+	for i, src := range []string{"trace-figures-test", "other", "other"} {
+		if _, err := database.Exec(`INSERT INTO audit_events
+			(id, event_type, event_time, entity_id, details, source, trace_id, span_id, parent_span_id)
+			VALUES ($1, 'ROOT', NOW(), 'e', '', $2, $3, $4, NULL)`,
+			fmt.Sprint(traceID, i), src, traceID, traceID[:16]); err != nil {
+			t.Fatalf("insert: %v", err)
+		}
+	}
+	got, _, err := NewAuditTraceStore(database).ListTraces(t.Context(), TraceFilter{Sources: []string{"trace-figures-test"}})
+	if err != nil || len(got) != 1 || got[0].EventCount != 3 {
+		t.Fatalf("traces=%+v err=%v, want one trace of 3 rows", got, err)
+	}
+}
