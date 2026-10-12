@@ -17,6 +17,7 @@
 
 import { apiFetch } from "@/shared/api/client";
 import {
+  createUserPayloadSchema,
   grantRoleResponseSchema,
   roleDetailResponseSchema,
   rolesResponseSchema,
@@ -24,16 +25,24 @@ import {
   userListResponseSchema,
   userPrivilegesResponseSchema,
   userRolesResponseSchema,
+  userSchema,
 } from "./schemas";
 import type {
+  CreateUserPayload,
   Role,
   RoleDetail,
+  User,
   UserIdentity,
   UserListResponse,
   UserPrivilege,
   UserRole,
 } from "./schemas";
 import type { UserListParams } from "./types";
+
+export async function createUser(payload: CreateUserPayload): Promise<User> {
+  const body = createUserPayloadSchema.parse(payload);
+  return userSchema.parse(await apiFetch("/users", { method: "POST", body }));
+}
 
 export async function listUsers(params: UserListParams = {}): Promise<UserListResponse> {
   const search = new URLSearchParams();

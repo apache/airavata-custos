@@ -31,6 +31,26 @@ export const usersHandlers = [
       total: users.length,
     });
   }),
+  http.post("*/api/v1/users", async ({ request }) => {
+    const body = (await request.json()) as {
+      email?: string;
+      first_name?: string;
+      last_name?: string;
+      portal_admin?: boolean;
+    };
+    return HttpResponse.json(
+      {
+        id: "user-created-1",
+        organization_id: "system",
+        email: body.email,
+        first_name: body.first_name ?? "",
+        last_name: body.last_name ?? "",
+        status: "PENDING",
+        type: body.portal_admin ? "SYSTEM" : "CLUSTER_LOCAL",
+      },
+      { status: 201 },
+    );
+  }),
   http.get("*/api/v1/roles", () => HttpResponse.json(roles)),
   http.post("*/api/v1/users/:id/roles", async ({ params, request }) => {
     const body = (await request.json()) as { role_id?: string };

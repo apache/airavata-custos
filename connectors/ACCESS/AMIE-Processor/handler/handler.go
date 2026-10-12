@@ -135,6 +135,15 @@ func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globa
 	return nil
 }
 
+// reactivate sets an existing membership back to active. The spec says a
+// create packet for a known account also reactivates it.
+func reactivate(ctx context.Context, tx *sql.Tx, svc *service.Service, m models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
+	if m.MembershipStatus == models.ACTIVE {
+		return &m, nil
+	}
+	return svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.ACTIVE)
+}
+
 // flipUserMemberships flips every ComputeAllocationMembership the user holds
 // under any allocation belonging to the given project (Custos project.id) to
 // the given status. Returns the rows that were updated. Silently returns an

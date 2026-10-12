@@ -116,7 +116,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	met := metrics.New()
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, database, cfg)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, amie, database, cfg)
 
 	wg.Add(2)
 	go func() {

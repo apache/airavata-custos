@@ -16,7 +16,7 @@
 // under the License.
 
 import { z } from "zod";
-import { zRole, zUser, zUserIdentity } from "@/generated/core/zod.gen";
+import { zCreateUserRequest, zRole, zUser, zUserIdentity } from "@/generated/core/zod.gen";
 import {
   privilegeKeySchema,
   userPrivilegeSchema as baseUserPrivilegeSchema,
@@ -70,6 +70,8 @@ export const roleDetailResponseSchema = z.object({
 
 export const grantRoleResponseSchema = userRoleSchema;
 
+export const createUserPayloadSchema = zCreateUserRequest.required({ email: true });
+
 export type User = z.infer<typeof userSchema>;
 export type Role = z.infer<typeof roleSchema>;
 export type UserIdentity = z.infer<typeof userIdentitySchema>;
@@ -77,3 +79,4 @@ export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
 export type UserListResponse = z.infer<typeof userListResponseSchema>;
 export type RoleDetail = z.infer<typeof roleDetailResponseSchema>;
+export type CreateUserPayload = z.infer<typeof createUserPayloadSchema>;
