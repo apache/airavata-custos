@@ -26,6 +26,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { z } from "zod";
 
 const DEFAULT_COLORS = [
   "var(--chart-1)",
@@ -34,6 +35,9 @@ const DEFAULT_COLORS = [
   "var(--chart-4)",
   "var(--chart-5)",
 ];
+
+// Recharts hands the click handler the clicked datum under `payload`, which its types leave out.
+const clickedDatumSchema = z.object({ payload: z.object({ date: z.string() }) });
 
 export type StackedAreaUsageProps = {
   data: Array<{ date: string } & Record<string, string | number>>;
@@ -62,28 +66,28 @@ export function StackedAreaUsage({
           <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--chart-grid)" />
           <YAxis tick={{ fontSize: 12 }} stroke="var(--chart-grid)" />
           <Tooltip />
-          {seriesKeys.map((key, i) => (
-            <Area
-              key={key}
-              type="monotone"
-              dataKey={key}
-              stackId="1"
-              stroke={colors[i % colors.length]}
-              fill={colors[i % colors.length]}
-              fillOpacity={0.4}
-              onClick={
-                onSegmentClick
-                  ? (props) => {
-                      const payload = (props as { payload?: { date?: string } } | undefined)
-                        ?.payload;
-                      const date = payload?.date;
-                      if (typeof date === "string") onSegmentClick(key, date);
+          {seriesKeys.map((key, i) => {
+            const color = colors[i % colors.length];
+            return (
+              <Area
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stackId="1"
+                {...(color === undefined ? {} : { stroke: color, fill: color })}
+                fillOpacity={0.4}
+                {...(onSegmentClick
+                  ? {
+                      onClick: (props: unknown) => {
+                        const clicked = clickedDatumSchema.safeParse(props);
+                        if (clicked.success) onSegmentClick(key, clicked.data.payload.date);
+                      },
+                      style: { cursor: "pointer" },
                     }
-                  : undefined
-              }
-              style={onSegmentClick ? { cursor: "pointer" } : undefined}
-            />
-          ))}
+                  : {})}
+              />
+            );
+          })}
         </AreaChart>
       </ResponsiveContainer>
     </div>

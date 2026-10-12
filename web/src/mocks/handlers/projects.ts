@@ -15,25 +15,25 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
-import type {
-  AddProjectMemberPayload,
-  CreateProjectPayload,
-  Project,
-  ProjectMember,
-  UpdateProjectMemberPayload,
-  UpdateProjectStatusPayload,
-} from "@/features/core/projects/schemas";
-import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
+import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
+import {
+  type Project,
+  type ProjectMember,
+  addProjectMemberPayloadSchema,
+  createProjectPayloadSchema,
+  projectMemberSchema,
+  projectSchema,
+  updateProjectMemberPayloadSchema,
+  updateProjectStatusPayloadSchema,
+} from "@/features/core/projects/schemas";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-const projects: Project[] = (projectsFixture as Project[]).map((p) => ({ ...p }));
-const membersByProject: Record<string, ProjectMember[]> = Object.fromEntries(
-  Object.entries(membersFixture as Record<string, ProjectMember[]>).map(([id, rows]) => [
-    id,
-    rows.map((r) => ({ ...r })),
-  ]),
-);
+const projects: Project[] = z.array(projectSchema).parse(projectsFixture);
+const membersByProject: Record<string, ProjectMember[]> = z
+  .record(z.string(), z.array(projectMemberSchema))
+  .parse(membersFixture);
 
 let nextMemberSeq = 1000;
 
@@ -67,7 +67,7 @@ export const projectsHandlers = [
     return HttpResponse.json({ items, total: matched.length });
   }),
 
-  http.get("*/api/v1/projects/:id", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/projects/:id", ({ params }) => {
     const id = String(params.id);
     const found = projects.find((p) => p.id === id);
     if (!found) return HttpResponse.json({ error: "project not found" }, { status: 404 });
@@ -75,7 +75,7 @@ export const projectsHandlers = [
   }),
 
   http.post("*/api/v1/projects", async ({ request }) => {
-    const payload = (await request.json()) as CreateProjectPayload;
+    const payload = createProjectPayloadSchema.parse(await request.json());
     const project: Project = {
       id: `project-${Date.now()}`,
       originated_id: payload.originated_id ?? "",
@@ -89,23 +89,23 @@ export const projectsHandlers = [
     return HttpResponse.json(project, { status: 201 });
   }),
 
-  http.put("*/api/v1/projects/:id/status", async ({ params, request }) => {
+  http.put<{ id: string }>("*/api/v1/projects/:id/status", async ({ params, request }) => {
     const id = String(params.id);
-    const body = (await request.json()) as UpdateProjectStatusPayload;
+    const body = updateProjectStatusPayloadSchema.parse(await request.json());
     const existing = projects.find((p) => p.id === id);
     if (!existing) return HttpResponse.json({ error: "project not found" }, { status: 404 });
     existing.status = body.status;
     return HttpResponse.json(existing);
   }),
 
-  http.get("*/api/v1/projects/:id/members", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/projects/:id/members", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(membersByProject[id] ?? []);
   }),
 
-  http.post("*/api/v1/projects/:id/members", async ({ params, request }) => {
+  http.post<{ id: string }>("*/api/v1/projects/:id/members", async ({ params, request }) => {
     const id = String(params.id);
-    const body = (await request.json()) as AddProjectMemberPayload;
+    const body = addProjectMemberPayloadSchema.parse(await request.json());
     const bucket = ensureMembersBucket(id);
     const member: ProjectMember = {
       id: `pm-${nextMemberSeq++}`,
@@ -113,7 +113,7 @@ export const projectsHandlers = [
       user_id: body.user_id,
       email: `${body.user_id}@custos.local`,
       display_name: body.user_id,
-      role: body.role ?? "MEMBER",
+      role: body.role,
       status: "ACTIVE",
       added_time: new Date().toISOString(),
       allocations: [],
@@ -122,25 +122,30 @@ export const projectsHandlers = [
     return HttpResponse.json(member, { status: 201 });
   }),
 
-  http.put("*/api/v1/projects/:id/members/:memberId", async ({ params, request }) => {
-    const id = String(params.id);
-    const memberId = String(params.memberId);
-    const patch = (await request.json()) as UpdateProjectMemberPayload;
-    const bucket = membersByProject[id] ?? [];
-    const existing = bucket.find((m) => m.id === memberId);
-    if (!existing) return HttpResponse.json({ error: "member not found" }, { status: 404 });
-    if (patch.role) existing.role = patch.role;
-    if (patch.status) existing.status = patch.status;
-    return HttpResponse.json(existing);
-  }),
+  http.put<{ id: string; memberId: string }>(
+    "*/api/v1/projects/:id/members/:memberId",
+    async ({ params, request }) => {
+      const id = String(params.id);
+      const memberId = String(params.memberId);
+      const patch = updateProjectMemberPayloadSchema.parse(await request.json());
+      const bucket = membersByProject[id] ?? [];
+      const existing = bucket.find((m) => m.id === memberId);
+      if (!existing) return HttpResponse.json({ error: "member not found" }, { status: 404 });
+      if (patch.role) existing.role = patch.role;
+      return HttpResponse.json(existing);
+    },
+  ),
 
-  http.delete("*/api/v1/projects/:id/members/:memberId", ({ params }) => {
-    const id = String(params.id);
-    const memberId = String(params.memberId);
-    const bucket = membersByProject[id] ?? [];
-    const idx = bucket.findIndex((m) => m.id === memberId);
-    if (idx === -1) return HttpResponse.json({ error: "member not found" }, { status: 404 });
-    bucket.splice(idx, 1);
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.delete<{ id: string; memberId: string }>(
+    "*/api/v1/projects/:id/members/:memberId",
+    ({ params }) => {
+      const id = String(params.id);
+      const memberId = String(params.memberId);
+      const bucket = membersByProject[id] ?? [];
+      const idx = bucket.findIndex((m) => m.id === memberId);
+      if (idx === -1) return HttpResponse.json({ error: "member not found" }, { status: 404 });
+      bucket.splice(idx, 1);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 ];

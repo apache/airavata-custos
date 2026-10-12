@@ -17,15 +17,15 @@
 
 "use client";
 
-import * as React from "react";
 import { useClusters } from "@/features/core/clusters/queries";
-import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { UsageBar } from "@/shared/ui/UsageBar";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import * as React from "react";
 import { useResourceSummaries } from "../queries";
 import type { ResourceSummary } from "../schemas";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
@@ -156,7 +156,7 @@ export function ResourcesTab() {
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState heading="No resources registered." />
       ) : filtered.length === 0 ? (

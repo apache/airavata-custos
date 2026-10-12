@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { PostUsersByIdRolesData } from "@/generated/core/types.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   createUserPayloadSchema,
@@ -77,8 +78,11 @@ export async function assignUserRole(
   roleId: string,
   reason?: string,
 ): Promise<UserRole> {
-  const body: Record<string, string> = { role_id: roleId };
-  if (reason?.trim()) body.reason = reason.trim();
+  const trimmed = reason?.trim();
+  const body: PostUsersByIdRolesData["body"] = {
+    role_id: roleId,
+    ...(trimmed ? { reason: trimmed } : {}),
+  };
   return grantRoleResponseSchema.parse(
     await apiFetch(`/users/${userId}/roles`, {
       method: "POST",

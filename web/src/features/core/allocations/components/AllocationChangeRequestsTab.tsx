@@ -17,17 +17,14 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
+import Link from "next/link";
+import * as React from "react";
 import { useChangeRequests } from "../queries";
 import type { ChangeRequest, ComputeAllocation } from "../schemas";
 import { ChangeRequestSubmitDrawer } from "./ChangeRequestSubmitDrawer";
@@ -60,7 +57,7 @@ export function AllocationChangeRequestsTab({
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = query.data ?? [];
 
@@ -82,7 +79,9 @@ export function AllocationChangeRequestsTab({
       header: "Requested SUs",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.requested_su_amount)}
+        </span>
       ),
     },
     {
@@ -125,7 +124,11 @@ export function AllocationChangeRequestsTab({
       {rows.length === 0 ? (
         <EmptyState
           heading="No change requests"
-          description={canSubmit ? "Submit a request when this allocation needs more SUs or more time." : "There are no change requests for this allocation."}
+          description={
+            canSubmit
+              ? "Submit a request when this allocation needs more SUs or more time."
+              : "There are no change requests for this allocation."
+          }
         />
       ) : (
         <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />

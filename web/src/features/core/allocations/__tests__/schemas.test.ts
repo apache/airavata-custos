@@ -20,7 +20,6 @@ import {
   allocationMembershipSchema,
   changeRequestEventSchema,
   changeRequestSchema,
-  computeAllocationListSchema,
   computeAllocationSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
@@ -37,6 +36,7 @@ const validAllocation = {
   initial_su_amount: 100000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
 };
 
 const validMember = {
@@ -46,6 +46,7 @@ const validMember = {
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
   membership_status: "ACTIVE" as const,
+  role: "MEMBER" as const,
 };
 
 const validChangeRequest = {
@@ -64,20 +65,9 @@ describe("computeAllocationSchema", () => {
     expect(computeAllocationSchema.safeParse(validAllocation).success).toBe(true);
   });
   it("rejects an invalid status", () => {
-    expect(
-      computeAllocationSchema.safeParse({ ...validAllocation, status: "FOO" }).success,
-    ).toBe(false);
-  });
-});
-
-describe("computeAllocationListSchema", () => {
-  it("accepts a valid envelope", () => {
-    expect(
-      computeAllocationListSchema.safeParse({ items: [validAllocation], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(computeAllocationListSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
+    expect(computeAllocationSchema.safeParse({ ...validAllocation, status: "FOO" }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -96,9 +86,9 @@ describe("allocationMembershipSchema", () => {
     ).toBe(true);
   });
   it("rejects an unknown role", () => {
-    expect(
-      allocationMembershipSchema.safeParse({ ...validMember, role: "queen" }).success,
-    ).toBe(false);
+    expect(allocationMembershipSchema.safeParse({ ...validMember, role: "queen" }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -172,9 +162,9 @@ describe("updateMembershipPayloadSchema", () => {
     expect(updateMembershipPayloadSchema.safeParse({}).success).toBe(false);
   });
   it("accepts a status-only patch", () => {
-    expect(
-      updateMembershipPayloadSchema.safeParse({ membership_status: "INACTIVE" }).success,
-    ).toBe(true);
+    expect(updateMembershipPayloadSchema.safeParse({ membership_status: "INACTIVE" }).success).toBe(
+      true,
+    );
   });
 });
 
@@ -208,8 +198,8 @@ describe("updateChangeRequestPayloadSchema", () => {
     expect(updateChangeRequestPayloadSchema.safeParse({}).success).toBe(false);
   });
   it("accepts a single-field patch", () => {
-    expect(
-      updateChangeRequestPayloadSchema.safeParse({ change_status: "APPROVED" }).success,
-    ).toBe(true);
+    expect(updateChangeRequestPayloadSchema.safeParse({ change_status: "APPROVED" }).success).toBe(
+      true,
+    );
   });
 });

@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { AllocationsList } from "@/features/core/allocations/components/AllocationsList";
 import { useAllocations } from "@/features/core/allocations/queries";
 import type { AllocationStatus } from "@/features/core/allocations/schemas";
@@ -25,6 +24,7 @@ import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): AllocationStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;
@@ -53,7 +53,7 @@ export function AllocationsListContainer() {
     <AllocationsList
       rows={rows}
       isLoading={query.isLoading}
-      error={(query.error as Error | null) ?? null}
+      error={query.error}
       onRetry={() => query.refetch()}
       search={search}
       onSearchChange={(next) => updateParam("q", next)}

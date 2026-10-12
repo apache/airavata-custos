@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -31,13 +32,32 @@ vi.mock("@/shared/hooks/useShallowSearchParams", () => ({
   replaceShallowSearchParams: searchParamMocks.replace,
 }));
 
+const adminRole: Role = {
+  id: "role-1",
+  name: "Administrator",
+  description: null,
+  is_system: false,
+  created_at: "2026-01-01T00:00:00Z",
+};
+
 const row: UserManagementRow = {
   id: "user-1",
   email: "user@example.org",
   first_name: "Example",
   last_name: "User",
-  roles: [{ id: "role-1", name: "Administrator" }],
-  identities: [{ id: "identity-1", user_id: "user-1", source: "cilogon" }],
+  organization_id: "org-1",
+  status: "ACTIVE",
+  type: "CLUSTER_LOCAL",
+  roles: [adminRole],
+  identities: [
+    {
+      id: "identity-1",
+      user_id: "user-1",
+      source: "cilogon",
+      external_id: "user@example.org",
+      created_at: "2026-01-01T00:00:00Z",
+    },
+  ],
   rolesLoading: false,
   identitiesLoading: false,
   rolesError: false,
@@ -51,7 +71,7 @@ function renderTable(canManageRoles: boolean, users: UserManagementRow[] = [row]
     <QueryClientProvider client={client}>
       <UsersTable
         users={users}
-        rolesCatalog={[{ id: "role-1", name: "Administrator" }]}
+        rolesCatalog={[adminRole]}
         currentUserEmail="user@example.org"
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={false}

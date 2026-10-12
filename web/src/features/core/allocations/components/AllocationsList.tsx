@@ -17,18 +17,15 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
+import Link from "next/link";
+import * as React from "react";
 import type { AllocationStatus, ComputeAllocation } from "../schemas";
 
 function formatDate(iso: string): string {
@@ -183,9 +180,9 @@ export function AllocationsList({
           aria-label="Search allocations"
           className="sm:w-72"
         />
-        <Select
+        <Select<AllocationStatus | "all">
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as AllocationStatus | "all")}
+          onValueChange={(value) => value !== null && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
             <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>

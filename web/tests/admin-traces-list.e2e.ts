@@ -54,9 +54,7 @@ test.describe("admin tracing list", () => {
     const results = await new AxeBuilder({ page })
       .options({ resultTypes: ["violations"] })
       .analyze();
-    const blocking = results.violations.filter((v) =>
-      SEVERITIES.includes((v.impact ?? "minor") as (typeof SEVERITIES)[number]),
-    );
+    const blocking = results.violations.filter((v) => SEVERITIES.some((s) => s === v.impact));
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
   });
 });

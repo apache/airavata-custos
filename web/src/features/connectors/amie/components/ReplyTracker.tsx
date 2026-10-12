@@ -23,9 +23,13 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
+import { z } from "zod";
+import { replyStatusSchema } from "../schemas";
 import type { Reply, ReplyStatus } from "../types";
 import { formatDate } from "../utils";
 import { ReplyStatusBadge } from "./PacketStatusBadge";
+
+const statusFilterSchema = replyStatusSchema.or(z.literal("all"));
 
 export type ReplyTrackerProps = {
   rows: Reply[];
@@ -114,7 +118,7 @@ export function ReplyTracker({
           <select
             id="reply-status"
             value={statusFilter}
-            onChange={(e) => onStatusChange(e.currentTarget.value as ReplyStatus | "all")}
+            onChange={(e) => onStatusChange(statusFilterSchema.parse(e.currentTarget.value))}
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             <option value="all">All</option>

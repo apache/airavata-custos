@@ -31,7 +31,7 @@ import { type ListFilters, STATUS_FILTERS, type WindowPreset } from "./traceList
 export type TraceFilterStripProps = {
   value: ListFilters;
   onChange(next: ListFilters): void;
-  sourceOptions?: ReadonlyArray<string>;
+  sourceOptions?: ReadonlyArray<string> | undefined;
 };
 
 const DEFAULT_SOURCE_OPTIONS = ["amie", "comanage", "core", "slurm"] as const;

@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { getCluster, listClusterUsers, listClusters } from "./api";
 
 export const clusterKeys = {
@@ -44,8 +44,7 @@ export function useClusters() {
 export function useCluster(id: string | undefined) {
   return useQuery({
     queryKey: id ? clusterKeys.detail(id) : [...clusterKeys.all, "detail", "none"],
-    queryFn: () => getCluster(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getCluster(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -53,8 +52,7 @@ export function useCluster(id: string | undefined) {
 export function useClusterUsers(id: string | undefined) {
   return useQuery({
     queryKey: id ? clusterKeys.users(id) : [...clusterKeys.all, "users", "none"],
-    queryFn: () => listClusterUsers(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listClusterUsers(id) : skipToken,
     ...DEFAULTS,
   });
 }

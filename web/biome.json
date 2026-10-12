@@ -40,7 +40,8 @@
         "noExplicitAny": "error"
       },
       "style": {
-        "useImportType": "warn"
+        "noNonNullAssertion": "error",
+        "useImportType": "error"
       },
       "a11y": {
         "recommended": true
@@ -62,9 +63,6 @@
           "a11y": {
             "noLabelWithoutControl": "off",
             "useSemanticElements": "off"
-          },
-          "style": {
-            "useImportType": "off"
           },
           "suspicious": {
             "noArrayIndexKey": "off"

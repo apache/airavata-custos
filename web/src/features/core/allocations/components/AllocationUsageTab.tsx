@@ -38,7 +38,7 @@ export function AllocationUsageTab({ allocation }: AllocationUsageTabProps) {
   const summariesQuery = useResourceSummaries();
   if (query.isLoading) return <TableSkeleton rows={3} columns={3} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = query.data ?? [];
   const usedTotal = rows.reduce((acc, r) => acc + r.used_su_amount, 0);

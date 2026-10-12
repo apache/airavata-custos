@@ -17,23 +17,45 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { createResourceRate } from "../api";
 import type { Rate } from "../schemas";
 
 // Windows are anchored far in the past/future so classifyRate stays stable
 // regardless of the wall clock at test time (assumes now is 2011..2098).
-const expiredRate: Rate = rate("rate-expired", 0.03, "2000-01-01T00:00:00Z", "2001-01-01T00:00:00Z");
-const supersededRate: Rate = rate("rate-super", 0.04, "2001-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
+const expiredRate: Rate = rate(
+  "rate-expired",
+  0.03,
+  "2000-01-01T00:00:00Z",
+  "2001-01-01T00:00:00Z",
+);
+const supersededRate: Rate = rate(
+  "rate-super",
+  0.04,
+  "2001-01-01T00:00:00Z",
+  "2100-01-01T00:00:00Z",
+);
 const activeRate: Rate = rate("rate-active", 0.05, "2010-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
-const scheduledRate: Rate = rate("rate-sched", 0.06, "2099-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
+const scheduledRate: Rate = rate(
+  "rate-sched",
+  0.06,
+  "2099-01-01T00:00:00Z",
+  "2100-01-01T00:00:00Z",
+);
 
 function rate(id: string, value: number, start: string, end: string): Rate {
-  return { id, compute_allocation_resource_id: "res-1", rate: value, start_time: start, end_time: end };
+  return {
+    id,
+    compute_allocation_resource_id: "res-1",
+    rate: value,
+    start_time: start,
+    end_time: end,
+  };
 }
 
 let rates: Rate[] = [];
 let effective: Rate | undefined;
 let canManage = true;
-const mutation = { mutateAsync: vi.fn(), isPending: false };
+const mutation = { mutateAsync: vi.fn<typeof createResourceRate>(), isPending: false };
 
 vi.mock("../queries", () => ({
   useResourceRates: () => ({ data: rates, isLoading: false, error: null, refetch: vi.fn() }),
@@ -62,6 +84,12 @@ function openForm() {
   fireEvent.click(screen.getByRole("button", { name: "+ Add rate" }));
 }
 
+function inputLabelled(label: string): HTMLInputElement {
+  const input = screen.getByLabelText(label);
+  if (!(input instanceof HTMLInputElement)) throw new Error(`${label} is not an input`);
+  return input;
+}
+
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -71,7 +99,7 @@ beforeEach(() => {
   effective = activeRate;
   canManage = true;
   mutation.isPending = false;
-  mutation.mutateAsync = vi.fn().mockResolvedValue({});
+  mutation.mutateAsync = vi.fn<typeof createResourceRate>().mockResolvedValue(activeRate);
   vi.mocked(toast.success).mockClear();
   vi.mocked(toast.error).mockClear();
 });
@@ -83,7 +111,11 @@ describe("<ResourcesRatesDrawer />", () => {
 
     effective = undefined;
     rerender(
-      <ResourcesRatesDrawer resourceId="res-1" resourceName="ClusterA CPU" onOpenChange={vi.fn()} />,
+      <ResourcesRatesDrawer
+        resourceId="res-1"
+        resourceName="ClusterA CPU"
+        onOpenChange={vi.fn()}
+      />,
     );
     expect(screen.queryByText("Effective rate")).not.toBeInTheDocument();
   });
@@ -92,7 +124,9 @@ describe("<ResourcesRatesDrawer />", () => {
     effective = undefined; // keep ACTIVE unique to the table
     renderDrawer();
     const rows = screen.getAllByRole("row").slice(1); // drop header
-    const badges = rows.map((r) => within(r).getByText(/ACTIVE|SCHEDULED|SUPERSEDED|EXPIRED/).textContent);
+    const badges = rows.map(
+      (r) => within(r).getByText(/ACTIVE|SCHEDULED|SUPERSEDED|EXPIRED/).textContent,
+    );
     expect(badges).toEqual(["SCHEDULED", "ACTIVE", "SUPERSEDED", "EXPIRED"]);
   });
 
@@ -103,7 +137,11 @@ describe("<ResourcesRatesDrawer />", () => {
 
     canManage = true;
     rerender(
-      <ResourcesRatesDrawer resourceId="res-1" resourceName="ClusterA CPU" onOpenChange={vi.fn()} />,
+      <ResourcesRatesDrawer
+        resourceId="res-1"
+        resourceName="ClusterA CPU"
+        onOpenChange={vi.fn()}
+      />,
     );
     expect(screen.getByRole("button", { name: "+ Add rate" })).toBeInTheDocument();
   });
@@ -114,10 +152,8 @@ describe("<ResourcesRatesDrawer />", () => {
     const start = todayUtc();
     const expectedEnd = new Date(start);
     expectedEnd.setUTCFullYear(expectedEnd.getUTCFullYear() + 1);
-    expect((screen.getByLabelText("Effective date") as HTMLInputElement).value).toBe(start);
-    expect((screen.getByLabelText("Ends") as HTMLInputElement).value).toBe(
-      expectedEnd.toISOString().slice(0, 10),
-    );
+    expect(inputLabelled("Effective date").value).toBe(start);
+    expect(inputLabelled("Ends").value).toBe(expectedEnd.toISOString().slice(0, 10));
   });
 
   it("rejects a negative rate inline without posting", async () => {
@@ -134,7 +170,7 @@ describe("<ResourcesRatesDrawer />", () => {
     openForm();
     fireEvent.change(screen.getByLabelText("Rate"), { target: { value: "0.07" } });
     fireEvent.change(screen.getByLabelText("Ends"), {
-      target: { value: (screen.getByLabelText("Effective date") as HTMLInputElement).value },
+      target: { value: inputLabelled("Effective date").value },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add rate" }));
     expect(await screen.findByText(/after the start date/i)).toBeInTheDocument();
@@ -148,16 +184,12 @@ describe("<ResourcesRatesDrawer />", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add rate" }));
 
     await waitFor(() => expect(mutation.mutateAsync).toHaveBeenCalledTimes(1));
-    const payload = mutation.mutateAsync.mock.calls[0]?.[0] as {
-      compute_allocation_resource_id: string;
-      rate: number;
-      start_time: string;
-    };
-    expect(payload.compute_allocation_resource_id).toBe("res-1");
-    expect(payload.rate).toBe(0.07);
+    const payload = mutation.mutateAsync.mock.calls[0]?.[0];
+    expect(payload?.compute_allocation_resource_id).toBe("res-1");
+    expect(payload?.rate).toBe(0.07);
     // Today -> current wall-clock instant, not midnight.
-    expect(payload.start_time).not.toBe(`${todayUtc()}T00:00:00Z`);
-    expect(payload.start_time).toMatch(/T\d\d:\d\d/);
+    expect(payload?.start_time).not.toBe(`${todayUtc()}T00:00:00Z`);
+    expect(payload?.start_time).toMatch(/T\d\d:\d\d/);
     expect(toast.success).toHaveBeenCalledWith("Rate added.");
     await waitFor(() =>
       expect(screen.queryByRole("form", { name: "Add rate form" })).not.toBeInTheDocument(),
@@ -165,7 +197,9 @@ describe("<ResourcesRatesDrawer />", () => {
   });
 
   it("keeps the populated form and shows a backend error without toasting", async () => {
-    mutation.mutateAsync = vi.fn().mockRejectedValue(new Error("Rate conflicts with an existing window"));
+    mutation.mutateAsync = vi
+      .fn<typeof createResourceRate>()
+      .mockRejectedValue(new Error("Rate conflicts with an existing window"));
     renderDrawer();
     openForm();
     fireEvent.change(screen.getByLabelText("Rate"), { target: { value: "0.09" } });
@@ -173,7 +207,7 @@ describe("<ResourcesRatesDrawer />", () => {
 
     expect(await screen.findByText(/conflicts with an existing window/i)).toBeInTheDocument();
     expect(screen.getByRole("form", { name: "Add rate form" })).toBeInTheDocument();
-    expect((screen.getByLabelText("Rate") as HTMLInputElement).value).toBe("0.09");
+    expect(inputLabelled("Rate").value).toBe("0.09");
     expect(toast.success).not.toHaveBeenCalled();
   });
 

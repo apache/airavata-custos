@@ -15,13 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
+import type { PostComputeAllocationResourceRatesData } from "@/generated/core/types.gen";
+import {
+  zGetComputeAllocationResourcesByIdRatesEffectiveResponse,
+  zGetComputeAllocationResourcesByIdRatesResponse,
+  zGetComputeAllocationResourcesSummaryResponse,
+  zPostComputeAllocationResourceRatesResponse,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import { type Rate, type ResourceSummary, rateSchema, resourceSummarySchema } from "./schemas";
+import type { Rate, ResourceSummary } from "./schemas";
 
 // The backend serializes empty lists as JSON null (Go nil slice).
-const summaryListSchema = z.array(resourceSummarySchema).nullable();
-const rateListSchema = z.array(rateSchema).nullable();
+const summaryListSchema = zGetComputeAllocationResourcesSummaryResponse.nullable();
+const rateListSchema = zGetComputeAllocationResourcesByIdRatesResponse.nullable();
 
 export async function listResourceSummaries(): Promise<ResourceSummary[]> {
   const raw = await apiFetch("/compute-allocation-resources/summary");
@@ -36,20 +42,20 @@ export async function listResourceRates(id: string): Promise<Rate[]> {
 export async function getEffectiveRate(id: string, at?: string): Promise<Rate> {
   const qs = at ? `?at=${encodeURIComponent(at)}` : "";
   const raw = await apiFetch(`/compute-allocation-resources/${id}/rates/effective${qs}`);
-  return rateSchema.parse(raw);
+  return zGetComputeAllocationResourcesByIdRatesEffectiveResponse.parse(raw);
 }
 
-export type CreateResourceRatePayload = {
-  compute_allocation_resource_id: string;
-  rate: number;
-  start_time: string;
-  end_time: string;
-};
+export type CreateResourceRatePayload = Required<
+  Pick<
+    PostComputeAllocationResourceRatesData["body"],
+    "compute_allocation_resource_id" | "rate" | "start_time" | "end_time"
+  >
+>;
 
 export async function createResourceRate(payload: CreateResourceRatePayload): Promise<Rate> {
   const raw = await apiFetch("/compute-allocation-resource-rates", {
     method: "POST",
     body: payload,
   });
-  return rateSchema.parse(raw);
+  return zPostComputeAllocationResourceRatesResponse.parse(raw);
 }

@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Role } from "@/features/core/users/schemas";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RoleAssignMenu } from "../RoleAssignMenu";
@@ -35,6 +36,14 @@ vi.mock("@/features/core/users/queries", () => ({
   useRoleDetails: () => roleDetailsMock,
 }));
 
+const adminRole: Role = {
+  id: "role-1",
+  name: "Administrator",
+  description: null,
+  is_system: false,
+  created_at: "2026-01-01T00:00:00Z",
+};
+
 describe("RoleAssignMenu", () => {
   beforeEach(() => {
     roleDetailsMock.roles = [
@@ -52,7 +61,7 @@ describe("RoleAssignMenu", () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(
       <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
+        roles={[adminRole]}
         heldRoleIds={new Set(["role-1"])}
         onSave={onSave}
         triggerLabel="Manage user roles"
@@ -74,7 +83,7 @@ describe("RoleAssignMenu", () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(
       <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
+        roles={[adminRole]}
         heldRoleIds={new Set(["role-1"])}
         onSave={onSave}
         triggerLabel="Manage user roles"
@@ -91,9 +100,7 @@ describe("RoleAssignMenu", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith([], "Onboarding new team member"),
-    );
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith([], "Onboarding new team member"));
   });
 
   it("confirms before self-removing a role-manager role", async () => {
@@ -101,7 +108,7 @@ describe("RoleAssignMenu", () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(
       <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
+        roles={[adminRole]}
         heldRoleIds={new Set(["role-1"])}
         onSave={onSave}
         triggerLabel="Manage user roles"
@@ -126,7 +133,7 @@ describe("RoleAssignMenu", () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(
       <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
+        roles={[adminRole]}
         heldRoleIds={new Set(["role-1"])}
         onSave={onSave}
         triggerLabel="Manage user roles"
@@ -152,7 +159,7 @@ describe("RoleAssignMenu", () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(
       <RoleAssignMenu
-        roles={[{ id: "role-1", name: "Administrator" }]}
+        roles={[adminRole]}
         heldRoleIds={new Set(["role-1"])}
         onSave={onSave}
         triggerLabel="Manage user roles"

@@ -40,10 +40,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   if (projectQuery.isLoading) return <CardSkeleton />;
   if (projectQuery.error) {
     return (
-      <ErrorState
-        message={(projectQuery.error as Error).message}
-        onRetry={() => projectQuery.refetch()}
-      />
+      <ErrorState message={projectQuery.error.message} onRetry={() => projectQuery.refetch()} />
     );
   }
   const project = projectQuery.data;

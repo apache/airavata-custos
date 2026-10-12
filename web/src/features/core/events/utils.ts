@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { z } from "zod";
 import type { Delivery, HistoryEntry } from "./types";
 
 // Matches maxAttempts in pkg/events/worker.go.
@@ -32,14 +33,23 @@ export function deliveryState(delivery: Delivery, runningSubscribers?: Set<strin
 }
 
 export type HistoryStep =
-  | { kind: "attempt"; at: string; attempt: number; ok: boolean; error?: string }
+  | { kind: "attempt"; at: string; attempt: number; ok: boolean; error?: string | undefined }
   | { kind: "retry"; at: string; actorId: string; previousAttempts: number }
   | { kind: "other"; at: string; label: string };
 
-function parseDetails(details: string): Record<string, unknown> {
+const detailsSchema = z
+  .object({
+    attempt: z.unknown(),
+    error: z.unknown(),
+    actor_id: z.unknown(),
+    previous_attempts: z.unknown(),
+  })
+  .partial()
+  .catch({});
+
+function parseDetails(details: string): z.infer<typeof detailsSchema> {
   try {
-    const parsed: unknown = JSON.parse(details);
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    return detailsSchema.parse(JSON.parse(details));
   } catch {
     return {};
   }

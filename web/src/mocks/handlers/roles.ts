@@ -15,9 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
 import type { PrivilegeKey, Role, UserRole } from "@/generated/core/types.gen";
+import {
+  zPostRolesBody,
+  zPostRolesByIdPrivilegesBody,
+  zPostUsersByIdRolesBody,
+  zPutRolesByIdBody,
+} from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
 
 const PRIVILEGES: PrivilegeKey[] = [
   "core:allocations:read",
@@ -35,59 +41,82 @@ const PRIVILEGES: PrivilegeKey[] = [
   "core:users:write",
 ];
 
-type MockRole = Role & { privileges: PrivilegeKey[]; holders: UserRole[] };
+// Fixture roles carry connector privileges beyond the core catalog.
+type MockRole = Role & { privileges: string[]; holders: UserRole[] };
 
 let nextRoleId = 4;
 
 const initialRoles: MockRole[] = [
-    {
-      id: "role-super-admin",
-      name: "Super Admin",
-      description: "Full administrative access across the portal.",
-      is_system: true,
-      created_at: "2026-01-15T09:00:00Z",
-      privileges: PRIVILEGES,
-      holders: [
-        { user_id: "u1", role_id: "role-super-admin", granted_at: "2026-01-15T09:00:00Z" },
-      ],
-    },
-    {
-      id: "role-operator",
-      name: "Operator",
-      description: "Day-to-day allocation and project operations.",
-      is_system: false,
-      created_at: "2026-01-15T09:00:00Z",
-      privileges: [
-        "core:allocations:read",
-        "core:allocations:write",
-        "core:projects:read",
-        "core:projects:write",
-        "core:clusters:read",
-      ],
-      holders: [
-        { user_id: "u2", role_id: "role-operator", granted_at: "2026-01-15T09:00:00Z" },
-        { user_id: "u4", role_id: "role-operator", granted_at: "2026-01-15T09:00:00Z" },
-      ],
-    },
-    {
-      id: "role-auditor",
-      name: "Auditor",
-      description: "Read-only access across allocations, projects, and tracing.",
-      is_system: false,
-      created_at: "2026-01-15T09:00:00Z",
-      privileges: ["core:allocations:read", "core:projects:read", "core:traces:read"],
-      holders: [
-        { user_id: "u3", role_id: "role-auditor", granted_at: "2026-01-15T09:00:00Z" },
-      ],
-    },
-    ...Object.values(settingsFixture.roleDetails).map((detail) => ({
-      ...detail.role,
-      privileges: detail.privileges as PrivilegeKey[],
-      holders: (settingsFixture.roles as UserRole[]).filter(
-        (grant) => grant.role_id === detail.role.id,
-      ),
-    })),
-  ];
+  {
+    id: "role-super-admin",
+    name: "Super Admin",
+    description: "Full administrative access across the portal.",
+    is_system: true,
+    created_at: "2026-01-15T09:00:00Z",
+    privileges: PRIVILEGES,
+    holders: [
+      {
+        user_id: "u1",
+        role_id: "role-super-admin",
+        granted_at: "2026-01-15T09:00:00Z",
+        granted_by: null,
+        reason: null,
+      },
+    ],
+  },
+  {
+    id: "role-operator",
+    name: "Operator",
+    description: "Day-to-day allocation and project operations.",
+    is_system: false,
+    created_at: "2026-01-15T09:00:00Z",
+    privileges: [
+      "core:allocations:read",
+      "core:allocations:write",
+      "core:projects:read",
+      "core:projects:write",
+      "core:clusters:read",
+    ],
+    holders: [
+      {
+        user_id: "u2",
+        role_id: "role-operator",
+        granted_at: "2026-01-15T09:00:00Z",
+        granted_by: null,
+        reason: null,
+      },
+      {
+        user_id: "u4",
+        role_id: "role-operator",
+        granted_at: "2026-01-15T09:00:00Z",
+        granted_by: null,
+        reason: null,
+      },
+    ],
+  },
+  {
+    id: "role-auditor",
+    name: "Auditor",
+    description: "Read-only access across allocations, projects, and tracing.",
+    is_system: false,
+    created_at: "2026-01-15T09:00:00Z",
+    privileges: ["core:allocations:read", "core:projects:read", "core:traces:read"],
+    holders: [
+      {
+        user_id: "u3",
+        role_id: "role-auditor",
+        granted_at: "2026-01-15T09:00:00Z",
+        granted_by: null,
+        reason: null,
+      },
+    ],
+  },
+  ...Object.values(settingsFixture.roleDetails).map((detail) => ({
+    ...detail.role,
+    privileges: detail.privileges,
+    holders: settingsFixture.roles.filter((grant) => grant.role_id === detail.role.id),
+  })),
+];
 
 const roles = new Map<string, MockRole>(initialRoles.map((role) => [role.id ?? "", role]));
 
@@ -106,7 +135,7 @@ export const rolesHandlers = [
   http.get("*/api/v1/roles", () => HttpResponse.json(Array.from(roles.values()).map(publicRole))),
 
   http.post("*/api/v1/roles", async ({ request }) => {
-    const body = (await request.json()) as { name?: string; description?: string };
+    const body = zPostRolesBody.parse(await request.json());
     const name = body.name?.trim();
     if (!name) return HttpResponse.json({ error: "role name is required" }, { status: 400 });
     const duplicate = Array.from(roles.values()).some(
@@ -128,20 +157,20 @@ export const rolesHandlers = [
     return HttpResponse.json(publicRole(role), { status: 201 });
   }),
 
-  http.get("*/api/v1/roles/:roleId", ({ params }) => {
+  http.get<{ roleId: string }>("*/api/v1/roles/:roleId", ({ params }) => {
     const role = roleById(String(params.roleId));
     if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
     return HttpResponse.json({ role: publicRole(role), privileges: role.privileges });
   }),
 
-  http.put("*/api/v1/roles/:roleId", async ({ params, request }) => {
+  http.put<{ roleId: string }>("*/api/v1/roles/:roleId", async ({ params, request }) => {
     const role = roleById(String(params.roleId));
     if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
     if (role.is_system) {
       return HttpResponse.json({ error: "system roles cannot be renamed" }, { status: 400 });
     }
 
-    const body = (await request.json()) as { name?: string; description?: string };
+    const body = zPutRolesByIdBody.parse(await request.json());
     const name = body.name?.trim();
     if (!name) return HttpResponse.json({ error: "role name is required" }, { status: 400 });
     const duplicate = Array.from(roles.values()).some(
@@ -155,63 +184,74 @@ export const rolesHandlers = [
     return HttpResponse.json(publicRole(role));
   }),
 
-  http.get("*/api/v1/roles/:roleId/holders", ({ params }) => {
+  http.get<{ roleId: string }>("*/api/v1/roles/:roleId/holders", ({ params }) => {
     const role = roleById(String(params.roleId));
     if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
     return HttpResponse.json(role.holders);
   }),
 
-  http.post("*/api/v1/users/:userId/roles", async ({ params, request }) => {
-    const body = (await request.json()) as { role_id?: string };
+  http.post<{ userId: string }>("*/api/v1/users/:userId/roles", async ({ params, request }) => {
+    const body = zPostUsersByIdRolesBody.parse(await request.json());
     const role = body.role_id ? roleById(body.role_id) : undefined;
     if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
     const userId = String(params.userId);
     if (role.holders.some((holder) => holder.user_id === userId)) {
       return HttpResponse.json({ error: "user already holds that role" }, { status: 409 });
     }
-    const holder = {
+    const holder: UserRole = {
       user_id: userId,
       role_id: role.id,
       granted_at: new Date().toISOString(),
+      granted_by: null,
+      reason: body.reason ?? null,
     };
     role.holders = [...role.holders, holder];
     return HttpResponse.json(holder, { status: 201 });
   }),
 
-  http.delete("*/api/v1/users/:userId/roles/:roleId", ({ params }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const userId = String(params.userId);
-    if (!role.holders.some((holder) => holder.user_id === userId)) {
-      return HttpResponse.json({ error: "user does not hold that role" }, { status: 404 });
-    }
-    role.holders = role.holders.filter((holder) => holder.user_id !== userId);
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.delete<{ userId: string; roleId: string }>(
+    "*/api/v1/users/:userId/roles/:roleId",
+    ({ params }) => {
+      const role = roleById(String(params.roleId));
+      if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+      const userId = String(params.userId);
+      if (!role.holders.some((holder) => holder.user_id === userId)) {
+        return HttpResponse.json({ error: "user does not hold that role" }, { status: 404 });
+      }
+      role.holders = role.holders.filter((holder) => holder.user_id !== userId);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 
-  http.post("*/api/v1/roles/:roleId/privileges", async ({ params, request }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const body = (await request.json()) as { privilege?: PrivilegeKey };
-    const privilege = body.privilege;
-    if (!privilege || !PRIVILEGES.includes(privilege)) {
-      return HttpResponse.json({ error: "unknown privilege" }, { status: 400 });
-    }
-    if (role.privileges.includes(privilege)) {
-      return HttpResponse.json({ error: "role already carries that privilege" }, { status: 409 });
-    }
-    role.privileges = [...role.privileges, privilege].sort();
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.post<{ roleId: string }>(
+    "*/api/v1/roles/:roleId/privileges",
+    async ({ params, request }) => {
+      const role = roleById(String(params.roleId));
+      if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+      const privilege = zPostRolesByIdPrivilegesBody.safeParse(await request.json()).data
+        ?.privilege;
+      if (!privilege || !PRIVILEGES.includes(privilege)) {
+        return HttpResponse.json({ error: "unknown privilege" }, { status: 400 });
+      }
+      if (role.privileges.includes(privilege)) {
+        return HttpResponse.json({ error: "role already carries that privilege" }, { status: 409 });
+      }
+      role.privileges = [...role.privileges, privilege].sort();
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 
-  http.delete("*/api/v1/roles/:roleId/privileges/:key", ({ params }) => {
-    const role = roleById(String(params.roleId));
-    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
-    const key = String(params.key) as PrivilegeKey;
-    if (!role.privileges.includes(key)) {
-      return HttpResponse.json({ error: "role does not carry that privilege" }, { status: 404 });
-    }
-    role.privileges = role.privileges.filter((privilege) => privilege !== key);
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.delete<{ roleId: string; key: string }>(
+    "*/api/v1/roles/:roleId/privileges/:key",
+    ({ params }) => {
+      const role = roleById(String(params.roleId));
+      if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+      const key = String(params.key);
+      if (!role.privileges.includes(key)) {
+        return HttpResponse.json({ error: "role does not carry that privilege" }, { status: 404 });
+      }
+      role.privileges = role.privileges.filter((privilege) => privilege !== key);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 ];

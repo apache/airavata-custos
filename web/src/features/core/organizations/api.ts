@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zPostOrganizationsResponse } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   type CreateOrganizationPayload,
@@ -22,7 +23,6 @@ import {
   type OrganizationListEnvelope,
   createOrganizationPayloadSchema,
   organizationListEnvelopeSchema,
-  organizationSchema,
 } from "./schemas";
 import type { OrganizationListParams } from "./types";
 
@@ -42,5 +42,5 @@ export async function createOrganization(
 ): Promise<Organization> {
   const validated = createOrganizationPayloadSchema.parse(payload);
   const raw = await apiFetch("/organizations", { method: "POST", body: validated });
-  return organizationSchema.parse(raw);
+  return zPostOrganizationsResponse.parse(raw);
 }

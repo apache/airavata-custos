@@ -19,10 +19,21 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
 import { ClusterAccountsTable, clusterAccountStatus } from "../components/ClusterAccountsTable";
-import type { ClusterAccount } from "../schemas";
+import { type ClusterAccount, clusterAccountSchema } from "../schemas";
 
-const rows = fixture as ClusterAccount[];
-const byId = (id: string) => rows.find((r) => r.id === id) as ClusterAccount;
+const rows = clusterAccountSchema.array().parse(fixture);
+
+function byId(id: string): ClusterAccount {
+  const row = rows.find((r) => r.id === id);
+  if (!row) throw new Error(`no fixture ${id}`);
+  return row;
+}
+
+function rowOf(text: string): HTMLTableRowElement {
+  const row = screen.getByText(text).closest("tr");
+  if (!row) throw new Error(`no row for ${text}`);
+  return row;
+}
 
 function renderTable(canReview: boolean, shown: ClusterAccount[] = rows) {
   const onApprove = vi.fn();
@@ -61,16 +72,16 @@ describe("ClusterAccountsTable", () => {
   // be approved, and an approved one cannot be reviewed again.
   it("offers the decisions each status allows", () => {
     renderTable(true);
-    const pending = screen.getByText("jdoe").closest("tr") as HTMLElement;
+    const pending = rowOf("jdoe");
     expect(pending.querySelector("button")).not.toBeNull();
     expect(pending.textContent).toContain("Deny");
     expect(pending.textContent).toContain("Approve");
 
-    const denied = screen.getByText("sokafor").closest("tr") as HTMLElement;
+    const denied = rowOf("sokafor");
     expect(denied.textContent).toContain("Approve");
     expect(denied.textContent).not.toContain("Deny");
 
-    const approved = screen.getByText("wzhang").closest("tr") as HTMLElement;
+    const approved = rowOf("wzhang");
     expect(approved.querySelector("button")).toBeNull();
   });
 

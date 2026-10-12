@@ -15,107 +15,64 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import {
+  zAllocation,
+  zAllocationJobs,
+  zJob,
+  zProjectContext,
+  zUsageDailyBucket,
+  zUsageMember,
+  zUsageResource,
+  zUsageSummary,
+} from "@/generated/analytics/zod.gen";
 import { z } from "zod";
 
-// Credits are integer SUs well inside the safe-integer range, so plain numbers
-// (not the generated int64 bigint) keep the charts simple.
+const listOf = <T extends z.ZodType>(item: T) =>
+  z
+    .array(item)
+    .nullable()
+    .transform((v) => v ?? []);
+
 export const analyticsRoleSchema = z.enum(["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"]);
 export type AnalyticsRole = z.infer<typeof analyticsRoleSchema>;
 
-export const analyticsAllocationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  status: z.string(),
-  initial_su_amount: z.number(),
-  used_su_amount: z.number(),
-  start_time: z.string(),
-  end_time: z.string(),
-});
+export const analyticsAllocationSchema = zAllocation;
 export type AnalyticsAllocation = z.infer<typeof analyticsAllocationSchema>;
 
-export const analyticsContextSchema = z.object({
-  project_id: z.string(),
-  project_name: z.string(),
+export const analyticsContextSchema = zProjectContext.extend({
   role: analyticsRoleSchema,
-  allocations: z
-    .array(analyticsAllocationSchema)
-    .nullish()
-    .transform((v) => v ?? []),
+  allocations: listOf(analyticsAllocationSchema),
 });
 export type AnalyticsContext = z.infer<typeof analyticsContextSchema>;
 
 export const analyticsContextsSchema = z.array(analyticsContextSchema);
 
-export const usageDailyBucketSchema = z.object({
-  date: z.string(),
-  by_resource: z
-    .record(z.string(), z.number())
-    .nullish()
-    .transform((v) => v ?? {}),
+export const usageDailyBucketSchema = zUsageDailyBucket.extend({
+  by_resource: zUsageDailyBucket.shape.by_resource.transform((v) => v ?? {}),
 });
 export type UsageDailyBucket = z.infer<typeof usageDailyBucketSchema>;
 
-export const usageResourceSchema = z.object({
-  resource_id: z.string(),
-  name: z.string(),
-  resource_type: z.string(),
-  used: z.number(),
-  // Null in v1: per-resource caps are time-varying and not yet computed.
-  cap: z.number().nullish(),
-  used_native: z.number(),
-  native_unit: z.string(),
-  used_by_caller: z.number(),
-});
+// cap is null in v1: per-resource caps are time-varying and not yet computed.
+export const usageResourceSchema = zUsageResource;
 export type UsageResource = z.infer<typeof usageResourceSchema>;
 
-export const usageMemberSchema = z.object({
-  user_id: z.string(),
-  name: z.string(),
-  used: z.number(),
-});
+export const usageMemberSchema = zUsageMember;
 export type UsageMember = z.infer<typeof usageMemberSchema>;
 
-export const usageSummarySchema = z.object({
-  total: z.number(),
-  used: z.number(),
-  daily: z
-    .array(usageDailyBucketSchema)
-    .nullish()
-    .transform((v) => v ?? []),
-  by_resource: z
-    .array(usageResourceSchema)
-    .nullish()
-    .transform((v) => v ?? []),
+export const usageSummarySchema = zUsageSummary.extend({
+  daily: listOf(usageDailyBucketSchema),
+  by_resource: listOf(usageResourceSchema),
   // null means the caller may not see per-member data; [] means a manager on an
   // allocation with no usage yet. The distinction drives whether the widget
   // renders at all.
-  by_member: z
-    .array(usageMemberSchema)
-    .nullish()
-    .transform((v) => v ?? null),
+  by_member: z.array(usageMemberSchema).nullable(),
 });
 export type UsageSummary = z.infer<typeof usageSummarySchema>;
 
-export const analyticsJobSchema = z.object({
-  id: z.string(),
-  job_id: z.string(),
-  calculated_time: z.string(),
-  user_id: z.string(),
-  user_name: z.string(),
-  resource_id: z.string(),
-  resource_name: z.string(),
-  resource_type: z.string(),
-  used_raw: z.number(),
-  native_unit: z.string(),
-  used: z.number(),
-});
+export const analyticsJobSchema = zJob;
 export type AnalyticsJob = z.infer<typeof analyticsJobSchema>;
 
-export const allocationJobsSchema = z.object({
-  jobs: z
-    .array(analyticsJobSchema)
-    .nullish()
-    .transform((v) => v ?? []),
-  total: z.number(),
+export const allocationJobsSchema = zAllocationJobs.extend({
+  jobs: listOf(analyticsJobSchema),
 });
 export type AllocationJobs = z.infer<typeof allocationJobsSchema>;

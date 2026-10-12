@@ -81,7 +81,7 @@ function TraceRow({ trace, onView }: { trace: TraceSummary; onView(id: string): 
       data-testid={`trace-row-${trace.trace_id}`}
       data-status={status}
       onClick={(e) => {
-        if ((e.target as HTMLElement).closest("button")) return;
+        if (e.target instanceof Element && e.target.closest("button")) return;
         onView(trace.trace_id);
       }}
       className={cn(

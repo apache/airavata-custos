@@ -15,44 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import {
   zComputeAllocationResource,
   zComputeAllocationResourceRate,
   zComputeAllocationResourceSummary,
 } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
-// The generated schema marks every field optional; the backend always returns
-// these, so tighten them here where the UI reads them.
-export const computeAllocationResourceSchema = zComputeAllocationResource.required({
-  id: true,
-  name: true,
-  resource_type: true,
-  resource_amount: true,
-  compute_cluster_id: true,
-});
+export const computeAllocationResourceSchema = zComputeAllocationResource;
 export type ComputeAllocationResource = z.infer<typeof computeAllocationResourceSchema>;
 
-export const resourceSummarySchema = zComputeAllocationResourceSummary.required({
-  id: true,
-  name: true,
-  resource_type: true,
-  resource_amount: true,
-  compute_cluster_id: true,
-  allocation_count: true,
-  total_allocated: true,
-  total_used_su: true,
-  rate_count: true,
-});
+export const resourceSummarySchema = zComputeAllocationResourceSummary;
 export type ResourceSummary = z.infer<typeof resourceSummarySchema>;
 
-export const rateSchema = zComputeAllocationResourceRate.required({
-  id: true,
-  compute_allocation_resource_id: true,
-  rate: true,
-  start_time: true,
-  end_time: true,
-});
+export const rateSchema = zComputeAllocationResourceRate;
 export type Rate = z.infer<typeof rateSchema>;
 
 // A rate is active when now falls within [start_time, end_time).

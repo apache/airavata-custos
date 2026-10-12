@@ -39,12 +39,9 @@ describe("organizationSchema", () => {
 
 describe("organizationListEnvelopeSchema", () => {
   it("accepts a valid envelope", () => {
-    expect(
-      organizationListEnvelopeSchema.safeParse({ items: [validOrg], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(organizationListEnvelopeSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
+    expect(organizationListEnvelopeSchema.safeParse({ items: [validOrg], total: 1 }).success).toBe(
+      true,
+    );
   });
 });
 

@@ -17,8 +17,8 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { IdentitiesCard } from "../IdentitiesCard";
 import type { UserIdentity } from "../../schemas";
+import { IdentitiesCard } from "../IdentitiesCard";
 
 describe("IdentitiesCard", () => {
   it("renders an empty state when no identities are linked", () => {
@@ -30,12 +30,20 @@ describe("IdentitiesCard", () => {
     const identities: UserIdentity[] = [
       {
         id: "i1",
+        user_id: "u-1",
         source: "cilogon",
         external_id: "elena@access-ci.org",
         oidc_sub: "http://cilogon.org/serverA/users/1",
         created_at: "2026-03-12T09:00:00Z",
       },
-      { id: "i2", source: "comanage", external_id: "CO-4821", oidc_sub: "" },
+      {
+        id: "i2",
+        user_id: "u-1",
+        source: "comanage",
+        external_id: "CO-4821",
+        oidc_sub: "",
+        created_at: "",
+      },
     ];
     render(<IdentitiesCard identities={identities} />);
     expect(screen.getByText("cilogon")).toBeInTheDocument();

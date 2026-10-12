@@ -48,7 +48,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={5} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = [...(query.data ?? [])].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),

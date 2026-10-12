@@ -17,11 +17,9 @@
 
 // Guards MSW fixtures against the schemas they're rendered with.
 
-import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
-import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationDiffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
+import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationUsageFixture from "@/features/core/allocations/__fixtures__/usage.json";
 import {
   allocationDiffSchema,
@@ -29,17 +27,17 @@ import {
   allocationUsageSchema,
   attachedResourceSchema,
 } from "@/features/core/allocations/schemas";
+import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
+import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
+import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import {
+  analyticsContextsSchema,
+  analyticsJobSchema,
+  usageSummarySchema,
+} from "@/features/core/analytics/schemas";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
 import { computeClusterSchema, computeClusterUserSchema } from "@/features/core/clusters/schemas";
-import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
-import { organizationSchema } from "@/features/core/organizations/schemas";
-import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
-import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import { computeAllocationResourceSchema, rateSchema } from "@/features/core/resources/schemas";
-import membersFixture from "@/features/core/projects/__fixtures__/members.json";
-import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
-import { projectMemberSchema, projectSchema } from "@/features/core/projects/schemas";
 import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
 import {
   roleDetailResponseSchema,
@@ -48,14 +46,16 @@ import {
   userRoleSchema,
   userSchema,
 } from "@/features/core/identity/schemas";
-import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
-import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
-import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
-import {
-  analyticsContextsSchema,
-  analyticsJobSchema,
-  usageSummarySchema,
-} from "@/features/core/analytics/schemas";
+import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
+import { organizationSchema } from "@/features/core/organizations/schemas";
+import membersFixture from "@/features/core/projects/__fixtures__/members.json";
+import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
+import { projectMemberSchema, projectSchema } from "@/features/core/projects/schemas";
+import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
+import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
+import { computeAllocationResourceSchema, rateSchema } from "@/features/core/resources/schemas";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 describe("MSW fixtures pass current Zod schemas", () => {
   it("project fixtures validate against projectSchema (zProjectStatus-backed)", () => {
@@ -64,7 +64,7 @@ describe("MSW fixtures pass current Zod schemas", () => {
   });
 
   it("member fixtures validate against projectMemberSchema (zUserType-backed)", () => {
-    const allMembers = Object.values(membersFixture as Record<string, unknown[]>).flat();
+    const allMembers = Object.values(membersFixture).flat();
     const result = z.array(projectMemberSchema).safeParse(allMembers);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
@@ -75,25 +75,25 @@ describe("MSW fixtures pass current Zod schemas", () => {
   });
 
   it("allocation status fixture values validate against zAllocationStatus-backed enum", () => {
-    const statuses = (allocationsFixture as Array<{ status: string }>).map((a) => a.status);
+    const statuses = allocationsFixture.map((a) => a.status);
     const result = z.array(allocationStatusSchema).safeParse(statuses);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation resource fixtures validate against attachedResourceSchema", () => {
-    const rows = Object.values(allocationResourcesFixture as Record<string, unknown[]>).flat();
+    const rows = Object.values(allocationResourcesFixture).flat();
     const result = z.array(attachedResourceSchema).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation diff fixtures validate against allocationDiffSchema", () => {
-    const rows = Object.values(allocationDiffsFixture as Record<string, unknown[]>).flat();
+    const rows = Object.values(allocationDiffsFixture).flat();
     const result = z.array(allocationDiffSchema).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation usage fixtures validate against allocationUsageSchema", () => {
-    const rows = Object.values(allocationUsageFixture as Record<string, unknown[]>).flat();
+    const rows = Object.values(allocationUsageFixture).flat();
     const result = z.array(allocationUsageSchema).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
@@ -173,10 +173,10 @@ describe("MSW fixtures pass current Zod schemas", () => {
 
   it("researcher (MEMBER) allocation never carries by_member data", () => {
     const memberProjects = analyticsContextsFixture.filter((c) => c.role === "MEMBER");
-    const summaries = analyticsSummariesFixture as Record<string, { by_member: unknown }>;
+    const summaries = new Map(Object.entries(analyticsSummariesFixture));
     for (const c of memberProjects) {
       for (const a of c.allocations) {
-        expect(summaries[a.id]?.by_member).toBeNull();
+        expect(summaries.get(a.id)?.by_member).toBeNull();
       }
     }
   });

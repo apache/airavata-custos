@@ -17,25 +17,16 @@
 
 "use client";
 
-import * as React from "react";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
-import {
-  useAddMember,
-  useAllocationMembers,
-  useRemoveMember,
-  useUpdateMember,
-} from "../queries";
-import type {
-  AllocationMembership,
-  ComputeAllocation,
-  CreateMembershipPayload,
-} from "../schemas";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import { Button } from "@/shared/ui/button";
+import * as React from "react";
+import { useAddMember, useAllocationMembers, useRemoveMember, useUpdateMember } from "../queries";
+import type { AllocationMembership, ComputeAllocation, CreateMembershipPayload } from "../schemas";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { MemberEditDialog, type MemberEditPayload } from "./MemberEditDialog";
 
@@ -67,7 +58,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
 
   if (query.isLoading) return <TableSkeleton rows={4} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const members = query.data ?? [];
 
@@ -125,9 +116,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     {
       key: "role",
       header: "Role",
-      cell: (row) => (
-        <span className="text-sm">{row.role ? ROLE_LABELS[row.role] : "—"}</span>
-      ),
+      cell: (row) => <span className="text-sm">{row.role ? ROLE_LABELS[row.role] : "—"}</span>,
     },
     {
       key: "status",

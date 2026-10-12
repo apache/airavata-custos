@@ -25,6 +25,7 @@ export const ROLE_SUPER_ADMIN: RoleRow = {
   name: "Super Admin",
   description: "Full administrative access across the portal.",
   is_system: true,
+  created_at: "2026-01-15T09:00:00Z",
   permissions: [
     "amie:packets:read",
     "amie:packets:write",
@@ -52,6 +53,7 @@ export const ROLE_OPERATOR: RoleRow = {
   name: "Operator",
   description: "Day-to-day allocation, project, and AMIE operations (read + write).",
   is_system: false,
+  created_at: "2026-01-15T09:00:00Z",
   permissions: [
     "amie:packets:read",
     "amie:packets:write",
@@ -70,6 +72,7 @@ export const ROLE_AUDITOR: RoleRow = {
   name: "Auditor",
   description: "Read-only access across allocations, projects, tracing, and AMIE.",
   is_system: false,
+  created_at: "2026-01-15T09:00:00Z",
   permissions: [
     "core:allocations:read",
     "core:projects:read",

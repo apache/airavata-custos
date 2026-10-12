@@ -54,7 +54,7 @@ const labels: Record<StatusBadgeVariant, string> = {
 export type StatusBadgeProps = {
   variant: StatusBadgeVariant;
   label?: string;
-  className?: string;
+  className?: string | undefined;
 };
 
 export function StatusBadge({ variant, label, className }: StatusBadgeProps) {

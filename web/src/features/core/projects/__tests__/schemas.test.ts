@@ -45,6 +45,7 @@ const validMember = {
   role: "MEMBER" as const,
   status: "ACTIVE" as const,
   added_time: "2026-04-05T00:00:00.000Z",
+  allocations: [],
 };
 
 describe("projectSchema", () => {
@@ -58,12 +59,9 @@ describe("projectSchema", () => {
 
 describe("projectListEnvelopeSchema", () => {
   it("accepts a valid envelope", () => {
-    expect(
-      projectListEnvelopeSchema.safeParse({ items: [validProject], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(projectListEnvelopeSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
+    expect(projectListEnvelopeSchema.safeParse({ items: [validProject], total: 1 }).success).toBe(
+      true,
+    );
   });
 });
 

@@ -15,13 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import type { ComputeAllocationResource, Rate } from "@/features/core/resources/schemas";
+import type { Rate } from "@/features/core/resources/schemas";
+import {
+  zComputeAllocationResource,
+  zComputeAllocationResourceRate,
+  zPostComputeAllocationResourceRatesBody,
+} from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-const resources = resourcesFixture as ComputeAllocationResource[];
-const rates = ratesFixture as Rate[];
+const resources = z.array(zComputeAllocationResource).parse(resourcesFixture);
+const rates = z.array(zComputeAllocationResourceRate).parse(ratesFixture);
 
 function ratesFor(resourceId: string): Rate[] {
   return rates.filter((r) => r.compute_allocation_resource_id === resourceId);
@@ -53,24 +59,27 @@ export const resourcesHandlers = [
     ),
   ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates/effective", ({ params, request }) => {
-    const id = String(params.id);
-    const at = new URL(request.url).searchParams.get("at");
-    const now = at ? new Date(at).getTime() : Date.now();
-    const active = ratesFor(id).find(
-      (r) => now >= new Date(r.start_time).getTime() && now < new Date(r.end_time).getTime(),
-    );
-    if (!active) return HttpResponse.json({ error: "no effective rate" }, { status: 404 });
-    return HttpResponse.json(active);
-  }),
+  http.get<{ id: string }>(
+    "*/api/v1/compute-allocation-resources/:id/rates/effective",
+    ({ params, request }) => {
+      const id = String(params.id);
+      const at = new URL(request.url).searchParams.get("at");
+      const now = at ? new Date(at).getTime() : Date.now();
+      const active = ratesFor(id).find(
+        (r) => now >= new Date(r.start_time).getTime() && now < new Date(r.end_time).getTime(),
+      );
+      if (!active) return HttpResponse.json({ error: "no effective rate" }, { status: 404 });
+      return HttpResponse.json(active);
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/compute-allocation-resources/:id/rates", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(ratesFor(id));
   }),
 
   http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
-    const body = (await request.json()) as Partial<Rate>;
+    const body = zPostComputeAllocationResourceRatesBody.parse(await request.json());
     const created: Rate = {
       id: `rate-${Date.now()}`,
       compute_allocation_resource_id: String(body.compute_allocation_resource_id),

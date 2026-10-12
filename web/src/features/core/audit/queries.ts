@@ -20,7 +20,7 @@
 "use client";
 
 import { getLastTraceId, subscribeLastTraceId } from "@/shared/api/last-trace-id";
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { type TraceListFilters, getTrace, listAuditSources, listTraces } from "./api";
 import { useLastTraceContext } from "./components/LastTraceProvider";
@@ -51,8 +51,7 @@ export function useTraces(filters: TraceListFilters = {}, options?: { enabled?: 
 export function useTrace(id: string | undefined) {
   return useQuery({
     queryKey: id ? traceKeys.detail(id) : [...traceKeys.details(), "none"],
-    queryFn: () => getTrace(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getTrace(id) : skipToken,
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
     refetchOnWindowFocus: false,

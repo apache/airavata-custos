@@ -48,10 +48,7 @@ export function ClusterUsersDrawer({
       {usersQuery.isLoading ? (
         <CardSkeleton />
       ) : usersQuery.error ? (
-        <ErrorState
-          message={(usersQuery.error as Error).message}
-          onRetry={() => usersQuery.refetch()}
-        />
+        <ErrorState message={usersQuery.error.message} onRetry={() => usersQuery.refetch()} />
       ) : users.length === 0 ? (
         <EmptyState heading="No local accounts on this cluster." />
       ) : (

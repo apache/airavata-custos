@@ -26,7 +26,10 @@ const user = {
   id: "user-1",
   email: "user@example.org",
   first_name: "Example",
+  last_name: "User",
+  organization_id: "org-1",
   status: "ACTIVE",
+  type: "CLUSTER_LOCAL",
 };
 
 describe("user schemas", () => {
@@ -47,7 +50,13 @@ describe("user schemas", () => {
 
   it("preserves arbitrary privilege keys returned by role detail", () => {
     const result = roleDetailResponseSchema.parse({
-      role: { id: "role-1", name: "Admin" },
+      role: {
+        id: "role-1",
+        name: "Admin",
+        description: null,
+        is_system: false,
+        created_at: "2026-01-01T00:00:00Z",
+      },
       privileges: ["core:roles:manage", "connector:custom:inspect"],
     });
     expect(result.privileges).toEqual(["core:roles:manage", "connector:custom:inspect"]);

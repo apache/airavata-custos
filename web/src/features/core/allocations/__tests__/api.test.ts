@@ -33,8 +33,8 @@ import {
   updateMember,
 } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body: unknown): Response {
   const text = typeof body === "string" ? body : JSON.stringify(body);
@@ -54,6 +54,7 @@ const allocation = {
   initial_su_amount: 100000,
   start_time: "2026-04-01T00:00:00Z",
   end_time: "2027-03-31T00:00:00Z",
+  posix_group: null,
 };
 
 const member = {
@@ -63,6 +64,7 @@ const member = {
   start_time: "2026-04-01T00:00:00Z",
   end_time: "2027-03-31T00:00:00Z",
   membership_status: "ACTIVE" as const,
+  role: "MEMBER" as const,
 };
 
 const changeRequest = {
@@ -88,7 +90,7 @@ describe("listAllocations", () => {
     });
     expect(result.total).toBe(1);
     expect(result.items).toHaveLength(1);
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("limit=20");
     expect(url).toContain("project_id=project-001");
     expect(url).toContain("status=ACTIVE");
@@ -177,7 +179,9 @@ describe("addMember", () => {
 
 describe("updateMember", () => {
   it("PUTs to /compute-allocation-memberships/{id}", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(200, { ...member, membership_status: "INACTIVE" }));
+    fetchMock.mockResolvedValueOnce(
+      mockResponse(200, { ...member, membership_status: "INACTIVE" }),
+    );
     const out = await updateMember("mem-001", { membership_status: "INACTIVE" });
     expect(out.membership_status).toBe("INACTIVE");
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PUT");
@@ -197,7 +201,9 @@ describe("listChangeRequests", () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [changeRequest]));
     const out = await listChangeRequests({ allocation_id: "alloc-001" });
     expect(out).toHaveLength(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("/compute-allocations/alloc-001/change-requests");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain(
+      "/compute-allocations/alloc-001/change-requests",
+    );
   });
 
   it("scopes to requester when requester_id present", async () => {
@@ -209,7 +215,7 @@ describe("listChangeRequests", () => {
   it("falls back to the generic list endpoint", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [changeRequest]));
     await listChangeRequests({ status: "PENDING" });
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("/compute-allocation-change-requests");
     expect(url).toContain("status=PENDING");
   });

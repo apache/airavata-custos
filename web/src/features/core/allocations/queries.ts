@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addMember,
   approveChangeRequest,
@@ -44,8 +44,7 @@ import type { AllocationListParams, ChangeRequestListParams } from "./types";
 
 export const allocationKeys = {
   all: ["allocations"] as const,
-  list: (params: AllocationListParams = {}) =>
-    [...allocationKeys.all, "list", params] as const,
+  list: (params: AllocationListParams = {}) => [...allocationKeys.all, "list", params] as const,
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
@@ -79,8 +78,7 @@ export function useAllocationsByProject(projectId: string | undefined) {
     queryKey: projectId
       ? allocationKeys.list({ project_id: projectId })
       : [...allocationKeys.all, "list", "none"],
-    queryFn: () => listAllocations({ project_id: projectId as string }),
-    enabled: Boolean(projectId),
+    queryFn: projectId ? () => listAllocations({ project_id: projectId }) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -88,8 +86,7 @@ export function useAllocationsByProject(projectId: string | undefined) {
 export function useAllocation(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.detail(id) : [...allocationKeys.all, "detail", "none"],
-    queryFn: () => getAllocation(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getAllocation(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -97,8 +94,7 @@ export function useAllocation(id: string | undefined) {
 export function useAllocationResources(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.resources(id) : [...allocationKeys.all, "resources", "none"],
-    queryFn: () => listAllocationResources(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationResources(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -106,8 +102,7 @@ export function useAllocationResources(id: string | undefined) {
 export function useAllocationUsage(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.usage(id) : [...allocationKeys.all, "usage", "none"],
-    queryFn: () => listAllocationUsage(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationUsage(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -115,8 +110,7 @@ export function useAllocationUsage(id: string | undefined) {
 export function useAllocationDiffs(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.diffs(id) : [...allocationKeys.all, "diffs", "none"],
-    queryFn: () => listAllocationDiffs(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationDiffs(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -124,8 +118,7 @@ export function useAllocationDiffs(id: string | undefined) {
 export function useAllocationMembers(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.members(id) : [...allocationKeys.all, "members", "none"],
-    queryFn: () => listAllocationMembers(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationMembers(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -168,8 +161,7 @@ export function useChangeRequest(id: string | undefined) {
     queryKey: id
       ? allocationKeys.changeRequestDetail(id)
       : [...allocationKeys.all, "change-requests", "detail", "none"],
-    queryFn: () => getChangeRequest(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getChangeRequest(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -179,8 +171,7 @@ export function useChangeRequestEvents(id: string | undefined) {
     queryKey: id
       ? allocationKeys.changeRequestEvents(id)
       : [...allocationKeys.all, "change-requests", "events", "none"],
-    queryFn: () => listChangeRequestEvents(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listChangeRequestEvents(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -198,7 +189,11 @@ export function useSubmitChangeRequest() {
 export function useApproveChangeRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
+    mutationFn: ({
+      id,
+      approverId,
+      comment,
+    }: { id: string; approverId: string; comment?: string }) =>
       approveChangeRequest(id, approverId, comment),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: [...allocationKeys.all, "change-requests"] });
@@ -209,7 +204,11 @@ export function useApproveChangeRequest() {
 export function useRejectChangeRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
+    mutationFn: ({
+      id,
+      approverId,
+      comment,
+    }: { id: string; approverId: string; comment?: string }) =>
       rejectChangeRequest(id, approverId, comment),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: [...allocationKeys.all, "change-requests"] });

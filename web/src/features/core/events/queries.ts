@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDelivery, getUserName, listDeliveries, listSubscriptions, retryDelivery } from "./api";
 import type { DeliveryStatus } from "./types";
 
@@ -50,8 +50,7 @@ export function useDeliveries(status?: DeliveryStatus) {
 export function useDelivery(id: string | undefined) {
   return useQuery({
     queryKey: eventKeys.delivery(id ?? "none"),
-    queryFn: () => getDelivery(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getDelivery(id) : skipToken,
     refetchOnWindowFocus: false,
   });
 }

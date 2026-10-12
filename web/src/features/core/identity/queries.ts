@@ -17,9 +17,9 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
 import { apiFetch } from "@/shared/api/client";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   getMe,
   getMyDirectPrivileges,
@@ -28,12 +28,7 @@ import {
   updateMyName,
 } from "./api";
 import { privilegesResponseSchema } from "./schemas";
-import type {
-  CallerRoleGrant,
-  RoleWithPrivileges,
-  UserNameUpdate,
-  UserPrivilege,
-} from "./schemas";
+import type { CallerRoleGrant, RoleWithPrivileges, UserNameUpdate, UserPrivilege } from "./schemas";
 import type { CurrentUser, Privilege } from "./types";
 
 export const identityKeys = {
@@ -89,8 +84,10 @@ export function useMe() {
 
 export function useMyIdentities(userId: string | undefined) {
   return useQuery({
-    queryKey: userId ? identityKeys.identities(userId) : [...identityKeys.all, "identities", "none"],
-    queryFn: () => getMyIdentities(userId as string),
+    queryKey: userId
+      ? identityKeys.identities(userId)
+      : [...identityKeys.all, "identities", "none"],
+    queryFn: userId ? () => getMyIdentities(userId) : skipToken,
     enabled: Boolean(userId),
     ...DEFAULTS,
   });
@@ -119,25 +116,29 @@ export function useMyAccess(
     queryKey: userId
       ? [...identityKeys.access(userId), provenance, heldKey]
       : [...identityKeys.all, "access", "none"],
-    queryFn: async (): Promise<MyAccess> => {
-      if (!provenance) {
-        const roles = heldRoles.map((g) => ({
-          role: g.role,
-          privileges: g.privileges,
-          grant: {
-            user_id: userId as string,
-            role_id: g.role.id ?? "",
-            granted_at: g.granted_at,
-          },
-        }));
-        return { roles, direct: [], privileges: effective, provenance };
-      }
-      const [roles, direct] = await Promise.all([
-        getMyRolesWithPrivileges(userId as string),
-        getMyDirectPrivileges(userId as string),
-      ]);
-      return { roles, direct, privileges: effective, provenance };
-    },
+    queryFn: userId
+      ? async (): Promise<MyAccess> => {
+          if (!provenance) {
+            const roles = heldRoles.map((g) => ({
+              role: g.role,
+              privileges: g.privileges,
+              grant: {
+                user_id: userId,
+                role_id: g.role.id ?? "",
+                granted_at: g.granted_at,
+                granted_by: null,
+                reason: null,
+              },
+            }));
+            return { roles, direct: [], privileges: effective, provenance };
+          }
+          const [roles, direct] = await Promise.all([
+            getMyRolesWithPrivileges(userId),
+            getMyDirectPrivileges(userId),
+          ]);
+          return { roles, direct, privileges: effective, provenance };
+        }
+      : skipToken,
     enabled: Boolean(userId),
     ...DEFAULTS,
   });
@@ -146,7 +147,10 @@ export function useMyAccess(
 export function useUpdateMyName(userId: string | undefined) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (name: UserNameUpdate) => updateMyName(userId as string, name),
+    mutationFn: async (name: UserNameUpdate) => {
+      if (!userId) throw new Error("No signed-in user");
+      return updateMyName(userId, name);
+    },
     onSuccess: () => client.invalidateQueries({ queryKey: identityKeys.me() }),
   });
 }

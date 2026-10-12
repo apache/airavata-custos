@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addProjectMember,
   createProject,
@@ -60,7 +60,7 @@ export function useProjects(params: ProjectListParams = {}) {
 export function useProject(id: string | undefined) {
   return useQuery({
     queryKey: id ? projectKeys.detail(id) : [...projectKeys.all, "detail", "none"],
-    queryFn: () => getProject(id as string),
+    queryFn: id ? () => getProject(id) : skipToken,
     enabled: Boolean(id),
     ...DEFAULTS,
   });
@@ -68,10 +68,8 @@ export function useProject(id: string | undefined) {
 
 export function useProjectMembers(projectId: string | undefined) {
   return useQuery({
-    queryKey: projectId
-      ? projectKeys.members(projectId)
-      : [...projectKeys.all, "members", "none"],
-    queryFn: () => listProjectMembers(projectId as string),
+    queryKey: projectId ? projectKeys.members(projectId) : [...projectKeys.all, "members", "none"],
+    queryFn: projectId ? () => listProjectMembers(projectId) : skipToken,
     enabled: Boolean(projectId),
     ...DEFAULTS,
   });

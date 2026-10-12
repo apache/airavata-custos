@@ -15,29 +15,25 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import {
   privilegeKeySchema,
   roleDetailResponseSchema,
   roleSchema,
-  userRoleSchema,
 } from "@/features/core/identity/schemas";
+import { zGetRolesByIdHoldersResponse, zGetRolesResponse } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
 export { privilegeKeySchema, roleDetailResponseSchema, roleSchema };
 
-export const rolesResponseSchema = z
-  .array(roleSchema)
-  .nullish()
-  .transform((value) => value ?? []);
+export const rolesResponseSchema = zGetRolesResponse.nullable().transform((value) => value ?? []);
 
-export const roleHoldersResponseSchema = z
-  .array(userRoleSchema)
-  .nullish()
+export const roleHoldersResponseSchema = zGetRolesByIdHoldersResponse
+  .nullable()
   .transform((value) => value ?? []);
 
 export const privilegeCatalogResponseSchema = z
   .array(privilegeKeySchema)
-  .nullish()
+  .nullable()
   .transform((value) => value ?? []);
 
 export const roleInputSchema = z.object({

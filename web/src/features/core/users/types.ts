@@ -39,5 +39,5 @@ export type UpdateUserRolesInput = {
   userId: string;
   currentRoleIds: string[];
   desiredRoleIds: string[];
-  reason?: string;
+  reason?: string | undefined;
 };

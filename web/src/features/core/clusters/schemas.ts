@@ -15,18 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { z } from "zod";
 import { zComputeCluster, zComputeClusterUser } from "@/generated/core/zod.gen";
+import type { z } from "zod";
 
-// The generated schema marks every field optional; the backend always returns
-// these, so tighten them here where the UI reads them.
-export const computeClusterSchema = zComputeCluster.required({ id: true, name: true });
+export const computeClusterSchema = zComputeCluster;
 export type ComputeCluster = z.infer<typeof computeClusterSchema>;
 
-export const computeClusterUserSchema = zComputeClusterUser.required({
-  id: true,
-  compute_cluster_id: true,
-  user_id: true,
-  local_username: true,
-});
+export const computeClusterUserSchema = zComputeClusterUser;
 export type ComputeClusterUser = z.infer<typeof computeClusterUserSchema>;

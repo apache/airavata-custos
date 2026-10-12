@@ -15,30 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import {
+  zGetComputeAllocationChangeRequestsByIdEventsResponse,
+  zGetComputeAllocationsByIdDiffsResponse,
+  zGetComputeAllocationsByIdResourcesResponse,
+  zGetComputeAllocationsByIdResponse,
+  zGetComputeAllocationsByIdUsagesResponse,
+  zGetComputeAllocationsResponse,
+  zPostComputeAllocationMembershipsResponse,
+  zPutComputeAllocationMembershipsByIdResponse,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   type AllocationDiff,
   type AllocationMembership,
-  type AttachedResource,
   type AllocationUsage,
+  type AttachedResource,
   type ChangeRequest,
   type ChangeRequestEvent,
   type ComputeAllocation,
   type ComputeAllocationList,
+  type ComputeAllocationMembership,
   type CreateChangeRequestPayload,
   type CreateMembershipPayload,
   type UpdateChangeRequestPayload,
   type UpdateMembershipPayload,
-  allocationDiffListSchema,
-  allocationMembershipListSchema,
   allocationMembershipSchema,
-  attachedResourceListSchema,
-  allocationUsageListSchema,
-  changeRequestEventListSchema,
-  changeRequestListSchema,
   changeRequestSchema,
-  computeAllocationListSchema,
-  computeAllocationSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
@@ -57,55 +60,56 @@ export async function listAllocations(
   if (params.q) search.set("q", params.q);
   const qs = search.toString();
   const raw = await apiFetch(`/compute-allocations${qs ? `?${qs}` : ""}`);
-  return computeAllocationListSchema.parse(raw);
+  const list = zGetComputeAllocationsResponse.parse(raw);
+  return { ...list, items: list.items ?? [] };
 }
 
 export async function getAllocation(id: string): Promise<ComputeAllocation> {
   const raw = await apiFetch(`/compute-allocations/${id}`);
-  return computeAllocationSchema.parse(raw);
+  return zGetComputeAllocationsByIdResponse.parse(raw);
 }
 
 export async function listAllocationResources(id: string): Promise<AttachedResource[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/resources`);
-  return attachedResourceListSchema.parse(raw ?? []);
+  return zGetComputeAllocationsByIdResourcesResponse.parse(raw ?? []);
 }
 
 export async function listAllocationDiffs(id: string): Promise<AllocationDiff[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/diffs`);
-  return allocationDiffListSchema.parse(raw ?? []);
+  return zGetComputeAllocationsByIdDiffsResponse.parse(raw ?? []);
 }
 
 export async function listAllocationUsage(id: string): Promise<AllocationUsage[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/usages`);
-  return allocationUsageListSchema.parse(raw ?? []);
+  return zGetComputeAllocationsByIdUsagesResponse.parse(raw ?? []);
 }
 
 export async function listAllocationMembers(id: string): Promise<AllocationMembership[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/memberships`);
-  return allocationMembershipListSchema.parse(raw ?? []);
+  return allocationMembershipSchema.array().parse(raw ?? []);
 }
 
 export async function addMember(
   payload: CreateMembershipPayload,
-): Promise<AllocationMembership> {
+): Promise<ComputeAllocationMembership> {
   const validated = createMembershipPayloadSchema.parse(payload);
   const raw = await apiFetch("/compute-allocation-memberships", {
     method: "POST",
     body: validated,
   });
-  return allocationMembershipSchema.parse(raw);
+  return zPostComputeAllocationMembershipsResponse.parse(raw);
 }
 
 export async function updateMember(
   id: string,
   patch: UpdateMembershipPayload,
-): Promise<AllocationMembership> {
+): Promise<ComputeAllocationMembership> {
   const validated = updateMembershipPayloadSchema.parse(patch);
   const raw = await apiFetch(`/compute-allocation-memberships/${id}`, {
     method: "PUT",
     body: validated,
   });
-  return allocationMembershipSchema.parse(raw);
+  return zPutComputeAllocationMembershipsByIdResponse.parse(raw);
 }
 
 export async function removeMember(id: string): Promise<void> {
@@ -116,20 +120,18 @@ export async function listChangeRequests(
   params: ChangeRequestListParams = {},
 ): Promise<ChangeRequest[]> {
   if (params.allocation_id) {
-    const raw = await apiFetch(
-      `/compute-allocations/${params.allocation_id}/change-requests`,
-    );
-    return changeRequestListSchema.parse(raw ?? []);
+    const raw = await apiFetch(`/compute-allocations/${params.allocation_id}/change-requests`);
+    return changeRequestSchema.array().parse(raw ?? []);
   }
   if (params.requester_id) {
     const raw = await apiFetch(`/users/${params.requester_id}/change-requests`);
-    return changeRequestListSchema.parse(raw ?? []);
+    return changeRequestSchema.array().parse(raw ?? []);
   }
   const search = new URLSearchParams();
   if (params.status) search.set("status", params.status);
   const qs = search.toString();
   const raw = await apiFetch(`/compute-allocation-change-requests${qs ? `?${qs}` : ""}`);
-  return changeRequestListSchema.parse(raw ?? []);
+  return changeRequestSchema.array().parse(raw ?? []);
 }
 
 export async function getChangeRequest(id: string): Promise<ChangeRequest> {
@@ -186,7 +188,7 @@ export async function rejectChangeRequest(
 
 export async function listChangeRequestEvents(id: string): Promise<ChangeRequestEvent[]> {
   const raw = await apiFetch(`/compute-allocation-change-requests/${id}/events`);
-  return changeRequestEventListSchema.parse(raw ?? []);
+  return zGetComputeAllocationChangeRequestsByIdEventsResponse.parse(raw ?? []);
 }
 
 export { updateChangeRequest };

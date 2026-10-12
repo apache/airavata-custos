@@ -17,12 +17,12 @@
 
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
+import { useSession } from "next-auth/react";
 import { useAllocation, useAllocationMembers } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
@@ -46,7 +46,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   if (allocationQuery.error) {
     return (
       <ErrorState
-        message={(allocationQuery.error as Error).message}
+        message={allocationQuery.error.message}
         onRetry={() => allocationQuery.refetch()}
       />
     );

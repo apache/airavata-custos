@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -29,6 +28,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
 import type { CreateMembershipPayload } from "../schemas";
 
 const ROLES = ["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"] as const;
@@ -107,7 +107,7 @@ export function AddMemberDialog({
             <select
               id="add-member-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
+              onChange={(e) => setRole(ROLES.find((r) => r === e.target.value) ?? role)}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
               {ROLES.map((r) => (

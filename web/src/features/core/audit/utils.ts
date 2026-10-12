@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { z } from "zod";
 import type { ListStatus, Step, StepNode, TraceDelivery, TraceDetail, TraceSummary } from "./types";
 
 // Must match the backend's retry limit.
@@ -156,6 +157,8 @@ export function plainName(eventType: string): string | null {
 
 // ---------- details ----------
 
+const jsonObjectSchema = z.record(z.string(), z.unknown());
+
 export type ParsedDetails = { entries: Array<[string, string]> } | { text: string } | null;
 
 // Details come as JSON, as `key=value` pairs, or as free text.
@@ -164,11 +167,12 @@ export function parseDetails(description: string | undefined): ParsedDetails {
   if (!text) return null;
   if (text.startsWith("{")) {
     try {
-      const obj = JSON.parse(text) as unknown;
-      if (obj && typeof obj === "object" && !Array.isArray(obj)) {
-        const entries = Object.entries(obj as Record<string, unknown>).map(
-          ([k, v]): [string, string] => [k, typeof v === "string" ? v : JSON.stringify(v)],
-        );
+      const obj = jsonObjectSchema.safeParse(JSON.parse(text));
+      if (obj.success) {
+        const entries = Object.entries(obj.data).map(([k, v]): [string, string] => [
+          k,
+          typeof v === "string" ? v : JSON.stringify(v),
+        ]);
         return { entries };
       }
     } catch {

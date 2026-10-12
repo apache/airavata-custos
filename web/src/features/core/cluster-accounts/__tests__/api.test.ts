@@ -18,8 +18,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { approveClusterAccount, denyClusterAccount, listClusterAccounts } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body?: unknown): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -28,13 +28,18 @@ function mockResponse(status: number, body?: unknown): Response {
   });
 }
 
-const account = {
+const clusterUser = {
   id: "ccu-1",
   compute_cluster_id: "cluster-a",
   user_id: "user-1",
   local_username: "jdoe",
+  access_level: "USER",
   approval_status: "PENDING",
   provisioned_at: null,
+};
+
+const account = {
+  ...clusterUser,
   display_name: "Jane Doe",
   email: "jdoe@example.edu",
   cluster_name: "cluster-a",
@@ -58,7 +63,7 @@ describe("cluster accounts API", () => {
   // Make sure a denial sends the note, since it is what the audit log keeps.
   it("posts the note when denying", async () => {
     fetchMock.mockResolvedValueOnce(
-      mockResponse(200, { id: "ccu-1", approval_status: "DENIED", provisioned_at: null }),
+      mockResponse(200, { ...clusterUser, approval_status: "DENIED" }),
     );
     await denyClusterAccount("ccu-1", "Not on the list");
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/compute-cluster-users/ccu-1/deny");
@@ -70,7 +75,7 @@ describe("cluster accounts API", () => {
 
   it("posts to the approve route", async () => {
     fetchMock.mockResolvedValueOnce(
-      mockResponse(200, { id: "ccu-1", approval_status: "APPROVED", provisioned_at: null }),
+      mockResponse(200, { ...clusterUser, approval_status: "APPROVED" }),
     );
     const result = await approveClusterAccount("ccu-1");
     expect(result.approval_status).toBe("APPROVED");

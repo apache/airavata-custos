@@ -7,7 +7,8 @@
     "compute_cluster_id": "cluster-001",
     "initial_su_amount": 250000,
     "start_time": "2026-04-01T00:00:00.000Z",
-    "end_time": "2027-03-31T00:00:00.000Z"
+    "end_time": "2027-03-31T00:00:00.000Z",
+    "posix_group": null
   },
   {
     "id": "alloc-002",
@@ -17,7 +18,8 @@
     "compute_cluster_id": "cluster-002",
     "initial_su_amount": 80000,
     "start_time": "2026-04-01T00:00:00.000Z",
-    "end_time": "2027-03-31T00:00:00.000Z"
+    "end_time": "2027-03-31T00:00:00.000Z",
+    "posix_group": null
   },
   {
     "id": "alloc-003",
@@ -27,7 +29,8 @@
     "compute_cluster_id": "cluster-001",
     "initial_su_amount": 150000,
     "start_time": "2026-04-12T00:00:00.000Z",
-    "end_time": "2027-04-11T00:00:00.000Z"
+    "end_time": "2027-04-11T00:00:00.000Z",
+    "posix_group": null
   },
   {
     "id": "alloc-004",
@@ -37,6 +40,7 @@
     "compute_cluster_id": "cluster-002",
     "initial_su_amount": 50000,
     "start_time": "2026-02-09T00:00:00.000Z",
-    "end_time": "2026-08-09T00:00:00.000Z"
+    "end_time": "2026-08-09T00:00:00.000Z",
+    "posix_group": null
   }
 ]

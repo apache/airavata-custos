@@ -22,13 +22,13 @@ import { traceDetailSchema, traceListSchema, traceSourceListSchema } from "./sch
 import type { TraceDetail, TraceListResponse, TraceStatus } from "./types";
 
 export type TraceListFilters = {
-  source?: string[];
-  status?: TraceStatus[];
-  from?: string;
-  to?: string;
-  q?: string;
-  limit?: number;
-  offset?: number;
+  source?: string[] | undefined;
+  status?: TraceStatus[] | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  q?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 };
 
 // Sorted so the same filters make the same URL and the same query key.

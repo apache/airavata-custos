@@ -17,17 +17,14 @@
 
 "use client";
 
-import Link from "next/link";
+// Sanctioned cross-feature import per ADR-0004.
+import { useAllocationsByProject } from "@/features/core/allocations/queries";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-// Sanctioned cross-feature import per ADR-0004.
-import { useAllocationsByProject } from "@/features/core/allocations/queries";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import Link from "next/link";
 
 export type ProjectAllocationsTabProps = {
   projectId: string;
@@ -50,7 +47,7 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = query.data?.items ?? [];
   if (rows.length === 0) {
@@ -86,7 +83,9 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
       header: "Initial SUs",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.initial_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.initial_su_amount)}
+        </span>
       ),
     },
     {

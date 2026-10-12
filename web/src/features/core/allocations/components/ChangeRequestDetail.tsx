@@ -17,18 +17,15 @@
 
 "use client";
 
+import { useCurrentUser } from "@/features/core/identity/queries";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { CardSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { CardSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import { useCurrentUser } from "@/features/core/identity/queries";
 import {
   useApproveChangeRequest,
   useChangeRequest,
@@ -63,9 +60,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
 
   if (query.isLoading) return <CardSkeleton />;
   if (query.error) {
-    return (
-      <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
-    );
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const request = query.data;
   if (!request) return null;
@@ -84,7 +79,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
         toast.success("Rejected");
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setPending(false);
     }
@@ -153,10 +148,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
         {eventsQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading events…</p>
         ) : eventsQuery.error ? (
-          <ErrorState
-            message={(eventsQuery.error as Error).message}
-            onRetry={() => eventsQuery.refetch()}
-          />
+          <ErrorState message={eventsQuery.error.message} onRetry={() => eventsQuery.refetch()} />
         ) : !eventsQuery.data || eventsQuery.data.length === 0 ? (
           <p className="text-sm text-muted-foreground">No events recorded.</p>
         ) : (
