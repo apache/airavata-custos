@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/google/uuid"
 )
 
@@ -142,6 +143,10 @@ func TestProcessor_InvalidPacketFailsWithTraceAndReply(t *testing.T) {
 	}
 	if strings.Join(actions, ",") != "PACKET_RECEIVED,PACKET_FAILED" {
 		t.Errorf("audit rows: got %v, want PACKET_RECEIVED then PACKET_FAILED", actions)
+	}
+	tree, _, _, err := corestore.NewAuditTraceStore(database).GetTraceTree(context.Background(), pollTraceID)
+	if err != nil || tree == nil || len(tree.Children) == 0 {
+		t.Errorf("trace tree: got %+v (%v), want the failed packet's steps", tree, err)
 	}
 	if len(replier.replies) != 1 || replier.replies[0]["body"].(map[string]any)["StatusCode"] != "Failure" {
 		t.Errorf("replies: got %v, want one Failure reply", replier.replies)

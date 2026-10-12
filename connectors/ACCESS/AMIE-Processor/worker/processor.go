@@ -257,6 +257,9 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 // the event afresh (with the pre-rollback attempt count) and schedules a retry
 // or marks the event as permanently failed.
 func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID string, cause error) error {
+	// Its own span, so the audit rows written here have a parent on the trace.
+	ctx, span := tracing.Start(ctx, "amie.record_failure")
+	defer span.End()
 	return custosdb.TxFn(ctx, p.db, func(tx *sql.Tx) error {
 		// Re-read the event -- the processing transaction was rolled back,
 		// so the attempt count is still the pre-increment value.
