@@ -102,7 +102,11 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_ACCOUNT (PI): %w", err)
 	}
 
-	project, err := h.ensureProject(ctx, projectOriginatedID, grantNumber, pi.ID)
+	title := getString(body, "ProjectTitle")
+	if title == "" {
+		title = grantNumber
+	}
+	project, err := h.ensureProject(ctx, projectOriginatedID, title, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure project: %w", err)
 	}
@@ -201,7 +205,7 @@ func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, u
 	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
-func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, grantNumber, piID string) (*models.Project, error) {
+func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, title, piID string) (*models.Project, error) {
 	if p, err := h.svc.GetProjectByOriginatedID(ctx, originatedID); err == nil {
 		return p, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
@@ -209,7 +213,7 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 	}
 	return h.svc.CreateProject(ctx, &models.Project{
 		OriginatedID: originatedID,
-		Title:        grantNumber,
+		Title:        title,
 		Origination:  amieIdentitySource,
 		ProjectPIID:  piID,
 	})

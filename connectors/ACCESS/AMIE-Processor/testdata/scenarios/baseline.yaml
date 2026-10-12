@@ -95,11 +95,10 @@ expectations:
     projects:
       total_count: 2
       rows:
-        # Handler uses GrantNumber as project.title, not ProjectTitle.
-        - { originated_id: BL-001, title: BL-001, origination: access, status: ACTIVE,
+        - { originated_id: BL-001, title: Baseline Project 1, origination: access, status: ACTIVE,
             project_pi_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
         # BL-002 PI was reassigned to Pat by the merge.
-        - { originated_id: BL-002, title: BL-002, origination: access, status: ACTIVE,
+        - { originated_id: BL-002, title: Baseline Project 2, origination: access, status: ACTIVE,
             project_pi_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
 
     compute_allocations:

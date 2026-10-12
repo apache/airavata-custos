@@ -37,6 +37,7 @@ func baseRPCBody() map[string]any {
 		"AllocationType":        "new",
 		"EndDate":               "2027-01-01",
 		"GrantNumber":           "TG-BL-001",
+		"ProjectTitle":          "Baseline project",
 		"PfosNumber":            "PFOS-1",
 		"PiFirstName":           "Pat",
 		"PiLastName":            "First",
@@ -88,6 +89,11 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 	if got := countRows(t, database, "projects"); got != 1 {
 		t.Errorf("projects: got %d, want 1", got)
+	}
+
+	var title string
+	if err := database.Get(&title, "SELECT title FROM projects LIMIT 1"); err != nil || title != "Baseline project" {
+		t.Errorf("project title: got %q, %v; want %q", title, err, "Baseline project")
 	}
 	if got := countRows(t, database, "compute_allocations"); got != 1 {
 		t.Errorf("compute_allocations: got %d, want 1", got)
