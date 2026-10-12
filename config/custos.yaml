@@ -136,7 +136,7 @@ connectors:
       poller_enabled: true
     timeouts:
       connect_timeout: "5s"
-      read_timeout: "20s"
+      read_timeout: "60s"
 
   temp-account:
     type: "temp-account"

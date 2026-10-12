@@ -86,14 +86,14 @@ type ComputeAllocationListResponse struct {
 // AllocationSUTotalResponse is the response for total SUs consumed on an
 // allocation.
 type AllocationSUTotalResponse struct {
-	ComputeAllocationID string `json:"compute_allocation_id"`
-	TotalSUAmount       int64  `json:"total_su_amount"`
+	ComputeAllocationID string  `json:"compute_allocation_id"`
+	TotalSUAmount       float64 `json:"total_su_amount"`
 }
 
 // UserAllocationSUTotalResponse is the response for SUs consumed by one user
 // on one allocation.
 type UserAllocationSUTotalResponse struct {
-	ComputeAllocationID string `json:"compute_allocation_id"`
-	UserID              string `json:"user_id"`
-	TotalSUAmount       int64  `json:"total_su_amount"`
+	ComputeAllocationID string  `json:"compute_allocation_id"`
+	UserID              string  `json:"user_id"`
+	TotalSUAmount       float64 `json:"total_su_amount"`
 }

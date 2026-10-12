@@ -222,10 +222,10 @@ var _ CoreService = &CoreServiceMock{}
 //			GetRoleFunc: func(ctx context.Context, roleID string) (*models.Role, error) {
 //				panic("mock out the GetRole method")
 //			},
-//			GetTotalSUUsageForAllocationFunc: func(ctx context.Context, allocationID string) (int64, error) {
+//			GetTotalSUUsageForAllocationFunc: func(ctx context.Context, allocationID string) (float64, error) {
 //				panic("mock out the GetTotalSUUsageForAllocation method")
 //			},
-//			GetTotalSUUsageForUserInAllocationFunc: func(ctx context.Context, allocationID string, userID string) (int64, error) {
+//			GetTotalSUUsageForUserInAllocationFunc: func(ctx context.Context, allocationID string, userID string) (float64, error) {
 //				panic("mock out the GetTotalSUUsageForUserInAllocation method")
 //			},
 //			GetUserFunc: func(ctx context.Context, id string) (*models.User, error) {
@@ -644,10 +644,10 @@ type CoreServiceMock struct {
 	GetRoleFunc func(ctx context.Context, roleID string) (*models.Role, error)
 
 	// GetTotalSUUsageForAllocationFunc mocks the GetTotalSUUsageForAllocation method.
-	GetTotalSUUsageForAllocationFunc func(ctx context.Context, allocationID string) (int64, error)
+	GetTotalSUUsageForAllocationFunc func(ctx context.Context, allocationID string) (float64, error)
 
 	// GetTotalSUUsageForUserInAllocationFunc mocks the GetTotalSUUsageForUserInAllocation method.
-	GetTotalSUUsageForUserInAllocationFunc func(ctx context.Context, allocationID string, userID string) (int64, error)
+	GetTotalSUUsageForUserInAllocationFunc func(ctx context.Context, allocationID string, userID string) (float64, error)
 
 	// GetUserFunc mocks the GetUser method.
 	GetUserFunc func(ctx context.Context, id string) (*models.User, error)
@@ -4540,7 +4540,7 @@ func (mock *CoreServiceMock) GetRoleCalls() []struct {
 }
 
 // GetTotalSUUsageForAllocation calls GetTotalSUUsageForAllocationFunc.
-func (mock *CoreServiceMock) GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error) {
+func (mock *CoreServiceMock) GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (float64, error) {
 	if mock.GetTotalSUUsageForAllocationFunc == nil {
 		panic("CoreServiceMock.GetTotalSUUsageForAllocationFunc: method is nil but CoreService.GetTotalSUUsageForAllocation was just called")
 	}
@@ -4576,7 +4576,7 @@ func (mock *CoreServiceMock) GetTotalSUUsageForAllocationCalls() []struct {
 }
 
 // GetTotalSUUsageForUserInAllocation calls GetTotalSUUsageForUserInAllocationFunc.
-func (mock *CoreServiceMock) GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID string, userID string) (int64, error) {
+func (mock *CoreServiceMock) GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID string, userID string) (float64, error) {
 	if mock.GetTotalSUUsageForUserInAllocationFunc == nil {
 		panic("CoreServiceMock.GetTotalSUUsageForUserInAllocationFunc: method is nil but CoreService.GetTotalSUUsageForUserInAllocation was just called")
 	}

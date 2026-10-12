@@ -124,6 +124,9 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 			return nil, nil, err
 		}
 	}
+	if err := refuseDisabled(user); err != nil {
+		return nil, nil, err
+	}
 	privs, err := s.EffectivePrivileges(ctx, user.ID)
 	if err != nil {
 		return nil, nil, err
@@ -131,6 +134,14 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 	caller := &identity.Caller{UserID: user.ID}
 	s.identityCache.set(claims.Sub, caller, privs, now)
 	return caller, privs, nil
+}
+
+func refuseDisabled(user *models.User) error {
+	switch user.Status {
+	case models.UserSuspended, models.UserInactive, models.UserMerged:
+		return fmt.Errorf("%w: status=%s", identity.ErrUserDisabled, user.Status)
+	}
+	return nil
 }
 
 // linkBySub creates the first OIDC binding for a PENDING user matched by verified email.
@@ -160,17 +171,16 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 	if existingOIDC != nil {
 		return nil, identity.ErrUserAlreadyOIDCLinked
 	}
+	if err := refuseDisabled(user); err != nil {
+		return nil, err
+	}
 	if user.Status != models.UserPending {
-		// A non-MERGED user without an OIDC binding is an inconsistent state;
-		// merged users legitimately lose theirs to the surviving user.
-		if user.Status != models.UserMerged {
-			slog.ErrorContext(ctx, "inconsistent user state: reached non-PENDING lifecycle without an OIDC binding",
-				"user_id", user.ID,
-				"email", claims.Email,
-				"sub", claims.Sub,
-				"status", user.Status,
-			)
-		}
+		slog.ErrorContext(ctx, "inconsistent user state: reached non-PENDING lifecycle without an OIDC binding",
+			"user_id", user.ID,
+			"email", claims.Email,
+			"sub", claims.Sub,
+			"status", user.Status,
+		)
 		return nil, fmt.Errorf("%w: status=%s", identity.ErrUserNotPending, user.Status)
 	}
 	binding := &models.UserIdentity{

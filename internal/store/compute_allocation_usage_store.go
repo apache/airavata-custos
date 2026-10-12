@@ -30,6 +30,9 @@ import (
 
 const computeAllocationUsageColumns = "id, compute_allocation_id, used_raw_amount, used_su_amount, calculated_time, user_id, job_id, compute_allocation_resource_id"
 
+// The end date counts as a whole day.
+const inAllocationPeriod = `u.calculated_time >= a.start_time AND u.calculated_time < a.end_time + INTERVAL '1 day'`
+
 type pgComputeAllocationUsageStore struct {
 	db *sqlx.DB
 }
@@ -56,10 +59,12 @@ func (s *pgComputeAllocationUsageStore) FindByID(ctx context.Context, id string)
 func (s *pgComputeAllocationUsageStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error) {
 	var rows []models.ComputeAllocationUsage
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+computeAllocationUsageColumns+`
-		 FROM compute_allocation_usages
-		 WHERE compute_allocation_id = $1
-		 ORDER BY calculated_time`, allocationID)
+		`SELECT u.id, u.compute_allocation_id, u.used_raw_amount, u.used_su_amount,
+		        u.calculated_time, u.user_id, u.job_id, u.compute_allocation_resource_id
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod+`
+		 ORDER BY u.calculated_time`, allocationID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,28 +97,24 @@ func (s *pgComputeAllocationUsageStore) FindByComputeAllocationIDAndJobID(ctx co
 	return &u, nil
 }
 
-func (s *pgComputeAllocationUsageStore) SumSUForAllocation(ctx context.Context, allocationID string) (int64, error) {
-	var total sql.NullInt64
+func (s *pgComputeAllocationUsageStore) SumSUForAllocation(ctx context.Context, allocationID string) (float64, error) {
+	var total float64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT CAST(ROUND(COALESCE(SUM(used_su_amount), 0)) AS BIGINT)
-		 FROM compute_allocation_usages
-		 WHERE compute_allocation_id = $1`, allocationID)
-	if err != nil {
-		return 0, err
-	}
-	return total.Int64, nil
+		`SELECT COALESCE(SUM(u.used_su_amount), 0)
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod, allocationID)
+	return total, err
 }
 
-func (s *pgComputeAllocationUsageStore) SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error) {
-	var total sql.NullInt64
+func (s *pgComputeAllocationUsageStore) SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error) {
+	var total float64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT CAST(ROUND(COALESCE(SUM(used_su_amount), 0)) AS BIGINT)
-		 FROM compute_allocation_usages
-		 WHERE compute_allocation_id = $1 AND user_id = $2`, allocationID, userID)
-	if err != nil {
-		return 0, err
-	}
-	return total.Int64, nil
+		`SELECT COALESCE(SUM(u.used_su_amount), 0)
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE u.compute_allocation_id = $1 AND u.user_id = $2 AND `+inAllocationPeriod, allocationID, userID)
+	return total, err
 }
 
 func (s *pgComputeAllocationUsageStore) LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {

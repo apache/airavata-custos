@@ -25,6 +25,9 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// The end date counts as a whole day.
+const inAllocationPeriod = `u.calculated_time >= ca.start_time AND u.calculated_time < ca.end_time + INTERVAL '1 day'`
+
 // ProjectRow is a project the caller is involved with plus the
 // caller's governance role on it. Role is null when the caller has only
 // allocation membership (a plain member).
@@ -41,7 +44,7 @@ type AllocationRow struct {
 	ID              string    `db:"id"`
 	Name            string    `db:"name"`
 	Status          string    `db:"status"`
-	InitialSUAmount int64     `db:"initial_su_amount"`
+	InitialSUAmount float64   `db:"initial_su_amount"`
 	UsedSUAmount    float64   `db:"used_su_amount"`
 	StartTime       time.Time `db:"start_time"`
 	EndTime         time.Time `db:"end_time"`
@@ -86,15 +89,15 @@ type JobRow struct {
 	UsedSUAmount   float64   `db:"used_su_amount"`
 }
 
-// Store aggregates usage for the analytics endpoints. SUs round to whole
-// credits because used_su_amount is a DOUBLE.
+// Store aggregates usage for the analytics endpoints. Every sum counts only
+// usage inside the allocation's current period, the same as the core totals.
 type Store interface {
 	// ProjectsForUser returns the projects the user touches through a governance
 	// role or an active allocation membership. Role is null for a plain member.
 	ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error)
 	// AllocationsByID returns the given allocations with their consumed credits, oldest first.
 	AllocationsByID(ctx context.Context, ids []string) ([]AllocationRow, error)
-	// TotalUsed returns the rounded total credits consumed against an allocation.
+	// TotalUsed returns the credits consumed against an allocation.
 	TotalUsed(ctx context.Context, allocationID string) (float64, error)
 	// DailyUsage returns per-day, per-resource credits for one allocation.
 	DailyUsage(ctx context.Context, allocationID string) ([]DailyRow, error)
@@ -142,7 +145,7 @@ func (s *pgStore) AllocationsByID(ctx context.Context, ids []string) ([]Allocati
 		        COALESCE(SUM(u.used_su_amount), 0) AS used_su_amount
 		   FROM compute_allocations ca
 		   LEFT JOIN compute_allocation_usages u
-		     ON u.compute_allocation_id = ca.id
+		     ON u.compute_allocation_id = ca.id AND `+inAllocationPeriod+`
 		  WHERE ca.id IN (?)
 		  GROUP BY ca.id
 		  ORDER BY ca.start_time`, ids)
@@ -159,9 +162,10 @@ func (s *pgStore) AllocationsByID(ctx context.Context, ids []string) ([]Allocati
 func (s *pgStore) TotalUsed(ctx context.Context, allocationID string) (float64, error) {
 	var total float64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT COALESCE(SUM(used_su_amount), 0)
-		   FROM compute_allocation_usages
-		  WHERE compute_allocation_id = $1`, allocationID)
+		`SELECT COALESCE(SUM(u.used_su_amount), 0)
+		   FROM compute_allocation_usages u
+		   JOIN compute_allocations ca ON ca.id = u.compute_allocation_id
+		  WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod, allocationID)
 	if err != nil {
 		return 0, err
 	}
@@ -175,7 +179,8 @@ func (s *pgStore) DailyUsage(ctx context.Context, allocationID string) ([]DailyR
 		        u.compute_allocation_resource_id AS resource_id,
 		        SUM(u.used_su_amount) AS credits
 		   FROM compute_allocation_usages u
-		  WHERE u.compute_allocation_id = $1
+		   JOIN compute_allocations ca ON ca.id = u.compute_allocation_id
+		  WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod+`
 		  GROUP BY day, resource_id
 		  ORDER BY day`, allocationID)
 	if err != nil {
@@ -194,7 +199,8 @@ func (s *pgStore) ResourceUsage(ctx context.Context, allocationID, callerID stri
 		   FROM compute_allocation_usages u
 		   JOIN compute_allocation_resources r
 		     ON r.id = u.compute_allocation_resource_id
-		  WHERE u.compute_allocation_id = $2
+		   JOIN compute_allocations ca ON ca.id = u.compute_allocation_id
+		  WHERE u.compute_allocation_id = $2 AND `+inAllocationPeriod+`
 		  GROUP BY r.id, r.name, r.resource_type
 		  ORDER BY r.name`, callerID, allocationID)
 	if err != nil {
@@ -204,7 +210,7 @@ func (s *pgStore) ResourceUsage(ctx context.Context, allocationID, callerID stri
 }
 
 func (s *pgStore) Jobs(ctx context.Context, allocationID string, userID *string, limit, offset int) ([]JobRow, int, error) {
-	where := "u.compute_allocation_id = ?"
+	where := "u.compute_allocation_id = ? AND " + inAllocationPeriod
 	args := []any{allocationID}
 	if userID != nil {
 		where += " AND u.user_id = ?"
@@ -213,7 +219,7 @@ func (s *pgStore) Jobs(ctx context.Context, allocationID string, userID *string,
 
 	var total int
 	if err := s.db.GetContext(ctx, &total,
-		s.db.Rebind("SELECT COUNT(*) FROM compute_allocation_usages u WHERE "+where), args...); err != nil {
+		s.db.Rebind("SELECT COUNT(*) FROM compute_allocation_usages u JOIN compute_allocations ca ON ca.id = u.compute_allocation_id WHERE "+where), args...); err != nil {
 		return nil, 0, err
 	}
 
@@ -227,6 +233,7 @@ func (s *pgStore) Jobs(ctx context.Context, allocationID string, userID *string,
 		        u.used_raw_amount,
 		        u.used_su_amount AS used_su_amount
 		   FROM compute_allocation_usages u
+		   JOIN compute_allocations ca ON ca.id = u.compute_allocation_id
 		   LEFT JOIN users usr ON usr.id = u.user_id
 		   LEFT JOIN compute_allocation_resources r ON r.id = u.compute_allocation_resource_id
 		  WHERE `+where+`
@@ -246,8 +253,9 @@ func (s *pgStore) MemberUsage(ctx context.Context, allocationID string) ([]Membe
 		        SUM(u.used_su_amount) AS used
 		   FROM compute_allocation_usages u
 		   JOIN users usr ON usr.id = u.user_id
-		  WHERE u.compute_allocation_id = $1
-		  GROUP BY u.user_id, name
+		   JOIN compute_allocations ca ON ca.id = u.compute_allocation_id
+		  WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod+`
+		  GROUP BY u.user_id, usr.first_name, usr.last_name, usr.email
 		  ORDER BY used DESC`, allocationID)
 	if err != nil {
 		return nil, err

@@ -337,7 +337,7 @@ func TestUsageSummary_MemberSeesOwnSliceNoMembers(t *testing.T) {
 		t.Errorf("by_member: got %v, want null for a plain member", got.ByMember)
 	}
 	if got.Total != 1000 {
-		t.Errorf("total: got %d, want 1000", got.Total)
+		t.Errorf("total: got %g, want 1000", got.Total)
 	}
 	if got.Used != 500 {
 		t.Errorf("used: got %v, want 500", got.Used)

@@ -28,7 +28,7 @@ definitions:
       compute_allocation_id:
         type: string
       total_su_amount:
-        type: integer
+        type: number
     type: object
   AllocationStatus:
     enum:
@@ -167,8 +167,8 @@ definitions:
       id:
         type: string
       initial_su_amount:
-        description: SUs allocated at the time of allocation creation.
-        type: integer
+        description: The allocation's SU budget, exactly as the source granted it.
+        type: number
       name:
         type: string
       posix_group:
@@ -206,7 +206,7 @@ definitions:
         description: ACTIVE, INACTIVE, DELETED, etc.
       requested_su_amount:
         description: The requested allocation amount in SUs, e.g., 1200 SUs, etc.
-        type: integer
+        type: number
       requester_id:
         description: The ID of the user who made the change request.
         type: string
@@ -246,8 +246,8 @@ definitions:
       id:
         type: string
       new_su_amount:
-        description: New allocation amount in SUs, e.g., 900 SUs, etc.
-        type: integer
+        description: The SU amount of this change, as the source sent it.
+        type: number
       status:
         allOf:
         - $ref: '#/definitions/AllocationStatus'
@@ -393,9 +393,8 @@ definitions:
         description: The ID of the job that consumed the allocation.
         type: string
       last_updated:
-        description: The last time the usage was updated. SU should be calculated
-          up to this point in time and charge rates should be applied based on the
-          rates effective at this time.
+        description: When the job ended. Picks the rate and the allocation period
+          the usage counts against.
         type: string
       used_raw_amount:
         description: The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours,
@@ -819,7 +818,7 @@ definitions:
       compute_allocation_id:
         type: string
       total_su_amount:
-        type: integer
+        type: number
       user_id:
         type: string
     type: object

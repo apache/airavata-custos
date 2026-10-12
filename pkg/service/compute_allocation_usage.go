@@ -127,9 +127,9 @@ func (s *Service) ListUsagesByUser(ctx context.Context, userID string) ([]models
 	return rows, nil
 }
 
-// GetTotalSUUsageForAllocation returns the total SUs consumed against the
-// given allocation across all recorded usage events.
-func (s *Service) GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error) {
+// GetTotalSUUsageForAllocation returns the SUs consumed against the
+// allocation between its start and end dates.
+func (s *Service) GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (float64, error) {
 	if allocationID == "" {
 		return 0, fmt.Errorf("%w: compute_allocation_id is required", ErrInvalidInput)
 	}
@@ -142,7 +142,7 @@ func (s *Service) GetTotalSUUsageForAllocation(ctx context.Context, allocationID
 
 // GetTotalSUUsageForUserInAllocation returns the total SUs consumed by the
 // given user against the given allocation.
-func (s *Service) GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error) {
+func (s *Service) GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error) {
 	if allocationID == "" {
 		return 0, fmt.Errorf("%w: compute_allocation_id is required", ErrInvalidInput)
 	}
@@ -156,8 +156,8 @@ func (s *Service) GetTotalSUUsageForUserInAllocation(ctx context.Context, alloca
 	return total, nil
 }
 
-// LatestUsageTimeForCluster returns when usage was last recorded against the
-// cluster's allocations, or nil when none has been recorded.
+// LatestUsageTimeForCluster returns the end time of the last job recorded
+// against the cluster's allocations, or nil when none has been recorded.
 func (s *Service) LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
 	if clusterID == "" {
 		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)

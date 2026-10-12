@@ -220,6 +220,23 @@ AMIE API ──poll──> Poller ──persist──> DB (packets + events)
 | InformTransactionComplete | `inform_transaction_complete` | *(none, terminal)*            |
 | NoOp                      | *(catch-all)*                 | *(none)*                      |
 
+### Allocation types
+
+A `request_project_create` carries an `AllocationType`. The spec (AMIE in
+ACCESS, section notify_project_create) defines what each one means for the site.
+
+| Type         | Unknown project or resource       | Existing allocation                           |
+|--------------|-----------------------------------|-----------------------------------------------|
+| `new`        | create the allocation             | create the allocation                         |
+| `transfer`   | create, as a supplement           | add the SUs; a negative amount is deducted    |
+| `supplement` | create                            | add the SUs, dates unchanged                  |
+| `renewal`    | create, with the given dates      | replace the SUs and dates from the start date |
+| `extension`  | not expected                      | change the end date only                      |
+| `adjustment` | not expected                      | add or deduct, like a transfer                |
+| `advance`    | listed in the spec, not described |
+
+A negative `transfer` for an unknown allocation is an error.
+
 ## Configuration Reference
 
 Configuration lives in the `connectors.amie-processor` block of [`config/custos.yaml`](../../../config/custos.yaml).
