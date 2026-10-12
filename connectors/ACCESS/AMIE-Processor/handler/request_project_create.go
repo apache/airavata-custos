@@ -38,10 +38,13 @@ type RequestProjectCreateHandler struct {
 	clusterID  string
 	amieClient AmieClient
 	auditSvc   AuditService
+	// Packet resource names that are not catalog names, mapped to the catalog
+	// resource they stand for in the custos.yaml
+	resourceAliases map[string]string
 }
 
-func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService) *RequestProjectCreateHandler {
-	return &RequestProjectCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc}
+func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService, resourceAliases map[string]string) *RequestProjectCreateHandler {
+	return &RequestProjectCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc, resourceAliases: resourceAliases}
 }
 
 func (h *RequestProjectCreateHandler) SupportsType() string { return "request_project_create" }
@@ -255,6 +258,9 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 // unregistered names are skipped rather than failing the packet.
 func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
 	for _, name := range getResourceList(body) {
+		if local, ok := h.resourceAliases[name]; ok {
+			name = local
+		}
 		resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
 		if errors.Is(err, service.ErrNotFound) {
 			slog.WarnContext(ctx, "amie: packet resource not in the cluster catalog, mapping skipped",

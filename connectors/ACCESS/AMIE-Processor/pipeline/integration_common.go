@@ -199,7 +199,7 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	auditSvc := amieservice.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
 
 	router := handler.NewRouter(
-		handler.NewRequestProjectCreateHandler(coreSvc, testClusterID, amieClient, auditSvc),
+		handler.NewRequestProjectCreateHandler(coreSvc, testClusterID, amieClient, auditSvc, nil),
 		handler.NewRequestAccountCreateHandler(coreSvc, testClusterID, amieClient, auditSvc),
 		handler.NewRequestProjectInactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestProjectReactivateHandler(coreSvc, amieClient, auditSvc),
