@@ -221,6 +221,7 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
+	s.InvalidateAllIdentities()
 	return existing, nil
 }
 

@@ -294,3 +294,28 @@ func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
 		t.Fatal("no UserIdentityCreateEvent published on identity link")
 	}
 }
+
+func TestResolveCaller_RefusesDisabledUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	bound := seedUser(t, database, "bound@example.edu")
+	seedOIDCIdentity(t, database, bound, "sub-bound", "bound@example.edu")
+	if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-bound"}); err != nil {
+		t.Fatalf("resolve active: %v", err)
+	}
+	unbound := seedPendingUserWithEmail(t, database, "unbound@example.edu")
+
+	for _, status := range []models.UserStatus{models.UserSuspended, models.UserInactive, models.UserMerged} {
+		for _, id := range []string{bound, unbound} {
+			if _, err := svc.UpdateUserStatus(ctx(), id, status); err != nil {
+				t.Fatalf("set %s: %v", status, err)
+			}
+		}
+		if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-bound"}); !errors.Is(err, identity.ErrUserDisabled) {
+			t.Errorf("bound %s: got %v, want ErrUserDisabled", status, err)
+		}
+		if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-unbound", Email: "unbound@example.edu", EmailVerified: true}); !errors.Is(err, identity.ErrUserDisabled) {
+			t.Errorf("email fallback %s: got %v, want ErrUserDisabled", status, err)
+		}
+	}
+}
