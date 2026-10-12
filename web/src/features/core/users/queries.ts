@@ -21,6 +21,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { identityKeys } from "@/features/core/identity/queries";
 import {
   assignUserRole,
+  createUser,
   getRoleDetail,
   listDirectPrivileges,
   listRolesCatalog,
@@ -29,7 +30,7 @@ import {
   listUsers,
   removeUserRole,
 } from "./api";
-import type { Role, User, UserRole } from "./schemas";
+import type { CreateUserPayload, Role, User, UserRole } from "./schemas";
 import type {
   RoleWithPrivileges,
   UpdateUserRolesInput,
@@ -116,6 +117,14 @@ export async function applyUserRoleChanges(
     }
     throw error;
   }
+}
+
+export function useCreateUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateUserPayload) => createUser(payload),
+    onSuccess: () => client.invalidateQueries({ queryKey: userKeys.all }),
+  });
 }
 
 export function useUsers(params: UserListParams = {}, options: { enabled?: boolean } = {}) {
