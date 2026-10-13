@@ -221,8 +221,9 @@ func loadClusterID(connectorConfig *custosconfig.ConnectorConfig) string {
 	return os.Getenv("AMIE_CLUSTER_ID")
 }
 
-func loadResourceAliases(connectorConfig *custosconfig.ConnectorConfig) map[string]string {
-	aliases := map[string]string{}
+// loadResourceAliases reads each alias as one catalog name or a list of them.
+func loadResourceAliases(connectorConfig *custosconfig.ConnectorConfig) map[string][]string {
+	aliases := map[string][]string{}
 	if connectorConfig == nil {
 		return aliases
 	}
@@ -231,8 +232,15 @@ func loadResourceAliases(connectorConfig *custosconfig.ConnectorConfig) map[stri
 		return aliases
 	}
 	for name, v := range raw {
-		if local, ok := v.(string); ok && local != "" {
-			aliases[name] = local
+		switch local := v.(type) {
+		case string:
+			aliases[name] = []string{local}
+		case []any:
+			for _, item := range local {
+				if s, ok := item.(string); ok {
+					aliases[name] = append(aliases[name], s)
+				}
+			}
 		}
 	}
 	return aliases
