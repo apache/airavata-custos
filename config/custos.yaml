@@ -87,6 +87,9 @@ connectors:
           username: "${VAST_API_USER}"
           password: "${VAST_API_PASSWORD}"
           tenant_id: ${VAST_TENANT_ID}
+          # Used by targets with `view: true`. When the connector is enabled, Custos does not start if VMS has no policy by this name.
+          view_policy: "${VAST_VIEW_POLICY}"
+          view_protocols: "${VAST_VIEW_PROTOCOLS}"    # comma-separated, such as NFS,NFS4
         targets:
           - path: "/home/{user}"
             owner: "{user}"
@@ -100,20 +103,24 @@ connectors:
             mode: "0700"
             hard_limit_size: 10995116277760    # 10 TiB
             hard_limit_inodes: 10000000
+            view: true
           - path: "/project/{allocation}"
             owner: "0"
             group: "{allocation}"
             mode: "2750"
             hard_limit_size: 10995116277760    # 10 TiB
             hard_limit_inodes: 300000000
+            view: true
           - path: "/project/{allocation}/shared"
             owner: "0"
             group: "{allocation}"
             mode: "2770"
+            view: true
           - path: "/project/{allocation}/{user}"
             owner: "{user}"
             group: "{allocation}"
             mode: "2700"
+            view: true
 
   amie-processor:
     type: "amie-processor"

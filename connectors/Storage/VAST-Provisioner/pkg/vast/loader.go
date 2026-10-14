@@ -23,7 +23,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -45,25 +47,38 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	for _, e := range entries {
 		cluster, _ := e.(map[string]interface{})
 		vms, _ := cluster["vast"].(map[string]interface{})
-		vmsURL, _ := vms["url"].(string)
-		username, _ := vms["username"].(string)
-		password, _ := vms["password"].(string)
+		vmsURL, username, password := setting(vms, "url"), setting(vms, "username"), setting(vms, "password")
 		tenantID, _ := vms["tenant_id"].(int)
-		clusterID, _ := cluster["id"].(string)
+		clusterID := setting(cluster, "id")
 		targets, _ := cluster["targets"].([]interface{})
 		if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" || len(targets) == 0 {
-			slog.Info("vast provisioner: required config not set; skipping", "cluster_id", clusterID)
-			continue
+			return fmt.Errorf("vast provisioner: cluster %q needs id, vast.url, vast.username, vast.password, vast.tenant_id and targets", clusterID)
 		}
 		mounts, err := parseMounts(targets)
 		if err != nil {
 			return err
 		}
-		clusters[clusterID] = subscribers.Cluster{VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts}
+		c := subscribers.Cluster{VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts}
+		// Verify that view policy is set otherwise stop the startup instead of failing every create request.
+		if slices.ContainsFunc(mounts, func(m subscribers.Mount) bool { return m.View }) {
+			policy := setting(vms, "view_policy")
+			for p := range strings.SplitSeq(setting(vms, "view_protocols"), ",") {
+				if p = strings.TrimSpace(p); p != "" {
+					c.ViewProtocols = append(c.ViewProtocols, p)
+				}
+			}
+			if policy == "" || len(c.ViewProtocols) == 0 {
+				return fmt.Errorf("vast provisioner: cluster %s has view targets, so vast.view_policy and vast.view_protocols are required", clusterID)
+			}
+			if c.ViewPolicyID, err = c.VMS.ViewPolicyID(ctx, policy); err != nil {
+				return fmt.Errorf("vast provisioner: cluster %s: %w", clusterID, err)
+			}
+		}
+		clusters[clusterID] = c
 		slog.Info("vast provisioner: cluster registered", "vms", vmsURL, "cluster_id", clusterID)
 	}
 	if len(clusters) == 0 {
-		return nil
+		return fmt.Errorf("vast provisioner: enabled with no clusters")
 	}
 	subscriber := subscribers.NewStorageSubscriber(eventBus, coreService, clusters)
 	subscriber.RegisterSubscribers(Type)
@@ -75,6 +90,15 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	return nil
 }
 
+// setting returns "" when the env var is not set, since the config keeps ${VAR} as is.
+func setting(m map[string]interface{}, key string) string {
+	s, _ := m[key].(string)
+	if strings.Contains(s, "${") {
+		return ""
+	}
+	return s
+}
+
 func parseMounts(storage []interface{}) ([]subscribers.Mount, error) {
 	var mounts []subscribers.Mount
 	for i, e := range storage {
@@ -82,12 +106,13 @@ func parseMounts(storage []interface{}) ([]subscribers.Mount, error) {
 		str := func(k string) string { v, _ := m[k].(string); return v }
 		hardLimit, _ := m["hard_limit_size"].(int)
 		hardLimitInodes, _ := m["hard_limit_inodes"].(int)
+		view, _ := m["view"].(bool)
 		mode, err := strconv.ParseInt(str("mode"), 8, 32)
 		if err != nil {
 			return nil, fmt.Errorf("vast provisioner: targets[%d].mode must be octal, such as \"0700\": %w", i, err)
 		}
 		mounts = append(mounts, subscribers.Mount{Path: str("path"), Owner: str("owner"), Group: str("group"),
-			Mode: int(mode), HardLimit: int64(hardLimit), HardLimitInodes: int64(hardLimitInodes)})
+			Mode: int(mode), HardLimit: int64(hardLimit), HardLimitInodes: int64(hardLimitInodes), View: view})
 	}
 	return mounts, nil
 }

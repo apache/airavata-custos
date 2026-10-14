@@ -18,7 +18,7 @@
 // Command local-vast serves the part of the VAST VMS REST API the
 // VAST-Provisioner calls, on a test cluster's file server. Folders become
 // real directories whose owners resolve through NSS, as VMS resolves them
-// through its directory provider; quotas are only logged.
+// through its directory provider; quotas and views are only logged.
 package main
 
 import (
@@ -71,6 +71,18 @@ func main() {
 		log.Printf("quota %s", body)
 		return nil
 	}))
+	mux.HandleFunc("POST /api/views/", authed(func(body []byte) error {
+		log.Printf("view %s", body)
+		return nil
+	}))
+	// Every policy name exists here, so the connector's startup check passes.
+	mux.HandleFunc("GET /api/viewpolicies/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+token {
+			http.Error(w, "token not valid", http.StatusForbidden)
+			return
+		}
+		_ = json.NewEncoder(w).Encode([]map[string]any{{"id": 1, "name": r.URL.Query().Get("name")}})
+	})
 	log.Fatal(http.ListenAndServe(os.Getenv("LISTEN"), mux))
 }
 

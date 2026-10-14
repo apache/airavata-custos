@@ -34,9 +34,9 @@ import (
 
 var layout = []Mount{
 	{Path: "/home/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, HardLimit: 1, HardLimitInodes: 1},
-	{Path: "/scratch/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, HardLimit: 1, HardLimitInodes: 1},
-	{Path: "/project/{allocation}", Owner: "0", Group: "{allocation}", Mode: 0o2750, HardLimit: 1, HardLimitInodes: 1},
-	{Path: "/project/{allocation}/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700},
+	{Path: "/scratch/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, HardLimit: 1, HardLimitInodes: 1, View: true},
+	{Path: "/project/{allocation}", Owner: "0", Group: "{allocation}", Mode: 0o2750, HardLimit: 1, HardLimitInodes: 1, View: true},
+	{Path: "/project/{allocation}/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, View: true},
 }
 
 // oneAllocation serves one active allocation whose only member is the account.
@@ -66,7 +66,12 @@ func TestEnsureUser(t *testing.T) {
 		provisionedAt *time.Time
 		want          []string
 	}{
-		{name: "creates in order", cluster: "c1", provisionedAt: &now, want: []string{"folder /home/custos-jdoe", "quota /home/custos-jdoe", "folder /scratch/custos-jdoe", "quota /scratch/custos-jdoe", "folder /project/proj-a", "quota /project/proj-a", "folder /project/proj-a/custos-jdoe"}},
+		{name: "creates in order", cluster: "c1", provisionedAt: &now, want: []string{
+			"folder /home/custos-jdoe", "quota /home/custos-jdoe",
+			"folder /scratch/custos-jdoe", "view /scratch/custos-jdoe", "quota /scratch/custos-jdoe",
+			"folder /project/proj-a", "view /project/proj-a", "quota /project/proj-a",
+			"folder /project/proj-a/custos-jdoe", "view /project/proj-a/custos-jdoe",
+		}},
 		{name: "skips unprovisioned", cluster: "c1"},
 		{name: "skips unlisted cluster", cluster: "c2", provisionedAt: &now},
 	}
@@ -83,6 +88,8 @@ func TestEnsureUser(t *testing.T) {
 					log = append(log, "folder "+body.Path)
 				case "/api/quotas/":
 					log = append(log, "quota "+body.Path)
+				case "/api/views/":
+					log = append(log, "view "+body.Path)
 				}
 			}))
 			defer srv.Close()

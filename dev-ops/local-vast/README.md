@@ -28,6 +28,8 @@ tested end to end: Custos → COmanage → LDAP → directories users see on the
 | `POST /api/folders/create_folder/` | Creates the directory, owner and group resolved through NSS, mode applied exactly, setgid included (VMS drops it); `503` if it exists or an owner is unknown |
 | `POST /api/folders/stat_path/` | 200 if the path exists, else `503` |
 | `POST /api/quotas/` | Logged; not enforced |
+| `POST /api/views/` | Logged; no export is made |
+| `GET /api/viewpolicies/` | A policy with id 1 for any name |
 
 ## Install
 

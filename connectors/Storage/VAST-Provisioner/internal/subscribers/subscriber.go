@@ -40,10 +40,12 @@ import (
 // {user}, the account's username, and {allocation}, the allocation's group;
 // the ones it uses decide which. Its quota, named after the path, is created
 // when HardLimit is set; a directory without one counts against its parent's.
+// When View is set, the directory also becomes a view under the cluster's view policy.
 type Mount struct {
 	Path, Owner, Group         string
 	Mode                       int
 	HardLimit, HardLimitInodes int64
+	View                       bool
 }
 
 func (m Mount) uses(placeholder string) bool {
@@ -51,8 +53,10 @@ func (m Mount) uses(placeholder string) bool {
 }
 
 type Cluster struct {
-	VMS    *client.Client
-	Mounts []Mount
+	VMS           *client.Client
+	Mounts        []Mount
+	ViewPolicyID  int
+	ViewProtocols []string
 }
 
 type StorageSubscriber struct {
@@ -142,6 +146,11 @@ func (s *StorageSubscriber) ensure(ctx context.Context, c Cluster, user, group s
 		path := r.Replace(m.Path)
 		if err := c.VMS.CreateFolder(ctx, path, r.Replace(m.Owner), r.Replace(m.Group), m.Mode); err != nil {
 			return err
+		}
+		if m.View {
+			if err := c.VMS.CreateView(ctx, path, c.ViewPolicyID, c.ViewProtocols); err != nil {
+				return err
+			}
 		}
 		if m.HardLimit == 0 {
 			continue
