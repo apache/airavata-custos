@@ -40,10 +40,10 @@ type RequestProjectCreateHandler struct {
 	auditSvc   AuditService
 	// Packet resource names that are not catalog names, mapped to the catalog
 	// resource they stand for in the custos.yaml
-	resourceAliases map[string]string
+	resourceAliases map[string][]string
 }
 
-func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService, resourceAliases map[string]string) *RequestProjectCreateHandler {
+func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService, resourceAliases map[string][]string) *RequestProjectCreateHandler {
 	return &RequestProjectCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc, resourceAliases: resourceAliases}
 }
 
@@ -268,29 +268,40 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 // already stored on the allocation, so mappings carry no native caps;
 // unregistered names are skipped rather than failing the packet.
 func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
-	for _, name := range getResourceList(body) {
-		if local, ok := h.resourceAliases[name]; ok {
-			name = local
+	for _, packetName := range getResourceList(body) {
+		// One packet resource can stand for several catalog resources, such as two GPU partitions with their own rates.
+		names, ok := h.resourceAliases[packetName]
+		if !ok {
+			names = []string{packetName}
 		}
-		resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
-		if errors.Is(err, service.ErrNotFound) {
-			slog.WarnContext(ctx, "amie: packet resource not in the cluster catalog, mapping skipped",
-				"resource", name, "allocation_id", allocation.ID)
-			continue
+		for _, name := range names {
+			if err := h.attachResource(ctx, tx, allocation, packet, eventID, name); err != nil {
+				return err
+			}
 		}
-		if err != nil {
-			return fmt.Errorf("lookup resource %q: %w", name, err)
-		}
-		mapping, err := h.svc.AttachResourceToAllocation(ctx, allocation.ID, resource.ID, 0, 0)
-		if errors.Is(err, service.ErrAlreadyExists) {
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("attach resource %q: %w", name, err)
-		}
-		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditAttachResource, "compute_allocation_resource_mapping", mapping.ID, name); err != nil {
-			return fmt.Errorf("audit ATTACH_RESOURCE: %w", err)
-		}
+	}
+	return nil
+}
+
+func (h *RequestProjectCreateHandler) attachResource(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, packet *model.Packet, eventID, name string) error {
+	resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
+	if errors.Is(err, service.ErrNotFound) {
+		slog.WarnContext(ctx, "amie: packet resource not in the cluster catalog, mapping skipped",
+			"resource", name, "allocation_id", allocation.ID)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("lookup resource %q: %w", name, err)
+	}
+	mapping, err := h.svc.AttachResourceToAllocation(ctx, allocation.ID, resource.ID, 0, 0)
+	if errors.Is(err, service.ErrAlreadyExists) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("attach resource %q: %w", name, err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditAttachResource, "compute_allocation_resource_mapping", mapping.ID, name); err != nil {
+		return fmt.Errorf("audit ATTACH_RESOURCE: %w", err)
 	}
 	return nil
 }

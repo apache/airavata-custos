@@ -593,25 +593,19 @@ func TestRequestProjectCreate_AttachesRegisteredResources(t *testing.T) {
 	}
 }
 
-// Make sure a packet resource with an alias in the custos.yaml config attaches the catalog resource the alias points to.
-func TestRequestProjectCreate_AttachesAliasedResource(t *testing.T) {
+// Make sure an alias with two catalog resources attaches the allocation to both.
+func TestRequestProjectCreate_AttachesEveryAliasedResource(t *testing.T) {
 	database := setupTestDB(t)
-
 	svc := newTestCoreService(database)
-	audit := newTestAuditService(database)
-	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, map[string]string{
-		"compute.access-ci.org": "gpu-b200",
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), map[string][]string{
+		"compute.access-ci.org": {"gpu-b200", "gpu-rtxpro"},
 	})
-
-	resource, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
-		Name:             "gpu-b200",
-		ResourceType:     "gres/gpu:b200",
-		ResourceAmount:   16,
-		ComputeClusterID: testClusterID,
-	})
-	if err != nil {
-		t.Fatalf("seed catalog resource: %v", err)
+	for _, name := range []string{"gpu-b200", "gpu-rtxpro"} {
+		if _, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
+			Name: name, ResourceType: "gres/gpu", ResourceAmount: 1, ComputeClusterID: testClusterID,
+		}); err != nil {
+			t.Fatalf("seed catalog resource %s: %v", name, err)
+		}
 	}
 
 	body := baseRPCBody()
@@ -622,14 +616,14 @@ func TestRequestProjectCreate_AttachesAliasedResource(t *testing.T) {
 		t.Fatalf("Handle returned error: %v", err)
 	}
 
-	var resourceID string
-	if err := database.Get(&resourceID,
-		"SELECT compute_allocation_resource_id FROM compute_allocation_resource_mappings LIMIT 1",
-	); err != nil {
-		t.Fatalf("read mapping: %v", err)
+	var attached []string
+	if err := database.Select(&attached,
+		`SELECT r.name FROM compute_allocation_resource_mappings m
+		 JOIN compute_allocation_resources r ON r.id = m.compute_allocation_resource_id ORDER BY r.name`); err != nil {
+		t.Fatalf("read mappings: %v", err)
 	}
-	if resourceID != resource.ID {
-		t.Errorf("mapping.resource_id: got %q, want %q", resourceID, resource.ID)
+	if strings.Join(attached, ",") != "gpu-b200,gpu-rtxpro" {
+		t.Errorf("attached resources: got %v, want gpu-b200 and gpu-rtxpro", attached)
 	}
 }
 

@@ -252,5 +252,6 @@ Sensitive values come from env vars sourced by the server on startup:
 Poll intervals, worker interval, and HTTP timeouts are set in the YAML block. Log level and format are inherited from
 the core server. A packet's `ResourceList` names are matched against the cluster's resource catalog by name; when
 ACCESS uses a different name for a resource, map it under `resource_aliases` in the same block, for example
-`my-gpu.site.access-ci.org: gpu-a100`. The database DSN is shared with core via `DATABASE_DSN`; this connector does not maintain its own
+`my-gpu.site.access-ci.org: gpu-a100`. An alias can also list several catalog resources, such as
+`my-gpu.site.access-ci.org: [gpu-a100, gpu-h100]`, and the allocation is attached to each. The database DSN is shared with core via `DATABASE_DSN`; this connector does not maintain its own
 connection.
