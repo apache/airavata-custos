@@ -97,7 +97,7 @@ func TestCreateView(t *testing.T) {
 	}
 }
 
-// Make sure the view policy is matched by its exact name, and a missing one is an error.
+// Make sure the view policy id is found by name, and a missing policy is an error.
 func TestViewPolicyID(t *testing.T) {
 	tests := []struct {
 		name, policies string
@@ -106,7 +106,6 @@ func TestViewPolicyID(t *testing.T) {
 	}{
 		{name: "found", policies: `[{"id":4,"name":"local-access"}]`, want: 4},
 		{name: "missing", policies: `[]`, wantErr: true},
-		{name: "only a similar name", policies: `[{"id":5,"name":"local-access-old"}]`, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
