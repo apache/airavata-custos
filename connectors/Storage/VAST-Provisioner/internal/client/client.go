@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package client creates folders and quotas through the VAST VMS REST API.
+// Package client creates folders, views and quotas through the VAST VMS REST API.
 // Each create logs in for a fresh JWT from `/api/token/`, since creates are rare.
 // VMS answers most refusals, including an existing folder, with a 503, so a
 // refused create counts as success when the folder or quota exists; any other
@@ -69,15 +69,48 @@ func (c *Client) CreateQuota(ctx context.Context, path string, hardLimit, hardLi
 	})
 }
 
+// CreateView creates a view on the existing directory path unless one exists.
+// The directory comes from CreateFolder, since VMS ignores a view's owner fields.
+func (c *Client) CreateView(ctx context.Context, path string, policyID int, protocols []string) error {
+	return c.create(ctx, "views/", map[string]any{
+		"path": path, "create_dir": false, "policy_id": policyID, "protocols": protocols, "tenant_id": c.tenantID,
+	}, func(token string) bool {
+		var found []json.RawMessage
+		return c.do(ctx, token, http.MethodGet, "views/?path="+url.QueryEscape(path), nil, &found) == nil && len(found) > 0
+	})
+}
+
+// ViewPolicyID returns the id of the corresponding view policy name.
+func (c *Client) ViewPolicyID(ctx context.Context, name string) (int, error) {
+	token, err := c.login(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var found []struct{ ID int }
+	if err := c.do(ctx, token, http.MethodGet, "viewpolicies/?name="+url.QueryEscape(name), nil, &found); err != nil {
+		return 0, err
+	}
+	if len(found) == 0 {
+		return 0, fmt.Errorf("vast: view policy %q not found", name)
+	}
+	return found[0].ID, nil
+}
+
 func (c *Client) create(ctx context.Context, path string, body map[string]any, exists func(token string) bool) error {
-	var t struct{ Access string }
-	if err := c.do(ctx, "", http.MethodPost, "token/", map[string]string{"username": c.username, "password": c.password}, &t); err != nil {
+	token, err := c.login(ctx)
+	if err != nil {
 		return err
 	}
-	if err := c.do(ctx, t.Access, http.MethodPost, path, body, nil); err != nil && !exists(t.Access) {
+	if err := c.do(ctx, token, http.MethodPost, path, body, nil); err != nil && !exists(token) {
 		return err
 	}
 	return nil
+}
+
+func (c *Client) login(ctx context.Context) (string, error) {
+	var t struct{ Access string }
+	err := c.do(ctx, "", http.MethodPost, "token/", map[string]string{"username": c.username, "password": c.password}, &t)
+	return t.Access, err
 }
 
 func (c *Client) do(ctx context.Context, token, method, path string, body, out any) error {

@@ -145,6 +145,8 @@ connectors:
           username: "custos"
           password: "${VAST_API_PASSWORD}"
           tenant_id: 1
+          view_policy: "${VAST_VIEW_POLICY}"         # must exist in VMS when any target has `view: true`
+          view_protocols: "${VAST_VIEW_PROTOCOLS}"   # comma-separated, such as NFS,NFS4
         # config/custos.yaml holds the full list.
         targets:
           - path: "/home/{user}"
@@ -153,6 +155,13 @@ connectors:
             mode: "0700"
             hard_limit_size: 107374182400      # 100 GiB
             hard_limit_inodes: 1000000
+          - path: "/scratch/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 10000000
+            view: true
 ```
 
 #### AMIE Processor

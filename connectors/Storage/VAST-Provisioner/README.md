@@ -19,13 +19,17 @@
 
 # VAST-Provisioner
 
-Creates directories and quotas on each configured cluster's VAST through the VMS REST API, once the COmanage
+Creates directories, views and quotas on each configured cluster's VAST through the VMS REST API, once the COmanage
 Identity-Provisioner has provisioned the account or the allocation's group. Nothing is changed once it exists, and nothing is deleted.
 
 The directories come from each cluster's `targets` list in the config. Each entry's `path`, `owner` and `group` are
 templates over `{user}`, the account's username, and `{allocation}`, the allocation's group; the ones it uses decide
 what it waits for. Entries are created in config order, with a quota named after the path when `hard_limit_size` is
 set. Events for clusters not listed are ignored.
+
+An entry with `view: true` also becomes a view, nested under the view that holds it, using the cluster's
+`vast.view_policy` and `vast.view_protocols`. The directory is created first, since VMS ignores the owner
+fields on a view. The policy is looked up once at startup, and Custos does not start if it is missing.
 
 | Trigger | Runs |
 |---|---|
@@ -43,7 +47,8 @@ VAST admins make these changes before the connector is enabled.
 | Prerequisite | Why |
 |---|---|
 | The COmanage LDAP is a VMS user-directory provider | VMS resolves owners only from its providers; Custos users and `proj-*` groups are otherwise unknown and every create retries |
-| The service account may create folders and quotas | The account the connector logs in with |
+| The service account may create folders, views and quotas | The account the connector logs in with |
+| The view policy in `vast.view_policy` exists | Used for every view the connector creates |
 
 VMS drops setgid from `create_dir_mode` (a `2770` request yields `0770`), so folders configured with setgid, such as
 `/project/{allocation}`, `shared` and `/project/{allocation}/{user}`, come out without it and files in them do not
