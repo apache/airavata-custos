@@ -69,19 +69,18 @@ func NewStorageSubscriber(bus *events.Bus, core service.CoreService, clusters ma
 	return &StorageSubscriber{bus: bus, core: core, clusters: clusters}
 }
 
+// Each event creates only its own user's or allocation's mounts, so a failure
+// names the right user and can be retried alone. The reconciler does the rest.
 func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserProvisioned(subscriber, s.ensureUser)
-	s.bus.SubscribeComputeAllocationCreated(subscriber, s.ensureAllocation)
-	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.ensureAllocation)
-	byMembership := func(ctx context.Context, m models.ComputeAllocationMembership) error {
-		return s.ensureAllocationByID(ctx, m.ComputeAllocationID)
-	}
-	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, byMembership)
-	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, byMembership)
+	s.bus.SubscribeComputeAllocationCreated(subscriber, s.ensureGroup)
+	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.ensureGroup)
+	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
 }
 
 // ensureUser needs no approval check: COmanage provisions approved accounts only.
-// After the account's mounts it ensures each of the account's allocations.
+// After the account's own mounts, it creates the account's mount in each of its allocations.
 func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClusterUser) error {
 	c, ok := s.clusters[cu.ComputeClusterID]
 	if !ok || cu.ProvisionedAt == nil {
@@ -94,29 +93,89 @@ func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClu
 	if err != nil {
 		return err
 	}
-	var errs []error
 	for _, m := range memberships {
-		errs = append(errs, s.ensureAllocationByID(ctx, m.ComputeAllocationID))
+		if m.MembershipStatus != models.ACTIVE {
+			continue
+		}
+		a, _, err := s.activeAllocation(ctx, m.ComputeAllocationID)
+		if err != nil {
+			return err
+		}
+		if a == nil || a.ComputeClusterID != cu.ComputeClusterID {
+			continue
+		}
+		if err := s.ensureMemberMounts(ctx, c, cu.LocalUsername, *a.PosixGroup); err != nil {
+			return err
+		}
 	}
-	return errors.Join(errs...)
+	return nil
 }
 
-func (s *StorageSubscriber) ensureAllocationByID(ctx context.Context, id string) error {
-	a, err := s.core.GetComputeAllocation(ctx, id)
-	if errors.Is(err, service.ErrNotFound) {
+// ensureMember creates the member's mount in the allocation. A member without a
+// provisioned account is skipped, its provision event creates the mount later.
+func (s *StorageSubscriber) ensureMember(ctx context.Context, m models.ComputeAllocationMembership) error {
+	if m.MembershipStatus != models.ACTIVE {
 		return nil
 	}
+	a, c, err := s.activeAllocation(ctx, m.ComputeAllocationID)
+	if err != nil || a == nil {
+		return err
+	}
+	members, err := s.core.ListMembersForAllocation(ctx, a.ID)
 	if err != nil {
 		return err
 	}
-	return s.ensureAllocation(ctx, *a)
+	for _, mw := range members {
+		if mw.UserID == m.UserID && mw.ProvisionedAt != nil {
+			return s.ensureMemberMounts(ctx, c, mw.LocalUsername, *a.PosixGroup)
+		}
+	}
+	return nil
 }
 
-// ensureAllocation creates an active allocation's mounts, then those of each
-// member its POSIX group holds.
-func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.ComputeAllocation) error {
+// ensureGroup creates an allocation's group mounts. Members' mounts come from their own events.
+func (s *StorageSubscriber) ensureGroup(ctx context.Context, a models.ComputeAllocation) error {
+	c, ok := s.cluster(a)
+	if !ok {
+		return nil
+	}
+	return s.ensure(ctx, c, "", *a.PosixGroup)
+}
+
+// cluster returns the allocation's cluster when the allocation is active, has a group, and the cluster is configured.
+func (s *StorageSubscriber) cluster(a models.ComputeAllocation) (Cluster, bool) {
 	c, ok := s.clusters[a.ComputeClusterID]
-	if !ok || a.Status != models.ACTIVE || a.PosixGroup == nil {
+	return c, ok && a.Status == models.ACTIVE && a.PosixGroup != nil
+}
+
+// activeAllocation loads the allocation and its cluster, nil when there is nothing to create for it.
+func (s *StorageSubscriber) activeAllocation(ctx context.Context, id string) (*models.ComputeAllocation, Cluster, error) {
+	a, err := s.core.GetComputeAllocation(ctx, id)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil, Cluster{}, nil
+	}
+	if err != nil {
+		return nil, Cluster{}, err
+	}
+	c, ok := s.cluster(*a)
+	if !ok {
+		return nil, Cluster{}, nil
+	}
+	return a, c, nil
+}
+
+// ensureMemberMounts creates the group's mounts, then the user's mount inside them.
+func (s *StorageSubscriber) ensureMemberMounts(ctx context.Context, c Cluster, user, group string) error {
+	if err := s.ensure(ctx, c, "", group); err != nil {
+		return err
+	}
+	return s.ensure(ctx, c, user, group)
+}
+
+// ensureAllocation creates an active allocation's mounts, then those of each member its POSIX group holds. Used by the reconciler.
+func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.ComputeAllocation) error {
+	c, ok := s.cluster(a)
+	if !ok {
 		return nil
 	}
 	if err := s.ensure(ctx, c, "", *a.PosixGroup); err != nil {

@@ -33,10 +33,12 @@ fields on a view. The policy is looked up once at startup, and Custos does not s
 
 | Trigger | Runs |
 |---|---|
-| `compute_cluster_user::update` with `provisioned_at` set | The account's directories, then its project directories |
-| `compute_allocation::create` and `::update` | The project's directories, then each member's; retried until LDAP has the group |
-| `compute_allocation_membership::create` and `::update` | The same, for the membership's allocation |
-| Startup, then every 24 hours | The same, for every account and allocation on each cluster |
+| `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
+| `compute_allocation::create` and `::update` | The project's directories; retried until LDAP has the group |
+| `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
+| Startup, then every 24 hours | Everything, for every account and allocation on each cluster |
+
+Each event creates only what it is about, so a failed delivery names the user it is for and can be retried alone.
 
 Configuration is in [`CONFIG.md`](../../../CONFIG.md#storage-vast-provisioner).
 

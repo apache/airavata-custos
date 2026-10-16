@@ -39,9 +39,23 @@ var layout = []Mount{
 	{Path: "/project/{allocation}/{user}", Owner: "{user}", Group: "{user}", Mode: 0o700, View: true},
 }
 
-// oneAllocation serves one active allocation whose only member is the account.
-func oneAllocation() *service.CoreServiceMock {
+var (
+	groupMounts  = []string{"folder /project/proj-a", "view /project/proj-a", "quota /project/proj-a"}
+	jdoeOwn      = []string{"folder /home/custos-jdoe", "quota /home/custos-jdoe", "folder /scratch/custos-jdoe", "view /scratch/custos-jdoe", "quota /scratch/custos-jdoe"}
+	jdoeMember   = []string{"folder /project/proj-a/custos-jdoe", "view /project/proj-a/custos-jdoe"}
+	asmithMember = []string{"folder /project/proj-a/custos-asmith", "view /project/proj-a/custos-asmith"}
+)
+
+// allocationWithMembers serves one active allocation on cluster c1 with two
+// provisioned members, jdoe (u1) and asmith (u2), and one member whose account is not provisioned yet (u3).
+func allocationWithMembers() *service.CoreServiceMock {
 	group, provisioned := "proj-a", time.Now()
+	member := func(userID, username string, at *time.Time) store.MembershipWithUser {
+		return store.MembershipWithUser{
+			ComputeAllocationMembership: models.ComputeAllocationMembership{ComputeAllocationID: "a1", UserID: userID, MembershipStatus: models.ACTIVE},
+			LocalUsername:               username, ProvisionedAt: at,
+		}
+	}
 	return &service.CoreServiceMock{
 		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) {
 			return []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE}}, nil
@@ -50,14 +64,43 @@ func oneAllocation() *service.CoreServiceMock {
 			return &models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}, nil
 		},
 		ListMembersForAllocationFunc: func(context.Context, string) ([]store.MembershipWithUser, error) {
-			return []store.MembershipWithUser{{
-				ComputeAllocationMembership: models.ComputeAllocationMembership{MembershipStatus: models.ACTIVE},
-				LocalUsername:               "custos-jdoe", ProvisionedAt: &provisioned,
-			}}, nil
+			return []store.MembershipWithUser{member("u1", "custos-jdoe", &provisioned), member("u2", "custos-asmith", &provisioned), member("u3", "custos-pending", nil)}, nil
 		},
 	}
 }
 
+// recordingVMS stands in for VMS and records each create as "<kind> <path>".
+func recordingVMS(t *testing.T) (Cluster, *[]string) {
+	t.Helper()
+	var log []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct{ Path string }
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		switch r.URL.Path {
+		case "/api/token/":
+			_, _ = w.Write([]byte(`{"access":"t"}`))
+		case "/api/folders/create_folder/":
+			log = append(log, "folder "+body.Path)
+		case "/api/quotas/":
+			log = append(log, "quota "+body.Path)
+		case "/api/views/":
+			log = append(log, "view "+body.Path)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return Cluster{VMS: client.New(srv.URL, "u", "p", 1), Mounts: layout}, &log
+}
+
+func join(parts ...[]string) []string {
+	var all []string
+	for _, p := range parts {
+		all = append(all, p...)
+	}
+	return all
+}
+
+// Make sure a provision event creates the account's own directories and its
+// directory in each of its projects, and nothing for the other members.
 func TestEnsureUser(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
@@ -66,38 +109,62 @@ func TestEnsureUser(t *testing.T) {
 		provisionedAt *time.Time
 		want          []string
 	}{
-		{name: "creates in order", cluster: "c1", provisionedAt: &now, want: []string{
-			"folder /home/custos-jdoe", "quota /home/custos-jdoe",
-			"folder /scratch/custos-jdoe", "view /scratch/custos-jdoe", "quota /scratch/custos-jdoe",
-			"folder /project/proj-a", "view /project/proj-a", "quota /project/proj-a",
-			"folder /project/proj-a/custos-jdoe", "view /project/proj-a/custos-jdoe",
-		}},
+		{name: "own directories, then its project directory", cluster: "c1", provisionedAt: &now, want: join(jdoeOwn, groupMounts, jdoeMember)},
 		{name: "skips unprovisioned", cluster: "c1"},
 		{name: "skips unlisted cluster", cluster: "c2", provisionedAt: &now},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var log []string
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				var body struct{ Path string }
-				_ = json.NewDecoder(r.Body).Decode(&body)
-				switch r.URL.Path {
-				case "/api/token/":
-					_, _ = w.Write([]byte(`{"access":"t"}`))
-				case "/api/folders/create_folder/":
-					log = append(log, "folder "+body.Path)
-				case "/api/quotas/":
-					log = append(log, "quota "+body.Path)
-				case "/api/views/":
-					log = append(log, "view "+body.Path)
-				}
-			}))
-			defer srv.Close()
-			s := NewStorageSubscriber(nil, oneAllocation(), map[string]Cluster{"c1": {VMS: client.New(srv.URL, "u", "p", 1), Mounts: layout}})
-			cu := models.ComputeClusterUser{ComputeClusterID: tt.cluster, LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
-			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(log, tt.want) {
-				t.Fatalf("err=%v calls=%v, want %v", err, log, tt.want)
+			c, log := recordingVMS(t)
+			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+			cu := models.ComputeClusterUser{ComputeClusterID: tt.cluster, UserID: "u1", LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
+			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(*log, tt.want) {
+				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
 			}
 		})
+	}
+}
+
+// Make sure a membership event creates only that member's project directory and nothing until the member's account is provisioned.
+func TestEnsureMember(t *testing.T) {
+	tests := []struct {
+		name, userID string
+		want         []string
+	}{
+		{name: "the member's directory only", userID: "u1", want: join(groupMounts, jdoeMember)},
+		{name: "nothing for an unprovisioned member", userID: "u3"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, log := recordingVMS(t)
+			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+			m := models.ComputeAllocationMembership{ComputeAllocationID: "a1", UserID: tt.userID, MembershipStatus: models.ACTIVE}
+			if err := s.ensureMember(context.Background(), m); err != nil || !slices.Equal(*log, tt.want) {
+				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
+			}
+		})
+	}
+}
+
+// Make sure an allocation event creates the project's directories and no member's.
+func TestEnsureGroup(t *testing.T) {
+	c, log := recordingVMS(t)
+	group := "proj-a"
+	s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+	a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}
+	if err := s.ensureGroup(context.Background(), a); err != nil || !slices.Equal(*log, groupMounts) {
+		t.Fatalf("err=%v calls=%v, want %v", err, *log, groupMounts)
+	}
+}
+
+// Make sure the reconciler's sweep creates the project's directories and every provisioned member's.
+func TestEnsureAllocation(t *testing.T) {
+	c, log := recordingVMS(t)
+	group := "proj-a"
+	s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+	a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}
+	want := join(groupMounts, jdoeMember, asmithMember)
+	if err := s.ensureAllocation(context.Background(), a); err != nil || !slices.Equal(*log, want) {
+		t.Fatalf("err=%v calls=%v, want %v", err, *log, want)
 	}
 }
