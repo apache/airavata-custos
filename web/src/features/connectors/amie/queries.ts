@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type PacketListParams,
   type ReplyListParams,
@@ -40,8 +40,7 @@ const DEFAULT_GC_TIME = 5 * 60_000;
 
 export const amieKeys = {
   all: ["amie"] as const,
-  packets: (params: PacketListParams = {}) =>
-    [...amieKeys.all, "packets", "list", params] as const,
+  packets: (params: PacketListParams = {}) => [...amieKeys.all, "packets", "list", params] as const,
   packet: (id: string) => [...amieKeys.all, "packets", "detail", id] as const,
   events: (id: string) => [...amieKeys.all, "packets", "events", id] as const,
   replies: (params: ReplyListParams = {}) => [...amieKeys.all, "replies", params] as const,
@@ -62,8 +61,7 @@ export function usePackets(params: PacketListParams = {}) {
 export function usePacket(id: string | undefined) {
   return useQuery({
     queryKey: id ? amieKeys.packet(id) : [...amieKeys.all, "packets", "detail", "none"],
-    queryFn: () => getPacket(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getPacket(id) : skipToken,
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
     refetchOnWindowFocus: false,
@@ -73,8 +71,7 @@ export function usePacket(id: string | undefined) {
 export function usePacketEvents(id: string | undefined) {
   return useQuery({
     queryKey: id ? amieKeys.events(id) : [...amieKeys.all, "packets", "events", "none"],
-    queryFn: () => getPacketEvents(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getPacketEvents(id) : skipToken,
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
     refetchOnWindowFocus: false,

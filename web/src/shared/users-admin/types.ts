@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Role, User, UserIdentity } from "@/generated/core/types.gen";
+import type { Role, User, UserIdentity } from "@/generated/core/zod.gen";
 import type { PermissionKey } from "./permissions";
 
 export type RoleRow = Role & { permissions: PermissionKey[] };

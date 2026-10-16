@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -25,6 +24,9 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
+import { z } from "zod";
+import { packetStatusSchema } from "../schemas";
 import {
   PACKET_STATUSES,
   PACKET_TYPES,
@@ -34,6 +36,8 @@ import {
 } from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
+
+const statusFilterSchema = packetStatusSchema.or(z.literal("all"));
 
 export type PacketFilters = {
   status: PacketStatus | "all";
@@ -230,7 +234,7 @@ export function PacketInboxTable({
             onChange={(e) =>
               onFiltersChange({
                 ...filters,
-                status: e.currentTarget.value as PacketStatus | "all",
+                status: statusFilterSchema.parse(e.currentTarget.value),
               })
             }
             className="rounded-md border bg-background px-3 py-1.5 text-sm"

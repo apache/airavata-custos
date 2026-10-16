@@ -17,17 +17,17 @@
 
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { ApiError } from "@/shared/api/client";
+import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { SideDrawer } from "@/shared/ui/SideDrawer";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as React from "react";
+import { type FieldErrors, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { useSubmitChangeRequest } from "../queries";
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
@@ -60,6 +60,8 @@ const formSchema = z.discriminatedUnion("requested_change_type", [
 
 type FormValues = z.infer<typeof formSchema>;
 type ChangeType = FormValues["requested_change_type"];
+// Every field any variant has, for reading errors across variants.
+type FormFields = { requested_amount: number; requested_end_date: string; reason: string };
 
 export type ChangeRequestSubmitDrawerProps = {
   open: boolean;
@@ -79,7 +81,7 @@ export function ChangeRequestSubmitDrawer({
   const submitMutation = useSubmitChangeRequest();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { requested_change_type: "INCREASE_CREDITS", reason: "" } as FormValues,
+    defaultValues: { requested_change_type: "INCREASE_CREDITS", reason: "" },
     mode: "onBlur",
   });
 
@@ -106,7 +108,7 @@ export function ChangeRequestSubmitDrawer({
         requester_id: requesterId,
       });
       toast.success("Change request submitted");
-      form.reset({ requested_change_type: "INCREASE_CREDITS", reason: "" } as FormValues);
+      form.reset({ requested_change_type: "INCREASE_CREDITS", reason: "" });
       onOpenChange(false);
     } catch (err) {
       const msg =
@@ -116,13 +118,9 @@ export function ChangeRequestSubmitDrawer({
   });
 
   function onChangeTypeChange(next: ChangeType) {
-    const reason = (form.getValues() as { reason?: string }).reason ?? "";
+    const reason = form.getValues("reason") ?? "";
     if (next === "INCREASE_CREDITS") {
-      form.reset({
-        requested_change_type: "INCREASE_CREDITS",
-        reason,
-        requested_amount: undefined as unknown as number,
-      });
+      form.reset({ requested_change_type: "INCREASE_CREDITS", reason });
     } else if (next === "EXTEND_END_DATE") {
       form.reset({
         requested_change_type: "EXTEND_END_DATE",
@@ -134,7 +132,7 @@ export function ChangeRequestSubmitDrawer({
     }
   }
 
-  const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
+  const errors: FieldErrors<FormFields> = form.formState.errors;
 
   return (
     <SideDrawer
@@ -146,7 +144,10 @@ export function ChangeRequestSubmitDrawer({
       <form onSubmit={onSubmit} className="space-y-4" aria-label="Submit change request form">
         <div className="space-y-2">
           <Label htmlFor="cr-type">Change type</Label>
-          <Select value={changeType} onValueChange={(v) => onChangeTypeChange(v as ChangeType)}>
+          <Select<ChangeType>
+            value={changeType}
+            onValueChange={(v) => v !== null && onChangeTypeChange(v)}
+          >
             <SelectTrigger id="cr-type" aria-label="Change type">
               <SelectValue>{(value: string) => CHANGE_TYPE_LABELS[value] ?? value}</SelectValue>
             </SelectTrigger>

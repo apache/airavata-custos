@@ -15,67 +15,41 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
-import { zCreateUserRequest, zRole, zUser, zUserIdentity } from "@/generated/core/zod.gen";
 import {
   privilegeKeySchema,
-  userPrivilegeSchema as baseUserPrivilegeSchema,
-  userRoleSchema as baseUserRoleSchema,
+  roleDetailResponseSchema,
+  userIdentitiesResponseSchema,
+  userRolesResponseSchema,
 } from "@/features/core/identity/schemas";
+import {
+  zGetRolesResponse,
+  zGetUsersResponse,
+  zPostUsersBody,
+  zUserPrivilege,
+} from "@/generated/core/zod.gen";
+import { z } from "zod";
 
-export { privilegeKeySchema };
+export {
+  privilegeKeySchema,
+  roleDetailResponseSchema,
+  userIdentitiesResponseSchema,
+  userRolesResponseSchema,
+};
 
-export const userSchema = zUser.required({ id: true, email: true });
-export const roleSchema = zRole.required({ id: true, name: true });
-export const userIdentitySchema = zUserIdentity.required({
-  id: true,
-  source: true,
-  user_id: true,
-});
-export const userRoleSchema = baseUserRoleSchema.required({
-  role_id: true,
-  user_id: true,
-});
-export const userPrivilegeSchema = baseUserPrivilegeSchema
-  .extend({ privilege: privilegeKeySchema })
-  .required({ user_id: true });
+export const userPrivilegeSchema = zUserPrivilege.extend({ privilege: privilegeKeySchema });
 
-export const userListResponseSchema = z.object({
-  items: z.array(userSchema),
-  total: z.number().int().nonnegative(),
-});
-export const rolesResponseSchema = z
-  .array(roleSchema)
-  .nullish()
-  .transform((value) => value ?? []);
-export const userRolesResponseSchema = z
-  .array(userRoleSchema)
-  .nullish()
-  .transform((value) => value ?? []);
-export const userIdentitiesResponseSchema = z
-  .array(userIdentitySchema)
-  .nullish()
-  .transform((value) => value ?? []);
+export const userListResponseSchema = zGetUsersResponse.transform((value) => ({
+  ...value,
+  items: value.items ?? [],
+}));
+export const rolesResponseSchema = zGetRolesResponse.nullable().transform((value) => value ?? []);
 export const userPrivilegesResponseSchema = z
   .array(userPrivilegeSchema)
-  .nullish()
+  .nullable()
   .transform((value) => value ?? []);
-export const roleDetailResponseSchema = z.object({
-  role: roleSchema.optional(),
-  privileges: z
-    .array(privilegeKeySchema)
-    .nullish()
-    .transform((value) => value ?? []),
-});
 
-export const grantRoleResponseSchema = userRoleSchema;
+export const createUserPayloadSchema = zPostUsersBody.required({ email: true });
 
-export const createUserPayloadSchema = zCreateUserRequest.required({ email: true });
-
-export type User = z.infer<typeof userSchema>;
-export type Role = z.infer<typeof roleSchema>;
-export type UserIdentity = z.infer<typeof userIdentitySchema>;
-export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
 export type UserListResponse = z.infer<typeof userListResponseSchema>;
 export type RoleDetail = z.infer<typeof roleDetailResponseSchema>;

@@ -17,13 +17,13 @@
 
 "use client";
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
 import { useAllocationDiffs } from "../queries";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
 
 export type AllocationHistoryTabProps = {
   allocation: ComputeAllocation;
@@ -48,7 +48,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={5} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = [...(query.data ?? [])].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
@@ -58,7 +58,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     return <EmptyState heading="No history recorded for this allocation." />;
   }
 
-  const columns: Array<DataTableColumn<AllocationDiff>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationDiff>> = [
     {
       key: "when",
       header: "When",

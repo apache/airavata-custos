@@ -17,18 +17,19 @@
  * under the License.
  */
 
+import { zGetAuditSourcesResponse } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import { traceDetailSchema, traceListSchema, traceSourceListSchema } from "./schemas";
+import { traceDetailSchema, traceListSchema } from "./schemas";
 import type { TraceDetail, TraceListResponse, TraceStatus } from "./types";
 
 export type TraceListFilters = {
-  source?: string[];
-  status?: TraceStatus[];
-  from?: string;
-  to?: string;
-  q?: string;
-  limit?: number;
-  offset?: number;
+  source?: string[] | undefined;
+  status?: TraceStatus[] | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  q?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 };
 
 // Sorted so the same filters make the same URL and the same query key.
@@ -54,5 +55,5 @@ export async function getTrace(traceId: string): Promise<TraceDetail> {
 }
 
 export async function listAuditSources(): Promise<string[]> {
-  return traceSourceListSchema.parse(await apiFetch("/audit/sources")).sources;
+  return zGetAuditSourcesResponse.parse(await apiFetch("/audit/sources")).sources;
 }

@@ -17,119 +17,116 @@
 
 // Guards MSW fixtures against the schemas they're rendered with.
 
-import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
-import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationDiffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
+import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationUsageFixture from "@/features/core/allocations/__fixtures__/usage.json";
-import {
-  allocationDiffSchema,
-  allocationStatusSchema,
-  allocationUsageSchema,
-  attachedResourceSchema,
-} from "@/features/core/allocations/schemas";
+import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
+import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
+import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import { analyticsContextsSchema, usageSummarySchema } from "@/features/core/analytics/schemas";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
-import { computeClusterSchema, computeClusterUserSchema } from "@/features/core/clusters/schemas";
+import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
+import { roleDetailResponseSchema } from "@/features/core/identity/schemas";
 import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
-import { organizationSchema } from "@/features/core/organizations/schemas";
-import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
-import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import { computeAllocationResourceSchema, rateSchema } from "@/features/core/resources/schemas";
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
-import { projectMemberSchema, projectSchema } from "@/features/core/projects/schemas";
-import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
+import { projectMemberSchema } from "@/features/core/projects/schemas";
+import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
+import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
+import { zJob } from "@/generated/analytics/zod.gen";
 import {
-  roleDetailResponseSchema,
-  userIdentitySchema,
-  userPrivilegeSchema,
-  userRoleSchema,
-  userSchema,
-} from "@/features/core/identity/schemas";
-import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
-import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
-import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
-import {
-  analyticsContextsSchema,
-  analyticsJobSchema,
-  usageSummarySchema,
-} from "@/features/core/analytics/schemas";
+  zAllocationStatus,
+  zComputeAllocationDiff,
+  zComputeAllocationResource,
+  zComputeAllocationResourceRate,
+  zComputeAllocationUsage,
+  zComputeCluster,
+  zComputeClusterUser,
+  zOrganization,
+  zProjectResponse,
+  zUser,
+  zUserIdentity,
+  zUserPrivilege,
+  zUserRole,
+} from "@/generated/core/zod.gen";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 describe("MSW fixtures pass current Zod schemas", () => {
   it("project fixtures validate against projectSchema (zProjectStatus-backed)", () => {
-    const result = z.array(projectSchema).safeParse(projectsFixture);
+    const result = z.array(zProjectResponse).safeParse(projectsFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("member fixtures validate against projectMemberSchema (zUserType-backed)", () => {
-    const allMembers = Object.values(membersFixture as Record<string, unknown[]>).flat();
+    const allMembers = Object.values(membersFixture).flat();
     const result = z.array(projectMemberSchema).safeParse(allMembers);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("organization fixtures validate against organizationSchema", () => {
-    const result = z.array(organizationSchema).safeParse(organizationsFixture);
+    const result = z.array(zOrganization).safeParse(organizationsFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation status fixture values validate against zAllocationStatus-backed enum", () => {
-    const statuses = (allocationsFixture as Array<{ status: string }>).map((a) => a.status);
-    const result = z.array(allocationStatusSchema).safeParse(statuses);
+    const statuses = allocationsFixture.map((a) => a.status);
+    const result = z.array(zAllocationStatus).safeParse(statuses);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation resource fixtures validate against attachedResourceSchema", () => {
-    const rows = Object.values(allocationResourcesFixture as Record<string, unknown[]>).flat();
-    const result = z.array(attachedResourceSchema).safeParse(rows);
+    const rows = Object.values(allocationResourcesFixture).flat();
+    const result = z.array(zComputeAllocationResource).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation diff fixtures validate against allocationDiffSchema", () => {
-    const rows = Object.values(allocationDiffsFixture as Record<string, unknown[]>).flat();
-    const result = z.array(allocationDiffSchema).safeParse(rows);
+    const rows = Object.values(allocationDiffsFixture).flat();
+    const result = z.array(zComputeAllocationDiff).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("allocation usage fixtures validate against allocationUsageSchema", () => {
-    const rows = Object.values(allocationUsageFixture as Record<string, unknown[]>).flat();
-    const result = z.array(allocationUsageSchema).safeParse(rows);
+    const rows = Object.values(allocationUsageFixture).flat();
+    const result = z.array(zComputeAllocationUsage).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("cluster fixtures validate against computeClusterSchema", () => {
-    const result = z.array(computeClusterSchema).safeParse(clustersFixture);
+    const result = z.array(zComputeCluster).safeParse(clustersFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("cluster user fixtures validate against computeClusterUserSchema", () => {
-    const result = z.array(computeClusterUserSchema).safeParse(clusterUsersFixture);
+    const result = z.array(zComputeClusterUser).safeParse(clusterUsersFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("resource fixtures validate against computeAllocationResourceSchema", () => {
-    const result = z.array(computeAllocationResourceSchema).safeParse(resourcesFixture);
+    const result = z.array(zComputeAllocationResource).safeParse(resourcesFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("rate fixtures validate against rateSchema", () => {
-    const result = z.array(rateSchema).safeParse(ratesFixture);
+    const result = z.array(zComputeAllocationResourceRate).safeParse(ratesFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("settings /me user validates against userSchema", () => {
-    const result = userSchema.safeParse(settingsFixture.user);
+    const result = zUser.safeParse(settingsFixture.user);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("settings identity fixtures validate against userIdentitySchema", () => {
-    const result = z.array(userIdentitySchema).safeParse(settingsFixture.identities);
+    const result = z.array(zUserIdentity).safeParse(settingsFixture.identities);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
   it("settings role grants validate against userRoleSchema", () => {
-    const result = z.array(userRoleSchema).safeParse(settingsFixture.roles);
+    const result = z.array(zUserRole).safeParse(settingsFixture.roles);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
@@ -141,7 +138,7 @@ describe("MSW fixtures pass current Zod schemas", () => {
   });
 
   it("settings direct grants validate against userPrivilegeSchema", () => {
-    const result = z.array(userPrivilegeSchema).safeParse(settingsFixture.direct);
+    const result = z.array(zUserPrivilege).safeParse(settingsFixture.direct);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
@@ -173,17 +170,17 @@ describe("MSW fixtures pass current Zod schemas", () => {
 
   it("researcher (MEMBER) allocation never carries by_member data", () => {
     const memberProjects = analyticsContextsFixture.filter((c) => c.role === "MEMBER");
-    const summaries = analyticsSummariesFixture as Record<string, { by_member: unknown }>;
+    const summaries = new Map(Object.entries(analyticsSummariesFixture));
     for (const c of memberProjects) {
       for (const a of c.allocations) {
-        expect(summaries[a.id]?.by_member).toBeNull();
+        expect(summaries.get(a.id)?.by_member).toBeNull();
       }
     }
   });
 
   it("analytics jobs fixtures validate against analyticsJobSchema", () => {
     for (const entry of Object.values(analyticsJobsFixture)) {
-      const result = z.array(analyticsJobSchema).safeParse(entry.jobs);
+      const result = z.array(zJob).safeParse(entry.jobs);
       expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
     }
   });

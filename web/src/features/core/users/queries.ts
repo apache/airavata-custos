@@ -17,8 +17,15 @@
 
 "use client";
 
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { identityKeys } from "@/features/core/identity/queries";
+import type { Role, User, UserRole } from "@/generated/core/zod.gen";
+import {
+  skipToken,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   assignUserRole,
   createUser,
@@ -30,7 +37,7 @@ import {
   listUsers,
   removeUserRole,
 } from "./api";
-import type { CreateUserPayload, Role, User, UserRole } from "./schemas";
+import type { CreateUserPayload } from "./schemas";
 import type {
   RoleWithPrivileges,
   UpdateUserRolesInput,
@@ -55,7 +62,7 @@ const DEFAULTS = {
 } as const;
 
 type RoleUpdateOperations = {
-  assign: (userId: string, roleId: string, reason?: string) => Promise<unknown>;
+  assign: (userId: string, roleId: string, reason?: string | undefined) => Promise<unknown>;
   remove: (userId: string, roleId: string) => Promise<unknown>;
 };
 
@@ -148,7 +155,7 @@ export function useRolesCatalog(enabled: boolean) {
 export function useUserRoles(userId: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: userId ? userKeys.roles(userId) : [...userKeys.all, "roles", "none"],
-    queryFn: () => listRolesForUser(userId as string),
+    queryFn: userId ? () => listRolesForUser(userId) : skipToken,
     enabled: Boolean(userId) && enabled,
     ...DEFAULTS,
   });
@@ -157,7 +164,7 @@ export function useUserRoles(userId: string | undefined, enabled: boolean) {
 export function useUserIdentities(userId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: userId ? userKeys.identities(userId) : [...userKeys.all, "identities", "none"],
-    queryFn: () => listUserIdentities(userId as string),
+    queryFn: userId ? () => listUserIdentities(userId) : skipToken,
     enabled: Boolean(userId) && enabled,
     ...DEFAULTS,
   });
@@ -168,7 +175,7 @@ export function useDirectPrivileges(userId: string | undefined, enabled: boolean
     queryKey: userId
       ? userKeys.directPrivileges(userId)
       : [...userKeys.all, "direct-privileges", "none"],
-    queryFn: () => listDirectPrivileges(userId as string),
+    queryFn: userId ? () => listDirectPrivileges(userId) : skipToken,
     enabled: Boolean(userId) && enabled,
     ...DEFAULTS,
   });
@@ -256,6 +263,9 @@ export function useUpdateUserRoles() {
             currentGrants.find((grant) => grant.role_id === roleId) ?? {
               user_id: userId,
               role_id: roleId,
+              granted_at: new Date().toISOString(),
+              granted_by: null,
+              reason: null,
             },
         ),
       );

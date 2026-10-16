@@ -17,14 +17,14 @@
 
 "use client";
 
-import * as React from "react";
+import type { ComputeCluster } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
+import { Input } from "@/shared/ui/input";
+import * as React from "react";
 import { useClusters } from "../queries";
-import type { ComputeCluster } from "../schemas";
 import { ClusterUsersDrawer } from "./ClusterUsersDrawer";
 
 export function ClustersTab() {
@@ -68,7 +68,7 @@ export function ClustersTab() {
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState heading="No clusters registered." />
       ) : filtered.length === 0 ? (

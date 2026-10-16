@@ -25,12 +25,8 @@ import createdDone from "@/features/core/audit/__fixtures__/trace.created.done.j
 import deniedDone from "@/features/core/audit/__fixtures__/trace.denied.done.json";
 import packetFailed from "@/features/core/audit/__fixtures__/trace.packet.failed.json";
 import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
-import {
-  stepSchema,
-  traceDetailSchema,
-  traceListSchema,
-  traceSourceListSchema,
-} from "@/features/core/audit/schemas";
+import { stepSchema, traceDetailSchema, traceListSchema } from "@/features/core/audit/schemas";
+import { zGetAuditSourcesResponse } from "@/generated/core/zod.gen";
 import { describe, expect, it } from "vitest";
 
 // The fixtures are real responses captured from the backend, so these parses
@@ -38,7 +34,7 @@ import { describe, expect, it } from "vitest";
 describe("audit schemas", () => {
   it("parse every captured response", () => {
     expect(() => traceListSchema.parse(tracesListFixture)).not.toThrow();
-    expect(() => traceSourceListSchema.parse(sourcesFixture)).not.toThrow();
+    expect(() => zGetAuditSourcesResponse.parse(sourcesFixture)).not.toThrow();
     for (const detail of [
       approveFailed,
       approveRetrying,

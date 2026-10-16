@@ -15,8 +15,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Minimal status enums consumed by shared UI primitives.
-// TODO(phase-2): promote to full Zod schemas and apiFetch client.
-
-export type AllocationStatus = "ACTIVE" | "INACTIVE" | "DELETED";
-export type ChangeRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+// The environment variables the portal, its build and its Playwright suites read by name.
+declare namespace NodeJS {
+  interface ProcessEnv {
+    NEXT_PUBLIC_PORTAL_USE_MSW?: string;
+    NEXT_PUBLIC_PORTAL_BUILD_SHA?: string;
+    NEXT_PUBLIC_PORTAL_NAME?: string;
+    NEXT_PUBLIC_PORTAL_LOGO?: string;
+    NEXT_PUBLIC_PORTAL_FAVICON?: string;
+    NEXTAUTH_SECRET?: string;
+    PORT?: string;
+    CI?: string;
+    LIVE_PORTAL_URL?: string;
+    ANALYTICS_SHOT_DIR?: string;
+  }
+}

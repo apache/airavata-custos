@@ -17,25 +17,18 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { toast } from "sonner";
-import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import {
-  useApproveChangeRequest,
-  useChangeRequests,
-  useRejectChangeRequest,
-} from "../queries";
+import Link from "next/link";
+import * as React from "react";
+import { toast } from "sonner";
+import { useApproveChangeRequest, useChangeRequests, useRejectChangeRequest } from "../queries";
 import type { ChangeRequest, ChangeRequestStatus } from "../schemas";
 
 export type ChangeRequestApproverQueueProps = {
@@ -70,9 +63,7 @@ export function ChangeRequestApproverQueue({
   const [search, setSearch] = React.useState("");
   const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set());
 
-  const query = useChangeRequests(
-    statusFilter === "all" ? {} : { status: statusFilter },
-  );
+  const query = useChangeRequests(statusFilter === "all" ? {} : { status: statusFilter });
   const approveMutation = useApproveChangeRequest();
   const rejectMutation = useRejectChangeRequest();
 
@@ -91,7 +82,7 @@ export function ChangeRequestApproverQueue({
       await approveMutation.mutateAsync({ id: row.id, approverId });
       toast.success(`Approved ${row.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       markPending(row.id, false);
     }
@@ -103,7 +94,7 @@ export function ChangeRequestApproverQueue({
       await rejectMutation.mutateAsync({ id: row.id, approverId });
       toast.success(`Rejected ${row.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       markPending(row.id, false);
     }
@@ -154,7 +145,9 @@ export function ChangeRequestApproverQueue({
       sortable: true,
       sortValue: (row) => row.requested_su_amount,
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.requested_su_amount)}
+        </span>
       ),
     },
     {
@@ -221,7 +214,11 @@ export function ChangeRequestApproverQueue({
           <select
             id="cr-status-filter"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | ChangeRequestStatus)}
+            onChange={(e) =>
+              setStatusFilter(
+                STATUS_OPTIONS.find((opt) => opt.value === e.target.value)?.value ?? statusFilter,
+              )
+            }
             className="h-9 rounded-md border bg-background px-3 text-sm"
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -247,10 +244,7 @@ export function ChangeRequestApproverQueue({
       {query.isLoading ? (
         <TableSkeleton rows={5} columns={6} />
       ) : query.error ? (
-        <ErrorState
-          message={(query.error as Error).message}
-          onRetry={() => query.refetch()}
-        />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           heading="No change requests"

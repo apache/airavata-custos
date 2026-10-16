@@ -18,8 +18,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getCluster, listClusterUsers, listClusters } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body: unknown): Response {
   const text = typeof body === "string" ? body : JSON.stringify(body);
@@ -36,6 +36,9 @@ const clusterUser = {
   compute_cluster_id: "cluster-a",
   user_id: "user-ada-lovelace",
   local_username: "alovelace",
+  access_level: "USER",
+  approval_status: "APPROVED",
+  provisioned_at: "2026-04-01T00:00:00.000Z",
 };
 
 describe("listClusters", () => {

@@ -15,8 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
+import type {
+  GetConnectorsAmieStatsData,
+  GetConnectorsAmieUnmappedData,
+} from "@/generated/amie/types.gen";
 import { apiFetch } from "@/shared/api/client";
+import { z } from "zod";
 import {
   linkUnmappedPayloadSchema,
   packetEventSchema,
@@ -25,6 +29,8 @@ import {
   packetStatsSchema,
   replyListResponseSchema,
   resolvePacketPayloadSchema,
+  retryPacketResponseSchema,
+  retryReplyResponseSchema,
 } from "./schemas";
 import type {
   Packet,
@@ -36,14 +42,14 @@ import type {
 } from "./types";
 
 export type PacketListParams = {
-  status?: PacketStatus | "all" | string;
-  type?: string;
-  source?: string;
-  q?: string;
-  from?: string;
-  to?: string;
-  limit?: number;
-  offset?: number;
+  status?: PacketStatus | "all" | string | undefined;
+  type?: string | undefined;
+  source?: string | undefined;
+  q?: string | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 };
 
 function qs(params: Record<string, string | number | undefined | null>): string {
@@ -75,7 +81,7 @@ export async function retryPacket(id: string): Promise<{ queued: true; packet: P
   const raw = await apiFetch(`/connectors/amie/packets/${encodeURIComponent(id)}/retry`, {
     method: "POST",
   });
-  return z.object({ queued: z.literal(true), packet: packetSchema }).parse(raw);
+  return retryPacketResponseSchema.parse(raw);
 }
 
 export async function resolvePacket(id: string, payload: { reason: string }): Promise<Packet> {
@@ -88,11 +94,11 @@ export async function resolvePacket(id: string, payload: { reason: string }): Pr
 }
 
 export type ReplyListParams = {
-  status?: string;
-  from?: string;
-  to?: string;
-  limit?: number;
-  offset?: number;
+  status?: string | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 };
 
 export async function listReplies(params: ReplyListParams = {}): Promise<ReplyListResponse> {
@@ -104,13 +110,10 @@ export async function retryReply(id: string): Promise<{ queued: true }> {
   const raw = await apiFetch(`/connectors/amie/replies/${encodeURIComponent(id)}/retry`, {
     method: "POST",
   });
-  return z.object({ queued: z.literal(true) }).parse(raw);
+  return retryReplyResponseSchema.parse(raw);
 }
 
-export type UnmappedListParams = {
-  limit?: number;
-  offset?: number;
-};
+export type UnmappedListParams = NonNullable<GetConnectorsAmieUnmappedData["query"]>;
 
 export async function listUnmapped(params: UnmappedListParams = {}): Promise<PacketListResponse> {
   const raw = await apiFetch(`/connectors/amie/unmapped${qs(params)}`);
@@ -129,9 +132,7 @@ export async function linkUnmapped(
   return packetSchema.parse(raw);
 }
 
-export type StatsParams = {
-  window?: string;
-};
+export type StatsParams = NonNullable<GetConnectorsAmieStatsData["query"]>;
 
 export async function getPacketStats(
   params: StatsParams = { window: "30d" },

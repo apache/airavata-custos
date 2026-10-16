@@ -15,14 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Allocation, UsageMember, UsageResource } from "@/generated/analytics/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type {
-  AnalyticsAllocation,
-  AnalyticsContext,
-  UsageMember,
-  UsageResource,
-} from "../../schemas";
+import type { AnalyticsContext, UsageSummary } from "../../schemas";
 import { ContextSwitcher } from "../ContextSwitcher";
 import { HeroTiles } from "../HeroTiles";
 import { MemberBreakdown } from "../MemberBreakdown";
@@ -30,7 +26,7 @@ import { ResourceBreakdown } from "../ResourceBreakdown";
 
 const NOW = new Date("2026-07-14T12:00:00Z");
 
-function alloc(overrides: Partial<AnalyticsAllocation> = {}): AnalyticsAllocation {
+function alloc(overrides: Partial<Allocation> = {}): Allocation {
   return {
     id: "a1",
     name: "Alloc One",
@@ -43,7 +39,7 @@ function alloc(overrides: Partial<AnalyticsAllocation> = {}): AnalyticsAllocatio
   };
 }
 
-function ctx(role: AnalyticsContext["role"], allocations: AnalyticsAllocation[]): AnalyticsContext {
+function ctx(role: AnalyticsContext["role"], allocations: Allocation[]): AnalyticsContext {
   return {
     project_id: "p1",
     project_name: "Project One",
@@ -128,11 +124,11 @@ describe("ContextSwitcher", () => {
 });
 
 describe("resource and member breakdowns", () => {
-  const summary = {
+  const summary: UsageSummary = {
     total: 1000,
     used: 300,
     daily: [],
-    by_resource: [resource("gpu", 200, 40), resource("cpu", 100, 90)] as UsageResource[],
+    by_resource: [resource("gpu", 200, 40), resource("cpu", 100, 90)],
     by_member: null,
   };
 
@@ -150,7 +146,7 @@ describe("resource and member breakdowns", () => {
     const overrun = {
       ...summary,
       total: 100,
-      by_resource: [resource("gpu", 150, 0), resource("cpu", 50, 0)] as UsageResource[],
+      by_resource: [resource("gpu", 150, 0), resource("cpu", 50, 0)],
     };
     render(<ResourceBreakdown summary={overrun} />);
     // Shares scale to the 200 consumed; the center shows how far over.
@@ -160,7 +156,7 @@ describe("resource and member breakdowns", () => {
   });
 
   it("renders a full available ring when nothing is used yet", () => {
-    const untouched = { ...summary, used: 0, by_resource: [] as UsageResource[] };
+    const untouched = { ...summary, used: 0, by_resource: [] };
     render(<ResourceBreakdown summary={untouched} />);
     expect(screen.getByText("Available")).toBeInTheDocument();
     expect(screen.getByText(/of 1K available/)).toBeInTheDocument();
@@ -189,7 +185,8 @@ describe("resource and member breakdowns", () => {
 
   it("hovering a sector swaps the donut center to that slice", () => {
     const { container } = render(<ResourceBreakdown summary={summary} />);
-    const arc = container.querySelector('[data-slice="gpu"]') as Element;
+    const arc = container.querySelector('[data-slice="gpu"]');
+    if (!arc) throw new Error("no gpu slice");
     fireEvent.mouseEnter(arc);
     // Center shows the hovered slice's share of the budget.
     expect(screen.getByText(/20% · of 1K/)).toBeInTheDocument();

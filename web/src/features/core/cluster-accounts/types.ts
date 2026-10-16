@@ -15,10 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { ClusterAccountApproval } from "./schemas";
+import type { GetComputeClusterUsersData } from "@/generated/core/types.gen";
+import type { ClusterAccountApproval } from "@/generated/core/zod.gen";
 
-export type ClusterAccountListParams = {
+export type ClusterAccountListParams = NonNullable<GetComputeClusterUsersData["query"]> & {
   approval_status?: ClusterAccountApproval;
-  limit?: number;
-  offset?: number;
 };

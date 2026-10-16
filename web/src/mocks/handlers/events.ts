@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import {
   deliveryFixtures,
   subscriptionFixtures,
 } from "@/features/core/events/__fixtures__/deliveries";
 import type { DeliveryDetail } from "@/features/core/events/types";
+import { http, HttpResponse } from "msw";
 
 // A copy, so a retry in one browser session does not change the fixtures.
 const deliveries: DeliveryDetail[] = structuredClone(deliveryFixtures);
@@ -34,14 +34,14 @@ export const eventsHandlers = [
     return HttpResponse.json({ items });
   }),
 
-  http.get("/api/v1/events/deliveries/:id", ({ params }) => {
-    const delivery = deliveries.find((d) => d.id === params.id);
+  http.get("/api/v1/events/deliveries/:id", ({ params: { id } }) => {
+    const delivery = deliveries.find((d) => d.id === id);
     if (!delivery) return HttpResponse.json({ error: "event delivery not found" }, { status: 404 });
     return HttpResponse.json(delivery);
   }),
 
-  http.post("/api/v1/events/deliveries/:id/retry", ({ params }) => {
-    const delivery = deliveries.find((d) => d.id === params.id);
+  http.post("/api/v1/events/deliveries/:id/retry", ({ params: { id } }) => {
+    const delivery = deliveries.find((d) => d.id === id);
     if (!delivery) return HttpResponse.json({ error: "event delivery not found" }, { status: 404 });
     if (delivery.status !== "FAILED") {
       return HttpResponse.json({ error: "event delivery has not failed" }, { status: 409 });

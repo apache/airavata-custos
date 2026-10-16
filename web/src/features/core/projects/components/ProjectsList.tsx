@@ -17,20 +17,17 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { Button } from "@/shared/ui/button";
+import type { ProjectResponse, ProjectStatus } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-import type { Project, ProjectStatus } from "../schemas";
+import Link from "next/link";
+import * as React from "react";
 
 function statusLabelFor(value: string): string {
   switch (value) {
@@ -46,7 +43,7 @@ function statusLabelFor(value: string): string {
 }
 
 export type ProjectsListProps = {
-  rows: Project[];
+  rows: ProjectResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
@@ -80,7 +77,7 @@ export function ProjectsList({
     });
   }, [rows, search, statusFilter]);
 
-  const columns: Array<DataTableColumn<Project>> = [
+  const columns: Array<DataTableColumn<ProjectResponse>> = [
     {
       key: "title",
       header: "Project",
@@ -153,7 +150,9 @@ export function ProjectsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as ProjectStatus | "all")}
+          onValueChange={(value) => {
+            if (value) onStatusFilterChange(value);
+          }}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
             <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
@@ -186,8 +185,6 @@ export function ProjectsList({
 export function NewProjectCta({ canCreate = true }: { canCreate?: boolean }) {
   if (!canCreate) return null;
   return (
-    <Button render={<Link href="/projects?new=1" aria-label="New project" />}>
-      + New project
-    </Button>
+    <Button render={<Link href="/projects?new=1" aria-label="New project" />}>+ New project</Button>
   );
 }

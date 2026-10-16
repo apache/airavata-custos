@@ -17,15 +17,15 @@
 
 "use client";
 
-import { Button } from "@/shared/ui/button";
+import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
-import type { ClusterAccount } from "../schemas";
+import { Button } from "@/shared/ui/button";
 
-export function clusterAccountStatus(row: ClusterAccount): {
+export function clusterAccountStatus(row: ClusterAccountResponse): {
   variant: StatusBadgeVariant;
   label: string;
 } {
@@ -46,13 +46,13 @@ function formatDate(iso?: string | null): string {
 }
 
 export type ClusterAccountsTableProps = {
-  rows: ClusterAccount[];
+  rows: ClusterAccountResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
   canReview: boolean;
-  onApprove: (row: ClusterAccount) => void;
-  onDeny: (row: ClusterAccount) => void;
+  onApprove: (row: ClusterAccountResponse) => void;
+  onDeny: (row: ClusterAccountResponse) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -74,7 +74,7 @@ export function ClusterAccountsTable({
   onPageChange,
   emptyHeading,
 }: ClusterAccountsTableProps) {
-  const columns: Array<DataTableColumn<ClusterAccount>> = [
+  const columns: Array<DataTableColumn<ClusterAccountResponse>> = [
     {
       key: "user",
       header: "User",

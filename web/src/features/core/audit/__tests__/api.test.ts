@@ -21,7 +21,7 @@ import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.js
 import { listTraces } from "@/features/core/audit/api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
@@ -41,7 +41,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function requestedUrl(): string {
   const input = fetchMock.mock.calls[0]?.[0];
-  return typeof input === "string" ? input : (input as Request).url;
+  return input instanceof Request ? input.url : String(input);
 }
 
 describe("audit api", () => {

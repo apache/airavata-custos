@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ComputeAllocation } from "../schemas";
 
 const members = [
   {
@@ -59,7 +59,17 @@ vi.mock("../queries", () => ({
 
 import { AllocationMembersTab } from "../components/AllocationMembersTab";
 
-const allocation = { id: "alloc-001", name: "Test Allocation" } as ComputeAllocation;
+const allocation: ComputeAllocation = {
+  id: "alloc-001",
+  project_id: "project-001",
+  name: "Test Allocation",
+  status: "ACTIVE",
+  compute_cluster_id: "cluster-001",
+  initial_su_amount: 100000,
+  start_time: "2026-04-01T00:00:00Z",
+  end_time: "2027-03-31T00:00:00Z",
+  posix_group: null,
+};
 
 describe("<AllocationMembersTab />", () => {
   it("offers no Edit or Remove for PI or Co-PI members", () => {

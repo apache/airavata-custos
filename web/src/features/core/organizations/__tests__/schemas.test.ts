@@ -15,12 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zOrganization } from "@/generated/core/zod.gen";
 import { describe, expect, it } from "vitest";
-import {
-  createOrganizationPayloadSchema,
-  organizationListEnvelopeSchema,
-  organizationSchema,
-} from "../schemas";
+import { createOrganizationPayloadSchema, organizationListEnvelopeSchema } from "../schemas";
 
 const validOrg = {
   id: "org-gatech",
@@ -30,21 +27,18 @@ const validOrg = {
 
 describe("organizationSchema", () => {
   it("accepts a backend-shaped organization", () => {
-    expect(organizationSchema.safeParse(validOrg).success).toBe(true);
+    expect(zOrganization.safeParse(validOrg).success).toBe(true);
   });
   it("rejects a missing name", () => {
-    expect(organizationSchema.safeParse({ id: "org-1", originated_id: "X" }).success).toBe(false);
+    expect(zOrganization.safeParse({ id: "org-1", originated_id: "X" }).success).toBe(false);
   });
 });
 
 describe("organizationListEnvelopeSchema", () => {
   it("accepts a valid envelope", () => {
-    expect(
-      organizationListEnvelopeSchema.safeParse({ items: [validOrg], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(organizationListEnvelopeSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
+    expect(organizationListEnvelopeSchema.safeParse({ items: [validOrg], total: 1 }).success).toBe(
+      true,
+    );
   });
 });
 

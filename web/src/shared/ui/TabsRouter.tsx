@@ -23,7 +23,7 @@ import {
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import * as React from "react";
+import type * as React from "react";
 
 export type TabsRouterTab = {
   value: string;
@@ -48,6 +48,14 @@ export type TabsRouterProps = {
   rightSlot?: React.ReactNode | Record<string, React.ReactNode | undefined>;
 };
 
+// Plain ReactNode (React elements include `$$typeof`) vs the per-tab record
+// share the same union — narrow by looking for that React-element marker.
+function isSlotRecord(
+  slot: TabsRouterProps["rightSlot"],
+): slot is Record<string, React.ReactNode | undefined> {
+  return typeof slot === "object" && slot !== null && !("$$typeof" in slot) && !Array.isArray(slot);
+}
+
 export function TabsRouter({
   tabs,
   defaultValue,
@@ -58,7 +66,7 @@ export function TabsRouter({
 }: TabsRouterProps) {
   const searchParams = useShallowSearchParams();
   const activeRaw = searchParams.get(searchParam);
-  const active = tabs.some((t) => t.value === activeRaw) ? (activeRaw as string) : defaultValue;
+  const active = tabs.find((t) => t.value === activeRaw)?.value ?? defaultValue;
 
   const handleChange = (value: string | number | null) => {
     if (typeof value !== "string") return;
@@ -68,20 +76,9 @@ export function TabsRouter({
     replaceShallowSearchParams(params);
   };
 
-  // Plain ReactNode (React elements include `$$typeof`) vs the per-tab record
-  // share the same union — narrow by looking for that React-element marker.
-  const isReactElement = (node: unknown): node is React.ReactNode =>
-    node === null ||
-    typeof node === "string" ||
-    typeof node === "number" ||
-    typeof node === "boolean" ||
-    (typeof node === "object" && node !== null && "$$typeof" in node) ||
-    Array.isArray(node);
-
-  const resolvedRightSlot: React.ReactNode =
-    rightSlot && typeof rightSlot === "object" && !isReactElement(rightSlot)
-      ? ((rightSlot as Record<string, React.ReactNode | undefined>)[active] ?? null)
-      : (rightSlot ?? null);
+  const resolvedRightSlot: React.ReactNode = isSlotRecord(rightSlot)
+    ? (rightSlot[active] ?? null)
+    : (rightSlot ?? null);
 
   return (
     <TabsPrimitive.Root value={active} onValueChange={handleChange} className={cn(className)}>
@@ -111,11 +108,7 @@ export function TabsRouter({
             ? panelClassName[tab.value]
             : panelClassName;
         return (
-          <TabsPrimitive.Panel
-            key={tab.value}
-            value={tab.value}
-            className={cn("pt-6", perPanel)}
-          >
+          <TabsPrimitive.Panel key={tab.value} value={tab.value} className={cn("pt-6", perPanel)}>
             {tab.content}
           </TabsPrimitive.Panel>
         );

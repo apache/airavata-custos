@@ -17,21 +17,22 @@
 
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
+import type { ComputeAllocationResourceRate } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as React from "react";
+import { type DefaultValues, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { useCreateResourceRate, useEffectiveRate, useResourceRates } from "../queries";
-import { classifyRate, createRateSchema, type CreateRateForm, type Rate, type RateStatus } from "../schemas";
+import { type CreateRateForm, type RateStatus, classifyRate, createRateSchema } from "../schemas";
 
 const STATUS_VARIANT: Record<RateStatus, StatusBadgeVariant> = {
   ACTIVE: "active",
@@ -56,12 +57,11 @@ function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function defaultForm(): CreateRateForm {
+function defaultForm(): DefaultValues<CreateRateForm> {
   const start = todayUtc();
   const end = new Date(start);
   end.setUTCFullYear(end.getUTCFullYear() + 1);
   return {
-    rate: undefined as unknown as number,
     start_date: start,
     end_date: end.toISOString().slice(0, 10),
   };
@@ -86,7 +86,8 @@ export function ResourcesRatesDrawer({
   const createMutation = useCreateResourceRate(resourceId ?? "");
 
   const history = React.useMemo(
-    () => [...(rates.data ?? [])].sort((a, b) => Date.parse(b.start_time) - Date.parse(a.start_time)),
+    () =>
+      [...(rates.data ?? [])].sort((a, b) => Date.parse(b.start_time) - Date.parse(a.start_time)),
     [rates.data],
   );
 
@@ -109,13 +110,16 @@ export function ResourcesRatesDrawer({
   const isImmediate = startDate === todayUtc();
   const currentRate = effective.data?.rate;
   // Backend forces an end date, so warn when nothing starts at or after it.
-  const leavesGap = Boolean(endDate) && !history.some((r) => Date.parse(r.start_time) >= Date.parse(`${endDate}T00:00:00Z`));
+  const leavesGap =
+    Boolean(endDate) &&
+    !history.some((r) => Date.parse(r.start_time) >= Date.parse(`${endDate}T00:00:00Z`));
 
   const onSubmit = form.handleSubmit(async (values) => {
     if (!resourceId) return;
-    const start_time = values.start_date === todayUtc()
-      ? new Date().toISOString()
-      : `${values.start_date}T00:00:00Z`;
+    const start_time =
+      values.start_date === todayUtc()
+        ? new Date().toISOString()
+        : `${values.start_date}T00:00:00Z`;
     try {
       await createMutation.mutateAsync({
         compute_allocation_resource_id: resourceId,
@@ -171,7 +175,11 @@ export function ResourcesRatesDrawer({
       ) : null}
 
       {canManage && formOpen ? (
-        <form onSubmit={onSubmit} aria-label="Add rate form" className="mb-6 space-y-4 rounded-lg border border-border bg-card p-4">
+        <form
+          onSubmit={onSubmit}
+          aria-label="Add rate form"
+          className="mb-6 space-y-4 rounded-lg border border-border bg-card p-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="rate-value">Rate</Label>
             <Input
@@ -210,8 +218,8 @@ export function ResourcesRatesDrawer({
 
           {leavesGap ? (
             <p className="text-xs text-[color:var(--custos-amber-700)]">
-              No rate is effective after {formatDate(`${endDate}T00:00:00Z`)}. Add a follow-up rate to
-              avoid a pricing gap.
+              No rate is effective after {formatDate(`${endDate}T00:00:00Z`)}. Add a follow-up rate
+              to avoid a pricing gap.
             </p>
           ) : null}
 
@@ -238,7 +246,7 @@ export function ResourcesRatesDrawer({
       {rates.isLoading ? (
         <CardSkeleton />
       ) : rates.error ? (
-        <ErrorState message={(rates.error as Error).message} onRetry={() => rates.refetch()} />
+        <ErrorState message={rates.error.message} onRetry={() => rates.refetch()} />
       ) : history.length === 0 ? (
         <EmptyState
           heading="No rates recorded for this resource."
@@ -261,7 +269,7 @@ export function ResourcesRatesDrawer({
             </tr>
           </thead>
           <tbody>
-            {history.map((rate: Rate) => {
+            {history.map((rate: ComputeAllocationResourceRate) => {
               const status = classifyRate(rate, history);
               return (
                 <tr key={rate.id} className="border-t border-border/60">

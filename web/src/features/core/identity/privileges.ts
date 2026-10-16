@@ -23,7 +23,7 @@ export type PrivilegeRow = {
   prefix: string;
   actions: string[];
   provenance: ProvenanceKind;
-  roleId?: string;
+  roleId?: string | undefined;
   provenanceLabel: string;
 };
 

@@ -17,12 +17,13 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -31,17 +32,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { EmptyState } from "@/shared/ui/EmptyState";
-import { ErrorState } from "@/shared/ui/ErrorState";
 import { Label } from "@/shared/ui/label";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
+import Link from "next/link";
+import * as React from "react";
+import { useProjectMembers, useRemoveProjectMember, useUpdateProjectMember } from "../queries";
 import {
-  useProjectMembers,
-  useRemoveProjectMember,
-  useUpdateProjectMember,
-} from "../queries";
-import type { ProjectMember, ProjectMemberAllocation, ProjectMemberRole } from "../schemas";
+  type ProjectMember,
+  type ProjectMemberAllocation,
+  type ProjectMemberRole,
+  projectMemberRoleSchema,
+} from "../schemas";
 
 const CHIP_ROLE_SUFFIX: Record<ProjectMemberAllocation["role"], string> = {
   PI: "P",
@@ -102,7 +102,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
 
   if (query.isLoading) return <TableSkeleton rows={4} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const members = query.data ?? [];
   if (members.length === 0) {
@@ -126,11 +126,6 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium text-foreground">{row.display_name}</span>
-              {row.type === "VIRTUAL" && (
-                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                  Virtual
-                </Badge>
-              )}
             </div>
             <div className="text-xs text-muted-foreground">{row.email}</div>
           </div>
@@ -153,7 +148,9 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
       header: "Status",
       cell: (row) => (
         <StatusBadge
-          variant={row.status === "ACTIVE" ? "active" : row.status === "INACTIVE" ? "inactive" : "deleted"}
+          variant={
+            row.status === "ACTIVE" ? "active" : row.status === "INACTIVE" ? "inactive" : "deleted"
+          }
           label={row.status}
         />
       ),
@@ -244,7 +241,7 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
             <select
               id="member-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as ProjectMemberRole)}
+              onChange={(e) => setRole(projectMemberRoleSchema.parse(e.target.value))}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
               <option value="ALLOCATION_MANAGER">Allocation Manager</option>

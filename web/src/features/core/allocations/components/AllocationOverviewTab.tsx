@@ -18,10 +18,10 @@
 "use client";
 
 import { useEffectiveRate } from "@/features/core/resources/queries";
+import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { useAllocationResources } from "../queries";
-import type { AttachedResource, ComputeAllocation } from "../schemas";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
@@ -31,7 +31,7 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat().format(n);
 }
 
-function AllocationResourceRow({ resource }: { resource: AttachedResource }) {
+function AllocationResourceRow({ resource }: { resource: ComputeAllocationResource }) {
   const rateQuery = useEffectiveRate(resource.id);
   return (
     <li className="flex items-center justify-between rounded-md border bg-card px-3 py-2 text-sm">
@@ -58,10 +58,14 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
     <div className="space-y-6">
       <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
         <dt className="text-muted-foreground">Allocation ID</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">
+          {allocation.id}
+        </dd>
 
         <dt className="text-muted-foreground">Project</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.project_id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">
+          {allocation.project_id}
+        </dd>
 
         <dt className="text-muted-foreground">Name</dt>
         <dd className="text-foreground before:content-[':_']">{allocation.name}</dd>
@@ -70,10 +74,14 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
         <dd className="text-foreground before:content-[':_']">{allocation.status}</dd>
 
         <dt className="text-muted-foreground">Cluster</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.compute_cluster_id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">
+          {allocation.compute_cluster_id}
+        </dd>
 
         <dt className="text-muted-foreground">Initial SUs</dt>
-        <dd className="tabular-nums text-foreground before:content-[':_']">{formatNumber(allocation.initial_su_amount)}</dd>
+        <dd className="tabular-nums text-foreground before:content-[':_']">
+          {formatNumber(allocation.initial_su_amount)}
+        </dd>
 
         <dt className="text-muted-foreground">Start</dt>
         <dd className="text-foreground before:content-[':_']">{allocation.start_time}</dd>
@@ -88,7 +96,7 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
           <TableSkeleton rows={2} columns={3} />
         ) : resourcesQuery.error ? (
           <ErrorState
-            message={(resourcesQuery.error as Error).message}
+            message={resourcesQuery.error.message}
             onRetry={() => resourcesQuery.refetch()}
           />
         ) : !resourcesQuery.data || resourcesQuery.data.length === 0 ? (

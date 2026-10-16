@@ -17,18 +17,15 @@
 
 "use client";
 
-import * as React from "react";
+import { NewProjectCta, ProjectsList } from "@/features/core/projects/components/ProjectsList";
+import { useProjects } from "@/features/core/projects/queries";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
-import {
-  NewProjectCta,
-  ProjectsList,
-} from "@/features/core/projects/components/ProjectsList";
-import { useProjects } from "@/features/core/projects/queries";
-import type { ProjectStatus } from "@/features/core/projects/schemas";
+import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;
@@ -60,14 +57,12 @@ export function ProjectsListContainer() {
     <ProjectsList
       rows={rows}
       isLoading={query.isLoading}
-      error={(query.error as Error | null) ?? null}
+      error={query.error}
       onRetry={() => query.refetch()}
       search={search}
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
-      onStatusFilterChange={(next) =>
-        updateParam("status", next === "all" ? null : next)
-      }
+      onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
       headerCta={<NewProjectCta canCreate={canCreate} />}
     />
   );

@@ -15,17 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { PrivilegeKey } from "@/features/core/identity/schemas";
+import type {
+  PostRolesData,
+  PostUsersByIdRolesData,
+  PutRolesByIdData,
+} from "@/generated/core/types.gen";
+import { type Role, zRole } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
-  type PrivilegeKey,
-  type Role,
   type RoleInput,
   type RoleRow,
   privilegeCatalogResponseSchema,
   roleDetailResponseSchema,
   roleHoldersResponseSchema,
   roleInputSchema,
-  roleSchema,
   rolesResponseSchema,
 } from "./schemas";
 
@@ -69,28 +73,31 @@ export async function listRoleRows(): Promise<RoleRow[]> {
 
 export async function createRole(input: RoleInput): Promise<Role> {
   const payload = roleInputSchema.parse(input);
-  return roleSchema.parse(
+  return zRole.parse(
     await apiFetch("/roles", {
       method: "POST",
-      body: { name: payload.name, description: payload.description },
+      body: {
+        name: payload.name,
+        description: payload.description,
+      } satisfies PostRolesData["body"],
     }),
   );
 }
 
 export async function updateRole(roleId: string, input: RoleInput): Promise<Role> {
   const payload = roleInputSchema.parse(input);
-  return roleSchema.parse(
+  return zRole.parse(
     await apiFetch(`/roles/${roleId}`, {
       method: "PUT",
-      body: { name: payload.name, description: payload.description },
+      body: {
+        name: payload.name,
+        description: payload.description,
+      } satisfies PutRolesByIdData["body"],
     }),
   );
 }
 
-export async function addPrivilegeToRole(
-  roleId: string,
-  privilege: PrivilegeKey,
-): Promise<void> {
+export async function addPrivilegeToRole(roleId: string, privilege: PrivilegeKey): Promise<void> {
   await apiFetch(`/roles/${roleId}/privileges`, {
     method: "POST",
     body: { privilege },
@@ -127,7 +134,7 @@ export async function reconcileRolePrivileges(
 export async function grantRoleToUser(userId: string, roleId: string): Promise<void> {
   await apiFetch(`/users/${userId}/roles`, {
     method: "POST",
-    body: { role_id: roleId },
+    body: { role_id: roleId } satisfies PostUsersByIdRolesData["body"],
   });
 }
 

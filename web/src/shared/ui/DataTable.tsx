@@ -19,7 +19,7 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
-import { ChevronDown, ChevronsUpDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 export type DataTableSortValue = string | number | Date | null | undefined;
@@ -124,12 +124,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card",
-        className,
-      )}
-    >
+    <div className={cn("overflow-hidden rounded-lg border border-border bg-card", className)}>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
@@ -189,11 +184,7 @@ export function DataTable<T>({
             {sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  {empty ?? (
-                    <span className="text-sm text-muted-foreground">
-                      No data.
-                    </span>
-                  )}
+                  {empty ?? <span className="text-sm text-muted-foreground">No data.</span>}
                 </td>
               </tr>
             ) : (
@@ -216,9 +207,9 @@ export function DataTable<T>({
                           // synthetic events still bubble through the
                           // *component* tree, so without this the row click
                           // fires alongside the menu item's own click.
-                          const target = e.target as HTMLElement;
                           if (
-                            target.closest(
+                            e.target instanceof Element &&
+                            e.target.closest(
                               "button, a, input, select, textarea, label, [role='menu'], [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [role='dialog'], [role='listbox'], [role='option']",
                             )
                           )
@@ -230,10 +221,7 @@ export function DataTable<T>({
                   onKeyDown={
                     onRowClick
                       ? (e) => {
-                          if (
-                            e.key === "Enter" &&
-                            e.target === e.currentTarget
-                          ) {
+                          if (e.key === "Enter" && e.target === e.currentTarget) {
                             onRowClick(row);
                           }
                         }

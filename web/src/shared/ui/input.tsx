@@ -16,7 +16,7 @@
 // under the License.
 
 import { Input as InputPrimitive } from "@base-ui/react/input";
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 

@@ -17,10 +17,10 @@
 
 "use client";
 
-import { Link2 } from "lucide-react";
+import type { UserIdentity } from "@/generated/core/zod.gen";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import type { UserIdentity } from "../schemas";
+import { Link2 } from "lucide-react";
 
 function formatDate(iso?: string): string | null {
   if (!iso) return null;

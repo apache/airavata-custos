@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserIdentity } from "@/generated/core/types.gen";
+import type { UserIdentity } from "@/generated/core/zod.gen";
 import { ROLE_AUDITOR, ROLE_OPERATOR, ROLE_SUPER_ADMIN } from "./roles-catalog";
 import type { UserRow } from "./types";
 
@@ -30,7 +30,7 @@ function identity(
     user_id,
     source,
     external_id,
-    email,
+    ...(email === undefined ? {} : { email }),
     created_at: "2026-01-15T09:00:00Z",
   };
 }
@@ -41,6 +41,8 @@ export const INITIAL_USERS: UserRow[] = [
     first_name: "Dev",
     last_name: "Admin",
     email: "admin@custos.local",
+    organization_id: "msw-org",
+    type: "CLUSTER_LOCAL",
     status: "ACTIVE",
     roles: [ROLE_SUPER_ADMIN, ROLE_OPERATOR, ROLE_AUDITOR],
     identities: [
@@ -55,6 +57,8 @@ export const INITIAL_USERS: UserRow[] = [
     first_name: "Rachel",
     last_name: "Gao",
     email: "rgao@access-ci.org",
+    organization_id: "msw-org",
+    type: "CLUSTER_LOCAL",
     status: "ACTIVE",
     roles: [ROLE_OPERATOR],
     identities: [
@@ -67,6 +71,8 @@ export const INITIAL_USERS: UserRow[] = [
     first_name: "James",
     last_name: "Okonkwo",
     email: "jokonkwo@university.edu",
+    organization_id: "msw-org",
+    type: "CLUSTER_LOCAL",
     status: "ACTIVE",
     roles: [ROLE_AUDITOR],
     identities: [identity("u3", "cilogon", "cilogon-uid-3003", "jokonkwo@cilogon.org")],
@@ -76,6 +82,8 @@ export const INITIAL_USERS: UserRow[] = [
     first_name: "Priya",
     last_name: "Sharma",
     email: "psharma@hpc-lab.org",
+    organization_id: "msw-org",
+    type: "CLUSTER_LOCAL",
     status: "SUSPENDED",
     roles: [ROLE_OPERATOR, ROLE_AUDITOR],
     identities: [
@@ -89,6 +97,8 @@ export const INITIAL_USERS: UserRow[] = [
     first_name: "Daniel",
     last_name: "Wu",
     email: "dwu@custos-hpc.io",
+    organization_id: "msw-org",
+    type: "CLUSTER_LOCAL",
     status: "INACTIVE",
     identities: [],
     roles: [],

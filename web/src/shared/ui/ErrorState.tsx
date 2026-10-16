@@ -18,13 +18,13 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { AlertCircleIcon } from "lucide-react";
-import * as React from "react";
+import type * as React from "react";
 
 export type ErrorStateProps = {
   heading?: string;
   message?: React.ReactNode;
-  onRetry?: () => void;
-  retryLabel?: string;
+  onRetry?: (() => void) | undefined;
+  retryLabel?: string | undefined;
   className?: string;
 };
 

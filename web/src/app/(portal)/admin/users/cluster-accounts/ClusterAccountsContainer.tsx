@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { ClusterAccountsTable } from "@/features/core/cluster-accounts/components/ClusterAccountsTable";
 import {
   type ReviewAction,
@@ -29,7 +27,7 @@ import {
   useClusterAccounts,
   useDenyClusterAccount,
 } from "@/features/core/cluster-accounts/queries";
-import type { ClusterAccount, ClusterAccountApproval } from "@/features/core/cluster-accounts/schemas";
+import type { ClusterAccountApproval, ClusterAccountResponse } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
@@ -37,6 +35,8 @@ import {
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import * as React from "react";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
 
@@ -51,7 +51,7 @@ const FILTERS: Array<{ value: Filter; label: string; empty: string }> = [
 
 function readFilter(params: URLSearchParams): Filter {
   const raw = params.get("status");
-  return FILTERS.some((f) => f.value === raw) ? (raw as Filter) : "PENDING";
+  return FILTERS.find((f) => f.value === raw)?.value ?? "PENDING";
 }
 
 export function ClusterAccountsContainer() {
@@ -61,14 +61,15 @@ export function ClusterAccountsContainer() {
   const params = useShallowSearchParams();
   const filter = readFilter(params);
   const [page, setPage] = React.useState(1);
-  const [review, setReview] = React.useState<{ account: ClusterAccount; action: ReviewAction } | null>(
-    null,
-  );
+  const [review, setReview] = React.useState<{
+    account: ClusterAccountResponse;
+    action: ReviewAction;
+  } | null>(null);
   const [reviewError, setReviewError] = React.useState<string | null>(null);
 
   const query = useClusterAccounts(
     {
-      approval_status: filter === "ALL" ? undefined : filter,
+      ...(filter === "ALL" ? {} : { approval_status: filter }),
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
     },
@@ -86,7 +87,7 @@ export function ClusterAccountsContainer() {
   }
 
   function openReview(action: ReviewAction) {
-    return (account: ClusterAccount) => {
+    return (account: ClusterAccountResponse) => {
       setReviewError(null);
       setReview({ account, action });
     };
@@ -152,7 +153,7 @@ export function ClusterAccountsContainer() {
       <ClusterAccountsTable
         rows={query.data?.items ?? []}
         isLoading={query.isLoading}
-        error={(query.error as Error | null) ?? null}
+        error={query.error}
         onRetry={() => void query.refetch()}
         canReview={canReview}
         onApprove={openReview("approve")}

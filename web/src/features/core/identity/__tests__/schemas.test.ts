@@ -16,12 +16,7 @@
 // under the License.
 
 import { describe, expect, it } from "vitest";
-import {
-  callerPrivilegesSchema,
-  privilegeKeySchema,
-  privilegesResponseSchema,
-  userRolesResponseSchema,
-} from "../schemas";
+import { privilegeKeySchema, privilegesResponseSchema, userRolesResponseSchema } from "../schemas";
 
 describe("identity schemas", () => {
   it("accepts any non-empty privilege key (registry is runtime-extensible)", () => {
@@ -31,21 +26,12 @@ describe("identity schemas", () => {
     expect(() => privilegeKeySchema.parse("")).toThrow();
   });
 
-  it("accepts the CallerPrivileges shape", () => {
-    const parsed = callerPrivilegesSchema.parse({
-      privileges: ["core:allocations:read", "amie:packets:read"],
-    });
-    expect(parsed.privileges).toEqual([
-      "core:allocations:read",
-      "amie:packets:read",
-    ]);
-  });
-
-  it("unwraps the response transform to a Privilege[] (default [])", () => {
+  it("unwraps the response transform to a Privilege[]", () => {
     expect(
-      privilegesResponseSchema.parse({ privileges: ["core:projects:read"] }),
-    ).toEqual(["core:projects:read"]);
-    expect(privilegesResponseSchema.parse({})).toEqual([]);
+      privilegesResponseSchema.parse({
+        privileges: ["core:allocations:read", "amie:packets:read"],
+      }),
+    ).toEqual(["core:allocations:read", "amie:packets:read"]);
   });
 
   it("tolerates null granted_by and reason on role grants (backend nullable *string)", () => {

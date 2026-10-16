@@ -56,12 +56,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function parseFilters(params: SearchParamsLike): ListFilters {
   const status = params
     .getAll("status")
-    .filter((s): s is ListStatus => STATUS_FILTERS.includes(s as ListStatus));
+    .filter((s): s is ListStatus => STATUS_FILTERS.some((f) => f === s));
   const source = params.getAll("source").filter((s) => /^[a-z][a-z0-9-]*$/.test(s));
   const winRaw = params.get("window");
-  const window: WindowPreset = VALID_WINDOWS.includes(winRaw as WindowPreset)
-    ? (winRaw as WindowPreset)
-    : DEFAULT_FILTERS.window;
+  const window: WindowPreset = VALID_WINDOWS.find((w) => w === winRaw) ?? DEFAULT_FILTERS.window;
   const q = (params.get("q") ?? "").trim();
   const pageRaw = Number.parseInt(params.get("page") ?? "", 10);
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : DEFAULT_FILTERS.page;

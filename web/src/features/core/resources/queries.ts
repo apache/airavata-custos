@@ -17,8 +17,13 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createResourceRate, getEffectiveRate, listResourceRates, listResourceSummaries } from "./api";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createResourceRate,
+  getEffectiveRate,
+  listResourceRates,
+  listResourceSummaries,
+} from "./api";
 
 export const resourceKeys = {
   all: ["resources"] as const,
@@ -44,8 +49,7 @@ export function useResourceSummaries() {
 export function useResourceRates(id: string | undefined) {
   return useQuery({
     queryKey: id ? resourceKeys.rates(id) : [...resourceKeys.all, "rates", "none"],
-    queryFn: () => listResourceRates(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listResourceRates(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -53,8 +57,7 @@ export function useResourceRates(id: string | undefined) {
 export function useEffectiveRate(id: string | undefined) {
   return useQuery({
     queryKey: id ? resourceKeys.effective(id) : [...resourceKeys.all, "effective", "none"],
-    queryFn: () => getEffectiveRate(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getEffectiveRate(id) : skipToken,
     retry: false,
     ...DEFAULTS,
   });

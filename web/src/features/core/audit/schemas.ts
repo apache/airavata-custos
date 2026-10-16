@@ -20,6 +20,13 @@
 // Wire shapes of the audit trace endpoints. The components render these as
 // they are; there is no adapted UI shape.
 
+import {
+  zGetAuditTracesByTraceIdResponse,
+  zGetAuditTracesResponse,
+  zTraceDelivery,
+  zTraceEvent,
+  zTraceSummary,
+} from "@/generated/core/zod.gen";
 import { z } from "zod";
 
 const traceIdHexSchema = z
@@ -30,45 +37,19 @@ const spanIdHexSchema = z.string().regex(/^[0-9a-f]{16}$/, "span_id must be 16-c
 
 export const traceStatusSchema = z.enum(["ok", "error", "in_progress"]);
 export const stepStatusSchema = z.enum(["ok", "error"]);
-export const deliveryStatusSchema = z.enum(["PENDING", "SUCCEEDED", "FAILED"]);
-
-export const deliveryCountsSchema = z.object({
-  pending: z.number().int().nonnegative(),
-  succeeded: z.number().int().nonnegative(),
-  failed: z.number().int().nonnegative(),
-  attempts: z.number().int().nonnegative(),
-});
-
-export const traceSummarySchema = z.object({
+export const traceSummarySchema = zTraceSummary.extend({
   trace_id: traceIdHexSchema,
-  root_operation: z.string(),
-  source: z.string(),
   status: traceStatusSchema,
-  started_at: z.string(),
-  ended_at: z.string(),
-  event_count: z.number().int().nonnegative(),
-  deliveries: deliveryCountsSchema,
 });
 
-export const traceListSchema = z.object({
+export const traceListSchema = zGetAuditTracesResponse.extend({
   traces: z.array(traceSummarySchema),
-  total: z.number().int().nonnegative(),
-  limit: z.number().int().nonnegative(),
-  offset: z.number().int().nonnegative(),
 });
 
-// parent_span_id is .optional() not .nullable() because Go omitempty never emits null.
-export const stepSchema = z.object({
-  id: z.string(),
+export const stepSchema = zTraceEvent.extend({
   span_id: spanIdHexSchema,
   parent_span_id: spanIdHexSchema.optional(),
-  source: z.string(),
-  event_type: z.string(),
-  entity_type: z.string().optional(),
-  entity_id: z.string().optional(),
-  description: z.string().optional(),
   status: stepStatusSchema,
-  created_at: z.string(),
 });
 
 export type StepNode = z.infer<typeof stepSchema> & { children: StepNode[] };
@@ -78,25 +59,13 @@ export const stepNodeSchema: z.ZodType<StepNode> = stepSchema.extend({
   },
 });
 
-export const traceDeliverySchema = z.object({
-  id: z.string(),
-  event_type: z.string(),
-  subscriber: z.string(),
-  status: deliveryStatusSchema,
-  attempts: z.number().int().nonnegative(),
-  next_run_at: z.string(),
-  last_error: z.string().optional(),
+export const traceDeliverySchema = zTraceDelivery.extend({
   span_id: spanIdHexSchema,
 });
 
-export const traceDetailSchema = z.object({
+export const traceDetailSchema = zGetAuditTracesByTraceIdResponse.extend({
   trace_id: traceIdHexSchema,
   status: traceStatusSchema,
   tree: z.array(stepNodeSchema),
   deliveries: z.array(traceDeliverySchema),
-  truncated: z.boolean(),
-});
-
-export const traceSourceListSchema = z.object({
-  sources: z.array(z.string()),
 });

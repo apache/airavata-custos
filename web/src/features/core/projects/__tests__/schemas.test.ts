@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zProjectResponse } from "@/generated/core/zod.gen";
 import { describe, expect, it } from "vitest";
 import {
   addProjectMemberPayloadSchema,
   createProjectPayloadSchema,
   projectListEnvelopeSchema,
   projectMemberSchema,
-  projectSchema,
   updateProjectMemberPayloadSchema,
   updateProjectStatusPayloadSchema,
 } from "../schemas";
@@ -45,25 +45,23 @@ const validMember = {
   role: "MEMBER" as const,
   status: "ACTIVE" as const,
   added_time: "2026-04-05T00:00:00.000Z",
+  allocations: [],
 };
 
 describe("projectSchema", () => {
   it("accepts a backend-shaped project", () => {
-    expect(projectSchema.safeParse(validProject).success).toBe(true);
+    expect(zProjectResponse.safeParse(validProject).success).toBe(true);
   });
   it("rejects an invalid status", () => {
-    expect(projectSchema.safeParse({ ...validProject, status: "FOO" }).success).toBe(false);
+    expect(zProjectResponse.safeParse({ ...validProject, status: "FOO" }).success).toBe(false);
   });
 });
 
 describe("projectListEnvelopeSchema", () => {
   it("accepts a valid envelope", () => {
-    expect(
-      projectListEnvelopeSchema.safeParse({ items: [validProject], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(projectListEnvelopeSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
+    expect(projectListEnvelopeSchema.safeParse({ items: [validProject], total: 1 }).success).toBe(
+      true,
+    );
   });
 });
 

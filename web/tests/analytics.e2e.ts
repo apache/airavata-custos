@@ -79,9 +79,7 @@ test.describe("analytics page", () => {
       timeout: 20_000,
     });
     const results = await new AxeBuilder({ page }).analyze();
-    const serious = results.violations.filter((v) =>
-      SEVERITIES.includes(v.impact as (typeof SEVERITIES)[number]),
-    );
+    const serious = results.violations.filter((v) => SEVERITIES.some((s) => s === v.impact));
     expect(serious).toEqual([]);
   });
 });

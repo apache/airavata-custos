@@ -66,6 +66,7 @@ export function UsersAdminProvider({ children }: { children: React.ReactNode }) 
       name: input.name,
       description: input.description,
       is_system: false,
+      created_at: new Date().toISOString(),
       permissions: input.permissions,
     };
     setRoles((prev) => [...prev, role]);
@@ -91,6 +92,7 @@ export function UsersAdminProvider({ children }: { children: React.ReactNode }) 
       name: input.name,
       description: input.description,
       is_system: existing?.is_system ?? false,
+      created_at: existing?.created_at ?? new Date().toISOString(),
       permissions: input.permissions,
     };
     setRoles((prev) => prev.map((r) => (r.id === roleId ? updated : r)));
@@ -98,7 +100,7 @@ export function UsersAdminProvider({ children }: { children: React.ReactNode }) 
     setUsers((prev) =>
       prev.map((user) => {
         const hasRole = user.roles.some((r) => r.id === roleId);
-        const shouldHaveRole = Boolean(user.id) && memberSet.has(user.id as string);
+        const shouldHaveRole = Boolean(user.id) && memberSet.has(user.id);
         if (shouldHaveRole) {
           const nextRoles = hasRole
             ? user.roles.map((r) => (r.id === roleId ? updated : r))

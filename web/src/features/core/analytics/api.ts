@@ -15,13 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { GetConnectorsAnalyticsAllocationsByIdJobsData } from "@/generated/analytics/types.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   type AllocationJobs,
-  allocationJobsSchema,
   type AnalyticsContext,
-  analyticsContextsSchema,
   type UsageSummary,
+  allocationJobsSchema,
+  analyticsContextsSchema,
   usageSummarySchema,
 } from "./schemas";
 
@@ -35,7 +36,7 @@ export async function getUsageSummary(allocationId: string): Promise<UsageSummar
   return usageSummarySchema.parse(raw);
 }
 
-export type JobsParams = { mine?: boolean; limit?: number; offset?: number };
+export type JobsParams = NonNullable<GetConnectorsAnalyticsAllocationsByIdJobsData["query"]>;
 
 export async function getAllocationJobs(
   allocationId: string,

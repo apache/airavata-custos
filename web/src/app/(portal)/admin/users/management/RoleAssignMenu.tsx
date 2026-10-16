@@ -18,7 +18,7 @@
 "use client";
 
 import { useRoleDetails } from "@/features/core/users/queries";
-import type { Role } from "@/features/core/users/schemas";
+import type { Role } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,

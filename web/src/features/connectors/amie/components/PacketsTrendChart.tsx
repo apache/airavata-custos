@@ -17,8 +17,8 @@
 
 "use client";
 
-import * as React from "react";
 import { StackedAreaUsage } from "@/shared/charts/StackedAreaUsage";
+import * as React from "react";
 import { type PacketStatBucket, type PacketStatus, packetStatusLabel } from "../types";
 
 const STATUS_ORDER: PacketStatus[] = [
@@ -49,12 +49,15 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
   const byDay = React.useMemo(() => {
     const days = new Map<string, Record<PacketStatus, number> & { date: string }>();
     for (const b of buckets) {
-      const row =
-        days.get(b.date) ??
-        ({
-          date: b.date,
-          ...Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])),
-        } as Record<PacketStatus, number> & { date: string });
+      const row = days.get(b.date) ?? {
+        date: b.date,
+        PROCESSED: 0,
+        DECODED: 0,
+        NEW: 0,
+        WAITING_APPROVAL: 0,
+        REFUSED: 0,
+        FAILED: 0,
+      };
       row[b.status] = (row[b.status] ?? 0) + b.count;
       days.set(b.date, row);
     }

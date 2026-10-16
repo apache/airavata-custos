@@ -19,12 +19,10 @@ import type { z } from "zod";
 import type {
   deliveryDetailSchema,
   deliverySchema,
-  deliveryStatusSchema,
   historyEntrySchema,
   subscriptionListSchema,
 } from "./schemas";
 
-export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 export type Delivery = z.infer<typeof deliverySchema>;
 export type DeliveryDetail = z.infer<typeof deliveryDetailSchema>;
 export type HistoryEntry = z.infer<typeof historyEntrySchema>;

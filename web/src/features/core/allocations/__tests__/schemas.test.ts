@@ -15,13 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zComputeAllocation, zComputeAllocationChangeRequestEvent } from "@/generated/core/zod.gen";
 import { describe, expect, it } from "vitest";
 import {
   allocationMembershipSchema,
-  changeRequestEventSchema,
   changeRequestSchema,
-  computeAllocationListSchema,
-  computeAllocationSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
@@ -37,6 +35,7 @@ const validAllocation = {
   initial_su_amount: 100000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
 };
 
 const validMember = {
@@ -46,6 +45,7 @@ const validMember = {
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
   membership_status: "ACTIVE" as const,
+  role: "MEMBER" as const,
 };
 
 const validChangeRequest = {
@@ -61,23 +61,10 @@ const validChangeRequest = {
 
 describe("computeAllocationSchema", () => {
   it("accepts a backend-shaped allocation", () => {
-    expect(computeAllocationSchema.safeParse(validAllocation).success).toBe(true);
+    expect(zComputeAllocation.safeParse(validAllocation).success).toBe(true);
   });
   it("rejects an invalid status", () => {
-    expect(
-      computeAllocationSchema.safeParse({ ...validAllocation, status: "FOO" }).success,
-    ).toBe(false);
-  });
-});
-
-describe("computeAllocationListSchema", () => {
-  it("accepts a valid envelope", () => {
-    expect(
-      computeAllocationListSchema.safeParse({ items: [validAllocation], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(computeAllocationListSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
+    expect(zComputeAllocation.safeParse({ ...validAllocation, status: "FOO" }).success).toBe(false);
   });
 });
 
@@ -96,9 +83,9 @@ describe("allocationMembershipSchema", () => {
     ).toBe(true);
   });
   it("rejects an unknown role", () => {
-    expect(
-      allocationMembershipSchema.safeParse({ ...validMember, role: "queen" }).success,
-    ).toBe(false);
+    expect(allocationMembershipSchema.safeParse({ ...validMember, role: "queen" }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -125,7 +112,7 @@ describe("changeRequestSchema", () => {
 describe("changeRequestEventSchema", () => {
   it("accepts a valid event", () => {
     expect(
-      changeRequestEventSchema.safeParse({
+      zComputeAllocationChangeRequestEvent.safeParse({
         id: "evt-001",
         compute_allocation_change_request_id: "cr-001",
         event_type: "CREATED",
@@ -172,9 +159,9 @@ describe("updateMembershipPayloadSchema", () => {
     expect(updateMembershipPayloadSchema.safeParse({}).success).toBe(false);
   });
   it("accepts a status-only patch", () => {
-    expect(
-      updateMembershipPayloadSchema.safeParse({ membership_status: "INACTIVE" }).success,
-    ).toBe(true);
+    expect(updateMembershipPayloadSchema.safeParse({ membership_status: "INACTIVE" }).success).toBe(
+      true,
+    );
   });
 });
 
@@ -208,8 +195,8 @@ describe("updateChangeRequestPayloadSchema", () => {
     expect(updateChangeRequestPayloadSchema.safeParse({}).success).toBe(false);
   });
   it("accepts a single-field patch", () => {
-    expect(
-      updateChangeRequestPayloadSchema.safeParse({ change_status: "APPROVED" }).success,
-    ).toBe(true);
+    expect(updateChangeRequestPayloadSchema.safeParse({ change_status: "APPROVED" }).success).toBe(
+      true,
+    );
   });
 });

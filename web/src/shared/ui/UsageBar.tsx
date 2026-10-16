@@ -16,7 +16,7 @@
 // under the License.
 
 import { cn } from "@/lib/utils";
-import * as React from "react";
+import type * as React from "react";
 
 export type UsageBarProps = {
   value: number;

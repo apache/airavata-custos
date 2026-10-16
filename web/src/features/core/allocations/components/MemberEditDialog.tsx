@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -28,6 +27,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
 import type { AllocationMembership } from "../schemas";
 
 // Only these roles are portal-assignable. PI and CO_PI come from upstream and
@@ -79,7 +79,7 @@ export function MemberEditDialog({ member, onClose, onSubmit, isPending }: Membe
             <select
               id="member-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as MemberRole)}
+              onChange={(e) => setRole(ROLES.find((r) => r === e.target.value) ?? role)}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
               {ROLES.map((r) => (

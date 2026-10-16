@@ -22,8 +22,8 @@ import {
   useRoleDetails,
   useUpdateUserRoles,
 } from "@/features/core/users/queries";
-import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Badge } from "@/shared/ui/badge";
 import * as React from "react";

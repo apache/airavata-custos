@@ -15,13 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
+import type { PostComputeClusterUsersByIdDenyData } from "@/generated/core/types.gen";
 import {
-  type ClusterAccountListResponse,
-  type ReviewedClusterUser,
-  clusterAccountListResponseSchema,
-  reviewedClusterUserSchema,
-} from "./schemas";
+  type ComputeClusterUser,
+  zGetComputeClusterUsersResponse,
+  zPostComputeClusterUsersByIdApproveResponse,
+  zPostComputeClusterUsersByIdDenyResponse,
+} from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
+import type { ClusterAccountListResponse } from "./schemas";
 import type { ClusterAccountListParams } from "./types";
 
 export async function listClusterAccounts(
@@ -32,19 +34,21 @@ export async function listClusterAccounts(
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   const query = search.toString();
-  return clusterAccountListResponseSchema.parse(
+  const list = zGetComputeClusterUsersResponse.parse(
     await apiFetch(`/compute-cluster-users${query ? `?${query}` : ""}`),
   );
+  return { ...list, items: list.items ?? [] };
 }
 
-export async function approveClusterAccount(id: string): Promise<ReviewedClusterUser> {
-  return reviewedClusterUserSchema.parse(
+export async function approveClusterAccount(id: string): Promise<ComputeClusterUser> {
+  return zPostComputeClusterUsersByIdApproveResponse.parse(
     await apiFetch(`/compute-cluster-users/${id}/approve`, { method: "POST" }),
   );
 }
 
-export async function denyClusterAccount(id: string, note: string): Promise<ReviewedClusterUser> {
-  return reviewedClusterUserSchema.parse(
-    await apiFetch(`/compute-cluster-users/${id}/deny`, { method: "POST", body: { note } }),
+export async function denyClusterAccount(id: string, note: string): Promise<ComputeClusterUser> {
+  const body: PostComputeClusterUsersByIdDenyData["body"] = { note };
+  return zPostComputeClusterUsersByIdDenyResponse.parse(
+    await apiFetch(`/compute-cluster-users/${id}/deny`, { method: "POST", body }),
   );
 }

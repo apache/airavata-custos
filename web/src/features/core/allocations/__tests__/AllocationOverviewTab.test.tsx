@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AttachedResource, ComputeAllocation } from "../schemas";
 
-let attached: AttachedResource[] = [];
+let attached: ComputeAllocationResource[] = [];
 
 vi.mock("../queries", () => ({
   useAllocationResources: () => ({
@@ -49,6 +49,7 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
 };
 
 beforeEach(() => {

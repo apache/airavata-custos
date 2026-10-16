@@ -17,37 +17,31 @@
 
 "use client";
 
+import { ApiError } from "@/shared/api/client";
 import { signOut } from "next-auth/react";
 import { useCallback } from "react";
-import { ApiError } from "@/shared/api/client";
-
-type ErrorBody = { code?: unknown };
 
 function readCode(body: unknown): string | null {
-  if (!body || typeof body !== "object") return null;
-  const code = (body as ErrorBody).code;
-  return typeof code === "string" ? code : null;
+  if (!body || typeof body !== "object" || !("code" in body)) return null;
+  return typeof body.code === "string" ? body.code : null;
 }
 
 export function useAuthErrorHandler() {
-  return useCallback(
-    (error: unknown) => {
-      if (!(error instanceof ApiError)) return;
-      const code = readCode(error.body);
+  return useCallback((error: unknown) => {
+    if (!(error instanceof ApiError)) return;
+    const code = readCode(error.body);
 
-      // Sign the user out and let the sign-in page surface the reason as a
-      // toast; a toast fired here would be lost across the sign-out redirect.
-      if (error.status === 401 && (code === "invalid_token" || code === "missing_bearer")) {
-        void signOut({ callbackUrl: "/sign-in?error=session_expired" });
-        return;
-      }
-      if (error.status === 401 && code === "identity_not_linked") {
-        void signOut({ callbackUrl: "/sign-in?error=identity_not_linked" });
-        return;
-      }
-      // 403 insufficient_privilege and other codes fall through to the
-      // query's local ErrorState — no global takeover.
-    },
-    [],
-  );
+    // Sign the user out and let the sign-in page surface the reason as a
+    // toast; a toast fired here would be lost across the sign-out redirect.
+    if (error.status === 401 && (code === "invalid_token" || code === "missing_bearer")) {
+      void signOut({ callbackUrl: "/sign-in?error=session_expired" });
+      return;
+    }
+    if (error.status === 401 && code === "identity_not_linked") {
+      void signOut({ callbackUrl: "/sign-in?error=identity_not_linked" });
+      return;
+    }
+    // 403 insufficient_privilege and other codes fall through to the
+    // query's local ErrorState — no global takeover.
+  }, []);
 }
