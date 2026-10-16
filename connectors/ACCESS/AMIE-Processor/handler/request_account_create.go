@@ -209,6 +209,8 @@ func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allo
 	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
 		ComputeAllocationID: allocation.ID,
 		UserID:              userID,
+		StartTime:           allocation.StartTime,
+		EndTime:             allocation.EndTime,
 	})
 }
 

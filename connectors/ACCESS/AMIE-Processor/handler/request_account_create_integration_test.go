@@ -24,6 +24,7 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -190,25 +191,34 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 	}
 
 	// Membership row links the account user to the project's existing
-	// allocation.
+	// allocation and carries the allocation's start and end times.
 	var mem struct {
-		UserID              string `db:"user_id"`
-		ComputeAllocationID string `db:"compute_allocation_id"`
+		UserID              string    `db:"user_id"`
+		ComputeAllocationID string    `db:"compute_allocation_id"`
+		StartTime           time.Time `db:"start_time"`
+		EndTime             time.Time `db:"end_time"`
 	}
 	if err := database.Get(&mem,
-		"SELECT user_id, compute_allocation_id FROM compute_allocation_memberships WHERE user_id = $1",
+		"SELECT user_id, compute_allocation_id, start_time, end_time FROM compute_allocation_memberships WHERE user_id = $1",
 		user.ID,
 	); err != nil {
 		t.Fatalf("read membership: %v", err)
 	}
-	var allocID string
-	if err := database.Get(&allocID,
-		"SELECT id FROM compute_allocations WHERE project_id = $1 LIMIT 1", projectID,
-	); err != nil {
-		t.Fatalf("read allocation id: %v", err)
+	var alloc struct {
+		ID        string    `db:"id"`
+		StartTime time.Time `db:"start_time"`
+		EndTime   time.Time `db:"end_time"`
 	}
-	if mem.ComputeAllocationID != allocID {
-		t.Errorf("membership.compute_allocation_id: got %q, want %q", mem.ComputeAllocationID, allocID)
+	if err := database.Get(&alloc,
+		"SELECT id, start_time, end_time FROM compute_allocations WHERE project_id = $1 LIMIT 1", projectID,
+	); err != nil {
+		t.Fatalf("read allocation: %v", err)
+	}
+	if mem.ComputeAllocationID != alloc.ID {
+		t.Errorf("membership.compute_allocation_id: got %q, want %q", mem.ComputeAllocationID, alloc.ID)
+	}
+	if mem.StartTime.IsZero() || !mem.StartTime.Equal(alloc.StartTime) || !mem.EndTime.Equal(alloc.EndTime) {
+		t.Errorf("membership times: got %s to %s, want the allocation's %s to %s", mem.StartTime, mem.EndTime, alloc.StartTime, alloc.EndTime)
 	}
 
 	// Audit trail for this packet: CREATE_PERSON, CREATE_ACCOUNT,
