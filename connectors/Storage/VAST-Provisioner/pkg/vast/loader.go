@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -80,12 +81,20 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	if len(clusters) == 0 {
 		return fmt.Errorf("vast provisioner: enabled with no clusters")
 	}
+	interval := 5 * time.Minute
+	if s := setting(connectorConfig.Config, "reconcile_interval"); s != "" {
+		d, err := time.ParseDuration(s)
+		if err != nil || d <= 0 {
+			return fmt.Errorf("vast provisioner: reconcile_interval must be a positive duration, such as \"5m\", not %q", s)
+		}
+		interval = d
+	}
 	subscriber := subscribers.NewStorageSubscriber(eventBus, coreService, clusters)
 	subscriber.RegisterSubscribers(Type)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		subscriber.StartReconciler(ctx)
+		subscriber.StartReconciler(ctx, interval)
 	}()
 	return nil
 }
