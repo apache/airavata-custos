@@ -221,7 +221,7 @@ func (s *StorageSubscriber) ensure(ctx context.Context, c Cluster, user, group s
 	return nil
 }
 
-func (s *StorageSubscriber) StartReconciler(ctx context.Context) {
+func (s *StorageSubscriber) StartReconciler(ctx context.Context, interval time.Duration) {
 	for {
 		for id, c := range s.clusters {
 			s.reconcile(ctx, id, c)
@@ -229,7 +229,7 @@ func (s *StorageSubscriber) StartReconciler(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(24 * time.Hour):
+		case <-time.After(interval):
 		}
 	}
 }

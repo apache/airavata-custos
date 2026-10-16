@@ -80,6 +80,7 @@ connectors:
   vast-provisioner:
     type: "vast-storage-provisioner"
     enabled: false
+    reconcile_interval: "5m"
     clusters:
       - id: "${CUSTOS_CLUSTER_ID}"
         vast:
