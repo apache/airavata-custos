@@ -79,6 +79,7 @@
   --custos-orange-400: #ffa726;
   --custos-orange-500: #fe8c00;
   --custos-orange-700: #b35f00;
+  --custos-orange-800: #a35500;
 
   --custos-white: #ffffff;
 
@@ -92,8 +93,10 @@
   /* Brand semantic — distinct from --primary; reserved for active states,
        links, brand wordmark, progress bar default fill. */
   --brand: var(--custos-orange-500);
-  --brand-foreground: #ffffff;
+  --brand-foreground: var(--custos-gray-900);
   --brand-tint: var(--custos-orange-50);
+  /* Text links: the brand orange fails AA as text on light surfaces, so links use this shade. */
+  --link: var(--custos-orange-800);
 
   /* Semantic tone tokens — paired bg/fg used by pills, chips, banners. */
   --banner-error-bg: var(--custos-red-50);
@@ -112,12 +115,15 @@
   --tone-accent-bg: var(--custos-purple-50);
   --tone-accent-fg: var(--custos-purple-700);
 
+  /* Solid status fills (bars, dots); the same shades read on both themes. */
+  --fill-ok: var(--custos-green-500);
+  --fill-warn: var(--custos-amber-500);
+  --fill-error: var(--custos-red-500);
+
   --syntax-key: var(--custos-purple-700);
   --syntax-str: var(--custos-green-700);
   --syntax-bool: var(--custos-amber-700);
   --syntax-num: var(--custos-blue-700);
-
-  --drawer-scrim: rgba(15, 23, 42, 0.32);
 
   --muted-2: #f8fafc;
   --border-strong: #d6dce4;
@@ -141,6 +147,8 @@
   --accent-foreground: var(--custos-gray-900);
   --destructive: var(--custos-red-600);
   --destructive-foreground: var(--custos-white);
+  /* Destructive text; the fill above is for buttons and badges only. */
+  --destructive-text: var(--custos-red-700);
   --border: var(--custos-gray-200);
   --input: var(--custos-gray-200);
   --ring: var(--custos-blue-500);
@@ -152,7 +160,7 @@
   --sidebar-primary: var(--custos-blue-500);
   --sidebar-primary-foreground: var(--custos-white);
   --sidebar-accent: var(--brand-tint);
-  --sidebar-accent-foreground: var(--brand);
+  --sidebar-accent-foreground: var(--link);
   --sidebar-border: var(--custos-gray-200);
   --sidebar-ring: var(--custos-blue-500);
 
@@ -188,6 +196,7 @@
   --accent-foreground: var(--custos-gray-50);
   --destructive: var(--custos-red-500);
   --destructive-foreground: var(--custos-white);
+  --destructive-text: var(--custos-red-400);
   --border: var(--custos-gray-700);
   --input: var(--custos-gray-700);
   --ring: var(--custos-blue-400);
@@ -204,8 +213,9 @@
   --sidebar-ring: var(--custos-blue-400);
 
   --brand: var(--custos-orange-400);
-  --brand-foreground: #ffffff;
+  --brand-foreground: var(--custos-gray-900);
   --brand-tint: rgba(254, 140, 0, 0.22);
+  --link: var(--custos-orange-400);
 
   --muted-2: var(--custos-gray-700);
   --border-strong: var(--custos-gray-600);
@@ -223,7 +233,7 @@
   --tone-warn-bg: rgba(245, 158, 11, 0.18);
   --tone-warn-fg: var(--custos-amber-200);
   --tone-info-bg: rgba(77, 134, 201, 0.22);
-  --tone-info-fg: var(--custos-blue-300);
+  --tone-info-fg: var(--custos-blue-200);
   --tone-accent-bg: rgba(139, 92, 246, 0.2);
   --tone-accent-fg: #c4b5fd;
 
@@ -240,6 +250,4 @@
   --syntax-str: var(--custos-green-300);
   --syntax-bool: var(--custos-amber-200);
   --syntax-num: var(--custos-blue-300);
-
-  --drawer-scrim: rgba(0, 0, 0, 0.6);
 }

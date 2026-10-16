@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UserIdentity } from "@/generated/core/types.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { IdentitiesCard } from "../IdentitiesCard";
-import type { UserIdentity } from "../../schemas";
 
 describe("IdentitiesCard", () => {
   it("renders an empty state when no identities are linked", () => {
@@ -30,12 +30,20 @@ describe("IdentitiesCard", () => {
     const identities: UserIdentity[] = [
       {
         id: "i1",
+        user_id: "u1",
         source: "cilogon",
         external_id: "elena@access-ci.org",
         oidc_sub: "http://cilogon.org/serverA/users/1",
         created_at: "2026-03-12T09:00:00Z",
       },
-      { id: "i2", source: "comanage", external_id: "CO-4821", oidc_sub: "" },
+      {
+        id: "i2",
+        user_id: "u1",
+        source: "comanage",
+        external_id: "CO-4821",
+        oidc_sub: "",
+        created_at: "2026-01-01T00:00:00Z",
+      },
     ];
     render(<IdentitiesCard identities={identities} />);
     expect(screen.getByText("cilogon")).toBeInTheDocument();

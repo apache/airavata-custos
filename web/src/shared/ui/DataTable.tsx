@@ -18,11 +18,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import { Button } from "@/shared/ui/button";
-import { ChevronDown, ChevronsUpDown, ChevronUp } from "lucide-react";
+import { focusIsLost, keepFocus, landingTarget, useScrollStop } from "@/shared/ui/focus";
+import { Link } from "@/shared/ui/link";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
-export type DataTableSortValue = string | number | Date | null | undefined;
+type DataTableSortValue = string | number | Date | null | undefined;
 
 export type DataTableColumn<T> = {
   key: string;
@@ -34,11 +37,33 @@ export type DataTableColumn<T> = {
   // checkbox, a button, a link). The DataTable will then skip wrapping the cell
   // in its keyboard-activation <button>, which would otherwise nest controls.
   interactive?: boolean;
+  // Pin the column to the table's right edge so its actions stay reachable when the table scrolls.
+  sticky?: boolean;
   // Mark the column header as a sort toggle. Requires `sortValue`. The toggle
   // cycles none → asc → desc → none.
   sortable?: boolean;
   sortValue?: (row: T) => DataTableSortValue;
 };
+
+// A user-supplied name in a table cell: one line of at most 40ch, whole in the tooltip.
+export function NameCell({
+  text,
+  href,
+  className,
+}: {
+  text?: string;
+  href?: string;
+  className?: string;
+}) {
+  const props = { title: text, className: cn("block min-w-0 max-w-[40ch] truncate", className) };
+  return href ? (
+    <Link href={href} {...props}>
+      {text}
+    </Link>
+  ) : (
+    <span {...props}>{text}</span>
+  );
+}
 
 type SortState = { key: string; direction: "asc" | "desc" } | null;
 
@@ -57,10 +82,10 @@ export type DataTablePagination = {
 export type DataTableProps<T> = {
   columns: Array<DataTableColumn<T>>;
   rows: T[];
-  rowKey: (row: T, index: number) => string;
+  rowKey: (row: T, index: number) => string | undefined;
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
-  caption?: string;
+  caption: string;
   empty?: React.ReactNode;
   pagination?: DataTablePagination;
   className?: string;
@@ -71,11 +96,13 @@ function compareSortable(
   b: DataTableSortValue,
   direction: "asc" | "desc",
 ): number {
-  // Nullish values always sort last regardless of direction so a missing
-  // entry doesn't bubble to the top under desc.
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
+  // Missing values (nullish or Invalid Date) always sort last regardless of
+  // direction so a missing entry doesn't bubble to the top under desc.
+  const missing = (v: DataTableSortValue) =>
+    v == null || (v instanceof Date && Number.isNaN(v.getTime()));
+  if (missing(a) && missing(b)) return 0;
+  if (missing(a)) return 1;
+  if (missing(b)) return -1;
   let cmp = 0;
   if (a instanceof Date && b instanceof Date) {
     cmp = a.getTime() - b.getTime();
@@ -99,6 +126,7 @@ export function DataTable<T>({
   className,
 }: DataTableProps<T>) {
   const [sortState, setSortState] = React.useState<SortState>(null);
+  const scrollStop = useScrollStop<HTMLDivElement>();
 
   const sortedRows = React.useMemo(() => {
     if (!sortState) return rows;
@@ -124,15 +152,16 @@ export function DataTable<T>({
   };
 
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card",
-        className,
-      )}
-    >
-      <div className="overflow-x-auto">
+    <div className={cn("overflow-hidden rounded-lg border border-border bg-card", className)}>
+      <div
+        className="relative overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        role="region"
+        aria-label={caption}
+        data-table-region
+        {...scrollStop}
+      >
         <table className="w-full text-left text-sm">
-          {caption ? <caption className="sr-only">{caption}</caption> : null}
+          <caption className="sr-only">{caption}</caption>
           <thead className="bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <tr>
               {columns.map((col) => {
@@ -152,6 +181,7 @@ export function DataTable<T>({
                     aria-sort={ariaSort}
                     className={cn(
                       "px-4 py-3 font-medium",
+                      col.sticky && "sticky right-0 bg-muted",
                       col.align === "right" && "text-right",
                       col.align === "center" && "text-center",
                     )}
@@ -177,6 +207,8 @@ export function DataTable<T>({
                           <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" aria-hidden />
                         )}
                       </button>
+                    ) : col.header === "" ? (
+                      <span className="sr-only">Actions</span>
                     ) : (
                       col.header
                     )}
@@ -189,17 +221,16 @@ export function DataTable<T>({
             {sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  {empty ?? (
-                    <span className="text-sm text-muted-foreground">
-                      No data.
-                    </span>
-                  )}
+                  {empty ?? <span className="text-sm text-muted-foreground">No data.</span>}
                 </td>
               </tr>
             ) : (
               sortedRows.map((row, index) => (
                 <tr
-                  key={rowKey(row, index)}
+                  key={rowKey(row, index) ?? index}
+                  data-row-key={rowKey(row, index)}
+                  // A row press opens or swaps its drawer; an open drawer leaves it to the row.
+                  data-drawer-trigger={onRowClick ? "" : undefined}
                   className={cn(
                     "border-t border-border/60 bg-card",
                     onRowClick && "cursor-pointer",
@@ -208,8 +239,8 @@ export function DataTable<T>({
                   onClick={
                     onRowClick
                       ? (e) => {
-                          // Ignore clicks on interactive children (buttons,
-                          // checkboxes, links) — they have their own handlers.
+                          // Ignore the rest of a double-click and clicks on interactive children
+                          // (buttons, checkboxes, links) — they have their own handlers.
                           // Also covers portal-rendered content (dropdown
                           // menus, popovers): the clicked DOM node's
                           // ancestors won't include the <tr>, but React's
@@ -218,6 +249,7 @@ export function DataTable<T>({
                           // fires alongside the menu item's own click.
                           const target = e.target as HTMLElement;
                           if (
+                            e.detail > 1 ||
                             target.closest(
                               "button, a, input, select, textarea, label, [role='menu'], [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [role='dialog'], [role='listbox'], [role='option']",
                             )
@@ -230,10 +262,7 @@ export function DataTable<T>({
                   onKeyDown={
                     onRowClick
                       ? (e) => {
-                          if (
-                            e.key === "Enter" &&
-                            e.target === e.currentTarget
-                          ) {
+                          if (e.key === "Enter" && e.target === e.currentTarget) {
                             onRowClick(row);
                           }
                         }
@@ -252,6 +281,7 @@ export function DataTable<T>({
                           key={col.key}
                           className={cn(
                             "px-4 py-3 align-top text-sm text-foreground",
+                            col.sticky && "sticky right-0 bg-card",
                             col.align === "right" && "text-right",
                             col.align === "center" && "text-center",
                           )}
@@ -261,10 +291,12 @@ export function DataTable<T>({
                             // that role="button" on the <tr> triggered.
                             <button
                               type="button"
+                              data-row-opener=""
                               className="-mx-1 inline-flex items-center rounded-sm bg-transparent px-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onRowClick?.(row);
+                                // The rest of a double-click whose first press closed a dialog above.
+                                if (e.detail <= 1) onRowClick?.(row);
                               }}
                             >
                               {content}
@@ -282,10 +314,49 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
-      {pagination ? <DataTablePager pagination={pagination} /> : null}
+      {/* Past the last page the list's empty state offers First page instead. */}
+      {pagination && pagination.page <= lastPage(pagination) ? (
+        <DataTablePager pagination={pagination} />
+      ) : null}
     </div>
   );
 }
+
+// A paged list's empty state past its last page: back to page 1, with focus on the table that
+// replaces the button once it loads, else the page's h1. `things` is the plural noun ("users").
+export function PastLastPage({
+  things,
+  page,
+  onPageChange,
+}: {
+  things: string;
+  page: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <EmptyState
+      heading={`No ${things} on page ${page}`}
+      cta={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            // The h1 holds focus only until the list region renders.
+            keepFocus(landingTarget, { lost: () => focusIsLost() || headingHasFocus() });
+            onPageChange(1);
+          }}
+        >
+          First page
+        </Button>
+      }
+    />
+  );
+}
+
+const headingHasFocus = () => document.activeElement?.matches("#main-content h1") ?? false;
+
+const lastPage = ({ total, pageSize }: DataTablePagination) =>
+  Math.max(1, Math.ceil(total / pageSize));
 
 function DataTablePager({ pagination }: { pagination: DataTablePagination }) {
   const {
@@ -297,7 +368,7 @@ function DataTablePager({ pagination }: { pagination: DataTablePagination }) {
     pageSizeOptions = [10, 20, 50, 100],
     nextDisabled,
   } = pagination;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = lastPage(pagination);
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(total, page * pageSize);
   return (
@@ -335,6 +406,7 @@ function DataTablePager({ pagination }: { pagination: DataTablePagination }) {
             size="sm"
             onClick={() => onPageChange(Math.max(1, page - 1))}
             disabled={page <= 1}
+            focusableWhenDisabled
           >
             Previous
           </Button>
@@ -351,6 +423,7 @@ function DataTablePager({ pagination }: { pagination: DataTablePagination }) {
             size="sm"
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages || Boolean(nextDisabled)}
+            focusableWhenDisabled
           >
             Next
           </Button>

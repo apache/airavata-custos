@@ -21,9 +21,18 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { LandmarkScope, useLandmarkScope } from "@/shared/ui/landmark";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
-const Select = SelectPrimitive.Root;
+function Select<Value, Multiple extends boolean | undefined = false>(
+  props: SelectPrimitive.Root.Props<Value, Multiple>,
+) {
+  return (
+    <LandmarkScope>
+      <SelectPrimitive.Root {...props} />
+    </LandmarkScope>
+  );
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -55,6 +64,7 @@ function SelectTrigger({
 }) {
   return (
     <SelectPrimitive.Trigger
+      ref={useLandmarkScope()?.anchor}
       data-slot="select-trigger"
       data-size={size}
       className={cn(
@@ -85,9 +95,11 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   >) {
+  const scope = useLandmarkScope();
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={scope?.container}>
       <SelectPrimitive.Positioner
+        positionMethod="fixed"
         side={side}
         sideOffset={sideOffset}
         align={align}
@@ -96,21 +108,57 @@ function SelectContent({
         className="isolate z-50"
       >
         <SelectPrimitive.Popup
+          ref={untabGuards}
+          // Tab continues from the trigger, so it reaches the controls beside it as the guards would.
+          onKeyDown={(e) => {
+            if (e.key === "Tab") scope?.trigger.current?.focus();
+          }}
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
           className={cn(
-            "relative isolate z-50 max-h-(--available-height) min-w-(--anchor-width) origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "relative isolate z-50 flex max-h-(--available-height) min-w-(--anchor-width) origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className,
           )}
           {...props}
         >
           <SelectScrollUpButton />
-          <SelectPrimitive.List>{children}</SelectPrimitive.List>
+          {/* The list scrolls, so it takes keyboard focus. */}
+          <SelectPrimitive.List
+            tabIndex={0}
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto outline-none"
+          >
+            {children}
+          </SelectPrimitive.List>
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
     </SelectPrimitive.Portal>
   );
+}
+
+// Floating UI's focus guards are tabbable under aria-hidden, which axe rejects. They mount beside
+// the popup (inside guards) and beside the root's aria-owns span (outside guards) on every open, so
+// they are taken out of the tab order whenever they appear.
+function untabGuards(popup: HTMLElement | null) {
+  if (!popup) return;
+  const untab = () => {
+    const portal = popup.parentElement?.parentElement;
+    const owner = portal?.id ? document.querySelector(`[aria-owns="${portal.id}"]`) : null;
+    const around = [owner?.previousElementSibling, owner?.nextElementSibling];
+    for (const el of [...(popup.parentElement?.children ?? []), ...around]) {
+      if (el?.hasAttribute("data-base-ui-focus-guard") && el.getAttribute("tabindex") !== "-1")
+        el.setAttribute("tabindex", "-1");
+    }
+  };
+  const observer = new MutationObserver(untab);
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["tabindex"],
+  });
+  untab();
+  return () => observer.disconnect();
 }
 
 function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) {
@@ -128,7 +176,7 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-[selected]:bg-[color:var(--custos-blue-50)]! dark:data-[selected]:bg-[color:var(--custos-blue-800)]! data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-[selected]:bg-[color:var(--tone-info-bg)]! data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
       {...props}
@@ -141,7 +189,7 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
           <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
         }
       >
-        <CheckIcon className="pointer-events-none text-[color:var(--custos-blue-600)]!" />
+        <CheckIcon className="pointer-events-none text-[color:var(--tone-info-fg)]!" />
       </SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
   );

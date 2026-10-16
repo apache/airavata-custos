@@ -20,14 +20,19 @@ import { expect, test } from "@playwright/test";
 // Live smoke against the dev-ops/compose Keycloak + the backend on :8080.
 // Picked up only by playwright.live.config.ts (`.spec.ts` pattern).
 test.describe("OIDC smoke", () => {
-  test("admin signs in, lands on portal, /users/dev-admin returns 200", async ({ page, request }) => {
+  test("admin signs in, lands on portal, /users/dev-admin returns 200", async ({
+    page,
+    request,
+  }) => {
     await page.goto("/sign-in");
     await page.getByRole("button", { name: /sign in with custos/i }).click();
     await page.waitForURL(/\/realms\/custos\/protocol\/openid-connect\/auth/);
     await page.getByLabel(/username or email/i).fill("admin");
     await page.getByLabel(/password/i).fill("admin");
     await page.getByRole("button", { name: /^sign in$/i }).click();
-    await page.waitForURL((url) => !url.pathname.startsWith("/sign-in") && !url.host.includes("8081"));
+    await page.waitForURL(
+      (url) => !url.pathname.startsWith("/sign-in") && !url.host.includes("8081"),
+    );
     await expect(page.getByText("admin@custos.local")).toBeVisible();
 
     const cookies = await page.context().cookies();

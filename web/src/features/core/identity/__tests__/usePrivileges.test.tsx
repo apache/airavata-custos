@@ -15,21 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: { user: { email: "admin@custos.local" } }, status: "authenticated" }),
+  useSession: () => ({ data: { custosUserId: "u-1" }, status: "authenticated" }),
 }));
 
-import { usePrivileges } from "../queries";
+import { identityKeys, refreshAfterPrivilegeChange, usePrivileges } from "../queries";
 
 const server = setupServer(
   http.get("*/api/v1/user/privileges", () =>
-    HttpResponse.json({ privileges: ["core:allocations:read", "amie:packets:read"] }),
+    HttpResponse.json({ privileges: ["core:allocations:read", "core:clusters:read"] }),
   ),
 );
 
@@ -46,6 +46,36 @@ describe("usePrivileges", () => {
   it("fetches and validates the caller privileges payload", async () => {
     const { result } = renderHook(() => usePrivileges(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual(["core:allocations:read", "amie:packets:read"]);
+    expect(result.current.data).toEqual(["core:allocations:read", "core:clusters:read"]);
+  });
+});
+
+describe("refreshAfterPrivilegeChange", () => {
+  it("does not refetch a read the caller's refreshed privileges no longer allow", async () => {
+    const client = new QueryClient();
+    let held = ["core:roles:manage"];
+    const roles = vi.fn(async () => []);
+    renderHook(
+      () => {
+        const privileges = useQuery({
+          queryKey: identityKeys.privileges(),
+          queryFn: async () => held,
+        });
+        useQuery({
+          queryKey: ["roles"],
+          queryFn: roles,
+          enabled: privileges.data?.includes("core:roles:manage") ?? false,
+        });
+      },
+      {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+    await waitFor(() => expect(roles).toHaveBeenCalledTimes(1));
+    held = [];
+    await act(() => refreshAfterPrivilegeChange(client, ["roles"]));
+    expect(roles).toHaveBeenCalledTimes(1);
   });
 });

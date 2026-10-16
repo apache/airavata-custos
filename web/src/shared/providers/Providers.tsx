@@ -17,15 +17,22 @@
 
 "use client";
 
+import { AbilityProvider } from "@/shared/casl/AbilityProvider";
+import { ConfirmToaster, NotificationToaster } from "@/shared/ui/sonner";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
-import { LastTraceProvider } from "@/features/core/audit/components/LastTraceProvider";
-import { AbilityProvider } from "@/shared/casl/AbilityProvider";
-import { Toaster } from "@/shared/ui/sonner";
-import { TooltipProvider } from "@/shared/ui/tooltip";
-import { MswProvider } from "./MswProvider";
 import { QueryProvider } from "./QueryProvider";
+
+const THEME_KEY = "custos.theme";
+const THEMES = ["light", "dark", "system"];
+
+// An unknown stored theme would reach classList.add and throw; it is dropped before the provider reads it.
+try {
+  const stored = globalThis.localStorage?.getItem(THEME_KEY);
+  if (stored && !THEMES.includes(stored)) localStorage.removeItem(THEME_KEY);
+} catch {}
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -33,22 +40,19 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider
         attribute="class"
         defaultTheme="light"
-        enableSystem={false}
-        storageKey="custos.theme"
+        enableSystem
+        storageKey={THEME_KEY}
         disableTransitionOnChange
       >
-        <MswProvider>
-          <QueryProvider>
-            <AbilityProvider>
-              <LastTraceProvider>
-                <TooltipProvider>
-                  {children}
-                  <Toaster position="top-right" richColors />
-                </TooltipProvider>
-              </LastTraceProvider>
-            </AbilityProvider>
-          </QueryProvider>
-        </MswProvider>
+        <QueryProvider>
+          <AbilityProvider>
+            <TooltipProvider>
+              {children}
+              <NotificationToaster />
+              <ConfirmToaster />
+            </TooltipProvider>
+          </AbilityProvider>
+        </QueryProvider>
       </ThemeProvider>
     </SessionProvider>
   );

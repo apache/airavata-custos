@@ -15,4 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { client as amie } from "@/generated/amie/client.gen";
+import { client as analytics } from "@/generated/analytics/client.gen";
+import { client as core } from "@/generated/core/client.gen";
 import "@testing-library/jest-dom/vitest";
+
+// Node's Request rejects the relative base URL the browser resolves.
+for (const client of [core, amie, analytics]) {
+  client.setConfig({ baseUrl: `${location.origin}${client.getConfig().baseUrl}` });
+}

@@ -17,13 +17,15 @@
 
 "use client";
 
-import * as React from "react";
-import { ChartColumn } from "lucide-react";
+import type { Allocation, UsageSummary } from "@/generated/analytics/types.gen";
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { ChartColumn } from "lucide-react";
+import * as React from "react";
 import { buildResourceSeries } from "../lib";
-import type { AnalyticsAllocation, AnalyticsContext, UsageSummary } from "../schemas";
 import { useAnalyticsContexts, useUsageSummary } from "../queries";
 import { useAnalyticsSelection } from "../useAnalyticsSelection";
 import { ContextSwitcher } from "./ContextSwitcher";
@@ -35,33 +37,45 @@ import { UsageOverTimeBars } from "./UsageOverTimeBars";
 
 const MANAGER_ROLES = new Set(["PI", "CO_PI", "ALLOCATION_MANAGER"]);
 
-const ROLE_LABEL: Record<AnalyticsContext["role"], string> = {
+const ROLE_LABEL: Record<string, string> = {
   PI: "PI on this project",
   CO_PI: "Co-PI on this project",
-  ALLOCATION_MANAGER: "Allocation manager",
-  MEMBER: "Member",
+  ALLOCATION_MANAGER: "Allocation manager on this project",
 };
 
 export function AnalyticsPage() {
   const contextsQuery = useAnalyticsContexts();
   const contexts = React.useMemo(() => contextsQuery.data ?? [], [contextsQuery.data]);
 
-  const { project, allocation, select } = useAnalyticsSelection(contexts);
+  const { project, allocation, select, unavailable } = useAnalyticsSelection(
+    contexts,
+    contextsQuery.isSuccess,
+  );
   const summaryQuery = useUsageSummary(allocation?.id);
 
   const isManager = project ? MANAGER_ROLES.has(project.role) : false;
+  // Allocation readers reach usage from the allocation itself; analytics covers memberships only.
+  const readsAllocations = useAbility().can("read", "Allocation");
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="font-display text-[28px] font-bold leading-tight">Analytics</h1>
+          <h1 className="font-display text-[28px] font-bold leading-tight">
+            {ROUTE_LABELS["/analytics"]}
+          </h1>
           <p className="text-sm text-muted-foreground">
             How your allocation is being used and how long it will last.
           </p>
         </div>
         {project && isManager ? <RoleChip role={project.role} /> : null}
       </header>
+
+      {unavailable ? (
+        <output className="block text-sm text-muted-foreground">
+          That project or allocation is not available to you.
+        </output>
+      ) : null}
 
       {contextsQuery.isLoading ? (
         <div className="space-y-4">
@@ -73,29 +87,39 @@ export function AnalyticsPage() {
           message="We couldn't load your analytics."
           onRetry={() => contextsQuery.refetch()}
         />
-      ) : contexts.length === 0 || !project || !allocation ? (
+      ) : !contexts.some((c) => c.allocations?.length) ? (
         <EmptyState
           icon={<ChartColumn className="h-8 w-8" />}
           heading="No allocations to report on yet"
-          description="Analytics appear once you're a member of a project with a compute allocation."
+          description={
+            readsAllocations
+              ? "You are not a member of any allocation. Open an allocation to see its usage."
+              : "Analytics appear once you're a member of a project with a compute allocation."
+          }
         />
       ) : (
         <>
           <ContextSwitcher
             contexts={contexts}
-            selectedProjectId={project.project_id}
-            selectedAllocationId={allocation.id}
+            selectedAllocationId={allocation?.id}
             onSelect={select}
           />
-          <AnalyticsBody
-            project={project}
-            allocation={allocation}
-            isManager={isManager}
-            summary={summaryQuery.data}
-            summaryLoading={summaryQuery.isLoading}
-            summaryError={(summaryQuery.error as Error | null) ?? null}
-            onRetrySummary={() => summaryQuery.refetch()}
-          />
+          {allocation ? (
+            <AnalyticsBody
+              allocation={allocation}
+              isManager={isManager}
+              summary={summaryQuery.data}
+              summaryLoading={summaryQuery.isLoading}
+              summaryError={summaryQuery.error}
+              onRetrySummary={() => summaryQuery.refetch()}
+            />
+          ) : (
+            <EmptyState
+              icon={<ChartColumn className="h-8 w-8" />}
+              heading={`${project?.project_name ?? "This project"} has no allocations`}
+              description="Pick an allocation from another project above."
+            />
+          )}
         </>
       )}
     </div>
@@ -103,7 +127,6 @@ export function AnalyticsPage() {
 }
 
 function AnalyticsBody({
-  project,
   allocation,
   isManager,
   summary,
@@ -111,8 +134,7 @@ function AnalyticsBody({
   summaryError,
   onRetrySummary,
 }: {
-  project: AnalyticsContext;
-  allocation: AnalyticsAllocation;
+  allocation: Allocation;
   isManager: boolean;
   summary: UsageSummary | undefined;
   summaryLoading: boolean;
@@ -130,9 +152,10 @@ function AnalyticsBody({
   if (!summary) return null;
 
   const now = new Date();
-  const callerUsed = summary.by_resource.reduce((a, r) => a + r.used_by_caller, 0);
+  const byResource = summary.by_resource ?? [];
+  const callerUsed = byResource.reduce((a, r) => a + r.used_by_caller, 0);
   const seriesColorById = Object.fromEntries(
-    buildResourceSeries(summary.by_resource).map((s) => [s.id, s.color]),
+    buildResourceSeries(byResource).map((s) => [s.id, s.color]),
   );
 
   return (
@@ -168,7 +191,7 @@ function TileSkeletons() {
 }
 
 // Only rendered for managers; the chip explains why the extra cards appear.
-function RoleChip({ role }: { role: AnalyticsContext["role"] }) {
+function RoleChip({ role }: { role: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-[color:var(--tone-info-bg)] px-3 py-1 text-xs font-medium text-[color:var(--tone-info-fg)]">
       {ROLE_LABEL[role]}

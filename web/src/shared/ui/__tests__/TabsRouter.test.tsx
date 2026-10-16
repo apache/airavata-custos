@@ -15,65 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TabsRouter } from "../TabsRouter";
 
-// Stub the App Router hooks — the component reads `?tab=` and replaces the
-// route on change, neither of which we exercise here.
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
-const baseTabs = [
-  { value: "users", label: "Users & Roles", content: <p>Users panel</p> },
-  { value: "credits", label: "Credits & Resources", content: <p>Credits panel</p> },
+const tabs = [
+  { value: "users", label: "Users", content: <p>Users panel</p> },
   { value: "audit", label: "Audit Log", content: <p>Audit panel</p> },
 ];
 
 describe("TabsRouter", () => {
-  it("renders all tabs and the default tab's content", () => {
-    render(<TabsRouter tabs={baseTabs} defaultValue="users" />);
-    expect(screen.getByRole("tab", { name: /Users & Roles/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Credits & Resources/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Audit Log/i })).toBeInTheDocument();
-  });
-
-  it("renders a single rightSlot node beside the tab strip", () => {
-    render(
-      <TabsRouter
-        tabs={baseTabs}
-        defaultValue="users"
-        rightSlot={<button type="button">Global action</button>}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /Global action/i })).toBeInTheDocument();
-  });
-
-  it("renders the per-tab rightSlot matching the active tab", () => {
-    render(
-      <TabsRouter
-        tabs={baseTabs}
-        defaultValue="users"
-        rightSlot={{
-          users: <button type="button">Add user</button>,
-          credits: <button type="button">Request extension</button>,
-          audit: undefined,
-        }}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /Add user/i })).toBeInTheDocument();
-    // Inactive tab slots are not rendered.
-    expect(screen.queryByRole("button", { name: /Request extension/i })).not.toBeInTheDocument();
-  });
-
-  it("omits the right slot entirely when no rightSlot is passed", () => {
-    const { container } = render(<TabsRouter tabs={baseTabs} defaultValue="users" />);
-    // The list wrapper has `justify-between`; we only care that no extra slot
-    // sibling renders next to the tab list.
-    const list = container.querySelector("[role='tablist']") as HTMLElement;
-    expect(list).not.toBeNull();
-    expect(list.parentElement?.children).toHaveLength(1);
+  it.each([
+    ["?tab=bogus&q=1", "?q=1", "Users panel"],
+    ["?tab=users&q=1", "?q=1", "Users panel"],
+    ["?tab=audit", "?tab=audit", "Audit panel"],
+  ])("canonicalises %s to %s", async (from, to, panel) => {
+    window.history.replaceState(null, "", `/admin${from}`);
+    render(<TabsRouter tabs={tabs} defaultValue="users" />);
+    expect(screen.getByText(panel)).toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).toBe(to));
   });
 });

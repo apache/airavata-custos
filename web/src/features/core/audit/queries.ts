@@ -19,11 +19,10 @@
 
 "use client";
 
-import { getLastTraceId, subscribeLastTraceId } from "@/shared/api/last-trace-id";
-import { useQuery } from "@tanstack/react-query";
+import { paged } from "@/shared/api/paged";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { type TraceListFilters, getTrace, listAuditSources, listTraces } from "./api";
-import { useLastTraceContext } from "./components/LastTraceProvider";
 
 const DEFAULT_STALE_TIME = 30_000;
 const DEFAULT_GC_TIME = 5 * 60_000;
@@ -37,22 +36,23 @@ export const traceKeys = {
   sources: () => [...traceKeys.all, "sources"] as const,
 };
 
-export function useTraces(filters: TraceListFilters = {}, options?: { enabled?: boolean }) {
+// Lists are never served from cache; the shown page stays while the next loads. refetchOn joins the
+// key, so a query refetches whenever it changes.
+export function useTraces(filters: TraceListFilters = {}, refetchOn?: unknown) {
   return useQuery({
-    queryKey: traceKeys.list(filters),
+    queryKey: [...traceKeys.list(filters), refetchOn],
     queryFn: () => listTraces(filters),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
+    ...paged,
+    staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: false,
-    enabled: options?.enabled ?? true,
   });
 }
 
 export function useTrace(id: string | undefined) {
   return useQuery({
     queryKey: id ? traceKeys.detail(id) : [...traceKeys.details(), "none"],
-    queryFn: () => getTrace(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getTrace(id) : skipToken,
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
     refetchOnWindowFocus: false,
@@ -67,17 +67,4 @@ export function useAuditSources() {
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
   });
-}
-
-// Prefers LastTraceProvider's context value; falls back to a singleton
-// subscription so consumers rendered outside the provider still observe updates.
-export function useLastTraceId(): string | null {
-  const fromContext = useLastTraceContext();
-  const [traceId, setTraceId] = React.useState<string | null>(() => fromContext ?? null);
-  React.useEffect(() => {
-    if (fromContext !== undefined) return;
-    setTraceId(getLastTraceId());
-    return subscribeLastTraceId(setTraceId);
-  }, [fromContext]);
-  return fromContext ?? traceId;
 }

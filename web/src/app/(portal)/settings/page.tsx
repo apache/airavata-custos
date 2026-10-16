@@ -16,7 +16,16 @@
 // under the License.
 
 import { SettingsPage } from "@/features/core/identity/components/SettingsPage";
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
+
+export const metadata = pageMetadata("/settings");
 
 export default function Settings() {
-  return <SettingsPage />;
+  return (
+    <>
+      <DeclaredParams keys={[]} />
+      <SettingsPage />
+    </>
+  );
 }

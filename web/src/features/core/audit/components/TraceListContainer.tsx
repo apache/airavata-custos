@@ -22,14 +22,18 @@
 import { cn } from "@/lib/utils";
 import {
   replaceShallowSearchParams,
+  useCanonicalParams,
+  useDeclaredParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
+import { ErrorState } from "@/shared/ui/ErrorState";
 import { LastSyncedBadge } from "@/shared/ui/LastSyncedBadge";
+import { focusLandingOf, keepFocus, landingTarget } from "@/shared/ui/focus";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useAuditSources, useTraces } from "../queries";
-import { listStatus } from "../utils";
 import { TraceDetailDrawer } from "./TraceDetailDrawer";
 import { TraceFilterStrip } from "./TraceFilterStrip";
 import { TraceTable } from "./TraceTable";
@@ -38,9 +42,9 @@ import {
   type ListFilters,
   hasActiveFilters,
   parseFilters,
+  queryTraceId,
   serializeFilters,
-  statusFiltersToApi,
-  windowToFromTo,
+  windowFrom,
 } from "./traceListUrlState";
 
 export type TraceListContainerProps = {
@@ -49,15 +53,29 @@ export type TraceListContainerProps = {
 
 const TRACE_PARAM = "trace";
 const DRAWER_PARAMS = ["trace", "step", "span", "tab"];
+const FILTER_PARAMS = ["status", "source", "window", "q", "page", "pageSize"];
 const WINDOW_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days" } as const;
 
 export function TraceListContainer({ initialTraceId }: TraceListContainerProps = {}) {
   const params = useShallowSearchParams();
   const router = useRouter();
-  const filters = React.useMemo(() => parseFilters(params), [params]);
-  const traceParam = params.get(TRACE_PARAM);
-  const activeTraceId = traceParam ?? initialTraceId ?? null;
-  const drawerOpen = traceParam !== null || initialTraceId != null;
+  const sourcesQuery = useAuditSources();
+  const filters = React.useMemo(
+    () => parseFilters(params, sourcesQuery.data),
+    [params, sourcesQuery.data],
+  );
+  const applied = serializeFilters(filters);
+  useDeclaredParams([...FILTER_PARAMS, ...DRAWER_PARAMS]);
+  useCanonicalParams(Object.fromEntries(FILTER_PARAMS.map((key) => [key, applied.getAll(key)])));
+  const traceQueryId = queryTraceId(params.get(TRACE_PARAM));
+  const activeTraceId = traceQueryId ?? initialTraceId?.toLowerCase() ?? null;
+  const drawerOpen = activeTraceId !== null;
+  // The drawer's own params mean nothing once no trace is open.
+  useCanonicalParams(
+    drawerOpen
+      ? { trace: traceQueryId }
+      : Object.fromEntries(DRAWER_PARAMS.map((key) => [key, undefined])),
+  );
 
   const updateFilters = React.useCallback(
     (next: ListFilters) => {
@@ -71,42 +89,28 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
     [params],
   );
 
-  // One `now` per mount keeps the from/to window, and so the query key, stable
-  // between renders.
+  // One `now` per mount keeps `from`, and so the query key, stable between renders.
   const nowRef = React.useRef<number>(Date.now());
-  const { from, to } = React.useMemo(
-    () => windowToFromTo(filters.window, nowRef.current),
-    [filters.window],
-  );
-  const { apiStatus, keep } = React.useMemo(
-    () => statusFiltersToApi(filters.status),
-    [filters.status],
-  );
+  const from = React.useMemo(() => windowFrom(filters.window, nowRef.current), [filters.window]);
 
   const apiFilters = React.useMemo(
     () => ({
-      status: apiStatus.length ? apiStatus : undefined,
+      status: filters.status.length ? filters.status : undefined,
       source: filters.source.length ? filters.source : undefined,
       from,
-      to,
       q: filters.q || undefined,
       limit: filters.pageSize,
       offset: (filters.page - 1) * filters.pageSize,
     }),
-    [apiStatus, filters.source, filters.q, filters.page, filters.pageSize, from, to],
+    [filters.status, filters.source, filters.q, filters.page, filters.pageSize, from],
   );
 
   const tracesQuery = useTraces(apiFilters);
-  const sourcesQuery = useAuditSources();
-  const visibleTraces = React.useMemo(
-    () => (tracesQuery.data?.traces ?? []).filter((t) => keep(listStatus(t))),
-    [tracesQuery.data, keep],
-  );
 
-  // The banner counts failed traces in the window whatever the filters say.
-  const failingQuery = useTraces({ status: ["error"], from, to, limit: 1 });
+  // The banner counts failed traces in the window whatever the filters say, refetched on each filter change.
+  const failingQuery = useTraces({ status: ["error"], from, limit: 1 }, apiFilters);
   const failingCount = failingQuery.data?.total ?? 0;
-  const showBanner = failingCount > 0 && !filters.status.includes("failed");
+  const showBanner = failingCount > 0 && !filters.status.includes("error");
 
   const onView = React.useCallback(
     (traceId: string) => {
@@ -120,11 +124,20 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
   const closeDrawer = React.useCallback(() => {
     const next = serializeFilters(filters);
     if (initialTraceId) {
-      router.push(`/admin/traces${next.toString() ? `?${next.toString()}` : ""}`);
+      const href = `/admin/traces${next.toString() ? `?${next.toString()}` : ""}`;
+      focusLandingOf(href);
+      router.push(href);
       return;
     }
     replaceShallowSearchParams(next);
   }, [filters, initialTraceId, router]);
+
+  // A filter change can unmount the control that made it (the banner, Clear filters), so focus moves to the region.
+  const regionRef = React.useRef<HTMLElement>(null);
+  const showPage = (next: ListFilters) => {
+    updateFilters(next);
+    regionRef.current?.focus();
+  };
 
   const dataUpdatedAt = tracesQuery.dataUpdatedAt;
   const syncedAt = dataUpdatedAt ? new Date(dataUpdatedAt) : new Date(nowRef.current);
@@ -138,7 +151,7 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
       <header className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-[28px] font-bold leading-tight tracking-[-0.01em] text-foreground">
-            Tracing
+            {ROUTE_LABELS["/admin/traces"]}
           </h1>
           <p className="mt-1.5 max-w-[560px] text-sm text-muted-foreground">
             Follow a request from where it started through the event bus to each connector.
@@ -146,6 +159,22 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
         </div>
         <LastSyncedBadge syncedAt={syncedAt} onRefetch={refresh} />
       </header>
+
+      {failingQuery.error ? (
+        <ErrorState
+          error={failingQuery.error}
+          heading="Couldn't count failed traces"
+          onRetry={() => {
+            keepFocus(
+              () =>
+                document.querySelector<HTMLElement>('[data-testid="failing-banner"] button') ??
+                landingTarget(),
+            );
+            failingQuery.refetch();
+          }}
+          className="mt-4 py-4"
+        />
+      ) : null}
 
       {showBanner && (
         // biome-ignore lint/a11y/useSemanticElements: role="status" promotes the banner to a polite live region; section is the landmark.
@@ -164,11 +193,11 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
           />
           <span className="text-[13.5px]">
             <strong>{failingCount}</strong> {failingCount === 1 ? "trace needs" : "traces need"}{" "}
-            attention
+            attention.
           </span>
           <button
             type="button"
-            onClick={() => updateFilters({ ...filters, status: ["failed"], page: 1 })}
+            onClick={() => showPage({ ...filters, status: ["error"], page: 1 })}
             className="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-[color:var(--banner-error-fg)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Show them <ArrowRight className="h-3.5 w-3.5" />
@@ -181,13 +210,15 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
           value={filters}
           onChange={updateFilters}
           sourceOptions={sourcesQuery.data}
+          sourcesError={sourcesQuery.error}
+          onRetrySources={() => sourcesQuery.refetch()}
         />
       </div>
 
       <div className="mt-4">
         <TraceTable
-          traces={visibleTraces}
-          total={filters.status.length ? visibleTraces.length : (tracesQuery.data?.total ?? 0)}
+          traces={tracesQuery.data?.traces ?? []}
+          total={tracesQuery.data?.total ?? 0}
           page={filters.page}
           pageSize={filters.pageSize}
           loading={tracesQuery.isLoading}
@@ -196,9 +227,10 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
           windowLabel={WINDOW_LABEL[filters.window]}
           onView={onView}
           onPageChange={(next) => updateFilters({ ...filters, page: Math.max(1, next) })}
-          onPageSizeChange={(next) => updateFilters({ ...filters, pageSize: next, page: 1 })}
-          onClearFilters={() => updateFilters({ ...DEFAULT_FILTERS, pageSize: filters.pageSize })}
+          onPageSizeChange={(next) => showPage({ ...filters, pageSize: next, page: 1 })}
+          onClearFilters={() => showPage({ ...DEFAULT_FILTERS, pageSize: filters.pageSize })}
           onRetry={() => tracesQuery.refetch()}
+          regionRef={regionRef}
         />
       </div>
 

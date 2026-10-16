@@ -19,21 +19,32 @@
 
 import { useCallback, useState } from "react";
 
-export type SignOutOptions = { callbackUrl?: string };
+type SignOutOptions = { callbackUrl?: string };
+
+let leaving = false;
+
+// Several failing queries report the same refusal; only the first sign-out still holds the session.
+export function leaveOnce(signOut: () => void) {
+  if (leaving) return;
+  leaving = true;
+  signOut();
+}
+
+// The end-session route reads idToken from the session before clearing the cookie, so it can
+// build an IdP logout URL with id_token_hint (otherwise Keycloak skips the SSO invalidation).
+export function endSession(callbackUrl: string) {
+  leaveOnce(() =>
+    window.location.assign(`/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`),
+  );
+}
 
 export function useSignOut() {
   const [isPending, setIsPending] = useState(false);
   const signOut = useCallback((opts?: SignOutOptions) => {
+    setIsPending(true);
     // "/" is the deployment's public root (a landing page when one fronts
     // the portal); bare deployments fall through to the sign-in page.
-    const callbackUrl = opts?.callbackUrl ?? "/";
-    setIsPending(true);
-    // The end-session route reads idToken from the session before clearing
-    // the cookie, so it can build a Keycloak logout URL with id_token_hint
-    // (otherwise Keycloak skips the SSO invalidation).
-    window.location.assign(
-      `/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
-    );
+    endSession(opts?.callbackUrl ?? "/");
   }, []);
   return { signOut, isPending };
 }

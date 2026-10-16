@@ -15,6 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { GetConnectorsAmiePacketsByPacketIdAuditsResponse } from "@/generated/amie/types.gen";
+
+export type PacketAudit = GetConnectorsAmiePacketsByPacketIdAuditsResponse["events"][number];
+
 export function ageHoursOf(iso: string | undefined): number {
   if (!iso) return 0;
   const t = Date.parse(iso);
@@ -22,14 +26,11 @@ export function ageHoursOf(iso: string | undefined): number {
   return (Date.now() - t) / 3600_000;
 }
 
-export function formatDate(iso?: string): string {
-  if (!iso) return "—";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "—";
-  return new Date(t).toLocaleString();
-}
-
-export function pluralize(noun: string, count: number, pluralForm?: string): string {
-  if (count === 1) return noun;
-  return pluralForm ?? `${noun}s`;
-}
+export const PACKET_STATES = [
+  "NEW",
+  "DECODED",
+  "PROCESSED",
+  "FAILED",
+  "WAITING_APPROVAL",
+  "REFUSED",
+] as const;

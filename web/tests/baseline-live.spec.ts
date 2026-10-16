@@ -60,7 +60,9 @@ test.describe("baseline live walk", () => {
   test("projects: 2 baseline projects render", async ({ page }) => {
     await signInAdmin(page);
     await goto(page, "/projects");
-    await expect(page.getByRole("link", { name: "BL-001" }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("link", { name: "BL-001" }).first()).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByRole("link", { name: "BL-002" }).first()).toBeVisible();
   });
 
@@ -104,7 +106,9 @@ test.describe("baseline live walk", () => {
   test("allocations: 2 baseline allocations render", async ({ page }) => {
     await signInAdmin(page);
     await goto(page, "/allocations");
-    await expect(page.getByRole("link", { name: "BL-001" }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("link", { name: "BL-001" }).first()).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByRole("link", { name: "BL-002" }).first()).toBeVisible();
   });
 

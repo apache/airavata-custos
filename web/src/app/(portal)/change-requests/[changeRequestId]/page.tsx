@@ -16,10 +16,20 @@
 // under the License.
 
 import { ChangeRequestDetail } from "@/features/core/allocations/components/ChangeRequestDetail";
+import { pageMetadata } from "@/shared/layout/nav";
+import { routeRecordId } from "@/shared/layout/routeRecordId";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
+
+export const metadata = pageMetadata("/change-requests");
 
 export default async function ChangeRequestDetailPage(props: {
   params: Promise<{ changeRequestId: string }>;
 }) {
-  const { changeRequestId } = await props.params;
-  return <ChangeRequestDetail changeRequestId={changeRequestId} />;
+  const id = routeRecordId((await props.params).changeRequestId);
+  return (
+    <>
+      <DeclaredParams keys={["event"]} />
+      <ChangeRequestDetail changeRequestId={id} />
+    </>
+  );
 }

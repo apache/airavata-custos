@@ -30,12 +30,12 @@ test.describe("analytics page", () => {
   }) => {
     await signInAs(page, "readOnlyAdmin");
     // Explicit allocation: the Climate context where the caller is a MEMBER.
-    await page.goto("/analytics?allocation=alloc-climate");
+    await page.goto("/analytics?allocation=01000006-0000-4000-8000-000001000006");
 
     await expect(page.getByRole("heading", { name: "Analytics", exact: true })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText("Credits left")).toBeVisible();
+    await expect(page.getByText("SU left", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Usage over time" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Usage by resource" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recent jobs" })).toBeVisible();
@@ -52,7 +52,7 @@ test.describe("analytics page", () => {
   }) => {
     await signInAs(page, "manager");
     // Explicit allocation: the GenAI context where the caller is a PI.
-    await page.goto("/analytics?allocation=alloc-genai");
+    await page.goto("/analytics?allocation=01000007-0000-4000-8000-000001000007");
 
     await expect(page.getByText("PI on this project")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Usage by resource" })).toBeVisible();
@@ -70,6 +70,18 @@ test.describe("analytics page", () => {
     await climate.waitFor({ state: "visible" });
     await climate.click();
     await expect(page.getByRole("heading", { name: "Usage by member" })).toHaveCount(0);
+  });
+
+  test("a project without allocations keeps the switcher usable", async ({ page }) => {
+    await signInAs(page, "readOnlyAdmin");
+    await page.goto("/analytics?project=18000003-0000-4000-8000-000018000003");
+
+    await expect(
+      page.getByRole("heading", { name: "Onboarding Sandbox has no allocations" }),
+    ).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: /Select an allocation/ }).click();
+    await page.getByRole("menuitem", { name: /Climate GPU/ }).click();
+    await expect(page.getByText("SU left", { exact: true })).toBeVisible();
   });
 
   test("axe: no serious or critical violations", async ({ page }) => {

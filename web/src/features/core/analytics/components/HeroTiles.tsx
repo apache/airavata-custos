@@ -15,24 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Allocation } from "@/generated/analytics/types.gen";
 import { cn } from "@/lib/utils";
-import {
-  creditsBand,
-  daysBand,
-  daysUntil,
-  formatCredits,
-  formatDate,
-  pctRemaining,
-  type UrgencyBand,
-} from "../lib";
-import type { AnalyticsAllocation } from "../schemas";
+import { formatDay, formatSU, pluralize } from "@/shared/format";
+import { type UrgencyBand, daysBand, daysUntil, pctRemaining, suBand } from "../lib";
 import { BAND_METER_CLASS, BAND_PILL_CLASS, BAND_PILL_LABEL, BAND_RULE_CLASS } from "./bands";
 
 // Number of hero tiles; the page's loading skeletons match this count.
 export const HERO_TILE_COUNT = 3;
 
 type HeroTilesProps = {
-  allocation: AnalyticsAllocation;
+  allocation: Allocation;
   callerUsed: number;
   now: Date;
 };
@@ -41,34 +34,37 @@ type HeroTilesProps = {
 // with the viewer's own share, and when the allocation ends. left + used sum to
 // the award, so "your share" is a subline, not the headline.
 export function HeroTiles({ allocation, callerUsed, now }: HeroTilesProps) {
-  const total = allocation.initial_su_amount;
-  const used = allocation.used_su_amount;
+  const { initial_su_amount: total, used_su_amount: used, end_time } = allocation;
   const left = Math.max(0, total - used);
   const pctLeft = pctRemaining(total, used);
-  const allocDays = daysUntil(allocation.end_time, now);
+  const allocDays = daysUntil(end_time, now);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <Tile
-        title="Credits left"
-        value={formatCredits(left)}
-        sub={`${Math.round(pctLeft)}% of ${formatCredits(total)} total`}
-        band={creditsBand(pctLeft)}
+        title="SU left"
+        value={formatSU(left)}
+        sub={`${Math.round(pctLeft)}% of ${formatSU(total)} total`}
+        band={suBand(pctLeft)}
         meterPct={pctLeft}
       />
       <Tile
-        title="Credits used"
-        value={formatCredits(used)}
-        sub={`your share: ${formatCredits(callerUsed)}`}
+        title="SU used"
+        value={formatSU(used)}
+        sub={`your share: ${formatSU(callerUsed)}`}
         band="ok"
       />
-      <Tile
-        title="Time remaining"
-        value={String(allocDays)}
-        sub={formatDate(allocation.end_time)}
-        band={daysBand(allocDays)}
-        unit="days"
-      />
+      {allocDays === 0 ? (
+        <Tile title="Time remaining" value="Ended" sub={formatDay(end_time)} band="ok" />
+      ) : (
+        <Tile
+          title="Time remaining"
+          value={String(allocDays)}
+          sub={formatDay(end_time)}
+          band={daysBand(allocDays)}
+          unit={pluralize("day", allocDays)}
+        />
+      )}
     </div>
   );
 }

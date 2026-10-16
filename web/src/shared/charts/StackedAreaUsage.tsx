@@ -41,9 +41,6 @@ export type StackedAreaUsageProps = {
   colors?: string[];
   height?: number;
   ariaLabel?: string;
-  // We extract (seriesKey, date) from Recharts' datum so callers don't depend
-  // on Recharts payload internals.
-  onSegmentClick?: (seriesKey: string, date: string) => void;
 };
 
 export function StackedAreaUsage({
@@ -52,15 +49,21 @@ export function StackedAreaUsage({
   colors = DEFAULT_COLORS,
   height = 240,
   ariaLabel,
-  onSegmentClick,
 }: StackedAreaUsageProps) {
   return (
     <div role="img" aria-label={ariaLabel ?? "Stacked area usage chart"}>
       <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
           <CartesianGrid stroke="var(--chart-grid)" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--chart-grid)" />
-          <YAxis tick={{ fontSize: 12 }} stroke="var(--chart-grid)" />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+            stroke="var(--chart-grid)"
+          />
+          <YAxis
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+            stroke="var(--chart-grid)"
+          />
           <Tooltip />
           {seriesKeys.map((key, i) => (
             <Area
@@ -71,17 +74,6 @@ export function StackedAreaUsage({
               stroke={colors[i % colors.length]}
               fill={colors[i % colors.length]}
               fillOpacity={0.4}
-              onClick={
-                onSegmentClick
-                  ? (props) => {
-                      const payload = (props as { payload?: { date?: string } } | undefined)
-                        ?.payload;
-                      const date = payload?.date;
-                      if (typeof date === "string") onSegmentClick(key, date);
-                    }
-                  : undefined
-              }
-              style={onSegmentClick ? { cursor: "pointer" } : undefined}
             />
           ))}
         </AreaChart>

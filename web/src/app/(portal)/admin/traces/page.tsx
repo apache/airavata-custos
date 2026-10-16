@@ -15,12 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { TraceListContainer } from "@/features/core/audit/components/TraceListContainer";
+import { pageMetadata } from "@/shared/layout/nav";
 
-export const metadata: Metadata = {
-  title: "Tracing — Admin",
-};
+export const metadata = pageMetadata("/admin/traces");
 
 export default function AdminTracesPage() {
   return <TraceListContainer />;

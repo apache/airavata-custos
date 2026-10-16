@@ -15,18 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UsageDailyBucket, UsageResource } from "@/generated/analytics/types.gen";
 import { describe, expect, it } from "vitest";
 import {
   buildPeriods,
   buildResourceSeries,
-  creditsBand,
   daysBand,
   daysUntil,
-  formatCredits,
+  formatNative,
+  formatNativeAmount,
   formatPercent,
   pctRemaining,
+  suBand,
 } from "../lib";
-import type { UsageDailyBucket, UsageResource } from "../schemas";
 
 const NOW = new Date("2026-07-14T12:00:00Z");
 
@@ -38,16 +39,16 @@ function resource(id: string, used: number, name = id): UsageResource {
   return {
     resource_id: id,
     name,
-    resource_type: "GPU_HOURS",
     used,
-    cap: null,
     used_native: used,
     native_unit: "GPU-hours",
+    resource_type: "gres/gpu",
+    cap: null,
     used_by_caller: 0,
   };
 }
 
-// Build a daily series ending today: `perDay` credits on a single resource for
+// Build a daily series ending today: `perDay` SU on a single resource for
 // the last `activeDays`, preceded by `zeroDays` empty days.
 function series(zeroDays: number, activeDays: number, perDay: number): UsageDailyBucket[] {
   const out: UsageDailyBucket[] = [];
@@ -106,16 +107,16 @@ describe("daysBand", () => {
   });
 });
 
-describe("creditsBand", () => {
+describe("suBand", () => {
   it("red at or below 5% left", () => {
-    expect(creditsBand(5)).toBe("red");
+    expect(suBand(5)).toBe("red");
   });
   it("amber between 6% and 20%", () => {
-    expect(creditsBand(6)).toBe("amber");
-    expect(creditsBand(20)).toBe("amber");
+    expect(suBand(6)).toBe("amber");
+    expect(suBand(20)).toBe("amber");
   });
   it("ok above 20%", () => {
-    expect(creditsBand(21)).toBe("ok");
+    expect(suBand(21)).toBe("ok");
   });
 });
 
@@ -152,10 +153,13 @@ describe("buildResourceSeries", () => {
   });
 });
 
-describe("formatCredits", () => {
-  it("uses compact notation", () => {
-    expect(formatCredits(1_220_000)).toBe("1.22M");
-    expect(formatCredits(84_200)).toBe("84.2K");
-    expect(formatCredits(72_000)).toBe("72K");
+describe("formatNative", () => {
+  it("keeps one decimal of a native unit", () => {
+    expect(formatNative(7.5)).toBe("7.5");
+    expect(formatNative(49_742.04)).toBe("49,742");
+  });
+  it("names one native unit in the singular", () => {
+    expect(formatNativeAmount(1, "core-hours")).toBe("1 core-hour");
+    expect(formatNativeAmount(7.5, "GPU-hours")).toBe("7.5 GPU-hours");
   });
 });

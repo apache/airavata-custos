@@ -17,29 +17,28 @@
 
 "use client";
 
-import { TriangleAlertIcon } from "lucide-react";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { PacketResponse } from "@/generated/amie/types.gen";
 import { cn } from "@/lib/utils";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { pluralize } from "@/shared/format";
+import { DataTable, type DataTableColumn, PastLastPage } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import { Button } from "@/shared/ui/button";
-import type { Packet } from "../types";
-import { ageHoursOf, formatDate } from "../utils";
+import { TriangleAlertIcon } from "lucide-react";
+import { ageHoursOf } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
 
 export type FailedQueueProps = {
-  rows: Packet[];
+  rows: PacketResponse[];
   total: number;
   isLoading: boolean;
   error: Error | null;
   failedOver24h: number;
-  selected: Set<string>;
-  onSelectChange: (next: Set<string>) => void;
-  onRowClick: (packet: Packet) => void;
-  onRetryRow: (id: string) => void;
-  onResolveRow: (packet: Packet) => void;
-  onBulkRetry: () => void;
+  page: number;
+  pageSize: number;
+  onRowClick: (packet: PacketResponse) => void;
+  onPageChange: (page: number) => void;
   onRefresh: () => void;
 };
 
@@ -49,46 +48,13 @@ export function FailedQueue({
   isLoading,
   error,
   failedOver24h,
-  selected,
-  onSelectChange,
+  page,
+  pageSize,
   onRowClick,
-  onRetryRow,
-  onResolveRow,
-  onBulkRetry,
+  onPageChange,
   onRefresh,
 }: FailedQueueProps) {
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
-
-  function toggleAll() {
-    if (allSelected) onSelectChange(new Set());
-    else onSelectChange(new Set(rows.map((r) => r.id)));
-  }
-
-  function toggleOne(id: string) {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onSelectChange(next);
-  }
-
-  const columns: DataTableColumn<Packet>[] = [
-    {
-      key: "select",
-      header: (
-        <input type="checkbox" aria-label="Select all" checked={allSelected} onChange={toggleAll} />
-      ),
-      width: "32px",
-      interactive: true,
-      cell: (row) => (
-        <input
-          type="checkbox"
-          aria-label={`Select ${row.amie_id}`}
-          checked={selected.has(row.id)}
-          onChange={() => toggleOne(row.id)}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ),
-    },
+  const columns: DataTableColumn<PacketResponse>[] = [
     {
       key: "amie_id",
       header: "AMIE ID",
@@ -109,7 +75,7 @@ export function FailedQueue({
           <span
             className={cn(
               "text-xs tabular-nums",
-              loud ? "font-semibold text-destructive" : "text-muted-foreground",
+              loud ? "font-semibold text-destructive-text" : "text-muted-foreground",
             )}
           >
             {age < 1 ? `${Math.round(age * 60)}m` : `${Math.round(age)}h`}
@@ -119,7 +85,7 @@ export function FailedQueue({
     },
     {
       key: "retries",
-      header: "Retries",
+      header: "Failed attempts",
       cell: (row) => <span className="text-xs tabular-nums">{row.retries}</span>,
     },
     {
@@ -133,9 +99,10 @@ export function FailedQueue({
       key: "received",
       header: "Received",
       cell: (row) => (
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {formatDate(row.received_at)}
-        </span>
+        <Timestamp
+          iso={row.received_at}
+          className="whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+        />
       ),
     },
     {
@@ -145,49 +112,6 @@ export function FailedQueue({
         <PacketStatusBadge status={row.status} ageHours={ageHoursOf(row.received_at)} />
       ),
     },
-    {
-      key: "actions",
-      header: "Actions",
-      align: "right",
-      interactive: true,
-      cell: (row) => (
-        <span className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRowClick(row);
-            }}
-          >
-            View
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRetryRow(row.id);
-            }}
-          >
-            Retry
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onResolveRow(row);
-            }}
-          >
-            Resolve
-          </Button>
-        </span>
-      ),
-    },
   ];
 
   return (
@@ -195,44 +119,35 @@ export function FailedQueue({
       {failedOver24h > 0 ? (
         <div
           role="alert"
-          className="sticky top-0 z-10 flex items-center gap-3 rounded-md border border-[color:var(--custos-red-200)] bg-[color:var(--custos-red-50)] px-4 py-2 text-sm text-[color:var(--custos-red-700)]"
+          className="sticky top-16 z-10 flex items-center gap-3 rounded-md border border-[color:var(--banner-error-border)] bg-[color:var(--banner-error-bg)] px-4 py-2 text-sm text-[color:var(--banner-error-fg)]"
         >
           <TriangleAlertIcon className="size-4" aria-hidden />
           <span>
-            <strong>{failedOver24h}</strong> failed packet{failedOver24h === 1 ? "" : "s"} older
-            than 24 hours need attention.
+            <strong>{failedOver24h}</strong> failed {pluralize("packet", failedOver24h)} older than
+            24 hours {pluralize("needs", failedOver24h, "need")} attention.
           </span>
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between rounded-md border bg-card p-4">
-        <p className="text-xs text-muted-foreground">
-          Pre-filtered packets with status = FAILED. Use bulk retry to requeue all selected.
-        </p>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{selected.size} selected</span>
-          <Button variant="outline" disabled={selected.size === 0} onClick={onBulkRetry}>
-            Bulk retry
-          </Button>
-        </div>
-      </div>
-
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load queue"} onRetry={onRefresh} />
+        <ErrorState error={error} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
+      ) : rows.length === 0 && page > 1 ? (
+        <PastLastPage things="failed packets" page={page} onPageChange={onPageChange} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<TriangleAlertIcon className="size-6" aria-hidden />}
-          heading="Nothing failed"
-          description="All packets have either processed cleanly or are still in-flight."
+          heading="No packet is in the Failed state"
         />
       ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
-          caption={`${total} failed packet${total === 1 ? "" : "s"}`}
+          onRowClick={onRowClick}
+          caption={`${total} failed ${pluralize("packet", total)}`}
+          pagination={{ page, pageSize, total, onPageChange }}
         />
       )}
     </div>

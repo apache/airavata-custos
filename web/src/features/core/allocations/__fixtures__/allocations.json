@@ -1,42 +1,46 @@
 [
   {
-    "id": "alloc-001",
-    "project_id": "project-001",
+    "id": "01000001-0000-4000-8000-000001000001",
+    "project_id": "19000001-0000-4000-8000-000019000001",
     "name": "Genomic Sequencing - GPU Pool",
     "status": "ACTIVE",
-    "compute_cluster_id": "cluster-001",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
     "initial_su_amount": 250000,
     "start_time": "2026-04-01T00:00:00.000Z",
-    "end_time": "2027-03-31T00:00:00.000Z"
+    "end_time": "2027-03-31T00:00:00.000Z",
+    "posix_group": null
   },
   {
-    "id": "alloc-002",
-    "project_id": "project-001",
+    "id": "01000002-0000-4000-8000-000001000002",
+    "project_id": "19000001-0000-4000-8000-000019000001",
     "name": "Genomic Sequencing - CPU Pool",
     "status": "ACTIVE",
-    "compute_cluster_id": "cluster-002",
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002",
     "initial_su_amount": 80000,
     "start_time": "2026-04-01T00:00:00.000Z",
-    "end_time": "2027-03-31T00:00:00.000Z"
+    "end_time": "2027-03-31T00:00:00.000Z",
+    "posix_group": null
   },
   {
-    "id": "alloc-003",
-    "project_id": "project-002",
+    "id": "01000003-0000-4000-8000-000001000003",
+    "project_id": "19000002-0000-4000-8000-000019000002",
     "name": "Plasma Simulation - GPU",
     "status": "ACTIVE",
-    "compute_cluster_id": "cluster-001",
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001",
     "initial_su_amount": 150000,
     "start_time": "2026-04-12T00:00:00.000Z",
-    "end_time": "2027-04-11T00:00:00.000Z"
+    "end_time": "2027-04-11T00:00:00.000Z",
+    "posix_group": null
   },
   {
-    "id": "alloc-004",
-    "project_id": "project-003",
+    "id": "01000004-0000-4000-8000-000001000004",
+    "project_id": "19000003-0000-4000-8000-000019000003",
     "name": "Catalyst Discovery - Legacy",
     "status": "INACTIVE",
-    "compute_cluster_id": "cluster-002",
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002",
     "initial_su_amount": 50000,
     "start_time": "2026-02-09T00:00:00.000Z",
-    "end_time": "2026-08-09T00:00:00.000Z"
+    "end_time": "2026-08-09T00:00:00.000Z",
+    "posix_group": null
   }
 ]

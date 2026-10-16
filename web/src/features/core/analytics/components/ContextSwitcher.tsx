@@ -17,19 +17,24 @@
 
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import type { Allocation, ProjectContext } from "@/generated/analytics/types.gen";
 import { cn } from "@/lib/utils";
+import { formatSU } from "@/shared/format";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { creditsBand, formatCredits, pctRemaining, type UrgencyBand } from "../lib";
-import type { AnalyticsAllocation, AnalyticsContext } from "../schemas";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { type UrgencyBand, pctRemaining, suBand } from "../lib";
 
-function balance(a: AnalyticsAllocation): string {
-  return `${formatCredits(Math.max(0, a.initial_su_amount - a.used_su_amount))} left`;
+function remaining({ initial_su_amount, used_su_amount }: Allocation): number {
+  return Math.max(0, initial_su_amount - used_su_amount);
+}
+
+function balance(a: Allocation): string {
+  return `${formatSU(remaining(a))} SU left`;
 }
 
 // Draw attention to low balances only; healthy ones stay muted.
@@ -40,34 +45,38 @@ function metaClass(band: UrgencyBand): string {
 }
 
 type ContextSwitcherProps = {
-  contexts: AnalyticsContext[];
-  selectedProjectId: string | undefined;
+  contexts: ProjectContext[];
   selectedAllocationId: string | undefined;
   onSelect: (projectId: string, allocationId: string) => void;
 };
 
 export function ContextSwitcher({
   contexts,
-  selectedProjectId,
   selectedAllocationId,
   onSelect,
 }: ContextSwitcherProps) {
-  // One flat row per allocation, ordered as the contexts arrive (allocations of
-  // the same project stay adjacent).
-  const rows = contexts.flatMap((c) => c.allocations.map((a) => ({ project: c, allocation: a })));
-  const selected = rows.find((r) => r.allocation.id === selectedAllocationId) ?? rows[0];
+  const rows = contexts
+    .flatMap((c) => (c.allocations ?? []).map((a) => ({ project: c, allocation: a })))
+    .sort((a, b) => a.allocation.name.localeCompare(b.allocation.name));
+  const selected = rows.find((r) => r.allocation.id === selectedAllocationId);
   const projectName = selected?.project.project_name ?? "";
+  const projectLabel = projectName ? (
+    <span className="min-w-0 max-w-full truncate text-sm text-muted-foreground" title={projectName}>
+      {projectName}
+    </span>
+  ) : null;
 
   // Nothing to switch: render a static label.
-  if (rows.length <= 1) {
+  if (selected && rows.length === 1) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex items-center rounded-md border border-border bg-card px-3 py-2 text-sm font-medium">
-          {selected
-            ? `${selected.allocation.name} · ${balance(selected.allocation)}`
-            : "No allocation"}
+        <div
+          className="min-w-0 max-w-full truncate rounded-md border border-border bg-card px-3 py-2 text-sm font-medium"
+          title={selected.allocation.name}
+        >
+          {`${selected.allocation.name} · ${balance(selected.allocation)}`}
         </div>
-        {projectName ? <span className="text-sm text-muted-foreground">{projectName}</span> : null}
+        {projectLabel}
       </div>
     );
   }
@@ -82,7 +91,7 @@ export function ContextSwitcher({
               type="button"
               className="inline-flex w-[22rem] max-w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="min-w-0 flex-1 truncate text-left">
+              <span className="min-w-0 flex-1 truncate text-left" title={selected?.allocation.name}>
                 {selected?.allocation.name ?? "Select an allocation"}
               </span>
               {selected ? (
@@ -104,7 +113,7 @@ export function ContextSwitcher({
           {rows.map(({ project, allocation }) => {
             const isSelected = allocation.id === selectedAllocationId;
             const pct = pctRemaining(allocation.initial_su_amount, allocation.used_su_amount);
-            const band = creditsBand(pct);
+            const band = suBand(pct);
             return (
               <DropdownMenuItem
                 key={allocation.id}
@@ -116,8 +125,13 @@ export function ContextSwitcher({
                   aria-hidden="true"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm">{allocation.name}</div>
-                  <div className="truncate text-xs text-muted-foreground">
+                  <div className="truncate text-sm" title={allocation.name}>
+                    {allocation.name}
+                  </div>
+                  <div
+                    className="truncate text-xs text-muted-foreground"
+                    title={project.project_name}
+                  >
                     {project.project_name}
                   </div>
                 </div>
@@ -127,17 +141,14 @@ export function ContextSwitcher({
                     metaClass(band),
                   )}
                 >
-                  {Math.round(pct)}% ·{" "}
-                  {formatCredits(
-                    Math.max(0, allocation.initial_su_amount - allocation.used_su_amount),
-                  )}
+                  {Math.round(pct)}% · {formatSU(remaining(allocation))} SU
                 </span>
               </DropdownMenuItem>
             );
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-      {projectName ? <span className="text-sm text-muted-foreground">{projectName}</span> : null}
+      {projectLabel}
     </div>
   );
 }

@@ -17,60 +17,46 @@
 
 "use client";
 
-import { Pencil, ShieldCheck } from "lucide-react";
-import type { RoleRow } from "@/features/core/roles/schemas";
+import type { RoleRow } from "@/features/core/roles/queries";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
+import { Pencil, ShieldCheck } from "lucide-react";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
-import { RoleFormDialog } from "./RoleFormDialog";
 
-export function RoleCard({ role }: { role: RoleRow }) {
+export function RoleCard({ role, onEdit }: { role: RoleRow; onEdit: () => void }) {
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-1.5 font-heading text-base font-semibold text-foreground">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-1.5 [overflow-wrap:anywhere] font-heading text-base font-semibold text-foreground">
               {role.name}
               {role.is_system ? (
-                <ShieldCheck
-                  className="size-3.5 text-muted-foreground"
-                  aria-label="System role"
-                />
+                <ShieldCheck className="size-3.5 text-muted-foreground" aria-label="System role" />
               ) : null}
-            </div>
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">{role.description}</p>
           </div>
           <Badge variant="secondary" className="shrink-0">
-            {role.memberCount} {role.memberCount === 1 ? "member" : "members"}
+            {role.holderIds.length} {role.holderIds.length === 1 ? "member" : "members"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="border-t border-border" />
 
-        <PermissionMatrixEditor
-          permissions={role.privileges}
-          editable={false}
-        />
+        <PermissionMatrixEditor permissions={role.privileges} editable={false} />
 
         <div className="border-t border-border" />
-
-        <RoleFormDialog
-          role={role}
-          triggerRender={
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-            />
-          }
-          triggerContent={
-            <>
-              <Pencil className="size-3.5" />
-              Edit
-            </>
-          }
-        />
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Edit ${role.name}`}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <Pencil className="size-3.5" />
+          Edit
+        </button>
       </CardContent>
     </Card>
   );

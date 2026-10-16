@@ -17,8 +17,16 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getCluster, listClusterUsers, listClusters } from "./api";
+import {
+  getComputeClusters,
+  getComputeClustersById,
+  getComputeClustersByIdUsers,
+  postComputeClusters,
+} from "@/generated/core/sdk.gen";
+import { errorCopy } from "@/shared/api/client";
+import { listOf } from "@/shared/api/listOf";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export const clusterKeys = {
   all: ["clusters"] as const,
@@ -27,34 +35,37 @@ export const clusterKeys = {
   users: (id: string) => [...clusterKeys.all, "users", id] as const,
 };
 
-const DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 300_000,
-  refetchOnWindowFocus: false,
-} as const;
-
-export function useClusters() {
+export function useClusters(enabled = true) {
   return useQuery({
     queryKey: clusterKeys.list(),
-    queryFn: listClusters,
-    ...DEFAULTS,
-  });
-}
-
-export function useCluster(id: string | undefined) {
-  return useQuery({
-    queryKey: id ? clusterKeys.detail(id) : [...clusterKeys.all, "detail", "none"],
-    queryFn: () => getCluster(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
+    queryFn: () => getComputeClusters().then(listOf),
+    enabled,
   });
 }
 
 export function useClusterUsers(id: string | undefined) {
   return useQuery({
-    queryKey: id ? clusterKeys.users(id) : [...clusterKeys.all, "users", "none"],
-    queryFn: () => listClusterUsers(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
+    queryKey: clusterKeys.users(id ?? ""),
+    queryFn: id ? () => getComputeClustersByIdUsers({ path: { id } }).then(listOf) : skipToken,
+  });
+}
+
+export function useCluster(id: string | undefined) {
+  return useQuery({
+    queryKey: clusterKeys.detail(id ?? ""),
+    queryFn: id ? () => getComputeClustersById({ path: { id } }) : skipToken,
+  });
+}
+
+export function useCreateCluster() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: postComputeClusters<true>,
+    meta: { inlineError: true },
+    onError: (err, { body }) =>
+      toast.error(
+        errorCopy(err, [{ status: 409, copy: `A cluster named ${body.name} already exists.` }]),
+      ),
+    onSettled: () => client.invalidateQueries({ queryKey: clusterKeys.list() }),
   });
 }

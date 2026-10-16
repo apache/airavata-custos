@@ -15,12 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { EventsPage } from "@/features/core/events/components/EventsPage";
+import { pageMetadata } from "@/shared/layout/nav";
 
-export const metadata: Metadata = {
-  title: "Events — Admin",
-};
+export const metadata = pageMetadata("/admin/events");
 
 export default function AdminEventsPage() {
   return <EventsPage />;

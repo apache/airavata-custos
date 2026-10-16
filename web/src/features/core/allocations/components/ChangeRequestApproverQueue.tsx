@@ -17,64 +17,96 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { toast } from "sonner";
-import { Button } from "@/shared/ui/button";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { ComputeAllocationChangeRequest } from "@/generated/core/types.gen";
+import { formatDate, formatDateTime, formatSU } from "@/shared/format";
+import { useUrlFilteredPage } from "@/shared/hooks/usePageClamp";
+import { useCanonicalParams } from "@/shared/hooks/useShallowSearchParams";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
+import { DataTable, type DataTableColumn, PastLastPage } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
+import { statusLabel } from "@/shared/ui/FormDialog";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
 import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import {
-  useApproveChangeRequest,
-  useChangeRequests,
-  useRejectChangeRequest,
-} from "../queries";
-import type { ChangeRequest, ChangeRequestStatus } from "../schemas";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLinkItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { keepFocus } from "@/shared/ui/focus";
+import { Label } from "@/shared/ui/label";
+import { Link } from "@/shared/ui/link";
+import { toastOnSuccess } from "@/shared/ui/sonner";
+import * as React from "react";
+import { CHANGE_REQUEST_LIMIT, useChangeRequests, useDecideChangeRequest } from "../queries";
+import { AllocationName } from "./AllocationName";
+import { MemberName } from "./MemberName";
 
 export type ChangeRequestApproverQueueProps = {
   canApprove: boolean;
-  approverId: string;
+  // Undefined until the session loads; decisions wait for it.
+  approverId: string | undefined;
 };
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
+const PAGE_SIZE = 50;
 
-const STATUS_OPTIONS: Array<{ value: "all" | ChangeRequestStatus; label: string }> = [
+const STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "PENDING", label: "Pending" },
   { value: "APPROVED", label: "Approved" },
   { value: "REJECTED", label: "Rejected" },
+] as const;
+
+export const decisionToast = (status: "APPROVED" | "REJECTED") =>
+  `${status === "APPROVED" ? "Approved" : "Rejected"} the change request`;
+
+// The requested change and its decision, shared with the allocation's Change requests tab.
+export const requestedChangeColumns: Array<DataTableColumn<ComputeAllocationChangeRequest>> = [
+  {
+    key: "amount",
+    header: "Requested SUs",
+    align: "right",
+    sortable: true,
+    sortValue: (row) => row.requested_su_amount,
+    cell: (row) => <span className="tabular-nums">{formatSU(row.requested_su_amount)}</span>,
+  },
+  {
+    key: "requestedStatus",
+    header: "Requested status",
+    cell: (row) => (
+      <span className="text-sm text-muted-foreground">{statusLabel(row.requested_status)}</span>
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    cell: (row) => (
+      <StatusBadge
+        variant={statusBadgeVariantFromChangeRequest(row.change_status)}
+        label={statusLabel(row.change_status)}
+      />
+    ),
+  },
 ];
 
 export function ChangeRequestApproverQueue({
   canApprove,
   approverId,
 }: ChangeRequestApproverQueueProps) {
-  const [statusFilter, setStatusFilter] = React.useState<"all" | ChangeRequestStatus>("PENDING");
-  const [search, setSearch] = React.useState("");
+  const { params, page, setPage, offset, setFilter } = useUrlFilteredPage(PAGE_SIZE);
+  // No ?status= means the pending queue.
+  const statusFilter =
+    STATUS_OPTIONS.find((o) => o.value === params.get("status"))?.value ?? "PENDING";
   const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set());
+  useCanonicalParams({ status: statusFilter === "PENDING" ? undefined : statusFilter });
 
-  const query = useChangeRequests(
-    statusFilter === "all" ? {} : { status: statusFilter },
-  );
-  const approveMutation = useApproveChangeRequest();
-  const rejectMutation = useRejectChangeRequest();
+  const query = useChangeRequests(statusFilter === "all" ? undefined : statusFilter);
+  const decideMutation = useDecideChangeRequest();
+  const queue = React.useRef<HTMLElement>(null);
 
   function markPending(id: string, on: boolean) {
     setPendingIds((prev) => {
@@ -85,122 +117,79 @@ export function ChangeRequestApproverQueue({
     });
   }
 
-  async function handleApprove(row: ChangeRequest) {
-    markPending(row.id, true);
-    try {
-      await approveMutation.mutateAsync({ id: row.id, approverId });
-      toast.success(`Approved ${row.id}`);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      markPending(row.id, false);
-    }
-  }
-
-  async function handleReject(row: ChangeRequest) {
-    markPending(row.id, true);
-    try {
-      await rejectMutation.mutateAsync({ id: row.id, approverId });
-      toast.success(`Rejected ${row.id}`);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      markPending(row.id, false);
-    }
-  }
-
-  const rows = (query.data ?? []).filter((r) => {
-    if (!search) return true;
-    const needle = search.toLowerCase();
-    return (
-      r.id.toLowerCase().includes(needle) ||
-      r.compute_allocation_id.toLowerCase().includes(needle) ||
-      r.requester_id.toLowerCase().includes(needle) ||
-      r.reason.toLowerCase().includes(needle)
+  function decide(row: ComputeAllocationChangeRequest, changeStatus: "APPROVED" | "REJECTED") {
+    const id = row.id;
+    if (!approverId) return;
+    // A decided row can leave the filter, taking its control (or the menu's trigger) with it.
+    keepFocus(() => queue.current);
+    markPending(id, true);
+    toastOnSuccess(
+      decideMutation
+        .mutateAsync({ id, change_status: changeStatus, approver_id: approverId })
+        .finally(() => markPending(id, false)),
+      decisionToast(changeStatus),
     );
-  });
+  }
 
-  const columns: Array<DataTableColumn<ChangeRequest>> = [
+  const all = query.data ?? [];
+  const rows = all.slice(offset, offset + PAGE_SIZE);
+
+  const columns: Array<DataTableColumn<ComputeAllocationChangeRequest>> = [
     {
       key: "submitted",
       header: "Submitted",
       sortable: true,
       sortValue: (row) => new Date(row.timestamp),
       cell: (row) => (
-        <span className="text-sm text-muted-foreground">{formatDate(row.timestamp)}</span>
+        <Timestamp iso={row.timestamp} className="text-sm text-muted-foreground">
+          {formatDate(row.timestamp)}
+        </Timestamp>
       ),
     },
     {
       key: "allocation",
       header: "Allocation",
       cell: (row) => (
-        <Link
-          href={`/allocations/${row.compute_allocation_id}`}
-          className="text-sm font-medium text-foreground hover:underline"
-        >
-          {row.compute_allocation_id}
-        </Link>
+        <AllocationName
+          id={row.compute_allocation_id}
+          className="block max-w-[24ch] text-sm font-medium text-foreground hover:underline"
+        />
       ),
     },
     {
       key: "requester",
       header: "Requester",
-      cell: (row) => <span className="font-mono text-xs">{row.requester_id}</span>,
+      cell: (row) => <MemberName id={row.requester_id} allocationId={row.compute_allocation_id} />,
     },
-    {
-      key: "amount",
-      header: "Requested SUs",
-      align: "right",
-      sortable: true,
-      sortValue: (row) => row.requested_su_amount,
-      cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => (
-        <StatusBadge
-          variant={statusBadgeVariantFromChangeRequest(row.change_status)}
-          label={row.change_status}
-        />
-      ),
-    },
+    ...requestedChangeColumns,
     {
       key: "actions",
       header: "",
       align: "right",
       interactive: true,
+      sticky: true,
       cell: (row) => {
-        const pending = pendingIds.has(row.id);
-        if (row.change_status !== "PENDING" || !canApprove) {
-          return (
-            <Button variant="ghost" size="sm" render={<Link href={`/change-requests/${row.id}`} />}>
-              View
-            </Button>
-          );
-        }
+        const disabled = pendingIds.has(row.id) || !approverId;
+        const name = requestSummary(row);
+        const view = <ViewRequest id={row.id} name={name} />;
+        if (row.change_status !== "PENDING" || !canApprove) return view;
         return (
-          <div className="flex justify-end gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={() => handleReject(row)}
-              aria-label={`Reject ${row.id}`}
-            >
-              Reject
-            </Button>
-            <Button
-              size="sm"
-              disabled={pending}
-              onClick={() => handleApprove(row)}
-              aria-label={`Approve ${row.id}`}
-            >
-              Approve
-            </Button>
-          </div>
+          <>
+            <span className="hidden items-center gap-2 sm:inline-flex">
+              <DecisionButtons
+                name={name}
+                disabled={disabled}
+                onDecide={(status) => decide(row, status)}
+              />
+              {view}
+            </span>
+            <DecideMenu
+              name={name}
+              href={`/change-requests/${row.id}`}
+              disabled={disabled}
+              onDecide={(status) => decide(row, status)}
+            />
+          </>
         );
       },
     },
@@ -209,9 +198,12 @@ export function ChangeRequestApproverQueue({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-[28px] font-bold leading-tight">Change requests</h1>
+        <h1 className="font-display text-[28px] font-bold leading-tight">
+          {ROUTE_LABELS["/change-requests"]}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Review allocation change requests from PIs and project managers.
+          The newest {CHANGE_REQUEST_LIMIT} change requests across every allocation, filtered by
+          status. Holders of allocation write access approve or reject pending requests.
         </p>
       </div>
 
@@ -221,7 +213,9 @@ export function ChangeRequestApproverQueue({
           <select
             id="cr-status-filter"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | ChangeRequestStatus)}
+            onChange={(e) =>
+              setFilter("status", e.target.value === "PENDING" ? null : e.target.value)
+            }
             className="h-9 rounded-md border bg-background px-3 text-sm"
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -231,34 +225,130 @@ export function ChangeRequestApproverQueue({
             ))}
           </select>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="cr-search">Search</Label>
-          <Input
-            id="cr-search"
-            type="search"
-            placeholder="Requester, allocation, reason…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="sm:w-72"
-          />
-        </div>
       </div>
 
-      {query.isLoading ? (
-        <TableSkeleton rows={5} columns={6} />
-      ) : query.error ? (
-        <ErrorState
-          message={(query.error as Error).message}
-          onRetry={() => query.refetch()}
-        />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="No change requests"
-          description="No requests match the current filters."
-        />
-      ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
-      )}
+      <section
+        ref={queue}
+        aria-label="Change request queue"
+        tabIndex={-1}
+        className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {query.isLoading ? (
+          <TableSkeleton rows={5} columns={6} />
+        ) : query.error ? (
+          <ErrorState onRetry={() => query.refetch()} />
+        ) : rows.length === 0 && page > 1 ? (
+          <PastLastPage things="change requests" page={page} onPageChange={setPage} />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            heading="No change requests"
+            description="No requests match the current filter."
+          />
+        ) : (
+          <DataTable
+            caption="Change requests"
+            columns={columns}
+            rows={rows}
+            rowKey={(row) => row.id}
+            pagination={{ page, pageSize: PAGE_SIZE, total: all.length, onPageChange: setPage }}
+          />
+        )}
+      </section>
+    </div>
+  );
+}
+
+// Tells apart requests in the row controls' labels; the short id separates any two left alike.
+export function requestSummary(row: ComputeAllocationChangeRequest): string {
+  return [
+    `${formatSU(row.requested_su_amount)} SU`,
+    statusLabel(row.requested_status),
+    `submitted ${formatDateTime(row.timestamp)}`,
+    `request ${row.id.slice(0, 8)}`,
+  ].join(", ");
+}
+
+export const ViewRequest = ({ id, name }: { id: string; name: string }) => (
+  <Button
+    variant="ghost"
+    size="sm"
+    nativeButton={false}
+    render={<Link href={`/change-requests/${id}`} />}
+    aria-label={`View change request for ${name}`}
+  >
+    View
+  </Button>
+);
+
+// Below sm the three actions fold into one menu, so the row keeps room for what is decided.
+function DecideMenu({
+  name,
+  href,
+  disabled,
+  onDecide,
+}: {
+  name: string;
+  href: string;
+  disabled: boolean;
+  onDecide: (status: "APPROVED" | "REJECTED") => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className="sm:hidden"
+            disabled={disabled}
+            focusableWhenDisabled
+            aria-label={`Decide change request for ${name}`}
+          />
+        }
+      >
+        Decide
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onDecide("APPROVED")}>Approve</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onDecide("REJECTED")}>Reject</DropdownMenuItem>
+        <DropdownMenuLinkItem href={href} closeOnClick>
+          View
+        </DropdownMenuLinkItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function DecisionButtons({
+  name,
+  disabled,
+  onDecide,
+}: {
+  name: string;
+  disabled: boolean;
+  onDecide: (status: "APPROVED" | "REJECTED") => void;
+}) {
+  return (
+    <div className="flex justify-end gap-1.5">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        focusableWhenDisabled
+        onClick={() => onDecide("REJECTED")}
+        aria-label={`Reject change request for ${name}`}
+      >
+        Reject
+      </Button>
+      <Button
+        size="sm"
+        disabled={disabled}
+        focusableWhenDisabled
+        onClick={() => onDecide("APPROVED")}
+        aria-label={`Approve change request for ${name}`}
+      >
+        Approve
+      </Button>
     </div>
   );
 }

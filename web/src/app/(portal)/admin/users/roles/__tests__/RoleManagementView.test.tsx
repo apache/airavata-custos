@@ -15,16 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { PrivilegeKey } from "@/generated/core/types.gen";
 import { defineAbilitiesFor } from "@/shared/casl/abilities";
-import type { Privilege } from "@/features/core/identity/types";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RoleManagementView } from "../RoleManagementView";
 
-let currentPrivileges: Privilege[] = [];
+let currentPrivileges: PrivilegeKey[] = [];
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/users/roles",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/shared/casl/AbilityProvider", () => ({
@@ -49,10 +50,10 @@ describe("RoleManagementView", () => {
   it("blocks the roles page without roles:manage and does not mount the grid", () => {
     currentPrivileges = ["core:users:read"];
     render(<RoleManagementView />);
-    expect(screen.getByRole("alert")).toHaveTextContent(/do not have permission to manage roles/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/not permitted/i);
     expect(screen.queryByText("Roles grid")).toBeNull();
     expect(screen.queryByRole("button", { name: "Create role" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Role Management" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Role management" })).toBeNull();
   });
 
   it("renders role management UI with roles:manage", () => {
@@ -60,6 +61,6 @@ describe("RoleManagementView", () => {
     render(<RoleManagementView />);
     expect(screen.getByText("Roles grid")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create role" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Role Management" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Role management" })).toBeInTheDocument();
   });
 });

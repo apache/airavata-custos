@@ -22,7 +22,7 @@ import { signInAs } from "./fixtures/auth";
 test.describe("allocation detail", () => {
   test("renders header and tabs", async ({ page }) => {
     await signInAs(page, "admin");
-    await page.goto("/allocations/alloc-001");
+    await page.goto("/allocations/01000001-0000-4000-8000-000001000001");
     await expect(
       page.getByRole("heading", { name: /Genomic Sequencing - GPU Pool/i }),
     ).toBeVisible();
@@ -31,7 +31,9 @@ test.describe("allocation detail", () => {
     await expect(page.getByText(/Ada Lovelace/i).first()).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("tab", { name: /^change requests$/i }).click();
-    await expect(page.getByText(/user-pi-001/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("tabpanel").getByRole("row", { name: /Pending/ })).toBeVisible({
+      timeout: 15_000,
+    });
 
     await page.getByRole("tab", { name: /^usage$/i }).click();
     await expect(page.getByRole("heading", { name: /no usage recorded/i })).toBeVisible({
@@ -39,14 +41,14 @@ test.describe("allocation detail", () => {
     });
 
     await page.getByRole("tab", { name: /^history$/i }).click();
-    await expect(page.getByText(/ALLOCATION_STATUS_CHANGE/i).first()).toBeVisible({
+    await expect(page.getByText("Status changed").first()).toBeVisible({
       timeout: 15_000,
     });
   });
 
   test("axe sweep on allocation detail", async ({ page }) => {
     await signInAs(page, "admin");
-    await page.goto("/allocations/alloc-001");
+    await page.goto("/allocations/01000001-0000-4000-8000-000001000001");
     await expect(
       page.getByRole("heading", { name: /Genomic Sequencing - GPU Pool/i }),
     ).toBeVisible();

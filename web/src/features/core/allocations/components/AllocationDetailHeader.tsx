@@ -17,67 +17,37 @@
 
 "use client";
 
-import { Calendar, Gauge, Server, UserSquare } from "lucide-react";
+import type { ComputeAllocation } from "@/generated/core/types.gen";
+import { formatSU } from "@/shared/format";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { ComputeAllocation } from "../schemas";
+import { Calendar, Gauge, UserSquare } from "lucide-react";
+import { AllocationStatusLabel, knownDay } from "./AllocationStatusLabel";
 
 export type AllocationDetailHeaderProps = {
   allocation: ComputeAllocation;
-  memberCount: number;
+  memberCount: number | undefined;
 };
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatNumber(n: number): string {
-  return new Intl.NumberFormat().format(n);
-}
-
-function isExpired(endTime: string, now = new Date()): boolean {
-  const t = new Date(endTime).getTime();
-  return Number.isFinite(t) && t < now.getTime();
-}
-
 export function AllocationDetailHeader({ allocation, memberCount }: AllocationDetailHeaderProps) {
-  const expired = allocation.status === "ACTIVE" && isExpired(allocation.end_time);
-  const tone: "success" | "warning" | "danger" =
-    allocation.status === "ACTIVE" && !expired
-      ? "success"
-      : allocation.status === "ACTIVE" && expired
-        ? "warning"
-        : "danger";
-  const label = expired ? "EXPIRED" : allocation.status;
-
   return (
     <header className="space-y-4">
-      <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
+      <h1 className="font-display text-[28px] font-bold leading-tight text-foreground [overflow-wrap:anywhere]">
         {allocation.name}
       </h1>
-      <MetaItem
-        className="hidden"
-        icon={Server}
-        label="Cluster"
-        value={allocation.compute_cluster_id}
-      />
       <div className="flex flex-wrap items-center gap-3">
-        <MetaItem variant="status" tone={tone} value={label} className="py-1.5" />
+        <AllocationStatusLabel
+          status={allocation.status}
+          startTime={allocation.start_time}
+          endTime={allocation.end_time}
+        />
         <MetaRow>
           <MetaItem
             icon={Gauge}
             label="Initial SUs"
-            value={formatNumber(allocation.initial_su_amount)}
+            value={formatSU(allocation.initial_su_amount)}
           />
-          <MetaItem icon={Calendar} label="End date" value={formatDate(allocation.end_time)} />
-          <MetaItem icon={UserSquare} label="Members" value={memberCount} />
+          <MetaItem icon={Calendar} label="End date" value={knownDay(allocation.end_time)} />
+          <MetaItem icon={UserSquare} label="Members" value={memberCount ?? "—"} />
         </MetaRow>
       </div>
     </header>

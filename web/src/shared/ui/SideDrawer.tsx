@@ -23,6 +23,9 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { useConfirmBar } from "@/shared/ui/confirm";
+import { focusHeadingOf, useFocusOrigin, useScrollStop, wrapTab } from "@/shared/ui/focus";
+import { dismissConfirm } from "@/shared/ui/sonner";
 
 export type SideDrawerWidth = "sm" | "md" | "lg";
 
@@ -39,16 +42,12 @@ export type SideDrawerProps = {
   description?: React.ReactNode;
   children: React.ReactNode;
   width?: SideDrawerWidth;
-  // Non-modal drawers skip the dimming backdrop and leave the rest of the
-  // page interactive — e.g. clicking another table row while the drawer is
-  // open should swap its contents rather than being blocked by an overlay.
+  // A modal drawer dims and blocks the page; only one raised from a button outside any list is.
   modal?: boolean;
-  // Base UI closes on any outside pointer press by default, which races with
-  // a caller's own click handling (e.g. a row toggling the same drawer) —
-  // the outside-press listener fires before React's onClick, so the caller's
-  // "close if already open" check always sees a fresh `null` state. Set this
-  // when the caller owns open/close entirely (row clicks, toggle buttons).
-  disablePointerDismissal?: boolean;
+  // Where focus goes on open, as Base UI's Popup initialFocus (a form drawer: its first field).
+  initialFocus?: DialogPrimitive.Popup.Props["initialFocus"];
+  // The shown record's id: a swap to another record re-reads where focus returns on close.
+  recordKey?: string;
 };
 
 export function SideDrawer({
@@ -58,31 +57,67 @@ export function SideDrawer({
   description,
   children,
   width = "md",
-  modal = true,
-  disablePointerDismissal = false,
+  modal = false,
+  initialFocus,
+  recordKey,
 }: SideDrawerProps) {
+  const returnTo = useFocusOrigin(open, recordKey);
+  const scrollStop = useScrollStop<HTMLDivElement>();
+  // Opening the drawer withdraws a standing confirmation, and one raised in it ends with it.
+  React.useEffect(() => {
+    if (!open) return;
+    dismissConfirm();
+    return () => void dismissConfirm();
+  }, [open]);
   return (
     <DialogPrimitive.Root
       open={open}
-      onOpenChange={onOpenChange}
+      // Only an explicit action closes it: focus leaving because its trigger unmounted does not. A
+      // press on a row or toggle that opens drawers is left to it, so it can swap or toggle this one.
+      // Escape withdraws a standing confirmation first; a second Escape closes the drawer.
+      onOpenChange={(next, details) => {
+        if (next) return onOpenChange(next);
+        if (details.reason === "focus-out") return;
+        const target = details.event?.target;
+        if (
+          details.reason === "outside-press" &&
+          target instanceof Element &&
+          target.closest("[data-drawer-trigger]")
+        )
+          return details.cancel();
+        if (dismissConfirm() && details.reason === "escape-key") return details.cancel();
+        onOpenChange(next);
+      }}
       modal={modal}
-      disablePointerDismissal={disablePointerDismissal}
     >
       <DialogPrimitive.Portal>
         {modal ? (
           <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         ) : null}
         <DialogPrimitive.Popup
+          data-slot="drawer-content"
+          initialFocus={initialFocus}
+          finalFocus={returnTo}
+          // A link in the drawer leaves the page with it; focus goes to the destination's h1.
+          onClick={(e) => {
+            const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
+            if (link instanceof HTMLAnchorElement && link.origin === window.location.origin)
+              focusHeadingOf(link.href);
+          }}
+          onKeyDown={wrapTab}
           className={cn(
             "fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-popover text-popover-foreground shadow-xl outline-none",
             "data-open:animate-in data-open:slide-in-from-right-12 data-closed:animate-out data-closed:slide-out-to-right-12",
             widthClass[width],
           )}
         >
-          <header className="flex items-start justify-between border-b border-border px-6 py-4">
-            <div className="space-y-1">
+          <div
+            data-slot="drawer-header"
+            className="flex items-start justify-between gap-3 border-b border-border px-6 py-4"
+          >
+            <div className="min-w-0 space-y-1">
               {title ? (
-                <DialogPrimitive.Title className="font-display text-lg font-semibold text-foreground">
+                <DialogPrimitive.Title className="font-display text-lg font-semibold text-foreground [overflow-wrap:anywhere]">
                   {title}
                 </DialogPrimitive.Title>
               ) : null}
@@ -104,10 +139,25 @@ export function SideDrawer({
             >
               <XIcon className="size-4" />
             </DialogPrimitive.Close>
-          </header>
-          <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+          </div>
+          <div
+            {...scrollStop}
+            data-slot="drawer-body"
+            role="region"
+            aria-label={typeof title === "string" ? title : "Details"}
+            className="flex-1 overflow-y-auto px-6 py-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            <div>{children}</div>
+          </div>
+          <DrawerConfirm />
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
+}
+
+// A confirmation raised in the drawer sits below its scrolling body, clear of the header and Close.
+function DrawerConfirm() {
+  const bar = useConfirmBar();
+  return bar ? <div className="border-t border-border px-6 py-3">{bar}</div> : null;
 }

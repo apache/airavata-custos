@@ -15,252 +15,313 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
-import resourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
-import diffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
-import usageFixture from "@/features/core/allocations/__fixtures__/usage.json";
-import membersFixture from "@/features/core/allocations/__fixtures__/members.json";
 import changeRequestsFixture from "@/features/core/allocations/__fixtures__/change-requests.json";
+import diffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
 import eventsFixture from "@/features/core/allocations/__fixtures__/events.json";
+import membersFixture from "@/features/core/allocations/__fixtures__/members.json";
+import resourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
+import usageFixture from "@/features/core/allocations/__fixtures__/usage.json";
+import catalogFixture from "@/features/core/resources/__fixtures__/resources.json";
 import type {
-  AllocationDiff,
-  AllocationMembership,
-  AttachedResource,
-  AllocationUsage,
-  ChangeRequest,
-  ChangeRequestEvent,
-  ComputeAllocation,
-  CreateChangeRequestPayload,
-  CreateMembershipPayload,
-  UpdateChangeRequestPayload,
-  UpdateMembershipPayload,
-} from "@/features/core/allocations/schemas";
+  AllocationMembershipResponse,
+  ComputeAllocationChangeRequest,
+  ComputeAllocationMembership,
+  DeleteComputeAllocationChangeRequestsByIdData,
+  DeleteComputeAllocationMembershipsByIdData,
+  DeleteComputeAllocationUsagesByIdData,
+  GetComputeAllocationChangeRequestsByIdData,
+  GetComputeAllocationChangeRequestsByIdEventsData,
+  GetComputeAllocationMembershipsByIdData,
+  GetComputeAllocationUsagesByIdData,
+  GetComputeAllocationsByIdChangeRequestsData,
+  GetComputeAllocationsByIdData,
+  GetComputeAllocationsByIdDiffsData,
+  GetComputeAllocationsByIdMembershipsData,
+  GetComputeAllocationsByIdResourcesData,
+  GetComputeAllocationsByIdUsagesData,
+  GetUsersByIdChangeRequestsData,
+  PostComputeAllocationChangeRequestsData,
+  PostComputeAllocationMembershipsData,
+  PutComputeAllocationChangeRequestsByIdData,
+} from "@/generated/core/types.gen";
+import {
+  zAllocationMembershipResponse,
+  zComputeAllocation,
+  zComputeAllocationChangeRequest,
+  zComputeAllocationChangeRequestEvent,
+  zComputeAllocationDiff,
+  zComputeAllocationResource,
+  zComputeAllocationResourceMapping,
+  zComputeAllocationUsage,
+} from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
+import { listJson, notFound, page } from "../paging";
+import { mockProjectRole } from "./projects";
 
-const allocations: ComputeAllocation[] = (allocationsFixture as ComputeAllocation[]).map((a) => ({
-  ...a,
-}));
-const resourcesByAlloc: Record<string, AttachedResource[]> = Object.fromEntries(
-  Object.entries(resourcesFixture as Record<string, AttachedResource[]>).map(
-    ([id, rows]) => [id, rows.map((r) => ({ ...r }))],
-  ),
-);
-const usageByAlloc = usageFixture as Record<string, AllocationUsage[]>;
-const diffsByAlloc = diffsFixture as Record<string, AllocationDiff[]>;
-const membersByAlloc: Record<string, AllocationMembership[]> = Object.fromEntries(
-  Object.entries(membersFixture as Record<string, AllocationMembership[]>).map(([id, rows]) => [
-    id,
-    rows.map((r) => ({ ...r })),
-  ]),
-);
-const changeRequests: ChangeRequest[] = (changeRequestsFixture as ChangeRequest[]).map((cr) => ({
-  ...cr,
-}));
-const eventsByCr: Record<string, ChangeRequestEvent[]> = Object.fromEntries(
-  Object.entries(eventsFixture as Record<string, ChangeRequestEvent[]>).map(([id, rows]) => [
-    id,
-    rows.map((r) => ({ ...r })),
-  ]),
-);
+const allocations = z.array(zComputeAllocation).parse(allocationsFixture);
+// Fixtures keyed by parent id.
+const byParent = <T>(schema: z.ZodType<T>, fixture: unknown) =>
+  z.record(z.string(), z.array(schema)).parse(fixture);
+const mappingsByAlloc = byParent(zComputeAllocationResourceMapping, resourcesFixture);
+const catalog = z.array(zComputeAllocationResource).parse(catalogFixture);
+// As master's join: the attached resources themselves, by name.
+const attachedTo = (allocationId: string) =>
+  catalog
+    .filter((r) =>
+      mappingsByAlloc[allocationId]?.some((m) => m.compute_allocation_resource_id === r.id),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+const usageByAlloc = byParent(zComputeAllocationUsage, usageFixture);
+const diffsByAlloc = byParent(zComputeAllocationDiff, diffsFixture);
+const membersByAlloc = byParent(zAllocationMembershipResponse, membersFixture);
+const changeRequests = z.array(zComputeAllocationChangeRequest).parse(changeRequestsFixture);
+const eventsByCr = byParent(zComputeAllocationChangeRequestEvent, eventsFixture);
 
-let memberSeq = 1000;
-let crSeq = 1000;
-let eventSeq = 1000;
+const byTime = (a: { timestamp: string }, b: { timestamp: string }) =>
+  Date.parse(a.timestamp) - Date.parse(b.timestamp);
+const badRequest = (error: string) => HttpResponse.json({ error }, { status: 400 });
 
-function ensureMembersBucket(allocId: string): AllocationMembership[] {
-  if (!membersByAlloc[allocId]) membersByAlloc[allocId] = [];
-  return membersByAlloc[allocId];
+function pushEvent(crId: string, eventType: string, description: string) {
+  eventsByCr[crId] ??= [];
+  eventsByCr[crId].push({
+    id: crypto.randomUUID(),
+    compute_allocation_change_request_id: crId,
+    event_type: eventType,
+    description,
+    timestamp: new Date().toISOString(),
+  });
 }
 
-function ensureEventsBucket(crId: string): ChangeRequestEvent[] {
-  if (!eventsByCr[crId]) eventsByCr[crId] = [];
-  return eventsByCr[crId];
-}
+// The stored membership, without the user and role the list joins.
+const stored = ({ role, display_name, email, ...m }: AllocationMembershipResponse) =>
+  m satisfies ComputeAllocationMembership;
 
-function filterAllocations(url: URL): ComputeAllocation[] {
+function filterAllocations(url: URL) {
   const projectId = url.searchParams.get("project_id");
   const status = url.searchParams.get("status");
   const q = url.searchParams.get("q")?.toLowerCase() ?? "";
-  return allocations.filter((a) => {
-    if (projectId && a.project_id !== projectId) return false;
-    if (status && a.status !== status) return false;
-    if (q && !a.name.toLowerCase().includes(q) && !a.id.toLowerCase().includes(q)) return false;
-    return true;
-  });
+  return allocations.filter(
+    (a) =>
+      (!projectId || a.project_id === projectId) &&
+      (!status || a.status === status) &&
+      (!q || a.name.toLowerCase().includes(q)),
+  );
 }
 
 export const allocationsHandlers = [
   http.get("*/api/v1/compute-allocations", ({ request }) => {
-    const url = new URL(request.url);
-    const matched = filterAllocations(url);
-    const limit = Number(url.searchParams.get("limit") ?? matched.length);
-    const offset = Number(url.searchParams.get("offset") ?? 0);
-    const items = matched.slice(offset, offset + limit);
-    return HttpResponse.json({ items, total: matched.length });
+    const { items, total } = page(new URL(request.url), filterAllocations(new URL(request.url)));
+    return HttpResponse.json({ items, total });
   }),
 
-  http.get("*/api/v1/compute-allocations/:id", ({ params }) => {
-    const id = String(params.id);
-    const found = allocations.find((a) => a.id === id);
-    if (!found) return HttpResponse.json({ error: "allocation not found" }, { status: 404 });
-    return HttpResponse.json(found);
-  }),
+  http.get<GetComputeAllocationsByIdData["path"]>(
+    "*/api/v1/compute-allocations/:id",
+    ({ params }) => {
+      const found = allocations.find((a) => a.id === params.id);
+      return found ? HttpResponse.json(found) : notFound("compute allocation");
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocations/:id/resources", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(resourcesByAlloc[id] ?? []);
-  }),
+  http.get<GetComputeAllocationsByIdResourcesData["path"]>(
+    "*/api/v1/compute-allocations/:id/resources",
+    ({ params }) => listJson(attachedTo(params.id)),
+  ),
 
-  http.get("*/api/v1/compute-allocations/:id/usages", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(usageByAlloc[id] ?? []);
-  }),
+  http.get<GetComputeAllocationsByIdUsagesData["path"]>(
+    "*/api/v1/compute-allocations/:id/usages",
+    ({ params }) => listJson(usageByAlloc[params.id] ?? []),
+  ),
 
-  http.get("*/api/v1/compute-allocations/:id/diffs", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(diffsByAlloc[id] ?? []);
-  }),
+  http.get<GetComputeAllocationUsagesByIdData["path"]>(
+    "*/api/v1/compute-allocation-usages/:id",
+    ({ params }) => {
+      const usage = Object.values(usageByAlloc)
+        .flat()
+        .find((u) => u.id === params.id);
+      return usage ? HttpResponse.json(usage) : notFound("usage");
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocations/:id/diffs/latest", ({ params }) => {
-    const id = String(params.id);
-    const rows = [...(diffsByAlloc[id] ?? [])].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
-    if (rows.length === 0) return HttpResponse.json({ error: "no diffs" }, { status: 404 });
-    return HttpResponse.json(rows[0]);
-  }),
-
-  http.get("*/api/v1/compute-allocations/:id/memberships", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(membersByAlloc[id] ?? []);
-  }),
-
-  http.post("*/api/v1/compute-allocation-memberships", async ({ request }) => {
-    const body = (await request.json()) as CreateMembershipPayload;
-    const bucket = ensureMembersBucket(body.compute_allocation_id);
-    const member: AllocationMembership = {
-      id: `mem-${memberSeq++}`,
-      compute_allocation_id: body.compute_allocation_id,
-      user_id: body.user_id,
-      start_time: body.start_time,
-      end_time: body.end_time,
-      membership_status: body.membership_status ?? "ACTIVE",
-      role: body.role,
-      display_name: body.user_id,
-      email: `${body.user_id}@custos.local`,
-    };
-    bucket.push(member);
-    return HttpResponse.json(member, { status: 201 });
-  }),
-
-  http.put("*/api/v1/compute-allocation-memberships/:id", async ({ params, request }) => {
-    const id = String(params.id);
-    const patch = (await request.json()) as UpdateMembershipPayload;
-    for (const bucket of Object.values(membersByAlloc)) {
-      const existing = bucket.find((m) => m.id === id);
-      if (existing) {
-        if (patch.start_time) existing.start_time = patch.start_time;
-        if (patch.end_time) existing.end_time = patch.end_time;
-        if (patch.membership_status) existing.membership_status = patch.membership_status;
-        if (patch.role) existing.role = patch.role;
-        return HttpResponse.json(existing);
+  http.delete<DeleteComputeAllocationUsagesByIdData["path"]>(
+    "*/api/v1/compute-allocation-usages/:id",
+    ({ params }) => {
+      for (const bucket of Object.values(usageByAlloc)) {
+        const idx = bucket.findIndex((u) => u.id === params.id);
+        if (idx !== -1) {
+          bucket.splice(idx, 1);
+          return new HttpResponse(null, { status: 204 });
+        }
       }
-    }
-    return HttpResponse.json({ error: "membership not found" }, { status: 404 });
-  }),
+      return notFound("usage");
+    },
+  ),
 
-  http.delete("*/api/v1/compute-allocation-memberships/:id", ({ params }) => {
-    const id = String(params.id);
-    for (const bucket of Object.values(membersByAlloc)) {
-      const idx = bucket.findIndex((m) => m.id === id);
-      if (idx !== -1) {
-        bucket.splice(idx, 1);
-        return new HttpResponse(null, { status: 204 });
+  http.get<GetComputeAllocationsByIdDiffsData["path"]>(
+    "*/api/v1/compute-allocations/:id/diffs",
+    ({ params }) => listJson(diffsByAlloc[params.id] ?? []),
+  ),
+
+  http.get<GetComputeAllocationsByIdMembershipsData["path"]>(
+    "*/api/v1/compute-allocations/:id/memberships",
+    ({ params }) => HttpResponse.json(membersByAlloc[params.id] ?? []),
+  ),
+
+  http.post<never, PostComputeAllocationMembershipsData["body"]>(
+    "*/api/v1/compute-allocation-memberships",
+    async ({ request }) => {
+      const body = await request.json();
+      const allocId = body.compute_allocation_id ?? "";
+      const alloc = allocations.find((a) => a.id === allocId);
+      if (!alloc) return badRequest(`compute allocation "${allocId}" not found`);
+      if (!body.user_id) return badRequest("user_id is required");
+      const member = zAllocationMembershipResponse.parse({
+        ...body,
+        id: crypto.randomUUID(),
+        membership_status: body.membership_status || "ACTIVE",
+        role: mockProjectRole(alloc.project_id, body.user_id),
+        display_name: body.user_id,
+        email: `${body.user_id}@custos.local`,
+      });
+      membersByAlloc[allocId] ??= [];
+      membersByAlloc[allocId].push(member);
+      return HttpResponse.json(stored(member), { status: 201 });
+    },
+  ),
+
+  http.get<GetComputeAllocationMembershipsByIdData["path"]>(
+    "*/api/v1/compute-allocation-memberships/:id",
+    ({ params }) => {
+      const member = Object.values(membersByAlloc)
+        .flat()
+        .find((m) => m.id === params.id);
+      return member ? HttpResponse.json(stored(member)) : notFound("membership");
+    },
+  ),
+
+  http.get("*/api/v1/compute-allocation-memberships/:id/resource-overrides", () => listJson([])),
+
+  http.delete<DeleteComputeAllocationMembershipsByIdData["path"]>(
+    "*/api/v1/compute-allocation-memberships/:id",
+    ({ params }) => {
+      for (const bucket of Object.values(membersByAlloc)) {
+        const idx = bucket.findIndex((m) => m.id === params.id);
+        if (idx !== -1) {
+          bucket.splice(idx, 1);
+          return new HttpResponse(null, { status: 204 });
+        }
       }
-    }
-    return HttpResponse.json({ error: "membership not found" }, { status: 404 });
-  }),
+      return notFound("membership");
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocations/:id/change-requests", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(changeRequests.filter((cr) => cr.compute_allocation_id === id));
-  }),
+  http.get<GetComputeAllocationsByIdChangeRequestsData["path"]>(
+    "*/api/v1/compute-allocations/:id/change-requests",
+    ({ params }) =>
+      listJson(changeRequests.filter((cr) => cr.compute_allocation_id === params.id).sort(byTime)),
+  ),
 
-  http.get("*/api/v1/users/:id/change-requests", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(changeRequests.filter((cr) => cr.requester_id === id));
-  }),
+  http.get<GetUsersByIdChangeRequestsData["path"]>(
+    "*/api/v1/users/:id/change-requests",
+    ({ params }) =>
+      listJson(changeRequests.filter((cr) => cr.requester_id === params.id).sort(byTime)),
+  ),
 
+  // The newest first; limit defaults to 50 and is capped at 200.
   http.get("*/api/v1/compute-allocation-change-requests", ({ request }) => {
     const url = new URL(request.url);
     const status = url.searchParams.get("status");
-    const filtered = status ? changeRequests.filter((cr) => cr.change_status === status) : changeRequests;
-    return HttpResponse.json(filtered);
+    const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200);
+    const rows = changeRequests
+      .filter((cr) => !status || cr.change_status === status)
+      .sort((a, b) => byTime(b, a));
+    return HttpResponse.json(rows.slice(0, limit));
   }),
 
-  http.get("*/api/v1/compute-allocation-change-requests/:id", ({ params }) => {
-    const id = String(params.id);
-    const found = changeRequests.find((cr) => cr.id === id);
-    if (!found) return HttpResponse.json({ error: "change request not found" }, { status: 404 });
-    return HttpResponse.json(found);
-  }),
+  http.get<GetComputeAllocationChangeRequestsByIdData["path"]>(
+    "*/api/v1/compute-allocation-change-requests/:id",
+    ({ params }) => {
+      const found = changeRequests.find((cr) => cr.id === params.id);
+      return found ? HttpResponse.json(found) : notFound("change request");
+    },
+  ),
 
-  http.post("*/api/v1/compute-allocation-change-requests", async ({ request }) => {
-    const body = (await request.json()) as CreateChangeRequestPayload;
-    const cr: ChangeRequest = {
-      id: `cr-${crSeq++}`,
-      compute_allocation_id: body.compute_allocation_id,
-      requested_su_amount: body.requested_su_amount,
-      requested_status: body.requested_status,
-      reason: body.reason,
-      change_status: "PENDING",
-      requester_id: body.requester_id,
-      timestamp: new Date().toISOString(),
-    };
-    changeRequests.unshift(cr);
-    ensureEventsBucket(cr.id).push({
-      id: `evt-${eventSeq++}`,
-      compute_allocation_change_request_id: cr.id,
-      event_type: "CREATED",
-      description: `Change request created by ${cr.requester_id}`,
-      timestamp: cr.timestamp,
-    });
-    return HttpResponse.json(cr, { status: 201 });
-  }),
-
-  http.put("*/api/v1/compute-allocation-change-requests/:id", async ({ params, request }) => {
-    const id = String(params.id);
-    const patch = (await request.json()) as UpdateChangeRequestPayload;
-    const existing = changeRequests.find((cr) => cr.id === id);
-    if (!existing) return HttpResponse.json({ error: "change request not found" }, { status: 404 });
-    if (patch.change_status) existing.change_status = patch.change_status;
-    if (patch.approver_id) existing.approver_id = patch.approver_id;
-    if (patch.reason) existing.reason = patch.reason;
-    if (typeof patch.requested_su_amount === "number")
-      existing.requested_su_amount = patch.requested_su_amount;
-    if (patch.requested_status) existing.requested_status = patch.requested_status;
-    if (patch.change_status === "APPROVED" || patch.change_status === "REJECTED") {
-      ensureEventsBucket(existing.id).push({
-        id: `evt-${eventSeq++}`,
-        compute_allocation_change_request_id: existing.id,
-        event_type: patch.change_status,
-        description: `${patch.change_status === "APPROVED" ? "Approved" : "Rejected"} by ${patch.approver_id ?? "unknown"}`,
-        timestamp: new Date().toISOString(),
+  http.post<never, PostComputeAllocationChangeRequestsData["body"]>(
+    "*/api/v1/compute-allocation-change-requests",
+    async ({ request }) => {
+      const body = await request.json();
+      if (!body.compute_allocation_id) return badRequest("compute_allocation_id is required");
+      if (!body.requester_id) return badRequest("requester_id is required");
+      if (!allocations.some((a) => a.id === body.compute_allocation_id)) {
+        return badRequest(`compute allocation "${body.compute_allocation_id}" not found`);
+      }
+      const cr = zComputeAllocationChangeRequest.parse({
+        ...body,
+        id: crypto.randomUUID(),
+        change_status: body.change_status || "PENDING",
+        timestamp: body.timestamp || new Date().toISOString(),
       });
+      changeRequests.push(cr);
+      pushEvent(cr.id, "CREATED", "Change request created");
+      return HttpResponse.json(cr, { status: 201 });
+    },
+  ),
+
+  // Empty fields keep the stored value, except approver_id; a status change is recorded as an
+  // event of that status, and approval writes a diff.
+  http.put<
+    PutComputeAllocationChangeRequestsByIdData["path"],
+    PutComputeAllocationChangeRequestsByIdData["body"]
+  >("*/api/v1/compute-allocation-change-requests/:id", async ({ params, request }) => {
+    const body = await request.json();
+    const existing = changeRequests.find((cr) => cr.id === params.id);
+    if (!existing) return notFound("change request");
+    const previous = existing.change_status;
+    Object.assign(existing, {
+      compute_allocation_id: body.compute_allocation_id || existing.compute_allocation_id,
+      requester_id: body.requester_id || existing.requester_id,
+      requested_su_amount: body.requested_su_amount || existing.requested_su_amount,
+      requested_status: body.requested_status || existing.requested_status,
+      reason: body.reason || existing.reason,
+      change_status: body.change_status || existing.change_status,
+      approver_id: body.approver_id,
+      timestamp: body.timestamp || existing.timestamp,
+    });
+    const next = existing.change_status;
+    if (next === previous) pushEvent(params.id, "UPDATED", "Change request updated");
+    else pushEvent(params.id, next, `Change request transitioned from ${previous} to ${next}`);
+    const allocId = existing.compute_allocation_id;
+    if (next === "APPROVED" && previous !== "APPROVED") {
+      diffsByAlloc[allocId] = [
+        ...(diffsByAlloc[allocId] ?? []),
+        {
+          id: crypto.randomUUID(),
+          compute_allocation_id: allocId,
+          diff_type: "CHANGE_REQUEST_APPROVED",
+          new_su_amount: existing.requested_su_amount,
+          status: existing.requested_status,
+          description: `Applied approved change request ${params.id}`,
+          timestamp: new Date().toISOString(),
+        },
+      ];
     }
     return HttpResponse.json(existing);
   }),
 
-  http.delete("*/api/v1/compute-allocation-change-requests/:id", ({ params }) => {
-    const id = String(params.id);
-    const idx = changeRequests.findIndex((cr) => cr.id === id);
-    if (idx === -1) return HttpResponse.json({ error: "change request not found" }, { status: 404 });
-    changeRequests.splice(idx, 1);
-    return new HttpResponse(null, { status: 204 });
-  }),
+  http.delete<DeleteComputeAllocationChangeRequestsByIdData["path"]>(
+    "*/api/v1/compute-allocation-change-requests/:id",
+    ({ params }) => {
+      const idx = changeRequests.findIndex((cr) => cr.id === params.id);
+      if (idx === -1) return notFound("change request");
+      pushEvent(params.id, "DELETED", "Change request deleted");
+      changeRequests.splice(idx, 1);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocation-change-requests/:id/events", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(eventsByCr[id] ?? []);
-  }),
+  http.get<GetComputeAllocationChangeRequestsByIdEventsData["path"]>(
+    "*/api/v1/compute-allocation-change-requests/:id/events",
+    ({ params }) => listJson(eventsByCr[params.id] ?? []),
+  ),
 ];

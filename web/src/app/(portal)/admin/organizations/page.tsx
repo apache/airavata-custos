@@ -15,13 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { OrganizationsListContainer } from "./OrganizationsListContainer";
 
-export const metadata: Metadata = {
-  title: "Organizations",
-};
+export const metadata = pageMetadata("/admin/organizations");
 
 export default function AdminOrganizationsPage() {
-  return <OrganizationsListContainer />;
+  return (
+    <>
+      <DeclaredParams keys={["organization", "page"]} />
+      <OrganizationsListContainer />
+    </>
+  );
 }

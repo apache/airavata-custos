@@ -1,9 +1,9 @@
 {
-  "project-001": [
+  "19000001-0000-4000-8000-000019000001": [
     {
-      "id": "pm-001",
-      "project_id": "project-001",
-      "user_id": "user-pi-001",
+      "id": "17000001-0000-4000-8000-000017000001",
+      "project_id": "19000001-0000-4000-8000-000019000001",
+      "user_id": "24000020-0000-4000-8000-000024000020",
       "email": "ada.lovelace@custos.local",
       "display_name": "Ada Lovelace",
       "role": "PI",
@@ -12,9 +12,9 @@
       "allocations": []
     },
     {
-      "id": "pm-002",
-      "project_id": "project-001",
-      "user_id": "user-002",
+      "id": "17000002-0000-4000-8000-000017000002",
+      "project_id": "19000001-0000-4000-8000-000019000001",
+      "user_id": "24000001-0000-4000-8000-000024000001",
       "email": "grace.hopper@custos.local",
       "display_name": "Grace Hopper",
       "role": "CO_PI",
@@ -23,9 +23,9 @@
       "allocations": []
     },
     {
-      "id": "pm-003",
-      "project_id": "project-001",
-      "user_id": "user-003",
+      "id": "17000003-0000-4000-8000-000017000003",
+      "project_id": "19000001-0000-4000-8000-000019000001",
+      "user_id": "24000002-0000-4000-8000-000024000002",
       "email": "katherine.johnson@custos.local",
       "display_name": "Katherine Johnson",
       "role": "MEMBER",
@@ -34,11 +34,11 @@
       "allocations": []
     }
   ],
-  "project-002": [
+  "19000002-0000-4000-8000-000019000002": [
     {
-      "id": "pm-010",
-      "project_id": "project-002",
-      "user_id": "user-pi-002",
+      "id": "17000004-0000-4000-8000-000017000004",
+      "project_id": "19000002-0000-4000-8000-000019000002",
+      "user_id": "24000021-0000-4000-8000-000024000021",
       "email": "alan.turing@custos.local",
       "display_name": "Alan Turing",
       "role": "PI",
@@ -47,9 +47,9 @@
       "allocations": []
     },
     {
-      "id": "pm-011",
-      "project_id": "project-002",
-      "user_id": "user-004",
+      "id": "17000005-0000-4000-8000-000017000005",
+      "project_id": "19000002-0000-4000-8000-000019000002",
+      "user_id": "24000003-0000-4000-8000-000024000003",
       "email": "marie.curie@custos.local",
       "display_name": "Marie Curie",
       "role": "MEMBER",
@@ -58,11 +58,11 @@
       "allocations": []
     }
   ],
-  "project-003": [
+  "19000003-0000-4000-8000-000019000003": [
     {
-      "id": "pm-020",
-      "project_id": "project-003",
-      "user_id": "user-pi-001",
+      "id": "17000006-0000-4000-8000-000017000006",
+      "project_id": "19000003-0000-4000-8000-000019000003",
+      "user_id": "24000020-0000-4000-8000-000024000020",
       "email": "ada.lovelace@custos.local",
       "display_name": "Ada Lovelace",
       "role": "PI",

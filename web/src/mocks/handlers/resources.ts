@@ -15,15 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import type { ComputeAllocationResource, Rate } from "@/features/core/resources/schemas";
+import type {
+  ComputeAllocationResource,
+  ComputeAllocationResourceRate,
+  GetComputeAllocationResourceRatesByIdData,
+  GetComputeAllocationResourcesByIdData,
+  GetComputeAllocationResourcesByIdRatesData,
+  PostComputeAllocationResourceRatesData,
+  PostComputeAllocationResourcesData,
+} from "@/generated/core/types.gen";
+import {
+  zComputeAllocationResource,
+  zComputeAllocationResourceRate,
+} from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
+import { notFound } from "../paging";
 
-const resources = resourcesFixture as ComputeAllocationResource[];
-const rates = ratesFixture as Rate[];
+const resources: ComputeAllocationResource[] = z
+  .array(zComputeAllocationResource)
+  .parse(resourcesFixture);
+const rates: ComputeAllocationResourceRate[] = z
+  .array(zComputeAllocationResourceRate)
+  .parse(ratesFixture);
 
-function ratesFor(resourceId: string): Rate[] {
+function ratesFor(resourceId: string): ComputeAllocationResourceRate[] {
   return rates.filter((r) => r.compute_allocation_resource_id === resourceId);
 }
 
@@ -32,12 +50,32 @@ const ALLOCATION_AGGREGATES: Record<
   string,
   { allocation_count: number; total_allocated: number; total_used_su: number }
 > = {
-  "res-a-cpu": { allocation_count: 3, total_allocated: 500000, total_used_su: 312400 },
-  "res-a-gpu": { allocation_count: 2, total_allocated: 40000, total_used_su: 45100 },
+  "21000001-0000-4000-8000-000021000001": {
+    allocation_count: 3,
+    total_allocated: 500000,
+    total_used_su: 312400,
+  },
+  "21000002-0000-4000-8000-000021000002": {
+    allocation_count: 2,
+    total_allocated: 40000,
+    total_used_su: 45100,
+  },
 };
 
 export const resourcesHandlers = [
   http.get("*/api/v1/compute-allocation-resources", () => HttpResponse.json(resources)),
+
+  http.post<never, PostComputeAllocationResourcesData["body"]>(
+    "*/api/v1/compute-allocation-resources",
+    async ({ request }) => {
+      const created = zComputeAllocationResource.parse({
+        ...(await request.json()),
+        id: crypto.randomUUID(),
+      });
+      resources.push(created);
+      return HttpResponse.json(created, { status: 201 });
+    },
+  ),
 
   http.get("*/api/v1/compute-allocation-resources/summary", () =>
     HttpResponse.json(
@@ -53,32 +91,42 @@ export const resourcesHandlers = [
     ),
   ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates/effective", ({ params, request }) => {
-    const id = String(params.id);
-    const at = new URL(request.url).searchParams.get("at");
-    const now = at ? new Date(at).getTime() : Date.now();
-    const active = ratesFor(id).find(
-      (r) => now >= new Date(r.start_time).getTime() && now < new Date(r.end_time).getTime(),
-    );
-    if (!active) return HttpResponse.json({ error: "no effective rate" }, { status: 404 });
-    return HttpResponse.json(active);
-  }),
+  http.get<GetComputeAllocationResourcesByIdData["path"]>(
+    "*/api/v1/compute-allocation-resources/:id",
+    ({ params }) => {
+      const found = resources.find((r) => r.id === params.id);
+      return found ? HttpResponse.json(found) : notFound("compute allocation resource");
+    },
+  ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(ratesFor(id));
-  }),
+  http.get("*/api/v1/compute-allocation-resources/:id/allocations", () => HttpResponse.json([])),
 
-  http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
-    const body = (await request.json()) as Partial<Rate>;
-    const created: Rate = {
-      id: `rate-${Date.now()}`,
-      compute_allocation_resource_id: String(body.compute_allocation_resource_id),
-      rate: Number(body.rate),
-      start_time: String(body.start_time),
-      end_time: String(body.end_time),
-    };
-    rates.push(created);
-    return HttpResponse.json(created, { status: 201 });
-  }),
+  http.get("*/api/v1/compute-allocation-resources/:id/membership-overrides", () =>
+    HttpResponse.json([]),
+  ),
+
+  http.get<GetComputeAllocationResourcesByIdRatesData["path"]>(
+    "*/api/v1/compute-allocation-resources/:id/rates",
+    ({ params }) => HttpResponse.json(ratesFor(params.id)),
+  ),
+
+  http.get<GetComputeAllocationResourceRatesByIdData["path"]>(
+    "*/api/v1/compute-allocation-resource-rates/:id",
+    ({ params }) => {
+      const found = rates.find((r) => r.id === params.id);
+      return found ? HttpResponse.json(found) : notFound("compute allocation resource rate");
+    },
+  ),
+
+  http.post<never, PostComputeAllocationResourceRatesData["body"]>(
+    "*/api/v1/compute-allocation-resource-rates",
+    async ({ request }) => {
+      const created = zComputeAllocationResourceRate.parse({
+        ...(await request.json()),
+        id: crypto.randomUUID(),
+      });
+      rates.push(created);
+      return HttpResponse.json(created, { status: 201 });
+    },
+  ),
 ];

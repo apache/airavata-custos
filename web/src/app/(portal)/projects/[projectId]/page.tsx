@@ -16,10 +16,20 @@
 // under the License.
 
 import { ProjectDetail } from "@/features/core/projects/components/ProjectDetail";
+import { pageMetadata } from "@/shared/layout/nav";
+import { routeRecordId } from "@/shared/layout/routeRecordId";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
+
+export const metadata = pageMetadata("/projects");
 
 export default async function ProjectDetailPage(props: {
   params: Promise<{ projectId: string }>;
 }) {
-  const { projectId } = await props.params;
-  return <ProjectDetail projectId={projectId} />;
+  const id = routeRecordId((await props.params).projectId);
+  return (
+    <>
+      <DeclaredParams keys={["tab"]} />
+      <ProjectDetail projectId={id} />
+    </>
+  );
 }

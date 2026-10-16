@@ -22,6 +22,7 @@ import * as React from "react";
 type BreadcrumbLabelActions = {
   setLabel: (segment: string, label: string) => void;
   clearLabel: (segment: string) => void;
+  setGone: (segment: string, gone: boolean) => void;
 };
 
 // Split into two contexts on purpose: the actions object is created once and
@@ -37,6 +38,7 @@ const BreadcrumbLabelActionsContext = React.createContext<BreadcrumbLabelActions
 
 export function BreadcrumbLabelsProvider({ children }: { children: React.ReactNode }) {
   const [labels, setLabels] = React.useState<Record<string, string>>({});
+  const [gone, setGone] = React.useState<ReadonlySet<string>>(new Set());
 
   const actions = React.useRef<BreadcrumbLabelActions>({
     setLabel: (segment, label) => {
@@ -50,11 +52,26 @@ export function BreadcrumbLabelsProvider({ children }: { children: React.ReactNo
         return next;
       });
     },
+    setGone: (segment, on) => {
+      setGone((prev) => {
+        if (prev.has(segment) === on) return prev;
+        const next = new Set(prev);
+        on ? next.add(segment) : next.delete(segment);
+        return next;
+      });
+    },
   }).current;
+  const shown = React.useMemo(
+    () =>
+      gone.size === 0
+        ? labels
+        : Object.fromEntries(Object.entries(labels).filter(([segment]) => !gone.has(segment))),
+    [labels, gone],
+  );
 
   return (
     <BreadcrumbLabelActionsContext.Provider value={actions}>
-      <BreadcrumbLabelsValueContext.Provider value={labels}>
+      <BreadcrumbLabelsValueContext.Provider value={shown}>
         {children}
       </BreadcrumbLabelsValueContext.Provider>
     </BreadcrumbLabelActionsContext.Provider>
@@ -76,4 +93,16 @@ export function useBreadcrumbLabel(segment: string | undefined, label: string | 
     actions.setLabel(segment, label);
     return () => actions.clearLabel(segment);
   }, [actions, segment, label]);
+}
+
+// While mounted, `segment`'s registered label is withheld: the record it named is gone, so the
+// crumb reads the route's static label.
+export function useBreadcrumbGone(segment: string | undefined) {
+  const actions = React.useContext(BreadcrumbLabelActionsContext);
+
+  React.useEffect(() => {
+    if (!actions || !segment) return;
+    actions.setGone(segment, true);
+    return () => actions.setGone(segment, false);
+  }, [actions, segment]);
 }

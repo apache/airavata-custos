@@ -15,15 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import {
   deliveryFixtures,
   subscriptionFixtures,
 } from "@/features/core/events/__fixtures__/deliveries";
-import type { DeliveryDetail } from "@/features/core/events/types";
+import type { DeliveryHistory } from "@/generated/core/types.gen";
+import { http, HttpResponse } from "msw";
 
 // A copy, so a retry in one browser session does not change the fixtures.
-const deliveries: DeliveryDetail[] = structuredClone(deliveryFixtures);
+const deliveries: DeliveryHistory[] = structuredClone(deliveryFixtures);
 
 export const eventsHandlers = [
   http.get("/api/v1/events/deliveries", ({ request }) => {
@@ -47,18 +47,22 @@ export const eventsHandlers = [
       return HttpResponse.json({ error: "event delivery has not failed" }, { status: 409 });
     }
     const now = new Date().toISOString();
+    delivery.history ??= [];
     delivery.history.push({
-      id: `audit-${delivery.id}-retry-${now}`,
+      id: crypto.randomUUID(),
       event_type: "EVENT_DELIVERY_RETRIED",
       event_time: now,
       details: JSON.stringify({
         subscriber: delivery.subscriber,
-        actor_id: "user-admin",
+        actor_id: "24000005-0000-4000-8000-000024000005",
         previous_attempts: delivery.attempts,
         last_error: delivery.last_error,
       }),
       source: delivery.subscriber,
+      entity_id: delivery.id,
+      entity_type: "event_delivery",
       trace_id: "",
+      span_id: "",
     });
     delivery.status = "PENDING";
     delivery.attempts = 0;

@@ -22,6 +22,8 @@ vi.mock("@/shared/auth/auth", () => ({
   signIn: vi.fn(),
 }));
 
+vi.mock("@/lib/env", () => ({ serverEnv: {} }));
+
 import { signIn } from "@/shared/auth/auth";
 import { GET } from "../route";
 

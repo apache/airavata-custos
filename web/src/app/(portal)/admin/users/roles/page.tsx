@@ -15,8 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { RoleManagementView } from "./RoleManagementView";
 
+export const metadata = pageMetadata("/admin/users/roles");
+
 export default function RoleManagementPage() {
-  return <RoleManagementView />;
+  return (
+    <>
+      <DeclaredParams keys={[]} />
+      <RoleManagementView />
+    </>
+  );
 }

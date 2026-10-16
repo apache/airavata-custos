@@ -17,8 +17,10 @@
 
 "use client";
 
-import { CenteredSpinner } from "@/shared/ui/Loading";
+import { useOrganization } from "@/features/core/organizations/queries";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { CenteredSpinner } from "@/shared/ui/Loading";
 import { useMe, useMyAccess, useMyIdentities } from "../queries";
 import { AccessCard } from "./AccessCard";
 import { AppearanceCard } from "./AppearanceCard";
@@ -29,26 +31,39 @@ export function SettingsPage() {
   const me = useMe();
   // The backend user id from /me is authoritative for sub-resource reads;
   // session.user.id may be an email fallback.
-  const userId = me.data?.user.id;
-  const identities = useMyIdentities(userId);
+  const user = me.data?.user;
+  const userId = user?.id;
+  // /users/{id}/user-identities is admin-gated and /me carries no identities.
+  const showsIdentities = me.data?.privileges?.includes("core:users:read") ?? false;
+  const identities = useMyIdentities(showsIdentities ? userId : undefined);
+  const canReadOrganization = me.data?.privileges?.includes("core:organizations:read") ?? false;
+  const organization = useOrganization(canReadOrganization ? user?.organization_id : undefined);
   const access = useMyAccess(userId, me.data?.privileges ?? [], me.data?.roles ?? []);
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-6 py-8">
       <header className="mb-7">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">Settings</h1>
+        <h1 className="font-heading text-2xl font-bold tracking-tight">
+          {ROUTE_LABELS["/settings"]}
+        </h1>
         <p className="text-muted-foreground">
-          Your profile, linked identities, access, and appearance.
+          {showsIdentities
+            ? "Your profile, linked identities, access, and appearance."
+            : "Your profile, access, and appearance."}
         </p>
       </header>
 
       {me.isPending ? (
         <CenteredSpinner label="Loading your settings" />
-      ) : me.isError || !me.data ? (
+      ) : me.isError || !user ? (
         <ErrorState message="Could not load your profile." onRetry={() => me.refetch()} />
       ) : (
         <div className="space-y-6">
-          <ProfileCard user={me.data.user} />
+          <ProfileCard
+            user={user}
+            organizationName={organization.data?.name}
+            showsIdentities={Boolean(identities.data)}
+          />
           {identities.data ? <IdentitiesCard identities={identities.data} /> : null}
           {access.data ? <AccessCard access={access.data} /> : null}
           <AppearanceCard />

@@ -14,48 +14,59 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import type { UserManagementRow } from "@/features/core/users/types";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { UserManagementRow } from "@/features/core/users/queries";
+import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { PermissionsDrawer } from "../PermissionsDrawer";
 
-const queryMocks = vi.hoisted(() => ({
-  mutateAsync: vi.fn(),
+const access = vi.hoisted(() => ({
+  role: [] as string[],
+  direct: [] as Array<{ id: string; privilege: string }>,
+  denied: [] as string[],
 }));
 
 vi.mock("@/features/core/users/queries", () => ({
-  useDirectPrivileges: () => ({ data: [], isLoading: false, isError: false }),
-  useRoleDetails: () => ({ roles: [], isLoading: false, isError: false }),
-  useUpdateUserRoles: () => ({
-    mutateAsync: queryMocks.mutateAsync,
-    isPending: false,
+  useDirectPrivileges: () => ({ data: access.direct, isLoading: false, isError: false }),
+  useRoleDetails: () => ({
+    details: [{ id: "r-1", privileges: access.role }],
+    isLoading: false,
+    isError: false,
   }),
+  useUpdateUserRoles: () => ({ mutate: vi.fn(), isPending: false }),
 }));
-
+vi.mock("@/shared/casl/AbilityProvider", () => ({
+  useAbility: () => ({ can: (_: string, subject: string) => !access.denied.includes(subject) }),
+}));
+vi.mock("@/shared/ui/SideDrawer", () => ({
+  SideDrawer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+vi.mock("../UserStatusSection", () => ({
+  UserStatusSection: ({ canWrite }: { canWrite: boolean }) =>
+    canWrite ? <p>status writes</p> : null,
+}));
+vi.mock("../UserActivitySections", () => ({ UserActivitySections: () => null }));
+vi.mock("../EditUserNameDialog", () => ({ EditUserNameDialog: () => null }));
 vi.mock("../RoleAssignMenu", () => ({
-  RoleAssignMenu: ({
-    onSave,
-    error,
-  }: {
-    onSave: (roleIds: string[], reason?: string) => Promise<boolean>;
-    error: string | null;
-  }) => (
-    <div>
-      <button type="button" onClick={() => void onSave([], "Onboarding")}>
-        Save mocked roles
-      </button>
-      {error ? <span role="alert">{error}</span> : null}
-    </div>
-  ),
+  RoleAssignMenu: () => <button type="button">Assign</button>,
+}));
+vi.mock("../IdentitiesSection", () => ({
+  IdentitiesSection: ({ canWrite }: { canWrite: boolean }) =>
+    canWrite ? <p>identity writes</p> : null,
+}));
+vi.mock("../DirectPrivilegesSection", () => ({
+  DirectPrivilegesSection: () => <p>direct grants</p>,
 }));
 
 const user: UserManagementRow = {
-  id: "user-1",
-  email: "user@example.org",
-  first_name: "Example",
-  last_name: "User",
-  roles: [{ id: "role-1", name: "Administrator" }],
+  id: "u-1",
+  email: "u1@example.org",
+  first_name: "U",
+  last_name: "One",
+  organization_id: "org-1",
+  status: "ACTIVE",
+  type: "VIRTUAL",
+  roles: [],
   identities: [],
   rolesLoading: false,
   identitiesLoading: false,
@@ -63,27 +74,46 @@ const user: UserManagementRow = {
   identitiesError: false,
 };
 
+const renderDrawer = (canReadDirectPrivileges = true) =>
+  render(
+    <PermissionsDrawer
+      user={user}
+      rolesCatalog={[]}
+      canManageRoles
+      canReadDirectPrivileges={canReadDirectPrivileges}
+      currentUserId="admin"
+      onClose={vi.fn()}
+    />,
+  );
+
 describe("PermissionsDrawer", () => {
-  it("clears a role assignment error when the drawer closes", async () => {
-    queryMocks.mutateAsync.mockRejectedValueOnce(new Error("role update failed"));
-    const onClose = vi.fn();
-    const props = {
-      rolesCatalog: [{ id: "role-1", name: "Administrator" }],
-      canManageRoles: true,
-      canReadDirectPrivileges: false,
-      currentUserEmail: "another@example.org",
-      onClose,
-    };
-    const view = render(<PermissionsDrawer {...props} user={user} />);
+  it("gives a users:write holder the status and identity writes, and the role menu", () => {
+    renderDrawer();
+    expect(screen.getByText("status writes")).toBeInTheDocument();
+    expect(screen.getByText("identity writes")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Assign" })).toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Save mocked roles" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("role update failed"));
+  it("keeps status and identities read-only without users:write", () => {
+    access.denied = ["User"];
+    renderDrawer();
+    expect(screen.queryByText("status writes")).not.toBeInTheDocument();
+    expect(screen.queryByText("identity writes")).not.toBeInTheDocument();
+    access.denied = [];
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(onClose).toHaveBeenCalled();
+  it("lists role and direct privileges together, and direct grants only to a grant holder", () => {
+    access.role = ["core:users:read"];
+    access.direct = [{ id: "g-1", privilege: "core:traces:read" }];
+    const { unmount } = renderDrawer();
+    expect(screen.getByText("Effective privileges")).toBeInTheDocument();
+    expect(screen.getByText("core:users")).toBeInTheDocument();
+    expect(screen.getByText("core:traces")).toBeInTheDocument();
+    expect(screen.getByText("direct grants")).toBeInTheDocument();
+    unmount();
 
-    view.rerender(<PermissionsDrawer {...props} user={null} />);
-    view.rerender(<PermissionsDrawer {...props} user={user} />);
-    expect(screen.queryByRole("alert")).toBeNull();
+    renderDrawer(false);
+    expect(screen.getByText("Role-derived privileges")).toBeInTheDocument();
+    expect(screen.queryByText("direct grants")).not.toBeInTheDocument();
   });
 });

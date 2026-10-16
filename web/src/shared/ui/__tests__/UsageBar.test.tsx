@@ -35,19 +35,19 @@ describe("UsageBar thresholds", () => {
   it("uses the amber fill between 75% and 90%", () => {
     render(<UsageBar value={80} max={100} />);
     const bar = screen.getByRole("progressbar");
-    expect(inner(bar).className).toContain("custos-amber-500");
+    expect(inner(bar).className).toContain("fill-warn");
   });
 
   it("uses the red fill at or above 90%", () => {
     render(<UsageBar value={95} max={100} />);
     const bar = screen.getByRole("progressbar");
-    expect(inner(bar).className).toContain("custos-red-500");
+    expect(inner(bar).className).toContain("fill-error");
   });
 
   it("flips to green when the bar is at 100%", () => {
     render(<UsageBar value={100} max={100} />);
     const bar = screen.getByRole("progressbar");
-    expect(inner(bar).className).toContain("custos-green-500");
+    expect(inner(bar).className).toContain("fill-ok");
   });
 
   it("clamps when value exceeds max", () => {
@@ -55,7 +55,7 @@ describe("UsageBar thresholds", () => {
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("aria-valuemax")).toBe("100");
     // Clamped to 100% → green.
-    expect(inner(bar).className).toContain("custos-green-500");
+    expect(inner(bar).className).toContain("fill-ok");
   });
 
   it("treats a zero or negative max defensively", () => {

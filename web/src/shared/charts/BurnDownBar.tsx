@@ -42,10 +42,8 @@ export function BurnDownBar({ used, projected, capacity, className, ariaLabel }:
     >
       <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
         <div className="bg-brand" style={{ width: `${usedPct}%` }} />
-        {/* Lighter brand-blue hatch for projected-future segment — no semantic token
-            exists for "brand tint that reads as darker than --brand-tint". */}
         <div
-          className="bg-[color:var(--custos-blue-300)] bg-[image:repeating-linear-gradient(45deg,transparent_0_4px,rgba(255,255,255,0.45)_4px_8px)]"
+          className="bg-[color:var(--chart-1-soft)] bg-[image:repeating-linear-gradient(45deg,transparent_0_4px,rgba(255,255,255,0.45)_4px_8px)]"
           style={{ width: `${projectedPct}%` }}
         />
       </div>

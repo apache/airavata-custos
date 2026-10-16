@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { PrivilegeKey } from "@/generated/core/types.gen";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Privilege } from "@/features/core/identity/types";
-import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { Sidebar } from "../Sidebar";
 
-let currentPrivileges: Privilege[] = [];
+let currentPrivileges: PrivilegeKey[] = [];
 
 vi.mock("@/shared/casl/AbilityProvider", () => ({
   useAbility: () => defineAbilitiesFor(currentPrivileges),
@@ -31,12 +31,9 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-const NEW_ADMIN_LABELS = ["Organizations", "Resources"];
+const NEW_ADMIN_LABELS = ["Organizations", "Resources & clusters"];
 
-const FULL_PRIVILEGES: Privilege[] = [
-  "core:organizations:read",
-  "core:clusters:read",
-];
+const FULL_PRIVILEGES: PrivilegeKey[] = ["core:organizations:read", "core:clusters:read"];
 
 beforeEach(() => {
   currentPrivileges = [];
@@ -49,6 +46,16 @@ describe("Sidebar admin entries", () => {
     for (const label of NEW_ADMIN_LABELS) {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
+  });
+
+  it("links the change-request queue and resources for an allocations reader", () => {
+    currentPrivileges = ["core:allocations:read"];
+    render(<Sidebar />);
+    expect(screen.getByRole("link", { name: "Change requests" })).toHaveAttribute(
+      "href",
+      "/change-requests",
+    );
+    expect(screen.getByRole("link", { name: "Resources & clusters" })).toBeInTheDocument();
   });
 
   it("hides them when the ability lacks the mapped privileges", () => {

@@ -1,51 +1,51 @@
 [
   {
-    "id": "res-a-cpu",
+    "id": "21000001-0000-4000-8000-000021000001",
     "name": "ClusterA CPU",
     "resource_type": "CPU",
     "resource_amount": 1000000,
-    "compute_cluster_id": "cluster-a"
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001"
   },
   {
-    "id": "res-a-gpu",
+    "id": "21000002-0000-4000-8000-000021000002",
     "name": "ClusterA GPU",
     "resource_type": "GPU",
     "resource_amount": 50000,
-    "compute_cluster_id": "cluster-a"
+    "compute_cluster_id": "04000001-0000-4000-8000-000004000001"
   },
   {
-    "id": "res-c-cpu",
+    "id": "21000005-0000-4000-8000-000021000005",
     "name": "ClusterC RM",
     "resource_type": "CPU",
     "resource_amount": 800000,
-    "compute_cluster_id": "cluster-c"
+    "compute_cluster_id": "04000003-0000-4000-8000-000004000003"
   },
   {
-    "id": "res-c-storage",
+    "id": "21000006-0000-4000-8000-000021000006",
     "name": "ClusterC Ocean",
     "resource_type": "STORAGE",
     "resource_amount": 200000,
-    "compute_cluster_id": "cluster-c"
+    "compute_cluster_id": "04000003-0000-4000-8000-000004000003"
   },
   {
-    "id": "res-d-gpu",
+    "id": "21000008-0000-4000-8000-000021000008",
     "name": "ClusterD GPU",
     "resource_type": "GPU",
     "resource_amount": 30000,
-    "compute_cluster_id": "cluster-d"
+    "compute_cluster_id": "04000004-0000-4000-8000-000004000004"
   },
   {
-    "id": "res-b-cpu",
+    "id": "21000003-0000-4000-8000-000021000003",
     "name": "ClusterB CPU",
     "resource_type": "CPU",
     "resource_amount": 600000,
-    "compute_cluster_id": "cluster-b"
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002"
   },
   {
-    "id": "res-b-gpu",
+    "id": "21000004-0000-4000-8000-000021000004",
     "name": "ClusterB GPU A100",
     "resource_type": "GPU",
     "resource_amount": 40000,
-    "compute_cluster_id": "cluster-b"
+    "compute_cluster_id": "04000002-0000-4000-8000-000004000002"
   }
 ]

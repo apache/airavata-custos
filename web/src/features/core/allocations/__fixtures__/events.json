@@ -1,51 +1,51 @@
 {
-  "cr-001": [
+  "05000001-0000-4000-8000-000005000001": [
     {
-      "id": "evt-001",
-      "compute_allocation_change_request_id": "cr-001",
+      "id": "08000001-0000-4000-8000-000008000001",
+      "compute_allocation_change_request_id": "05000001-0000-4000-8000-000005000001",
       "event_type": "CREATED",
-      "description": "Change request created by user-pi-001",
+      "description": "Change request created",
       "timestamp": "2026-06-01T10:00:00.000Z"
     }
   ],
-  "cr-002": [
+  "05000002-0000-4000-8000-000005000002": [
     {
-      "id": "evt-010",
-      "compute_allocation_change_request_id": "cr-002",
+      "id": "08000006-0000-4000-8000-000008000006",
+      "compute_allocation_change_request_id": "05000002-0000-4000-8000-000005000002",
       "event_type": "CREATED",
-      "description": "Change request created by user-pi-001",
+      "description": "Change request created",
       "timestamp": "2026-06-03T14:22:00.000Z"
     }
   ],
-  "cr-003": [
+  "05000003-0000-4000-8000-000005000003": [
     {
-      "id": "evt-020",
-      "compute_allocation_change_request_id": "cr-003",
+      "id": "08000007-0000-4000-8000-000008000007",
+      "compute_allocation_change_request_id": "05000003-0000-4000-8000-000005000003",
       "event_type": "CREATED",
-      "description": "Change request created by user-pi-002",
+      "description": "Change request created",
       "timestamp": "2026-05-20T09:15:00.000Z"
     },
     {
-      "id": "evt-021",
-      "compute_allocation_change_request_id": "cr-003",
+      "id": "08000008-0000-4000-8000-000008000008",
+      "compute_allocation_change_request_id": "05000003-0000-4000-8000-000005000003",
       "event_type": "APPROVED",
-      "description": "Approved by user-admin-001",
+      "description": "Change request transitioned from PENDING to APPROVED",
       "timestamp": "2026-05-21T12:00:00.000Z"
     }
   ],
-  "cr-004": [
+  "05000004-0000-4000-8000-000005000004": [
     {
-      "id": "evt-030",
-      "compute_allocation_change_request_id": "cr-004",
+      "id": "08000009-0000-4000-8000-000008000009",
+      "compute_allocation_change_request_id": "05000004-0000-4000-8000-000005000004",
       "event_type": "CREATED",
-      "description": "Change request created by user-pi-001",
+      "description": "Change request created",
       "timestamp": "2026-05-05T11:30:00.000Z"
     },
     {
-      "id": "evt-031",
-      "compute_allocation_change_request_id": "cr-004",
+      "id": "08000010-0000-4000-8000-000008000010",
+      "compute_allocation_change_request_id": "05000004-0000-4000-8000-000005000004",
       "event_type": "REJECTED",
-      "description": "Rejected by user-admin-001",
+      "description": "Change request transitioned from PENDING to REJECTED",
       "timestamp": "2026-05-06T08:45:00.000Z"
     }
   ]

@@ -1,28 +1,28 @@
 [
   {
-    "id": "project-001",
+    "id": "19000001-0000-4000-8000-000019000001",
     "originated_id": "BIO130000",
     "title": "Genomic Sequencing Pipeline",
-    "origination": "ACCESS",
-    "project_pi_id": "user-pi-001",
+    "origination": "access",
+    "project_pi_id": "24000020-0000-4000-8000-000024000020",
     "status": "ACTIVE",
     "created_time": "2026-04-01T00:00:00.000Z"
   },
   {
-    "id": "project-002",
+    "id": "19000002-0000-4000-8000-000019000002",
     "originated_id": "PHY220001",
     "title": "Plasma Simulation Workbench",
-    "origination": "ACCESS",
-    "project_pi_id": "user-pi-002",
+    "origination": "access",
+    "project_pi_id": "24000021-0000-4000-8000-000024000021",
     "status": "ACTIVE",
     "created_time": "2026-04-12T00:00:00.000Z"
   },
   {
-    "id": "project-003",
+    "id": "19000003-0000-4000-8000-000019000003",
     "originated_id": "CHM310045",
     "title": "Catalyst Discovery (Archived)",
-    "origination": "NAIRR",
-    "project_pi_id": "user-pi-001",
+    "origination": "internal",
+    "project_pi_id": "24000020-0000-4000-8000-000024000020",
     "status": "INACTIVE",
     "created_time": "2026-02-09T00:00:00.000Z"
   }

@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { cn } from "@/lib/utils";
 import {
   CircleCheckIcon,
   CircleXIcon,
@@ -23,7 +24,6 @@ import {
   RotateCwIcon,
   UnplugIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { DeliveryState } from "../utils";
 
 const STATE_STYLE: Record<DeliveryState, { label: string; icon: LucideIcon; className: string }> = {
@@ -38,7 +38,7 @@ const STATE_STYLE: Record<DeliveryState, { label: string; icon: LucideIcon; clas
     className: "bg-[color:var(--tone-error-bg)] text-[color:var(--tone-error-fg)]",
   },
   retrying: {
-    label: "Retrying",
+    label: "Waiting",
     icon: RotateCwIcon,
     className: "bg-[color:var(--tone-warn-bg)] text-[color:var(--tone-warn-fg)]",
   },

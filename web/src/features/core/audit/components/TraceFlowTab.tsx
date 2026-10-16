@@ -22,8 +22,10 @@
 import { cn } from "@/lib/utils";
 import {
   replaceShallowSearchParams,
+  useCanonicalParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { normalizeQueryId } from "@/shared/layout/nav";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { Button } from "@/shared/ui/button";
 import * as React from "react";
@@ -31,18 +33,21 @@ import type { TraceDetail } from "../types";
 import {
   type FlowModel,
   type FlowRow as FlowRowModel,
-  buildFlow,
   containersOf,
   defaultExpanded,
   expandableKeys,
   flattenFlow,
   pathRails,
+  rootStep,
 } from "../utils";
 import { FlowRow } from "./FlowRow";
 import { StepDetailPanel } from "./StepDetailPanel";
 
 export type TraceFlowTabProps = {
   detail: TraceDetail;
+  model: FlowModel;
+  stepParam?: string;
+  spanParam?: string;
 };
 
 const STEP_PARAM = "step";
@@ -60,26 +65,41 @@ function rowForSpan(model: FlowModel, spanId: string): string | null {
   return model.spanRows.get(spanId)?.[0]?.step.id ?? null;
 }
 
-export function TraceFlowTab({ detail }: TraceFlowTabProps) {
+// The drawer validates ?step= and ?span= whichever tab is open: one naming no row of this trace is dropped.
+export function useFlowParams(model: FlowModel): { stepParam?: string; spanParam?: string } {
   const params = useShallowSearchParams();
-  const model = React.useMemo(() => buildFlow(detail), [detail]);
+  const rowKeys = React.useMemo(
+    () => new Set(flattenFlow(model, new Set(expandableKeys(model))).map((r) => r.key)),
+    [model],
+  );
+  const stepId = normalizeQueryId(params.get(STEP_PARAM));
+  const stepParam = [stepId, stepId?.toLowerCase()].find((k) => k && rowKeys.has(k));
+  const spanId = normalizeQueryId(params.get("span"))?.toLowerCase();
+  const spanParam = spanId && rowForSpan(model, spanId) ? spanId : undefined;
+  useCanonicalParams({ [STEP_PARAM]: stepParam, span: spanParam });
+  return { stepParam, spanParam };
+}
+
+export function TraceFlowTab({ detail, model, stepParam, spanParam }: TraceFlowTabProps) {
   const [expanded, setExpanded] = React.useState<Set<string>>(() => defaultExpanded(model));
   const [failingOnly, setFailingOnly] = React.useState(false);
   const [focusedKey, setFocusedKey] = React.useState<string | null>(null);
   const treeRef = React.useRef<HTMLDivElement>(null);
 
-  const stepParam = params.get(STEP_PARAM);
-  const spanParam = params.get("span");
   const selectedKey = React.useMemo(() => {
     if (stepParam) return stepParam;
-    if (spanParam) {
-      const key = rowForSpan(model, spanParam);
-      if (key) return key;
-    }
+    if (spanParam) return rowForSpan(model, spanParam);
     if (model.failingStepId) return model.failingStepId;
+    // The latest attempt's root, so a done trace does not open on an attempt it superseded.
+    const rootOperation = rootStep(detail)?.event_type;
+    const root = [...model.steps.values()]
+      .filter((n) => n.step.event_type === rootOperation)
+      .sort((a, b) => a.step.created_at.localeCompare(b.step.created_at))
+      .at(-1);
+    if (root) return root.step.id;
     const first = flattenFlow(model, new Set(expandableKeys(model))).find((r) => r.kind === "step");
     return first?.key ?? null;
-  }, [stepParam, spanParam, model]);
+  }, [stepParam, spanParam, model, detail]);
 
   // A fresh model (new trace, or a refresh) resets what is open.
   const modelRef = React.useRef(model);
@@ -138,10 +158,15 @@ export function TraceFlowTab({ detail }: TraceFlowTabProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: the row may only exist once `rows` has rendered it
   React.useEffect(() => {
     if (!selectedKey || lastScrolled.current === selectedKey) return;
-    const el = treeRef.current?.querySelector<HTMLElement>(`[data-row-key="${selectedKey}"]`);
-    if (!el) return;
+    const tree = treeRef.current;
+    const el = tree?.querySelector<HTMLElement>(`[data-row-key="${selectedKey}"]`);
+    if (!tree || !el) return;
     lastScrolled.current = selectedKey;
-    el.scrollIntoView({ block: "center" });
+    // Scrolls the tree alone: scrollIntoView would also move the drawer's clipped panels.
+    tree.scrollTop +=
+      el.getBoundingClientRect().top -
+      tree.getBoundingClientRect().top -
+      (tree.clientHeight - el.clientHeight) / 2;
   }, [selectedKey, rows]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -242,7 +267,7 @@ export function TraceFlowTab({ detail }: TraceFlowTabProps) {
         </label>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 @3xl:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto @3xl:flex-row @3xl:overflow-hidden">
         <div
           ref={treeRef}
           role="tree"
@@ -277,7 +302,7 @@ export function TraceFlowTab({ detail }: TraceFlowTabProps) {
           row={selectedRow}
           model={model}
           traceId={detail.trace_id}
-          className="min-h-0 shrink-0 overflow-auto @3xl:w-[340px]"
+          className="shrink-0 @3xl:min-h-0 @3xl:w-[340px] @3xl:overflow-auto"
         />
       </div>
     </div>

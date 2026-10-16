@@ -15,25 +15,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { AmieNav } from "../../AmieNav";
+import { routeRecordId } from "@/shared/layout/routeRecordId";
+import { AmiePage } from "../../AmieNav";
+import { amieMetadata } from "../../tabs";
 import { PacketInboxContainer } from "../PacketInboxContainer";
+
+export const metadata = amieMetadata("/admin/amie/packets");
 
 export default async function AmiePacketDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const packetId = routeRecordId((await params).id);
   return (
-    <div className="space-y-4">
-      <header className="space-y-1">
-        <h1 className="font-display text-[28px] font-bold leading-tight">AMIE packet inbox</h1>
-        <p className="text-sm text-muted-foreground">
-          Deep link to packet <span className="font-mono">{id}</span>.
-        </p>
-      </header>
-      <AmieNav />
-      <PacketInboxContainer initialPacketId={id} />
-    </div>
+    <AmiePage description="AMIE packet" subject="AmiePacket">
+      <PacketInboxContainer initialPacketId={packetId} />
+    </AmiePage>
   );
 }

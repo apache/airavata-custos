@@ -34,7 +34,7 @@ export const BAND_RULE_CLASS: Record<Exclude<UrgencyBand, "ok">, string> = {
 };
 
 export const BAND_METER_CLASS: Record<UrgencyBand, string> = {
-  ok: "bg-[color:var(--custos-green-500)]",
-  amber: "bg-[color:var(--custos-amber-500)]",
-  red: "bg-[color:var(--custos-red-500)]",
+  ok: "bg-[color:var(--fill-ok)]",
+  amber: "bg-[color:var(--fill-warn)]",
+  red: "bg-[color:var(--fill-error)]",
 };

@@ -50,22 +50,36 @@ export function SkeletonRow({ columns = 4, className }: { columns?: number; clas
   );
 }
 
+// Skeletons announce the wait, so a list or card that is loading is not silent.
 export function TableSkeleton({ rows = 6, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <div className="space-y-3 rounded-md border bg-card p-4">
+    <output aria-label="Loading" className="block space-y-3 rounded-md border bg-card p-4">
       {Array.from({ length: rows }).map((_, i) => (
         <SkeletonRow key={`skeleton-row-${i}`} columns={columns} />
       ))}
-    </div>
+    </output>
   );
 }
 
 export function CardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("animate-pulse space-y-3 rounded-md border bg-card p-5", className)}>
+    <output
+      aria-label="Loading"
+      className={cn("block animate-pulse space-y-3 rounded-md border bg-card p-5", className)}
+    >
       <div className="h-4 w-32 rounded bg-muted" />
       <div className="h-8 w-24 rounded bg-muted" />
       <div className="h-3 w-48 rounded bg-muted" />
+    </output>
+  );
+}
+
+// A page's loading state: its heading stays in place and the wait is announced.
+export function DetailLoading({ title }: { title?: string }) {
+  return (
+    <div className="space-y-6">
+      {title ? <h1 className="font-display text-[28px] font-bold leading-tight">{title}</h1> : null}
+      <CardSkeleton />
     </div>
   );
 }

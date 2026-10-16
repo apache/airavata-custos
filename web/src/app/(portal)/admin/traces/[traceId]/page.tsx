@@ -15,18 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { TraceListContainer } from "@/features/core/audit/components/TraceListContainer";
+import { pageMetadata, queryTraceId } from "@/shared/layout/nav";
+import { routeRecordId } from "@/shared/layout/routeRecordId";
 
-export const metadata: Metadata = {
-  title: "Trace · Admin",
-};
+export const metadata = pageMetadata("/admin/traces");
 
 export default async function AdminTraceDetailPage({
   params,
 }: {
   params: Promise<{ traceId: string }>;
 }) {
-  const { traceId } = await params;
+  const traceId = routeRecordId((await params).traceId, queryTraceId);
   return <TraceListContainer initialTraceId={traceId} />;
 }

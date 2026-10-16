@@ -1,8 +1,8 @@
 {
-  "alloc-001": [
+  "01000001-0000-4000-8000-000001000001": [
     {
-      "id": "diff-001",
-      "compute_allocation_id": "alloc-001",
+      "id": "06000001-0000-4000-8000-000006000001",
+      "compute_allocation_id": "01000001-0000-4000-8000-000001000001",
       "diff_type": "ALLOCATION_STATUS_CHANGE",
       "new_su_amount": 250000,
       "status": "ACTIVE",
@@ -10,8 +10,8 @@
       "description": "Allocation activated for the funding period."
     },
     {
-      "id": "diff-002",
-      "compute_allocation_id": "alloc-001",
+      "id": "06000002-0000-4000-8000-000006000002",
+      "compute_allocation_id": "01000001-0000-4000-8000-000001000001",
       "diff_type": "USAGE_UPDATE",
       "new_su_amount": 250000,
       "status": "ACTIVE",
@@ -19,18 +19,18 @@
       "description": "Recorded usage from a batch of GPU jobs."
     },
     {
-      "id": "diff-003",
-      "compute_allocation_id": "alloc-001",
+      "id": "06000003-0000-4000-8000-000006000003",
+      "compute_allocation_id": "01000001-0000-4000-8000-000001000001",
       "diff_type": "USAGE_UPDATE",
       "new_su_amount": 250000,
       "status": "ACTIVE",
       "timestamp": "2026-06-20T14:05:00.000Z"
     }
   ],
-  "alloc-003": [
+  "01000003-0000-4000-8000-000001000003": [
     {
-      "id": "diff-101",
-      "compute_allocation_id": "alloc-003",
+      "id": "06000004-0000-4000-8000-000006000004",
+      "compute_allocation_id": "01000003-0000-4000-8000-000001000003",
       "diff_type": "ALLOCATION_STATUS_CHANGE",
       "new_su_amount": 150000,
       "status": "ACTIVE",
@@ -38,8 +38,8 @@
       "description": "Allocation activated."
     },
     {
-      "id": "diff-102",
-      "compute_allocation_id": "alloc-003",
+      "id": "06000005-0000-4000-8000-000006000005",
+      "compute_allocation_id": "01000003-0000-4000-8000-000001000003",
       "diff_type": "USAGE_UPDATE",
       "new_su_amount": 350000,
       "status": "ACTIVE",
@@ -47,11 +47,11 @@
       "description": "SU amount raised after an approved change request."
     },
     {
-      "id": "diff-103",
-      "compute_allocation_id": "alloc-003",
+      "id": "06000006-0000-4000-8000-000006000006",
+      "compute_allocation_id": "01000003-0000-4000-8000-000001000003",
       "diff_type": "ALLOCATION_STATUS_CHANGE",
       "new_su_amount": 350000,
-      "status": "INACTIVE",
+      "status": "ACTIVE",
       "timestamp": "2026-06-25T16:40:00.000Z",
       "description": "Paused pending end-of-quarter review."
     }

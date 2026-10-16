@@ -15,14 +15,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { UsersNav } from "../UsersNav";
+import { CreateUserDialog } from "./CreateUserDialog";
 import { UsersTableContainer } from "./UsersTableContainer";
+
+export const metadata = pageMetadata("/admin/users/management");
 
 export default function UserManagementPage() {
   return (
-    <div className="space-y-4">
-      <UsersNav />
-      <UsersTableContainer />
-    </div>
+    <>
+      <DeclaredParams keys={["q", "role", "identity", "user", "page"]} />
+      <div className="space-y-4">
+        <UsersNav rightSlot={<CreateUserDialog />} />
+        <UsersTableContainer />
+      </div>
+    </>
   );
 }

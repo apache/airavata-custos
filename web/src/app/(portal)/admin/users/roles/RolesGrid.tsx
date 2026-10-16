@@ -17,28 +17,45 @@
 
 "use client";
 
-import { useRoleRows } from "@/features/core/roles/queries";
+import { type RoleRow, useRoleRows } from "@/features/core/roles/queries";
 import { Button } from "@/shared/ui/button";
+import { useState } from "react";
 import { RoleCard } from "./RoleCard";
+import { RoleFormDialog } from "./RoleFormDialog";
 
 export function RolesGrid() {
+  // The dialog outlives its card, so a role deleted elsewhere still reports itself gone.
+  const [editing, setEditing] = useState<RoleRow>();
+  return (
+    <>
+      <RolesBody onEdit={setEditing} />
+      {editing ? (
+        <RoleFormDialog
+          key={editing.id}
+          role={editing}
+          open
+          onOpenChange={() => setEditing(undefined)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function RolesBody({ onEdit }: { onEdit: (role: RoleRow) => void }) {
   const rolesQuery = useRoleRows();
 
   if (rolesQuery.isPending) {
     return (
-      <div className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
-        Loading roles...
-      </div>
+      <output className="block rounded-md border bg-card p-6 text-sm text-muted-foreground">
+        Loading roles…
+      </output>
     );
   }
 
   if (rolesQuery.isError) {
-    const error = rolesQuery.error;
     return (
       <div className="space-y-3 rounded-md border bg-card p-6">
-        <p className="text-sm text-destructive">
-          {error instanceof Error ? error.message : "Could not load roles."}
-        </p>
+        <p className="text-sm text-destructive-text">Couldn't load roles. Try again.</p>
         <Button
           type="button"
           variant="outline"
@@ -64,10 +81,10 @@ export function RolesGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <section aria-label="Roles" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {roles.map((role) => (
-        <RoleCard key={role.id} role={role} />
+        <RoleCard key={role.id} role={role} onEdit={() => onEdit(role)} />
       ))}
-    </div>
+    </section>
   );
 }

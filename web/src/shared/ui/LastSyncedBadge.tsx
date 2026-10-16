@@ -49,17 +49,12 @@ function formatAbbreviated(ageMs: number): string {
 }
 
 const tintStyles: Record<Tint, string> = {
-  fresh: "bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]",
-  stale: "bg-[color:var(--custos-amber-50)] text-[color:var(--custos-amber-700)]",
-  expired: "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)]",
+  fresh: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+  stale: "bg-[color:var(--tone-warn-bg)] text-[color:var(--tone-warn-fg)]",
+  expired: "bg-[color:var(--tone-error-bg)] text-[color:var(--tone-error-fg)]",
 };
 
-export function LastSyncedBadge({
-  syncedAt,
-  onRefetch,
-  now,
-  className,
-}: LastSyncedBadgeProps) {
+export function LastSyncedBadge({ syncedAt, onRefetch, now, className }: LastSyncedBadgeProps) {
   const syncedDate = syncedAt instanceof Date ? syncedAt : new Date(syncedAt);
   const reference = now ?? new Date();
   const ageMs = Math.max(0, reference.getTime() - syncedDate.getTime());

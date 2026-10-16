@@ -15,7 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UsageDailyBucket, UsageResource } from "./schemas";
+import type { UsageDailyBucket, UsageResource } from "@/generated/analytics/types.gen";
+import { pluralize } from "@/shared/format";
 
 // Categorical series colors; chart-5 is the neutral used for "Other".
 export const CHART_SERIES_COLORS = [
@@ -73,15 +74,15 @@ export function daysBand(daysLeft: number): UrgencyBand {
   return "ok";
 }
 
-// Band for the credits-left tile, from the raw percentage remaining.
-export function creditsBand(pctLeft: number): UrgencyBand {
+// Band for the SU-left tile, from the raw percentage remaining.
+export function suBand(pctLeft: number): UrgencyBand {
   if (pctLeft <= RED_PCT_LEFT) return "red";
   if (pctLeft <= AMBER_PCT_LEFT) return "amber";
   return "ok";
 }
 
 export function bucketTotal(bucket: UsageDailyBucket): number {
-  return Object.values(bucket.by_resource).reduce((a, v) => a + v, 0);
+  return Object.values(bucket.by_resource ?? {}).reduce((a, v) => a + v, 0);
 }
 
 export const DAY_PERIODS = 30;
@@ -117,7 +118,7 @@ export function buildPeriods(daily: UsageDailyBucket[], mode: "day" | "week"): U
   return recent.map((chunk, i) => {
     const bySeriesId: Record<string, number> = {};
     for (const b of chunk) {
-      for (const [id, v] of Object.entries(b.by_resource)) {
+      for (const [id, v] of Object.entries(b.by_resource ?? {})) {
         bySeriesId[id] = (bySeriesId[id] ?? 0) + v;
       }
     }
@@ -126,48 +127,19 @@ export function buildPeriods(daily: UsageDailyBucket[], mode: "day" | "week"): U
   });
 }
 
-// Compact credits for tiles, axes, and bars ("1.22M", "84.2K", "72K").
-export function formatCredits(n: number): string {
-  return new Intl.NumberFormat(undefined, {
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
-// Full grouped credits for tooltips and sublines. Sub-unit values keep
-// enough digits to stay visibly non-zero.
-export function formatCreditsFull(n: number): string {
-  const fractionDigits = n !== 0 && Math.abs(n) < 1 ? 3 : 0;
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: fractionDigits }).format(n);
-}
-
+// Native units keep a decimal, since raw usage is fractional ("7.5 GPU-hours").
 export function formatNative(n: number): string {
-  const fractionDigits = n !== 0 && Math.abs(n) < 1 ? 3 : 0;
+  const fractionDigits = n !== 0 && Math.abs(n) < 1 ? 3 : 1;
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: fractionDigits }).format(n);
 }
+
+// "1 GPU-hour", "7.5 GPU-hours"; the server names native units in the plural.
+export const formatNativeAmount = (n: number, unit: string) =>
+  `${formatNative(n)} ${pluralize(unit.replace(/s$/, ""), n, unit)}`;
 
 // Whole-percent label; a positive value under 1% shows "<1%" rather than
 // rounding down to "0%".
 export function formatPercent(n: number): string {
   if (n > 0 && n < 1) return "<1%";
   return `${Math.round(n)}%`;
-}
-
-// "Aug 1, 2026"
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-// "Jul 14, 09:12"
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }

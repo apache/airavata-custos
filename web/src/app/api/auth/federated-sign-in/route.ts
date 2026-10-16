@@ -15,13 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { NextRequest } from "next/server";
 import { signIn } from "@/shared/auth/auth";
+import { sameOriginUrl } from "@/shared/auth/sameOrigin";
+import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 // Starts the OIDC flow directly so a plain link can skip the sign-in card.
 export async function GET(request: NextRequest) {
-  const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/";
-  await signIn("oidc", { redirectTo: callbackUrl });
+  const { pathname, search, hash } = sameOriginUrl(
+    request.nextUrl.searchParams.get("callbackUrl"),
+    request.nextUrl.origin,
+  );
+  await signIn("oidc", { redirectTo: pathname + search + hash });
 }

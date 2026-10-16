@@ -15,9 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { auth } from "@/shared/auth/auth";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { redirect } from "next/navigation";
+import { AMIE_TABS } from "./tabs";
 
-// /admin/amie has no content of its own; bounce to the canonical Inbox tab.
-export default function AmieIndex() {
-  redirect("/admin/amie/packets");
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+// /admin/amie has no content of its own; bounce to the first tab the caller can read, keeping the query.
+export default async function AmieIndex(props: { searchParams: SearchParams }) {
+  const ability = defineAbilitiesFor((await auth())?.privileges ?? []);
+  const first = AMIE_TABS.find((tab) => ability.can("read", tab.subject));
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(await props.searchParams)) {
+    for (const v of [value ?? []].flat()) query.append(key, v);
+  }
+  const href = first?.href ?? "/admin/amie/packets";
+  redirect(query.size ? `${href}?${query}` : href);
 }

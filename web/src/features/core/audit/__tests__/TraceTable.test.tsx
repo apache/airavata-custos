@@ -61,7 +61,7 @@ describe("TraceTable", () => {
   it("shows the status word and delivery count per row", () => {
     renderTable();
     expect(screen.getByText("Failed")).toBeInTheDocument();
-    expect(screen.getByText("Retrying 4 of 10")).toBeInTheDocument();
+    expect(screen.getByText("Waiting, 6 of 10 left this run")).toBeInTheDocument();
     const failedRow = screen.getByTestId(`trace-row-${failed.trace_id}`);
     const retryingRow = screen.getByTestId(`trace-row-${retrying.trace_id}`);
     expect(within(failedRow).getByText("1 of 2 done")).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe("TraceTable", () => {
   });
 
   // Make sure an empty list says whether filters hid the rows, with a way
-  // out, or whether there is simply nothing in the window.
+  // out, or whether there is simply nothing in the window, and shows no pager.
   it("tells filtered and unfiltered empty states apart", () => {
     const onClearFilters = vi.fn();
     const { unmount } = render(
@@ -99,6 +99,7 @@ describe("TraceTable", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(onClearFilters).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
     unmount();
     renderTable({ traces: [], total: 0 });
     expect(screen.getByText("No traces in the last 7 days.")).toBeInTheDocument();

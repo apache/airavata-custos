@@ -22,6 +22,9 @@ import { defineConfig } from "vitest/config";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
+// A zone west of UTC, so date-only code that drifts off the UTC calendar day fails.
+process.env.TZ = "America/New_York";
+
 export default defineConfig({
   plugins: [react()],
   test: {

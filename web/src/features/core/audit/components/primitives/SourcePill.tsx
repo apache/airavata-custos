@@ -31,11 +31,13 @@ const SOURCE_STYLES: Record<string, string> = {
   core: "bg-muted text-muted-foreground",
 };
 
-// Unknown sources fall through to neutral muted — never crashes when the
-// backend ships a new connector before the portal updates.
+// A connector takes its family's tone (amie-processor as amie); unknown sources fall through to muted.
 export function SourcePill({ source, size = "md", className }: SourcePillProps) {
   const key = source.toLowerCase();
-  const styles = SOURCE_STYLES[key] ?? "bg-muted text-muted-foreground";
+  const styles =
+    SOURCE_STYLES[key] ??
+    SOURCE_STYLES[key.split("-")[0] ?? ""] ??
+    "bg-muted text-muted-foreground";
   return (
     <span
       className={cn(

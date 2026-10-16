@@ -15,8 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { ChangeRequestQueueContainer } from "./ChangeRequestQueueContainer";
 
+export const metadata = pageMetadata("/change-requests");
+
 export default function ChangeRequestsPage() {
-  return <ChangeRequestQueueContainer />;
+  return (
+    <>
+      <DeclaredParams keys={["status", "page"]} />
+      <ChangeRequestQueueContainer />
+    </>
+  );
 }

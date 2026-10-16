@@ -37,7 +37,7 @@ describe("ForecastBar", () => {
       />,
     );
     const caption = screen.getByTestId("forecast-caption");
-    expect(caption.className).toContain("var(--custos-red-700)");
+    expect(caption.className).toContain("var(--tone-error-fg)");
     expect(caption.textContent).toMatch(/days before award end/);
   });
 

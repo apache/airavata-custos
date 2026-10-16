@@ -18,24 +18,23 @@
 "use client";
 
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { NotPermitted } from "@/shared/ui/ErrorState";
 import { Button } from "@/shared/ui/button";
-import { ErrorState } from "@/shared/ui/ErrorState";
 import { UsersNav } from "../UsersNav";
+import { PrivilegeHoldersCard } from "./PrivilegeHoldersCard";
 import { RoleFormDialog } from "./RoleFormDialog";
 import { RolesGrid } from "./RolesGrid";
 
 export function RoleManagementView() {
   const ability = useAbility();
-  const canManageRoles = ability.can("manage", "Role");
+  const canManageRoles = ability.can("write", "Role");
+  const canGrant = ability.can("write", "PrivilegeGrant");
 
   if (!canManageRoles) {
     return (
       <div className="space-y-6">
         <UsersNav />
-        <ErrorState
-          heading="Not permitted"
-          message="You do not have permission to manage roles."
-        />
+        {canGrant ? <PrivilegeHoldersCard /> : <NotPermitted />}
       </div>
     );
   }
@@ -46,6 +45,7 @@ export function RoleManagementView() {
         rightSlot={<RoleFormDialog triggerRender={<Button />} triggerContent="Create role" />}
       />
       <RolesGrid />
+      {canGrant ? <PrivilegeHoldersCard /> : null}
     </div>
   );
 }

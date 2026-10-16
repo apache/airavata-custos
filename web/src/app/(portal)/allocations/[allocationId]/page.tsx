@@ -16,10 +16,20 @@
 // under the License.
 
 import { AllocationDetail } from "@/features/core/allocations/components/AllocationDetail";
+import { pageMetadata } from "@/shared/layout/nav";
+import { routeRecordId } from "@/shared/layout/routeRecordId";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
+
+export const metadata = pageMetadata("/allocations");
 
 export default async function AllocationDetailPage(props: {
   params: Promise<{ allocationId: string }>;
 }) {
-  const { allocationId } = await props.params;
-  return <AllocationDetail allocationId={allocationId} />;
+  const id = routeRecordId((await props.params).allocationId);
+  return (
+    <>
+      <DeclaredParams keys={["tab", "membership", "usage", "diff"]} />
+      <AllocationDetail allocationId={id} />
+    </>
+  );
 }

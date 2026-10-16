@@ -30,15 +30,15 @@ test.describe("admin viewer persona", () => {
     await expect(page.getByRole("button", { name: "+ Create organization" })).toHaveCount(0);
 
     // The dropped areas have no nav entry for anyone now.
-    await expect(page.getByRole("link", { name: "Users" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Roles & Privileges" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Clusters" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Clusters", exact: true })).toHaveCount(0);
     // Read entries the viewer is entitled to remain.
     await expect(page.getByRole("link", { name: "Organizations" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Resources" })).toBeVisible();
 
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Resources & clusters/ })).toBeVisible();
     await expect(page.getByRole("tab", { name: /^clusters$/i })).toBeVisible();
     await expect(page.getByRole("tab", { name: /^resources$/i })).toBeVisible();
 

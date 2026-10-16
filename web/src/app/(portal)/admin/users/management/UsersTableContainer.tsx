@@ -17,17 +17,12 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
-import { useAllocations } from "@/features/core/allocations/queries";
-import { useCurrentUser } from "@/features/core/identity/queries";
-import { useCreateUser, useRolesCatalog, useUserPageDetails, useUsers } from "@/features/core/users/queries";
-import type { CreateUserPayload } from "@/features/core/users/schemas";
+import { useRolesCatalog, useUserPageDetails, useUsers } from "@/features/core/users/queries";
 import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { useUrlPage } from "@/shared/hooks/usePageClamp";
+import { ErrorState, NotPermitted } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import { AddUserDialog } from "./AddUserDialog";
+import { useSession } from "next-auth/react";
 import { UsersTable } from "./UsersTable";
 
 const PAGE_SIZE = 25;
@@ -35,30 +30,11 @@ const PAGE_SIZE = 25;
 export function UsersTableContainer() {
   const ability = useAbility();
   const canReadUsers = ability.can("read", "User");
-  const canManageRoles = ability.can("manage", "Role");
-  const canReadDirectPrivileges = ability.can("manage", "PrivilegeGrant");
-  const canCreateUsers = ability.can("manage", "User");
-  const { user: currentUser } = useCurrentUser();
-  const [page, setPage] = React.useState(1);
-  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
-  const [addError, setAddError] = React.useState<string | null>(null);
-  const createMutation = useCreateUser();
-  const allocationsQuery = useAllocations({ status: "ACTIVE" });
-
-  async function handleAddUser(payload: CreateUserPayload) {
-    setAddError(null);
-    try {
-      await createMutation.mutateAsync(payload);
-      toast.success(payload.portal_admin ? "Admin user added" : "User added");
-      setAddDialogOpen(false);
-    } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Failed to add user");
-    }
-  }
-  const usersQuery = useUsers(
-    { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE },
-    { enabled: canReadUsers },
-  );
+  const canManageRoles = ability.can("write", "Role");
+  const canReadDirectPrivileges = ability.can("write", "PrivilegeGrant");
+  const { data: session } = useSession();
+  const { page } = useUrlPage();
+  const usersQuery = useUsers({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }, canReadUsers);
   const rolesQuery = useRolesCatalog(canManageRoles);
   const roleReadsEnabled = canManageRoles && rolesQuery.isSuccess;
   const hydratedRows = useUserPageDetails(
@@ -72,59 +48,26 @@ export function UsersTableContainer() {
   }));
 
   if (!canReadUsers) {
-    return <ErrorState heading="Not permitted" message="You cannot view users." />;
+    return <NotPermitted />;
   }
   if (usersQuery.isLoading) {
-    return <TableSkeleton rows={8} columns={canManageRoles ? 5 : 4} />;
+    return <TableSkeleton rows={8} columns={canManageRoles ? 6 : 5} />;
   }
   if (usersQuery.isError) {
-    return (
-      <ErrorState
-        message={
-          usersQuery.error instanceof Error ? usersQuery.error.message : "Could not load users."
-        }
-        onRetry={() => void usersQuery.refetch()}
-      />
-    );
+    return <ErrorState error={usersQuery.error} onRetry={() => void usersQuery.refetch()} />;
   }
 
   return (
-    <>
-      <UsersTable
-        users={hydratedRows}
-        rolesCatalog={rolesQuery.data ?? []}
-        currentUserEmail={currentUser?.email}
-        canManageRoles={canManageRoles}
-        canReadDirectPrivileges={canReadDirectPrivileges}
-        page={page}
-        pageSize={PAGE_SIZE}
-        total={usersQuery.data?.total ?? 0}
-        onPageChange={setPage}
-        toolbarAction={
-          canCreateUsers ? (
-            <Button
-              className="sm:ml-auto"
-              onClick={() => {
-                setAddError(null);
-                setAddDialogOpen(true);
-              }}
-            >
-              + Add user
-            </Button>
-          ) : null
-        }
-      />
-      {canCreateUsers ? (
-        <AddUserDialog
-          open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
-          onSubmit={handleAddUser}
-          isPending={createMutation.isPending}
-          error={addError}
-          canCreateAdmins={canManageRoles}
-          allocations={allocationsQuery.data?.items ?? []}
-        />
-      ) : null}
-    </>
+    <UsersTable
+      users={hydratedRows}
+      rolesCatalog={rolesQuery.data ?? []}
+      rolesReady={rolesQuery.isSuccess}
+      currentUserId={session?.custosUserId}
+      canManageRoles={canManageRoles}
+      canReadDirectPrivileges={canReadDirectPrivileges}
+      page={page}
+      pageSize={PAGE_SIZE}
+      total={usersQuery.data?.total ?? 0}
+    />
   );
 }

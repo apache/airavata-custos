@@ -15,10 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { ReactNode } from "react";
 // The deliveries API is read with the same privilege as tracing.
-import { TracePermissionGate } from "../traces/PermissionGate";
+import { PermissionGate } from "@/shared/casl/PermissionGate";
+import { ROUTE_LABELS } from "@/shared/layout/nav";
+import type { ReactNode } from "react";
 
 export default function EventsLayout({ children }: { children: ReactNode }) {
-  return <TracePermissionGate>{children}</TracePermissionGate>;
+  return (
+    <PermissionGate read={["Trace"]} title={ROUTE_LABELS["/admin/events"]}>
+      {children}
+    </PermissionGate>
+  );
 }

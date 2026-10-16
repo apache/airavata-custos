@@ -17,25 +17,18 @@
 
 "use client";
 
-import * as React from "react";
+import type { UsageSummary } from "@/generated/analytics/types.gen";
 import { cn } from "@/lib/utils";
-import {
-  buildPeriods,
-  buildResourceSeries,
-  CHART_OTHER_COLOR,
-  formatCredits,
-  formatCreditsFull,
-  formatDate,
-  type ResourceSeries,
-} from "../lib";
-import type { UsageSummary } from "../schemas";
+import { formatDay, formatSU } from "@/shared/format";
+import * as React from "react";
+import { CHART_OTHER_COLOR, type ResourceSeries, buildPeriods, buildResourceSeries } from "../lib";
 
 const PLOT_HEIGHT = 160;
 
 export function UsageOverTimeBars({ summary }: { summary: UsageSummary }) {
   const [mode, setMode] = React.useState<"day" | "week">("day");
-  const series = React.useMemo(() => buildResourceSeries(summary.by_resource), [summary]);
-  const periods = React.useMemo(() => buildPeriods(summary.daily, mode), [summary, mode]);
+  const series = React.useMemo(() => buildResourceSeries(summary.by_resource ?? []), [summary]);
+  const periods = React.useMemo(() => buildPeriods(summary.daily ?? [], mode), [summary, mode]);
   const maxTotal = Math.max(1, ...periods.map((p) => p.total));
 
   const hasUsage = periods.some((p) => p.total > 0);
@@ -118,7 +111,7 @@ function Bar({
       )}
       style={{ height: plotHeight }}
       role="img"
-      aria-label={`${formatDate(period.label)}${period.isPartial ? " so far" : ""}: ${formatCreditsFull(period.total)} credits`}
+      aria-label={`${formatDay(period.label)}${period.isPartial ? " so far" : ""}: ${formatSU(period.total)} SU`}
     >
       {segments.map((seg, i) => (
         <div
@@ -147,7 +140,7 @@ function BarTooltip({
   return (
     <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden w-44 -translate-x-1/2 rounded-md border border-border bg-popover p-2 text-xs shadow-md group-hover:block">
       <div className="mb-1 font-medium">
-        {formatDate(period.label)}
+        {formatDay(period.label)}
         {period.isPartial ? " (so far)" : ""}
       </div>
       <ul className="space-y-0.5">
@@ -161,13 +154,13 @@ function BarTooltip({
               />
               {seg.name}
             </span>
-            <span className="tabular-nums">{formatCredits(seg.value)}</span>
+            <span className="tabular-nums">{formatSU(seg.value)}</span>
           </li>
         ))}
       </ul>
       <div className="mt-1 flex items-center justify-between border-t border-border pt-1 font-medium">
         <span>Total</span>
-        <span className="tabular-nums">{formatCreditsFull(period.total)}</span>
+        <span className="tabular-nums">{formatSU(period.total)}</span>
       </div>
     </div>
   );

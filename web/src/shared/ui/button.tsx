@@ -19,6 +19,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { type VariantProps, cva } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import * as React from "react";
 
 // Spec §7.5 button system:
 // - default → near-black primary (matches Figma "Add user")
@@ -28,8 +29,8 @@ import { cn } from "@/lib/utils";
 // - success → soft green tint, the approve side of destructive
 // - brand   → blue CTA for wizard "Continue" / proposal "Submit"
 // - link    → inline text link
-const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+const variants = cva(
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -47,7 +48,7 @@ const buttonVariants = cva(
         success:
           "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)] hover:bg-[color-mix(in_srgb,var(--tone-ok-bg),var(--tone-ok-fg)_14%)]",
         brand: "bg-brand text-brand-foreground hover:bg-brand/90",
-        link: "text-brand underline-offset-4 hover:underline",
+        link: "text-link underline-offset-4 hover:underline",
       },
       size: {
         default:
@@ -70,16 +71,46 @@ const buttonVariants = cva(
   },
 );
 
+// Merged, so a variant's border or background beats the base classes it overrides.
+const buttonVariants = (props?: Parameters<typeof variants>[0]) => cn(variants(props));
+
+const PRESS_SETTLE_MS = 50;
+
+// A button that starts a write passes its mutation's pending: from the press until it settles the
+// button is disabled (focus kept), and a second press made before pending turns true is ignored.
 function Button({
   className,
   variant = "default",
   size = "default",
+  pending,
+  disabled,
+  focusableWhenDisabled,
+  onClick,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof variants> & { pending?: boolean }) {
+  const pressed = React.useRef(false);
+  const busy = React.useRef(pending);
+  if (busy.current && !pending) pressed.current = false;
+  busy.current = pending;
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={buttonVariants({ variant, size, className })}
+      disabled={disabled || pending}
+      focusableWhenDisabled={focusableWhenDisabled ?? pending}
+      onClick={
+        pending === undefined
+          ? onClick
+          : (e) => {
+              if (pressed.current) return e.preventDefault();
+              pressed.current = true;
+              // A press that started no write (a refused form, a confirm raised) frees the button.
+              setTimeout(() => {
+                if (!busy.current) pressed.current = false;
+              }, PRESS_SETTLE_MS);
+              onClick?.(e);
+            }
+      }
       {...props}
     />
   );

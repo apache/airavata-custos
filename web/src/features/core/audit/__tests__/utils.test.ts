@@ -20,7 +20,7 @@
 import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
 import { traceListSchema } from "@/features/core/audit/schemas";
 import type { Step } from "@/features/core/audit/types";
-import { errorText, formatUntil, listStatusLabel, parseDetails } from "@/features/core/audit/utils";
+import { errorText, listStatusLabel, parseDetails } from "@/features/core/audit/utils";
 import { describe, expect, it } from "vitest";
 
 const list = traceListSchema.parse(tracesListFixture);
@@ -31,18 +31,15 @@ const byStatus = (status: string) => {
 };
 
 describe("listStatusLabel", () => {
-  // Make sure the status word comes from the deliveries: a failed delivery is
-  // Failed, a pending one with tries is Retrying with the count, and a trace
-  // with every delivery done is Done.
-  it("names the trace from its deliveries", () => {
+  // Make sure the status word comes from the status and the deliveries: an in-progress
+  // trace whose pending delivery has tried is Waiting with the run's budget left.
+  it("names the trace from its status and deliveries", () => {
     expect(listStatusLabel(byStatus("error"))).toBe("Failed");
-    expect(listStatusLabel(byStatus("in_progress"))).toBe("Retrying 4 of 10");
+    expect(listStatusLabel(byStatus("in_progress"))).toBe("Waiting, 6 of 10 left this run");
     expect(listStatusLabel(byStatus("ok"))).toBe("Done");
   });
 
-  // Make sure a pending delivery that has not run yet reads as Waiting, not
-  // Retrying, since the connector may simply not be running.
-  it("says Waiting before the first try", () => {
+  it("says Waiting while no pending delivery has tried", () => {
     const waiting = {
       ...byStatus("in_progress"),
       deliveries: { pending: 1, succeeded: 0, failed: 0, attempts: 0 },
@@ -68,6 +65,15 @@ describe("parseDetails", () => {
       ],
     });
     expect(parseDetails("DECODED")).toEqual({ text: "DECODED" });
+    expect(parseDetails("see https://example.org/path?q=ZZZ")).toEqual({
+      text: "see https://example.org/path?q=ZZZ",
+    });
+    expect(parseDetails("step=fetch err=GET https://x.org/a?q=1&r=2 failed")).toEqual({
+      entries: [
+        ["step", "fetch"],
+        ["err", "GET https://x.org/a?q=1&r=2 failed"],
+      ],
+    });
     expect(parseDetails(undefined)).toBeNull();
   });
 });
@@ -93,15 +99,5 @@ describe("errorText", () => {
       "dial tcp: connection refused",
     );
     expect(errorText(step({ status: "ok", description: "fine" }))).toBeUndefined();
-  });
-});
-
-describe("formatUntil", () => {
-  // Make sure a retry whose time has passed reads "now", since the worker
-  // picks it up on its next poll rather than at the exact second.
-  it("says now once the time has passed", () => {
-    const now = Date.parse("2026-10-09T00:00:00Z");
-    expect(formatUntil("2026-10-09T00:04:00Z", now)).toBe("in 4m");
-    expect(formatUntil("2026-10-08T23:59:00Z", now)).toBe("now");
   });
 });

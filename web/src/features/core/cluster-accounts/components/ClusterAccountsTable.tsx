@@ -17,15 +17,17 @@
 
 "use client";
 
-import { Button } from "@/shared/ui/button";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { Timestamp } from "@/features/core/audit/components/primitives/Timestamp";
+import type { ClusterAccountResponse, ComputeClusterUser } from "@/generated/core/types.gen";
+import { formatDate } from "@/shared/format";
+import { DataTable, type DataTableColumn, NameCell, PastLastPage } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
-import type { ClusterAccount } from "../schemas";
+import { emailBeside } from "@/shared/users-admin/displayName";
 
-export function clusterAccountStatus(row: ClusterAccount): {
+export function clusterAccountStatus(row: ComputeClusterUser): {
   variant: StatusBadgeVariant;
   label: string;
 } {
@@ -38,21 +40,12 @@ export function clusterAccountStatus(row: ClusterAccount): {
   return { variant: "warning", label: "Pending approval" };
 }
 
-function formatDate(iso?: string | null): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
 export type ClusterAccountsTableProps = {
-  rows: ClusterAccount[];
+  rows: ClusterAccountResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
-  canReview: boolean;
-  onApprove: (row: ClusterAccount) => void;
-  onDeny: (row: ClusterAccount) => void;
+  onRowClick?: (row: ClusterAccountResponse) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -65,35 +58,36 @@ export function ClusterAccountsTable({
   isLoading,
   error,
   onRetry,
-  canReview,
-  onApprove,
-  onDeny,
+  onRowClick,
   page,
   pageSize,
   total,
   onPageChange,
   emptyHeading,
 }: ClusterAccountsTableProps) {
-  const columns: Array<DataTableColumn<ClusterAccount>> = [
+  const columns: Array<DataTableColumn<ClusterAccountResponse>> = [
     {
       key: "user",
       header: "User",
       cell: (row) => (
-        <div>
-          <div className="font-medium text-foreground">{row.display_name || row.email}</div>
-          <div className="text-xs text-muted-foreground">{row.email}</div>
+        <div className="min-w-0">
+          <NameCell text={row.display_name || row.email} className="font-medium text-foreground" />
+          <NameCell
+            text={emailBeside(row.display_name || row.email, row.email)}
+            className="text-xs text-muted-foreground"
+          />
         </div>
       ),
     },
     {
       key: "cluster",
       header: "Cluster",
-      cell: (row) => <span className="font-mono text-xs">{row.cluster_name}</span>,
+      cell: (row) => <NameCell text={row.cluster_name} className="font-mono text-xs" />,
     },
     {
       key: "username",
       header: "Username",
-      cell: (row) => <span className="font-mono text-xs">{row.local_username}</span>,
+      cell: (row) => <NameCell text={row.local_username} className="font-mono text-xs" />,
     },
     {
       key: "status",
@@ -109,46 +103,31 @@ export function ClusterAccountsTable({
       cell: (row) =>
         row.reviewed_at ? (
           <div className="text-xs text-muted-foreground">
-            <div>{formatDate(row.reviewed_at)}</div>
-            {row.review_note ? <div className="max-w-[28ch]">{row.review_note}</div> : null}
+            <div>
+              <Timestamp iso={row.reviewed_at}>{formatDate(row.reviewed_at)}</Timestamp>
+            </div>
+            {row.review_note ? (
+              <div className="max-w-[28ch] [overflow-wrap:anywhere]">{row.review_note}</div>
+            ) : null}
           </div>
         ) : null,
     },
   ];
 
-  if (canReview) {
-    columns.push({
-      key: "actions",
-      header: "",
-      align: "right",
-      interactive: true,
-      cell: (row) => {
-        if (row.approval_status === "APPROVED") return null;
-        return (
-          <div className="flex justify-end gap-2">
-            {row.approval_status === "PENDING" ? (
-              <Button size="sm" variant="destructive" onClick={() => onDeny(row)}>
-                Deny
-              </Button>
-            ) : null}
-            <Button size="sm" variant="success" onClick={() => onApprove(row)}>
-              Approve
-            </Button>
-          </div>
-        );
-      },
-    });
-  }
-
   if (isLoading) return <TableSkeleton rows={6} columns={columns.length} />;
-  if (error) return <ErrorState message={error.message} onRetry={onRetry} />;
+  if (error) return <ErrorState error={error} onRetry={onRetry} />;
+  if (rows.length === 0 && page > 1) {
+    return <PastLastPage things="cluster accounts" page={page} onPageChange={onPageChange} />;
+  }
   if (rows.length === 0) return <EmptyState heading={emptyHeading} />;
 
   return (
     <DataTable
+      caption="Cluster accounts"
       columns={columns}
       rows={rows}
       rowKey={(row) => row.id}
+      onRowClick={onRowClick}
       pagination={{ page, pageSize, total, onPageChange }}
     />
   );

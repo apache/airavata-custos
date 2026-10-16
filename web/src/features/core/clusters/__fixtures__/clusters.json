@@ -1,6 +1,6 @@
 [
-  { "id": "cluster-a", "name": "ClusterA" },
-  { "id": "cluster-c", "name": "ClusterC" },
-  { "id": "cluster-d", "name": "ClusterD" },
-  { "id": "cluster-b", "name": "ClusterB" }
+  { "id": "04000001-0000-4000-8000-000004000001", "name": "ClusterA" },
+  { "id": "04000003-0000-4000-8000-000004000003", "name": "ClusterC" },
+  { "id": "04000004-0000-4000-8000-000004000004", "name": "ClusterD" },
+  { "id": "04000002-0000-4000-8000-000004000002", "name": "ClusterB" }
 ]

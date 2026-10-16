@@ -15,34 +15,40 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen, within } from "@testing-library/react";
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/types.gen";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
 
-let diffs: AllocationDiff[] = [];
+let diffs: ComputeAllocationDiff[] = [];
 
 vi.mock("../queries", () => ({
+  useDiff: () => ({}),
+  useDeleteDiff: () => ({}),
+  useRecordDiff: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useAllocationDiffs: () => ({ data: diffs, isLoading: false, error: null, refetch: vi.fn() }),
 }));
+
+vi.mock("@/shared/casl/AbilityProvider", () => ({ useAbility: () => ({ can: () => true }) }));
 
 import { AllocationHistoryTab } from "../components/AllocationHistoryTab";
 
 const allocation: ComputeAllocation = {
-  id: "alloc-001",
-  project_id: "project-001",
+  id: "01000001-0000-4000-8000-000001000001",
+  project_id: "19000001-0000-4000-8000-000019000001",
   name: "Genomic GPU Pool",
   status: "ACTIVE",
-  compute_cluster_id: "cluster-a",
+  compute_cluster_id: "04000001-0000-4000-8000-000004000001",
   initial_su_amount: 250000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
 };
 
 beforeEach(() => {
   diffs = [
     {
       id: "diff-a",
-      compute_allocation_id: "alloc-001",
+      compute_allocation_id: "01000001-0000-4000-8000-000001000001",
       diff_type: "ALLOCATION_STATUS_CHANGE",
       new_su_amount: 250000,
       status: "ACTIVE",
@@ -51,16 +57,17 @@ beforeEach(() => {
     },
     {
       id: "diff-b",
-      compute_allocation_id: "alloc-001",
+      compute_allocation_id: "01000001-0000-4000-8000-000001000001",
       diff_type: "USAGE_UPDATE",
-      new_su_amount: 250000,
+      new_su_amount: 300000,
       status: "ACTIVE",
       timestamp: "2026-06-20T14:05:00.000Z",
     },
     {
       id: "diff-c",
-      compute_allocation_id: "alloc-001",
+      compute_allocation_id: "01000001-0000-4000-8000-000001000001",
       diff_type: "RESOURCE_ATTACHED",
+      new_su_amount: 300000,
       status: "INACTIVE",
       timestamp: "2026-05-15T08:30:00.000Z",
     },
@@ -68,26 +75,18 @@ beforeEach(() => {
 });
 
 describe("<AllocationHistoryTab />", () => {
-  it("lists diffs newest first", () => {
-    render(<AllocationHistoryTab allocation={allocation} />);
+  it("lists diffs newest first by label", () => {
+    render(<AllocationHistoryTab allocation={allocation} canManage={false} />);
     const rows = screen.getAllByRole("row").slice(1); // drop the header row
-    expect(within(rows[0] as HTMLElement).getByText("USAGE_UPDATE")).toBeInTheDocument();
-    expect(within(rows[1] as HTMLElement).getByText("RESOURCE_ATTACHED")).toBeInTheDocument();
-    expect(within(rows[2] as HTMLElement).getByText("ALLOCATION_STATUS_CHANGE")).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getByText("Usage updated")).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getByText("300,000")).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByText("Resource attached")).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText("Status changed")).toBeInTheDocument();
   });
 
-  it("renders the status badge and a placeholder for a missing SU amount", () => {
-    render(<AllocationHistoryTab allocation={allocation} />);
-    expect(screen.getByText("INACTIVE")).toBeInTheDocument();
-    const resourceRow = screen.getByText("RESOURCE_ATTACHED").closest("tr");
-    expect(within(resourceRow as HTMLElement).getByText("-")).toBeInTheDocument();
-  });
-
-  it("shows the empty state when there is no history", () => {
-    diffs = [];
-    render(<AllocationHistoryTab allocation={allocation} />);
-    expect(
-      screen.getByRole("heading", { name: /no history recorded for this allocation/i }),
-    ).toBeInTheDocument();
+  it("starts a new diff from the latest recorded SU total", () => {
+    render(<AllocationHistoryTab allocation={allocation} canManage />);
+    fireEvent.click(screen.getByRole("button", { name: "+ Record diff" }));
+    expect(screen.getByLabelText("New SU total")).toHaveValue(300000);
   });
 });

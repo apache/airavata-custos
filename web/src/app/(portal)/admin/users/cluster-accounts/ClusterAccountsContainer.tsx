@@ -17,108 +17,114 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
+import {
+  ClusterAccountDetail,
+  useAccountUser,
+} from "@/features/core/cluster-accounts/components/ClusterAccountDetail";
 import { ClusterAccountsTable } from "@/features/core/cluster-accounts/components/ClusterAccountsTable";
+import { CreateClusterAccountDialog } from "@/features/core/cluster-accounts/components/CreateClusterAccountDialog";
 import {
   type ReviewAction,
   ReviewClusterAccountDialog,
 } from "@/features/core/cluster-accounts/components/ReviewClusterAccountDialog";
 import {
   useApproveClusterAccount,
+  useClusterAccount,
   useClusterAccounts,
   useDenyClusterAccount,
 } from "@/features/core/cluster-accounts/queries";
-import type { ClusterAccount, ClusterAccountApproval } from "@/features/core/cluster-accounts/schemas";
+import type { ClusterAccountApproval, ComputeClusterUser } from "@/generated/core/types.gen";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
-import {
-  replaceShallowSearchParams,
-  useShallowSearchParams,
-} from "@/shared/hooks/useShallowSearchParams";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import { useUrlFilteredPage } from "@/shared/hooks/usePageClamp";
+import { setSearchParam, useCanonicalParams } from "@/shared/hooks/useShallowSearchParams";
+import { queryUuid } from "@/shared/layout/nav";
+import { NotPermitted } from "@/shared/ui/ErrorState";
+import { SideDrawer } from "@/shared/ui/SideDrawer";
+import { Button } from "@/shared/ui/button";
+import { toastOnSuccess } from "@/shared/ui/sonner";
+import * as React from "react";
 
 const PAGE_SIZE = 25;
 
 type Filter = ClusterAccountApproval | "ALL";
 
 const FILTERS: Array<{ value: Filter; label: string; empty: string }> = [
-  { value: "PENDING", label: "Pending approval", empty: "Nothing waiting for approval." },
-  { value: "APPROVED", label: "Approved", empty: "No approved accounts yet." },
-  { value: "DENIED", label: "Denied", empty: "No denied accounts." },
-  { value: "ALL", label: "All", empty: "No cluster accounts yet." },
+  { value: "PENDING", label: "Pending approval", empty: "Nothing waiting for approval" },
+  { value: "APPROVED", label: "Approved", empty: "No approved accounts yet" },
+  { value: "DENIED", label: "Denied", empty: "No denied accounts" },
+  { value: "ALL", label: "All", empty: "No cluster accounts yet" },
 ];
-
-function readFilter(params: URLSearchParams): Filter {
-  const raw = params.get("status");
-  return FILTERS.some((f) => f.value === raw) ? (raw as Filter) : "PENDING";
-}
 
 export function ClusterAccountsContainer() {
   const ability = useAbility();
   const canRead = ability.can("read", "Cluster");
-  const canReview = ability.can("manage", "Cluster");
-  const params = useShallowSearchParams();
-  const filter = readFilter(params);
-  const [page, setPage] = React.useState(1);
-  const [review, setReview] = React.useState<{ account: ClusterAccount; action: ReviewAction } | null>(
-    null,
-  );
-  const [reviewError, setReviewError] = React.useState<string | null>(null);
+  const canReview = ability.can("write", "Cluster");
+  const { params, page, setPage, offset, setFilter } = useUrlFilteredPage(PAGE_SIZE);
+  const current = FILTERS.find((f) => f.value === params.get("status"));
+  const filter = current?.value ?? "PENDING";
+  const [review, setReview] = React.useState<{
+    account: ComputeClusterUser;
+    action: ReviewAction;
+  } | null>(null);
+  // ?account= holds the open account, so traces can link straight to it.
+  const detailId = queryUuid(params.get("account")) ?? null;
+  const setDetailId = (id: string | null) => setSearchParam(params, "account", id);
+  useCanonicalParams({
+    status: filter === "PENDING" ? undefined : filter,
+    account: detailId ?? undefined,
+  });
 
   const query = useClusterAccounts(
     {
       approval_status: filter === "ALL" ? undefined : filter,
       limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
+      offset,
     },
-    { enabled: canRead },
+    canRead,
   );
   const approve = useApproveClusterAccount();
   const deny = useDenyClusterAccount();
+  const detail = useClusterAccount(canRead && detailId ? detailId : undefined).data;
+  const detailUser = useAccountUser(detailId ?? "", detail?.user_id);
+  const statusRow = React.useRef<HTMLSpanElement>(null);
+  // A cancelled review returns to its Approve or Deny button; a finished one to the Status row.
+  const reviewOpener = React.useRef<HTMLElement | null>(null);
+  const reviewed = React.useRef(false);
+  const startReview = (opener: HTMLElement, account: ComputeClusterUser, action: ReviewAction) => {
+    reviewOpener.current = opener;
+    reviewed.current = false;
+    setReview({ account, action });
+  };
 
-  function setFilter(next: Filter) {
-    const nextParams = new URLSearchParams(params);
-    if (next === "PENDING") nextParams.delete("status");
-    else nextParams.set("status", next);
-    replaceShallowSearchParams(nextParams);
-    setPage(1);
-  }
-
-  function openReview(action: ReviewAction) {
-    return (account: ClusterAccount) => {
-      setReviewError(null);
-      setReview({ account, action });
-    };
-  }
-
-  async function handleConfirm(note: string) {
+  function handleConfirm(note: string) {
     if (!review) return;
-    setReviewError(null);
-    try {
-      if (review.action === "approve") {
-        await approve.mutateAsync(review.account.id);
-        toast.success(
-          `Cluster account approved for ${review.account.local_username} on ${review.account.cluster_name}`,
-        );
-      } else {
-        await deny.mutateAsync({ id: review.account.id, note });
-        toast.success(
-          `Cluster account denied for ${review.account.local_username} on ${review.account.cluster_name}`,
-        );
-      }
-      setReview(null);
-    } catch (err) {
-      setReviewError(err instanceof Error ? err.message : "The review did not go through.");
-    }
+    const { id } = review.account;
+    const approving = review.action === "approve";
+    toastOnSuccess(
+      approving
+        ? approve.mutateAsync({ path: { id } })
+        : deny.mutateAsync({ path: { id }, body: { note } }),
+      `Cluster account ${approving ? "approved" : "denied"} for ${review.account.local_username}`,
+      () => {
+        reviewed.current = true;
+        setReview(null);
+      },
+    );
   }
 
   if (!canRead) {
-    return <ErrorState heading="Not permitted" message="You cannot view cluster accounts." />;
+    return (
+      <div className="space-y-4">
+        {canReview ? (
+          <div className="flex justify-end">
+            <CreateClusterAccountDialog />
+          </div>
+        ) : null}
+        <NotPermitted />
+      </div>
+    );
   }
-
-  const emptyHeading =
-    FILTERS.find((f) => f.value === filter)?.empty ?? "Nothing waiting for approval.";
 
   return (
     <div className="space-y-4">
@@ -132,7 +138,7 @@ export function ClusterAccountsContainer() {
               key={f.value}
               type="button"
               aria-pressed={filter === f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => setFilter("status", f.value === "PENDING" ? null : f.value)}
               className={cn(
                 "px-3 py-1.5 text-sm font-medium transition-colors",
                 filter === f.value
@@ -144,38 +150,84 @@ export function ClusterAccountsContainer() {
             </button>
           ))}
         </fieldset>
-        <p className="text-sm text-muted-foreground">
-          An account is created on the cluster only after an admin approves it.
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            An account is created on the cluster only after an admin approves it.
+          </p>
+          {canReview ? <CreateClusterAccountDialog /> : null}
+        </div>
       </div>
 
       <ClusterAccountsTable
         rows={query.data?.items ?? []}
         isLoading={query.isLoading}
-        error={(query.error as Error | null) ?? null}
+        error={query.error}
         onRetry={() => void query.refetch()}
-        canReview={canReview}
-        onApprove={openReview("approve")}
-        onDeny={openReview("deny")}
+        onRowClick={(row) => setDetailId(row.id)}
         page={page}
         pageSize={PAGE_SIZE}
         total={query.data?.total ?? 0}
         onPageChange={setPage}
-        emptyHeading={emptyHeading}
+        emptyHeading={current?.empty ?? "Nothing waiting for approval"}
       />
 
-      {canReview ? (
-        <ReviewClusterAccountDialog
-          account={review?.account ?? null}
-          action={review?.action ?? "approve"}
-          onOpenChange={(open) => {
-            if (!open) setReview(null);
-          }}
-          onConfirm={handleConfirm}
-          isPending={approve.isPending || deny.isPending}
-          error={reviewError}
-        />
-      ) : null}
+      <SideDrawer
+        open={detailId !== null}
+        recordKey={detailId ?? undefined}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null);
+        }}
+        title="Cluster account"
+      >
+        {detailId ? (
+          <div className="space-y-4">
+            <ClusterAccountDetail
+              accountId={detailId}
+              canWrite={canReview}
+              onDeleted={() => setDetailId(null)}
+              statusRef={statusRow}
+            />
+            {canReview && detail && detail.approval_status !== "APPROVED" ? (
+              <div className="flex gap-2">
+                {detail.approval_status === "PENDING" ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={(e) => startReview(e.currentTarget, detail, "deny")}
+                  >
+                    Deny
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="success"
+                  onClick={(e) => startReview(e.currentTarget, detail, "approve")}
+                >
+                  Approve
+                </Button>
+              </div>
+            ) : null}
+            {/* Inside the drawer, so a press in the dialog is not a press outside the drawer. */}
+            {canReview ? (
+              <ReviewClusterAccountDialog
+                account={review?.account.id === detailId ? review.account : null}
+                user={detailUser}
+                action={review?.action ?? "approve"}
+                onOpenChange={(open) => {
+                  if (!open) setReview(null);
+                }}
+                onConfirm={handleConfirm}
+                isPending={approve.isPending || deny.isPending}
+                finalFocus={() =>
+                  !reviewed.current && reviewOpener.current?.isConnected
+                    ? reviewOpener.current
+                    : statusRow.current
+                }
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </SideDrawer>
     </div>
   );
 }

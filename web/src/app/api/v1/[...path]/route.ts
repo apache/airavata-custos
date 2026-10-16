@@ -26,14 +26,17 @@ type Context = { params: Promise<{ path: string[] }> };
 
 async function proxy(request: NextRequest, ctx: Context) {
   const { path } = await ctx.params;
-  const upstreamUrl = new URL(`/${path.join("/")}`, serverEnv.CUSTOS_CORE_API_BASE_URL);
+  const upstreamUrl = new URL(
+    `/${path.map(encodeURIComponent).join("/")}`,
+    serverEnv.CUSTOS_CORE_API_BASE_URL,
+  );
   upstreamUrl.search = request.nextUrl.search;
 
   const session = await getPortalSession();
   const bearer = pickBackendBearer(session);
   if (!bearer) {
     return NextResponse.json(
-      { code: "missing_bearer", message: "Not authenticated" },
+      { error: "Not authenticated", code: "missing_bearer" },
       { status: 401 },
     );
   }
@@ -53,7 +56,13 @@ async function proxy(request: NextRequest, ctx: Context) {
     headers,
     body,
     cache: "no-store",
-  });
+  }).catch(() => null);
+  if (!upstream) {
+    return NextResponse.json(
+      { error: "the Custos server could not be reached", code: "upstream_unreachable" },
+      { status: 502 },
+    );
+  }
 
   const responseHeaders = new Headers();
   const upstreamType = upstream.headers.get("content-type");

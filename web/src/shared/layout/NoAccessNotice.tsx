@@ -17,16 +17,23 @@
 
 "use client";
 
-import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
 const HEADING = "No portal access";
-const BODY = "No account was found for this sign-in. Ask an administrator for access.";
+const BODY =
+  "Your account could not be looked up; the server may be unreachable. Sign in again to retry.";
+// Ending the session first makes the IdP ask again instead of returning the same sign-in; the new
+// sign-in comes back to the page that showed the notice.
+const resignIn = (here: string) =>
+  `/api/auth/end-session?callbackUrl=${encodeURIComponent(`/sign-in?callbackUrl=${encodeURIComponent(here)}`)}`;
 
-// Shown when the sign-in matches no Custos user. The message also stays on
-// the page, since a toast alone disappears.
+// Shown when /me could not be reached at sign-in (a refused sign-in is redirected by the portal
+// layout). The message also stays on the page, since a toast alone disappears.
 export function NoAccessNotice() {
+  const search = useSearchParams().toString();
+  const here = `${usePathname()}${search && `?${search}`}`;
   React.useEffect(() => {
     toast.error(HEADING, { description: BODY });
   }, []);
@@ -34,9 +41,9 @@ export function NoAccessNotice() {
     <div className="flex flex-col gap-2">
       <h1 className="text-2xl font-bold tracking-tight">{HEADING}</h1>
       <p className="text-sm text-muted-foreground">{BODY}</p>
-      <Link href="/sign-in" className="mt-2 text-sm font-medium text-brand">
-        Sign in as a different user
-      </Link>
+      <a href={resignIn(here)} className="mt-2 text-sm font-medium text-link">
+        Sign in again
+      </a>
     </div>
   );
 }

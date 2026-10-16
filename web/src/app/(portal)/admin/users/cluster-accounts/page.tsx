@@ -15,14 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { pageMetadata } from "@/shared/layout/nav";
+import { DeclaredParams } from "@/shared/ui/ViewParamsDropped";
 import { UsersNav } from "../UsersNav";
 import { ClusterAccountsContainer } from "./ClusterAccountsContainer";
 
+export const metadata = pageMetadata("/admin/users/cluster-accounts");
+
 export default function ClusterAccountsPage() {
   return (
-    <div className="space-y-4">
-      <UsersNav />
-      <ClusterAccountsContainer />
-    </div>
+    <>
+      <DeclaredParams keys={["status", "account", "page"]} />
+      <div className="space-y-4">
+        <UsersNav />
+        <ClusterAccountsContainer />
+      </div>
+    </>
   );
 }

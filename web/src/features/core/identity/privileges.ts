@@ -20,6 +20,7 @@ import type { MyAccess } from "./queries";
 export type ProvenanceKind = "role" | "direct" | "unknown";
 
 export type PrivilegeRow = {
+  key: string;
   prefix: string;
   actions: string[];
   provenance: ProvenanceKind;
@@ -33,17 +34,15 @@ const UNKNOWN_SOURCE: Source = { kind: "unknown", label: "" };
 
 export function buildPrivilegeRows(access: MyAccess): PrivilegeRow[] {
   const sourceByKey = new Map<string, Source>();
-  for (const rwp of access.roles) {
-    const roleId = rwp.role.id ?? "";
-    const label = rwp.role.name ?? "Role";
-    for (const key of rwp.privileges) {
+  for (const held of access.roles) {
+    const { id: roleId, name: label } = held.role;
+    for (const key of held.privileges ?? []) {
       if (!sourceByKey.has(key)) sourceByKey.set(key, { roleId, kind: "role", label });
     }
   }
   for (const grant of access.direct) {
-    const key = grant.privilege;
-    if (key && !sourceByKey.has(key)) {
-      sourceByKey.set(key, { kind: "direct", label: "Direct grant" });
+    if (!sourceByKey.has(grant.privilege)) {
+      sourceByKey.set(grant.privilege, { kind: "direct", label: "Direct grant" });
     }
   }
 
@@ -52,6 +51,7 @@ export function buildPrivilegeRows(access: MyAccess): PrivilegeRow[] {
     ? { kind: "direct" as const, label: "Direct grant" }
     : UNKNOWN_SOURCE;
 
+  // One row per prefix and source, so a prefix split across a role and a direct grant shows both.
   const rows = new Map<string, PrivilegeRow>();
   for (const key of [...access.privileges].sort()) {
     const lastColon = key.lastIndexOf(":");
@@ -59,16 +59,18 @@ export function buildPrivilegeRows(access: MyAccess): PrivilegeRow[] {
     const prefix = key.slice(0, lastColon);
     const action = key.slice(lastColon + 1);
     const source = sourceByKey.get(key) ?? fallback;
-    let row = rows.get(prefix);
+    const rowKey = `${prefix} ${source.roleId ?? source.kind}`;
+    let row = rows.get(rowKey);
     if (!row) {
       row = {
+        key: rowKey,
         prefix,
         actions: [],
         provenance: source.kind,
         roleId: source.roleId,
         provenanceLabel: source.label,
       };
-      rows.set(prefix, row);
+      rows.set(rowKey, row);
     }
     if (!row.actions.includes(action)) row.actions.push(action);
   }

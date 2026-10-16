@@ -27,6 +27,7 @@ import {
   buildFlow,
   containersOf,
   defaultExpanded,
+  deliveryLabel,
   expandableKeys,
   flattenFlow,
   pathRails,
@@ -57,15 +58,17 @@ describe("buildFlow", () => {
     ]);
   });
 
-  // Make sure the failing step is the connector's own error row, not the
-  // worker's try row that repeats it, and that the path to it runs from the
-  // origin through the hop into that delivery and no other.
-  it("picks the connector's error as the failing step and marks the path to it", () => {
+  // Make sure the failing step is the connector's own error row on the last
+  // try, not the worker's try row that repeats it, and that the path to it
+  // runs from the origin through the hop into that delivery and no other.
+  it("picks the connector's last error as the failing step and marks the path to it", () => {
     const { model, rows } = allRows(failed);
     const failing = model.steps.get(model.failingStepId ?? "")?.step;
     expect(failing?.event_type).toBe("ComanageProvisioningFailed");
     const onPath = rows.filter((r) => "onPath" in r && r.onPath);
-    expect(onPath.map((r) => r.kind)).toEqual(["group", "step", "hop", "group", "step", "step"]);
+    expect(model.failingStepId).toBe(model.errorStepIds.at(-1));
+    expect(onPath.slice(0, 4).map((r) => r.kind)).toEqual(["group", "step", "hop", "group"]);
+    expect(onPath.at(-1)?.key).toBe(model.failingStepId);
     const amie = rows.find((r) => r.kind === "group" && r.title === "amie-processor");
     expect(amie?.kind === "group" && amie.onPath).toBe(false);
   });
@@ -76,6 +79,27 @@ describe("buildFlow", () => {
     const { model } = allRows(done);
     expect(model.failingStepId).toBeNull();
     expect(model.errorStepIds).toEqual([]);
+  });
+
+  // Make sure a done trace has no failing step, so an AMIE attempt a later one superseded reads as a past try.
+  it("finds no failing step in a done trace", () => {
+    const { model, rows } = allRows({ ...packet, status: "ok" });
+    expect(model.failingStepId).toBeNull();
+    expect(rows.find((r) => r.kind === "group")).toMatchObject({ status: "past" });
+    expect(allRows(packet).model.failingStepId).not.toBeNull();
+  });
+
+  // Make sure only the last AMIE attempt of a gave-up trace reads as failed; earlier ones read Retried.
+  it("marks an attempt a later attempt superseded as a past try", () => {
+    const retry = packet.tree.map((n) => ({
+      ...n,
+      id: `${n.id}-2`,
+      span_id: "9999e099218d2af1",
+      created_at: n.created_at.replace("20:29", "20:39"),
+    }));
+    const { rows } = allRows({ ...packet, tree: [...packet.tree, ...retry] });
+    const groups = rows.filter((r) => r.kind === "group");
+    expect(groups.map((g) => g.kind === "group" && g.status)).toEqual(["past", "error"]);
   });
 
   // Make sure a connector that published its own event shows that hop under
@@ -121,6 +145,58 @@ describe("buildFlow", () => {
     expect(fold?.kind === "fold" && fold.count).toBe(8);
     const tries = rows.filter((r) => r.kind === "step" && r.try?.outcome === "failed");
     expect(tries.map((t) => t.kind === "step" && t.try?.n)).toEqual([1, 10]);
+  });
+
+  // Make sure tries keep counting past an admin retry, which resets the
+  // server's attempt, and the fold and the delivery's label count tries only, not the retry row.
+  it("numbers tries continuously across an admin retry", () => {
+    const deliveryId = "8aaf8ebb-91e2-4df0-9026-b09f76ed05d1";
+    const row = (id: string, event_type: string, created_at: string, description: string) => ({
+      ...failed.tree[0]?.children[0],
+      id,
+      event_type,
+      created_at,
+      description,
+      span_id: id.slice(0, 16),
+      entity_type: "event_delivery",
+      entity_id: deliveryId,
+      status: "ok",
+      children: [],
+    });
+    const root = failed.tree[0];
+    const detail = traceDetailSchema.parse({
+      ...failed,
+      deliveries: failed.deliveries.map((d) =>
+        d.id === deliveryId ? { ...d, status: "SUCCEEDED", attempts: 1 } : d,
+      ),
+      tree: [
+        {
+          ...root,
+          children: [
+            ...(root?.children ?? []),
+            row("aaaaaaaaaaaaaaaa1", "EVENT_DELIVERY_RETRIED", "2026-10-09T21:00:00Z", "{}"),
+            row(
+              "bbbbbbbbbbbbbbbb1",
+              "EVENT_DELIVERY_SUCCEEDED",
+              "2026-10-09T21:00:05Z",
+              '{"attempt":1}',
+            ),
+          ],
+        },
+      ],
+    });
+    const model = buildFlow(detail);
+    const rows = flattenFlow(model, defaultExpanded(model).add(`d:${deliveryId}`));
+    const fold = rows.find((r) => r.kind === "fold");
+    expect(fold?.kind === "fold" && fold.count).toBe(9);
+    const last = rows.filter((r) => r.kind === "step" && r.try).at(-1);
+    expect(last?.kind === "step" && last.try).toEqual({ n: 11, outcome: "succeeded" });
+    const delivery = rows.find((r) => r.kind === "group" && r.delivery?.id === deliveryId);
+    expect(
+      delivery?.kind === "group" &&
+        delivery.delivery &&
+        deliveryLabel(delivery.delivery, delivery.tries ?? 0),
+    ).toBe("Done after 11 tries");
   });
 });
 

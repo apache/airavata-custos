@@ -1,44 +1,37 @@
 {
-  "alloc-001": [
+  "01000001-0000-4000-8000-000001000001": [
     {
-      "id": "res-a-gpu",
-      "name": "ClusterA GPU",
-      "resource_type": "GPU",
+      "id": "12000001-0000-4000-8000-000012000001",
+      "compute_allocation_id": "01000001-0000-4000-8000-000001000001",
+      "compute_allocation_resource_id": "21000002-0000-4000-8000-000021000002",
       "resource_amount": 50000,
-      "compute_cluster_id": "cluster-a"
-    },
-    {
-      "id": "res-b-gpu",
-      "name": "ClusterB GPU A100",
-      "resource_type": "GPU",
-      "resource_amount": 40000,
-      "compute_cluster_id": "cluster-b"
+      "resource_time": 60
     }
   ],
-  "alloc-002": [
+  "01000002-0000-4000-8000-000001000002": [
     {
-      "id": "res-a-cpu",
-      "name": "ClusterA CPU",
-      "resource_type": "CPU",
+      "id": "12000002-0000-4000-8000-000012000002",
+      "compute_allocation_id": "01000002-0000-4000-8000-000001000002",
+      "compute_allocation_resource_id": "21000003-0000-4000-8000-000021000003",
       "resource_amount": 1000000,
-      "compute_cluster_id": "cluster-a"
+      "resource_time": 60
     }
   ],
-  "alloc-003": [
+  "01000003-0000-4000-8000-000001000003": [
     {
-      "id": "res-a-gpu",
-      "name": "ClusterA GPU",
-      "resource_type": "GPU",
-      "resource_amount": 50000,
-      "compute_cluster_id": "cluster-a"
+      "id": "12000003-0000-4000-8000-000012000003",
+      "compute_allocation_id": "01000003-0000-4000-8000-000001000003",
+      "compute_allocation_resource_id": "21000002-0000-4000-8000-000021000002",
+      "resource_amount": 40000,
+      "resource_time": 120
     },
     {
-      "id": "res-c-cpu",
-      "name": "ClusterC RM",
-      "resource_type": "CPU",
-      "resource_amount": 800000,
-      "compute_cluster_id": "cluster-c"
+      "id": "12000004-0000-4000-8000-000012000004",
+      "compute_allocation_id": "01000003-0000-4000-8000-000001000003",
+      "compute_allocation_resource_id": "21000001-0000-4000-8000-000021000001",
+      "resource_amount": 200000,
+      "resource_time": 120
     }
   ],
-  "alloc-004": []
+  "01000004-0000-4000-8000-000001000004": []
 }
