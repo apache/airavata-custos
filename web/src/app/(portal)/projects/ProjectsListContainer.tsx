@@ -28,7 +28,7 @@ import {
   ProjectsList,
 } from "@/features/core/projects/components/ProjectsList";
 import { useProjects } from "@/features/core/projects/queries";
-import type { ProjectStatus } from "@/features/core/projects/schemas";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
 
 function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;
@@ -60,7 +60,7 @@ export function ProjectsListContainer() {
     <ProjectsList
       rows={rows}
       isLoading={query.isLoading}
-      error={(query.error as Error | null) ?? null}
+      error={query.error}
       onRetry={() => query.refetch()}
       search={search}
       onSearchChange={(next) => updateParam("q", next)}

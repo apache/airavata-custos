@@ -16,26 +16,9 @@
 // under the License.
 
 import { z } from "zod";
-import { zOrganization } from "@/generated/core/zod.gen";
+import { zPostOrganizationsBody } from "@/generated/core/zod.gen";
 
-// The generated schema marks every field optional; the backend always returns
-// all three, so tighten them here where the UI reads them.
-export const organizationSchema = zOrganization.required({
-  id: true,
-  name: true,
-  originated_id: true,
-});
-export type Organization = z.infer<typeof organizationSchema>;
-
-// Portal-shaped paginated envelope. Mirrors the projects list contract.
-export const organizationListEnvelopeSchema = z.object({
-  items: z.array(organizationSchema),
-  total: z.number().int().nonnegative(),
-});
-export type OrganizationListEnvelope = z.infer<typeof organizationListEnvelopeSchema>;
-
-export const createOrganizationPayloadSchema = z.object({
-  name: z.string().min(1).max(200),
-  originated_id: z.string().optional(),
-});
+export const createOrganizationPayloadSchema = zPostOrganizationsBody
+  .pick({ originated_id: true })
+  .extend({ name: z.string().min(1).max(200) });
 export type CreateOrganizationPayload = z.infer<typeof createOrganizationPayloadSchema>;

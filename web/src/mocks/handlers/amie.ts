@@ -16,30 +16,29 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 import eventsFixture from "@/features/connectors/amie/__fixtures__/events.json";
 import packetsFixture from "@/features/connectors/amie/__fixtures__/packets.json";
 import repliesFixture from "@/features/connectors/amie/__fixtures__/replies.json";
 import statsFixture from "@/features/connectors/amie/__fixtures__/stats.json";
-import type {
-  Packet,
-  PacketEvent,
-  PacketListResponse,
-  Reply,
-  ReplyListResponse,
-} from "@/features/connectors/amie/types";
+import {
+  linkedEntityRefSchema,
+  packetEventSchema,
+  packetListResponseSchema,
+  replyListResponseSchema,
+} from "@/features/connectors/amie/schemas";
+import type { Packet } from "@/features/connectors/amie/types";
 
-const allPackets: Packet[] = ((packetsFixture as PacketListResponse).packets as Packet[]).map(
-  (p) => ({ ...p }),
-);
-const eventsByPacket: Record<string, PacketEvent[]> = Object.fromEntries(
-  Object.entries(eventsFixture as Record<string, PacketEvent[]>).map(([id, rows]) => [
-    id,
-    rows.map((r) => ({ ...r })),
-  ]),
-);
-const allReplies: Reply[] = ((repliesFixture as ReplyListResponse).replies as Reply[]).map((r) => ({
-  ...r,
-}));
+const allPackets = packetListResponseSchema.parse(packetsFixture).packets;
+const eventsByPacket = z.record(z.string(), z.array(packetEventSchema)).parse(eventsFixture);
+const allReplies = replyListResponseSchema.parse(repliesFixture).replies;
+
+type IdParams = { id: string };
+const resolveBodySchema = z.object({ reason: z.string().optional() });
+const linkBodySchema = z.object({
+  entity_type: linkedEntityRefSchema.shape.type.optional(),
+  entity_id: z.string().optional(),
+});
 
 function filterPackets(url: URL): {
   rows: Packet[];
@@ -76,20 +75,20 @@ export const amieHandlers = [
     return HttpResponse.json({ packets: rows, total, limit, offset });
   }),
 
-  http.get("/api/v1/connectors/amie/packets/:id", ({ params }) => {
+  http.get<IdParams>("/api/v1/connectors/amie/packets/:id", ({ params }) => {
     const id = String(params.id);
     const packet = allPackets.find((p) => p.id === id);
     if (!packet) return HttpResponse.json({ error: "not_found" }, { status: 404 });
     return HttpResponse.json(packet);
   }),
 
-  http.get("/api/v1/connectors/amie/packets/:id/events", ({ params }) => {
+  http.get<IdParams>("/api/v1/connectors/amie/packets/:id/events", ({ params }) => {
     const id = String(params.id);
     const rows = eventsByPacket[id] ?? [];
     return HttpResponse.json(rows);
   }),
 
-  http.post("/api/v1/connectors/amie/packets/:id/retry", ({ params }) => {
+  http.post<IdParams>("/api/v1/connectors/amie/packets/:id/retry", ({ params }) => {
     const id = String(params.id);
     const packet = allPackets.find((p) => p.id === id);
     if (!packet) return HttpResponse.json({ error: "not_found" }, { status: 404 });
@@ -99,11 +98,11 @@ export const amieHandlers = [
     return HttpResponse.json({ queued: true, packet });
   }),
 
-  http.post("/api/v1/connectors/amie/packets/:id/resolve", async ({ params, request }) => {
+  http.post<IdParams>("/api/v1/connectors/amie/packets/:id/resolve", async ({ params, request }) => {
     const id = String(params.id);
     const packet = allPackets.find((p) => p.id === id);
     if (!packet) return HttpResponse.json({ error: "not_found" }, { status: 404 });
-    const body = (await request.json().catch(() => ({}))) as { reason?: string };
+    const body = resolveBodySchema.parse(await request.json().catch(() => ({})));
     if (!body.reason || body.reason.trim().length < 3) {
       return HttpResponse.json({ error: "reason_required" }, { status: 400 });
     }
@@ -128,7 +127,7 @@ export const amieHandlers = [
     });
   }),
 
-  http.post("/api/v1/connectors/amie/replies/:id/retry", ({ params }) => {
+  http.post<IdParams>("/api/v1/connectors/amie/replies/:id/retry", ({ params }) => {
     const id = String(params.id);
     const reply = allReplies.find((r) => r.id === id);
     if (!reply) return HttpResponse.json({ error: "not_found" }, { status: 404 });
@@ -150,14 +149,11 @@ export const amieHandlers = [
     });
   }),
 
-  http.post("/api/v1/connectors/amie/unmapped/:id/link", async ({ params, request }) => {
+  http.post<IdParams>("/api/v1/connectors/amie/unmapped/:id/link", async ({ params, request }) => {
     const id = String(params.id);
     const packet = allPackets.find((p) => p.id === id);
     if (!packet) return HttpResponse.json({ error: "not_found" }, { status: 404 });
-    const body = (await request.json().catch(() => ({}))) as {
-      entity_type?: "project" | "account" | "person" | "user_merge";
-      entity_id?: string;
-    };
+    const body = linkBodySchema.parse(await request.json().catch(() => ({})));
     if (!body.entity_type || !body.entity_id) {
       return HttpResponse.json({ error: "entity_required" }, { status: 400 });
     }

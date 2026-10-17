@@ -46,7 +46,7 @@ beforeEach(() => recordTraceId(null));
 
 describe("apiFetch", () => {
   it("prepends /api/v1 and returns the JSON body", async () => {
-    const body = await apiFetch<{ status: string }>("/healthz");
+    const body = await apiFetch("/healthz");
     expect(body).toEqual({ status: "ok" });
   });
 
@@ -62,7 +62,7 @@ describe("apiFetch", () => {
   });
 
   it("sends a JSON body on DELETE requests", async () => {
-    const body = await apiFetch<{ reason: string }>("/grant", {
+    const body = await apiFetch("/grant", {
       method: "DELETE",
       body: { reason: "no longer needed" },
     });
@@ -70,13 +70,13 @@ describe("apiFetch", () => {
   });
 
   it("derives the ApiError message from the body's error field", async () => {
-    const error = await apiFetch("/users/u1/privileges/last", { method: "DELETE" }).catch(
-      (e) => e,
+    const error: unknown = await apiFetch("/users/u1/privileges/last", { method: "DELETE" }).catch(
+      (e: unknown) => e,
     );
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).message).toBe(
-      "cannot remove the last holder of core:roles:manage",
-    );
-    expect((error as ApiError).status).toBe(409);
+    expect(error).toMatchObject({
+      message: "cannot remove the last holder of core:roles:manage",
+      status: 409,
+    });
   });
 });

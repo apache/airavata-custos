@@ -28,7 +28,7 @@ import {
   formatDate,
   type ResourceSeries,
 } from "../lib";
-import type { UsageSummary } from "../schemas";
+import type { UsageSummary } from "@/generated/analytics/zod.gen";
 
 const PLOT_HEIGHT = 160;
 

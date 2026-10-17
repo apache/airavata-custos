@@ -8,6 +8,7 @@
     "initial_su_amount": 250000,
     "start_time": "2026-04-01T00:00:00.000Z",
     "end_time": "2027-03-31T00:00:00.000Z",
+    "posix_group": null,
     "group_provisioned_at": null
   },
   {
@@ -19,6 +20,7 @@
     "initial_su_amount": 80000,
     "start_time": "2026-04-01T00:00:00.000Z",
     "end_time": "2027-03-31T00:00:00.000Z",
+    "posix_group": null,
     "group_provisioned_at": null
   },
   {
@@ -30,6 +32,7 @@
     "initial_su_amount": 150000,
     "start_time": "2026-04-12T00:00:00.000Z",
     "end_time": "2027-04-11T00:00:00.000Z",
+    "posix_group": null,
     "group_provisioned_at": null
   },
   {
@@ -41,6 +44,7 @@
     "initial_su_amount": 50000,
     "start_time": "2026-02-09T00:00:00.000Z",
     "end_time": "2026-08-09T00:00:00.000Z",
+    "posix_group": null,
     "group_provisioned_at": null
   }
 ]

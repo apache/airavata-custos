@@ -19,10 +19,10 @@
 
 import { Building2, Calendar, UserSquare } from "lucide-react";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { Project } from "../schemas";
+import type { ProjectResponse } from "@/generated/core/zod.gen";
 
 export type ProjectDetailHeaderProps = {
-  project: Project;
+  project: ProjectResponse;
 };
 
 function formatDate(iso: string): string {

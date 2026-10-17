@@ -20,7 +20,7 @@
 import * as React from "react";
 import { AllocationsList } from "@/features/core/allocations/components/AllocationsList";
 import { useAllocations } from "@/features/core/allocations/queries";
-import type { AllocationStatus } from "@/features/core/allocations/schemas";
+import type { AllocationStatus } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
@@ -55,7 +55,7 @@ export function AllocationsListContainer() {
     <AllocationsList
       rows={rows}
       isLoading={query.isLoading}
-      error={(query.error as Error | null) ?? null}
+      error={query.error}
       onRetry={() => query.refetch()}
       search={search}
       onSearchChange={(next) => updateParam("q", next)}

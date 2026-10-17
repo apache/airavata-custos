@@ -19,6 +19,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AddUserDialog } from "../AddUserDialog";
 
+function box(text: RegExp): HTMLInputElement {
+  const input = screen.getByText(text).closest("label")?.querySelector("input");
+  if (!input) throw new Error(`no checkbox for ${text}`);
+  return input;
+}
+
 function renderDialog(overrides: Partial<Parameters<typeof AddUserDialog>[0]> = {}) {
   const onSubmit = vi.fn();
   render(
@@ -38,6 +44,7 @@ function renderDialog(overrides: Partial<Parameters<typeof AddUserDialog>[0]> = 
           initial_su_amount: 1000,
           start_time: "2026-01-01T00:00:00Z",
           end_time: "2027-01-01T00:00:00Z",
+          posix_group: null,
           group_provisioned_at: null,
         },
       ]}
@@ -97,16 +104,13 @@ describe("AddUserDialog", () => {
     const { onSubmit } = renderDialog();
     fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
 
-    const clusterAdmin = screen
-      .getByText(/Admin access on the cluster itself/)
-      .closest("label")
-      ?.querySelector("input");
+    const clusterAdmin = box(/Admin access on the cluster itself/);
     expect(clusterAdmin).toBeEnabled();
 
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "sandrade@sdsc.edu" },
     });
-    fireEvent.click(clusterAdmin as HTMLInputElement);
+    fireEvent.click(clusterAdmin);
     fireEvent.click(screen.getByRole("button", { name: "Add admin user" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -122,8 +126,6 @@ describe("AddUserDialog", () => {
     const { onSubmit } = renderDialog();
     fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
 
-    const box = (text: RegExp) =>
-      screen.getByText(text).closest("label")?.querySelector("input") as HTMLInputElement;
     fireEvent.click(box(/Admin access on the cluster itself/));
     fireEvent.click(box(/Manage users, allocations, and settings/));
 
@@ -143,12 +145,7 @@ describe("AddUserDialog", () => {
   it("blocks submit when neither kind of admin access is picked", () => {
     const { onSubmit } = renderDialog();
     fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
-    fireEvent.click(
-      screen
-        .getByText(/Manage users, allocations, and settings/)
-        .closest("label")
-        ?.querySelector("input") as HTMLInputElement,
-    );
+    fireEvent.click(box(/Manage users, allocations, and settings/));
     expect(screen.getByRole("button", { name: "Add admin user" })).toBeDisabled();
     expect(onSubmit).not.toHaveBeenCalled();
   });

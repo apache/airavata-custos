@@ -17,8 +17,9 @@
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { ProjectMember } from "../schemas";
 
-function member(over: Record<string, unknown>) {
+function member(over: Partial<ProjectMember>): ProjectMember {
   return {
     id: "pm-x",
     project_id: "p-1",

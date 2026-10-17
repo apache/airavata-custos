@@ -16,14 +16,20 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import type { ComputeAllocationResource, Rate } from "@/features/core/resources/schemas";
+import {
+  type ComputeAllocationResourceRate,
+  zComputeAllocationResource,
+  zComputeAllocationResourceRate,
+  zPostComputeAllocationResourceRatesBody,
+} from "@/generated/core/zod.gen";
 
-const resources = resourcesFixture as ComputeAllocationResource[];
-const rates = ratesFixture as Rate[];
+const resources = z.array(zComputeAllocationResource).parse(resourcesFixture);
+const rates = z.array(zComputeAllocationResourceRate).parse(ratesFixture);
 
-function ratesFor(resourceId: string): Rate[] {
+function ratesFor(resourceId: string): ComputeAllocationResourceRate[] {
   return rates.filter((r) => r.compute_allocation_resource_id === resourceId);
 }
 
@@ -53,7 +59,7 @@ export const resourcesHandlers = [
     ),
   ),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates/effective", ({ params, request }) => {
+  http.get<{ id: string }>("*/api/v1/compute-allocation-resources/:id/rates/effective", ({ params, request }) => {
     const id = String(params.id);
     const at = new URL(request.url).searchParams.get("at");
     const now = at ? new Date(at).getTime() : Date.now();
@@ -64,14 +70,14 @@ export const resourcesHandlers = [
     return HttpResponse.json(active);
   }),
 
-  http.get("*/api/v1/compute-allocation-resources/:id/rates", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/compute-allocation-resources/:id/rates", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(ratesFor(id));
   }),
 
   http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
-    const body = (await request.json()) as Partial<Rate>;
-    const created: Rate = {
+    const body = zPostComputeAllocationResourceRatesBody.parse(await request.json());
+    const created: ComputeAllocationResourceRate = {
       id: `rate-${Date.now()}`,
       compute_allocation_resource_id: String(body.compute_allocation_resource_id),
       rate: Number(body.rate),

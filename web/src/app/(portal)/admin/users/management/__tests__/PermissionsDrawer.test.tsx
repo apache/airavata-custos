@@ -16,6 +16,7 @@
 // under the License.
 
 import type { UserManagementRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PermissionsDrawer } from "../PermissionsDrawer";
@@ -50,12 +51,23 @@ vi.mock("../RoleAssignMenu", () => ({
   ),
 }));
 
+const adminRole: Role = {
+  id: "role-1",
+  name: "Administrator",
+  description: null,
+  is_system: false,
+  created_at: "2026-01-01T00:00:00Z",
+};
+
 const user: UserManagementRow = {
   id: "user-1",
   email: "user@example.org",
   first_name: "Example",
   last_name: "User",
-  roles: [{ id: "role-1", name: "Administrator" }],
+  organization_id: "org-1",
+  status: "ACTIVE",
+  type: "CLUSTER_LOCAL",
+  roles: [adminRole],
   identities: [],
   rolesLoading: false,
   identitiesLoading: false,
@@ -68,7 +80,7 @@ describe("PermissionsDrawer", () => {
     queryMocks.mutateAsync.mockRejectedValueOnce(new Error("role update failed"));
     const onClose = vi.fn();
     const props = {
-      rolesCatalog: [{ id: "role-1", name: "Administrator" }],
+      rolesCatalog: [adminRole],
       canManageRoles: true,
       canReadDirectPrivileges: false,
       currentUserEmail: "another@example.org",

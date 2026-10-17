@@ -19,7 +19,6 @@
 
 import type { z } from "zod";
 import type {
-  deliveryStatusSchema,
   stepSchema,
   traceDeliverySchema,
   traceDetailSchema,
@@ -31,7 +30,6 @@ import type {
 export type { StepNode } from "./schemas";
 
 export type TraceStatus = z.infer<typeof traceStatusSchema>;
-export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 export type TraceSummary = z.infer<typeof traceSummarySchema>;
 export type TraceListResponse = z.infer<typeof traceListSchema>;
 export type Step = z.infer<typeof stepSchema>;

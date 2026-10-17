@@ -82,9 +82,7 @@ export function togglePermission(permissions: PermissionKey[], key: PermissionKe
   const { action } = splitPermission(key);
   const isRead = action === "read";
   const isWrite = action === "write";
-  const pairedKey = (
-    isRead ? key.replace(/:read$/, ":write") : key.replace(/:write$/, ":read")
-  ) as PermissionKey;
+  const pairedKey = isRead ? key.replace(/:read$/, ":write") : key.replace(/:write$/, ":read");
 
   if (held.has(key)) {
     held.delete(key);

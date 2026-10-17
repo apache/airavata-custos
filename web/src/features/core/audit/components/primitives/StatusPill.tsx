@@ -33,7 +33,7 @@ export type PillStatus = ListStatus | "ok" | "error" | "muted";
 
 export type StatusPillProps = {
   status: PillStatus;
-  label?: string;
+  label?: string | undefined;
   size?: "sm" | "md";
   className?: string;
 };

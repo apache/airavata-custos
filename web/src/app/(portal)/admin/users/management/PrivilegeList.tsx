@@ -34,9 +34,9 @@ export function groupPrivileges(privileges: string[]): GroupedPrivilege[] {
       continue;
     }
     const [, section, action] = match;
-    if (!section || !action) continue;
+    if (!section || (action !== "read" && action !== "write")) continue;
     const current = rw.get(section) ?? { read: false, write: false };
-    current[action as "read" | "write"] = true;
+    current[action] = true;
     rw.set(section, current);
   }
 

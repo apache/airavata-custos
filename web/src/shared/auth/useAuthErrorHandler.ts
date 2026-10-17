@@ -21,12 +21,9 @@ import { signOut } from "next-auth/react";
 import { useCallback } from "react";
 import { ApiError } from "@/shared/api/client";
 
-type ErrorBody = { code?: unknown };
-
 function readCode(body: unknown): string | null {
-  if (!body || typeof body !== "object") return null;
-  const code = (body as ErrorBody).code;
-  return typeof code === "string" ? code : null;
+  if (!body || typeof body !== "object" || !("code" in body)) return null;
+  return typeof body.code === "string" ? body.code : null;
 }
 
 export function useAuthErrorHandler() {

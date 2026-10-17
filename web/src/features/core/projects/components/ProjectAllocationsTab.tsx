@@ -50,7 +50,7 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = query.data?.items ?? [];
   if (rows.length === 0) {

@@ -25,6 +25,8 @@ import createdDone from "@/features/core/audit/__fixtures__/trace.created.done.j
 import deniedDone from "@/features/core/audit/__fixtures__/trace.denied.done.json";
 import packetFailed from "@/features/core/audit/__fixtures__/trace.packet.failed.json";
 import tracesListFixture from "@/features/core/audit/__fixtures__/traces.list.json";
+import { traceDetailSchema } from "@/features/core/audit/schemas";
+import type { StepNode } from "@/features/core/audit/types";
 import { http, HttpResponse } from "msw";
 
 type TraceSummary = (typeof tracesListFixture)["traces"][number];
@@ -42,18 +44,19 @@ const allTraces: TraceSummary[] = tracesListFixture.traces.map((t) => ({
 }));
 
 const traceDetailsById: Record<string, unknown> = Object.fromEntries(
-  [approveFailed, approveRetrying, approveDone, deniedDone, packetFailed, createdDone].map((d) => [
-    d.trace_id,
-    {
-      ...d,
-      tree: shiftTree(d.tree as TreeNode[]),
-      deliveries: d.deliveries.map((x) => ({ ...x, next_run_at: shifted(x.next_run_at) })),
-    },
-  ]),
+  [approveFailed, approveRetrying, approveDone, deniedDone, packetFailed, createdDone]
+    .map((raw) => traceDetailSchema.parse(raw))
+    .map((d) => [
+      d.trace_id,
+      {
+        ...d,
+        tree: shiftTree(d.tree),
+        deliveries: d.deliveries.map((x) => ({ ...x, next_run_at: shifted(x.next_run_at) })),
+      },
+    ]),
 );
 
-type TreeNode = { created_at: string; children: TreeNode[] } & Record<string, unknown>;
-function shiftTree(nodes: TreeNode[]): TreeNode[] {
+function shiftTree(nodes: StepNode[]): StepNode[] {
   return nodes.map((n) => ({
     ...n,
     created_at: shifted(n.created_at),
@@ -92,8 +95,8 @@ export const tracesHandlers = [
     HttpResponse.json(filterList(new URL(request.url))),
   ),
 
-  http.get("/api/v1/audit/traces/:traceId", ({ params }) => {
-    const detail = traceDetailsById[String(params.traceId)];
+  http.get("/api/v1/audit/traces/:traceId", ({ params: { traceId } }) => {
+    const detail = traceDetailsById[String(traceId)];
     if (!detail) return HttpResponse.json({ error: "trace not found" }, { status: 404 });
     return HttpResponse.json(detail);
   }),

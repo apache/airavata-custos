@@ -18,9 +18,9 @@
 "use client";
 
 import { Link2 } from "lucide-react";
+import type { UserIdentity } from "@/generated/core/zod.gen";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import type { UserIdentity } from "../schemas";
 
 function formatDate(iso?: string): string | null {
   if (!iso) return null;
@@ -48,11 +48,11 @@ export function IdentitiesCard({ identities }: { identities: UserIdentity[] }) {
             const linked = formatDate(identity.created_at);
             return (
               <li
-                key={identity.id ?? `${identity.source}-${identity.external_id}`}
+                key={identity.id}
                 className="flex flex-wrap items-center gap-3 px-6 py-3.5"
               >
                 <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <span className="min-w-[88px] font-semibold">{identity.source ?? "—"}</span>
+                <span className="min-w-[88px] font-semibold">{identity.source}</span>
                 <span className="flex-1 font-mono text-[13px]">
                   {identity.external_id || identity.email || "—"}
                 </span>

@@ -19,93 +19,69 @@ import { z } from "zod";
 import {
   zRole,
   zUser,
-  zUserIdentity,
   zUserPrivilege,
   zUserRole,
+  zCallerRoleGrant,
+  zGetMeResponse,
+  zGetRolesByIdResponse,
+  zGetRolesResponse,
+  zGetUserPrivilegesResponse,
+  zGetUsersByIdRolesResponse,
+  zGetUsersByIdUserIdentitiesResponse,
 } from "@/generated/core/zod.gen";
 
 // Any non-empty string. Connector registries extend the catalog at runtime,
 // so the generated core-only enum can't be a tight bound.
 export const privilegeKeySchema = z.string().min(1);
-// granted_by and reason are nullable (*string) on the backend, so they arrive
-// as JSON null; the generated schema only allows undefined, so widen them.
-const nullableGrantMeta = {
-  granted_by: z.string().nullish(),
-  reason: z.string().nullish(),
-};
-export const userPrivilegeSchema = zUserPrivilege.extend(nullableGrantMeta);
-export const userRoleSchema = zUserRole.extend(nullableGrantMeta);
-export const roleSchema = zRole;
-export const userSchema = zUser;
-export const userIdentitySchema = zUserIdentity;
+export const userPrivilegeSchema = zUserPrivilege.extend({ privilege: privilegeKeySchema });
 
 export const roleWithPrivilegesSchema = z.object({
   role: zRole,
   privileges: z.array(privilegeKeySchema),
   // The caller's grant for this role (granted_at, granted_by, reason).
-  grant: userRoleSchema,
+  grant: zUserRole,
 });
 
-export const callerPrivilegesSchema = z.object({
-  privileges: z.array(privilegeKeySchema).optional(),
-});
+export const privilegesResponseSchema = zGetUserPrivilegesResponse
+  .extend({ privileges: z.array(privilegeKeySchema) })
+  .transform((value) => value.privileges);
 
-export const privilegesResponseSchema = callerPrivilegesSchema.transform(
-  (value) => value.privileges ?? [],
-);
-
-export const callerRoleGrantSchema = z.object({
-  role: zRole,
-  privileges: z
-    .array(privilegeKeySchema)
-    .nullish()
-    .transform((value) => value ?? []),
-  granted_at: z.string(),
+export const callerRoleGrantSchema = zCallerRoleGrant.extend({
+  privileges: z.array(privilegeKeySchema),
 });
 
 // GET /me: profile plus effective privilege keys and held roles.
-export const meResponseSchema = z.object({
+export const meResponseSchema = zGetMeResponse.extend({
   user: zUser,
-  privileges: z.array(privilegeKeySchema).optional(),
-  roles: z
-    .array(callerRoleGrantSchema)
-    .nullish()
-    .transform((value) => value ?? []),
+  privileges: z.array(privilegeKeySchema),
+  roles: z.array(callerRoleGrantSchema),
 });
 
 // Backend may send null instead of [] for empty lists; tolerate it.
-export const userIdentitiesResponseSchema = z
-  .array(zUserIdentity)
-  .nullish()
-  .transform((value) => value ?? []);
+export const userIdentitiesResponseSchema = zGetUsersByIdUserIdentitiesResponse.transform(
+  (value) => value ?? [],
+);
 
-export const userRolesResponseSchema = z
-  .array(userRoleSchema)
-  .nullish()
-  .transform((value) => value ?? []);
+export const userRolesResponseSchema = zGetUsersByIdRolesResponse.transform(
+  (value) => value ?? [],
+);
 
 export const userPrivilegesResponseSchema = z
   .array(userPrivilegeSchema)
-  .nullish()
+  .nullable()
   .transform((value) => value ?? []);
 
 // GET /roles/{id} — a role and the privilege keys it carries.
-export const roleDetailResponseSchema = z.object({
-  role: zRole.optional(),
-  privileges: z.array(privilegeKeySchema).nullish().transform((v) => v ?? []),
+export const roleDetailResponseSchema = zGetRolesByIdResponse.extend({
+  privileges: z
+    .array(privilegeKeySchema)
+    .nullable()
+    .transform((value) => value ?? []),
 });
 
-export const userNameUpdateSchema = z.object({
-  first_name: z.string().optional(),
-  middle_name: z.string().optional(),
-  last_name: z.string().optional(),
-});
+export const rolesResponseSchema = zGetRolesResponse.transform((value) => value ?? []);
 
 export type PrivilegeKey = z.infer<typeof privilegeKeySchema>;
-export type UserProfile = z.infer<typeof zUser>;
-export type UserIdentity = z.infer<typeof zUserIdentity>;
-export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
 export type RoleWithPrivileges = z.infer<typeof roleWithPrivilegesSchema>;
 export type CallerRoleGrant = z.infer<typeof callerRoleGrantSchema>;
-export type UserNameUpdate = z.infer<typeof userNameUpdateSchema>;

@@ -21,7 +21,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useBreadcrumbLabels } from "./BreadcrumbLabelsProvider";
 
-type Segment = { label: string; href?: string };
+type Segment = { label: string; href?: string | undefined };
 
 function titleCase(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

@@ -29,3 +29,12 @@ declare module "next-auth" {
     privileges?: Privilege[];
   }
 }
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+    idToken?: string;
+    privileges?: Privilege[];
+    custosUserId?: string;
+  }
+}

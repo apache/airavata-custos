@@ -17,10 +17,10 @@
 
 "use client";
 
-import type { Project } from "../schemas";
+import type { ProjectResponse } from "@/generated/core/zod.gen";
 
 export type ProjectOverviewTabProps = {
-  project: Project;
+  project: ProjectResponse;
 };
 
 export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {

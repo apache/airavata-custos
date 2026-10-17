@@ -25,18 +25,15 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
-import {
-  useAddMember,
-  useAllocationMembers,
-  useRemoveMember,
-  useUpdateMember,
-} from "../queries";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { useUpdateProjectMember } from "@/features/core/projects/queries";
+import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
 import type {
   AllocationMembership,
-  ComputeAllocation,
+  AllocationMembershipRole,
   CreateMembershipPayload,
 } from "../schemas";
-import { AddMemberDialog } from "./AddMemberDialog";
+import { AddMemberDialog, type Role } from "./AddMemberDialog";
 import { MemberEditDialog, type MemberEditPayload } from "./MemberEditDialog";
 
 export type AllocationMembersTabProps = {
@@ -44,7 +41,7 @@ export type AllocationMembersTabProps = {
   canManage: boolean;
 };
 
-const ROLE_LABELS: Record<string, string> = {
+const ROLE_LABELS: Record<AllocationMembershipRole, string> = {
   PI: "PI",
   CO_PI: "Co-PI",
   ALLOCATION_MANAGER: "Allocation Manager",
@@ -60,14 +57,25 @@ function initialsFrom(name: string): string {
 export function AllocationMembersTab({ allocation, canManage }: AllocationMembersTabProps) {
   const query = useAllocationMembers(allocation.id);
   const addMutation = useAddMember(allocation.id);
-  const updateMutation = useUpdateMember(allocation.id);
+  const roleMutation = useUpdateProjectMember(allocation.project_id);
   const removeMutation = useRemoveMember(allocation.id);
   const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
   const [adding, setAdding] = React.useState(false);
 
+  function handleAdd(payload: CreateMembershipPayload, role: Role) {
+    addMutation.mutate(payload, {
+      onSuccess: () => {
+        setAdding(false);
+        if (role !== "MEMBER") {
+          roleMutation.mutate({ userId: payload.user_id, payload: { role } });
+        }
+      },
+    });
+  }
+
   if (query.isLoading) return <TableSkeleton rows={4} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const members = query.data ?? [];
 
@@ -90,9 +98,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
           onOpenChange={setAdding}
           allocationId={allocation.id}
           defaultEndTime={allocation.end_time}
-          onSubmit={(payload: CreateMembershipPayload) =>
-            addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-          }
+          onSubmit={handleAdd}
           isPending={addMutation.isPending}
         />
       </div>
@@ -127,7 +133,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
       header: "Role",
       width: "11rem",
       cell: (row) => (
-        <span className="text-sm">{row.role ? ROLE_LABELS[row.role] : "—"}</span>
+        <span className="text-sm">{ROLE_LABELS[row.role]}</span>
       ),
     },
     {
@@ -181,8 +187,8 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
 
   function handleEditSubmit(payload: MemberEditPayload) {
     if (!editing) return;
-    updateMutation.mutate(
-      { id: editing.id, patch: payload },
+    roleMutation.mutate(
+      { userId: editing.user_id, payload },
       { onSuccess: () => setEditing(null) },
     );
   }
@@ -200,16 +206,14 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
         member={editing}
         onClose={() => setEditing(null)}
         onSubmit={handleEditSubmit}
-        isPending={updateMutation.isPending}
+        isPending={roleMutation.isPending}
       />
       <AddMemberDialog
         open={adding}
         onOpenChange={setAdding}
         allocationId={allocation.id}
         defaultEndTime={allocation.end_time}
-        onSubmit={(payload: CreateMembershipPayload) =>
-          addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-        }
+        onSubmit={handleAdd}
         isPending={addMutation.isPending}
       />
     </div>

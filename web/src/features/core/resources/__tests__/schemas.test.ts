@@ -16,35 +16,16 @@
 // under the License.
 
 import { describe, expect, it } from "vitest";
-import { computeAllocationResourceSchema, isRateActive, rateSchema, type Rate } from "../schemas";
-
-describe("computeAllocationResourceSchema", () => {
-  it("accepts a fully populated resource", () => {
-    const parsed = computeAllocationResourceSchema.parse({
-      id: "res-1",
-      name: "ClusterA CPU",
-      resource_type: "CPU",
-      resource_amount: 1000,
-      compute_cluster_id: "cluster-a",
-    });
-    expect(parsed.name).toBe("ClusterA CPU");
-  });
-
-  it("rejects a resource missing its cluster id", () => {
-    const result = computeAllocationResourceSchema.safeParse({
-      id: "res-1",
-      name: "ClusterA CPU",
-      resource_type: "CPU",
-      resource_amount: 1000,
-    });
-    expect(result.success).toBe(false);
-  });
-});
+import {
+  type ComputeAllocationResourceRate,
+  zComputeAllocationResourceRate,
+} from "@/generated/core/zod.gen";
+import { isRateActive } from "../schemas";
 
 describe("isRateActive", () => {
   const at = new Date("2026-06-01T00:00:00Z");
-  const rate = (start: string, end: string): Rate =>
-    rateSchema.parse({
+  const rate = (start: string, end: string): ComputeAllocationResourceRate =>
+    zComputeAllocationResourceRate.parse({
       id: "r",
       compute_allocation_resource_id: "res-1",
       rate: 0.05,

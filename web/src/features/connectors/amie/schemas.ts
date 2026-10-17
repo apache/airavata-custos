@@ -15,8 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): adopt zPacket* / zReply* from generated/amie/zod.gen.
-
+import {
+  zPacketEventResponse,
+  zPacketListResponse,
+  zPacketResponse,
+  zPacketStatBucketResponse,
+  zPacketStatsResponse,
+  zReplyListResponse,
+} from "@/generated/amie/zod.gen";
 import { z } from "zod";
 
 export const packetStatusSchema = z.enum([
@@ -34,26 +40,14 @@ export const linkedEntityRefSchema = z.object({
   display_id: z.string().optional(),
 });
 
-export const packetSchema = z.object({
-  id: z.string(),
-  amie_id: z.string(),
-  type: z.string(),
+// The backend sends status as a free string, and neither decoded_payload nor linked_entity yet.
+export const packetSchema = zPacketResponse.extend({
   status: packetStatusSchema,
-  source: z.string(),
-  raw_json: z.string().optional(),
   decoded_payload: z.record(z.string(), z.unknown()).optional(),
-  received_at: z.string(),
-  updated_at: z.string(),
-  decoded_at: z.string().optional(),
-  processed_at: z.string().optional(),
-  retries: z.number().int().nonnegative(),
-  last_error: z.string().optional(),
   linked_entity: linkedEntityRefSchema.optional(),
 });
 
-export const packetEventSchema = z.object({
-  id: z.string(),
-  packet_id: z.string(),
+export const packetEventSchema = zPacketEventResponse.extend({
   event_type: z.enum([
     "RECEIVED",
     "DECODED",
@@ -64,11 +58,7 @@ export const packetEventSchema = z.object({
     "MANUAL_RESOLVE",
     "MANUAL_LINK",
   ]),
-  actor: z.string(),
   status: z.enum(["SUCCEEDED", "FAILED", "RUNNING"]),
-  message: z.string().optional(),
-  timestamp: z.string(),
-  duration_ms: z.number().int().nonnegative().optional(),
   // Backend gap: amie_processing_events has no trace_id column yet. The schema
   // accepts it as optional so the UI can surface ViewTraceLink when present.
   trace_id: z
@@ -79,6 +69,7 @@ export const packetEventSchema = z.object({
 
 export const replyStatusSchema = z.enum(["PENDING", "SENT", "ACKED", "FAILED"]);
 
+// The backend lists replies as untyped values and always an empty list; this is the shape the UI renders.
 export const replySchema = z.object({
   id: z.string(),
   amie_id: z.string(),
@@ -92,28 +83,19 @@ export const replySchema = z.object({
   created_at: z.string(),
 });
 
-export const packetListResponseSchema = z.object({
+export const packetListResponseSchema = zPacketListResponse.extend({
   packets: z.array(packetSchema),
-  total: z.number().int().nonnegative(),
-  limit: z.number().int().nonnegative(),
-  offset: z.number().int().nonnegative(),
 });
 
-export const replyListResponseSchema = z.object({
+export const replyListResponseSchema = zReplyListResponse.extend({
   replies: z.array(replySchema),
-  total: z.number().int().nonnegative(),
-  limit: z.number().int().nonnegative(),
-  offset: z.number().int().nonnegative(),
 });
 
-export const packetStatBucketSchema = z.object({
-  date: z.string(),
+export const packetStatBucketSchema = zPacketStatBucketResponse.extend({
   status: packetStatusSchema,
-  type: z.string(),
-  count: z.number().int().nonnegative(),
 });
 
-export const packetStatsSchema = z.object({
+export const packetStatsSchema = zPacketStatsResponse.extend({
   byDay: z.array(packetStatBucketSchema),
 });
 

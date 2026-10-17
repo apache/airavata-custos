@@ -40,7 +40,8 @@
         "noExplicitAny": "error"
       },
       "style": {
-        "useImportType": "warn"
+        "noNonNullAssertion": "error",
+        "useImportType": "error"
       },
       "a11y": {
         "recommended": true

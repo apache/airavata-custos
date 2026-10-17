@@ -20,26 +20,53 @@ import { describe, expect, it } from "vitest";
 import { AccessCard } from "../AccessCard";
 import type { MyAccess } from "../../queries";
 
+const role = (id: string, name: string) => ({
+  id,
+  name,
+  description: null,
+  is_system: false,
+  created_at: "2026-01-01T00:00:00Z",
+});
+const grant = (role_id: string) => ({
+  user_id: "u-1",
+  role_id,
+  granted_at: "",
+  granted_by: null,
+  reason: null,
+});
+
 const access: MyAccess = {
   provenance: true,
   roles: [
     {
       role: {
-        id: "role-admin",
-        name: "Administrator",
+        ...role("role-admin", "Administrator"),
         description: "Full management.",
         is_system: true,
       },
       privileges: ["core:users:read", "core:users:write"],
-      grant: { role_id: "role-admin", granted_by: "portal-admin", granted_at: "2026-03-12T09:00:00Z" },
+      grant: {
+        ...grant("role-admin"),
+        granted_by: "portal-admin",
+        granted_at: "2026-03-12T09:00:00Z",
+      },
     },
     {
-      role: { id: "role-amie", name: "AMIE Operator" },
+      role: role("role-amie", "AMIE Operator"),
       privileges: ["amie:packets:read", "amie:packets:write"],
-      grant: { role_id: "role-amie" },
+      grant: grant("role-amie"),
     },
   ],
-  direct: [{ privilege: "core:traces:read" }],
+  direct: [
+    {
+      id: "grant-1",
+      user_id: "u-1",
+      privilege: "core:traces:read",
+      granted_at: "2026-01-01T00:00:00Z",
+      granted_by: null,
+      reason: null,
+    },
+  ],
   privileges: [
     "core:users:read",
     "core:users:write",
@@ -50,11 +77,15 @@ const access: MyAccess = {
 };
 
 function rowFor(prefix: string): HTMLElement {
-  return screen.getByText(prefix).closest("div") as HTMLElement;
+  const row = screen.getByText(prefix).closest("div");
+  if (!row) throw new Error(`no row for ${prefix}`);
+  return row;
 }
 
 function roleCard(id: string): HTMLElement {
-  return document.querySelector(`[data-role-id="${id}"]`) as HTMLElement;
+  const card = document.querySelector(`[data-role-id="${id}"]`);
+  if (!(card instanceof HTMLElement)) throw new Error(`no card for ${id}`);
+  return card;
 }
 
 describe("AccessCard", () => {
@@ -119,9 +150,9 @@ describe("AccessCard", () => {
           provenance: false,
           roles: [
             {
-              role: { id: "role-reviewer", name: "Reviewer", description: "Reads reports." },
+              role: { ...role("role-reviewer", "Reviewer"), description: "Reads reports." },
               privileges: ["core:users:read"],
-              grant: { role_id: "role-reviewer", granted_at: "2026-07-01T09:00:00Z" },
+              grant: { ...grant("role-reviewer"), granted_at: "2026-07-01T09:00:00Z" },
             },
           ],
           direct: [],

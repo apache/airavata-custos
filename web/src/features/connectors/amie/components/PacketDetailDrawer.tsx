@@ -245,14 +245,14 @@ export function PacketDetailDrawer({
       {isLoading ? (
         <CenteredSpinner label="Loading packet" />
       ) : error ? (
-        <ErrorState message={error.message ?? "Failed to load packet"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : !packet ? (
         <p className="text-sm text-muted-foreground">Packet not found.</p>
       ) : (
         <div className="space-y-5">
           <TabsPrimitive.Root
             value={tab}
-            onValueChange={(v) => typeof v === "string" && setTab(v as TabValue)}
+            onValueChange={(v) => setTab(TAB_VALUES.find((t) => t === v) ?? tab)}
           >
             <TabsPrimitive.List className="flex gap-1 border-b border-border/80">
               {[

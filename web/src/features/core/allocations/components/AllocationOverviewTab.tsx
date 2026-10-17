@@ -21,7 +21,7 @@ import { useEffectiveRate } from "@/features/core/resources/queries";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { useAllocationResources } from "../queries";
-import type { AttachedResource, ComputeAllocation } from "../schemas";
+import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
@@ -31,7 +31,7 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat().format(n);
 }
 
-function AllocationResourceRow({ resource }: { resource: AttachedResource }) {
+function AllocationResourceRow({ resource }: { resource: ComputeAllocationResource }) {
   const rateQuery = useEffectiveRate(resource.id);
   return (
     <li className="flex items-center justify-between rounded-md border bg-card px-3 py-2 text-sm">
@@ -88,7 +88,7 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
           <TableSkeleton rows={2} columns={3} />
         ) : resourcesQuery.error ? (
           <ErrorState
-            message={(resourcesQuery.error as Error).message}
+            message={resourcesQuery.error.message}
             onRetry={() => resourcesQuery.refetch()}
           />
         ) : !resourcesQuery.data || resourcesQuery.data.length === 0 ? (

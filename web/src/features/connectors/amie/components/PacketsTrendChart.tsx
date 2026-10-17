@@ -49,13 +49,16 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
   const byDay = React.useMemo(() => {
     const days = new Map<string, Record<PacketStatus, number> & { date: string }>();
     for (const b of buckets) {
-      const row =
-        days.get(b.date) ??
-        ({
-          date: b.date,
-          ...Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])),
-        } as Record<PacketStatus, number> & { date: string });
-      row[b.status] = (row[b.status] ?? 0) + b.count;
+      const row = days.get(b.date) ?? {
+        date: b.date,
+        PROCESSED: 0,
+        DECODED: 0,
+        NEW: 0,
+        WAITING_APPROVAL: 0,
+        REFUSED: 0,
+        FAILED: 0,
+      };
+      row[b.status] += b.count;
       days.set(b.date, row);
     }
     return Array.from(days.values()).sort((a, b) => a.date.localeCompare(b.date));

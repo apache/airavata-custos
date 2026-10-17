@@ -30,7 +30,7 @@ import {
   StatusBadge,
   statusBadgeVariantFromAllocationStatus,
 } from "@/shared/ui/StatusBadge";
-import type { Project, ProjectStatus } from "../schemas";
+import type { ProjectResponse, ProjectStatus } from "@/generated/core/zod.gen";
 
 function statusLabelFor(value: string): string {
   switch (value) {
@@ -46,7 +46,7 @@ function statusLabelFor(value: string): string {
 }
 
 export type ProjectsListProps = {
-  rows: Project[];
+  rows: ProjectResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
@@ -80,7 +80,7 @@ export function ProjectsList({
     });
   }, [rows, search, statusFilter]);
 
-  const columns: Array<DataTableColumn<Project>> = [
+  const columns: Array<DataTableColumn<ProjectResponse>> = [
     {
       key: "title",
       header: "Project",
@@ -155,7 +155,7 @@ export function ProjectsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as ProjectStatus | "all")}
+          onValueChange={(value) => value !== null && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
             <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>

@@ -18,8 +18,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createOrganization, listOrganizations } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body: unknown): Response {
   const text = typeof body === "string" ? body : JSON.stringify(body);
@@ -42,7 +42,7 @@ describe("listOrganizations", () => {
     const result = await listOrganizations({ limit: 50, offset: 50 });
     expect(result.total).toBe(1);
     expect(result.items).toHaveLength(1);
-    const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+    const calledUrl = String(fetchMock.mock.calls[0]?.[0]);
     expect(calledUrl).toContain("limit=50");
     expect(calledUrl).toContain("offset=50");
   });
@@ -50,7 +50,7 @@ describe("listOrganizations", () => {
   it("omits the query string when no params are given", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, { items: [], total: 0 }));
     await listOrganizations();
-    const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+    const calledUrl = String(fetchMock.mock.calls[0]?.[0]);
     expect(calledUrl).not.toContain("?");
   });
 

@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { type User, type UserIdentity, type UserNameUpdateRequest, zUser } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   meResponseSchema,
@@ -23,16 +24,8 @@ import {
   userIdentitiesResponseSchema,
   userPrivilegesResponseSchema,
   userRolesResponseSchema,
-  userSchema,
 } from "./schemas";
-import type {
-  CallerRoleGrant,
-  RoleWithPrivileges,
-  UserIdentity,
-  UserNameUpdate,
-  UserPrivilege,
-  UserProfile,
-} from "./schemas";
+import type { CallerRoleGrant, RoleWithPrivileges, UserPrivilege } from "./schemas";
 import type { Privilege } from "./types";
 
 export async function getPrivileges(): Promise<Privilege[]> {
@@ -40,11 +33,11 @@ export async function getPrivileges(): Promise<Privilege[]> {
   return privilegesResponseSchema.parse(raw);
 }
 
-export type Me = { user: UserProfile; privileges: Privilege[]; roles: CallerRoleGrant[] };
+export type Me = { user: User; privileges: Privilege[]; roles: CallerRoleGrant[] };
 
 export async function getMe(): Promise<Me> {
   const parsed = meResponseSchema.parse(await apiFetch("/me"));
-  return { user: parsed.user, privileges: parsed.privileges ?? [], roles: parsed.roles };
+  return { user: parsed.user, privileges: parsed.privileges, roles: parsed.roles };
 }
 
 export async function getMyIdentities(userId: string): Promise<UserIdentity[]> {
@@ -61,16 +54,14 @@ export async function getMyRolesWithPrivileges(
   const grants = userRolesResponseSchema.parse(
     await apiFetch(`/users/${userId}/roles`),
   );
-  const details = await Promise.all(
+  return Promise.all(
     grants.map(async (grant) => {
       const detail = roleDetailResponseSchema.parse(
         await apiFetch(`/roles/${grant.role_id}`),
       );
-      if (!detail.role) return null;
       return { role: detail.role, privileges: detail.privileges, grant };
     }),
   );
-  return details.filter((d): d is RoleWithPrivileges => d !== null);
 }
 
 export async function getMyDirectPrivileges(
@@ -83,9 +74,9 @@ export async function getMyDirectPrivileges(
 
 export async function updateMyName(
   userId: string,
-  name: UserNameUpdate,
-): Promise<UserProfile> {
-  return userSchema.parse(
+  name: UserNameUpdateRequest,
+): Promise<User> {
+  return zUser.parse(
     await apiFetch(`/users/${userId}`, { method: "PUT", body: name }),
   );
 }

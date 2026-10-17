@@ -23,7 +23,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import clusters from "@/features/core/clusters/__fixtures__/clusters.json";
 import projects from "@/features/core/projects/__fixtures__/projects.json";
 import { AllocationsList } from "../components/AllocationsList";
-import type { ComputeAllocation } from "../schemas";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 
 const allocation: ComputeAllocation = {
   id: "alloc-001",
@@ -34,6 +34,7 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
   group_provisioned_at: null,
 };
 
@@ -61,10 +62,10 @@ function renderList(overrides: Partial<React.ComponentProps<typeof AllocationsLi
 }
 
 const server = setupServer(
-  http.get("*/api/v1/projects/:id", ({ params }) =>
+  http.get<{ id: string }>("*/api/v1/projects/:id", ({ params }) =>
     HttpResponse.json(projects.find((p) => p.id === params.id)),
   ),
-  http.get("*/api/v1/compute-clusters/:id", ({ params }) =>
+  http.get<{ id: string }>("*/api/v1/compute-clusters/:id", ({ params }) =>
     HttpResponse.json(clusters.find((c) => c.id === params.id)),
   ),
 );

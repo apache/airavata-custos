@@ -28,12 +28,12 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
-import type { ClusterAccount } from "../schemas";
+import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
 
 export type ReviewAction = "approve" | "deny";
 
 export type ReviewClusterAccountDialogProps = {
-  account: ClusterAccount | null;
+  account: ClusterAccountResponse | null;
   action: ReviewAction;
   onOpenChange: (open: boolean) => void;
   onConfirm: (note: string) => void;

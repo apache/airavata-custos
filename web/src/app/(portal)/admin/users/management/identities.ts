@@ -34,11 +34,11 @@ const IDENTITY_SOURCE_ICONS: Record<string, LucideIcon> = {
   nairr: Fingerprint,
 };
 
-export function identitySourceLabel(source: string | undefined): string {
+export function identitySourceLabel(source: string): string {
   if (!source) return "Unknown";
   return IDENTITY_SOURCE_LABELS[source] ?? source;
 }
 
-export function identitySourceIcon(source: string | undefined): LucideIcon {
-  return (source ? IDENTITY_SOURCE_ICONS[source] : undefined) ?? Fingerprint;
+export function identitySourceIcon(source: string): LucideIcon {
+  return IDENTITY_SOURCE_ICONS[source] ?? Fingerprint;
 }

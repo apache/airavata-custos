@@ -18,7 +18,7 @@
 "use client";
 
 import { useRoleDetails } from "@/features/core/users/queries";
-import type { Role } from "@/features/core/users/schemas";
+import type { Role } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -63,10 +63,7 @@ export function RoleAssignMenu({
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState("");
-  const details = useRoleDetails(
-    roles.flatMap((role) => (role.id ? [role.id] : [])),
-    open,
-  );
+  const details = useRoleDetails(roles.map((role) => role.id), open);
   const detailById = new Map(details.roles.map((role) => [role.id, role]));
 
   function handleOpenChange(next: boolean) {
@@ -126,8 +123,8 @@ export function RoleAssignMenu({
         <div className="-mx-4 max-h-[28rem] overflow-y-auto">
           <ul className="space-y-3 px-6 pt-3 pb-4">
             {roles.map((role) => {
-              const assigned = role.id ? draftIds.has(role.id) : false;
-              const privileges = role.id ? (detailById.get(role.id)?.privileges ?? []) : [];
+              const assigned = draftIds.has(role.id);
+              const privileges = detailById.get(role.id)?.privileges ?? [];
 
               return (
                 <li key={role.id} className="overflow-hidden rounded-lg border border-border">
@@ -145,7 +142,7 @@ export function RoleAssignMenu({
                       variant={assigned ? "secondary" : "default"}
                       size="sm"
                       className="shrink-0"
-                      onClick={() => role.id && toggleDraft(role.id)}
+                      onClick={() => toggleDraft(role.id)}
                       disabled={isPending}
                     >
                       {assigned ? "Unassign" : "Assign"}

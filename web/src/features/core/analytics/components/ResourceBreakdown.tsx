@@ -16,7 +16,7 @@
 // under the License.
 
 import { CHART_OTHER_COLOR, CHART_SERIES_COLORS } from "../lib";
-import type { UsageSummary } from "../schemas";
+import type { UsageSummary } from "@/generated/analytics/zod.gen";
 import { BudgetDonut, type BudgetSlice } from "./BudgetDonut";
 
 // Where the allocation's credit budget went, resource by resource: colored

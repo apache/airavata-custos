@@ -16,6 +16,7 @@
 // under the License.
 
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { serverEnv } from "@/lib/env";
 import { auth } from "@/shared/auth/auth";
 
@@ -43,6 +44,8 @@ function clearAuthCookies(request: NextRequest, res: NextResponse) {
   }
 }
 
+const discoverySchema = z.object({ end_session_endpoint: z.string() });
+
 // Discover the end-session endpoint; some issuers don't have one.
 async function discoverEndSessionEndpoint(issuer: string): Promise<string | null> {
   try {
@@ -50,8 +53,8 @@ async function discoverEndSessionEndpoint(issuer: string): Promise<string | null
       cache: "no-store",
     });
     if (!res.ok) return null;
-    const doc = (await res.json()) as { end_session_endpoint?: unknown };
-    return typeof doc.end_session_endpoint === "string" ? doc.end_session_endpoint : null;
+    const doc = discoverySchema.safeParse(await res.json());
+    return doc.success ? doc.data.end_session_endpoint : null;
   } catch {
     return null;
   }

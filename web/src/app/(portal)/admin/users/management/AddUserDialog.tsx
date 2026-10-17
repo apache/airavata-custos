@@ -18,8 +18,8 @@
 "use client";
 
 import * as React from "react";
-import type { ComputeAllocation } from "@/features/core/allocations/schemas";
 import type { CreateUserPayload } from "@/features/core/users/schemas";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import {

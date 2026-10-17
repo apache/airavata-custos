@@ -15,18 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { z } from "zod";
-import { zComputeCluster, zComputeClusterUser } from "@/generated/core/zod.gen";
+import "react";
 
-// The generated schema marks every field optional; the backend always returns
-// these, so tighten them here where the UI reads them.
-export const computeClusterSchema = zComputeCluster.required({ id: true, name: true });
-export type ComputeCluster = z.infer<typeof computeClusterSchema>;
-
-export const computeClusterUserSchema = zComputeClusterUser.required({
-  id: true,
-  compute_cluster_id: true,
-  user_id: true,
-  local_username: true,
-});
-export type ComputeClusterUser = z.infer<typeof computeClusterUserSchema>;
+// Inline styles may set CSS custom properties, as the toaster does for its theme tokens.
+declare module "react" {
+  interface CSSProperties {
+    [property: `--${string}`]: string | number | undefined;
+  }
+}

@@ -23,6 +23,7 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
+import { replyStatusSchema } from "../schemas";
 import type { Reply, ReplyStatus } from "../types";
 import { formatDate } from "../utils";
 import { ReplyStatusBadge } from "./PacketStatusBadge";
@@ -114,7 +115,7 @@ export function ReplyTracker({
           <select
             id="reply-status"
             value={statusFilter}
-            onChange={(e) => onStatusChange(e.currentTarget.value as ReplyStatus | "all")}
+            onChange={(e) => onStatusChange(replyStatusSchema.options.find((s) => s === e.currentTarget.value) ?? "all")}
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             <option value="all">All</option>
@@ -130,7 +131,7 @@ export function ReplyTracker({
       </div>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load replies"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
       ) : rows.length === 0 ? (

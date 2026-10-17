@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UsageDailyBucket, UsageResource } from "@/generated/analytics/zod.gen";
 import { describe, expect, it } from "vitest";
 import {
   buildPeriods,
@@ -26,7 +27,6 @@ import {
   formatPercent,
   pctRemaining,
 } from "../lib";
-import type { UsageDailyBucket, UsageResource } from "../schemas";
 
 const NOW = new Date("2026-07-14T12:00:00Z");
 

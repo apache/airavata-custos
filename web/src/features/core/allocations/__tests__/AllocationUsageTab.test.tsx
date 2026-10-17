@@ -17,9 +17,9 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationUsage, ComputeAllocation } from "../schemas";
+import type { ComputeAllocation, ComputeAllocationUsage } from "@/generated/core/zod.gen";
 
-let usage: AllocationUsage[] = [];
+let usage: ComputeAllocationUsage[] = [];
 
 vi.mock("../queries", () => ({
   useAllocationUsage: () => ({ data: usage, isLoading: false, error: null, refetch: vi.fn() }),
@@ -48,10 +48,11 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-12T00:00:00.000Z",
   end_time: "2027-04-11T00:00:00.000Z",
+  posix_group: null,
   group_provisioned_at: null,
 };
 
-function usageRow(overrides: Partial<AllocationUsage>): AllocationUsage {
+function usageRow(overrides: Partial<ComputeAllocationUsage>): ComputeAllocationUsage {
   return {
     id: "use-x",
     compute_allocation_id: "alloc-003",

@@ -239,9 +239,9 @@ export function DataTable<T>({
                           // synthetic events still bubble through the
                           // *component* tree, so without this the row click
                           // fires alongside the menu item's own click.
-                          const target = e.target as HTMLElement;
                           if (
-                            target.closest(
+                            e.target instanceof Element &&
+                            e.target.closest(
                               "button, a, input, select, textarea, label, [role='menu'], [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [role='dialog'], [role='listbox'], [role='option']",
                             )
                           )

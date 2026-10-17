@@ -15,30 +15,26 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import { apiFetch } from "@/shared/api/client";
 import {
   type ComputeCluster,
   type ComputeClusterUser,
-  computeClusterSchema,
-  computeClusterUserSchema,
-} from "./schemas";
-
-// The backend serializes empty lists as JSON null (Go nil slice).
-const clusterListSchema = z.array(computeClusterSchema).nullable();
-const clusterUserListSchema = z.array(computeClusterUserSchema).nullable();
+  zGetComputeClustersByIdResponse,
+  zGetComputeClustersByIdUsersResponse,
+  zGetComputeClustersResponse,
+} from "@/generated/core/zod.gen";
 
 export async function listClusters(): Promise<ComputeCluster[]> {
   const raw = await apiFetch("/compute-clusters");
-  return clusterListSchema.parse(raw) ?? [];
+  return zGetComputeClustersResponse.parse(raw) ?? [];
 }
 
 export async function getCluster(id: string): Promise<ComputeCluster> {
   const raw = await apiFetch(`/compute-clusters/${id}`);
-  return computeClusterSchema.parse(raw);
+  return zGetComputeClustersByIdResponse.parse(raw);
 }
 
 export async function listClusterUsers(id: string): Promise<ComputeClusterUser[]> {
   const raw = await apiFetch(`/compute-clusters/${id}/users`);
-  return clusterUserListSchema.parse(raw) ?? [];
+  return zGetComputeClustersByIdUsersResponse.parse(raw) ?? [];
 }

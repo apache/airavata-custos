@@ -46,7 +46,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   if (allocationQuery.error) {
     return (
       <ErrorState
-        message={(allocationQuery.error as Error).message}
+        message={allocationQuery.error.message}
         onRetry={() => allocationQuery.refetch()}
       />
     );

@@ -18,19 +18,20 @@
 "use client";
 
 import * as React from "react";
+import type { Allocation } from "@/generated/analytics/zod.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { pctRemaining } from "./lib";
-import type { AnalyticsAllocation, AnalyticsContext } from "./schemas";
+import type { AnalyticsContext } from "./schemas";
 
 // The lowest-remaining allocation across all contexts — the one most likely to
 // need attention, used as the landing default when the URL says nothing.
 function mostAtRisk(
   contexts: AnalyticsContext[],
-): { project: AnalyticsContext; allocation: AnalyticsAllocation } | undefined {
-  let best: { project: AnalyticsContext; allocation: AnalyticsAllocation; pct: number } | undefined;
+): { project: AnalyticsContext; allocation: Allocation } | undefined {
+  let best: { project: AnalyticsContext; allocation: Allocation; pct: number } | undefined;
   for (const c of contexts) {
     for (const a of c.allocations) {
       const pct = pctRemaining(a.initial_su_amount, a.used_su_amount);
@@ -50,7 +51,7 @@ export function useAnalyticsSelection(contexts: AnalyticsContext[]) {
 
   const { project, allocation } = React.useMemo<{
     project: AnalyticsContext | undefined;
-    allocation: AnalyticsAllocation | undefined;
+    allocation: Allocation | undefined;
   }>(() => {
     if (allocationParam) {
       for (const c of contexts) {
