@@ -148,7 +148,7 @@ func (s *Service) IsProjectParticipant(ctx context.Context, projectID, userID st
 
 // UpdateProject persists changes to an existing project. Fields left
 // blank/zero on the supplied record fall back to the stored value.
-func (s *Service) UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error {
+func (s *Service) UpdateProject(ctx context.Context, project *models.Project) error {
 	if project == nil || project.ID == "" {
 		return fmt.Errorf("%w: project id is required", ErrInvalidInput)
 	}
@@ -171,39 +171,18 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project, pr
 	if project.ProjectPIID == "" {
 		project.ProjectPIID = existing.ProjectPIID
 	}
+	if project.ProjectPIID != existing.ProjectPIID {
+		return fmt.Errorf("%w: project %q", ErrPIChange, project.ID)
+	}
 	if project.Status == "" {
 		project.Status = existing.Status
 	}
 	if project.CreatedTime.IsZero() {
 		project.CreatedTime = existing.CreatedTime
 	}
-	if project.ProjectPIID != existing.ProjectPIID {
-		switch previousPIRole {
-		case "CO_PI", "ALLOCATION_MANAGER", "MEMBER":
-		default:
-			return fmt.Errorf("%w: previous_pi_role must be CO_PI, ALLOCATION_MANAGER or MEMBER", ErrInvalidInput)
-		}
-		if u, err := s.users.FindByID(ctx, project.ProjectPIID); err != nil {
-			return fmt.Errorf("lookup user: %w", err)
-		} else if u == nil {
-			return fmt.Errorf("%w: user %q does not exist", ErrInvalidInput, project.ProjectPIID)
-		}
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.projs.Update(ctx, tx, project); err != nil {
 			return err
-		}
-		if project.ProjectPIID != existing.ProjectPIID {
-			if err := s.projMemberships.Delete(ctx, tx, project.ID, project.ProjectPIID); err != nil {
-				return err
-			}
-			if previousPIRole != "MEMBER" {
-				if err := s.projMemberships.Upsert(ctx, tx, &models.ProjectMembership{
-					ProjectID: project.ID, UserID: existing.ProjectPIID, Role: models.ProjectRole(previousPIRole), AddedTime: nowUTC(),
-				}); err != nil {
-					return err
-				}
-			}
 		}
 		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, project)
 	}); err != nil {

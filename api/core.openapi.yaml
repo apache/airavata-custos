@@ -1007,10 +1007,6 @@ definitions:
     type: object
   updateProjectRequest:
     properties:
-      previous_pi_role:
-        description: 'The old PI''s role when project_pi_id changes: CO_PI, ALLOCATION_MANAGER
-          or MEMBER.'
-        type: string
       project_pi_id:
         type: string
       title:
@@ -3629,6 +3625,13 @@ paths:
             type: object
         "404":
           description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: PI change
           schema:
             properties:
               error:

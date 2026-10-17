@@ -31,11 +31,10 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import type { CreateMembershipPayload } from "../schemas";
 
-const ROLES = ["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"] as const;
+const ROLES = ["CO_PI", "ALLOCATION_MANAGER", "MEMBER"] as const;
 export type Role = (typeof ROLES)[number];
 
 const ROLE_LABELS: Record<Role, string> = {
-  PI: "PI",
   CO_PI: "Co-PI",
   ALLOCATION_MANAGER: "Allocation Manager",
   MEMBER: "Member",

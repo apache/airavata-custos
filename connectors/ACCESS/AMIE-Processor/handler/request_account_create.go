@@ -95,6 +95,16 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err != nil {
 		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectID, err)
 	}
+	if user.ID == project.ProjectPIID {
+		if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, map[string]any{
+			"type": "inform_transaction_complete",
+			"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": "user is already the project PI"},
+		}); err != nil {
+			return fmt.Errorf("request_account_create: sending failure reply: %w", err)
+		}
+		packet.Status = model.PacketStatusRefused
+		return h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", string(packet.Status))
+	}
 
 	allocations, err := h.svc.ListComputeAllocationsByProject(ctx, project.ID)
 	if err != nil {
