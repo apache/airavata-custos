@@ -120,6 +120,50 @@ func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) 
 	}
 }
 
+// Make sure the group provision event fires once and the stamp keeps its first time.
+func TestMarkComputeAllocationGroupProvisioned_OnlyTheFirstTimeCounts(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
+	project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive})
+	if err != nil {
+		t.Fatalf("create project: %v", err)
+	}
+	alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
+		Name: "Grant", ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
+	})
+	if err != nil {
+		t.Fatalf("create allocation: %v", err)
+	}
+	svc.EventBus().SubscribeComputeAllocationGroupProvisioned("test-subscriber", func(context.Context, models.ComputeAllocation) error { return nil })
+
+	if err := svc.MarkComputeAllocationGroupProvisioned(ctx(), alloc.ID); err != nil {
+		t.Fatalf("mark group provisioned: %v", err)
+	}
+	first, err := svc.GetComputeAllocation(ctx(), alloc.ID)
+	if err != nil || first.GroupProvisionedAt == nil {
+		t.Fatalf("group_provisioned_at not set: %v", err)
+	}
+	if err := svc.MarkComputeAllocationGroupProvisioned(ctx(), alloc.ID); err != nil {
+		t.Fatalf("mark group provisioned again: %v", err)
+	}
+	again, err := svc.GetComputeAllocation(ctx(), alloc.ID)
+	if err != nil {
+		t.Fatalf("get compute allocation: %v", err)
+	}
+
+	if !again.GroupProvisionedAt.Equal(*first.GroupProvisionedAt) {
+		t.Fatalf("group_provisioned_at moved from %v to %v", first.GroupProvisionedAt, again.GroupProvisionedAt)
+	}
+	if n := countDeliveries(t, svc); n != 1 {
+		t.Fatalf("expected one delivery of the group provision event, got %d", n)
+	}
+}
+
 // newClusterUser creates a cluster, a user, and a cluster user with no approval
 // given, the way an allocation source does, and returns the cluster user.
 func newClusterUser(t *testing.T, svc *Service, database *sqlx.DB) *models.ComputeClusterUser {
