@@ -172,14 +172,22 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 
 // UpdateMembershipStatus sets the lifecycle status (ACTIVE, INACTIVE, etc.)
 // of the membership identified by the given ID. Other fields are preserved.
-func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error) {
+func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (m *models.ComputeAllocationMembership, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		m, err = s.UpdateMembershipStatusTx(ctx, tx, id, status)
+		return
+	})
+	return
+}
+
+func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error) {
 	if id == "" {
 		return nil, fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: membership_status is required", ErrInvalidInput)
 	}
-	existing, err := s.memberships.FindByID(ctx, id)
+	existing, err := s.memberships.FindByIDTx(ctx, tx, id)
 	if err != nil {
 		return nil, fmt.Errorf("lookup compute allocation membership: %w", err)
 	}
@@ -187,12 +195,12 @@ func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status 
 		return nil, ErrNotFound
 	}
 	existing.MembershipStatus = status
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	if err := func() error {
 		if err := s.memberships.Update(ctx, tx, existing); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, existing)
-	}); err != nil {
+	}(); err != nil {
 		return nil, fmt.Errorf("update compute allocation membership status: %w", err)
 	}
 	return existing, nil

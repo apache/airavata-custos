@@ -70,6 +70,19 @@ func (s *pgComputeAllocationMembershipStore) FindByID(ctx context.Context, id st
 	return &m, nil
 }
 
+func (s *pgComputeAllocationMembershipStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationMembership, error) {
+	var r models.ComputeAllocationMembership
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
+		`SELECT `+computeAllocationMembershipColumns+` FROM compute_allocation_memberships WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
 func (s *pgComputeAllocationMembershipStore) FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
 	var m models.ComputeAllocationMembership
 	err := s.db.GetContext(ctx, &m,

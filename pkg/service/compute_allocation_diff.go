@@ -30,7 +30,15 @@ import (
 // The referenced allocation must exist. If Timestamp is zero the server's
 // current UTC time is used. Diff records are intended to be append-only and
 // have no update operation.
-func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.ComputeAllocationDiff) (*models.ComputeAllocationDiff, error) {
+func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.ComputeAllocationDiff) (d *models.ComputeAllocationDiff, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		d, err = s.CreateComputeAllocationDiffTx(ctx, tx, diff)
+		return
+	})
+	return
+}
+
+func (s *Service) CreateComputeAllocationDiffTx(ctx context.Context, tx *sql.Tx, diff *models.ComputeAllocationDiff) (*models.ComputeAllocationDiff, error) {
 	if diff == nil {
 		return nil, fmt.Errorf("%w: compute allocation diff is nil", ErrInvalidInput)
 	}
@@ -44,7 +52,7 @@ func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
 
-	if alloc, err := s.allocs.FindByID(ctx, diff.ComputeAllocationID); err != nil {
+	if alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID); err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)
 	} else if alloc == nil {
 		return nil, fmt.Errorf("%w: compute allocation %q not found", ErrInvalidInput, diff.ComputeAllocationID)
@@ -57,12 +65,12 @@ func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.
 		diff.Timestamp = nowUTC()
 	}
 
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	if err := func() error {
 		if err := s.allocDiffs.Create(ctx, tx, diff); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDiffCreateEvent, diff)
-	}); err != nil {
+	}(); err != nil {
 		return nil, fmt.Errorf("create compute allocation diff: %w", err)
 	}
 	return diff, nil

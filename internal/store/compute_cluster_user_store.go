@@ -63,6 +63,19 @@ func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*m
 	return &c, nil
 }
 
+func (s *pgComputeClusterUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeClusterUser, error) {
+	var c models.ComputeClusterUser
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
+		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func (s *pgComputeClusterUserStore) FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
 	err := s.db.GetContext(ctx, &c,
@@ -117,6 +130,13 @@ func (s *pgComputeClusterUserStore) FindByUser(ctx context.Context, userID strin
 		return nil, err
 	}
 	return users, nil
+}
+
+func (s *pgComputeClusterUserStore) FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error) {
+	var users []models.ComputeClusterUser
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).SelectContext(ctx, &users,
+		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE user_id = $1 ORDER BY compute_cluster_id FOR UPDATE`, userID)
+	return users, err
 }
 
 func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {

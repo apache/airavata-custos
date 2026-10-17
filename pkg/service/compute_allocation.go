@@ -161,15 +161,21 @@ func (s *Service) ListComputeAllocationsByCluster(ctx context.Context, clusterID
 
 // UpdateComputeAllocation persists changes to an existing compute allocation.
 func (s *Service) UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.UpdateComputeAllocationTx(ctx, tx, alloc)
+	})
+}
+
+func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, alloc *models.ComputeAllocation) error {
 	if alloc == nil || alloc.ID == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
 	}
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	if err := func() error {
 		if err := s.allocs.Update(ctx, tx, alloc); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc)
-	}); err != nil {
+	}(); err != nil {
 		return fmt.Errorf("update compute allocation: %w", err)
 	}
 	return nil

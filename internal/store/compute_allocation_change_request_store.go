@@ -52,6 +52,19 @@ func (s *pgComputeAllocationChangeRequestStore) FindByID(ctx context.Context, id
 	return &c, nil
 }
 
+func (s *pgComputeAllocationChangeRequestStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationChangeRequest, error) {
+	var c models.ComputeAllocationChangeRequest
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
+		`SELECT `+computeAllocationChangeRequestColumns+` FROM compute_allocation_change_requests WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func (s *pgComputeAllocationChangeRequestStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error) {
 	var rows []models.ComputeAllocationChangeRequest
 	err := s.db.SelectContext(ctx, &rows,

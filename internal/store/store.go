@@ -29,6 +29,8 @@ import (
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.User, error)
+	// FindByIDTx returns the user locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	// List returns a page of users ordered by email, plus the total count.
@@ -85,6 +87,8 @@ type ComputeClusterStore interface {
 type ComputeClusterUserStore interface {
 	// FindByID returns the mapping with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error)
+	// FindByIDTx returns the mapping locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeClusterUser, error)
 	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
 	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
 	// FindByClusterAndLocalUsername returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
@@ -93,6 +97,8 @@ type ComputeClusterUserStore interface {
 	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	// FindByUser returns every cluster mapping held by the given Custos user.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
+	// FindByUserTx returns the user's mappings locked FOR UPDATE in tx, ordered by compute_cluster_id.
+	FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error)
 	// ListByApprovalStatus returns mappings joined with the user and cluster, newest first, plus the total. An empty status means any status.
 	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
 	// Create inserts a new mapping within the provided transaction.
@@ -138,6 +144,8 @@ type UserIdentityStore interface {
 type ProjectStore interface {
 	// FindByID returns the project with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.Project, error)
+	// FindByIDTx returns the project locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.Project, error)
 	// FindByOriginatedID returns the project matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
 	// Create inserts a new project within the provided transaction.
@@ -174,6 +182,8 @@ type ProjectListFilter struct {
 type ComputeAllocationStore interface {
 	// FindByID returns the allocation with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error)
+	// FindByIDTx returns the allocation locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocation, error)
 	// FindByProject returns all allocations attached to the given project.
 	FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	// FindByCluster returns all allocations attached to the given compute cluster.
@@ -301,6 +311,8 @@ type ComputeAllocationDiffStore interface {
 type ComputeAllocationChangeRequestStore interface {
 	// FindByID returns the change request with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequest, error)
+	// FindByIDTx returns the change request locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationChangeRequest, error)
 	// FindByAllocation returns every change request ever recorded against the
 	// given allocation, ordered by timestamp ascending.
 	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error)
@@ -366,6 +378,8 @@ type ProjectMembershipStore interface {
 type ComputeAllocationMembershipStore interface {
 	// FindByID returns the membership with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
+	// FindByIDTx returns the membership locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationMembership, error)
 	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error)
 	// FindByUser returns every membership held by the given user, ordered by
