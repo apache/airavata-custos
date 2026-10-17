@@ -68,6 +68,7 @@ export function AllocationChangeRequestsTab({
     {
       key: "submitted",
       header: "Submitted",
+      width: "9rem",
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDate(row.timestamp)}</span>
       ),
@@ -80,6 +81,7 @@ export function AllocationChangeRequestsTab({
     {
       key: "amount",
       header: "Requested SUs",
+      width: "10rem",
       align: "right",
       cell: (row) => (
         <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
@@ -88,6 +90,7 @@ export function AllocationChangeRequestsTab({
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromChangeRequest(row.change_status)}
@@ -98,6 +101,7 @@ export function AllocationChangeRequestsTab({
     {
       key: "actions",
       header: "",
+      width: "6rem",
       align: "right",
       interactive: true,
       cell: (row) => (

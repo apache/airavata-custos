@@ -62,6 +62,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     {
       key: "when",
       header: "When",
+      width: "12rem",
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDateTime(row.timestamp)}</span>
       ),
@@ -69,11 +70,13 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     {
       key: "type",
       header: "Type",
+      width: "10rem",
       cell: (row) => <span className="text-sm">{row.diff_type}</span>,
     },
     {
       key: "su",
       header: "New SU amount",
+      width: "10rem",
       align: "right",
       cell: (row) => (
         <span className="tabular-nums">
@@ -86,6 +89,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromAllocationStatus(row.status)}

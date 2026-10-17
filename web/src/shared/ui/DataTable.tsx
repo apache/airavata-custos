@@ -64,6 +64,8 @@ export type DataTableProps<T> = {
   empty?: React.ReactNode;
   pagination?: DataTablePagination;
   className?: string;
+  // Groups rows under a full-width header row, in order of first appearance; sorting applies within each group.
+  groupBy?: { key: (row: T) => string; header: (row: T) => React.ReactNode };
 };
 
 function compareSortable(
@@ -97,6 +99,7 @@ export function DataTable<T>({
   empty,
   pagination,
   className,
+  groupBy,
 }: DataTableProps<T>) {
   const [sortState, setSortState] = React.useState<SortState>(null);
 
@@ -114,6 +117,25 @@ export function DataTable<T>({
       })
       .map((entry) => entry.row);
   }, [rows, sortState, columns]);
+
+  const displayRows = groupBy
+    ? [...Map.groupBy(sortedRows, groupBy.key).values()].flat()
+    : sortedRows;
+
+  const groupHeader = (row: T, prev: T | undefined) => {
+    if (!groupBy || (prev !== undefined && groupBy.key(prev) === groupBy.key(row))) return null;
+    return (
+      <tr key={`group:${groupBy.key(row)}`} className="border-t border-border/60 bg-muted/40">
+        <th
+          scope="colgroup"
+          colSpan={columns.length}
+          className="px-4 py-2 text-left text-xs font-medium text-muted-foreground"
+        >
+          {groupBy.header(row)}
+        </th>
+      </tr>
+    );
+  };
 
   const cycleSort = (key: string) => {
     setSortState((prev) => {
@@ -186,7 +208,7 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {sortedRows.length === 0 ? (
+            {displayRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center">
                   {empty ?? (
@@ -197,7 +219,8 @@ export function DataTable<T>({
                 </td>
               </tr>
             ) : (
-              sortedRows.map((row, index) => (
+              displayRows.map((row, index) => [
+                groupHeader(row, displayRows[index - 1]),
                 <tr
                   key={rowKey(row, index)}
                   className={cn(
@@ -277,7 +300,7 @@ export function DataTable<T>({
                     });
                   })()}
                 </tr>
-              ))
+              ])
             )}
           </tbody>
         </table>
