@@ -83,6 +83,7 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 			want[id] = true
 		}
 	}
+	held := len(want)
 	rows, err := o.c.ListCoGroupMembers(groupID)
 	if err != nil {
 		return err
@@ -103,7 +104,11 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		}
 		o.auditAllocation(ctx, a, "ComanageAllocationGroupMemberAdded", fmt.Sprintf("group=%s co_person_id=%d", *a.PosixGroup, id))
 	}
-	return nil
+	// COmanage pushes a group to LDAP only once it has a member.
+	if held == 0 {
+		return nil
+	}
+	return o.core.MarkComputeAllocationGroupProvisioned(ctx, a.ID)
 }
 
 func (o *Orchestrator) auditAllocation(ctx context.Context, a *models.ComputeAllocation, eventType, details string) {

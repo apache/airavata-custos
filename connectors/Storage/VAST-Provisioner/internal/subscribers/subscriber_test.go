@@ -61,7 +61,7 @@ func allocationWithMembers() *service.CoreServiceMock {
 			return []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE}}, nil
 		},
 		GetComputeAllocationFunc: func(context.Context, string) (*models.ComputeAllocation, error) {
-			return &models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}, nil
+			return &models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group, GroupProvisionedAt: &provisioned}, nil
 		},
 		ListMembersForAllocationFunc: func(context.Context, string) ([]store.MembershipWithUser, error) {
 			return []store.MembershipWithUser{member("u1", "custos-jdoe", &provisioned), member("u2", "custos-asmith", &provisioned), member("u3", "custos-pending", nil)}, nil
@@ -146,25 +146,25 @@ func TestEnsureMember(t *testing.T) {
 	}
 }
 
-// Make sure an allocation event creates the project's directories and no member's.
-func TestEnsureGroup(t *testing.T) {
-	c, log := recordingVMS(t)
-	group := "proj-a"
-	s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
-	a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}
-	if err := s.ensureGroup(context.Background(), a); err != nil || !slices.Equal(*log, groupMounts) {
-		t.Fatalf("err=%v calls=%v, want %v", err, *log, groupMounts)
-	}
-}
-
-// Make sure the reconciler's sweep creates the project's directories and every provisioned member's.
+// Make sure an allocation creates nothing until its group is on the cluster, then the project's and every provisioned member's directories.
 func TestEnsureAllocation(t *testing.T) {
-	c, log := recordingVMS(t)
-	group := "proj-a"
-	s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
-	a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group}
-	want := join(groupMounts, jdoeMember, asmithMember)
-	if err := s.ensureAllocation(context.Background(), a); err != nil || !slices.Equal(*log, want) {
-		t.Fatalf("err=%v calls=%v, want %v", err, *log, want)
+	group, now := "proj-a", time.Now()
+	tests := []struct {
+		name               string
+		groupProvisionedAt *time.Time
+		want               []string
+	}{
+		{name: "nothing before the group is provisioned"},
+		{name: "project and members once provisioned", groupProvisionedAt: &now, want: join(groupMounts, jdoeMember, asmithMember)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, log := recordingVMS(t)
+			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+			a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group, GroupProvisionedAt: tt.groupProvisionedAt}
+			if err := s.ensureAllocation(context.Background(), a); err != nil || !slices.Equal(*log, tt.want) {
+				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
+			}
+		})
 	}
 }

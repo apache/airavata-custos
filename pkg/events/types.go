@@ -78,9 +78,10 @@ const (
 
 // ComputeAllocation lifecycle message types.
 const (
-	ComputeAllocationCreateEvent EventType = "compute_allocation::create"
-	ComputeAllocationUpdateEvent EventType = "compute_allocation::update"
-	ComputeAllocationDeleteEvent EventType = "compute_allocation::delete"
+	ComputeAllocationCreateEvent         EventType = "compute_allocation::create"
+	ComputeAllocationUpdateEvent         EventType = "compute_allocation::update"
+	ComputeAllocationDeleteEvent         EventType = "compute_allocation::delete"
+	ComputeAllocationGroupProvisionEvent EventType = "compute_allocation::group_provision"
 )
 
 // CreateComputeAllocationDiff lifecycle message types.

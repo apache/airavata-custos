@@ -40,6 +40,12 @@ func (b *Bus) SubscribeComputeAllocationUpdated(subscriber string, handler Compu
 	subscribeTyped(b, subscriber, ComputeAllocationUpdateEvent, handler)
 }
 
+// SubscribeComputeAllocationGroupProvisioned registers a typed handler invoked whenever a
+// compute_allocation::group_provision event is published, once the group's first member puts it on the cluster.
+func (b *Bus) SubscribeComputeAllocationGroupProvisioned(subscriber string, handler ComputeAllocationHandler) {
+	subscribeTyped(b, subscriber, ComputeAllocationGroupProvisionEvent, handler)
+}
+
 // SubscribeComputeAllocationDeleted registers a typed handler invoked whenever a
 // compute_allocation::delete event is published.
 func (b *Bus) SubscribeComputeAllocationDeleted(subscriber string, handler ComputeAllocationHandler) {

@@ -164,6 +164,10 @@ definitions:
         type: string
       end_time:
         type: string
+      group_provisioned_at:
+        description: When the group gained its first member and so reached the
+          cluster; nil until then.
+        type: string
       id:
         type: string
       initial_su_amount:

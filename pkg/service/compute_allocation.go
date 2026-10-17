@@ -175,6 +175,26 @@ func (s *Service) UpdateComputeAllocation(ctx context.Context, alloc *models.Com
 	return nil
 }
 
+// MarkComputeAllocationGroupProvisioned stamps group_provisioned_at and publishes the group provision event the first time only.
+func (s *Service) MarkComputeAllocationGroupProvisioned(ctx context.Context, id string) error {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		now := nowUTC()
+		firstTime, err := s.allocs.MarkGroupProvisioned(ctx, tx, id, now)
+		if err != nil || !firstTime {
+			return err
+		}
+		alloc, err := s.allocs.FindByID(ctx, id)
+		if err != nil || alloc == nil {
+			return err
+		}
+		alloc.GroupProvisionedAt = &now
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc)
+	}); err != nil {
+		return fmt.Errorf("mark compute allocation group provisioned: %w", err)
+	}
+	return nil
+}
+
 // DeleteComputeAllocation removes a compute allocation by ID.
 func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error {
 	if id == "" {

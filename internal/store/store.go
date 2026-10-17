@@ -182,6 +182,8 @@ type ComputeAllocationStore interface {
 	Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
 	// Update replaces mutable fields of an existing allocation within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
+	// MarkGroupProvisioned stamps group_provisioned_at within the provided transaction and returns true only the first time.
+	MarkGroupProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// Delete removes an allocation by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 	// List returns a paginated, filtered slice of allocations plus the total

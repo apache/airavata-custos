@@ -74,7 +74,8 @@ type ComputeAllocation struct {
 	StartTime        time.Time        `json:"start_time"         db:"start_time"`
 	EndTime          time.Time        `json:"end_time"           db:"end_time"`
 
-	PosixGroup *string `json:"posix_group" db:"posix_group"` // Fixed at creation; the group's name everywhere.
+	PosixGroup         *string    `json:"posix_group" db:"posix_group"`                   // Fixed at creation; the group's name everywhere.
+	GroupProvisionedAt *time.Time `json:"group_provisioned_at" db:"group_provisioned_at"` // When the group gained its first member and so reached the cluster; nil until then.
 }
 
 // Typically store the a paritition information

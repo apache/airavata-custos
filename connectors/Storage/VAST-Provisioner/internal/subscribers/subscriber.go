@@ -73,8 +73,7 @@ func NewStorageSubscriber(bus *events.Bus, core service.CoreService, clusters ma
 // names the right user and can be retried alone. The reconciler does the rest.
 func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserProvisioned(subscriber, s.ensureUser)
-	s.bus.SubscribeComputeAllocationCreated(subscriber, s.ensureGroup)
-	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.ensureGroup)
+	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
 	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
 }
@@ -133,19 +132,10 @@ func (s *StorageSubscriber) ensureMember(ctx context.Context, m models.ComputeAl
 	return nil
 }
 
-// ensureGroup creates an allocation's group mounts. Members' mounts come from their own events.
-func (s *StorageSubscriber) ensureGroup(ctx context.Context, a models.ComputeAllocation) error {
-	c, ok := s.cluster(a)
-	if !ok {
-		return nil
-	}
-	return s.ensure(ctx, c, "", *a.PosixGroup)
-}
-
-// cluster returns the allocation's cluster when the allocation is active, has a group, and the cluster is configured.
+// cluster returns the allocation's cluster when the allocation is active, its group is on the cluster, and the cluster is configured.
 func (s *StorageSubscriber) cluster(a models.ComputeAllocation) (Cluster, bool) {
 	c, ok := s.clusters[a.ComputeClusterID]
-	return c, ok && a.Status == models.ACTIVE && a.PosixGroup != nil
+	return c, ok && a.Status == models.ACTIVE && a.PosixGroup != nil && a.GroupProvisionedAt != nil
 }
 
 // activeAllocation loads the allocation and its cluster, nil when there is nothing to create for it.
@@ -172,7 +162,7 @@ func (s *StorageSubscriber) ensureMemberMounts(ctx context.Context, c Cluster, u
 	return s.ensure(ctx, c, user, group)
 }
 
-// ensureAllocation creates an active allocation's mounts, then those of each member its POSIX group holds. Used by the reconciler.
+// ensureAllocation creates an allocation's mounts once its group is on the cluster, then each provisioned member's.
 func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.ComputeAllocation) error {
 	c, ok := s.cluster(a)
 	if !ok {

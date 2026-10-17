@@ -34,7 +34,7 @@ fields on a view. The policy is looked up once at startup, and Custos does not s
 | Trigger | Runs |
 |---|---|
 | `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
-| `compute_allocation::create` and `::update` | The project's directories; retried until LDAP has the group |
+| `compute_allocation::group_provision` | The project's directories and each provisioned member's, once the group's first member puts it on the cluster |
 | `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
 | Startup, then every 24 hours | Everything, for every account and allocation on each cluster |
 

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS compute_allocations
     start_time         TIMESTAMPTZ(6) NOT NULL,
     end_time           TIMESTAMPTZ(6) NOT NULL,
     posix_group        VARCHAR(32)  NULL,
+    group_provisioned_at TIMESTAMPTZ(6) NULL,
     created_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),

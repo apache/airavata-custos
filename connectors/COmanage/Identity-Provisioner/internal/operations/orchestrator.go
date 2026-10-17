@@ -41,6 +41,7 @@ type CoreService interface {
 	UpdateUserIdentity(ctx context.Context, ui *models.UserIdentity) error
 	CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
 	MarkComputeClusterUserProvisioned(ctx context.Context, id string) error
+	MarkComputeAllocationGroupProvisioned(ctx context.Context, id string) error
 	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
 }
 

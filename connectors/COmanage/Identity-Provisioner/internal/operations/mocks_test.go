@@ -48,6 +48,7 @@ type fakeCore struct {
 	auditEvents       []models.AuditEvent
 	writtenIdentity   *models.UserIdentity
 	markedProvisioned []string
+	markedGroups      []string
 	members           []store.MembershipWithUser
 }
 
@@ -73,6 +74,11 @@ func (f *fakeCore) UpdateUserIdentity(_ context.Context, ui *models.UserIdentity
 
 func (f *fakeCore) MarkComputeClusterUserProvisioned(_ context.Context, id string) error {
 	f.markedProvisioned = append(f.markedProvisioned, id)
+	return nil
+}
+
+func (f *fakeCore) MarkComputeAllocationGroupProvisioned(_ context.Context, id string) error {
+	f.markedGroups = append(f.markedGroups, id)
 	return nil
 }
 

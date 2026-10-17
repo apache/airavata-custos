@@ -48,6 +48,9 @@ func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) 
 	if !slices.Equal(reg.deleted, []string{"/co_group_members/10.json", "/co_group_members/11.json"}) || len(reg.posted) != 0 {
 		t.Fatalf("deleted %v, posted %v; want rows 10 and 11 deleted, nothing posted", reg.deleted, reg.posted)
 	}
+	if !slices.Equal(core.markedGroups, []string{"alloc-1"}) {
+		t.Fatalf("marked groups %v, want alloc-1 once it holds a member", core.markedGroups)
+	}
 	var removed []string
 	for _, e := range core.auditEvents {
 		if e.EventType == "ComanageAllocationGroupMemberRemoved" && e.EntityID == "alloc-1" {
