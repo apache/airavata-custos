@@ -84,6 +84,7 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
     {
       key: "initial",
       header: "Initial SUs",
+      width: "8rem",
       align: "right",
       cell: (row) => (
         <span className="tabular-nums">{new Intl.NumberFormat().format(row.initial_su_amount)}</span>
@@ -92,6 +93,7 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
     {
       key: "endDate",
       header: "End date",
+      width: "9rem",
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDate(row.end_time)}</span>
       ),
@@ -99,6 +101,7 @@ export function ProjectAllocationsTab({ projectId }: ProjectAllocationsTabProps)
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromAllocationStatus(row.status)}

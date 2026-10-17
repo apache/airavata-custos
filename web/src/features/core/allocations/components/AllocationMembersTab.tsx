@@ -125,6 +125,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     {
       key: "role",
       header: "Role",
+      width: "11rem",
       cell: (row) => (
         <span className="text-sm">{row.role ? ROLE_LABELS[row.role] : "—"}</span>
       ),
@@ -132,6 +133,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={
@@ -148,6 +150,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     {
       key: "actions",
       header: "",
+      width: "11rem",
       align: "right",
       interactive: true,
       // PI and CO_PI are upstream-owned; the portal never edits or removes them.

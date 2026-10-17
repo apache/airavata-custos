@@ -140,6 +140,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
     {
       key: "role",
       header: "Role",
+      width: "11rem",
       cell: (row) => <span className="text-sm">{ROLE_LABELS[row.role]}</span>,
     },
     {
@@ -151,6 +152,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={row.status === "ACTIVE" ? "active" : row.status === "INACTIVE" ? "inactive" : "deleted"}
@@ -161,6 +163,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
     {
       key: "actions",
       header: "",
+      width: "11rem",
       align: "right",
       interactive: true,
       // PI and CO_PI come from the upstream allocation; never edited or removed here.

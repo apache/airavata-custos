@@ -112,6 +112,7 @@ export function ProjectsList({
     {
       key: "origination",
       header: "Origination",
+      width: "8rem",
       sortable: true,
       sortValue: (row) => row.origination,
       cell: (row) => <span className="text-sm">{row.origination}</span>,
@@ -119,6 +120,7 @@ export function ProjectsList({
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       sortable: true,
       sortValue: (row) => row.status,
       cell: (row) => (

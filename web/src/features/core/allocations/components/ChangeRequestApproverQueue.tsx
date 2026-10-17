@@ -124,6 +124,7 @@ export function ChangeRequestApproverQueue({
     {
       key: "submitted",
       header: "Submitted",
+      width: "9rem",
       sortable: true,
       sortValue: (row) => new Date(row.timestamp),
       cell: (row) => (
@@ -150,6 +151,7 @@ export function ChangeRequestApproverQueue({
     {
       key: "amount",
       header: "Requested SUs",
+      width: "10rem",
       align: "right",
       sortable: true,
       sortValue: (row) => row.requested_su_amount,
@@ -160,6 +162,7 @@ export function ChangeRequestApproverQueue({
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromChangeRequest(row.change_status)}
@@ -170,6 +173,7 @@ export function ChangeRequestApproverQueue({
     {
       key: "actions",
       header: "",
+      width: "11rem",
       align: "right",
       interactive: true,
       cell: (row) => {

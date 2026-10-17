@@ -19,6 +19,8 @@
 
 import Link from "next/link";
 import * as React from "react";
+import { ClusterName } from "@/features/core/clusters/components/ClusterName";
+import { ProjectName } from "@/features/core/projects/components/ProjectName";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -69,6 +71,7 @@ export type AllocationsListProps = {
   onSearchChange: (next: string) => void;
   statusFilter: AllocationStatus | "all";
   onStatusFilterChange: (next: AllocationStatus | "all") => void;
+  showCluster: boolean;
 };
 
 export function AllocationsList({
@@ -80,6 +83,7 @@ export function AllocationsList({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  showCluster,
 }: AllocationsListProps) {
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -99,7 +103,6 @@ export function AllocationsList({
       header: "Allocation",
       sortable: true,
       sortValue: (row) => row.name,
-      width: "14rem",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <Link
@@ -113,31 +116,14 @@ export function AllocationsList({
       ),
     },
     {
-      key: "project",
-      header: "Project",
-      sortable: true,
-      sortValue: (row) => row.project_id,
-      width: "12rem",
-      cell: (row) => (
-        <Link
-          href={`/projects/${row.project_id}`}
-          className="break-all text-sm text-muted-foreground hover:underline"
-        >
-          {row.project_id}
-        </Link>
-      ),
-    },
-    {
       key: "cluster",
       header: "Cluster",
-      sortable: true,
-      sortValue: (row) => row.compute_cluster_id,
-      width: "12rem",
-      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
+      cell: (row) => <ClusterName id={row.compute_cluster_id} />,
     },
     {
       key: "initial",
       header: "Initial SUs",
+      width: "8rem",
       sortable: true,
       sortValue: (row) => row.initial_su_amount,
       cell: (row) => <span className="tabular-nums">{formatSU(row.initial_su_amount)}</span>,
@@ -145,6 +131,7 @@ export function AllocationsList({
     {
       key: "endDate",
       header: "End date",
+      width: "9rem",
       sortable: true,
       sortValue: (row) => new Date(row.end_time),
       cell: (row) => (
@@ -154,6 +141,7 @@ export function AllocationsList({
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       sortable: true,
       sortValue: (row) => row.status,
       cell: (row) => (
@@ -200,7 +188,7 @@ export function AllocationsList({
       </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} columns={6} />
+        <TableSkeleton rows={6} columns={5} />
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
       ) : filtered.length === 0 ? (
@@ -209,7 +197,19 @@ export function AllocationsList({
           description="No allocations match the current filters."
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns.filter((col) => showCluster || col.key !== "cluster")}
+          rows={filtered}
+          rowKey={(row) => row.id}
+          groupBy={{
+            key: (row) => row.project_id,
+            header: (row) => (
+              <Link href={`/projects/${row.project_id}`} className="hover:underline">
+                <ProjectName id={row.project_id} />
+              </Link>
+            ),
+          }}
+        />
       )}
     </div>
   );

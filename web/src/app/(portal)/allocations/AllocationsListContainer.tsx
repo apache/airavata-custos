@@ -21,6 +21,7 @@ import * as React from "react";
 import { AllocationsList } from "@/features/core/allocations/components/AllocationsList";
 import { useAllocations } from "@/features/core/allocations/queries";
 import type { AllocationStatus } from "@/features/core/allocations/schemas";
+import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
@@ -32,6 +33,7 @@ function statusFilterFromUrl(raw: string | null): AllocationStatus | "all" {
 }
 
 export function AllocationsListContainer() {
+  const ability = useAbility();
   const searchParams = useShallowSearchParams();
   const search = searchParams.get("q") ?? "";
   const statusFilter = statusFilterFromUrl(searchParams.get("status"));
@@ -59,6 +61,7 @@ export function AllocationsListContainer() {
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
       onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
+      showCluster={ability.can("read", "Cluster")}
     />
   );
 }
