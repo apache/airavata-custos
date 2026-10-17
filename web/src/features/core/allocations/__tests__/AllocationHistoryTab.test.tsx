@@ -36,6 +36,7 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  group_provisioned_at: null,
 };
 
 beforeEach(() => {

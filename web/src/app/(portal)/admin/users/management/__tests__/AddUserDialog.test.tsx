@@ -38,6 +38,7 @@ function renderDialog(overrides: Partial<Parameters<typeof AddUserDialog>[0]> = 
           initial_su_amount: 1000,
           start_time: "2026-01-01T00:00:00Z",
           end_time: "2027-01-01T00:00:00Z",
+          group_provisioned_at: null,
         },
       ]}
       {...overrides}

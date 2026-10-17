@@ -42,6 +42,7 @@ export const computeAllocationSchema = z.object({
   initial_su_amount: z.number(),
   start_time: z.string(),
   end_time: z.string(),
+  group_provisioned_at: z.string().nullable(),
 });
 export type ComputeAllocation = z.infer<typeof computeAllocationSchema>;
 

@@ -54,6 +54,7 @@ const allocation = {
   initial_su_amount: 100000,
   start_time: "2026-04-01T00:00:00Z",
   end_time: "2027-03-31T00:00:00Z",
+  group_provisioned_at: null,
 };
 
 const member = {

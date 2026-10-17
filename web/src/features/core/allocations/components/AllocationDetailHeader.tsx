@@ -17,7 +17,7 @@
 
 "use client";
 
-import { Calendar, Gauge, Server, UserSquare } from "lucide-react";
+import { Calendar, Gauge, Server, UserSquare, Users } from "lucide-react";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
 import type { ComputeAllocation } from "../schemas";
 
@@ -78,6 +78,15 @@ export function AllocationDetailHeader({ allocation, memberCount }: AllocationDe
           />
           <MetaItem icon={Calendar} label="End date" value={formatDate(allocation.end_time)} />
           <MetaItem icon={UserSquare} label="Members" value={memberCount} />
+          <MetaItem
+            icon={Users}
+            label="Group provisioned"
+            value={
+              allocation.group_provisioned_at
+                ? formatDate(allocation.group_provisioned_at)
+                : "Pending first member"
+            }
+          />
         </MetaRow>
       </div>
     </header>

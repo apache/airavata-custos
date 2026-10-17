@@ -48,6 +48,7 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-12T00:00:00.000Z",
   end_time: "2027-04-11T00:00:00.000Z",
+  group_provisioned_at: null,
 };
 
 function usageRow(overrides: Partial<AllocationUsage>): AllocationUsage {
