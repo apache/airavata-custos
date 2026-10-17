@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -443,5 +444,39 @@ func TestCreateComputeAllocation_SuffixesACollidingPosixGroup(t *testing.T) {
 	}
 	if want := "proj-cis" + grant; !slices.Equal(groups[:3], []string{want, want + "-2", want + "-3"}) {
 		t.Fatalf("groups %v, want %s, -2, -3", groups, want)
+	}
+}
+
+func TestDenyComputeClusterUser_ConcurrentDenialsRecordOnce(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cu := newClusterUser(t, svc, database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+
+	hold, err := database.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := hold.Exec("SELECT id FROM compute_cluster_users WHERE id = $1 FOR UPDATE", cu.ID); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Go(func() { svc.DenyComputeClusterUser(ctx(), cu.ID, admin, "no") })
+	}
+	for n, deadline := 0, time.Now().Add(5*time.Second); n < 2; time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("reviewers never blocked on the row lock")
+		}
+		if err := database.Get(&n, "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock'"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := hold.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	wg.Wait()
+	if n := countAuditEventsOfType(t, database, clusterUserAuditDenied, cu.ID); n != 1 {
+		t.Fatalf("denial audits: got %d, want 1", n)
 	}
 }

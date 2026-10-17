@@ -143,7 +143,7 @@ func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, pack
 			return fmt.Errorf("request_person_merge: reprocess packets held for %s: %w", account.ID, err)
 		}
 	}
-	if _, err := h.svc.MergeUsers(ctx, survivor.ID, retiring.ID); err != nil {
+	if _, err := h.svc.MergeUsersTx(ctx, tx, survivor.ID, retiring.ID); err != nil {
 		return fmt.Errorf("request_person_merge: merge: %w", err)
 	}
 	if err := h.userDNStore.ReassignUser(ctx, tx, retiring.ID, survivor.ID); err != nil {

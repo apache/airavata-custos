@@ -21,6 +21,8 @@ package service
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/uuid"
@@ -48,5 +50,35 @@ func TestApproveChangeRequestKeepsRequestedFields(t *testing.T) {
 	}
 	if got.RequestedSUAmount != 1500 || got.RequestedStatus != models.ACTIVE || got.Reason != "more compute" {
 		t.Fatalf("approved request lost its fields: %+v", got)
+	}
+}
+
+func TestChangeRequestIsDecidedOnce(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	pi := seedUser(t, database, fmt.Sprintf("cr-%s@example.edu", uuid.NewString()))
+	_, allocID := newClusterAllocation(t, svc, pi)
+	cr, err := svc.CreateComputeAllocationChangeRequest(ctx(), &models.ComputeAllocationChangeRequest{
+		ComputeAllocationID: allocID, RequesterID: pi, RequestedSUAmount: 1500, RequestedStatus: models.ACTIVE, Reason: "more compute",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	var applied atomic.Int32
+	var wg sync.WaitGroup
+	for range 5 {
+		wg.Go(func() {
+			if _, err := svc.UpdateComputeAllocationChangeRequest(ctx(), &models.ComputeAllocationChangeRequest{ID: cr.ID, ChangeStatus: "APPROVED"}); err == nil {
+				applied.Add(1)
+			}
+		})
+	}
+	wg.Wait()
+	if n := applied.Load(); n != 1 {
+		t.Fatalf("approvals applied: got %d, want 1", n)
+	}
+	var diffs int
+	if err := database.Get(&diffs, "SELECT COUNT(*) FROM compute_allocation_diffs WHERE compute_allocation_id = $1 AND diff_type = 'CHANGE_REQUEST_APPROVED'", allocID); err != nil || diffs != 1 {
+		t.Fatalf("approval diffs: got %d (%v), want 1", diffs, err)
 	}
 }

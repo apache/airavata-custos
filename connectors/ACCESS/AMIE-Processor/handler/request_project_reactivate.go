@@ -77,7 +77,7 @@ func (h *RequestProjectReactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		return fmt.Errorf("request_project_reactivate: lookup project: %w", err)
 	}
 
-	if _, err := h.svc.UpdateProjectStatus(ctx, project.ID, models.ProjectActive); err != nil {
+	if _, err := h.svc.UpdateProjectStatusTx(ctx, tx, project.ID, models.ProjectActive); err != nil {
 		return fmt.Errorf("request_project_reactivate: update project status: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReactivateProject, "project", project.ID, ""); err != nil {
@@ -102,10 +102,10 @@ func (h *RequestProjectReactivateHandler) reactivateAllocationsAndPI(ctx context
 	}
 	for _, a := range allocations {
 		a.Status = models.ACTIVE
-		if err := h.svc.UpdateComputeAllocation(ctx, &a); err != nil {
+		if err := h.svc.UpdateComputeAllocationTx(ctx, tx, &a); err != nil {
 			return fmt.Errorf("reactivate allocation %s: %w", a.ID, err)
 		}
-		if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+		if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 			ComputeAllocationID: a.ID,
 			DiffType:            "ALLOCATION_STATUS_CHANGE",
 			Status:              models.ACTIVE,
@@ -124,7 +124,7 @@ func (h *RequestProjectReactivateHandler) reactivateAllocationsAndPI(ctx context
 			if m.UserID != project.ProjectPIID {
 				continue
 			}
-			if _, err := h.svc.UpdateMembershipStatus(ctx, m.ID, models.ACTIVE); err != nil {
+			if _, err := h.svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.ACTIVE); err != nil {
 				return fmt.Errorf("reactivate PI membership %s: %w", m.ID, err)
 			}
 			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReactivateMembership, "compute_allocation_membership", m.ID,

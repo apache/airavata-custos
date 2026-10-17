@@ -157,21 +157,20 @@ func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status 
 // ApproveComputeClusterUser records the admin's approval and publishes the
 // `approve event`, which is what creates the account on the cluster. A denied account can be approved later.
 func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID string) (*models.ComputeClusterUser, error) {
-	cu, err := s.clusterUserForReview(ctx, id, reviewerID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Only a denied or pending cluster account can be approved
-	if cu.ApprovalStatus == models.ClusterAccountApproved {
-		return nil, fmt.Errorf("%w: cluster user %q is already approved", ErrAlreadyExists, id)
-	}
-	now := nowUTC()
-	cu.ApprovalStatus = models.ClusterAccountApproved
-	cu.ReviewedAt = &now
-	cu.ReviewedBy = &reviewerID
-	cu.ReviewNote = nil
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	var cu *models.ComputeClusterUser
+	if err := s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		if cu, err = s.clusterUserForReview(ctx, tx, id, reviewerID); err != nil {
+			return err
+		}
+		// Only a denied or pending cluster account can be approved
+		if cu.ApprovalStatus == models.ClusterAccountApproved {
+			return fmt.Errorf("%w: cluster user %q is already approved", ErrAlreadyExists, id)
+		}
+		now := nowUTC()
+		cu.ApprovalStatus = models.ClusterAccountApproved
+		cu.ReviewedAt = &now
+		cu.ReviewedBy = &reviewerID
+		cu.ReviewNote = nil
 		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountApproved, reviewerID, "", now); err != nil {
 			return err
 		}
@@ -198,22 +197,22 @@ func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, no
 	if note == "" {
 		return nil, fmt.Errorf("%w: a reason is required to deny", ErrInvalidInput)
 	}
-	cu, err := s.clusterUserForReview(ctx, id, reviewerID)
-	if err != nil {
-		return nil, err
-	}
-	switch cu.ApprovalStatus {
-	case models.ClusterAccountApproved:
-		return nil, fmt.Errorf("%w: cluster user %q is already approved, remove it instead", ErrAlreadyExists, id)
-	case models.ClusterAccountDenied:
-		return nil, fmt.Errorf("%w: cluster user %q is already denied", ErrAlreadyExists, id)
-	}
-	now := nowUTC()
-	cu.ApprovalStatus = models.ClusterAccountDenied
-	cu.ReviewedAt = &now
-	cu.ReviewedBy = &reviewerID
-	cu.ReviewNote = &note
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	var cu *models.ComputeClusterUser
+	if err := s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		if cu, err = s.clusterUserForReview(ctx, tx, id, reviewerID); err != nil {
+			return err
+		}
+		switch cu.ApprovalStatus {
+		case models.ClusterAccountApproved:
+			return fmt.Errorf("%w: cluster user %q is already approved, remove it instead", ErrAlreadyExists, id)
+		case models.ClusterAccountDenied:
+			return fmt.Errorf("%w: cluster user %q is already denied", ErrAlreadyExists, id)
+		}
+		now := nowUTC()
+		cu.ApprovalStatus = models.ClusterAccountDenied
+		cu.ReviewedAt = &now
+		cu.ReviewedBy = &reviewerID
+		cu.ReviewNote = &note
 		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountDenied, reviewerID, note, now); err != nil {
 			return err
 		}
@@ -233,14 +232,14 @@ func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, no
 	return cu, nil
 }
 
-func (s *Service) clusterUserForReview(ctx context.Context, id, reviewerID string) (*models.ComputeClusterUser, error) {
+func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, reviewerID string) (*models.ComputeClusterUser, error) {
 	if id == "" {
 		return nil, fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
 	if reviewerID == "" {
 		return nil, fmt.Errorf("%w: reviewer is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
+	cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
 	if err != nil {
 		return nil, fmt.Errorf("lookup compute cluster user: %w", err)
 	}

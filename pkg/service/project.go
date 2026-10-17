@@ -214,14 +214,22 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project, pr
 
 // UpdateProjectStatus sets the lifecycle status of the project identified by
 // id. Other fields are preserved.
-func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error) {
+func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (p *models.Project, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		p, err = s.UpdateProjectStatusTx(ctx, tx, id, status)
+		return
+	})
+	return
+}
+
+func (s *Service) UpdateProjectStatusTx(ctx context.Context, tx *sql.Tx, id string, status models.ProjectStatus) (*models.Project, error) {
 	if id == "" {
 		return nil, fmt.Errorf("%w: project id is required", ErrInvalidInput)
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
-	existing, err := s.projs.FindByID(ctx, id)
+	existing, err := s.projs.FindByIDTx(ctx, tx, id)
 	if err != nil {
 		return nil, fmt.Errorf("lookup project: %w", err)
 	}
@@ -229,12 +237,12 @@ func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status mod
 		return nil, ErrNotFound
 	}
 	existing.Status = status
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	if err := func() error {
 		if err := s.projs.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, existing)
-	}); err != nil {
+	}(); err != nil {
 		return nil, fmt.Errorf("update project status: %w", err)
 	}
 	return existing, nil

@@ -378,8 +378,7 @@ func TestRequestProjectInactivate_MissingProjectID(t *testing.T) {
 
 // TestRequestProjectInactivate_ReplyFailurePropagates asserts the handler
 // surfaces a ReplyToPacket failure to the caller. REPLY_SENT must NOT exist
-// when the reply failed. The protocol does not mandate atomicity on reply
-// failure, so this test does not check rollback shape.
+// when the reply failed.
 func TestRequestProjectInactivate_ReplyFailurePropagates(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestCoreService(database)
@@ -405,5 +404,8 @@ func TestRequestProjectInactivate_ReplyFailurePropagates(t *testing.T) {
 	// REPLY_SENT audit row must NOT exist when the reply failed.
 	if got := countAuditActions(t, database, pkt.ID, model.AuditReplySent); got != 0 {
 		t.Errorf("audit REPLY_SENT on failed reply: got %d, want 0", got)
+	}
+	if got := membershipStatus(t, database, seed.PIMembership); got != models.ACTIVE {
+		t.Errorf("PI membership after failed reply: got %q, want ACTIVE", got)
 	}
 }

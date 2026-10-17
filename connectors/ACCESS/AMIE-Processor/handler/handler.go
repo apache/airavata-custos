@@ -137,11 +137,11 @@ func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globa
 
 // reactivate sets an existing membership back to active. The spec says a
 // create packet for a known account also reactivates it.
-func reactivate(ctx context.Context, svc *service.Service, m models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
+func reactivate(ctx context.Context, tx *sql.Tx, svc *service.Service, m models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
 	if m.MembershipStatus == models.ACTIVE {
 		return &m, nil
 	}
-	return svc.UpdateMembershipStatus(ctx, m.ID, models.ACTIVE)
+	return svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.ACTIVE)
 }
 
 // flipUserMemberships flips every ComputeAllocationMembership the user holds
@@ -149,7 +149,7 @@ func reactivate(ctx context.Context, svc *service.Service, m models.ComputeAlloc
 // the given status. Returns the rows that were updated. Silently returns an
 // empty slice when the project or user is unknown, the reply still goes back
 // to AMIE but no state changes.
-func flipUserMemberships(ctx context.Context, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
+func flipUserMemberships(ctx context.Context, tx *sql.Tx, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
 	project, err := svc.GetProject(ctx, projectID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
@@ -171,7 +171,7 @@ func flipUserMemberships(ctx context.Context, svc *service.Service, projectID, u
 			if m.UserID != userID {
 				continue
 			}
-			flipped, err := svc.UpdateMembershipStatus(ctx, m.ID, status)
+			flipped, err := svc.UpdateMembershipStatusTx(ctx, tx, m.ID, status)
 			if err != nil {
 				return nil, fmt.Errorf("update membership %s: %w", m.ID, err)
 			}

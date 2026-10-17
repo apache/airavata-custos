@@ -109,7 +109,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if title == "" {
 		title = grantNumber
 	}
-	project, err := h.ensureProject(ctx, projectOriginatedID, title, pi.ID)
+	project, err := h.ensureProject(ctx, tx, projectOriginatedID, title, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure project: %w", err)
 	}
@@ -117,7 +117,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_PROJECT: %w", err)
 	}
 
-	allocation, err := h.ensureAllocation(ctx, body, project.ID, grantNumber)
+	allocation, err := h.ensureAllocation(ctx, tx, body, project.ID, grantNumber)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure allocation: %w", err)
 	}
@@ -129,7 +129,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: ensure resource mappings: %w", err)
 	}
 
-	piMembership, created, err := h.ensurePIMembership(ctx, allocation, pi.ID)
+	piMembership, created, err := h.ensurePIMembership(ctx, tx, allocation, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure PI membership: %w", err)
 	}
@@ -208,11 +208,11 @@ func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, u
 	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
-func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, title, piID string) (*models.Project, error) {
+func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, tx *sql.Tx, originatedID, title, piID string) (*models.Project, error) {
 	if p, err := h.svc.GetProjectByOriginatedID(ctx, originatedID); err == nil {
 		// The spec says a project packet for an inactive project reactivates it.
 		if p.Status != models.ProjectActive {
-			return h.svc.UpdateProjectStatus(ctx, p.ID, models.ProjectActive)
+			return h.svc.UpdateProjectStatusTx(ctx, tx, p.ID, models.ProjectActive)
 		}
 		return p, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
@@ -227,7 +227,7 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 }
 
 // ensureAllocation also changes the allocation when the project already has one.
-func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
 	su, err := getNumber(body, "ServiceUnitsAllocated")
 	if err != nil {
 		return nil, err
@@ -238,7 +238,7 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 	}
 	if len(existing) > 0 {
 		// A grant has one allocation, active or not. This handler never makes a second.
-		return h.changeAllocation(ctx, body, &existing[0], su)
+		return h.changeAllocation(ctx, tx, body, &existing[0], su)
 	}
 	if su < 0 {
 		return nil, fmt.Errorf("%w: negative service units for a project with no allocation", model.ErrInvalidPacket)
@@ -310,14 +310,14 @@ func (h *RequestProjectCreateHandler) attachResource(ctx context.Context, tx *sq
 // Returns (membership, created=true) when it inserted a new row, or
 // (existing, created=false) on redelivery. The service rejects a second
 // distinct PI on the same allocation.
-func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
+func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
 	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
 	if err != nil {
 		return nil, false, fmt.Errorf("list memberships: %w", err)
 	}
 	for _, m := range existing {
 		if m.UserID == piID {
-			active, err := reactivate(ctx, h.svc, m.ComputeAllocationMembership)
+			active, err := reactivate(ctx, tx, h.svc, m.ComputeAllocationMembership)
 			return active, false, err
 		}
 	}
@@ -336,7 +336,7 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, al
 
 // changeAllocation applies a repeat packet by its AllocationType and keeps a
 // diff row as history. See "Allocation types" in ../README.md.
-func (h *RequestProjectCreateHandler) changeAllocation(ctx context.Context, body map[string]any, alloc *models.ComputeAllocation, su float64) (*models.ComputeAllocation, error) {
+func (h *RequestProjectCreateHandler) changeAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, alloc *models.ComputeAllocation, su float64) (*models.ComputeAllocation, error) {
 	diffType := strings.ToUpper(strings.TrimSpace(getString(body, "AllocationType")))
 	if diffType == "" {
 		diffType = "GRANT"
@@ -363,10 +363,10 @@ func (h *RequestProjectCreateHandler) changeAllocation(ctx context.Context, body
 		alloc.InitialSUAmount += su
 	}
 	alloc.Status = models.ACTIVE
-	if err := h.svc.UpdateComputeAllocation(ctx, alloc); err != nil {
+	if err := h.svc.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
 		return nil, fmt.Errorf("change allocation: %w", err)
 	}
-	if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+	if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 		ComputeAllocationID: alloc.ID,
 		DiffType:            diffType,
 		NewSUAmount:         su,

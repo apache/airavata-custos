@@ -52,6 +52,19 @@ func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, er
 	return &u, nil
 }
 
+func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error) {
+	var r models.User
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
+		`SELECT `+userColumns+` FROM users WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
 func (s *pgUserStore) List(ctx context.Context, limit, offset int) ([]models.User, int, error) {
 	var total int
 	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {

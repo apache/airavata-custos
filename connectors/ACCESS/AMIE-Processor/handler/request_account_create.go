@@ -114,7 +114,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 
 	role := normalizeAMIERole(normalizeRole(getString(body, "UserRole")))
-	membership, err := h.ensureMembership(ctx, &allocation, user.ID)
+	membership, err := h.ensureMembership(ctx, tx, &allocation, user.ID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure membership: %w", err)
 	}
@@ -193,7 +193,7 @@ func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Conte
 
 // ensureMembership reactivates a known member only while the allocation is active.
 // On an inactive project the member stays inactive, as the spec says.
-func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allocation *models.ComputeAllocation, userID string) (*models.ComputeAllocationMembership, error) {
+func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, userID string) (*models.ComputeAllocationMembership, error) {
 	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
 	if err != nil {
 		return nil, fmt.Errorf("list memberships: %w", err)
@@ -203,7 +203,7 @@ func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allo
 			if allocation.Status != models.ACTIVE {
 				return &m.ComputeAllocationMembership, nil
 			}
-			return reactivate(ctx, h.svc, m.ComputeAllocationMembership)
+			return reactivate(ctx, tx, h.svc, m.ComputeAllocationMembership)
 		}
 	}
 	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
