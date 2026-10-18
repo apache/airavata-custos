@@ -37,7 +37,8 @@ app = Flask(__name__)
 
 pending_packets = []
 replied_packets = {}
-packet_counter = 900000
+# Seeded from the clock so a restarted mock never reuses ids the connector already stored.
+packet_counter = int(time.time())
 stats = {"created": 0, "fetched": 0, "replied": 0}
 
 # Maps GrantNumber → Custos project UUID, populated as notify_project_create
