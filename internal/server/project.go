@@ -31,8 +31,6 @@ import (
 type updateProjectRequest struct {
 	Title       string `json:"title"`
 	ProjectPIID string `json:"project_pi_id"`
-	// The old PI's role when project_pi_id changes: CO_PI, ALLOCATION_MANAGER or MEMBER.
-	PreviousPIRole string `json:"previous_pi_role"`
 }
 
 // @Summary	Create a project
@@ -124,6 +122,7 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 // @Success	200	{object}	models.Project
 // @Failure	400	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"PI change"
 // @Router	/projects/{id} [put]
 func (s *Server) updateProject(w http.ResponseWriter, r *http.Request) {
 	var req updateProjectRequest
@@ -132,7 +131,7 @@ func (s *Server) updateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := models.Project{ID: r.PathValue("id"), Title: req.Title, ProjectPIID: req.ProjectPIID}
-	if err := s.svc.UpdateProject(r.Context(), &p, req.PreviousPIRole); err != nil {
+	if err := s.svc.UpdateProject(r.Context(), &p); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}

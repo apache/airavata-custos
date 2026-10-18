@@ -80,7 +80,7 @@ type ProjectService interface {
 	GetProjectByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
 	ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
 	IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	UpdateProject(ctx context.Context, project *models.Project, previousPIRole string) error
+	UpdateProject(ctx context.Context, project *models.Project) error
 	UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error)
 	DeleteProject(ctx context.Context, id string) error
 }

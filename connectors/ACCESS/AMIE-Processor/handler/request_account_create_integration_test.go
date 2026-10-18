@@ -409,13 +409,14 @@ func TestRequestAccountCreate_ReactivatesInactiveMember(t *testing.T) {
 	}
 }
 
-// Make sure an account request for the project's PI, under any role, adds the
-// membership and leaves the PI and project roles untouched.
+// Make sure an account request for the project's PI, under any role, is
+// refused and leaves the PI and project roles untouched.
 func TestRequestAccountCreate_ForThePI(t *testing.T) {
 	database := setupTestDB(t)
 	projectID := seedProjectForRAC(t, database)
 	svc := newTestCoreService(database)
-	h := NewRequestAccountCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database))
+	amie := &fakeAmieClient{}
+	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, newTestAuditService(database))
 	pi := baseRPCBody()
 	for _, role := range []string{"MEMBER", "CO_PI"} {
 		body := baseRACBody()
@@ -425,6 +426,9 @@ func TestRequestAccountCreate_ForThePI(t *testing.T) {
 			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
 		}); err != nil {
 			t.Fatalf("Handle as %s: %v", role, err)
+		}
+		if pkt.Status != model.PacketStatusRefused || amie.lastReplyBody()["StatusCode"] != "Failure" {
+			t.Errorf("as %s: got status %s and reply %v, want a refusal", role, pkt.Status, amie.lastReplyBody())
 		}
 	}
 	if got := countRows(t, database, "compute_allocation_memberships"); got != 1 {

@@ -26,8 +26,8 @@ import (
 )
 
 // EnsureProjectMembership sets the user's project role. The PI lives in
-// projects.project_pi_id and outranks every role, so any role for the PI is
-// already held; PI for anyone else returns ErrPIChange. MEMBER (or "") removes
+// projects.project_pi_id and cannot be changed or edited: PI for anyone else,
+// or any other role for the PI, returns ErrPIChange. MEMBER (or "") removes
 // the role row; the user stays a member through compute_allocation_memberships.
 func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error {
 	if projectID == "" {
@@ -43,9 +43,9 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 	}
 	pr := models.ProjectRole(role)
 	switch {
-	case existing != nil && existing.Role == models.ProjectRolePI:
+	case existing != nil && existing.Role == models.ProjectRolePI && pr == models.ProjectRolePI:
 		return nil
-	case pr == models.ProjectRolePI:
+	case existing != nil && existing.Role == models.ProjectRolePI, pr == models.ProjectRolePI:
 		return fmt.Errorf("%w: project %q", ErrPIChange, projectID)
 	}
 	if role == "MEMBER" || role == "" {

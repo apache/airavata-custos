@@ -48,7 +48,7 @@ func projectRoles(t *testing.T, srv *Server, projectID string) map[string]string
 	return roles
 }
 
-func TestAdminProject_CreateAssignRoleAndChangePI(t *testing.T) {
+func TestAdminProject_CreateAssignRoleAndBlockPIChange(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	f := seedScopedFixtures(t, database, svc)
 	newPIID := seedUser(t, database, "admin.new.pi@example.edu")
@@ -71,23 +71,13 @@ func TestAdminProject_CreateAssignRoleAndChangePI(t *testing.T) {
 		t.Fatalf("assigned role: %v", roles)
 	}
 
-	if rr := doWrite(t, srv, http.MethodPut, path, map[string]string{"project_pi_id": newPIID, "previous_pi_role": "CO_PI"}); rr.Code != http.StatusOK {
+	if rr := doWrite(t, srv, http.MethodPut, path, map[string]string{"project_pi_id": newPIID}); rr.Code != http.StatusConflict {
 		t.Fatalf("change PI: %d %s", rr.Code, rr.Body.String())
 	}
-	if roles := projectRoles(t, srv, f.projectA.ID); roles[newPIID] != "PI" || roles[f.piID] != "CO_PI" {
-		t.Fatalf("roles after PI change: %v", roles)
-	}
-
-	for _, c := range []struct {
-		user, role string
-		code       int
-	}{{newPIID, "MEMBER", http.StatusNoContent}, {f.piID, "PI", http.StatusConflict}} {
-		if rr := doWrite(t, srv, http.MethodPut, path+"/members/"+c.user, map[string]string{"role": c.role}); rr.Code != c.code {
+	for _, c := range []struct{ user, role string }{{newPIID, "PI"}, {f.piID, "CO_PI"}} {
+		if rr := doWrite(t, srv, http.MethodPut, path+"/members/"+c.user, map[string]string{"role": c.role}); rr.Code != http.StatusConflict {
 			t.Fatalf("PI role via %s %s: %d %s", c.user, c.role, rr.Code, rr.Body.String())
 		}
-	}
-	if roles := projectRoles(t, srv, f.projectA.ID); roles[newPIID] != "PI" {
-		t.Fatalf("PI after a MEMBER request: %v", roles)
 	}
 	if rr := doWrite(t, srv, http.MethodDelete, path, nil); rr.Code != http.StatusConflict {
 		t.Fatalf("delete with allocations: %d %s", rr.Code, rr.Body.String())
