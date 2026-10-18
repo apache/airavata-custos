@@ -32,7 +32,7 @@ import { Label } from "@/shared/ui/label";
 import type { CreateMembershipPayload } from "../schemas";
 
 const ROLES = ["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"] as const;
-type Role = (typeof ROLES)[number];
+export type Role = (typeof ROLES)[number];
 
 const ROLE_LABELS: Record<Role, string> = {
   PI: "PI",
@@ -46,7 +46,7 @@ export type AddMemberDialogProps = {
   onOpenChange: (open: boolean) => void;
   allocationId: string;
   defaultEndTime: string;
-  onSubmit: (payload: CreateMembershipPayload) => void;
+  onSubmit: (payload: CreateMembershipPayload, role: Role) => void;
   isPending: boolean;
 };
 
@@ -82,14 +82,16 @@ export function AddMemberDialog({
           onSubmit={(e) => {
             e.preventDefault();
             if (!userId.trim()) return;
-            onSubmit({
-              compute_allocation_id: allocationId,
-              user_id: userId.trim(),
-              start_time: new Date().toISOString(),
-              end_time: defaultEndTime,
-              membership_status: "ACTIVE",
+            onSubmit(
+              {
+                compute_allocation_id: allocationId,
+                user_id: userId.trim(),
+                start_time: new Date().toISOString(),
+                end_time: defaultEndTime,
+                membership_status: "ACTIVE",
+              },
               role,
-            });
+            );
           }}
         >
           <div className="space-y-2">
@@ -107,7 +109,7 @@ export function AddMemberDialog({
             <select
               id="add-member-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
+              onChange={(e) => setRole(ROLES.find((r) => r === e.target.value) ?? role)}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
               {ROLES.map((r) => (

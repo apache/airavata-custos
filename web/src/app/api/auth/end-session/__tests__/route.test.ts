@@ -32,8 +32,8 @@ vi.mock("@/lib/env", () => ({
 
 import { GET } from "../route";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function discoveryResponse(body: unknown, ok = true): Response {
   return new Response(JSON.stringify(body), { status: ok ? 200 : 500 });
@@ -55,7 +55,7 @@ describe("end-session route", () => {
       discoveryResponse({ end_session_endpoint: "https://idp.example.org/logout" }),
     );
     const res = await GET(request());
-    const location = new URL(res.headers.get("location") as string);
+    const location = new URL(res.headers.get("location") ?? "");
     expect(location.origin + location.pathname).toBe("https://idp.example.org/logout");
     expect(location.searchParams.get("id_token_hint")).toBe("id-token-abc");
     expect(location.searchParams.get("post_logout_redirect_uri")).toBe(

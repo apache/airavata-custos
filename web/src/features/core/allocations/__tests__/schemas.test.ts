@@ -18,27 +18,11 @@
 import { describe, expect, it } from "vitest";
 import {
   allocationMembershipSchema,
-  changeRequestEventSchema,
   changeRequestSchema,
-  computeAllocationListSchema,
-  computeAllocationSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
-  updateMembershipPayloadSchema,
 } from "../schemas";
-
-const validAllocation = {
-  id: "alloc-001",
-  project_id: "project-001",
-  name: "Test Alloc",
-  status: "ACTIVE" as const,
-  compute_cluster_id: "cluster-001",
-  initial_su_amount: 100000,
-  start_time: "2026-04-01T00:00:00.000Z",
-  end_time: "2027-03-31T00:00:00.000Z",
-  group_provisioned_at: null,
-};
 
 const validMember = {
   id: "mem-001",
@@ -47,6 +31,7 @@ const validMember = {
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
   membership_status: "ACTIVE" as const,
+  role: "MEMBER" as const,
 };
 
 const validChangeRequest = {
@@ -59,28 +44,6 @@ const validChangeRequest = {
   requester_id: "user-pi-001",
   timestamp: "2026-06-01T10:00:00.000Z",
 };
-
-describe("computeAllocationSchema", () => {
-  it("accepts a backend-shaped allocation", () => {
-    expect(computeAllocationSchema.safeParse(validAllocation).success).toBe(true);
-  });
-  it("rejects an invalid status", () => {
-    expect(
-      computeAllocationSchema.safeParse({ ...validAllocation, status: "FOO" }).success,
-    ).toBe(false);
-  });
-});
-
-describe("computeAllocationListSchema", () => {
-  it("accepts a valid envelope", () => {
-    expect(
-      computeAllocationListSchema.safeParse({ items: [validAllocation], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(computeAllocationListSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
-  });
-});
 
 describe("allocationMembershipSchema", () => {
   it("accepts a backend-shaped membership", () => {
@@ -123,19 +86,6 @@ describe("changeRequestSchema", () => {
   });
 });
 
-describe("changeRequestEventSchema", () => {
-  it("accepts a valid event", () => {
-    expect(
-      changeRequestEventSchema.safeParse({
-        id: "evt-001",
-        compute_allocation_change_request_id: "cr-001",
-        event_type: "CREATED",
-        timestamp: "2026-06-01T10:00:00.000Z",
-      }).success,
-    ).toBe(true);
-  });
-});
-
 describe("createMembershipPayloadSchema", () => {
   it("accepts a complete payload", () => {
     expect(
@@ -165,17 +115,6 @@ describe("createMembershipPayloadSchema", () => {
         end_time: "x",
       }).success,
     ).toBe(false);
-  });
-});
-
-describe("updateMembershipPayloadSchema", () => {
-  it("rejects empty patches", () => {
-    expect(updateMembershipPayloadSchema.safeParse({}).success).toBe(false);
-  });
-  it("accepts a status-only patch", () => {
-    expect(
-      updateMembershipPayloadSchema.safeParse({ membership_status: "INACTIVE" }).success,
-    ).toBe(true);
   });
 });
 

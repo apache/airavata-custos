@@ -22,7 +22,7 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { useClusterUsers } from "../queries";
-import type { ComputeClusterUser } from "../schemas";
+import type { ComputeClusterUser } from "@/generated/core/zod.gen";
 
 export type ClusterUsersDrawerProps = {
   clusterId: string | null;
@@ -49,7 +49,7 @@ export function ClusterUsersDrawer({
         <CardSkeleton />
       ) : usersQuery.error ? (
         <ErrorState
-          message={(usersQuery.error as Error).message}
+          message={usersQuery.error.message}
           onRetry={() => usersQuery.refetch()}
         />
       ) : users.length === 0 ? (

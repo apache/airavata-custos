@@ -29,11 +29,12 @@ describe("TraceRawTab", () => {
   // Make sure Copy JSON hands over the whole response, deliveries included, so
   // what an admin pastes into a ticket is what the backend returned.
   it("copies the full wire response", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     render(<TraceRawTab detail={detail} stepCount={33} />);
     fireEvent.click(screen.getByRole("button", { name: "Copy trace JSON" }));
     await waitFor(() => expect(writeText).toHaveBeenCalled());
-    expect(JSON.parse(writeText.mock.calls[0]?.[0] as string)).toEqual(detail);
+    const copied: unknown = JSON.parse(writeText.mock.calls[0]?.[0] ?? "");
+    expect(copied).toEqual(detail);
   });
 });

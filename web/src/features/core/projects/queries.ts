@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addProjectMember,
   createProject,
@@ -60,8 +60,7 @@ export function useProjects(params: ProjectListParams = {}) {
 export function useProject(id: string | undefined) {
   return useQuery({
     queryKey: id ? projectKeys.detail(id) : [...projectKeys.all, "detail", "none"],
-    queryFn: () => getProject(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getProject(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -71,8 +70,7 @@ export function useProjectMembers(projectId: string | undefined) {
     queryKey: projectId
       ? projectKeys.members(projectId)
       : [...projectKeys.all, "members", "none"],
-    queryFn: () => listProjectMembers(projectId as string),
-    enabled: Boolean(projectId),
+    queryFn: projectId ? () => listProjectMembers(projectId) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -108,14 +106,13 @@ export function useAddProjectMember(projectId: string) {
 export function useUpdateProjectMember(projectId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      memberId,
-      payload,
-    }: {
-      memberId: string;
-      payload: UpdateProjectMemberPayload;
-    }) => updateProjectMember(projectId, memberId, payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
+    mutationFn: ({ userId, payload }: { userId: string; payload: UpdateProjectMemberPayload }) =>
+      updateProjectMember(projectId, userId, payload),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: projectKeys.members(projectId) });
+      // Allocation member rows show the project role; a key prefix avoids importing allocations.
+      client.invalidateQueries({ queryKey: ["allocations"] });
+    },
   });
 }
 

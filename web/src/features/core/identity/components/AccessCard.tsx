@@ -18,12 +18,13 @@
 "use client";
 
 import { useState } from "react";
+import type { UserRole } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { buildPrivilegeRows } from "../privileges";
 import type { MyAccess } from "../queries";
-import type { RoleWithPrivileges, UserRole } from "../schemas";
+import type { RoleWithPrivileges } from "../schemas";
 
 function formatDate(iso?: string): string | null {
   if (!iso) return null;
@@ -148,7 +149,7 @@ function RolesColumn({
   return (
     <div className="space-y-2.5">
       {roles.map((rwp) => {
-        const roleId = rwp.role.id ?? "";
+        const roleId = rwp.role.id;
         const granted = grantedLine(rwp.grant);
         return (
           <div

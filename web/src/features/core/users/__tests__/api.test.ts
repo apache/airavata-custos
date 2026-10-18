@@ -18,8 +18,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { assignUserRole, listUsers, removeUserRole } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body?: unknown): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -30,11 +30,29 @@ function mockResponse(status: number, body?: unknown): Response {
 
 afterEach(() => fetchMock.mockReset());
 
+const grant = {
+  user_id: "user-1",
+  role_id: "role-1",
+  granted_at: "2026-01-01T00:00:00Z",
+  granted_by: null,
+  reason: null,
+};
+
 describe("users API", () => {
   it("sends limit and offset when listing users", async () => {
     fetchMock.mockResolvedValueOnce(
       mockResponse(200, {
-        items: [{ id: "user-1", email: "user@example.org" }],
+        items: [
+          {
+            id: "user-1",
+            email: "user@example.org",
+            first_name: "Example",
+            last_name: "User",
+            organization_id: "org-1",
+            status: "ACTIVE",
+            type: "CLUSTER_LOCAL",
+          },
+        ],
         total: 1,
       }),
     );
@@ -46,7 +64,7 @@ describe("users API", () => {
   });
 
   it("posts the role id when assigning a role", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(201, { user_id: "user-1", role_id: "role-1" }));
+    fetchMock.mockResolvedValueOnce(mockResponse(201, grant));
     await assignUserRole("user-1", "role-1");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "POST",
@@ -55,7 +73,7 @@ describe("users API", () => {
   });
 
   it("includes the reason in the assignment body when provided", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(201, { user_id: "user-1", role_id: "role-1" }));
+    fetchMock.mockResolvedValueOnce(mockResponse(201, grant));
     await assignUserRole("user-1", "role-1", "Onboarding");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "POST",
@@ -64,7 +82,7 @@ describe("users API", () => {
   });
 
   it("omits the reason when the value is blank", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(201, { user_id: "user-1", role_id: "role-1" }));
+    fetchMock.mockResolvedValueOnce(mockResponse(201, grant));
     await assignUserRole("user-1", "role-1", "   ");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "POST",

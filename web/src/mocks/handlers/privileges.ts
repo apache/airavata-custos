@@ -54,7 +54,7 @@ function effectivePrivileges(): Privilege[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return list.length > 0 ? (list as Privilege[]) : ALL_PRIVILEGES;
+  return list.length > 0 ? list : ALL_PRIVILEGES;
 }
 
 // Exported so the identity settings handlers share the same effective set.

@@ -28,14 +28,15 @@ export default function PacketRawJson({ rawJson }: PacketRawJsonProps) {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawJson);
-  } catch {
+  } catch {}
+  if (typeof parsed !== "object" || parsed === null) {
     return (
       <pre className="overflow-x-auto rounded-md border bg-muted/20 p-3 text-xs">{rawJson}</pre>
     );
   }
   return (
     <div className="overflow-x-auto rounded-md border bg-background p-3 text-xs">
-      <JsonView data={parsed as object} style={defaultStyles} />
+      <JsonView data={parsed} style={defaultStyles} />
     </div>
   );
 }

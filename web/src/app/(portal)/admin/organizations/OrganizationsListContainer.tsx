@@ -55,7 +55,7 @@ export function OrganizationsListContainer() {
       <OrganizationsList
         rows={query.data?.items ?? []}
         isLoading={query.isLoading}
-        error={(query.error as Error | null) ?? null}
+        error={query.error}
         onRetry={() => query.refetch()}
         page={page}
         pageSize={PAGE_SIZE}

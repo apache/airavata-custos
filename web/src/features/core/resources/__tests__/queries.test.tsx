@@ -21,11 +21,12 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { zPostComputeAllocationResourceRatesBody } from "@/generated/core/zod.gen";
 import { resourceKeys, useCreateResourceRate } from "../queries";
 
 const server = setupServer(
   http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = zPostComputeAllocationResourceRatesBody.parse(await request.json());
     return HttpResponse.json({ id: "rate-new", ...body }, { status: 201 });
   }),
 );

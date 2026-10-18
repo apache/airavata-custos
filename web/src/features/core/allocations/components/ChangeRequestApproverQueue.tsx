@@ -91,7 +91,7 @@ export function ChangeRequestApproverQueue({
       await approveMutation.mutateAsync({ id: row.id, approverId });
       toast.success(`Approved ${row.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       markPending(row.id, false);
     }
@@ -103,7 +103,7 @@ export function ChangeRequestApproverQueue({
       await rejectMutation.mutateAsync({ id: row.id, approverId });
       toast.success(`Rejected ${row.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       markPending(row.id, false);
     }
@@ -225,7 +225,11 @@ export function ChangeRequestApproverQueue({
           <select
             id="cr-status-filter"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | ChangeRequestStatus)}
+            onChange={(e) =>
+              setStatusFilter(
+                STATUS_OPTIONS.find((opt) => opt.value === e.target.value)?.value ?? statusFilter,
+              )
+            }
             className="h-9 rounded-md border bg-background px-3 text-sm"
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -252,7 +256,7 @@ export function ChangeRequestApproverQueue({
         <TableSkeleton rows={5} columns={6} />
       ) : query.error ? (
         <ErrorState
-          message={(query.error as Error).message}
+          message={query.error.message}
           onRetry={() => query.refetch()}
         />
       ) : rows.length === 0 ? (

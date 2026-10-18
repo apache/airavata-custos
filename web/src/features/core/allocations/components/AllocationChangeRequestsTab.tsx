@@ -28,8 +28,9 @@ import {
   StatusBadge,
   statusBadgeVariantFromChangeRequest,
 } from "@/shared/ui/StatusBadge";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { useChangeRequests } from "../queries";
-import type { ChangeRequest, ComputeAllocation } from "../schemas";
+import type { ChangeRequest } from "../schemas";
 import { ChangeRequestSubmitDrawer } from "./ChangeRequestSubmitDrawer";
 
 export type AllocationChangeRequestsTabProps = {
@@ -60,7 +61,7 @@ export function AllocationChangeRequestsTab({
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = query.data ?? [];
 

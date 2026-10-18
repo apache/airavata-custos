@@ -16,13 +16,11 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
-import type {
-  CreateOrganizationPayload,
-  Organization,
-} from "@/features/core/organizations/schemas";
+import { createOrganizationPayloadSchema } from "@/features/core/organizations/schemas";
+import type { Organization } from "@/generated/core/zod.gen";
 import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
 
-const organizations: Organization[] = (organizationsFixture as Organization[]).map((o) => ({
+const organizations: Organization[] = organizationsFixture.map((o) => ({
   ...o,
 }));
 
@@ -35,7 +33,7 @@ export const organizationsHandlers = [
     return HttpResponse.json({ items, total: organizations.length });
   }),
 
-  http.get("*/api/v1/organizations/:id", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/organizations/:id", ({ params }) => {
     const id = String(params.id);
     const found = organizations.find((o) => o.id === id);
     if (!found) return HttpResponse.json({ error: "organization not found" }, { status: 404 });
@@ -43,7 +41,7 @@ export const organizationsHandlers = [
   }),
 
   http.post("*/api/v1/organizations", async ({ request }) => {
-    const payload = (await request.json()) as CreateOrganizationPayload;
+    const payload = createOrganizationPayloadSchema.parse(await request.json());
     const organization: Organization = {
       id: `org-${Date.now()}`,
       name: payload.name,

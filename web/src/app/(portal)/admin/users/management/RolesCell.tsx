@@ -17,8 +17,8 @@
 
 "use client";
 
+import type { Role } from "@/generated/core/zod.gen";
 import { Badge } from "@/shared/ui/badge";
-import type { Role } from "@/features/core/users/schemas";
 
 const VISIBLE_ROLE_COUNT = 2;
 

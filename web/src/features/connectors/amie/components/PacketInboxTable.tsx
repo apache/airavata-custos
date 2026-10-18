@@ -230,7 +230,7 @@ export function PacketInboxTable({
             onChange={(e) =>
               onFiltersChange({
                 ...filters,
-                status: e.currentTarget.value as PacketStatus | "all",
+                status: PACKET_STATUSES.find((s) => s === e.currentTarget.value) ?? "all",
               })
             }
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
@@ -320,7 +320,7 @@ export function PacketInboxTable({
       </form>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load packets"} onRetry={onRetry} />
+        <ErrorState message={error.message} onRetry={onRetry} />
       ) : isLoading ? (
         <TableSkeleton />
       ) : rows.length === 0 ? (

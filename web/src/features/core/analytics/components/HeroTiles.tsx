@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { Allocation } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import {
   creditsBand,
@@ -25,14 +26,13 @@ import {
   pctRemaining,
   type UrgencyBand,
 } from "../lib";
-import type { AnalyticsAllocation } from "../schemas";
 import { BAND_METER_CLASS, BAND_PILL_CLASS, BAND_PILL_LABEL, BAND_RULE_CLASS } from "./bands";
 
 // Number of hero tiles; the page's loading skeletons match this count.
 export const HERO_TILE_COUNT = 3;
 
 type HeroTilesProps = {
-  allocation: AnalyticsAllocation;
+  allocation: Allocation;
   callerUsed: number;
   now: Date;
 };

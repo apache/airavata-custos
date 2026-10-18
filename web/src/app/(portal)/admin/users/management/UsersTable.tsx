@@ -17,8 +17,8 @@
 
 "use client";
 
-import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,

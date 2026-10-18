@@ -53,6 +53,7 @@ const failed: DeliveryDetail = {
     payload: { id: "ccu-1", user_id: "user-jdoe", local_username: "jdoe" },
     source: "core",
     trace_id: "4bf92f3577b34da6a3ce929d0e0e4736",
+    span_id: "00f067aa0ba902b7",
     created_at: "2026-10-02T03:18:44Z",
   },
   history: [
@@ -90,6 +91,7 @@ const retrying: DeliveryDetail = {
     payload: { id: "alloc-1", name: "E2E-201" },
     source: "amie",
     trace_id: "",
+    span_id: "",
     created_at: "2026-10-02T08:00:00Z",
   },
   history: [
@@ -114,6 +116,7 @@ const succeeded: DeliveryDetail = {
     payload: { user_id: "user-jdoe", source: "oidc" },
     source: "core",
     trace_id: "",
+    span_id: "",
     created_at: "2026-10-02T07:00:00Z",
   },
   history: [attempt("dlv-ok-1", 1, "2026-10-02T07:00:05Z")],

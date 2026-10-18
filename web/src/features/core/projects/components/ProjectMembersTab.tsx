@@ -20,7 +20,6 @@
 import Link from "next/link";
 import * as React from "react";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import {
@@ -41,7 +40,12 @@ import {
   useRemoveProjectMember,
   useUpdateProjectMember,
 } from "../queries";
-import type { ProjectMember, ProjectMemberAllocation, ProjectMemberRole } from "../schemas";
+import {
+  type ProjectMember,
+  type ProjectMemberAllocation,
+  type ProjectMemberRole,
+  projectMemberRoleSchema,
+} from "../schemas";
 
 const CHIP_ROLE_SUFFIX: Record<ProjectMemberAllocation["role"], string> = {
   PI: "P",
@@ -102,7 +106,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
 
   if (query.isLoading) return <TableSkeleton rows={4} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const members = query.data ?? [];
   if (members.length === 0) {
@@ -126,11 +130,6 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium text-foreground">{row.display_name}</span>
-              {row.type === "VIRTUAL" && (
-                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                  Virtual
-                </Badge>
-              )}
             </div>
             <div className="text-xs text-muted-foreground">{row.email}</div>
           </div>
@@ -204,7 +203,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
         onSubmit={(payload) => {
           if (!editing) return;
           updateMutation.mutate(
-            { memberId: editing.id, payload },
+            { userId: editing.user_id, payload },
             { onSuccess: () => setEditing(null) },
           );
         }}
@@ -247,7 +246,7 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
             <select
               id="member-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as ProjectMemberRole)}
+              onChange={(e) => setRole(projectMemberRoleSchema.parse(e.target.value))}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
               <option value="ALLOCATION_MANAGER">Allocation Manager</option>

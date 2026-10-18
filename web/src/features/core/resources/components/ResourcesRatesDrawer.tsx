@@ -19,7 +19,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { type DefaultValues, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
@@ -31,7 +31,7 @@ import { CardSkeleton } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
 import { useCreateResourceRate, useEffectiveRate, useResourceRates } from "../queries";
-import { classifyRate, createRateSchema, type CreateRateForm, type Rate, type RateStatus } from "../schemas";
+import { classifyRate, createRateSchema, type CreateRateForm, type RateStatus } from "../schemas";
 
 const STATUS_VARIANT: Record<RateStatus, StatusBadgeVariant> = {
   ACTIVE: "active",
@@ -56,12 +56,11 @@ function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function defaultForm(): CreateRateForm {
+function defaultForm(): DefaultValues<CreateRateForm> {
   const start = todayUtc();
   const end = new Date(start);
   end.setUTCFullYear(end.getUTCFullYear() + 1);
   return {
-    rate: undefined as unknown as number,
     start_date: start,
     end_date: end.toISOString().slice(0, 10),
   };
@@ -238,7 +237,7 @@ export function ResourcesRatesDrawer({
       {rates.isLoading ? (
         <CardSkeleton />
       ) : rates.error ? (
-        <ErrorState message={(rates.error as Error).message} onRetry={() => rates.refetch()} />
+        <ErrorState message={rates.error.message} onRetry={() => rates.refetch()} />
       ) : history.length === 0 ? (
         <EmptyState
           heading="No rates recorded for this resource."
@@ -261,7 +260,7 @@ export function ResourcesRatesDrawer({
             </tr>
           </thead>
           <tbody>
-            {history.map((rate: Rate) => {
+            {history.map((rate) => {
               const status = classifyRate(rate, history);
               return (
                 <tr key={rate.id} className="border-t border-border/60">

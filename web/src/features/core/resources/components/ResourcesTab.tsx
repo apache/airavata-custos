@@ -27,7 +27,7 @@ import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { UsageBar } from "@/shared/ui/UsageBar";
 import { useResourceSummaries } from "../queries";
-import type { ResourceSummary } from "../schemas";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
 export function ResourcesTab() {
@@ -35,7 +35,7 @@ export function ResourcesTab() {
   const clustersQuery = useClusters();
   const [search, setSearch] = React.useState("");
   const [clusterId, setClusterId] = React.useState("");
-  const [ratesFor, setRatesFor] = React.useState<ResourceSummary | null>(null);
+  const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResourceSummary | null>(null);
 
   const clusters = clustersQuery.data ?? [];
   const clusterName = (id: string) => clusters.find((c) => c.id === id)?.name ?? id;
@@ -50,7 +50,7 @@ export function ResourcesTab() {
     });
   }, [rows, search, clusterId]);
 
-  const columns: Array<DataTableColumn<ResourceSummary>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationResourceSummary>> = [
     {
       key: "name",
       header: "Resource",
@@ -156,7 +156,7 @@ export function ResourcesTab() {
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState heading="No resources registered." />
       ) : filtered.length === 0 ? (

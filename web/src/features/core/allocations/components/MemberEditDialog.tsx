@@ -79,7 +79,7 @@ export function MemberEditDialog({ member, onClose, onSubmit, isPending }: Membe
             <select
               id="member-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as MemberRole)}
+              onChange={(e) => setRole(ROLES.find((r) => r === e.target.value) ?? role)}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
               {ROLES.map((r) => (

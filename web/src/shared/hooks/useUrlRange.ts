@@ -39,7 +39,7 @@ const PRESET_DAYS: Record<Exclude<RangePreset, "custom">, number> = {
 };
 
 function isRangePreset(value: string | null): value is RangePreset {
-  return value !== null && (RANGE_PRESETS as readonly string[]).includes(value);
+  return RANGE_PRESETS.some((preset) => preset === value);
 }
 
 function parseIso(input: string | null): Date | null {

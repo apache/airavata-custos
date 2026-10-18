@@ -17,13 +17,13 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { EventDeliveryStatus } from "@/generated/core/zod.gen";
+import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
 import { getDelivery, getUserName, listDeliveries, listSubscriptions, retryDelivery } from "./api";
-import type { DeliveryStatus } from "./types";
 
 export const eventKeys = {
   all: ["events"] as const,
-  deliveries: (status?: DeliveryStatus) =>
+  deliveries: (status?: EventDeliveryStatus) =>
     [...eventKeys.all, "deliveries", status ?? "ALL"] as const,
   delivery: (id: string) => [...eventKeys.all, "delivery", id] as const,
   subscriptions: () => [...eventKeys.all, "subscriptions"] as const,
@@ -39,7 +39,7 @@ export function useUserName(id: string) {
   });
 }
 
-export function useDeliveries(status?: DeliveryStatus) {
+export function useDeliveries(status?: EventDeliveryStatus) {
   return useQuery({
     queryKey: eventKeys.deliveries(status),
     queryFn: () => listDeliveries(status),
@@ -50,8 +50,7 @@ export function useDeliveries(status?: DeliveryStatus) {
 export function useDelivery(id: string | undefined) {
   return useQuery({
     queryKey: eventKeys.delivery(id ?? "none"),
-    queryFn: () => getDelivery(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getDelivery(id) : skipToken,
     refetchOnWindowFocus: false,
   });
 }

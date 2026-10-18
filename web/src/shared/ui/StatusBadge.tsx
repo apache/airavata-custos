@@ -15,8 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ChangeRequestStatus } from "@/features/core/allocations/schemas";
+import type { AllocationStatus } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
-import type { AllocationStatus, ChangeRequestStatus } from "@/shared/api/domain";
 
 export type StatusBadgeVariant =
   | "active"
@@ -54,7 +55,7 @@ const labels: Record<StatusBadgeVariant, string> = {
 export type StatusBadgeProps = {
   variant: StatusBadgeVariant;
   label?: string;
-  className?: string;
+  className?: string | undefined;
 };
 
 export function StatusBadge({ variant, label, className }: StatusBadgeProps) {

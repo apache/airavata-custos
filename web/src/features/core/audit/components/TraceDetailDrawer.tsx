@@ -140,7 +140,7 @@ export function TraceDetailDrawer({ traceId, open, onClose }: TraceDetailDrawerP
                   />
                 ) : (
                   <ErrorState
-                    message={(error as Error).message ?? "Could not load trace."}
+                    message={error.message}
                     onRetry={() => refetch()}
                     retryLabel="Retry"
                   />

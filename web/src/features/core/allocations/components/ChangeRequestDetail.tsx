@@ -64,7 +64,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
   if (query.isLoading) return <CardSkeleton />;
   if (query.error) {
     return (
-      <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
+      <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
     );
   }
   const request = query.data;
@@ -84,7 +84,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
         toast.success("Rejected");
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setPending(false);
     }
@@ -154,7 +154,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
           <p className="text-sm text-muted-foreground">Loading events…</p>
         ) : eventsQuery.error ? (
           <ErrorState
-            message={(eventsQuery.error as Error).message}
+            message={eventsQuery.error.message}
             onRetry={() => eventsQuery.refetch()}
           />
         ) : !eventsQuery.data || eventsQuery.data.length === 0 ? (

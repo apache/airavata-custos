@@ -40,7 +40,7 @@ export type DeliveryDetailDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   delivery: DeliveryDetail | undefined;
-  runningSubscribers?: Set<string>;
+  runningSubscribers?: Set<string> | undefined;
   isLoading: boolean;
   error: Error | null;
   canRetry: boolean;

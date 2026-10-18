@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { EventDeliveryStatus } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   deliveryDetailSchema,
@@ -22,12 +23,12 @@ import {
   subscriptionListSchema,
   userNameSchema,
 } from "./schemas";
-import type { Delivery, DeliveryDetail, DeliveryStatus, Subscription } from "./types";
+import type { Delivery, DeliveryDetail, Subscription } from "./types";
 
 // The backend caps one page at 200 rows and has no paging yet.
 export const DELIVERY_PAGE_SIZE = 200;
 
-export async function listDeliveries(status?: DeliveryStatus): Promise<Delivery[]> {
+export async function listDeliveries(status?: EventDeliveryStatus): Promise<Delivery[]> {
   const params = new URLSearchParams({ limit: String(DELIVERY_PAGE_SIZE) });
   if (status) params.set("status", status);
   const raw = await apiFetch(`/events/deliveries?${params.toString()}`);

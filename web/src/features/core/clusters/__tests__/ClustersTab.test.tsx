@@ -17,7 +17,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeCluster, ComputeClusterUser } from "../schemas";
+import type { ComputeCluster, ComputeClusterUser } from "@/generated/core/zod.gen";
 
 let clusters: ComputeCluster[] = [];
 let users: ComputeClusterUser[] = [];
@@ -40,6 +40,9 @@ beforeEach(() => {
       compute_cluster_id: "cluster-a",
       user_id: "user-ada-lovelace",
       local_username: "alovelace",
+      access_level: "USER",
+      approval_status: "APPROVED",
+      provisioned_at: "2026-04-01T00:00:00.000Z",
     },
   ];
 });

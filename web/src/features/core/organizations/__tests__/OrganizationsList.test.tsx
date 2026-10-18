@@ -17,9 +17,9 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Organization } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import { OrganizationsList } from "../components/OrganizationsList";
-import type { Organization } from "../schemas";
 
 const org: Organization = {
   id: "org-gatech",

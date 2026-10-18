@@ -17,24 +17,23 @@
 
 import { apiFetch } from "@/shared/api/client";
 import {
-  type CreateOrganizationPayload,
   type Organization,
-  type OrganizationListEnvelope,
-  createOrganizationPayloadSchema,
-  organizationListEnvelopeSchema,
-  organizationSchema,
-} from "./schemas";
+  type OrganizationListResponse,
+  zGetOrganizationsResponse,
+  zPostOrganizationsResponse,
+} from "@/generated/core/zod.gen";
+import { type CreateOrganizationPayload, createOrganizationPayloadSchema } from "./schemas";
 import type { OrganizationListParams } from "./types";
 
 export async function listOrganizations(
   params: OrganizationListParams = {},
-): Promise<OrganizationListEnvelope> {
+): Promise<OrganizationListResponse> {
   const search = new URLSearchParams();
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   const qs = search.toString();
   const raw = await apiFetch(`/organizations${qs ? `?${qs}` : ""}`);
-  return organizationListEnvelopeSchema.parse(raw);
+  return zGetOrganizationsResponse.parse(raw);
 }
 
 export async function createOrganization(
@@ -42,5 +41,5 @@ export async function createOrganization(
 ): Promise<Organization> {
   const validated = createOrganizationPayloadSchema.parse(payload);
   const raw = await apiFetch("/organizations", { method: "POST", body: validated });
-  return organizationSchema.parse(raw);
+  return zPostOrganizationsResponse.parse(raw);
 }

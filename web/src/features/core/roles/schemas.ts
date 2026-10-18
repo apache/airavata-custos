@@ -16,29 +16,14 @@
 // under the License.
 
 import { z } from "zod";
-import {
-  privilegeKeySchema,
-  roleDetailResponseSchema,
-  roleSchema,
-  userRoleSchema,
-} from "@/features/core/identity/schemas";
+import { type Role, zGetRolesByIdHoldersResponse } from "@/generated/core/zod.gen";
+import { privilegeKeySchema, type PrivilegeKey } from "@/features/core/identity/schemas";
 
-export { privilegeKeySchema, roleDetailResponseSchema, roleSchema };
+export const roleHoldersResponseSchema = zGetRolesByIdHoldersResponse.transform(
+  (value) => value ?? [],
+);
 
-export const rolesResponseSchema = z
-  .array(roleSchema)
-  .nullish()
-  .transform((value) => value ?? []);
-
-export const roleHoldersResponseSchema = z
-  .array(userRoleSchema)
-  .nullish()
-  .transform((value) => value ?? []);
-
-export const privilegeCatalogResponseSchema = z
-  .array(privilegeKeySchema)
-  .nullish()
-  .transform((value) => value ?? []);
+export const privilegeCatalogResponseSchema = z.array(privilegeKeySchema);
 
 export const roleInputSchema = z.object({
   name: z.string().trim().min(1),
@@ -46,10 +31,7 @@ export const roleInputSchema = z.object({
   privileges: z.array(privilegeKeySchema),
 });
 
-export type PrivilegeKey = z.infer<typeof privilegeKeySchema>;
-export type Role = z.infer<typeof roleSchema>;
 export type RoleInput = z.infer<typeof roleInputSchema>;
-export type UserRole = z.infer<typeof roleHoldersResponseSchema>[number];
 
 export type RoleRow = Role & {
   privileges: PrivilegeKey[];

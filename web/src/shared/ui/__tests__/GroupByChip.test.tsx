@@ -16,7 +16,7 @@
 // under the License.
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { assert, describe, expect, it, vi } from "vitest";
 import { GroupByChip, GroupByChipGroup } from "../GroupByChip";
 
 const options = [
@@ -76,7 +76,8 @@ describe("GroupByChipGroup", () => {
         />
       </GroupByChipGroup>,
     );
-    const root = container.firstElementChild as HTMLElement;
+    const root = container.firstElementChild;
+    assert(root);
     expect(root.getAttribute("role")).toBe("group");
     expect(root.getAttribute("aria-label")).toBe("Group by");
     expect(root.className).toContain("gap-2");

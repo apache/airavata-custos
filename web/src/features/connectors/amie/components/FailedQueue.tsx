@@ -218,7 +218,7 @@ export function FailedQueue({
       </div>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load queue"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
       ) : rows.length === 0 ? (

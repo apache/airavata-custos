@@ -17,10 +17,9 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeCluster } from "@/features/core/clusters/schemas";
-import type { ResourceSummary } from "../schemas";
+import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
 
-let resources: ResourceSummary[] = [];
+let resources: ComputeAllocationResourceSummary[] = [];
 const clusters: ComputeCluster[] = [
   { id: "cluster-a", name: "ClusterA" },
   { id: "cluster-b", name: "ClusterB" },

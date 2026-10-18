@@ -30,7 +30,7 @@ import {
   retryReply,
 } from "../api";
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
@@ -61,7 +61,7 @@ describe("amie api", () => {
       limit: 10,
       offset: 20,
     });
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("/api/v1/connectors/amie/packets");
     expect(url).toContain("status=FAILED");
     expect(url).toContain("type=request_project_create");
@@ -74,7 +74,7 @@ describe("amie api", () => {
   it("listPackets strips empty params", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ packets: [], total: 0, limit: 0, offset: 0 }));
     await listPackets({ q: "" });
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).not.toContain("q=");
   });
 
@@ -120,8 +120,8 @@ describe("amie api", () => {
     const res = await retryPacket("pkt-001");
     expect(res.queued).toBe(true);
     expect(res.packet.retries).toBe(1);
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.method).toBe("POST");
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.method).toBe("POST");
   });
 
   it("resolvePacket posts the reason", async () => {
@@ -138,16 +138,16 @@ describe("amie api", () => {
       }),
     );
     await resolvePacket("pkt-001", { reason: "Manual resolve" });
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.method).toBe("POST");
-    expect(init.body).toContain("Manual resolve");
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.method).toBe("POST");
+    expect(init?.body).toContain("Manual resolve");
   });
 
   it("listReplies validates the response envelope", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ replies: [], total: 0, limit: 50, offset: 0 }));
     const out = await listReplies({ status: "FAILED", limit: 50 });
     expect(out.replies).toEqual([]);
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("/api/v1/connectors/amie/replies");
   });
 
@@ -177,9 +177,9 @@ describe("amie api", () => {
       }),
     );
     await linkUnmapped("pkt-001", { entity_type: "project", entity_id: "BIO130001" });
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.body).toContain("BIO130001");
-    expect(init.body).toContain("project");
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.body).toContain("BIO130001");
+    expect(init?.body).toContain("project");
   });
 
   it("getPacketStats parses the byDay array", async () => {

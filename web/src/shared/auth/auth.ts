@@ -17,8 +17,16 @@
 
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Keycloak from "next-auth/providers/keycloak";
+import { z } from "zod";
 import { serverEnv } from "@/lib/env";
-import type { Privilege } from "@/features/core/identity/types";
+import { privilegeKeySchema } from "@/features/core/identity/schemas";
+import { zUser } from "@/generated/core/zod.gen";
+
+// Only what the token keeps from GET /me.
+const meTokenSchema = z.object({
+  user: zUser.pick({ id: true }).nullable(),
+  privileges: z.array(privilegeKeySchema),
+});
 
 function looksLikeJwt(token: string | null | undefined): boolean {
   return typeof token === "string" && token.split(".").length === 3;
@@ -61,7 +69,7 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async jwt({ token, account }) {
       if (account?.access_token) {
-        (token as { accessToken?: string }).accessToken = account.access_token;
+        token.accessToken = account.access_token;
         // Some IdPs hand out opaque access tokens; use the JWT-shaped
         // bearer for the backend call so the verifier accepts it.
         const bearer = looksLikeJwt(account.access_token)
@@ -73,13 +81,9 @@ export const authConfig: NextAuthConfig = {
             cache: "no-store",
           });
           if (res.ok) {
-            const body = (await res.json()) as {
-              user?: { id?: string };
-              privileges?: Privilege[];
-            };
-            const t = token as { custosUserId?: string; privileges?: Privilege[] };
-            t.custosUserId = body.user?.id;
-            t.privileges = body.privileges ?? [];
+            const body = meTokenSchema.parse(await res.json());
+            if (body.user) token.custosUserId = body.user.id;
+            token.privileges = body.privileges;
           }
         } catch {
           // The token stays without a Custos user, so the portal shows the no-access notice.
@@ -87,27 +91,20 @@ export const authConfig: NextAuthConfig = {
       }
       if (account?.id_token) {
         // Needed for the Keycloak end-session endpoint's id_token_hint.
-        (token as { idToken?: string }).idToken = account.id_token;
+        token.idToken = account.id_token;
       }
       return token;
     },
     async session({ session, token }) {
-      const t = token as {
-        accessToken?: string | null;
-        idToken?: string | null;
-        privileges?: Privilege[];
-        sub?: string;
-        custosUserId?: string;
-      };
-      if (t.accessToken) session.accessToken = t.accessToken;
-      if (t.idToken) session.idToken = t.idToken;
-      session.privileges = t.privileges ?? [];
-      session.custosUserId = t.custosUserId;
+      if (token.accessToken) session.accessToken = token.accessToken;
+      if (token.idToken) session.idToken = token.idToken;
+      session.privileges = token.privileges ?? [];
+      if (token.custosUserId) session.custosUserId = token.custosUserId;
       if (session.user) {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.
-        session.user.id = t.custosUserId ?? t.sub ?? session.user.id;
-        session.user.privileges = t.privileges ?? [];
+        session.user.id = token.custosUserId ?? token.sub ?? session.user.id;
+        session.user.privileges = token.privileges ?? [];
       }
       return session;
     },

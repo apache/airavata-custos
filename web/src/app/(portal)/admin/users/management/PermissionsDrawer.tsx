@@ -22,8 +22,8 @@ import {
   useRoleDetails,
   useUpdateUserRoles,
 } from "@/features/core/users/queries";
-import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Badge } from "@/shared/ui/badge";
 import * as React from "react";
@@ -47,7 +47,7 @@ export function PermissionsDrawer({
   currentUserEmail: string | undefined;
   onClose: () => void;
 }) {
-  const roleIds = user?.roles.flatMap((role) => (role.id ? [role.id] : [])) ?? [];
+  const roleIds = user?.roles.map((role) => role.id) ?? [];
   const roleDetails = useRoleDetails(roleIds, Boolean(user) && canManageRoles);
   const directPrivileges = useDirectPrivileges(
     user?.id,
@@ -74,7 +74,7 @@ export function PermissionsDrawer({
     : roleDerivedPrivileges;
 
   async function handleSaveRoles(desiredRoleIds: string[], reason?: string): Promise<boolean> {
-    if (!user?.id) return false;
+    if (!user) return false;
     setAssignmentError(null);
     try {
       await updateRoles.mutateAsync({
@@ -136,7 +136,7 @@ export function PermissionsDrawer({
                       roles={rolesCatalog}
                       heldRoleIds={new Set(roleIds)}
                       onSave={handleSaveRoles}
-                      triggerLabel={`Assign a role to ${user.email ?? "this user"}`}
+                      triggerLabel={`Assign a role to ${user.email}`}
                       isCurrentUser={Boolean(currentUserEmail) && user.email === currentUserEmail}
                       isPending={updateRoles.isPending}
                       error={currentAssignmentError}

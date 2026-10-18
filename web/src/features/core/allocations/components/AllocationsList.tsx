@@ -31,7 +31,7 @@ import {
   StatusBadge,
   statusBadgeVariantFromAllocationStatus,
 } from "@/shared/ui/StatusBadge";
-import type { AllocationStatus, ComputeAllocation } from "../schemas";
+import type { AllocationStatus, ComputeAllocation } from "@/generated/core/zod.gen";
 
 function formatDate(iso: string): string {
   try {
@@ -173,7 +173,7 @@ export function AllocationsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as AllocationStatus | "all")}
+          onValueChange={(value) => value !== null && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
             <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>

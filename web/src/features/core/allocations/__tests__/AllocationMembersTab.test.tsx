@@ -17,7 +17,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ComputeAllocation } from "../schemas";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 
 const members = [
   {
@@ -53,13 +53,26 @@ const mutation = { mutate: vi.fn(), isPending: false };
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,
-  useUpdateMember: () => mutation,
   useRemoveMember: () => mutation,
+}));
+vi.mock("@/features/core/projects/queries", () => ({
+  useUpdateProjectMember: () => mutation,
 }));
 
 import { AllocationMembersTab } from "../components/AllocationMembersTab";
 
-const allocation = { id: "alloc-001", name: "Test Allocation" } as ComputeAllocation;
+const allocation: ComputeAllocation = {
+  id: "alloc-001",
+  project_id: "project-001",
+  name: "Test Allocation",
+  status: "ACTIVE",
+  compute_cluster_id: "cluster-001",
+  initial_su_amount: 100000,
+  start_time: "2026-04-01T00:00:00Z",
+  end_time: "2027-03-31T00:00:00Z",
+  posix_group: null,
+  group_provisioned_at: null,
+};
 
 describe("<AllocationMembersTab />", () => {
   it("offers no Edit or Remove for PI or Co-PI members", () => {

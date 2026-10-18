@@ -25,7 +25,7 @@ import { DeliveryStatusBadge } from "./DeliveryStatusBadge";
 
 export type DeliveryTableProps = {
   rows: Delivery[];
-  runningSubscribers?: Set<string>;
+  runningSubscribers?: Set<string> | undefined;
   canRetry: boolean;
   empty: React.ReactNode;
   onOpen: (delivery: Delivery) => void;

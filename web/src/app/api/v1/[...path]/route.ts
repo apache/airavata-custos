@@ -46,7 +46,7 @@ async function proxy(request: NextRequest, ctx: Context) {
   headers.set("authorization", `Bearer ${bearer}`);
 
   const method = request.method;
-  const body = method === "GET" || method === "HEAD" ? undefined : await request.text();
+  const body = method === "GET" || method === "HEAD" ? null : await request.text();
 
   const upstream = await fetch(upstreamUrl, {
     method,

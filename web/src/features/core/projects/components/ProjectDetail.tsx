@@ -41,7 +41,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   if (projectQuery.error) {
     return (
       <ErrorState
-        message={(projectQuery.error as Error).message}
+        message={projectQuery.error.message}
         onRetry={() => projectQuery.refetch()}
       />
     );

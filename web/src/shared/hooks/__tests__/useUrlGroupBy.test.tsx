@@ -19,7 +19,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUrlGroupBy } from "../useUrlGroupBy";
 
-const replace = vi.fn();
+const replace = vi.fn<(href: string, options?: { scroll?: boolean }) => void>();
 let searchString = "";
 
 vi.mock("next/navigation", () => ({
@@ -49,7 +49,7 @@ describe("useUrlGroupBy", () => {
     act(() => {
       result.current.setGroupBy(["resource", "project"]);
     });
-    const url = replace.mock.calls[0]?.[0] as string;
+    const url = replace.mock.calls[0]?.[0];
     expect(url).toContain("gb=resource%2Cproject");
     expect(replace.mock.calls[0]?.[1]).toEqual({ scroll: false });
   });
@@ -60,7 +60,7 @@ describe("useUrlGroupBy", () => {
     act(() => {
       result.current.setGroupBy([]);
     });
-    const url = replace.mock.calls[0]?.[0] as string;
+    const url = replace.mock.calls[0]?.[0];
     expect(url).not.toContain("gb=");
     expect(url).toContain("other=keep");
   });

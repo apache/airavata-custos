@@ -24,11 +24,11 @@ import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import type { User } from "@/generated/core/zod.gen";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { useUpdateMyName } from "../queries";
-import type { UserProfile } from "../schemas";
 
-function displayName(user: UserProfile): string {
+function displayName(user: User): string {
   const full = [user.first_name, user.middle_name, user.last_name]
     .filter(Boolean)
     .join(" ")
@@ -36,7 +36,7 @@ function displayName(user: UserProfile): string {
   return full || user.email || "Unknown user";
 }
 
-function initials(user: UserProfile): string {
+function initials(user: User): string {
   const source = displayName(user);
   const parts = source.split(/\s+/).filter(Boolean);
   const first = parts.at(0) ?? source;
@@ -63,17 +63,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function ProfileCard({ user }: { user: UserProfile }) {
+export function ProfileCard({ user }: { user: User }) {
   const [editing, setEditing] = useState(false);
-  const [first, setFirst] = useState(user.first_name ?? "");
+  const [first, setFirst] = useState(user.first_name);
   const [middle, setMiddle] = useState(user.middle_name ?? "");
-  const [last, setLast] = useState(user.last_name ?? "");
+  const [last, setLast] = useState(user.last_name);
   const update = useUpdateMyName(user.id);
 
   function openEdit() {
-    setFirst(user.first_name ?? "");
+    setFirst(user.first_name);
     setMiddle(user.middle_name ?? "");
-    setLast(user.last_name ?? "");
+    setLast(user.last_name);
     setEditing(true);
   }
 
@@ -159,9 +159,9 @@ export function ProfileCard({ user }: { user: UserProfile }) {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 px-6 py-5">
         <Field label="Username">
-          <span className="font-mono text-[13px]">{user.email?.split("@")[0] ?? "—"}</span>
+          <span className="font-mono text-[13px]">{user.email.split("@")[0] ?? "—"}</span>
         </Field>
-        <Field label="Organization">{user.organization_id ?? "—"}</Field>
+        <Field label="Organization">{user.organization_id}</Field>
         <Field label="Member since">{memberSince ?? "—"}</Field>
       </div>
     </Card>

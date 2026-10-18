@@ -72,8 +72,8 @@ describe("TabsRouter", () => {
     const { container } = render(<TabsRouter tabs={baseTabs} defaultValue="users" />);
     // The list wrapper has `justify-between`; we only care that no extra slot
     // sibling renders next to the tab list.
-    const list = container.querySelector("[role='tablist']") as HTMLElement;
+    const list = container.querySelector("[role='tablist']");
     expect(list).not.toBeNull();
-    expect(list.parentElement?.children).toHaveLength(1);
+    expect(list?.parentElement?.children).toHaveLength(1);
   });
 });

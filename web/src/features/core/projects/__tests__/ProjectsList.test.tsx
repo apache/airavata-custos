@@ -18,9 +18,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectsList } from "../components/ProjectsList";
-import type { Project } from "../schemas";
+import type { ProjectResponse } from "@/generated/core/zod.gen";
 
-const project: Project = {
+const project: ProjectResponse = {
   id: "project-001",
   originated_id: "BIO130000",
   title: "Genomic Sequencing Pipeline",
@@ -57,7 +57,7 @@ describe("<ProjectsList />", () => {
   });
 
   it("filters by status", () => {
-    const inactive: Project = {
+    const inactive: ProjectResponse = {
       ...project,
       id: "project-002",
       title: "Archived Project",

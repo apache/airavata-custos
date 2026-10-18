@@ -17,6 +17,7 @@
 
 import { http, HttpResponse } from "msw";
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
+import { zPostUsersBody, zPostUsersByIdRolesBody } from "@/generated/core/zod.gen";
 
 const roles = Object.values(fixture.roleDetails).map((detail) => detail.role);
 
@@ -32,12 +33,7 @@ export const usersHandlers = [
     });
   }),
   http.post("*/api/v1/users", async ({ request }) => {
-    const body = (await request.json()) as {
-      email?: string;
-      first_name?: string;
-      last_name?: string;
-      portal_admin?: boolean;
-    };
+    const body = zPostUsersBody.parse(await request.json());
     return HttpResponse.json(
       {
         id: "user-created-1",
@@ -52,13 +48,15 @@ export const usersHandlers = [
     );
   }),
   http.get("*/api/v1/roles", () => HttpResponse.json(roles)),
-  http.post("*/api/v1/users/:id/roles", async ({ params, request }) => {
-    const body = (await request.json()) as { role_id?: string };
+  http.post<{ id: string }>("*/api/v1/users/:id/roles", async ({ params, request }) => {
+    const body = zPostUsersByIdRolesBody.parse(await request.json());
     return HttpResponse.json(
       {
         user_id: String(params.id),
         role_id: body.role_id,
         granted_at: new Date().toISOString(),
+        granted_by: null,
+        reason: body.reason ?? null,
       },
       { status: 201 },
     );

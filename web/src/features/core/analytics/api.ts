@@ -16,14 +16,14 @@
 // under the License.
 
 import { apiFetch } from "@/shared/api/client";
+import type { GetConnectorsAnalyticsAllocationsByIdJobsData } from "@/generated/analytics/types.gen";
 import {
   type AllocationJobs,
-  allocationJobsSchema,
-  type AnalyticsContext,
-  analyticsContextsSchema,
   type UsageSummary,
-  usageSummarySchema,
-} from "./schemas";
+  zAllocationJobs,
+  zUsageSummary,
+} from "@/generated/analytics/zod.gen";
+import { type AnalyticsContext, analyticsContextsSchema } from "./schemas";
 
 export async function getAnalyticsContexts(): Promise<AnalyticsContext[]> {
   const raw = await apiFetch("/connectors/analytics/contexts");
@@ -32,10 +32,10 @@ export async function getAnalyticsContexts(): Promise<AnalyticsContext[]> {
 
 export async function getUsageSummary(allocationId: string): Promise<UsageSummary> {
   const raw = await apiFetch(`/connectors/analytics/allocations/${allocationId}/usage-summary`);
-  return usageSummarySchema.parse(raw);
+  return zUsageSummary.parse(raw);
 }
 
-export type JobsParams = { mine?: boolean; limit?: number; offset?: number };
+export type JobsParams = NonNullable<GetConnectorsAnalyticsAllocationsByIdJobsData["query"]>;
 
 export async function getAllocationJobs(
   allocationId: string,
@@ -49,5 +49,5 @@ export async function getAllocationJobs(
   const raw = await apiFetch(
     `/connectors/analytics/allocations/${allocationId}/jobs${qs ? `?${qs}` : ""}`,
   );
-  return allocationJobsSchema.parse(raw);
+  return zAllocationJobs.parse(raw);
 }

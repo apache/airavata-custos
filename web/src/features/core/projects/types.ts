@@ -15,12 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { ProjectStatus } from "./schemas";
+import type { GetProjectsData } from "@/generated/core/types.gen";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
 
-export type ProjectListParams = {
-  limit?: number;
-  offset?: number;
-  pi_id?: string;
-  status?: ProjectStatus;
-  q?: string;
-};
+export type ProjectListParams = NonNullable<GetProjectsData["query"]> & { status?: ProjectStatus };
