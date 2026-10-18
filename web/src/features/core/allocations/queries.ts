@@ -272,7 +272,7 @@ export function useApproveChangeRequest() {
     mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
       approveChangeRequest(id, approverId, comment),
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: [...allocationKeys.all, "change-requests"] });
+      client.invalidateQueries({ queryKey: allocationKeys.all });
     },
   });
 }
@@ -283,7 +283,7 @@ export function useRejectChangeRequest() {
     mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
       rejectChangeRequest(id, approverId, comment),
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: [...allocationKeys.all, "change-requests"] });
+      client.invalidateQueries({ queryKey: allocationKeys.all });
     },
   });
 }
