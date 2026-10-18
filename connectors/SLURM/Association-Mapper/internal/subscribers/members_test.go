@@ -255,6 +255,23 @@ func TestMembershipCreationDefersWhenNotProvisioned(t *testing.T) {
 	}
 }
 
+// A member with no cluster account yet is deferred the same way.
+func TestMembershipCreationDefersWhenAccountMissing(t *testing.T) {
+	core := coreMock(mockOpts{})
+	core.GetComputeClusterUserByPairFunc = func(context.Context, string, string) (*models.ComputeClusterUser, error) {
+		return nil, service.ErrNotFound
+	}
+	slurm := &fakeSlurmClient{}
+	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
+		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+	if err != nil {
+		t.Fatalf("expected no error for a missing account, got %v", err)
+	}
+	if n := len(slurm.all()); n != 0 {
+		t.Fatalf("expected no association for a missing account, got %d", n)
+	}
+}
+
 // Regression: the membership path once wrote a record with no limits, and
 // Slurm's last-write-wins upsert erased limits a per-member override had set.
 func TestMembershipCreationKeepsOverrideLimits(t *testing.T) {

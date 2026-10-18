@@ -27,6 +27,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // tresFor builds a SLURM TRES from a stored resource type and count. A GRES
@@ -143,6 +144,9 @@ func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Cont
 		return nil, fmt.Errorf("get compute cluster: %w", err)
 	}
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil, errNotProvisioned
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get compute cluster user: %w", err)
 	}
