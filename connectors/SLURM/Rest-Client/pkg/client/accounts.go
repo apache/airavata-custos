@@ -50,11 +50,15 @@ func (c *Client) GetAccount(name string) (*Account, error) {
 // /accounts_association/ endpoint, whose body wraps the account metadata and
 // an association_condition naming the accounts + clusters to wire up.
 func (c *Client) CreateAccount(a Account, cluster string) error {
+	condition := map[string]any{
+		"accounts": []string{a.Name},
+		"clusters": []string{cluster},
+	}
+	if a.GrpJobs != nil {
+		condition["association"] = map[string]any{"grpjobs": numPtr(a.GrpJobs)}
+	}
 	body := map[string]any{
-		"association_condition": map[string]any{
-			"accounts": []string{a.Name},
-			"clusters": []string{cluster},
-		},
+		"association_condition": condition,
 		"account": map[string]any{
 			"description":  a.Description,
 			"organization": a.Organization,

@@ -20,6 +20,7 @@ package subscribers
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -33,6 +34,7 @@ import (
 type fakeSlurmClient struct {
 	mu       sync.Mutex
 	upserts  []client.Association
+	defaults []string
 	deletes  []client.AssocFilter
 	existing []client.Association
 }
@@ -55,6 +57,13 @@ func (f *fakeSlurmClient) ListAssociations(client.AssocFilter) ([]client.Associa
 }
 
 func (f *fakeSlurmClient) CreateAccount(client.Account, string) error { return nil }
+
+func (f *fakeSlurmClient) SetDefaultAccount(_, user, account string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.defaults = append(f.defaults, user+"="+account)
+	return nil
+}
 
 func (f *fakeSlurmClient) UpsertAssociation(a client.Association) error {
 	f.mu.Lock()
@@ -182,6 +191,20 @@ func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
 	}
 	if got[0].User != "testuser" || got[0].Account != "test-alloc" || got[0].Partition != "" {
 		t.Errorf("unexpected association: %+v", got[0])
+	}
+}
+
+// Make sure the member's default account is the no-allocation one, so no allocation becomes it.
+func TestMembershipCreationDefaultsToNoAllocation(t *testing.T) {
+	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
+	slurm := &fakeSlurmClient{}
+	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
+		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got := strings.Join(slurm.defaults, ","); got != "testuser=none" {
+		t.Errorf("defaults = %q, want testuser=none", got)
 	}
 }
 
@@ -386,9 +409,10 @@ func TestReconcilerSkipsAssociationsAlreadyCorrect(t *testing.T) {
 		provisionedAt: ago(time.Minute),
 		memberships:   []models.ComputeAllocationMembership{testMembership()},
 	})
-	slurm := &fakeSlurmClient{existing: []client.Association{{
-		Account: "test-alloc", Cluster: "testcluster", User: "testuser",
-	}}}
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
+		{Account: noAllocation, Cluster: "testcluster", User: "testuser"},
+	}}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
 	if n := len(slurm.all()); n != 0 {

@@ -37,6 +37,7 @@ func slurmAccount(allocationName string) string {
 type SlurmClient interface {
 	CreateAccount(a client.Account, cluster string) error
 	UpsertAssociation(a client.Association) error
+	SetDefaultAccount(cluster, user, account string) error
 	ListAssociations(f client.AssocFilter) ([]client.Association, error)
 	DeleteAssociation(f client.AssocFilter) error
 }

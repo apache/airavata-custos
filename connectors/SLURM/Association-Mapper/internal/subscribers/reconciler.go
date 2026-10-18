@@ -140,10 +140,12 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			if !a.readyForAssociation(csu) {
 				continue
 			}
-			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) {
+			// A user without the no-allocation association predates it, so the write also moves their default.
+			_, hasDefault := existing[assocKey{account: noAllocation, user: record.User}]
+			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault {
 				continue
 			}
-			if err := a.slurmClient.UpsertAssociation(*record); err != nil {
+			if err := a.writeAssociation(*record); err != nil {
 				slog.ErrorContext(ctx, "Association reconciler: failed to upsert association",
 					"membership_id", membership.ID, "error", err)
 				continue
