@@ -525,6 +525,42 @@ type UserPrivilegeStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error
 }
 
+// UserAgreementStore defines persistence operations for versioned user agreements.
+type UserAgreementStore interface {
+	// FindByID returns the agreement, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.UserAgreement, error)
+	// FindByIDTx is FindByID inside the given transaction.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.UserAgreement, error)
+	// FindCurrent returns the PUBLISHED version with the newest published_at, or nil when nothing is published.
+	FindCurrent(ctx context.Context) (*models.UserAgreement, error)
+	// List returns every version, the newest first.
+	List(ctx context.Context) ([]models.UserAgreement, error)
+	// ListPendingForUser returns the current version if the user has not accepted it, else an empty list.
+	ListPendingForUser(ctx context.Context, userID string) ([]models.UserAgreement, error)
+	// Create inserts a new agreement inside the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreement) error
+	// Update writes every mutable column and bumps updated_at.
+	Update(ctx context.Context, tx *sql.Tx, a *models.UserAgreement) error
+	// Delete removes the agreement inside the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// CountAcceptances returns how many users accepted the agreement.
+	CountAcceptances(ctx context.Context, agreementID string) (int, error)
+	// CountPendingUsers returns the non-system, pending or active users who have not accepted the agreement.
+	CountPendingUsers(ctx context.Context, agreementID string) (int, error)
+}
+
+// UserAgreementAcceptanceStore defines persistence operations for the record of who accepted which agreement.
+type UserAgreementAcceptanceStore interface {
+	// Find returns the user's acceptance of the agreement, or nil.
+	Find(ctx context.Context, userID, agreementID string) (*models.UserAgreementAcceptance, error)
+	// Create inserts an acceptance.
+	Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreementAcceptance) error
+	// ListByAgreement returns acceptances newest first.
+	ListByAgreement(ctx context.Context, agreementID string, limit, offset int) ([]models.UserAgreementAcceptance, error)
+	// ListPendingUsers returns the users counted by CountPendingUsers, ordered by email.
+	ListPendingUsers(ctx context.Context, agreementID string, limit, offset int) ([]models.User, error)
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.
