@@ -18,6 +18,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { requires } from "@/shared/casl/permissions";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
@@ -74,9 +75,13 @@ export function AllocationMembersTab({
       onSuccess: () => {
         setAdding(false);
         if (role !== "MEMBER") {
-          roleMutation.mutate({ userId: payload.user_id, payload: { role } });
+          roleMutation.mutate(
+            { userId: payload.user_id, payload: { role } },
+            { onError: (err) => toast.error(err.message) },
+          );
         }
       },
+      onError: (err) => toast.error(err.message),
     });
   }
 
@@ -170,7 +175,9 @@ export function AllocationMembersTab({
               size="sm"
               allowed={canEditAccess}
               reason={requires("allocationsWrite")}
-              onClick={() => removeMutation.mutate(row.id)}
+              onClick={() =>
+                removeMutation.mutate(row.id, { onError: (err) => toast.error(err.message) })
+              }
               aria-label={`Remove ${row.display_name ?? row.user_id}`}
               disabled={removeMutation.isPending}
             >
@@ -185,7 +192,7 @@ export function AllocationMembersTab({
     if (!editing) return;
     roleMutation.mutate(
       { userId: editing.user_id, payload },
-      { onSuccess: () => setEditing(null) },
+      { onSuccess: () => setEditing(null), onError: (err) => toast.error(err.message) },
     );
   }
 
