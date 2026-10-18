@@ -64,7 +64,7 @@ export function AllocationsListContainer() {
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
       onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
-      showCluster={can.clustersRead}
+      canEditResources={can.allocationsWrite}
       headerCta={
         <>
           <GuardedButton

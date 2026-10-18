@@ -110,9 +110,12 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/summary", models.AllocationsRead, s.listComputeAllocationResourceSummaries)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}", models.AllocationsRead, s.getComputeAllocationResource)
+	s.router.RequirePrivilege("PUT /compute-allocation-resources/{id}", models.AllocationsWrite, s.updateComputeAllocationResource)
+	s.router.RequirePrivilege("DELETE /compute-allocation-resources/{id}", models.AllocationsWrite, s.deleteComputeAllocationResource)
 
 	s.router.RequireScoped("GET /compute-allocations/{id}/resources", s.canReadAllocation, s.listResourcesForAllocation)
 	s.router.RequirePrivilege("POST /compute-allocations/{id}/resources", models.AllocationsWrite, s.attachResourceToAllocation)
+	s.router.RequirePrivilege("PUT /compute-allocations/{id}/resources", models.AllocationsWrite, s.setAllocationResources)
 	s.router.RequirePrivilege("PUT /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.updateAllocationResourceMapping)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.detachResourceFromAllocation)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}/allocations", models.AllocationsRead, s.listAllocationsForResource)

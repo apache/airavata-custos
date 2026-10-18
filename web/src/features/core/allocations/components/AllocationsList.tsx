@@ -21,7 +21,7 @@ import { Server } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { ClusterName } from "@/features/core/clusters/components/ClusterName";
+import { toast } from "sonner";
 import { ProjectGroupHeader } from "@/features/core/projects/components/ProjectGroupHeader";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
@@ -30,7 +30,12 @@ import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import type { AllocationStatus, ComputeAllocation } from "@/generated/core/zod.gen";
-import { useAllocationUsedSU } from "../queries";
+import {
+  useAllocationResources,
+  useAllocationUsedSU,
+  useSetAllocationResources,
+} from "../queries";
+import { AllocationResourcesDialog } from "./AllocationResourcesDialog";
 
 function formatDate(iso: string): string {
   try {
@@ -70,7 +75,7 @@ export type AllocationsListProps = {
   onSearchChange: (next: string) => void;
   statusFilter: AllocationStatus | "all";
   onStatusFilterChange: (next: AllocationStatus | "all") => void;
-  showCluster: boolean;
+  canEditResources: boolean;
   headerCta?: React.ReactNode;
 };
 
@@ -83,6 +88,55 @@ function RemainingSU({ allocation }: { allocation: ComputeAllocation }) {
   );
 }
 
+const PILL = "rounded-full border bg-card px-2 py-0.5 text-xs";
+
+function ResourcePills({ allocation, canEdit }: { allocation: ComputeAllocation; canEdit: boolean }) {
+  const resources = useAllocationResources(allocation.id).data ?? [];
+  const save = useSetAllocationResources(allocation.id);
+  const [editing, setEditing] = React.useState(false);
+  return (
+    <div className="flex items-center gap-1">
+      {resources.map((r) => (
+        <span key={r.id} className={`${PILL} inline-flex items-center gap-1`}>
+          {r.name}
+          {canEdit ? (
+            <button
+              type="button"
+              aria-label={`Unassign ${r.name}`}
+              className="text-muted-foreground hover:text-foreground"
+              disabled={save.isPending}
+              onClick={() =>
+                save.mutate(
+                  resources.filter((x) => x.id !== r.id).map((x) => x.id),
+                  { onError: (err) => toast.error(err.message) },
+                )
+              }
+            >
+              ×
+            </button>
+          ) : null}
+        </span>
+      ))}
+      {canEdit ? (
+        <button
+          type="button"
+          className={`${PILL} text-muted-foreground hover:text-foreground`}
+          onClick={() => setEditing(true)}
+        >
+          + Add resource
+        </button>
+      ) : null}
+      {editing ? (
+        <AllocationResourcesDialog
+          allocation={allocation}
+          granted={resources}
+          onOpenChange={setEditing}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function AllocationsList({
   rows,
   isLoading,
@@ -92,7 +146,7 @@ export function AllocationsList({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  showCluster,
+  canEditResources,
   headerCta,
 }: AllocationsListProps) {
   const router = useRouter();
@@ -128,10 +182,10 @@ export function AllocationsList({
       ),
     },
     {
-      key: "cluster",
-      header: "Cluster",
-      width: "12rem",
-      cell: (row) => <ClusterName id={row.compute_cluster_id} />,
+      key: "resources",
+      header: "Resources",
+      width: "16rem",
+      cell: (row) => <ResourcePills allocation={row} canEdit={canEditResources} />,
     },
     {
       key: "remaining",
@@ -150,7 +204,6 @@ export function AllocationsList({
       ),
     },
   ];
-  const visibleColumns = columns.filter((col) => showCluster || col.key !== "cluster");
 
   return (
     <div className="space-y-6">
@@ -195,7 +248,7 @@ export function AllocationsList({
         <ErrorState message={error.message} onRetry={onRetry} />
       ) : filtered.length === 0 ? (
         <DataTable
-          columns={visibleColumns}
+          columns={columns}
           rows={[]}
           rowKey={(row) => row.id}
           empty="No allocations match the current filters."
@@ -209,7 +262,7 @@ export function AllocationsList({
               </div>
               <DataTable
                 className="rounded-none border-0 [&_th]:py-1.5 [&_thead]:bg-muted/40 [&_td:first-child]:pl-11 [&_th:first-child]:pl-11 [&_td]:align-middle [&_td]:whitespace-nowrap"
-                columns={visibleColumns}
+                columns={columns}
                 rows={rows}
                 rowKey={(row) => row.id}
                 onRowClick={(row) => router.push(`/allocations/${row.id}`)}

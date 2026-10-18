@@ -23,6 +23,7 @@ package amie
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
@@ -40,6 +41,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
 	custosconfig "github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/internal/db"
 	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -69,6 +71,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	cfg := loadConfig(connectorConfig)
 	if cfg.APIKey == "" || cfg.BaseURL == "" || cfg.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
+		health.Record(Type, "config", errors.New("AMIE credentials not fully provided"))
 		return nil
 	}
 
@@ -118,11 +121,15 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
 	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, amie, database, cfg)
 
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
 		poller.Run(ctx)
 		slog.Info("AMIE poller stopped")
+	}()
+	go func() {
+		defer wg.Done()
+		reportHealth(ctx, amie, cfg)
 	}()
 	go func() {
 		defer wg.Done()
@@ -132,6 +139,20 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	slog.Info("AMIE connector started", "site", cfg.SiteCode, "baseURL", cfg.BaseURL)
 	return nil
+}
+
+// reportHealth caches whether AMIE answers, checked on the poll interval.
+func reportHealth(ctx context.Context, amie *amieclient.Client, cfg amieclient.Config) {
+	ticker := time.NewTicker(cfg.PollInterval)
+	defer ticker.Stop()
+	for {
+		health.Record(Type, cfg.SiteCode, amie.CheckHealth(ctx))
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 func loadConfig(connectorConfig *custosconfig.ConnectorConfig) amieclient.Config {

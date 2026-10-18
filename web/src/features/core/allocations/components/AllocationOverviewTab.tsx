@@ -18,17 +18,21 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
 import { ClusterName } from "@/features/core/clusters/components/ClusterName";
 import { ProjectPI } from "@/features/core/projects/components/ProjectPI";
 import { useProject } from "@/features/core/projects/queries";
 import { useEffectiveRate } from "@/features/core/resources/queries";
-import { usePermissions } from "@/shared/casl/permissions";
+import { requires, usePermissions } from "@/shared/casl/permissions";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { useAllocationResources } from "../queries";
 import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
+import { AllocationResourcesDialog } from "./AllocationResourcesDialog";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
+  canEdit: boolean;
 };
 
 function formatDate(iso: string): string {
@@ -65,10 +69,11 @@ function AllocationResourceRow({ resource }: { resource: ComputeAllocationResour
   );
 }
 
-export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps) {
+export function AllocationOverviewTab({ allocation, canEdit }: AllocationOverviewTabProps) {
   const resourcesQuery = useAllocationResources(allocation.id);
   const project = useProject(allocation.project_id).data;
   const can = usePermissions();
+  const [editing, setEditing] = React.useState(false);
 
   return (
     <div className="space-y-6">
@@ -128,13 +133,33 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
               {(resourcesQuery.data ?? []).map((resource) => (
                 <AllocationResourceRow key={resource.id} resource={resource} />
               ))}
-              {resourcesQuery.data?.length === 0 ? (
-                <li className="text-muted-foreground">No resources attached.</li>
-              ) : null}
+              <li className="flex gap-2">
+                <span aria-hidden className="w-3 text-center">
+                  +
+                </span>
+                <GuardedButton
+                  variant="link"
+                  className="h-auto border-0 p-0"
+                  allowed={canEdit}
+                  reason={requires("allocationsWrite")}
+                  disabled={!resourcesQuery.data}
+                  onClick={() => setEditing(true)}
+                >
+                  Add resource
+                </GuardedButton>
+              </li>
             </ul>
           )}
         </dd>
       </dl>
+
+      {editing ? (
+        <AllocationResourcesDialog
+          allocation={allocation}
+          granted={resourcesQuery.data ?? []}
+          onOpenChange={setEditing}
+        />
+      ) : null}
     </div>
   );
 }

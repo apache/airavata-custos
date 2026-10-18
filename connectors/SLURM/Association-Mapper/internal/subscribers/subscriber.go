@@ -48,6 +48,7 @@ type AssociationSubscriber struct {
 	coreService       service.CoreService
 	reconcileInterval time.Duration
 	provisionGrace    time.Duration
+	name              string
 }
 
 func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, coreService service.CoreService, reconcileInterval, provisionGrace time.Duration) *AssociationSubscriber {
@@ -62,6 +63,7 @@ func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, cor
 
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (a *AssociationSubscriber) RegisterSubscribers(subscriber string) {
+	a.name = subscriber
 	a.eventBus.SubscribeComputeAllocationCreated(subscriber, a.SubscribeToComputeAllocationCreation)
 	a.eventBus.SubscribeComputeAllocationDeleted(subscriber, a.SubscribeToComputeAllocationDeletion)
 	a.eventBus.SubscribeComputeAllocationUpdated(subscriber, a.SubscribeToComputeAllocationUpdate)

@@ -18,9 +18,7 @@
 import { apiFetch } from "@/shared/api/client";
 import {
   type ComputeCluster,
-  type ComputeClusterUser,
   zGetComputeClustersByIdResponse,
-  zGetComputeClustersByIdUsersResponse,
   zGetComputeClustersResponse,
 } from "@/generated/core/zod.gen";
 
@@ -32,9 +30,4 @@ export async function listClusters(): Promise<ComputeCluster[]> {
 export async function getCluster(id: string): Promise<ComputeCluster> {
   const raw = await apiFetch(`/compute-clusters/${id}`);
   return zGetComputeClustersByIdResponse.parse(raw);
-}
-
-export async function listClusterUsers(id: string): Promise<ComputeClusterUser[]> {
-  const raw = await apiFetch(`/compute-clusters/${id}/users`);
-  return zGetComputeClustersByIdUsersResponse.parse(raw) ?? [];
 }

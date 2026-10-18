@@ -138,6 +138,23 @@ func (s *pgEventDeliveryStore) ListDeliveries(ctx context.Context, status models
 	return rows, nil
 }
 
+func (s *pgEventDeliveryStore) CountDeliveriesBySubscriber(ctx context.Context, status models.EventDeliveryStatus) (map[string]int, error) {
+	var rows []struct {
+		Subscriber string `db:"subscriber"`
+		Count      int    `db:"count"`
+	}
+	if err := s.db.SelectContext(ctx, &rows,
+		`SELECT subscriber, COUNT(*) AS count FROM event_deliveries WHERE status = $1 GROUP BY subscriber`,
+		status); err != nil {
+		return nil, err
+	}
+	counts := make(map[string]int, len(rows))
+	for _, r := range rows {
+		counts[r.Subscriber] = r.Count
+	}
+	return counts, nil
+}
+
 func (s *pgEventDeliveryStore) MarkDeliverySucceeded(ctx context.Context, tx *sql.Tx, id string, attempts int, finishedAt time.Time) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE event_deliveries

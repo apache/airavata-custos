@@ -25,6 +25,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   addMember,
   approveChangeRequest,
@@ -42,6 +43,7 @@ import {
   listChangeRequests,
   rejectChangeRequest,
   removeMember,
+  setAllocationResources,
   submitChangeRequest,
 } from "./api";
 import type {
@@ -105,7 +107,19 @@ export function useAllocationsByProject(projectId: string | undefined) {
 export function useCreateAllocation() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateAllocationPayload) => createAllocation(payload),
+    mutationFn: async ({
+      resourceIds,
+      ...payload
+    }: CreateAllocationPayload & { resourceIds: string[] }) => {
+      const created = await createAllocation(payload);
+      // The allocation exists either way, so a failed grant is reported rather than retried as a create.
+      if (resourceIds.length) {
+        await setAllocationResources(created.id, resourceIds).catch((err: Error) =>
+          toast.error(`Allocation created without its resources: ${err.message}`),
+        );
+      }
+      return created;
+    },
     onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
   });
 }
@@ -116,6 +130,14 @@ export function useDeleteAllocation() {
     mutationFn: deleteAllocation,
     // Marks lists stale without refetching the deleted allocation's own queries.
     onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
+  });
+}
+
+export function useSetAllocationResources(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (resourceIds: string[]) => setAllocationResources(allocationId, resourceIds),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
   });
 }
 
