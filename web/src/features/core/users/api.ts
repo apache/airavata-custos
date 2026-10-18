@@ -22,6 +22,7 @@ import {
   type UserIdentity,
   type UserListResponse,
   type UserRole,
+  zGetUsersByIdResponse,
   zGetUsersResponse,
   zUser,
   zUserRole,
@@ -50,6 +51,10 @@ export async function listUsers(params: UserListParams = {}): Promise<UserListRe
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   const query = search.toString();
   return zGetUsersResponse.parse(await apiFetch(`/users${query ? `?${query}` : ""}`));
+}
+
+export async function getUser(id: string): Promise<User> {
+  return zGetUsersByIdResponse.parse(await apiFetch(`/users/${id}`));
 }
 
 export async function listRolesCatalog(): Promise<Role[]> {

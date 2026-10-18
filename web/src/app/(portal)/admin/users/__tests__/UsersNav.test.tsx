@@ -43,20 +43,19 @@ describe("UsersNav", () => {
     pendingMocks.total = 0;
   });
 
-  // Make sure the approvals tab is only there for someone who can read
-  // clusters, and that it carries the number of accounts waiting.
-  it("shows Cluster Accounts with the pending count for cluster readers", () => {
+  // Make sure cluster readers see how many accounts wait for approval.
+  it("counts pending cluster accounts on User Management for cluster readers", () => {
     currentPrivileges = ["core:users:read", "core:clusters:read"];
     pendingMocks.total = 3;
     render(<UsersNav />);
-    const tab = screen.getByRole("link", { name: /Cluster Accounts/ });
-    expect(tab).toHaveTextContent("3");
+    expect(screen.getByRole("link", { name: /User Management/ })).toHaveTextContent("3");
   });
 
-  it("hides Cluster Accounts without clusters:read", () => {
+  it("shows no pending count without clusters:read", () => {
     currentPrivileges = ["core:users:read"];
+    pendingMocks.total = 3;
     render(<UsersNav />);
-    expect(screen.queryByRole("link", { name: /Cluster Accounts/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "User Management" })).not.toHaveTextContent("3");
   });
 
   it("hides Role Management without roles:manage", () => {

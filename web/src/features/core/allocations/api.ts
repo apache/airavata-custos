@@ -33,6 +33,7 @@ import {
   zGetComputeAllocationsResponse,
   zPostComputeAllocationMembershipsResponse,
   zPostComputeAllocationsResponse,
+  zGetUsersByIdComputeAllocationMembershipsResponse,
 } from "@/generated/core/zod.gen";
 import {
   type AllocationMembership,
@@ -206,3 +207,8 @@ export async function listChangeRequestEvents(
 }
 
 export { updateChangeRequest };
+
+export async function listUserMemberships(userId: string): Promise<ComputeAllocationMembership[]> {
+  const raw = await apiFetch(`/users/${userId}/compute-allocation-memberships`);
+  return zGetUsersByIdComputeAllocationMembershipsResponse.parse(raw ?? []);
+}

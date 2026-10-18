@@ -32,10 +32,11 @@ const DEFAULTS = {
   refetchOnWindowFocus: false,
 } as const;
 
-export function useClusters() {
+export function useClusters(enabled = true) {
   return useQuery({
     queryKey: clusterKeys.list(),
     queryFn: listClusters,
+    enabled,
     ...DEFAULTS,
   });
 }

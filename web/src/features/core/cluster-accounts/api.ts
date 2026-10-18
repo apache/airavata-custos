@@ -21,6 +21,7 @@ import {
   type ClusterAccountListResponse,
   type ComputeClusterUser,
   zGetComputeClusterUsersResponse,
+  zGetUsersByIdComputeClusterUsersResponse,
   zPostComputeClusterUsersByIdApproveResponse,
   zPostComputeClusterUsersByIdDenyResponse,
 } from "@/generated/core/zod.gen";
@@ -36,6 +37,14 @@ export async function listClusterAccounts(
   const query = search.toString();
   return zGetComputeClusterUsersResponse.parse(
     await apiFetch(`/compute-cluster-users${query ? `?${query}` : ""}`),
+  );
+}
+
+export async function listUserClusterAccounts(userId: string): Promise<ComputeClusterUser[]> {
+  return (
+    zGetUsersByIdComputeClusterUsersResponse.parse(
+      await apiFetch(`/users/${userId}/compute-cluster-users`),
+    ) ?? []
   );
 }
 

@@ -25,6 +25,7 @@ import {
   assignUserRole,
   createUser,
   getRoleDetail,
+  getUser,
   listDirectPrivileges,
   listRolesCatalog,
   listRolesForUser,
@@ -43,6 +44,7 @@ import type {
 export const userKeys = {
   all: ["users"] as const,
   list: (params: UserListParams = {}) => [...userKeys.all, "list", params] as const,
+  detail: (userId: string) => [...userKeys.all, "detail", userId] as const,
   rolesCatalog: () => [...userKeys.all, "roles-catalog"] as const,
   roles: (userId: string) => [...userKeys.all, "roles", userId] as const,
   identities: (userId: string) => [...userKeys.all, "identities", userId] as const,
@@ -289,4 +291,20 @@ export function useUserEmailSearch(email: string, enabled: boolean) {
         ? "No user with this email."
         : "Searching…",
   };
+}
+
+export function useUsersById(ids: string[], enabled: boolean) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: userKeys.detail(id),
+      queryFn: () => getUser(id),
+      enabled,
+      ...DEFAULTS,
+    })),
+    combine: (results) => ({
+      users: results.flatMap((r) => (r.data ? [r.data] : [])),
+      isLoading: results.some((r) => r.isLoading),
+      error: results.find((r) => r.error)?.error ?? null,
+    }),
+  });
 }

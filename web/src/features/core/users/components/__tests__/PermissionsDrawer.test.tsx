@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserManagementRow } from "@/features/core/users/types";
+import type { UserAccountRow } from "../../types";
 import type { Role } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -32,6 +32,11 @@ vi.mock("@/features/core/users/queries", () => ({
     mutateAsync: queryMocks.mutateAsync,
     isPending: false,
   }),
+}));
+
+vi.mock("@/features/core/allocations/queries", () => ({
+  useUserMemberships: () => ({ data: [], isLoading: false }),
+  useAllocation: () => ({ data: undefined }),
 }));
 
 vi.mock("../RoleAssignMenu", () => ({
@@ -59,7 +64,7 @@ const adminRole: Role = {
   created_at: "2026-01-01T00:00:00Z",
 };
 
-const user: UserManagementRow = {
+const user: UserAccountRow = {
   id: "user-1",
   email: "user@example.org",
   first_name: "Example",
@@ -73,6 +78,7 @@ const user: UserManagementRow = {
   identitiesLoading: false,
   rolesError: false,
   identitiesError: false,
+  accounts: [],
 };
 
 describe("PermissionsDrawer", () => {
@@ -80,9 +86,11 @@ describe("PermissionsDrawer", () => {
     queryMocks.mutateAsync.mockRejectedValueOnce(new Error("role update failed"));
     const onClose = vi.fn();
     const props = {
+      clusterAccounts: undefined,
       rolesCatalog: [adminRole],
       canManageRoles: true,
       canReadDirectPrivileges: false,
+      canReadAllocations: false,
       currentUserEmail: "another@example.org",
       onClose,
     };
