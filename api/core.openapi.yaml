@@ -72,8 +72,42 @@ definitions:
       trace_id:
         type: string
     type: object
+  CallerClusterAccount:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
+      user_id:
+        type: string
+    type: object
   CallerProfileResponse:
     properties:
+      cluster_accounts:
+        items:
+          $ref: '#/definitions/CallerClusterAccount'
+        type: array
       privileges:
         items:
           $ref: '#/definitions/PrivilegeKey'
@@ -3484,7 +3518,8 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get the caller's user record, effective privileges, and roles
+      summary: Get the caller's user record, effective privileges, roles, and cluster
+        accounts
       tags:
       - Caller
   /organizations:

@@ -57,12 +57,19 @@ type CallerRoleGrant struct {
 // CallerProfileResponse bundles the caller's user row with the effective
 // privilege set and held roles.
 type CallerProfileResponse struct {
-	User       *models.User          `json:"user"`
-	Privileges []models.PrivilegeKey `json:"privileges"`
-	Roles      []CallerRoleGrant     `json:"roles"`
+	User            *models.User           `json:"user"`
+	Privileges      []models.PrivilegeKey  `json:"privileges"`
+	Roles           []CallerRoleGrant      `json:"roles"`
+	ClusterAccounts []CallerClusterAccount `json:"cluster_accounts"`
 }
 
-// @Summary	Get the caller's user record, effective privileges, and roles
+// CallerClusterAccount is one of the caller's cluster accounts with its cluster's name.
+type CallerClusterAccount struct {
+	models.ComputeClusterUser
+	ClusterName string `json:"cluster_name"`
+}
+
+// @Summary	Get the caller's user record, effective privileges, roles, and cluster accounts
 // @Description	Roles are the caller's own grants; unlike /users/{id}/roles this needs no admin privilege.
 // @Tags	Caller
 // @Security	BearerAuth
@@ -96,10 +103,26 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 	for _, d := range details {
 		roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
 	}
+	// The caller's own accounts need no cluster privilege, unlike /users/{id}/compute-cluster-users.
+	accounts, err := s.svc.ListComputeClusterUsersByUser(r.Context(), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	clusterAccounts := make([]CallerClusterAccount, 0, len(accounts))
+	for _, a := range accounts {
+		cluster, err := s.svc.GetComputeCluster(r.Context(), a.ComputeClusterID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		clusterAccounts = append(clusterAccounts, CallerClusterAccount{ComputeClusterUser: a, ClusterName: cluster.Name})
+	}
 	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{
-		User:       user,
-		Privileges: keys,
-		Roles:      roles,
+		User:            user,
+		Privileges:      keys,
+		Roles:           roles,
+		ClusterAccounts: clusterAccounts,
 	})
 }
 
