@@ -83,6 +83,15 @@ func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *
 		return
 	}
 	req.ID = r.PathValue("id")
+	// A decision is recorded against the caller, never a client-supplied approver.
+	req.ApproverID = ""
+	if req.ChangeStatus != "" {
+		caller := requireCaller(w, r)
+		if caller == nil {
+			return
+		}
+		req.ApproverID = caller.UserID
+	}
 	updated, err := s.svc.UpdateComputeAllocationChangeRequest(r.Context(), &req)
 	if err != nil {
 		common.WriteServiceError(w, err)

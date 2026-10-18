@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -295,5 +296,35 @@ func TestGetComputeAllocation_DenialMatchesMissing(t *testing.T) {
 	if missing.Body.String() != foreign.Body.String() {
 		t.Errorf("denial body differs from missing-id body:\n  missing: %s\n  foreign: %s",
 			missing.Body.String(), foreign.Body.String())
+	}
+}
+
+func TestUpdateChangeRequest_ApproverIsCaller(t *testing.T) {
+	database, svc, srv := setupTestStack(t)
+	fx := seedScopedFixtures(t, database, svc)
+	cr, err := svc.CreateComputeAllocationChangeRequest(t.Context(), &models.ComputeAllocationChangeRequest{
+		ComputeAllocationID: fx.allocA.ID, RequesterID: fx.memberID, RequestedSUAmount: 10, Reason: "more time",
+	})
+	if err != nil {
+		t.Fatalf("seed change request: %v", err)
+	}
+
+	body := strings.NewReader(`{"change_status":"REJECTED","approver_id":"` + fx.memberID + `"}`)
+	req := withTestCaller(
+		httptest.NewRequest(http.MethodPut, "/compute-allocation-change-requests/"+cr.ID, body),
+		fx.piID, models.AllocationsWrite,
+	)
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 (%s)", rr.Code, rr.Body.String())
+	}
+
+	got, err := svc.GetComputeAllocationChangeRequest(t.Context(), cr.ID)
+	if err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if got.ApproverID != fx.piID {
+		t.Errorf("approver: got %q, want caller %q", got.ApproverID, fx.piID)
 	}
 }
