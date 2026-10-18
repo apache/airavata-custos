@@ -36,6 +36,7 @@ import (
 type Service struct {
 	db                  *sqlx.DB
 	eventBus            *events.Bus
+	reservedUsernames   map[string]bool
 	orgs                store.OrganizationStore
 	users               store.UserStore
 	projs               store.ProjectStore
@@ -57,6 +58,8 @@ type Service struct {
 	privileges          store.UserPrivilegeStore
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
+	agreements          store.UserAgreementStore
+	acceptances         store.UserAgreementAcceptanceStore
 	auditTraces         store.AuditTraceStore
 	identityCache       *identityCache
 }
@@ -67,6 +70,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 	return &Service{
 		db:                  database,
 		eventBus:            eventBus,
+		reservedUsernames:   map[string]bool{},
 		orgs:                store.NewOrganizationStore(database),
 		users:               store.NewUserStore(database),
 		projs:               store.NewProjectStore(database),
@@ -88,6 +92,8 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		privileges:          store.NewUserPrivilegeStore(database),
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
+		agreements:          store.NewUserAgreementStore(database),
+		acceptances:         store.NewUserAgreementAcceptanceStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
 		identityCache:       newIdentityCache(),
 	}
@@ -120,6 +126,8 @@ func NewWithStores(
 	privileges store.UserPrivilegeStore,
 	roles store.RoleStore,
 	userRoles store.UserRoleStore,
+	agreements store.UserAgreementStore,
+	acceptances store.UserAgreementAcceptanceStore,
 ) *Service {
 	return &Service{
 		db:                  database,
@@ -145,6 +153,8 @@ func NewWithStores(
 		privileges:          privileges,
 		roles:               roles,
 		userRoles:           userRoles,
+		agreements:          agreements,
+		acceptances:         acceptances,
 		auditTraces:         store.NewAuditTraceStore(database),
 		identityCache:       newIdentityCache(),
 	}
