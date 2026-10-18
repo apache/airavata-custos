@@ -89,7 +89,8 @@ func (s *pgUserAgreementStore) ListPendingForUser(ctx context.Context, userID st
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+userAgreementColumns+` FROM user_agreements ua
 		  WHERE ua.id = (`+currentUserAgreementID+`)
-		    AND NOT EXISTS (SELECT 1 FROM user_agreement_acceptances a WHERE a.agreement_id = ua.id AND a.user_id = $1)`, userID)
+		    AND NOT EXISTS (SELECT 1 FROM user_agreement_acceptances a WHERE a.agreement_id = ua.id AND a.user_id = $1)
+		    AND EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.type <> 'SYSTEM')`, userID)
 	return rows, err
 }
 

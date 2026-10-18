@@ -40,9 +40,10 @@ const (
 
 // User lifecycle message types.
 const (
-	UserCreateEvent EventType = "user::create"
-	UserUpdateEvent EventType = "user::update"
-	UserDeleteEvent EventType = "user::delete"
+	UserCreateEvent    EventType = "user::create"
+	UserUpdateEvent    EventType = "user::update"
+	UserDeleteEvent    EventType = "user::delete"
+	UserOnboardedEvent EventType = "user::onboarded"
 )
 
 // Organization lifecycle message types.
@@ -124,6 +125,13 @@ const (
 	UserIdentityCreateEvent EventType = "user_identity::create"
 	UserIdentityUpdateEvent EventType = "user_identity::update"
 	UserIdentityDeleteEvent EventType = "user_identity::delete"
+)
+
+// UserAgreement lifecycle and acceptance types.
+const (
+	UserAgreementPublishEvent          EventType = "user_agreement::publish"
+	UserAgreementRemoveEvent           EventType = "user_agreement::remove"
+	UserAgreementAcceptanceCreateEvent EventType = "user_agreement_acceptance::create"
 )
 
 // Event represents a change in the system that downstream consumers may be interested in.

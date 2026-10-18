@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"sync"
 	"time"
@@ -21,6 +22,9 @@ var _ CoreService = &CoreServiceMock{}
 //
 //		// make and configure a mocked CoreService
 //		mockedCoreService := &CoreServiceMock{
+//			AcceptUserAgreementFunc: func(ctx context.Context, userID string, agreementID string) (*models.UserAgreementAcceptance, error) {
+//				panic("mock out the AcceptUserAgreement method")
+//			},
 //			AddPrivilegeToRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the AddPrivilegeToRole method")
 //			},
@@ -32,6 +36,12 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			BootstrapSuperAdminFunc: func(ctx context.Context, email string, source string) error {
 //				panic("mock out the BootstrapSuperAdmin method")
+//			},
+//			CheckOnboardingUsernameFunc: func(ctx context.Context, userID string, candidate string) (*UsernameCheck, error) {
+//				panic("mock out the CheckOnboardingUsername method")
+//			},
+//			CompleteOnboardingFunc: func(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error) {
+//				panic("mock out the CompleteOnboarding method")
 //			},
 //			CreateAuditEventFunc: func(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
 //				panic("mock out the CreateAuditEvent method")
@@ -80,6 +90,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			CreateUserFunc: func(ctx context.Context, user *models.User) (*models.User, error) {
 //				panic("mock out the CreateUser method")
+//			},
+//			CreateUserAgreementDraftFunc: func(ctx context.Context, in UserAgreementInput, actorID string) (*models.UserAgreement, error) {
+//				panic("mock out the CreateUserAgreementDraft method")
 //			},
 //			CreateUserIdentityFunc: func(ctx context.Context, e *models.UserIdentity) (*models.UserIdentity, error) {
 //				panic("mock out the CreateUserIdentity method")
@@ -131,6 +144,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			DeleteUserFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the DeleteUser method")
+//			},
+//			DeleteUserAgreementDraftFunc: func(ctx context.Context, id string, actorID string) error {
+//				panic("mock out the DeleteUserAgreementDraft method")
 //			},
 //			DeleteUserIdentityFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the DeleteUserIdentity method")
@@ -207,6 +223,9 @@ var _ CoreService = &CoreServiceMock{}
 //			GetLatestEventForChangeRequestFunc: func(ctx context.Context, changeRequestID string) (*models.ComputeAllocationChangeRequestEvent, error) {
 //				panic("mock out the GetLatestEventForChangeRequest method")
 //			},
+//			GetOIDCIdentityFunc: func(ctx context.Context, userID string) (*models.UserIdentity, error) {
+//				panic("mock out the GetOIDCIdentity method")
+//			},
 //			GetOrganizationFunc: func(ctx context.Context, id string) (*models.Organization, error) {
 //				panic("mock out the GetOrganization method")
 //			},
@@ -230,6 +249,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			GetUserFunc: func(ctx context.Context, id string) (*models.User, error) {
 //				panic("mock out the GetUser method")
+//			},
+//			GetUserAgreementFunc: func(ctx context.Context, id string) (*models.UserAgreement, error) {
+//				panic("mock out the GetUserAgreement method")
 //			},
 //			GetUserByEmailFunc: func(ctx context.Context, email string) (*models.User, error) {
 //				panic("mock out the GetUserByEmail method")
@@ -354,6 +376,15 @@ var _ CoreService = &CoreServiceMock{}
 //			ListUsagesForAllocationFunc: func(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error) {
 //				panic("mock out the ListUsagesForAllocation method")
 //			},
+//			ListUserAgreementAcceptancesFunc: func(ctx context.Context, id string, limit int, offset int) ([]models.UserAgreementAcceptance, error) {
+//				panic("mock out the ListUserAgreementAcceptances method")
+//			},
+//			ListUserAgreementPendingUsersFunc: func(ctx context.Context, id string, limit int, offset int) ([]models.User, error) {
+//				panic("mock out the ListUserAgreementPendingUsers method")
+//			},
+//			ListUserAgreementsFunc: func(ctx context.Context) ([]models.UserAgreement, error) {
+//				panic("mock out the ListUserAgreements method")
+//			},
 //			ListUserIdentitiesForUserFunc: func(ctx context.Context, userID string) ([]models.UserIdentity, error) {
 //				panic("mock out the ListUserIdentitiesForUser method")
 //			},
@@ -372,11 +403,20 @@ var _ CoreService = &CoreServiceMock{}
 //			MergeUsersFunc: func(ctx context.Context, survivingID string, retiringID string) (*models.User, error) {
 //				panic("mock out the MergeUsers method")
 //			},
+//			PendingUserAgreementsFunc: func(ctx context.Context, userID string) ([]models.UserAgreement, error) {
+//				panic("mock out the PendingUserAgreements method")
+//			},
 //			PrivilegeCatalogFunc: func() []models.PrivilegeKey {
 //				panic("mock out the PrivilegeCatalog method")
 //			},
+//			PublishUserAgreementFunc: func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
+//				panic("mock out the PublishUserAgreement method")
+//			},
 //			RemovePrivilegeFromRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the RemovePrivilegeFromRole method")
+//			},
+//			RemoveUserAgreementFunc: func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
+//				panic("mock out the RemoveUserAgreement method")
 //			},
 //			RevokePrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error {
 //				panic("mock out the RevokePrivilege method")
@@ -429,11 +469,20 @@ var _ CoreService = &CoreServiceMock{}
 //			UpdateUserFunc: func(ctx context.Context, user *models.User) error {
 //				panic("mock out the UpdateUser method")
 //			},
+//			UpdateUserAgreementDraftFunc: func(ctx context.Context, id string, in UserAgreementInput, actorID string) (*models.UserAgreement, error) {
+//				panic("mock out the UpdateUserAgreementDraft method")
+//			},
 //			UpdateUserIdentityFunc: func(ctx context.Context, e *models.UserIdentity) error {
 //				panic("mock out the UpdateUserIdentity method")
 //			},
 //			UpdateUserStatusFunc: func(ctx context.Context, id string, status models.UserStatus) (*models.User, error) {
 //				panic("mock out the UpdateUserStatus method")
+//			},
+//			UserAgreementCountsFunc: func(ctx context.Context, id string) (int, int, error) {
+//				panic("mock out the UserAgreementCounts method")
+//			},
+//			ValidateUsernameFunc: func(name string) error {
+//				panic("mock out the ValidateUsername method")
 //			},
 //		}
 //
@@ -442,6 +491,9 @@ var _ CoreService = &CoreServiceMock{}
 //
 //	}
 type CoreServiceMock struct {
+	// AcceptUserAgreementFunc mocks the AcceptUserAgreement method.
+	AcceptUserAgreementFunc func(ctx context.Context, userID string, agreementID string) (*models.UserAgreementAcceptance, error)
+
 	// AddPrivilegeToRoleFunc mocks the AddPrivilegeToRole method.
 	AddPrivilegeToRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
 
@@ -453,6 +505,12 @@ type CoreServiceMock struct {
 
 	// BootstrapSuperAdminFunc mocks the BootstrapSuperAdmin method.
 	BootstrapSuperAdminFunc func(ctx context.Context, email string, source string) error
+
+	// CheckOnboardingUsernameFunc mocks the CheckOnboardingUsername method.
+	CheckOnboardingUsernameFunc func(ctx context.Context, userID string, candidate string) (*UsernameCheck, error)
+
+	// CompleteOnboardingFunc mocks the CompleteOnboarding method.
+	CompleteOnboardingFunc func(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error)
 
 	// CreateAuditEventFunc mocks the CreateAuditEvent method.
 	CreateAuditEventFunc func(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
@@ -501,6 +559,9 @@ type CoreServiceMock struct {
 
 	// CreateUserFunc mocks the CreateUser method.
 	CreateUserFunc func(ctx context.Context, user *models.User) (*models.User, error)
+
+	// CreateUserAgreementDraftFunc mocks the CreateUserAgreementDraft method.
+	CreateUserAgreementDraftFunc func(ctx context.Context, in UserAgreementInput, actorID string) (*models.UserAgreement, error)
 
 	// CreateUserIdentityFunc mocks the CreateUserIdentity method.
 	CreateUserIdentityFunc func(ctx context.Context, e *models.UserIdentity) (*models.UserIdentity, error)
@@ -552,6 +613,9 @@ type CoreServiceMock struct {
 
 	// DeleteUserFunc mocks the DeleteUser method.
 	DeleteUserFunc func(ctx context.Context, id string) error
+
+	// DeleteUserAgreementDraftFunc mocks the DeleteUserAgreementDraft method.
+	DeleteUserAgreementDraftFunc func(ctx context.Context, id string, actorID string) error
 
 	// DeleteUserIdentityFunc mocks the DeleteUserIdentity method.
 	DeleteUserIdentityFunc func(ctx context.Context, id string) error
@@ -628,6 +692,9 @@ type CoreServiceMock struct {
 	// GetLatestEventForChangeRequestFunc mocks the GetLatestEventForChangeRequest method.
 	GetLatestEventForChangeRequestFunc func(ctx context.Context, changeRequestID string) (*models.ComputeAllocationChangeRequestEvent, error)
 
+	// GetOIDCIdentityFunc mocks the GetOIDCIdentity method.
+	GetOIDCIdentityFunc func(ctx context.Context, userID string) (*models.UserIdentity, error)
+
 	// GetOrganizationFunc mocks the GetOrganization method.
 	GetOrganizationFunc func(ctx context.Context, id string) (*models.Organization, error)
 
@@ -651,6 +718,9 @@ type CoreServiceMock struct {
 
 	// GetUserFunc mocks the GetUser method.
 	GetUserFunc func(ctx context.Context, id string) (*models.User, error)
+
+	// GetUserAgreementFunc mocks the GetUserAgreement method.
+	GetUserAgreementFunc func(ctx context.Context, id string) (*models.UserAgreement, error)
 
 	// GetUserByEmailFunc mocks the GetUserByEmail method.
 	GetUserByEmailFunc func(ctx context.Context, email string) (*models.User, error)
@@ -775,6 +845,15 @@ type CoreServiceMock struct {
 	// ListUsagesForAllocationFunc mocks the ListUsagesForAllocation method.
 	ListUsagesForAllocationFunc func(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 
+	// ListUserAgreementAcceptancesFunc mocks the ListUserAgreementAcceptances method.
+	ListUserAgreementAcceptancesFunc func(ctx context.Context, id string, limit int, offset int) ([]models.UserAgreementAcceptance, error)
+
+	// ListUserAgreementPendingUsersFunc mocks the ListUserAgreementPendingUsers method.
+	ListUserAgreementPendingUsersFunc func(ctx context.Context, id string, limit int, offset int) ([]models.User, error)
+
+	// ListUserAgreementsFunc mocks the ListUserAgreements method.
+	ListUserAgreementsFunc func(ctx context.Context) ([]models.UserAgreement, error)
+
 	// ListUserIdentitiesForUserFunc mocks the ListUserIdentitiesForUser method.
 	ListUserIdentitiesForUserFunc func(ctx context.Context, userID string) ([]models.UserIdentity, error)
 
@@ -793,11 +872,20 @@ type CoreServiceMock struct {
 	// MergeUsersFunc mocks the MergeUsers method.
 	MergeUsersFunc func(ctx context.Context, survivingID string, retiringID string) (*models.User, error)
 
+	// PendingUserAgreementsFunc mocks the PendingUserAgreements method.
+	PendingUserAgreementsFunc func(ctx context.Context, userID string) ([]models.UserAgreement, error)
+
 	// PrivilegeCatalogFunc mocks the PrivilegeCatalog method.
 	PrivilegeCatalogFunc func() []models.PrivilegeKey
 
+	// PublishUserAgreementFunc mocks the PublishUserAgreement method.
+	PublishUserAgreementFunc func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error)
+
 	// RemovePrivilegeFromRoleFunc mocks the RemovePrivilegeFromRole method.
 	RemovePrivilegeFromRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+
+	// RemoveUserAgreementFunc mocks the RemoveUserAgreement method.
+	RemoveUserAgreementFunc func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error)
 
 	// RevokePrivilegeFunc mocks the RevokePrivilege method.
 	RevokePrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error
@@ -850,14 +938,32 @@ type CoreServiceMock struct {
 	// UpdateUserFunc mocks the UpdateUser method.
 	UpdateUserFunc func(ctx context.Context, user *models.User) error
 
+	// UpdateUserAgreementDraftFunc mocks the UpdateUserAgreementDraft method.
+	UpdateUserAgreementDraftFunc func(ctx context.Context, id string, in UserAgreementInput, actorID string) (*models.UserAgreement, error)
+
 	// UpdateUserIdentityFunc mocks the UpdateUserIdentity method.
 	UpdateUserIdentityFunc func(ctx context.Context, e *models.UserIdentity) error
 
 	// UpdateUserStatusFunc mocks the UpdateUserStatus method.
 	UpdateUserStatusFunc func(ctx context.Context, id string, status models.UserStatus) (*models.User, error)
 
+	// UserAgreementCountsFunc mocks the UserAgreementCounts method.
+	UserAgreementCountsFunc func(ctx context.Context, id string) (int, int, error)
+
+	// ValidateUsernameFunc mocks the ValidateUsername method.
+	ValidateUsernameFunc func(name string) error
+
 	// calls tracks calls to the methods.
 	calls struct {
+		// AcceptUserAgreement holds details about calls to the AcceptUserAgreement method.
+		AcceptUserAgreement []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// AgreementID is the agreementID argument value.
+			AgreementID string
+		}
 		// AddPrivilegeToRole holds details about calls to the AddPrivilegeToRole method.
 		AddPrivilegeToRole []struct {
 			// Ctx is the ctx argument value.
@@ -899,6 +1005,24 @@ type CoreServiceMock struct {
 			Email string
 			// Source is the source argument value.
 			Source string
+		}
+		// CheckOnboardingUsername holds details about calls to the CheckOnboardingUsername method.
+		CheckOnboardingUsername []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// Candidate is the candidate argument value.
+			Candidate string
+		}
+		// CompleteOnboarding holds details about calls to the CompleteOnboarding method.
+		CompleteOnboarding []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Claims is the claims argument value.
+			Claims *identity.Claims
+			// In is the in argument value.
+			In OnboardingInput
 		}
 		// CreateAuditEvent holds details about calls to the CreateAuditEvent method.
 		CreateAuditEvent []struct {
@@ -1015,6 +1139,15 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// User is the user argument value.
 			User *models.User
+		}
+		// CreateUserAgreementDraft holds details about calls to the CreateUserAgreementDraft method.
+		CreateUserAgreementDraft []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// In is the in argument value.
+			In UserAgreementInput
+			// ActorID is the actorID argument value.
+			ActorID string
 		}
 		// CreateUserIdentity holds details about calls to the CreateUserIdentity method.
 		CreateUserIdentity []struct {
@@ -1136,6 +1269,15 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// ID is the id argument value.
 			ID string
+		}
+		// DeleteUserAgreementDraft holds details about calls to the DeleteUserAgreementDraft method.
+		DeleteUserAgreementDraft []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// ActorID is the actorID argument value.
+			ActorID string
 		}
 		// DeleteUserIdentity holds details about calls to the DeleteUserIdentity method.
 		DeleteUserIdentity []struct {
@@ -1330,6 +1472,13 @@ type CoreServiceMock struct {
 			// ChangeRequestID is the changeRequestID argument value.
 			ChangeRequestID string
 		}
+		// GetOIDCIdentity holds details about calls to the GetOIDCIdentity method.
+		GetOIDCIdentity []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// GetOrganization holds details about calls to the GetOrganization method.
 		GetOrganization []struct {
 			// Ctx is the ctx argument value.
@@ -1383,6 +1532,13 @@ type CoreServiceMock struct {
 		}
 		// GetUser holds details about calls to the GetUser method.
 		GetUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
+		// GetUserAgreement holds details about calls to the GetUserAgreement method.
+		GetUserAgreement []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// ID is the id argument value.
@@ -1687,6 +1843,33 @@ type CoreServiceMock struct {
 			// AllocationID is the allocationID argument value.
 			AllocationID string
 		}
+		// ListUserAgreementAcceptances holds details about calls to the ListUserAgreementAcceptances method.
+		ListUserAgreementAcceptances []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// Limit is the limit argument value.
+			Limit int
+			// Offset is the offset argument value.
+			Offset int
+		}
+		// ListUserAgreementPendingUsers holds details about calls to the ListUserAgreementPendingUsers method.
+		ListUserAgreementPendingUsers []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// Limit is the limit argument value.
+			Limit int
+			// Offset is the offset argument value.
+			Offset int
+		}
+		// ListUserAgreements holds details about calls to the ListUserAgreements method.
+		ListUserAgreements []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// ListUserIdentitiesForUser holds details about calls to the ListUserIdentitiesForUser method.
 		ListUserIdentitiesForUser []struct {
 			// Ctx is the ctx argument value.
@@ -1731,8 +1914,24 @@ type CoreServiceMock struct {
 			// RetiringID is the retiringID argument value.
 			RetiringID string
 		}
+		// PendingUserAgreements holds details about calls to the PendingUserAgreements method.
+		PendingUserAgreements []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// PrivilegeCatalog holds details about calls to the PrivilegeCatalog method.
 		PrivilegeCatalog []struct {
+		}
+		// PublishUserAgreement holds details about calls to the PublishUserAgreement method.
+		PublishUserAgreement []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// ActorID is the actorID argument value.
+			ActorID string
 		}
 		// RemovePrivilegeFromRole holds details about calls to the RemovePrivilegeFromRole method.
 		RemovePrivilegeFromRole []struct {
@@ -1742,6 +1941,15 @@ type CoreServiceMock struct {
 			RoleID string
 			// Privilege is the privilege argument value.
 			Privilege models.PrivilegeKey
+			// ActorID is the actorID argument value.
+			ActorID string
+		}
+		// RemoveUserAgreement holds details about calls to the RemoveUserAgreement method.
+		RemoveUserAgreement []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
 			// ActorID is the actorID argument value.
 			ActorID string
 		}
@@ -1894,6 +2102,17 @@ type CoreServiceMock struct {
 			// User is the user argument value.
 			User *models.User
 		}
+		// UpdateUserAgreementDraft holds details about calls to the UpdateUserAgreementDraft method.
+		UpdateUserAgreementDraft []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// In is the in argument value.
+			In UserAgreementInput
+			// ActorID is the actorID argument value.
+			ActorID string
+		}
 		// UpdateUserIdentity holds details about calls to the UpdateUserIdentity method.
 		UpdateUserIdentity []struct {
 			// Ctx is the ctx argument value.
@@ -1910,11 +2129,26 @@ type CoreServiceMock struct {
 			// Status is the status argument value.
 			Status models.UserStatus
 		}
+		// UserAgreementCounts holds details about calls to the UserAgreementCounts method.
+		UserAgreementCounts []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
+		// ValidateUsername holds details about calls to the ValidateUsername method.
+		ValidateUsername []struct {
+			// Name is the name argument value.
+			Name string
+		}
 	}
+	lockAcceptUserAgreement                                    sync.RWMutex
 	lockAddPrivilegeToRole                                     sync.RWMutex
 	lockAllocationRoleForUser                                  sync.RWMutex
 	lockAttachResourceToAllocation                             sync.RWMutex
 	lockBootstrapSuperAdmin                                    sync.RWMutex
+	lockCheckOnboardingUsername                                sync.RWMutex
+	lockCompleteOnboarding                                     sync.RWMutex
 	lockCreateAuditEvent                                       sync.RWMutex
 	lockCreateComputeAllocation                                sync.RWMutex
 	lockCreateComputeAllocationChangeRequest                   sync.RWMutex
@@ -1931,6 +2165,7 @@ type CoreServiceMock struct {
 	lockCreateProject                                          sync.RWMutex
 	lockCreateRole                                             sync.RWMutex
 	lockCreateUser                                             sync.RWMutex
+	lockCreateUserAgreementDraft                               sync.RWMutex
 	lockCreateUserIdentity                                     sync.RWMutex
 	lockDeleteAuditEvent                                       sync.RWMutex
 	lockDeleteComputeAllocation                                sync.RWMutex
@@ -1948,6 +2183,7 @@ type CoreServiceMock struct {
 	lockDeleteProject                                          sync.RWMutex
 	lockDeleteRole                                             sync.RWMutex
 	lockDeleteUser                                             sync.RWMutex
+	lockDeleteUserAgreementDraft                               sync.RWMutex
 	lockDeleteUserIdentity                                     sync.RWMutex
 	lockDetachResourceFromAllocation                           sync.RWMutex
 	lockEffectivePrivileges                                    sync.RWMutex
@@ -1973,6 +2209,7 @@ type CoreServiceMock struct {
 	lockGetEffectiveRateForResource                            sync.RWMutex
 	lockGetLatestDiffForAllocation                             sync.RWMutex
 	lockGetLatestEventForChangeRequest                         sync.RWMutex
+	lockGetOIDCIdentity                                        sync.RWMutex
 	lockGetOrganization                                        sync.RWMutex
 	lockGetOrganizationByOriginatedID                          sync.RWMutex
 	lockGetProject                                             sync.RWMutex
@@ -1981,6 +2218,7 @@ type CoreServiceMock struct {
 	lockGetTotalSUUsageForAllocation                           sync.RWMutex
 	lockGetTotalSUUsageForUserInAllocation                     sync.RWMutex
 	lockGetUser                                                sync.RWMutex
+	lockGetUserAgreement                                       sync.RWMutex
 	lockGetUserByEmail                                         sync.RWMutex
 	lockGetUserByUserIdentity                                  sync.RWMutex
 	lockGetUserIdentity                                        sync.RWMutex
@@ -2022,14 +2260,20 @@ type CoreServiceMock struct {
 	lockListRoles                                              sync.RWMutex
 	lockListUsagesByUser                                       sync.RWMutex
 	lockListUsagesForAllocation                                sync.RWMutex
+	lockListUserAgreementAcceptances                           sync.RWMutex
+	lockListUserAgreementPendingUsers                          sync.RWMutex
+	lockListUserAgreements                                     sync.RWMutex
 	lockListUserIdentitiesForUser                              sync.RWMutex
 	lockListUserPrivileges                                     sync.RWMutex
 	lockListUserRoles                                          sync.RWMutex
 	lockListUsersByOrganization                                sync.RWMutex
 	lockMarkComputeClusterUserProvisioned                      sync.RWMutex
 	lockMergeUsers                                             sync.RWMutex
+	lockPendingUserAgreements                                  sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
+	lockPublishUserAgreement                                   sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
+	lockRemoveUserAgreement                                    sync.RWMutex
 	lockRevokePrivilege                                        sync.RWMutex
 	lockRevokeRoleFromUser                                     sync.RWMutex
 	lockUpdateAllocationResourceMapping                        sync.RWMutex
@@ -2047,8 +2291,51 @@ type CoreServiceMock struct {
 	lockUpdateProjectStatus                                    sync.RWMutex
 	lockUpdateRole                                             sync.RWMutex
 	lockUpdateUser                                             sync.RWMutex
+	lockUpdateUserAgreementDraft                               sync.RWMutex
 	lockUpdateUserIdentity                                     sync.RWMutex
 	lockUpdateUserStatus                                       sync.RWMutex
+	lockUserAgreementCounts                                    sync.RWMutex
+	lockValidateUsername                                       sync.RWMutex
+}
+
+// AcceptUserAgreement calls AcceptUserAgreementFunc.
+func (mock *CoreServiceMock) AcceptUserAgreement(ctx context.Context, userID string, agreementID string) (*models.UserAgreementAcceptance, error) {
+	if mock.AcceptUserAgreementFunc == nil {
+		panic("CoreServiceMock.AcceptUserAgreementFunc: method is nil but CoreService.AcceptUserAgreement was just called")
+	}
+	callInfo := struct {
+		Ctx         context.Context
+		UserID      string
+		AgreementID string
+	}{
+		Ctx:         ctx,
+		UserID:      userID,
+		AgreementID: agreementID,
+	}
+	mock.lockAcceptUserAgreement.Lock()
+	mock.calls.AcceptUserAgreement = append(mock.calls.AcceptUserAgreement, callInfo)
+	mock.lockAcceptUserAgreement.Unlock()
+	return mock.AcceptUserAgreementFunc(ctx, userID, agreementID)
+}
+
+// AcceptUserAgreementCalls gets all the calls that were made to AcceptUserAgreement.
+// Check the length with:
+//
+//	len(mockedCoreService.AcceptUserAgreementCalls())
+func (mock *CoreServiceMock) AcceptUserAgreementCalls() []struct {
+	Ctx         context.Context
+	UserID      string
+	AgreementID string
+} {
+	var calls []struct {
+		Ctx         context.Context
+		UserID      string
+		AgreementID string
+	}
+	mock.lockAcceptUserAgreement.RLock()
+	calls = mock.calls.AcceptUserAgreement
+	mock.lockAcceptUserAgreement.RUnlock()
+	return calls
 }
 
 // AddPrivilegeToRole calls AddPrivilegeToRoleFunc.
@@ -2220,6 +2507,86 @@ func (mock *CoreServiceMock) BootstrapSuperAdminCalls() []struct {
 	mock.lockBootstrapSuperAdmin.RLock()
 	calls = mock.calls.BootstrapSuperAdmin
 	mock.lockBootstrapSuperAdmin.RUnlock()
+	return calls
+}
+
+// CheckOnboardingUsername calls CheckOnboardingUsernameFunc.
+func (mock *CoreServiceMock) CheckOnboardingUsername(ctx context.Context, userID string, candidate string) (*UsernameCheck, error) {
+	if mock.CheckOnboardingUsernameFunc == nil {
+		panic("CoreServiceMock.CheckOnboardingUsernameFunc: method is nil but CoreService.CheckOnboardingUsername was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		UserID    string
+		Candidate string
+	}{
+		Ctx:       ctx,
+		UserID:    userID,
+		Candidate: candidate,
+	}
+	mock.lockCheckOnboardingUsername.Lock()
+	mock.calls.CheckOnboardingUsername = append(mock.calls.CheckOnboardingUsername, callInfo)
+	mock.lockCheckOnboardingUsername.Unlock()
+	return mock.CheckOnboardingUsernameFunc(ctx, userID, candidate)
+}
+
+// CheckOnboardingUsernameCalls gets all the calls that were made to CheckOnboardingUsername.
+// Check the length with:
+//
+//	len(mockedCoreService.CheckOnboardingUsernameCalls())
+func (mock *CoreServiceMock) CheckOnboardingUsernameCalls() []struct {
+	Ctx       context.Context
+	UserID    string
+	Candidate string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		UserID    string
+		Candidate string
+	}
+	mock.lockCheckOnboardingUsername.RLock()
+	calls = mock.calls.CheckOnboardingUsername
+	mock.lockCheckOnboardingUsername.RUnlock()
+	return calls
+}
+
+// CompleteOnboarding calls CompleteOnboardingFunc.
+func (mock *CoreServiceMock) CompleteOnboarding(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error) {
+	if mock.CompleteOnboardingFunc == nil {
+		panic("CoreServiceMock.CompleteOnboardingFunc: method is nil but CoreService.CompleteOnboarding was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		Claims *identity.Claims
+		In     OnboardingInput
+	}{
+		Ctx:    ctx,
+		Claims: claims,
+		In:     in,
+	}
+	mock.lockCompleteOnboarding.Lock()
+	mock.calls.CompleteOnboarding = append(mock.calls.CompleteOnboarding, callInfo)
+	mock.lockCompleteOnboarding.Unlock()
+	return mock.CompleteOnboardingFunc(ctx, claims, in)
+}
+
+// CompleteOnboardingCalls gets all the calls that were made to CompleteOnboarding.
+// Check the length with:
+//
+//	len(mockedCoreService.CompleteOnboardingCalls())
+func (mock *CoreServiceMock) CompleteOnboardingCalls() []struct {
+	Ctx    context.Context
+	Claims *identity.Claims
+	In     OnboardingInput
+} {
+	var calls []struct {
+		Ctx    context.Context
+		Claims *identity.Claims
+		In     OnboardingInput
+	}
+	mock.lockCompleteOnboarding.RLock()
+	calls = mock.calls.CompleteOnboarding
+	mock.lockCompleteOnboarding.RUnlock()
 	return calls
 }
 
@@ -2804,6 +3171,46 @@ func (mock *CoreServiceMock) CreateUserCalls() []struct {
 	mock.lockCreateUser.RLock()
 	calls = mock.calls.CreateUser
 	mock.lockCreateUser.RUnlock()
+	return calls
+}
+
+// CreateUserAgreementDraft calls CreateUserAgreementDraftFunc.
+func (mock *CoreServiceMock) CreateUserAgreementDraft(ctx context.Context, in UserAgreementInput, actorID string) (*models.UserAgreement, error) {
+	if mock.CreateUserAgreementDraftFunc == nil {
+		panic("CoreServiceMock.CreateUserAgreementDraftFunc: method is nil but CoreService.CreateUserAgreementDraft was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		In      UserAgreementInput
+		ActorID string
+	}{
+		Ctx:     ctx,
+		In:      in,
+		ActorID: actorID,
+	}
+	mock.lockCreateUserAgreementDraft.Lock()
+	mock.calls.CreateUserAgreementDraft = append(mock.calls.CreateUserAgreementDraft, callInfo)
+	mock.lockCreateUserAgreementDraft.Unlock()
+	return mock.CreateUserAgreementDraftFunc(ctx, in, actorID)
+}
+
+// CreateUserAgreementDraftCalls gets all the calls that were made to CreateUserAgreementDraft.
+// Check the length with:
+//
+//	len(mockedCoreService.CreateUserAgreementDraftCalls())
+func (mock *CoreServiceMock) CreateUserAgreementDraftCalls() []struct {
+	Ctx     context.Context
+	In      UserAgreementInput
+	ActorID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		In      UserAgreementInput
+		ActorID string
+	}
+	mock.lockCreateUserAgreementDraft.RLock()
+	calls = mock.calls.CreateUserAgreementDraft
+	mock.lockCreateUserAgreementDraft.RUnlock()
 	return calls
 }
 
@@ -3420,6 +3827,46 @@ func (mock *CoreServiceMock) DeleteUserCalls() []struct {
 	mock.lockDeleteUser.RLock()
 	calls = mock.calls.DeleteUser
 	mock.lockDeleteUser.RUnlock()
+	return calls
+}
+
+// DeleteUserAgreementDraft calls DeleteUserAgreementDraftFunc.
+func (mock *CoreServiceMock) DeleteUserAgreementDraft(ctx context.Context, id string, actorID string) error {
+	if mock.DeleteUserAgreementDraftFunc == nil {
+		panic("CoreServiceMock.DeleteUserAgreementDraftFunc: method is nil but CoreService.DeleteUserAgreementDraft was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}{
+		Ctx:     ctx,
+		ID:      id,
+		ActorID: actorID,
+	}
+	mock.lockDeleteUserAgreementDraft.Lock()
+	mock.calls.DeleteUserAgreementDraft = append(mock.calls.DeleteUserAgreementDraft, callInfo)
+	mock.lockDeleteUserAgreementDraft.Unlock()
+	return mock.DeleteUserAgreementDraftFunc(ctx, id, actorID)
+}
+
+// DeleteUserAgreementDraftCalls gets all the calls that were made to DeleteUserAgreementDraft.
+// Check the length with:
+//
+//	len(mockedCoreService.DeleteUserAgreementDraftCalls())
+func (mock *CoreServiceMock) DeleteUserAgreementDraftCalls() []struct {
+	Ctx     context.Context
+	ID      string
+	ActorID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}
+	mock.lockDeleteUserAgreementDraft.RLock()
+	calls = mock.calls.DeleteUserAgreementDraft
+	mock.lockDeleteUserAgreementDraft.RUnlock()
 	return calls
 }
 
@@ -4359,6 +4806,42 @@ func (mock *CoreServiceMock) GetLatestEventForChangeRequestCalls() []struct {
 	return calls
 }
 
+// GetOIDCIdentity calls GetOIDCIdentityFunc.
+func (mock *CoreServiceMock) GetOIDCIdentity(ctx context.Context, userID string) (*models.UserIdentity, error) {
+	if mock.GetOIDCIdentityFunc == nil {
+		panic("CoreServiceMock.GetOIDCIdentityFunc: method is nil but CoreService.GetOIDCIdentity was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		UserID string
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+	}
+	mock.lockGetOIDCIdentity.Lock()
+	mock.calls.GetOIDCIdentity = append(mock.calls.GetOIDCIdentity, callInfo)
+	mock.lockGetOIDCIdentity.Unlock()
+	return mock.GetOIDCIdentityFunc(ctx, userID)
+}
+
+// GetOIDCIdentityCalls gets all the calls that were made to GetOIDCIdentity.
+// Check the length with:
+//
+//	len(mockedCoreService.GetOIDCIdentityCalls())
+func (mock *CoreServiceMock) GetOIDCIdentityCalls() []struct {
+	Ctx    context.Context
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID string
+	}
+	mock.lockGetOIDCIdentity.RLock()
+	calls = mock.calls.GetOIDCIdentity
+	mock.lockGetOIDCIdentity.RUnlock()
+	return calls
+}
+
 // GetOrganization calls GetOrganizationFunc.
 func (mock *CoreServiceMock) GetOrganization(ctx context.Context, id string) (*models.Organization, error) {
 	if mock.GetOrganizationFunc == nil {
@@ -4648,6 +5131,42 @@ func (mock *CoreServiceMock) GetUserCalls() []struct {
 	mock.lockGetUser.RLock()
 	calls = mock.calls.GetUser
 	mock.lockGetUser.RUnlock()
+	return calls
+}
+
+// GetUserAgreement calls GetUserAgreementFunc.
+func (mock *CoreServiceMock) GetUserAgreement(ctx context.Context, id string) (*models.UserAgreement, error) {
+	if mock.GetUserAgreementFunc == nil {
+		panic("CoreServiceMock.GetUserAgreementFunc: method is nil but CoreService.GetUserAgreement was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockGetUserAgreement.Lock()
+	mock.calls.GetUserAgreement = append(mock.calls.GetUserAgreement, callInfo)
+	mock.lockGetUserAgreement.Unlock()
+	return mock.GetUserAgreementFunc(ctx, id)
+}
+
+// GetUserAgreementCalls gets all the calls that were made to GetUserAgreement.
+// Check the length with:
+//
+//	len(mockedCoreService.GetUserAgreementCalls())
+func (mock *CoreServiceMock) GetUserAgreementCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	mock.lockGetUserAgreement.RLock()
+	calls = mock.calls.GetUserAgreement
+	mock.lockGetUserAgreement.RUnlock()
 	return calls
 }
 
@@ -6151,6 +6670,126 @@ func (mock *CoreServiceMock) ListUsagesForAllocationCalls() []struct {
 	return calls
 }
 
+// ListUserAgreementAcceptances calls ListUserAgreementAcceptancesFunc.
+func (mock *CoreServiceMock) ListUserAgreementAcceptances(ctx context.Context, id string, limit int, offset int) ([]models.UserAgreementAcceptance, error) {
+	if mock.ListUserAgreementAcceptancesFunc == nil {
+		panic("CoreServiceMock.ListUserAgreementAcceptancesFunc: method is nil but CoreService.ListUserAgreementAcceptances was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		ID     string
+		Limit  int
+		Offset int
+	}{
+		Ctx:    ctx,
+		ID:     id,
+		Limit:  limit,
+		Offset: offset,
+	}
+	mock.lockListUserAgreementAcceptances.Lock()
+	mock.calls.ListUserAgreementAcceptances = append(mock.calls.ListUserAgreementAcceptances, callInfo)
+	mock.lockListUserAgreementAcceptances.Unlock()
+	return mock.ListUserAgreementAcceptancesFunc(ctx, id, limit, offset)
+}
+
+// ListUserAgreementAcceptancesCalls gets all the calls that were made to ListUserAgreementAcceptances.
+// Check the length with:
+//
+//	len(mockedCoreService.ListUserAgreementAcceptancesCalls())
+func (mock *CoreServiceMock) ListUserAgreementAcceptancesCalls() []struct {
+	Ctx    context.Context
+	ID     string
+	Limit  int
+	Offset int
+} {
+	var calls []struct {
+		Ctx    context.Context
+		ID     string
+		Limit  int
+		Offset int
+	}
+	mock.lockListUserAgreementAcceptances.RLock()
+	calls = mock.calls.ListUserAgreementAcceptances
+	mock.lockListUserAgreementAcceptances.RUnlock()
+	return calls
+}
+
+// ListUserAgreementPendingUsers calls ListUserAgreementPendingUsersFunc.
+func (mock *CoreServiceMock) ListUserAgreementPendingUsers(ctx context.Context, id string, limit int, offset int) ([]models.User, error) {
+	if mock.ListUserAgreementPendingUsersFunc == nil {
+		panic("CoreServiceMock.ListUserAgreementPendingUsersFunc: method is nil but CoreService.ListUserAgreementPendingUsers was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		ID     string
+		Limit  int
+		Offset int
+	}{
+		Ctx:    ctx,
+		ID:     id,
+		Limit:  limit,
+		Offset: offset,
+	}
+	mock.lockListUserAgreementPendingUsers.Lock()
+	mock.calls.ListUserAgreementPendingUsers = append(mock.calls.ListUserAgreementPendingUsers, callInfo)
+	mock.lockListUserAgreementPendingUsers.Unlock()
+	return mock.ListUserAgreementPendingUsersFunc(ctx, id, limit, offset)
+}
+
+// ListUserAgreementPendingUsersCalls gets all the calls that were made to ListUserAgreementPendingUsers.
+// Check the length with:
+//
+//	len(mockedCoreService.ListUserAgreementPendingUsersCalls())
+func (mock *CoreServiceMock) ListUserAgreementPendingUsersCalls() []struct {
+	Ctx    context.Context
+	ID     string
+	Limit  int
+	Offset int
+} {
+	var calls []struct {
+		Ctx    context.Context
+		ID     string
+		Limit  int
+		Offset int
+	}
+	mock.lockListUserAgreementPendingUsers.RLock()
+	calls = mock.calls.ListUserAgreementPendingUsers
+	mock.lockListUserAgreementPendingUsers.RUnlock()
+	return calls
+}
+
+// ListUserAgreements calls ListUserAgreementsFunc.
+func (mock *CoreServiceMock) ListUserAgreements(ctx context.Context) ([]models.UserAgreement, error) {
+	if mock.ListUserAgreementsFunc == nil {
+		panic("CoreServiceMock.ListUserAgreementsFunc: method is nil but CoreService.ListUserAgreements was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockListUserAgreements.Lock()
+	mock.calls.ListUserAgreements = append(mock.calls.ListUserAgreements, callInfo)
+	mock.lockListUserAgreements.Unlock()
+	return mock.ListUserAgreementsFunc(ctx)
+}
+
+// ListUserAgreementsCalls gets all the calls that were made to ListUserAgreements.
+// Check the length with:
+//
+//	len(mockedCoreService.ListUserAgreementsCalls())
+func (mock *CoreServiceMock) ListUserAgreementsCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockListUserAgreements.RLock()
+	calls = mock.calls.ListUserAgreements
+	mock.lockListUserAgreements.RUnlock()
+	return calls
+}
+
 // ListUserIdentitiesForUser calls ListUserIdentitiesForUserFunc.
 func (mock *CoreServiceMock) ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error) {
 	if mock.ListUserIdentitiesForUserFunc == nil {
@@ -6371,6 +7010,42 @@ func (mock *CoreServiceMock) MergeUsersCalls() []struct {
 	return calls
 }
 
+// PendingUserAgreements calls PendingUserAgreementsFunc.
+func (mock *CoreServiceMock) PendingUserAgreements(ctx context.Context, userID string) ([]models.UserAgreement, error) {
+	if mock.PendingUserAgreementsFunc == nil {
+		panic("CoreServiceMock.PendingUserAgreementsFunc: method is nil but CoreService.PendingUserAgreements was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		UserID string
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+	}
+	mock.lockPendingUserAgreements.Lock()
+	mock.calls.PendingUserAgreements = append(mock.calls.PendingUserAgreements, callInfo)
+	mock.lockPendingUserAgreements.Unlock()
+	return mock.PendingUserAgreementsFunc(ctx, userID)
+}
+
+// PendingUserAgreementsCalls gets all the calls that were made to PendingUserAgreements.
+// Check the length with:
+//
+//	len(mockedCoreService.PendingUserAgreementsCalls())
+func (mock *CoreServiceMock) PendingUserAgreementsCalls() []struct {
+	Ctx    context.Context
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID string
+	}
+	mock.lockPendingUserAgreements.RLock()
+	calls = mock.calls.PendingUserAgreements
+	mock.lockPendingUserAgreements.RUnlock()
+	return calls
+}
+
 // PrivilegeCatalog calls PrivilegeCatalogFunc.
 func (mock *CoreServiceMock) PrivilegeCatalog() []models.PrivilegeKey {
 	if mock.PrivilegeCatalogFunc == nil {
@@ -6395,6 +7070,46 @@ func (mock *CoreServiceMock) PrivilegeCatalogCalls() []struct {
 	mock.lockPrivilegeCatalog.RLock()
 	calls = mock.calls.PrivilegeCatalog
 	mock.lockPrivilegeCatalog.RUnlock()
+	return calls
+}
+
+// PublishUserAgreement calls PublishUserAgreementFunc.
+func (mock *CoreServiceMock) PublishUserAgreement(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
+	if mock.PublishUserAgreementFunc == nil {
+		panic("CoreServiceMock.PublishUserAgreementFunc: method is nil but CoreService.PublishUserAgreement was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}{
+		Ctx:     ctx,
+		ID:      id,
+		ActorID: actorID,
+	}
+	mock.lockPublishUserAgreement.Lock()
+	mock.calls.PublishUserAgreement = append(mock.calls.PublishUserAgreement, callInfo)
+	mock.lockPublishUserAgreement.Unlock()
+	return mock.PublishUserAgreementFunc(ctx, id, actorID)
+}
+
+// PublishUserAgreementCalls gets all the calls that were made to PublishUserAgreement.
+// Check the length with:
+//
+//	len(mockedCoreService.PublishUserAgreementCalls())
+func (mock *CoreServiceMock) PublishUserAgreementCalls() []struct {
+	Ctx     context.Context
+	ID      string
+	ActorID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}
+	mock.lockPublishUserAgreement.RLock()
+	calls = mock.calls.PublishUserAgreement
+	mock.lockPublishUserAgreement.RUnlock()
 	return calls
 }
 
@@ -6439,6 +7154,46 @@ func (mock *CoreServiceMock) RemovePrivilegeFromRoleCalls() []struct {
 	mock.lockRemovePrivilegeFromRole.RLock()
 	calls = mock.calls.RemovePrivilegeFromRole
 	mock.lockRemovePrivilegeFromRole.RUnlock()
+	return calls
+}
+
+// RemoveUserAgreement calls RemoveUserAgreementFunc.
+func (mock *CoreServiceMock) RemoveUserAgreement(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
+	if mock.RemoveUserAgreementFunc == nil {
+		panic("CoreServiceMock.RemoveUserAgreementFunc: method is nil but CoreService.RemoveUserAgreement was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}{
+		Ctx:     ctx,
+		ID:      id,
+		ActorID: actorID,
+	}
+	mock.lockRemoveUserAgreement.Lock()
+	mock.calls.RemoveUserAgreement = append(mock.calls.RemoveUserAgreement, callInfo)
+	mock.lockRemoveUserAgreement.Unlock()
+	return mock.RemoveUserAgreementFunc(ctx, id, actorID)
+}
+
+// RemoveUserAgreementCalls gets all the calls that were made to RemoveUserAgreement.
+// Check the length with:
+//
+//	len(mockedCoreService.RemoveUserAgreementCalls())
+func (mock *CoreServiceMock) RemoveUserAgreementCalls() []struct {
+	Ctx     context.Context
+	ID      string
+	ActorID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}
+	mock.lockRemoveUserAgreement.RLock()
+	calls = mock.calls.RemoveUserAgreement
+	mock.lockRemoveUserAgreement.RUnlock()
 	return calls
 }
 
@@ -7114,6 +7869,50 @@ func (mock *CoreServiceMock) UpdateUserCalls() []struct {
 	return calls
 }
 
+// UpdateUserAgreementDraft calls UpdateUserAgreementDraftFunc.
+func (mock *CoreServiceMock) UpdateUserAgreementDraft(ctx context.Context, id string, in UserAgreementInput, actorID string) (*models.UserAgreement, error) {
+	if mock.UpdateUserAgreementDraftFunc == nil {
+		panic("CoreServiceMock.UpdateUserAgreementDraftFunc: method is nil but CoreService.UpdateUserAgreementDraft was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		ID      string
+		In      UserAgreementInput
+		ActorID string
+	}{
+		Ctx:     ctx,
+		ID:      id,
+		In:      in,
+		ActorID: actorID,
+	}
+	mock.lockUpdateUserAgreementDraft.Lock()
+	mock.calls.UpdateUserAgreementDraft = append(mock.calls.UpdateUserAgreementDraft, callInfo)
+	mock.lockUpdateUserAgreementDraft.Unlock()
+	return mock.UpdateUserAgreementDraftFunc(ctx, id, in, actorID)
+}
+
+// UpdateUserAgreementDraftCalls gets all the calls that were made to UpdateUserAgreementDraft.
+// Check the length with:
+//
+//	len(mockedCoreService.UpdateUserAgreementDraftCalls())
+func (mock *CoreServiceMock) UpdateUserAgreementDraftCalls() []struct {
+	Ctx     context.Context
+	ID      string
+	In      UserAgreementInput
+	ActorID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		ID      string
+		In      UserAgreementInput
+		ActorID string
+	}
+	mock.lockUpdateUserAgreementDraft.RLock()
+	calls = mock.calls.UpdateUserAgreementDraft
+	mock.lockUpdateUserAgreementDraft.RUnlock()
+	return calls
+}
+
 // UpdateUserIdentity calls UpdateUserIdentityFunc.
 func (mock *CoreServiceMock) UpdateUserIdentity(ctx context.Context, e *models.UserIdentity) error {
 	if mock.UpdateUserIdentityFunc == nil {
@@ -7187,5 +7986,73 @@ func (mock *CoreServiceMock) UpdateUserStatusCalls() []struct {
 	mock.lockUpdateUserStatus.RLock()
 	calls = mock.calls.UpdateUserStatus
 	mock.lockUpdateUserStatus.RUnlock()
+	return calls
+}
+
+// UserAgreementCounts calls UserAgreementCountsFunc.
+func (mock *CoreServiceMock) UserAgreementCounts(ctx context.Context, id string) (int, int, error) {
+	if mock.UserAgreementCountsFunc == nil {
+		panic("CoreServiceMock.UserAgreementCountsFunc: method is nil but CoreService.UserAgreementCounts was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockUserAgreementCounts.Lock()
+	mock.calls.UserAgreementCounts = append(mock.calls.UserAgreementCounts, callInfo)
+	mock.lockUserAgreementCounts.Unlock()
+	return mock.UserAgreementCountsFunc(ctx, id)
+}
+
+// UserAgreementCountsCalls gets all the calls that were made to UserAgreementCounts.
+// Check the length with:
+//
+//	len(mockedCoreService.UserAgreementCountsCalls())
+func (mock *CoreServiceMock) UserAgreementCountsCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	mock.lockUserAgreementCounts.RLock()
+	calls = mock.calls.UserAgreementCounts
+	mock.lockUserAgreementCounts.RUnlock()
+	return calls
+}
+
+// ValidateUsername calls ValidateUsernameFunc.
+func (mock *CoreServiceMock) ValidateUsername(name string) error {
+	if mock.ValidateUsernameFunc == nil {
+		panic("CoreServiceMock.ValidateUsernameFunc: method is nil but CoreService.ValidateUsername was just called")
+	}
+	callInfo := struct {
+		Name string
+	}{
+		Name: name,
+	}
+	mock.lockValidateUsername.Lock()
+	mock.calls.ValidateUsername = append(mock.calls.ValidateUsername, callInfo)
+	mock.lockValidateUsername.Unlock()
+	return mock.ValidateUsernameFunc(name)
+}
+
+// ValidateUsernameCalls gets all the calls that were made to ValidateUsername.
+// Check the length with:
+//
+//	len(mockedCoreService.ValidateUsernameCalls())
+func (mock *CoreServiceMock) ValidateUsernameCalls() []struct {
+	Name string
+} {
+	var calls []struct {
+		Name string
+	}
+	mock.lockValidateUsername.RLock()
+	calls = mock.calls.ValidateUsername
+	mock.lockValidateUsername.RUnlock()
 	return calls
 }

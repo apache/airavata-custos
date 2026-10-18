@@ -79,6 +79,12 @@ func (c *identityCache) set(sub string, caller *identity.Caller, privs []models.
 	c.entries[sub] = identityCacheEntry{caller: caller, privs: privs, expires: now.Add(c.ttl)}
 }
 
+func (c *identityCache) invalidate(sub string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, sub)
+}
+
 func (c *identityCache) invalidateAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -105,6 +111,11 @@ func (s *Service) InvalidateAllIdentities() {
 	s.identityCache.invalidateAll()
 }
 
+// InvalidateIdentity drops the cached caller for one sub.
+func (s *Service) InvalidateIdentity(sub string) {
+	s.identityCache.invalidate(sub)
+}
+
 // ResolveCaller maps verified OIDC claims to a Caller + effective privilege set
 func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*identity.Caller, []models.PrivilegeKey, error) {
 	if claims == nil || claims.Sub == "" {
@@ -119,10 +130,11 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 		return nil, nil, err
 	}
 	if user == nil {
-		user, err = s.linkBySub(ctx, claims)
-		if err != nil {
+		// Not cached, so a status change or a finished onboarding shows on the next request.
+		if user, err = s.matchPendingByEmail(ctx, claims); err != nil {
 			return nil, nil, err
 		}
+		return &identity.Caller{UserID: user.ID, NeedsOnboarding: true, ConsentPending: true}, nil, nil
 	}
 	if err := refuseDisabled(user); err != nil {
 		return nil, nil, err
@@ -131,7 +143,11 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 	if err != nil {
 		return nil, nil, err
 	}
-	caller := &identity.Caller{UserID: user.ID}
+	pending, err := s.PendingUserAgreements(ctx, user.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	caller := &identity.Caller{UserID: user.ID, ConsentPending: len(pending) > 0}
 	s.identityCache.set(claims.Sub, caller, privs, now)
 	return caller, privs, nil
 }
@@ -144,9 +160,9 @@ func refuseDisabled(user *models.User) error {
 	return nil
 }
 
-// linkBySub creates the first OIDC binding for a PENDING user matched by verified email.
-func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*models.User, error) {
-	slog.DebugContext(ctx, "linkBySub: evaluating claims",
+// matchPendingByEmail finds the PENDING user a not-yet-bound sub belongs to.
+func (s *Service) matchPendingByEmail(ctx context.Context, claims *identity.Claims) (*models.User, error) {
+	slog.DebugContext(ctx, "matchPendingByEmail: evaluating claims",
 		"sub", claims.Sub,
 		"email", claims.Email,
 		"email_verified", claims.EmailVerified,
@@ -183,6 +199,11 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		)
 		return nil, fmt.Errorf("%w: status=%s", identity.ErrUserNotPending, user.Status)
 	}
+	return user, nil
+}
+
+// bindSubTx stores the sub as the user's oidc identity and activates the user.
+func (s *Service) bindSubTx(ctx context.Context, tx *sql.Tx, user *models.User, claims *identity.Claims) error {
 	binding := &models.UserIdentity{
 		ID:         newID(),
 		UserID:     user.ID,
@@ -191,29 +212,21 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		Email:      claims.Email,
 		OIDCSub:    claims.Sub,
 	}
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.userIdentities.Create(ctx, tx, binding); err != nil {
-			return fmt.Errorf("create oidc identity: %w", err)
-		}
-		if err := s.users.UpdateStatus(ctx, tx, user.ID, models.UserActive); err != nil {
-			return fmt.Errorf("activate user: %w", err)
-		}
-		if err := s.writeIdentityAuditTx(ctx, tx, user.ID, map[string]any{
-			"oidc_sub": claims.Sub,
-			"email":    claims.Email,
-			"source":   "oidc_email_fallback",
-		}); err != nil {
-			return err
-		}
-		// Publish the event indicating the user account became active, so the `sub` can be added to the registry.
-		return s.eventBus.Publish(ctx, tx, events.UserIdentityCreateEvent, binding)
-	}); err != nil {
-		return nil, err
+	if err := s.userIdentities.Create(ctx, tx, binding); err != nil {
+		return fmt.Errorf("create oidc identity: %w", err)
 	}
-	slog.InfoContext(ctx, "identity linked via email fallback", "user_id", user.ID, "email", claims.Email)
-
-	user.Status = models.UserActive
-	return user, nil
+	if err := s.users.UpdateStatus(ctx, tx, user.ID, models.UserActive); err != nil {
+		return fmt.Errorf("activate user: %w", err)
+	}
+	if err := s.writeIdentityAuditTx(ctx, tx, user.ID, map[string]any{
+		"oidc_sub": claims.Sub,
+		"email":    claims.Email,
+		"source":   "first_sign_in",
+	}); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "identity linked on first sign-in", "user_id", user.ID, "email", claims.Email)
+	return s.eventBus.Publish(ctx, tx, events.UserIdentityCreateEvent, binding)
 }
 
 func (s *Service) writeIdentityAuditTx(ctx context.Context, tx *sql.Tx, userID string, details map[string]any) error {

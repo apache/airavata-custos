@@ -45,6 +45,11 @@ type CoreConfig struct {
 	API      APIConfig      `yaml:"api"`
 	LogLevel string         `yaml:"log_level"`
 	Auth     AuthConfig     `yaml:"auth"`
+	Users    UsersConfig    `yaml:"users"`
+}
+
+type UsersConfig struct {
+	ReservedUsernames []string `yaml:"reserved_usernames"`
 }
 
 type DatabaseConfig struct {

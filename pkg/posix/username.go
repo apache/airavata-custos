@@ -78,6 +78,23 @@ func Normalize(s string) string {
 	return b.String()
 }
 
+// ValidChosen reports whether s is acceptable as a user-picked login, 1 to 32
+// lowercase letters, digits, hyphen or underscore, starting with a letter.
+func ValidChosen(s string) bool {
+	if s == "" || len(s) > 32 {
+		return false
+	}
+	for i, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case i > 0 && (r >= '0' && r <= '9' || r == '-' || r == '_'):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func Prefix() string {
 	if v := os.Getenv("POSIX_USERNAME_PREFIX"); v != "" {
 		return v

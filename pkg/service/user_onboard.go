@@ -47,28 +47,58 @@ type OnboardUserInput struct {
 
 // generateClusterUsername builds a base name with the same rule ingestion uses.
 func (s *Service) generateClusterUsername(ctx context.Context, clusterID, firstName, lastName, email string) (string, error) {
+	base, err := usernameBase(firstName, lastName, email, posix.Prefix())
+	if err != nil {
+		return "", err
+	}
+	name, err := firstFreeUsername(base, func(candidate string) (bool, error) {
+		existing, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, clusterID, candidate)
+		if err != nil {
+			return false, fmt.Errorf("check username: %w", err)
+		}
+		return existing == nil, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if name == "" {
+		return "", fmt.Errorf("username allocator exhausted for base %q", base)
+	}
+	return name, nil
+}
+
+// usernameBase falls back to the email local part when both names are empty after normalizing.
+func usernameBase(firstName, lastName, email, prefix string) (string, error) {
 	u := &models.User{FirstName: firstName, LastName: lastName}
 	if posix.Normalize(firstName) == "" && posix.Normalize(lastName) == "" {
 		u.LastName, _, _ = strings.Cut(email, "@")
 	}
-	base, _, err := posix.BuildBase(u, posix.Prefix())
+	base, _, err := posix.BuildBase(u, prefix)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrInvalidInput, err)
 	}
-	for n := 0; n < posix.MaxCollisionSuffix; n++ {
-		candidate := base
+	if prefix == "" {
+		base = strings.TrimPrefix(base, "-")
+	}
+	return base, nil
+}
+
+// firstFreeUsername tries base, base2, base3 and so on. It returns "" when every suffix is taken.
+func firstFreeUsername(base string, free func(string) (bool, error)) (string, error) {
+	for n := range posix.MaxCollisionSuffix {
+		name := base
 		if n > 0 {
-			candidate = base + strconv.Itoa(n+1)
+			name = base + strconv.Itoa(n+1)
 		}
-		existing, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, clusterID, candidate)
+		ok, err := free(name)
 		if err != nil {
-			return "", fmt.Errorf("check username: %w", err)
+			return "", err
 		}
-		if existing == nil {
-			return candidate, nil
+		if ok {
+			return name, nil
 		}
 	}
-	return "", fmt.Errorf("username allocator exhausted for base %q", base)
+	return "", nil
 }
 
 // OnboardUser creates the same rows ingestion does, so the existing `cluster user create event` drives provisioning.
