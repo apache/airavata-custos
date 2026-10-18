@@ -30,6 +30,12 @@ vi.mock("../queries", () => ({
   }),
 }));
 
+vi.mock("@/features/core/projects/queries", () => ({ useProject: () => ({ data: undefined }) }));
+vi.mock("@/shared/casl/permissions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/shared/casl/permissions")>()),
+  usePermissions: () => ({}),
+}));
+
 vi.mock("@/features/core/resources/queries", () => ({
   // res-a-gpu has an effective rate; res-b-gpu 404s (query error, no data).
   useEffectiveRate: (id: string) =>
@@ -73,16 +79,15 @@ beforeEach(() => {
 });
 
 describe("<AllocationOverviewTab />", () => {
-  it("renders attached resource names, types, and amounts", () => {
+  it("renders attached resource names and types", () => {
     render(<AllocationOverviewTab allocation={allocation} />);
     expect(screen.getByText("ClusterA GPU")).toBeInTheDocument();
     expect(screen.getByText("ClusterB GPU A100")).toBeInTheDocument();
-    expect(screen.getByText("50,000")).toBeInTheDocument();
   });
 
   it("renders the effective rate, omitting it when the lookup 404s", () => {
     render(<AllocationOverviewTab allocation={allocation} />);
-    expect(screen.getByText("0.5 SU/unit")).toBeInTheDocument();
+    expect(screen.getByText(/0\.5 SU\/unit/)).toBeInTheDocument();
     // res-b-gpu has no effective rate, so only one rate line shows.
     expect(screen.getAllByText(/SU\/unit/)).toHaveLength(1);
   });

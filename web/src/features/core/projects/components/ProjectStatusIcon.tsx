@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-"use client";
+import { FolderKanban } from "lucide-react";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
+import { StatusIcon } from "@/shared/ui/StatusIcon";
 
-import { useProject } from "../queries";
-
-// A project's title for records that carry only its id, which is never shown in its place.
-export function ProjectName({ id }: { id: string }) {
-  const project = useProject(id);
-  return <>{project.data?.title || (project.isLoading ? "—" : "Unknown project")}</>;
+export function ProjectStatusIcon({ status }: { status: ProjectStatus }) {
+  return (
+    <StatusIcon icon={FolderKanban} active={status === "ACTIVE"} label={status.toLowerCase()} />
+  );
 }

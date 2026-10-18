@@ -22,6 +22,7 @@ import type { Job } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { TableEmptyRow } from "@/shared/ui/table";
 import { useAllocationJobs } from "../queries";
 import { CHART_OTHER_COLOR, formatCredits, formatDateTime, formatNative } from "../lib";
 
@@ -44,7 +45,7 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
   const data = jobsQuery.data;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-lg border border-foreground/20 bg-card p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold">Recent jobs</h2>
@@ -82,11 +83,7 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
         <Skeleton className="h-40 w-full" />
       ) : jobsQuery.error ? (
         <ErrorState message="We couldn't load the jobs." onRetry={() => jobsQuery.refetch()} />
-      ) : !data || data.jobs.length === 0 ? (
-        <p className="py-6 text-sm text-muted-foreground">
-          No jobs yet. Jobs appear here as soon as work is charged to this allocation.
-        </p>
-      ) : (
+      ) : !data ? null : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -101,6 +98,11 @@ export function JobsTable({ allocationId, canManage, seriesColorById }: JobsTabl
                 </tr>
               </thead>
               <tbody>
+                {data.jobs.length === 0 ? (
+                  <TableEmptyRow colSpan={showUser ? 6 : 5}>
+                    No jobs yet. Jobs appear here as soon as work is charged to this allocation.
+                  </TableEmptyRow>
+                ) : null}
                 {data.jobs.map((job) => (
                   <JobRow
                     key={job.id}

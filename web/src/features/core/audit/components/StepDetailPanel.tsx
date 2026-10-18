@@ -39,7 +39,7 @@ import {
   parseDetails,
   plainName,
 } from "../utils";
-import { CopyValue } from "./primitives/CopyValue";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 

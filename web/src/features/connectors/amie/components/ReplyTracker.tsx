@@ -18,7 +18,6 @@
 "use client";
 
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
@@ -134,13 +133,8 @@ export function ReplyTracker({
         <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="No outgoing replies"
-          description="inform_* packets the connector emits back to ACCESS will appear here."
-        />
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} />
+        <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} empty="No outgoing replies." />
       )}
     </div>
   );

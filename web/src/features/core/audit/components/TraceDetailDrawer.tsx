@@ -43,7 +43,7 @@ import {
 } from "../utils";
 import { TraceFlowTab } from "./TraceFlowTab";
 import { TraceRawTab } from "./TraceRawTab";
-import { CopyValue } from "./primitives/CopyValue";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 

@@ -17,11 +17,21 @@
 
 "use client";
 
-import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  skipToken,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   addMember,
   approveChangeRequest,
+  createAllocation,
+  deleteAllocation,
   getAllocation,
+  getAllocationUsedSU,
   getChangeRequest,
   listAllocationDiffs,
   listAllocationMembers,
@@ -35,9 +45,12 @@ import {
   submitChangeRequest,
 } from "./api";
 import type {
+  AllocationMembership,
+  CreateAllocationPayload,
   CreateChangeRequestPayload,
   CreateMembershipPayload,
 } from "./schemas";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
 
 export const allocationKeys = {
@@ -47,6 +60,7 @@ export const allocationKeys = {
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
+  usedSU: (id: string) => [...allocationKeys.detail(id), "used-su"] as const,
   diffs: (id: string) => [...allocationKeys.detail(id), "diffs"] as const,
   members: (id: string) => [...allocationKeys.detail(id), "members"] as const,
   changeRequests: (params: ChangeRequestListParams = {}) =>
@@ -56,6 +70,12 @@ export const allocationKeys = {
   changeRequestEvents: (id: string) =>
     [...allocationKeys.all, "change-requests", "events", id] as const,
 };
+
+// Project members are derived from allocation memberships; a key prefix avoids importing projects.
+function invalidateMembers(client: QueryClient, allocationId: string) {
+  client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) });
+  client.invalidateQueries({ queryKey: ["projects", "members"] });
+}
 
 const DEFAULTS = {
   staleTime: 30_000,
@@ -82,6 +102,23 @@ export function useAllocationsByProject(projectId: string | undefined) {
   });
 }
 
+export function useCreateAllocation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateAllocationPayload) => createAllocation(payload),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
+  });
+}
+
+export function useDeleteAllocation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAllocation,
+    // Marks lists stale without refetching the deleted allocation's own queries.
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
+  });
+}
+
 export function useAllocation(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.detail(id) : [...allocationKeys.all, "detail", "none"],
@@ -94,6 +131,14 @@ export function useAllocationResources(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.resources(id) : [...allocationKeys.all, "resources", "none"],
     queryFn: id ? () => listAllocationResources(id) : skipToken,
+    ...DEFAULTS,
+  });
+}
+
+export function useAllocationUsedSU(id: string) {
+  return useQuery({
+    queryKey: allocationKeys.usedSU(id),
+    queryFn: () => getAllocationUsedSU(id),
     ...DEFAULTS,
   });
 }
@@ -126,7 +171,7 @@ export function useAddMember(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateMembershipPayload) => addMember(payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
+    onSuccess: () => invalidateMembers(client, allocationId),
   });
 }
 
@@ -134,7 +179,52 @@ export function useRemoveMember(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => removeMember(id),
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
+    onSuccess: () => invalidateMembers(client, allocationId),
+  });
+}
+
+// Sanctioned cross-feature hooks (ADR-0004) for the project members grid.
+export function useMembershipsByAllocation(allocationIds: string[]) {
+  return useQueries({
+    queries: allocationIds.map((id) => ({
+      queryKey: allocationKeys.members(id),
+      queryFn: () => listAllocationMembers(id),
+      ...DEFAULTS,
+    })),
+    combine: (results) => ({
+      byAllocation: Object.fromEntries(
+        allocationIds.map((id, i) => [id, results[i]?.data ?? []]),
+      ),
+      isLoading: results.some((r) => r.isLoading),
+      error: results.find((r) => r.error)?.error ?? null,
+      refetch: () => Promise.all(results.map((r) => r.refetch())),
+    }),
+  });
+}
+
+// Revokes access by deleting the membership, or grants it for the allocation's remaining term.
+export function useToggleAllocationAccess() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      allocation,
+      userId,
+      membership,
+    }: {
+      allocation: ComputeAllocation;
+      userId: string;
+      membership: AllocationMembership | undefined;
+    }) =>
+      membership
+        ? removeMember(membership.id)
+        : addMember({
+            compute_allocation_id: allocation.id,
+            user_id: userId,
+            start_time: new Date().toISOString(),
+            end_time: allocation.end_time,
+            membership_status: "ACTIVE",
+          }),
+    onSuccess: (_data, { allocation }) => invalidateMembers(client, allocation.id),
   });
 }
 

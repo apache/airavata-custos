@@ -22,7 +22,6 @@ import {
   getProject,
   listProjectMembers,
   listProjects,
-  removeProjectMember,
   updateProjectMember,
   updateProjectStatus,
 } from "../api";
@@ -44,6 +43,7 @@ const validProject = {
   originated_id: "BIO130000",
   title: "Test Project",
   origination: "ACCESS",
+  ref: "ACCESS-BIO130000",
   project_pi_id: "user-pi-001",
   status: "ACTIVE" as const,
   created_time: "2026-04-01T00:00:00.000Z",
@@ -149,13 +149,5 @@ describe("updateProjectMember", () => {
     await updateProjectMember("project-001", "u-001", { role: "CO_PI" });
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/projects/project-001/members/u-001");
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PUT");
-  });
-});
-
-describe("removeProjectMember", () => {
-  it("DELETEs the member", async () => {
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await removeProjectMember("project-001", "pm-001");
-    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
   });
 });

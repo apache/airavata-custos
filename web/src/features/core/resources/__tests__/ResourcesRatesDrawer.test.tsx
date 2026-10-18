@@ -199,9 +199,7 @@ describe("<ResourcesRatesDrawer />", () => {
     rates = [];
     effective = undefined;
     renderDrawer();
-    expect(
-      screen.getByRole("heading", { name: /no rates recorded for this resource/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No rates recorded for this resource.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ Add rate" })).toBeInTheDocument();
   });
 });

@@ -17,6 +17,7 @@
 
 import { apiFetch } from "@/shared/api/client";
 import {
+  type Project,
   type ProjectListResponse,
   type ProjectResponse,
   zGetProjectsResponse,
@@ -56,16 +57,20 @@ export async function getProject(id: string): Promise<ProjectResponse> {
   return zProjectResponse.parse(raw);
 }
 
-export async function createProject(payload: CreateProjectPayload): Promise<ProjectResponse> {
+export async function createProject(payload: CreateProjectPayload): Promise<Project> {
   const validated = createProjectPayloadSchema.parse(payload);
   const raw = await apiFetch("/projects", { method: "POST", body: validated });
   return zPostProjectsResponse.parse(raw);
 }
 
+export async function deleteProject(id: string): Promise<void> {
+  await apiFetch(`/projects/${id}`, { method: "DELETE" });
+}
+
 export async function updateProjectStatus(
   id: string,
   payload: UpdateProjectStatusPayload,
-): Promise<ProjectResponse> {
+): Promise<Project> {
   const validated = updateProjectStatusPayloadSchema.parse(payload);
   const raw = await apiFetch(`/projects/${id}/status`, { method: "PUT", body: validated });
   return zPutProjectsByIdStatusResponse.parse(raw);
@@ -99,8 +104,4 @@ export async function updateProjectMember(
     method: "PUT",
     body: validated,
   });
-}
-
-export async function removeProjectMember(projectId: string, memberId: string): Promise<void> {
-  await apiFetch(`/projects/${projectId}/members/${memberId}`, { method: "DELETE" });
 }

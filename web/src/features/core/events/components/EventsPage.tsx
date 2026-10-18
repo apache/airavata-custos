@@ -26,7 +26,6 @@ import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
@@ -214,11 +213,7 @@ export function EventsPage() {
           canRetry={canRetry}
           onOpen={(d) => open(d)}
           onRetry={(d) => open(d, true)}
-          empty={
-            <EmptyState
-              heading={connector ? "No deliveries match this connector." : VIEW_INFO[view].empty}
-            />
-          }
+          empty={connector ? "No deliveries match this connector." : VIEW_INFO[view].empty}
         />
       )}
 

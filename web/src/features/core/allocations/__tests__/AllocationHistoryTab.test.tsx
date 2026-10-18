@@ -88,8 +88,6 @@ describe("<AllocationHistoryTab />", () => {
   it("shows the empty state when there is no history", () => {
     diffs = [];
     render(<AllocationHistoryTab allocation={allocation} />);
-    expect(
-      screen.getByRole("heading", { name: /no history recorded for this allocation/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No history recorded for this allocation.")).toBeInTheDocument();
   });
 });

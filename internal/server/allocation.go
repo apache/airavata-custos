@@ -68,6 +68,22 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, a)
 }
 
+// @Summary	Delete a compute allocation
+// @Description	Removes the allocation with its memberships, resources and usage.
+// @Tags	Compute Allocations
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id} [delete]
+func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocation(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // @Summary	Create a compute allocation diff
 // @Description	Records a discrete change against a compute allocation (e.g. USAGE_UPDATE or ALLOCATION_STATUS_CHANGE).
 // @Tags	Compute Allocation Diffs

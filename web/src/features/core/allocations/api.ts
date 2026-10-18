@@ -29,17 +29,21 @@ import {
   zGetComputeAllocationsByIdResourcesResponse,
   zGetComputeAllocationsByIdResponse,
   zGetComputeAllocationsByIdUsagesResponse,
+  zGetComputeAllocationsByIdUsagesTotalResponse,
   zGetComputeAllocationsResponse,
   zPostComputeAllocationMembershipsResponse,
+  zPostComputeAllocationsResponse,
 } from "@/generated/core/zod.gen";
 import {
   type AllocationMembership,
   type ChangeRequest,
+  type CreateAllocationPayload,
   type CreateChangeRequestPayload,
   type CreateMembershipPayload,
   type UpdateChangeRequestPayload,
   allocationMembershipSchema,
   changeRequestSchema,
+  createAllocationPayloadSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
@@ -60,6 +64,14 @@ export async function listAllocations(
   return zGetComputeAllocationsResponse.parse(raw);
 }
 
+export async function createAllocation(payload: CreateAllocationPayload): Promise<ComputeAllocation> {
+  const raw = await apiFetch("/compute-allocations", {
+    method: "POST",
+    body: createAllocationPayloadSchema.parse(payload),
+  });
+  return zPostComputeAllocationsResponse.parse(raw);
+}
+
 export async function getAllocation(id: string): Promise<ComputeAllocation> {
   const raw = await apiFetch(`/compute-allocations/${id}`);
   return zGetComputeAllocationsByIdResponse.parse(raw);
@@ -70,9 +82,18 @@ export async function listAllocationResources(id: string): Promise<ComputeAlloca
   return zGetComputeAllocationsByIdResourcesResponse.parse(raw ?? []);
 }
 
+export async function deleteAllocation(id: string): Promise<void> {
+  await apiFetch(`/compute-allocations/${id}`, { method: "DELETE" });
+}
+
 export async function listAllocationDiffs(id: string): Promise<ComputeAllocationDiff[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/diffs`);
   return zGetComputeAllocationsByIdDiffsResponse.parse(raw ?? []);
+}
+
+export async function getAllocationUsedSU(id: string): Promise<number> {
+  const raw = await apiFetch(`/compute-allocations/${id}/usages/total`);
+  return zGetComputeAllocationsByIdUsagesTotalResponse.parse(raw).total_su_amount;
 }
 
 export async function listAllocationUsage(id: string): Promise<ComputeAllocationUsage[]> {

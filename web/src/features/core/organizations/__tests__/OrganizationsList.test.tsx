@@ -51,7 +51,7 @@ describe("<OrganizationsList />", () => {
 
   it("shows the empty state when there are no rows", () => {
     renderList({ rows: [], total: 0 });
-    expect(screen.getByRole("heading", { name: /no organizations yet/i })).toBeInTheDocument();
+    expect(screen.getByText("No organizations yet.")).toBeInTheDocument();
   });
 
   it("renders the create CTA only when one is provided", () => {

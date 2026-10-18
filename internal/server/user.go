@@ -83,11 +83,13 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 // @Produce	json
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
+// @Param	q	query	string	false	"Email or name substring"
 // @Success	200	{object}	UserListResponse
 // @Router	/users [get]
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
-	limit, offset := common.Paged(r.URL.Query())
-	rows, total, err := s.svc.ListUsers(r.Context(), limit, offset)
+	q := r.URL.Query()
+	limit, offset := common.Paged(q)
+	rows, total, err := s.svc.ListUsers(r.Context(), q.Get("q"), limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

@@ -19,7 +19,6 @@
 
 import * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
@@ -323,16 +322,12 @@ export function PacketInboxTable({
         <ErrorState message={error.message} onRetry={onRetry} />
       ) : isLoading ? (
         <TableSkeleton />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="No packets in this view"
-          description="Try clearing filters or widening the time window."
-        />
       ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          empty="No packets in this view."
           pagination={{ page, pageSize, total, onPageChange }}
         />
       )}

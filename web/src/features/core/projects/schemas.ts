@@ -17,7 +17,6 @@
 
 import { z } from "zod";
 import {
-  zPostProjectsBody,
   zProjectMemberAllocationRef,
   zProjectMemberResponse,
   zProjectStatus,
@@ -33,7 +32,6 @@ export type ProjectMemberRole = z.infer<typeof projectMemberRoleSchema>;
 export const projectMemberAllocationSchema = zProjectMemberAllocationRef.extend({
   role: projectMemberRoleSchema,
 });
-export type ProjectMemberAllocation = z.infer<typeof projectMemberAllocationSchema>;
 
 export const projectMemberSchema = zProjectMemberResponse.extend({
   role: projectMemberRoleSchema,
@@ -44,7 +42,7 @@ export type ProjectMember = z.infer<typeof projectMemberSchema>;
 
 export const projectMembersResponseSchema = z.array(projectMemberSchema);
 
-export const createProjectPayloadSchema = zPostProjectsBody.pick({ originated_id: true }).extend({
+export const createProjectPayloadSchema = z.object({
   title: z.string().min(1).max(200),
   origination: z.string().min(1).max(64),
   project_pi_id: z.string().min(1),
