@@ -146,6 +146,25 @@ func TestListComputeAllocations_GovernanceRoleSeesProjectAllocations(t *testing.
 	}
 }
 
+func TestListComputeAllocations_ParticipantProjectFilter(t *testing.T) {
+	database, svc, srv := setupTestStack(t)
+	fx := seedScopedFixtures(t, database, svc)
+	if _, err := svc.CreateComputeAllocationMembership(t.Context(), &models.ComputeAllocationMembership{
+		ComputeAllocationID: fx.allocB.ID, UserID: fx.memberID,
+	}); err != nil {
+		t.Fatalf("seed second membership: %v", err)
+	}
+
+	rr := doGet(t, srv, "/compute-allocations?project_id="+fx.projectA.ID, fx.memberID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 (%s)", rr.Code, rr.Body.String())
+	}
+	body := decodeAllocationList(t, rr)
+	if len(body.Items) != 1 || body.Total != 1 || body.Items[0].ID != fx.allocA.ID {
+		t.Fatalf("expected only project A's allocation, got total=%d items=%d", body.Total, len(body.Items))
+	}
+}
+
 func TestListComputeAllocations_PrivilegedSeesFullListing(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	fx := seedScopedFixtures(t, database, svc)

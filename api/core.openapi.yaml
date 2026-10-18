@@ -2285,8 +2285,9 @@ paths:
   /compute-allocations:
     get:
       description: Callers without the allocations read privilege get only allocations
-        where they hold a membership or a governance role on the parent project; filters
-        and pagination apply to privileged callers only.
+        where they hold a membership or a governance role on the parent project; for
+        them only project_id applies, and other filters and pagination apply to privileged
+        callers only.
       parameters:
       - description: Filter by project ID
         in: query

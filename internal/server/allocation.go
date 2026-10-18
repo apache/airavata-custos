@@ -19,6 +19,7 @@ package server
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
@@ -176,7 +177,7 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 }
 
 // @Summary	List compute allocations (filtered + paginated)
-// @Description	Callers without the allocations read privilege get only allocations where they hold a membership or a governance role on the parent project; filters and pagination apply to privileged callers only.
+// @Description	Callers without the allocations read privilege get only allocations where they hold a membership or a governance role on the parent project; for them only project_id applies, and other filters and pagination apply to privileged callers only.
 // @Tags	Compute Allocations
 // @Security	BearerAuth
 // @Produce	json
@@ -198,6 +199,9 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 		if err != nil {
 			common.WriteServiceError(w, err)
 			return
+		}
+		if projectID := r.URL.Query().Get("project_id"); projectID != "" {
+			rows = slices.DeleteFunc(rows, func(a models.ComputeAllocation) bool { return a.ProjectID != projectID })
 		}
 		if rows == nil {
 			rows = []models.ComputeAllocation{}
