@@ -29,8 +29,11 @@ import (
 )
 
 // Caller is the verified identity behind an HTTP request.
+// NeedsOnboarding is set on a first sign-in -- the email matched a PENDING user but no sub is stored yet.
 type Caller struct {
-	UserID string
+	UserID          string
+	NeedsOnboarding bool
+	ConsentPending  bool
 }
 
 // Wrap the ErrNotLinked to keep the specific cause in the log while the middleware
@@ -58,6 +61,7 @@ type ctxKey string
 
 const (
 	callerKey     ctxKey = "caller"
+	claimsKey     ctxKey = "claims"
 	privilegesKey ctxKey = "privileges"
 )
 
@@ -72,6 +76,20 @@ func WithCaller(ctx context.Context, caller *Caller) context.Context {
 func CallerFromContext(ctx context.Context) *Caller {
 	if caller, ok := ctx.Value(callerKey).(*Caller); ok {
 		return caller
+	}
+	return nil
+}
+
+// WithClaims attaches the verified token claims to ctx. The middleware sets
+// it for every verified request, linked or not.
+func WithClaims(ctx context.Context, claims *Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, claims)
+}
+
+// ClaimsFromContext returns the verified token claims, or nil if none are set.
+func ClaimsFromContext(ctx context.Context) *Claims {
+	if claims, ok := ctx.Value(claimsKey).(*Claims); ok {
+		return claims
 	}
 	return nil
 }

@@ -177,8 +177,13 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /users/{id}/user-identities", models.UsersRead, s.listUserIdentitiesForUser)
 
 	// A caller reads their own profile; no privilege needed.
-	s.router.RequireAuth("GET /user/privileges", s.getCallerPrivileges)
-	s.router.RequireAuth("GET /me", s.getCallerProfile)
+	// These stay reachable before the caller has onboarded or consented.
+	s.router.RequireAuthUserAgreementPending("GET /user/privileges", s.getCallerPrivileges)
+	s.router.RequireAuthUserAgreementPending("GET /me", s.getCallerProfile)
+	s.router.RequireAuthUserAgreementPending("GET /me/agreements/pending", s.listCallerPendingAgreements)
+	s.router.RequireAuthUserAgreementPending("POST /me/agreements/{id}/accept", s.acceptCallerAgreement)
+	s.router.RequireAuthUserAgreementPending("GET /me/onboarding/username", s.checkOnboardingUsername)
+	s.router.RequireAuthUserAgreementPending("POST /me/onboarding", s.completeOnboarding)
 	s.router.RequirePrivilege("GET /privileges/catalog", models.PrivilegesGrant, s.getPrivilegeCatalog)
 	s.router.RequirePrivilege("GET /users/{id}/privileges", models.PrivilegesGrant, s.listUserPrivileges)
 	s.router.RequirePrivilege("GET /privileges/{key}/holders", models.PrivilegesGrant, s.listPrivilegeHolders)
@@ -196,6 +201,15 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /users/{id}/roles", models.RolesManage, s.listUserRoles)
 	s.router.RequirePrivilege("POST /users/{id}/roles", models.RolesManage, s.grantRoleToUser)
 	s.router.RequirePrivilege("DELETE /users/{id}/roles/{roleId}", models.RolesManage, s.revokeRoleFromUser)
+
+	s.router.RequirePrivilege("GET /agreements", models.AgreementsRead, s.listUserAgreements)
+	s.router.RequirePrivilege("POST /agreements", models.AgreementsManage, s.createUserAgreement)
+	s.router.RequirePrivilege("GET /agreements/{id}", models.AgreementsRead, s.getUserAgreement)
+	s.router.RequirePrivilege("PUT /agreements/{id}", models.AgreementsManage, s.updateUserAgreement)
+	s.router.RequirePrivilege("DELETE /agreements/{id}", models.AgreementsManage, s.deleteUserAgreement)
+	s.router.RequirePrivilege("POST /agreements/{id}/publish", models.AgreementsManage, s.publishUserAgreement)
+	s.router.RequirePrivilege("POST /agreements/{id}/remove", models.AgreementsManage, s.removeUserAgreement)
+	s.router.RequirePrivilege("GET /agreements/{id}/acceptances", models.AgreementsRead, s.listUserAgreementAcceptances)
 
 	s.router.RequirePrivilege("GET /audit/traces", models.TracesRead, s.handleListTraces)
 	s.router.RequirePrivilege("GET /audit/traces/{trace_id}", models.TracesRead, s.handleGetTrace)

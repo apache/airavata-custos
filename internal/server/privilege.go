@@ -61,6 +61,18 @@ type CallerProfileResponse struct {
 	Privileges      []models.PrivilegeKey  `json:"privileges"`
 	Roles           []CallerRoleGrant      `json:"roles"`
 	ClusterAccounts []CallerClusterAccount `json:"cluster_accounts"`
+	Consent         consentView            `json:"consent"`
+	Onboarding      onboardingView         `json:"onboarding"`
+}
+
+type consentView struct {
+	Pending []models.UserAgreement `json:"pending"`
+}
+
+type onboardingView struct {
+	Required         bool   `json:"required"`
+	Username         string `json:"username"`
+	UsernameEditable bool   `json:"username_editable"`
 }
 
 // CallerClusterAccount is one of the caller's cluster accounts with its cluster's name.
@@ -87,27 +99,44 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	// Read fresh instead of using the cached context set, so roles and the
-	// effective privileges in one response always agree with each other.
-	keys, err := s.svc.EffectivePrivileges(r.Context(), caller.UserID)
+	keys := []models.PrivilegeKey{}
+	roles := []CallerRoleGrant{}
+	if !caller.NeedsOnboarding {
+		// Read fresh instead of using the cached context set, so roles and the
+		// effective privileges in one response always agree with each other.
+		if keys, err = s.svc.EffectivePrivileges(r.Context(), caller.UserID); err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		for _, d := range details {
+			roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+		}
+	}
+	pending, err := s.svc.PendingUserAgreements(r.Context(), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	roles := make([]CallerRoleGrant, 0, len(details))
-	for _, d := range details {
-		roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+	if pending == nil {
+		pending = []models.UserAgreement{}
 	}
 	// The caller's own accounts need no cluster privilege, unlike /users/{id}/compute-cluster-users.
 	accounts, err := s.svc.ListComputeClusterUsersByUser(r.Context(), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
+	}
+	onboarding := onboardingView{
+		Required:         caller.NeedsOnboarding,
+		UsernameEditable: caller.NeedsOnboarding && user.Type == models.UserTypeClusterLocal && len(accounts) > 0,
+	}
+	if len(accounts) > 0 {
+		onboarding.Username = accounts[0].LocalUsername
 	}
 	clusterAccounts := make([]CallerClusterAccount, 0, len(accounts))
 	for _, a := range accounts {
@@ -123,6 +152,8 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 		Privileges:      keys,
 		Roles:           roles,
 		ClusterAccounts: clusterAccounts,
+		Consent:         consentView{Pending: pending},
+		Onboarding:      onboarding,
 	})
 }
 

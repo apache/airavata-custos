@@ -41,6 +41,8 @@ const (
 	PrivilegesGrant    PrivilegeKey = "core:privileges:grant"
 	RolesManage        PrivilegeKey = "core:roles:manage"
 	EventsManage       PrivilegeKey = "core:events:manage"
+	AgreementsRead     PrivilegeKey = "core:agreements:read"
+	AgreementsManage   PrivilegeKey = "core:agreements:manage"
 )
 
 var (
@@ -64,6 +66,8 @@ func init() {
 		PrivilegesGrant,
 		RolesManage,
 		EventsManage,
+		AgreementsRead,
+		AgreementsManage,
 	)
 }
 

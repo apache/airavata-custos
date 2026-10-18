@@ -26,6 +26,53 @@ core:
       issuer:   "${OIDC_ISSUER_URL}"
       audience: "${OIDC_AUDIENCE}"
     cache_ttl: "30s"
+  users:
+    # Names a user cannot choose as their cluster login.
+    reserved_usernames:
+      - root
+      - daemon
+      - bin
+      - sys
+      - adm
+      - lp
+      - sync
+      - shutdown
+      - halt
+      - mail
+      - operator
+      - games
+      - ftp
+      - nobody
+      - systemd
+      - systemd-network
+      - bus
+      - polkitd
+      - sshd
+      - chrony
+      - rpc
+      - rpcuser
+      - tss
+      - slurm
+      - slurmd
+      - slurmdbd
+      - munge
+      - sssd
+      - ldap
+      - nscd
+      - postgres
+      - mysql
+      - admin
+      - administrator
+      - ubuntu
+      - centos
+      - rocky
+      - ec2-user
+      - cloud-user
+      - custos
+      - docker
+      - podman
+      - linux
+      - pgadmin
 
 connectors:
   slurm-mapper:

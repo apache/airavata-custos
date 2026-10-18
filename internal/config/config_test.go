@@ -45,6 +45,7 @@ func TestLoadConfig(t *testing.T) {
 	assert.Equal(t, "info", cfg.Core.LogLevel)
 	assert.Equal(t, 8080, cfg.Core.API.Port)
 	assert.NotEmpty(t, cfg.Core.Database.URL)
+	assert.Contains(t, cfg.Core.Users.ReservedUsernames, "slurm")
 
 	assert.NotNil(t, cfg.Connectors)
 	assert.Greater(t, len(cfg.Connectors), 0)
