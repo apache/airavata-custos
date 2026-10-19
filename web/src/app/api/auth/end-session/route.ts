@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
   const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/";
   // Behind a reverse proxy request.nextUrl.origin is the internal address.
   const origin = serverEnv.NEXTAUTH_URL ?? request.nextUrl.origin;
-  const postLogout = new URL(callbackUrl, origin).toString();
+  const resolved = new URL(callbackUrl, origin);
+  const base = new URL("/", origin);
+  const postLogout = (resolved.origin === base.origin ? resolved : base).toString();
 
   const session = await auth();
   const idToken = session?.idToken ?? null;
