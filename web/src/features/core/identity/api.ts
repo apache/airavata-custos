@@ -15,7 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type User, type UserIdentity, type UserNameUpdateRequest, zUser } from "@/generated/core/zod.gen";
+import {
+  type CallerClusterAccount,
+  type User,
+  type UserIdentity,
+  type UserNameUpdateRequest,
+  zUser,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   meResponseSchema,
@@ -33,11 +39,21 @@ export async function getPrivileges(): Promise<Privilege[]> {
   return privilegesResponseSchema.parse(raw);
 }
 
-export type Me = { user: User; privileges: Privilege[]; roles: CallerRoleGrant[] };
+export type Me = {
+  user: User;
+  privileges: Privilege[];
+  roles: CallerRoleGrant[];
+  clusterAccounts: CallerClusterAccount[];
+};
 
 export async function getMe(): Promise<Me> {
   const parsed = meResponseSchema.parse(await apiFetch("/me"));
-  return { user: parsed.user, privileges: parsed.privileges, roles: parsed.roles };
+  return {
+    user: parsed.user,
+    privileges: parsed.privileges,
+    roles: parsed.roles,
+    clusterAccounts: parsed.cluster_accounts ?? [],
+  };
 }
 
 export async function getMyIdentities(userId: string): Promise<UserIdentity[]> {

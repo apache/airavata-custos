@@ -27,7 +27,9 @@ const roleDetails = new Map(Object.entries(fixture.roleDetails));
 let user = zUser.parse(fixture.user);
 
 export const identityHandlers = [
-  http.get("*/api/v1/me", () => HttpResponse.json({ user, privileges: effectivePrivileges(), roles: [] })),
+  http.get("*/api/v1/me", () =>
+    HttpResponse.json({ user, privileges: effectivePrivileges(), roles: [], cluster_accounts: [] }),
+  ),
   http.get<{ id: string }>("*/api/v1/users/:id/user-identities", ({ params }) =>
     HttpResponse.json(String(params.id) === fixture.user.id ? fixture.identities : []),
   ),
