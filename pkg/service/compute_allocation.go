@@ -18,7 +18,6 @@
 package service
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -96,8 +95,7 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		return nil, fmt.Errorf("%w: compute cluster %q not found", ErrInvalidInput, alloc.ComputeClusterID)
 	}
 
-	// Named after the project, remains same through renewals.
-	name := cmp.Or(posix.Normalize(proj.OriginatedID), posix.Normalize(proj.ID))
+	// Named after the project's ref, the name the portal shows, so it remains the same through renewals.
 	siblings, err := s.allocs.FindByCluster(ctx, alloc.ComputeClusterID)
 	if err != nil {
 		return nil, fmt.Errorf("lookup cluster allocations: %w", err)
@@ -108,8 +106,7 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 			taken[*a.PosixGroup] = true
 		}
 	}
-	// Normalized names never contain "-", so a "-N" suffix cannot meet another allocation's base name.
-	base := "proj-" + name
+	base := posix.ProjectRef(*proj)
 	group := base[:min(len(base), posix.MaxLoginLen)]
 	for n := 2; taken[group]; n++ {
 		suffix := "-" + strconv.Itoa(n)
