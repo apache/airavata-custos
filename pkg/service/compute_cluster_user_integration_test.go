@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -32,7 +33,6 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
-	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
@@ -424,9 +424,10 @@ func TestCreateComputeAllocation_SuffixesACollidingPosixGroup(t *testing.T) {
 		t.Fatalf("create cluster: %v", err)
 	}
 	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
-	grant := uuid.NewString()[:8]
+	// Refs that agree up to the 32-character limit collide once cut.
+	grant := "CIS" + uuid.NewString()[:8] + strings.Repeat("X", 16)
 	var groups []string
-	for _, originated := range []string{"CIS-" + grant, "cis" + grant, "CIS" + grant, ""} {
+	for _, originated := range []string{grant + "a", grant + "b", grant + "c", ""} {
 		project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive, OriginatedID: originated})
 		if err != nil {
 			t.Fatalf("create project: %v", err)
@@ -438,11 +439,11 @@ func TestCreateComputeAllocation_SuffixesACollidingPosixGroup(t *testing.T) {
 			t.Fatalf("create allocation for %q: %v", originated, err)
 		}
 		groups = append(groups, *alloc.PosixGroup)
-		if originated == "" && groups[3] != ("proj-" + posix.Normalize(project.ID))[:posix.MaxLoginLen] {
+		if originated == "" && groups[3] != "test-"+project.ID[:8] {
 			t.Fatalf("group %s, want one named after project id %s", groups[3], project.ID)
 		}
 	}
-	if want := "proj-cis" + grant; !slices.Equal(groups[:3], []string{want, want + "-2", want + "-3"}) {
+	if want := "test-" + strings.ToLower(grant); !slices.Equal(groups[:3], []string{want, want[:30] + "-2", want[:30] + "-3"}) {
 		t.Fatalf("groups %v, want %s, -2, -3", groups, want)
 	}
 }

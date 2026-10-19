@@ -18,7 +18,6 @@
 package server
 
 import (
-	"cmp"
 	"errors"
 	"net/http"
 	"strings"
@@ -27,6 +26,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 type updateProjectRequest struct {
@@ -79,19 +79,13 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 
 // projectResponseFrom builds the API response shape from a JOIN-fetched row.
 func projectResponseFrom(p *store.ProjectWithPI) ProjectResponse {
-	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail, Ref: projectRef(p.Project)}
+	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail, Ref: posix.ProjectRef(p.Project)}
 	if full := strings.TrimSpace(p.PIFirstName + " " + p.PILastName); full != "" {
 		v.ProjectPIDisplayName = full
 	} else if p.PIEmail != "" {
 		v.ProjectPIDisplayName = p.PIEmail
 	}
 	return v
-}
-
-// projectRef names a project by its source, type first: ACCESS-TG-CIS230001, or INTERNAL-3f2a9c1e for an
-// internal project, which has no originated id.
-func projectRef(p models.Project) string {
-	return strings.ToUpper(p.Origination) + "-" + cmp.Or(p.OriginatedID, p.ID[:min(8, len(p.ID))])
 }
 
 // @Summary	Update a project's status

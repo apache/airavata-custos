@@ -20,6 +20,7 @@
 package posix
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -35,6 +36,11 @@ const MaxCollisionSuffix = 999
 const MaxLoginLen = 32
 
 var ErrUnbuildableUsername = errors.New("posix: cannot build username from empty first and last name")
+
+// ProjectRef names a project by its source and id, e.g., ACCESS + TG-CIS230001 -> access-tgcis230001.
+func ProjectRef(p models.Project) string {
+	return strings.ToLower(p.Origination) + "-" + Normalize(cmp.Or(p.OriginatedID, p.ID[:min(8, len(p.ID))]))
+}
 
 // BuildBase returns the unsuffixed username. 'truncated' is set when the name
 // portion was shortened to fit the 32-char POSIX login cap.
