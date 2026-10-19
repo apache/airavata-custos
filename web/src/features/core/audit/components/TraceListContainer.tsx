@@ -187,7 +187,7 @@ export function TraceListContainer({ initialTraceId }: TraceListContainerProps =
       <div className="mt-4">
         <TraceTable
           traces={visibleTraces}
-          total={filters.status.length ? visibleTraces.length : (tracesQuery.data?.total ?? 0)}
+          total={tracesQuery.data?.total ?? 0}
           page={filters.page}
           pageSize={filters.pageSize}
           loading={tracesQuery.isLoading}

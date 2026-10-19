@@ -20,6 +20,7 @@
 import { signOut } from "next-auth/react";
 import { useCallback } from "react";
 import { ApiError } from "@/shared/api/client";
+import { useSignOut } from "./useSignOut";
 
 function readCode(body: unknown): string | null {
   if (!body || typeof body !== "object" || !("code" in body)) return null;
@@ -27,6 +28,7 @@ function readCode(body: unknown): string | null {
 }
 
 export function useAuthErrorHandler() {
+  const { signOut: endSession } = useSignOut();
   return useCallback(
     (error: unknown) => {
       if (!(error instanceof ApiError)) return;
@@ -38,13 +40,17 @@ export function useAuthErrorHandler() {
         void signOut({ callbackUrl: "/sign-in?error=session_expired" });
         return;
       }
-      if (error.status === 401 && code === "identity_not_linked") {
-        void signOut({ callbackUrl: "/sign-in?error=identity_not_linked" });
+      // Ends the IdP session too, or SSO would sign straight back into the same identity.
+      if (
+        (error.status === 401 && code === "identity_not_linked") ||
+        (error.status === 403 && code === "user_disabled")
+      ) {
+        endSession({ callbackUrl: `/sign-in?error=${code}` });
         return;
       }
       // 403 insufficient_privilege and other codes fall through to the
       // query's local ErrorState — no global takeover.
     },
-    [],
+    [endSession],
   );
 }

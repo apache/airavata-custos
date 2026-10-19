@@ -83,7 +83,8 @@ export function FailedQueueContainer() {
         // continue
       }
     }
-    toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
+    if (queued > 0) toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
+    if (queued < ids.length) toast.error(`${ids.length - queued} of ${ids.length} retries failed`);
     setSelected(new Set());
     failedQuery.refetch();
   }

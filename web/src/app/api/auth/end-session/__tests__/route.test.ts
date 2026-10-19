@@ -75,6 +75,18 @@ describe("end-session route", () => {
     expect(res.headers.get("location")).toBe("https://portal.example.org/");
   });
 
+  it("falls back to the deployment root for off-site callbacks", async () => {
+    for (const callbackUrl of ["//evil.example", "https://evil.example/x"]) {
+      fetchMock.mockResolvedValueOnce(discoveryResponse({}));
+      const res = await GET(
+        new NextRequest(
+          `http://localhost:3000/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+        ),
+      );
+      expect(res.headers.get("location")).toBe("https://portal.example.org/");
+    }
+  });
+
   it("redirects locally when discovery fails", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network"));
     const res = await GET(request());

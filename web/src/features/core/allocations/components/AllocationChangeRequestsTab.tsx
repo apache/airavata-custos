@@ -107,7 +107,12 @@ export function AllocationChangeRequestsTab({
       align: "right",
       interactive: true,
       cell: (row) => (
-        <Button variant="ghost" size="sm" render={<Link href={`/change-requests/${row.id}`} />}>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={`/change-requests/${row.id}`} />}
+        >
           View
         </Button>
       ),

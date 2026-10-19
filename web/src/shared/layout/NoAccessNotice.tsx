@@ -17,9 +17,9 @@
 
 "use client";
 
-import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
+import { useSignOut } from "@/shared/auth/useSignOut";
 
 const HEADING = "No portal access";
 const BODY = "No account was found for this sign-in. Ask an administrator for access.";
@@ -27,6 +27,7 @@ const BODY = "No account was found for this sign-in. Ask an administrator for ac
 // Shown when the sign-in matches no Custos user. The message also stays on
 // the page, since a toast alone disappears.
 export function NoAccessNotice() {
+  const { signOut } = useSignOut();
   React.useEffect(() => {
     toast.error(HEADING, { description: BODY });
   }, []);
@@ -34,9 +35,13 @@ export function NoAccessNotice() {
     <div className="flex flex-col gap-2">
       <h1 className="text-2xl font-bold tracking-tight">{HEADING}</h1>
       <p className="text-sm text-muted-foreground">{BODY}</p>
-      <Link href="/sign-in" className="mt-2 text-sm font-medium text-brand">
+      <button
+        type="button"
+        onClick={() => signOut({ callbackUrl: "/sign-in" })}
+        className="mt-2 text-left text-sm font-medium text-brand"
+      >
         Sign in as a different user
-      </Link>
+      </button>
     </div>
   );
 }

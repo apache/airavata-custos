@@ -161,6 +161,9 @@ func (s *Service) UpdateComputeAllocationChangeRequest(ctx context.Context, req 
 	if req.ChangeStatus == "" {
 		req.ChangeStatus = existing.ChangeStatus
 	}
+	if req.ApproverID == "" {
+		req.ApproverID = existing.ApproverID
+	}
 	if req.Timestamp.IsZero() {
 		req.Timestamp = existing.Timestamp
 	}

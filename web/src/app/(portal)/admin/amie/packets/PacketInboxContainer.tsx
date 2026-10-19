@@ -126,7 +126,8 @@ export function PacketInboxContainer({ initialPacketId }: { initialPacketId?: st
         // continue — surface aggregate result below
       }
     }
-    toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
+    if (queued > 0) toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
+    if (queued < ids.length) toast.error(`${ids.length - queued} of ${ids.length} retries failed`);
     setSelected(new Set());
   }
 
@@ -150,7 +151,10 @@ export function PacketInboxContainer({ initialPacketId }: { initialPacketId?: st
         // continue
       }
     }
-    toast.success(`Marked ${resolved} ${pluralize("packet", resolved)} processed`);
+    if (resolved > 0)
+      toast.success(`Marked ${resolved} ${pluralize("packet", resolved)} processed`);
+    if (resolved < ids.length)
+      toast.error(`${ids.length - resolved} of ${ids.length} packets failed`);
     setSelected(new Set());
     setMarkProcessedOpen(false);
     setMarkProcessedReason("");

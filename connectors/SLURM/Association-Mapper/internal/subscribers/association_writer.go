@@ -27,6 +27,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // tresFor builds a SLURM TRES from a stored resource type and count. A GRES
@@ -83,6 +84,23 @@ func sameTRES(want, got []client.TRES) bool {
 	return true
 }
 
+// noAllocation is every user's default account. It runs no jobs, so a job names the allocation it charges,
+// and no allocation is anyone's default, which SLURM would refuse to remove.
+const noAllocation = "none"
+
+// writeAssociation upserts a user's association after making noAllocation their default.
+func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error {
+	noJobs := int64(0)
+	account := client.Account{Name: noAllocation, Description: "Default account; runs no jobs", GrpJobs: &noJobs}
+	if err := a.slurmClient.CreateAccount(account, assoc.Cluster); err != nil {
+		return fmt.Errorf("create %s account: %w", noAllocation, err)
+	}
+	if err := a.slurmClient.SetDefaultAccount(assoc.Cluster, assoc.User, noAllocation); err != nil {
+		return fmt.Errorf("set default account: %w", err)
+	}
+	return a.slurmClient.UpsertAssociation(assoc)
+}
+
 // The event handlers use this. An event means something changed, so the
 // record is written without checking the cluster first.
 func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
@@ -103,7 +121,7 @@ func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Contex
 	if got, ok := existing[keyOf(*association)]; ok && sameLimits(*association, got) {
 		return nil
 	}
-	if err := a.slurmClient.UpsertAssociation(*association); err != nil {
+	if err := a.writeAssociation(*association); err != nil {
 		return fmt.Errorf("upsert association: %w", err)
 	}
 	slog.InfoContext(ctx, "Upserted association", "association", *association)
@@ -126,6 +144,9 @@ func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Cont
 		return nil, fmt.Errorf("get compute cluster: %w", err)
 	}
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil, errNotProvisioned
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get compute cluster user: %w", err)
 	}
