@@ -137,7 +137,7 @@ function OverviewTab({ packet }: { packet: Packet }) {
       {packet.status === "WAITING_APPROVAL" ? (
         <div className="rounded-md bg-[color:var(--tone-warn-bg)] p-3 text-sm text-[color:var(--tone-warn-fg)]">
           The reply to ACCESS is held until an admin reviews the cluster account.{" "}
-          <Link href="/admin/users/management?status=PENDING" className="font-medium underline">
+          <Link href="/admin/users/account-approvals" className="font-medium underline">
             Review cluster accounts
           </Link>
         </div>

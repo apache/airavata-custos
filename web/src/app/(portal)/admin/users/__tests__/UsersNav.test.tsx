@@ -44,18 +44,18 @@ describe("UsersNav", () => {
   });
 
   // Make sure cluster readers see how many accounts wait for approval.
-  it("counts pending cluster accounts on User Management for cluster readers", () => {
+  it("counts pending cluster accounts on Account Approvals for cluster readers", () => {
     currentPrivileges = ["core:users:read", "core:clusters:read"];
     pendingMocks.total = 3;
     render(<UsersNav />);
-    expect(screen.getByRole("link", { name: /User Management/ })).toHaveTextContent("3");
+    expect(screen.getByRole("link", { name: /Account Approvals/ })).toHaveTextContent("3");
   });
 
-  it("shows no pending count without clusters:read", () => {
+  it("hides Account Approvals without clusters:read", () => {
     currentPrivileges = ["core:users:read"];
     pendingMocks.total = 3;
     render(<UsersNav />);
-    expect(screen.getByRole("link", { name: "User Management" })).not.toHaveTextContent("3");
+    expect(screen.queryByRole("link", { name: /Account Approvals/ })).toBeNull();
   });
 
   it("hides Role Management without roles:manage", () => {

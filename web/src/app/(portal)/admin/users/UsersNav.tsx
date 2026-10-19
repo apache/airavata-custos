@@ -24,7 +24,13 @@ import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 
 const TABS = [
-  { href: "/admin/users/management", label: "User Management", badge: "pending-cluster-accounts" },
+  { href: "/admin/users/management", label: "User Management" },
+  {
+    href: "/admin/users/account-approvals",
+    label: "Account Approvals",
+    ability: { action: "read", subject: "Cluster" } as const,
+    badge: "pending-cluster-accounts",
+  },
   {
     href: "/admin/users/roles",
     label: "Role Management",
