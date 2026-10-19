@@ -32,6 +32,7 @@ const (
 	RequestReceived = "request-received"
 	AccountReady    = "account-ready"
 	RequestDenied   = "request-denied"
+	RequestApproved = "request-approved"
 )
 
 //go:embed templates/*.tmpl
@@ -91,7 +92,7 @@ func LoadTemplates(dir string) error {
 		return err
 	}
 	loaded := map[string]emailTemplate{}
-	for _, name := range []string{RequestReceived, AccountReady, RequestDenied} {
+	for _, name := range []string{RequestReceived, AccountReady, RequestDenied, RequestApproved} {
 		text, err := read(name + ".txt.tmpl")
 		if err != nil {
 			return err

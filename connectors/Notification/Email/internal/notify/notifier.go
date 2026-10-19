@@ -49,6 +49,7 @@ func NewNotifier(core service.CoreService, sender Sender, site Site) *Notifier {
 func (n *Notifier) RegisterSubscribers(bus *events.Bus, subscriber string) {
 	n.source = subscriber
 	bus.SubscribeComputeClusterUserCreated(subscriber, n.requestReceived)
+	bus.SubscribeComputeClusterUserApproved(subscriber, n.requestApproved)
 	bus.SubscribeComputeClusterUserProvisioned(subscriber, n.accountReady)
 	bus.SubscribeComputeClusterUserDenied(subscriber, n.requestDenied)
 }
@@ -59,6 +60,19 @@ func (n *Notifier) requestReceived(ctx context.Context, cu models.ComputeCluster
 		return nil
 	}
 	return n.send(ctx, RequestReceived, cu)
+}
+
+// requestApproved emails that an admin approved the account and the user must sign in to finish setup.
+// A user who already signed in gets the account ready email instead.
+func (n *Notifier) requestApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+	oidc, err := n.core.GetOIDCIdentity(ctx, cu.UserID)
+	if err != nil {
+		return fmt.Errorf("look up sign-in identity for user %s: %w", cu.UserID, err)
+	}
+	if oidc != nil {
+		return nil
+	}
+	return n.send(ctx, RequestApproved, cu)
 }
 
 // accountReady emails that Custos provisioned a cluster account for a user.

@@ -48,7 +48,7 @@ func TestLiveSend(t *testing.T) {
 		ProjectNumber: "CIS250123",
 		Reason:        "We could not confirm an active allocation for this project.",
 	}
-	for _, name := range []string{RequestReceived, AccountReady, RequestDenied} {
+	for _, name := range []string{RequestReceived, AccountReady, RequestDenied, RequestApproved} {
 		msg, err := Render(name, d)
 		if err != nil {
 			t.Fatal(err)
