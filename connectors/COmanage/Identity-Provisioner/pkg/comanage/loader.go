@@ -21,6 +21,7 @@ package comanage
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
@@ -33,6 +34,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -50,6 +52,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		cfg, ok = loadConfigFromEnv()
 		if !ok {
 			slog.Info("comanage provisioner: required config not set; skipping")
+			health.Record(Type, "config", errors.New("required config not set"))
 			return nil
 		}
 	}

@@ -86,6 +86,11 @@ export async function deleteAllocation(id: string): Promise<void> {
   await apiFetch(`/compute-allocations/${id}`, { method: "DELETE" });
 }
 
+export async function setAllocationResources(id: string, resourceIds: string[]): Promise<void> {
+  const body = { resource_ids: resourceIds };
+  await apiFetch(`/compute-allocations/${id}/resources`, { method: "PUT", body });
+}
+
 export async function listAllocationDiffs(id: string): Promise<ComputeAllocationDiff[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/diffs`);
   return zGetComputeAllocationsByIdDiffsResponse.parse(raw ?? []);

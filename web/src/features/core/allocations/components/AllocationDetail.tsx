@@ -82,7 +82,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
             label: "Overview",
             content: (
               <div className="space-y-6">
-                <AllocationOverviewTab allocation={allocation} />
+                <AllocationOverviewTab allocation={allocation} canEdit={can.allocationsWrite} />
                 <AllocationMembersTab
                   allocation={allocation}
                   canEditAccess={can.allocationsWrite}

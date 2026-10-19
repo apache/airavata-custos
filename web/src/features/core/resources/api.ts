@@ -15,15 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { PostComputeAllocationResourceRatesData } from "@/generated/core/types.gen";
+import type {
+  PostComputeAllocationResourceRatesData,
+  PostComputeAllocationResourcesData,
+} from "@/generated/core/types.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
+  type ComputeAllocationResource,
   type ComputeAllocationResourceRate,
   type ComputeAllocationResourceSummary,
   zGetComputeAllocationResourcesByIdRatesEffectiveResponse,
   zGetComputeAllocationResourcesByIdRatesResponse,
   zGetComputeAllocationResourcesSummaryResponse,
   zPostComputeAllocationResourceRatesResponse,
+  zPostComputeAllocationResourcesResponse,
+  zPutComputeAllocationResourcesByIdResponse,
 } from "@/generated/core/zod.gen";
 
 export async function listResourceSummaries(): Promise<ComputeAllocationResourceSummary[]> {
@@ -60,4 +66,30 @@ export async function createResourceRate(
     body: payload,
   });
   return zPostComputeAllocationResourceRatesResponse.parse(raw);
+}
+
+export type CreateResourcePayload = Required<
+  Pick<
+    PostComputeAllocationResourcesData["body"],
+    "name" | "resource_type" | "compute_cluster_id"
+  >
+>;
+
+export async function createResource(
+  payload: CreateResourcePayload,
+): Promise<ComputeAllocationResource> {
+  const raw = await apiFetch("/compute-allocation-resources", { method: "POST", body: payload });
+  return zPostComputeAllocationResourcesResponse.parse(raw);
+}
+
+export async function updateResource(
+  id: string,
+  payload: CreateResourcePayload,
+): Promise<ComputeAllocationResource> {
+  const raw = await apiFetch(`/compute-allocation-resources/${id}`, { method: "PUT", body: payload });
+  return zPutComputeAllocationResourcesByIdResponse.parse(raw);
+}
+
+export async function deleteResource(id: string): Promise<void> {
+  await apiFetch(`/compute-allocation-resources/${id}`, { method: "DELETE" });
 }

@@ -217,6 +217,11 @@ func (b *Bus) ListDeliveries(ctx context.Context, status models.EventDeliverySta
 	return b.store.ListDeliveries(ctx, status, limit)
 }
 
+// CountDeliveriesBySubscriber returns how many deliveries each subscriber has in status.
+func (b *Bus) CountDeliveriesBySubscriber(ctx context.Context, status models.EventDeliveryStatus) (map[string]int, error) {
+	return b.store.CountDeliveriesBySubscriber(ctx, status)
+}
+
 // GetDelivery returns one event delivery with its audit history.
 func (b *Bus) GetDelivery(ctx context.Context, id string) (*models.DeliveryHistory, error) {
 	row, err := b.store.FindDeliveryByID(ctx, id)

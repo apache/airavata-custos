@@ -829,6 +829,12 @@ def create_scenario(site):
     return jsonify({"message": "Test scenario initiated", "result": None})
 
 
+# The connector's health check reads the base URL.
+@app.route("/", methods=["GET"])
+def root():
+    return jsonify({"status": "ok"})
+
+
 @app.route("/stats", methods=["GET"])
 def get_stats():
     return jsonify({"pending": len(pending_packets), "replied": len(replied_packets), "stats": stats})

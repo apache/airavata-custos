@@ -465,6 +465,8 @@ type EventDeliveryStore interface {
 	FindDueDeliveries(ctx context.Context, now time.Time, subscribers []string, limit int) ([]models.PendingDelivery, error)
 	// ListDeliveries returns deliveries newest first, each with its event. An empty status means any status.
 	ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error)
+	// CountDeliveriesBySubscriber returns how many deliveries each subscriber has in status.
+	CountDeliveriesBySubscriber(ctx context.Context, status models.EventDeliveryStatus) (map[string]int, error)
 	// MarkDeliverySucceeded records a successful delivery within the provided transaction.
 	MarkDeliverySucceeded(ctx context.Context, tx *sql.Tx, id string, attempts int, finishedAt time.Time) error
 	// MarkDeliveryRetry records a failed attempt and when to try again, within the provided transaction.

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -102,6 +103,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 	// One read per cluster. On failure fall back to writing every
 	// association, which costs extra calls but still converges.
 	existing, err := a.existingAssociations(ctx, cluster.Name)
+	health.Record(a.name, cluster.ID, err)
 	if err != nil {
 		slog.WarnContext(ctx, "Association reconciler: could not read current associations, writing unconditionally",
 			"cluster", cluster.Name, "error", err)

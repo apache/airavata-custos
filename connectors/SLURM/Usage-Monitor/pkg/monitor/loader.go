@@ -19,6 +19,7 @@ package monitor
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"sync"
@@ -27,6 +28,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/internal/smonitor"
 	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -94,6 +96,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	if apiUrl == "" || user == "" || token == "" || apiVersion == "" {
 		slog.Warn("SLURM API credentials not fully provided, skipping SLURM Usage Monitor connector")
 		slog.Warn("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token_set", token != "", "apiVersion", apiVersion)
+		health.Record(Type, "config", errors.New("SLURM API credentials not fully provided"))
 		return nil
 	}
 

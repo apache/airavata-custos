@@ -36,6 +36,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { SuggestInput } from "@/shared/ui/SuggestInput";
 import { useCreateAllocation } from "../queries";
+import { ResourcePicker } from "./ResourcePicker";
 
 export type CreateAllocationDialogProps = {
   onOpenChange: (open: boolean) => void;
@@ -62,6 +63,7 @@ export function CreateAllocationDialog({
   const [name, setName] = React.useState("");
   const [clusterId, setClusterId] = React.useState("");
   const [sus, setSus] = React.useState("");
+  const [resourceIds, setResourceIds] = React.useState<string[]>([]);
   const [start, setStart] = React.useState(() => isoDate(new Date()));
   const [end, setEnd] = React.useState(() =>
     isoDate(new Date(Date.now() + 365 * 24 * 3600 * 1000)),
@@ -95,6 +97,7 @@ export function CreateAllocationDialog({
                 initial_su_amount: Number(sus),
                 start_time: startOfDay(start),
                 end_time: startOfDay(end),
+                resourceIds,
               },
               {
                 onSuccess: (created) => {
@@ -146,7 +149,10 @@ export function CreateAllocationDialog({
               <select
                 id="new-allocation-cluster"
                 value={cluster}
-                onChange={(e) => setClusterId(e.target.value)}
+                onChange={(e) => {
+                  setClusterId(e.target.value);
+                  setResourceIds([]);
+                }}
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm"
               >
                 {(clusters.data ?? []).map((c) => (
@@ -188,6 +194,10 @@ export function CreateAllocationDialog({
                 required
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Resources</Label>
+            <ResourcePicker clusterId={cluster} value={resourceIds} onChange={setResourceIds} />
           </div>
           {create.error ? (
             <p className="text-destructive text-sm">{create.error.message}</p>

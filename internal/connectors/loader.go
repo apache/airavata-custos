@@ -33,12 +33,14 @@ import (
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
 
 func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router) error {
 	slog.Info("loading connectors from config")
+	router.RequirePrivilege("GET /connectors", models.ClustersRead, listStatus(cfg.Connectors, eventBus))
 
 	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *identity.Router, *config.ConnectorConfig) error{
 		smapper.Type:     smapper.LoadConnector,

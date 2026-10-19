@@ -80,21 +80,21 @@ beforeEach(() => {
 
 describe("<AllocationOverviewTab />", () => {
   it("renders attached resource names and types", () => {
-    render(<AllocationOverviewTab allocation={allocation} />);
+    render(<AllocationOverviewTab allocation={allocation} canEdit />);
     expect(screen.getByText("ClusterA GPU")).toBeInTheDocument();
     expect(screen.getByText("ClusterB GPU A100")).toBeInTheDocument();
   });
 
   it("renders the effective rate, omitting it when the lookup 404s", () => {
-    render(<AllocationOverviewTab allocation={allocation} />);
+    render(<AllocationOverviewTab allocation={allocation} canEdit />);
     expect(screen.getByText(/0\.5 SU\/unit/)).toBeInTheDocument();
     // res-b-gpu has no effective rate, so only one rate line shows.
     expect(screen.getAllByText(/SU\/unit/)).toHaveLength(1);
   });
 
-  it("shows the empty state when nothing is attached", () => {
+  it("offers to add a resource when nothing is attached", () => {
     attached = [];
-    render(<AllocationOverviewTab allocation={allocation} />);
-    expect(screen.getByText(/no resources attached/i)).toBeInTheDocument();
+    render(<AllocationOverviewTab allocation={allocation} canEdit />);
+    expect(screen.getByRole("button", { name: "Add resource" })).toBeEnabled();
   });
 });

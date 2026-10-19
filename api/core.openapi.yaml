@@ -448,6 +448,39 @@ definitions:
       user_id:
         type: string
     type: object
+  ConnectorCheck:
+    properties:
+      checked_at:
+        type: string
+      error:
+        type: string
+      ok:
+        type: boolean
+      target:
+        type: string
+    type: object
+  ConnectorListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ConnectorStatus'
+        type: array
+    type: object
+  ConnectorStatus:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/ConnectorCheck'
+        type: array
+      enabled:
+        type: boolean
+      failed_deliveries:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    type: object
   DeliveryCounts:
     properties:
       attempts:
@@ -999,6 +1032,13 @@ definitions:
     properties:
       privilege:
         $ref: '#/definitions/PrivilegeKey'
+    type: object
+  setAllocationResourcesRequest:
+    properties:
+      resource_ids:
+        items:
+          type: string
+        type: array
     type: object
   updateAllocationResourceMappingRequest:
     properties:
@@ -2025,6 +2065,29 @@ paths:
       tags:
       - Compute Allocation Resources
   /compute-allocation-resources/{id}:
+    delete:
+      description: Removes the resource with its rates and its grants to allocations.
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a compute allocation resource
+      tags:
+      - Compute Allocation Resources
     get:
       parameters:
       - description: Resource ID
@@ -2049,6 +2112,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a compute allocation resource
+      tags:
+      - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeAllocationResource'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationResource'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a compute allocation resource
       tags:
       - Compute Allocation Resources
   /compute-allocation-resources/{id}/allocations:
@@ -2620,6 +2724,45 @@ paths:
       summary: Attach a resource to a compute allocation
       tags:
       - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      description: Replaces the allocation's resources with the given ones. Usage
+        on any of them is charged to the allocation's SUs.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/setAllocationResourcesRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set the resources a compute allocation grants
+      tags:
+      - Compute Allocation Resources
   /compute-allocations/{id}/resources/{resourceId}:
     delete:
       parameters:
@@ -3183,6 +3326,22 @@ paths:
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
+  /connectors:
+    get:
+      description: Checks are the cached outcome of each connector's own work; nothing
+        is probed on request.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ConnectorListResponse'
+      security:
+      - BearerAuth: []
+      summary: List configured connectors with their last known health
+      tags:
+      - Connectors
   /events/deliveries:
     get:
       description: Newest first, every status unless one is given. A pending delivery

@@ -155,6 +155,44 @@ func (s *Service) ListResourcesForAllocation(ctx context.Context, allocationID s
 	return resources, nil
 }
 
+// SetAllocationResources makes resourceIDs the allocation's only resources,
+// attaching and detaching the difference. Usage on any of them is charged to
+// the allocation's SUs at the resource's rate.
+func (s *Service) SetAllocationResources(ctx context.Context, allocationID string, resourceIDs []string) error {
+	alloc, err := s.GetComputeAllocation(ctx, allocationID)
+	if err != nil {
+		return err
+	}
+	want := make(map[string]bool, len(resourceIDs))
+	for _, id := range resourceIDs {
+		res, err := s.GetComputeAllocationResource(ctx, id)
+		if err != nil {
+			return err
+		}
+		if res.ComputeClusterID != alloc.ComputeClusterID {
+			return fmt.Errorf("%w: resource %q is not on the allocation's cluster", ErrInvalidInput, id)
+		}
+		want[id] = true
+	}
+	current, err := s.ListResourcesForAllocation(ctx, allocationID)
+	if err != nil {
+		return err
+	}
+	for _, res := range current {
+		if want[res.ID] {
+			delete(want, res.ID)
+		} else if err := s.DetachResourceFromAllocation(ctx, allocationID, res.ID); err != nil {
+			return err
+		}
+	}
+	for id := range want {
+		if _, err := s.AttachResourceToAllocation(ctx, allocationID, id, 0, 0); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ListAllocationsForResource returns every compute allocation that has the
 // given compute allocation resource attached.
 func (s *Service) ListAllocationsForResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {

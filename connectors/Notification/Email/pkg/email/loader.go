@@ -21,6 +21,7 @@ package email
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/Notification/Email/internal/notify"
 	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -65,6 +67,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	} {
 		if v == "" {
 			slog.Info("email notifications: required setting not set; skipping", "setting", key)
+			health.Record(Type, "config", errors.New("required setting "+key+" not set"))
 			return nil
 		}
 	}

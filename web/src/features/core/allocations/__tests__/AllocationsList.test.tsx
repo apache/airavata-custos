@@ -20,7 +20,6 @@ import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import clusters from "@/features/core/clusters/__fixtures__/clusters.json";
 import projects from "@/features/core/projects/__fixtures__/projects.json";
 import { AllocationsList } from "../components/AllocationsList";
 import type { ComputeAllocation } from "@/generated/core/zod.gen";
@@ -49,7 +48,7 @@ function renderList(overrides: Partial<React.ComponentProps<typeof AllocationsLi
     onSearchChange: vi.fn(),
     statusFilter: "all" as const,
     onStatusFilterChange: vi.fn(),
-    showCluster: true,
+    canEditResources: false,
     ...overrides,
   };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -67,11 +66,19 @@ const server = setupServer(
   http.get<{ id: string }>("*/api/v1/projects/:id", ({ params }) =>
     HttpResponse.json(projects.find((p) => p.id === params.id)),
   ),
-  http.get<{ id: string }>("*/api/v1/compute-clusters/:id", ({ params }) =>
-    HttpResponse.json(clusters.find((c) => c.id === params.id)),
-  ),
   http.get("*/api/v1/compute-allocations/:id/usages/total", () =>
     HttpResponse.json({ compute_allocation_id: "alloc-001", total_su_amount: 50000 }),
+  ),
+  http.get("*/api/v1/compute-allocations/:id/resources", () =>
+    HttpResponse.json([
+      {
+        id: "res-a",
+        name: "gpu-a100",
+        resource_type: "gres/gpu",
+        resource_amount: 8,
+        compute_cluster_id: "cluster-a",
+      },
+    ]),
   ),
 );
 
@@ -86,13 +93,13 @@ describe("<AllocationsList />", () => {
     expect(link).toHaveAttribute("href", `/allocations/${allocation.id}`);
   });
 
-  it("groups rows under a project header with the cluster and remaining SUs", async () => {
+  it("groups rows under a project header with the allocation's resources and remaining SUs", async () => {
     renderList();
     expect(await screen.findByRole("link", { name: /Go to project/ })).toHaveAttribute(
       "href",
       `/projects/${allocation.project_id}`,
     );
-    expect(await screen.findByText("ClusterA")).toBeInTheDocument();
+    expect(await screen.findByText("gpu-a100")).toBeInTheDocument();
     expect(await screen.findByText("200,000")).toBeInTheDocument();
   });
 
