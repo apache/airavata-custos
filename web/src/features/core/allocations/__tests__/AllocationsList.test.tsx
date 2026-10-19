@@ -25,6 +25,8 @@ import projects from "@/features/core/projects/__fixtures__/projects.json";
 import { AllocationsList } from "../components/AllocationsList";
 import type { ComputeAllocation } from "@/generated/core/zod.gen";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 const allocation: ComputeAllocation = {
   id: "alloc-001",
   project_id: "project-001",
@@ -68,6 +70,9 @@ const server = setupServer(
   http.get<{ id: string }>("*/api/v1/compute-clusters/:id", ({ params }) =>
     HttpResponse.json(clusters.find((c) => c.id === params.id)),
   ),
+  http.get("*/api/v1/compute-allocations/:id/usages/total", () =>
+    HttpResponse.json({ compute_allocation_id: "alloc-001", total_su_amount: 50000 }),
+  ),
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
@@ -81,18 +86,19 @@ describe("<AllocationsList />", () => {
     expect(link).toHaveAttribute("href", `/allocations/${allocation.id}`);
   });
 
-  it("groups rows under a project header and names the cluster", async () => {
+  it("groups rows under a project header with the cluster and remaining SUs", async () => {
     renderList();
-    expect(await screen.findByRole("link", { name: "Genomic Sequencing Pipeline" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: /Go to project/ })).toHaveAttribute(
       "href",
       `/projects/${allocation.project_id}`,
     );
     expect(await screen.findByText("ClusterA")).toBeInTheDocument();
+    expect(await screen.findByText("200,000")).toBeInTheDocument();
   });
 
   it("shows the empty state when no rows match the filters", () => {
     renderList({ rows: [] });
-    expect(screen.getByRole("heading", { name: /no allocations yet/i })).toBeInTheDocument();
+    expect(screen.getByText("No allocations match the current filters.")).toBeInTheDocument();
   });
 
   it("filters by status", () => {

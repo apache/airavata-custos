@@ -18,7 +18,6 @@
 "use client";
 
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
@@ -53,10 +52,6 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
   const rows = [...(query.data ?? [])].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
-
-  if (rows.length === 0) {
-    return <EmptyState heading="No history recorded for this allocation." />;
-  }
 
   const columns: Array<DataTableColumn<ComputeAllocationDiff>> = [
     {
@@ -105,5 +100,12 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     },
   ];
 
-  return <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />;
+  return (
+    <DataTable
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => row.id}
+      empty="No history recorded for this allocation."
+    />
+  );
 }

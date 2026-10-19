@@ -23,13 +23,13 @@ import { type DefaultValues, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
+import { TableEmptyRow } from "@/shared/ui/table";
 import { useCreateResourceRate, useEffectiveRate, useResourceRates } from "../queries";
 import { classifyRate, createRateSchema, type CreateRateForm, type RateStatus } from "../schemas";
 
@@ -155,7 +155,7 @@ export function ResourcesRatesDrawer({
         </div>
       ) : null}
 
-      {canManage && history.length > 0 ? (
+      {canManage ? (
         <div className="mb-4 flex items-start justify-between gap-4">
           <p className="text-xs text-muted-foreground">
             Rates can&apos;t be edited. Adding a rate supersedes the current one from its effective
@@ -238,17 +238,6 @@ export function ResourcesRatesDrawer({
         <CardSkeleton />
       ) : rates.error ? (
         <ErrorState message={rates.error.message} onRetry={() => rates.refetch()} />
-      ) : history.length === 0 ? (
-        <EmptyState
-          heading="No rates recorded for this resource."
-          cta={
-            canManage && !formOpen ? (
-              <Button variant="outline" size="sm" onClick={openForm}>
-                + Add rate
-              </Button>
-            ) : undefined
-          }
-        />
       ) : (
         <table className="w-full text-left text-sm">
           <thead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -260,6 +249,9 @@ export function ResourcesRatesDrawer({
             </tr>
           </thead>
           <tbody>
+            {history.length === 0 ? (
+              <TableEmptyRow colSpan={4}>No rates recorded for this resource.</TableEmptyRow>
+            ) : null}
             {history.map((rate) => {
               const status = classifyRate(rate, history);
               return (

@@ -27,7 +27,7 @@ export type DeliveryTableProps = {
   rows: Delivery[];
   runningSubscribers?: Set<string> | undefined;
   canRetry: boolean;
-  empty: React.ReactNode;
+  empty: string;
   onOpen: (delivery: Delivery) => void;
   onRetry: (delivery: Delivery) => void;
 };

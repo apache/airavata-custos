@@ -17,46 +17,63 @@
 
 "use client";
 
+import { Server } from "lucide-react";
+import Link from "next/link";
+import type * as React from "react";
+import { useAllocationsByProject } from "@/features/core/allocations/queries";
+import { ClusterName } from "@/features/core/clusters/components/ClusterName";
 import type { ProjectResponse } from "@/generated/core/zod.gen";
+import { usePermissions } from "@/shared/casl/permissions";
+import { StatusIcon } from "@/shared/ui/StatusIcon";
+import { ProjectPI } from "./ProjectPI";
 
 export type ProjectOverviewTabProps = {
   project: ProjectResponse;
+  addAllocation: React.ReactNode;
 };
 
-export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
+export function ProjectOverviewTab({ project, addAllocation }: ProjectOverviewTabProps) {
+  const can = usePermissions();
+  const allocations = useAllocationsByProject(project.id).data?.items ?? [];
   return (
     <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
-      <dt className="text-muted-foreground">Project ID</dt>
-      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.id}</dd>
-
-      <dt className="text-muted-foreground">Originated ID</dt>
-      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.originated_id || "—"}</dd>
-
-      <dt className="text-muted-foreground">Title</dt>
-      <dd className="text-foreground before:content-[':_']">{project.title}</dd>
-
-      <dt className="text-muted-foreground">Origination</dt>
-      <dd className="text-foreground before:content-[':_']">{project.origination}</dd>
+      <dt className="text-muted-foreground">Ref</dt>
+      <dd className="text-foreground">{project.ref}</dd>
 
       <dt className="text-muted-foreground">PI</dt>
-      <dd className="text-foreground before:content-[':_']">
-        {project.project_pi_display_name ? (
-          <>
-            {project.project_pi_display_name}
-            {project.project_pi_email ? (
-              <span className="ml-2 text-xs text-muted-foreground">({project.project_pi_email})</span>
-            ) : null}
-          </>
-        ) : (
-          <span className="font-mono">{project.project_pi_id}</span>
-        )}
+      <dd className="text-foreground">
+        <ProjectPI project={project} />
       </dd>
 
-      <dt className="text-muted-foreground">Status</dt>
-      <dd className="text-foreground before:content-[':_']">{project.status}</dd>
-
-      <dt className="text-muted-foreground">Created</dt>
-      <dd className="text-foreground before:content-[':_']">{project.created_time}</dd>
+      <dt className="text-muted-foreground">Allocations</dt>
+      <dd className="text-foreground">
+        <ul className="space-y-0.5">
+          {allocations.map((a) => (
+            <li key={a.id} className="flex items-center gap-2">
+              <StatusIcon icon={Server} active={a.status === "ACTIVE"} label={a.status.toLowerCase()} />
+              <Link href={`/allocations/${a.id}`} className="hover:underline">
+                {a.name}
+              </Link>
+              <span className="text-xs text-muted-foreground">
+                {can.clustersRead ? (
+                  <>
+                    <ClusterName id={a.compute_cluster_id} />
+                    {" · "}
+                  </>
+                ) : null}
+                {a.initial_su_amount.toLocaleString()} SUs · ends{" "}
+                {new Date(a.end_time).toLocaleDateString(undefined, { dateStyle: "medium" })}
+              </span>
+            </li>
+          ))}
+          <li className="flex gap-2">
+            <span aria-hidden className="w-4 text-center">
+              +
+            </span>
+            {addAllocation}
+          </li>
+        </ul>
+      </dd>
     </dl>
   );
 }

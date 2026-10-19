@@ -20,9 +20,10 @@
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
+import { requires } from "@/shared/casl/permissions";
 import { Button } from "@/shared/ui/button";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -178,7 +179,7 @@ export function ChangeRequestApproverQueue({
       interactive: true,
       cell: (row) => {
         const pending = pendingIds.has(row.id);
-        if (row.change_status !== "PENDING" || !canApprove) {
+        if (row.change_status !== "PENDING") {
           return (
             <Button variant="ghost" size="sm" render={<Link href={`/change-requests/${row.id}`} />}>
               View
@@ -187,23 +188,27 @@ export function ChangeRequestApproverQueue({
         }
         return (
           <div className="flex justify-end gap-1.5">
-            <Button
+            <GuardedButton
               variant="outline"
               size="sm"
+              allowed={canApprove}
+              reason={requires("allocationsWrite")}
               disabled={pending}
               onClick={() => handleReject(row)}
               aria-label={`Reject ${row.id}`}
             >
               Reject
-            </Button>
-            <Button
+            </GuardedButton>
+            <GuardedButton
               size="sm"
+              allowed={canApprove}
+              reason={requires("allocationsWrite")}
               disabled={pending}
               onClick={() => handleApprove(row)}
               aria-label={`Approve ${row.id}`}
             >
               Approve
-            </Button>
+            </GuardedButton>
           </div>
         );
       },
@@ -259,13 +264,13 @@ export function ChangeRequestApproverQueue({
           message={query.error.message}
           onRetry={() => query.refetch()}
         />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="No change requests"
-          description="No requests match the current filters."
-        />
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(row) => row.id}
+          empty="No change requests match the current filters."
+        />
       )}
     </div>
   );

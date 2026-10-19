@@ -18,6 +18,7 @@
 package server
 
 import (
+	"cmp"
 	"errors"
 	"net/http"
 	"strings"
@@ -48,7 +49,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	p.Origination = "internal"
+	p.Origination, p.OriginatedID = "internal", ""
 	created, err := s.svc.CreateProject(r.Context(), &p)
 	if err != nil {
 		common.WriteServiceError(w, err)
@@ -78,13 +79,19 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 
 // projectResponseFrom builds the API response shape from a JOIN-fetched row.
 func projectResponseFrom(p *store.ProjectWithPI) ProjectResponse {
-	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail}
+	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail, Ref: projectRef(p.Project)}
 	if full := strings.TrimSpace(p.PIFirstName + " " + p.PILastName); full != "" {
 		v.ProjectPIDisplayName = full
 	} else if p.PIEmail != "" {
 		v.ProjectPIDisplayName = p.PIEmail
 	}
 	return v
+}
+
+// projectRef names a project by its source, type first: ACCESS-TG-CIS230001, or INTERNAL-3f2a9c1e for an
+// internal project, which has no originated id.
+func projectRef(p models.Project) string {
+	return strings.ToUpper(p.Origination) + "-" + cmp.Or(p.OriginatedID, p.ID[:min(8, len(p.ID))])
 }
 
 // @Summary	Update a project's status

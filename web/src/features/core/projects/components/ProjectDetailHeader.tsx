@@ -18,6 +18,7 @@
 "use client";
 
 import { Building2, Calendar, UserSquare } from "lucide-react";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
 import type { ProjectResponse } from "@/generated/core/zod.gen";
 
@@ -42,14 +43,19 @@ export function ProjectDetailHeader({ project }: ProjectDetailHeaderProps) {
     project.status === "ACTIVE" ? "success" : project.status === "INACTIVE" ? "warning" : "danger";
   return (
     <header className="space-y-4">
-      <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
-        {project.title}
-      </h1>
+      <div>
+        <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
+          {project.title}
+        </h1>
+        <p className="mt-1 font-mono text-xs text-muted-foreground">
+          ID: <CopyValue value={project.id} label="project ID" className="text-muted-foreground" />
+        </p>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <MetaItem variant="status" tone={tone} value={project.status} className="py-1.5" />
         <MetaRow>
           <MetaItem icon={UserSquare} label="PI" value={project.project_pi_display_name ?? project.project_pi_id} />
-          <MetaItem icon={Building2} label="Origination" value={project.origination} />
+          <MetaItem icon={Building2} label="Origin" value={project.origination.toUpperCase()} />
           <MetaItem icon={Calendar} label="Created" value={formatDate(project.created_time)} />
         </MetaRow>
       </div>

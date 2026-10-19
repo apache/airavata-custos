@@ -20,8 +20,8 @@
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
+import { requires, usePermissions } from "@/shared/casl/permissions";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import {
@@ -54,7 +54,7 @@ function formatSU(n: number): string {
 
 export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProps) {
   const { user } = useCurrentUser();
-  const ability = useAbility();
+  const can = usePermissions();
   const query = useChangeRequest(changeRequestId);
   const eventsQuery = useChangeRequestEvents(changeRequestId);
   const approveMutation = useApproveChangeRequest();
@@ -70,7 +70,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
   const request = query.data;
   if (!request) return null;
 
-  const canApprove = ability.can("manage", "Allocation") && request.change_status === "PENDING";
+  const isPending = request.change_status === "PENDING";
 
   async function decide(kind: "approve" | "reject") {
     if (!request) return;
@@ -110,14 +110,25 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
             label={request.change_status}
           />
         </div>
-        {canApprove ? (
+        {isPending ? (
           <div className="flex justify-end gap-2">
-            <Button variant="outline" disabled={pending} onClick={() => decide("reject")}>
+            <GuardedButton
+              variant="outline"
+              allowed={can.allocationsWrite}
+              reason={requires("allocationsWrite")}
+              disabled={pending}
+              onClick={() => decide("reject")}
+            >
               Reject
-            </Button>
-            <Button disabled={pending} onClick={() => decide("approve")}>
+            </GuardedButton>
+            <GuardedButton
+              allowed={can.allocationsWrite}
+              reason={requires("allocationsWrite")}
+              disabled={pending}
+              onClick={() => decide("approve")}
+            >
               Approve
-            </Button>
+            </GuardedButton>
           </div>
         ) : null}
       </header>

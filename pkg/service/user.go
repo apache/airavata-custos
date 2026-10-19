@@ -80,9 +80,9 @@ func (s *Service) checkNewUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-// ListUsers returns a page of users plus the total count.
-func (s *Service) ListUsers(ctx context.Context, limit, offset int) ([]models.User, int, error) {
-	rows, total, err := s.users.List(ctx, limit, offset)
+// ListUsers returns a page of users matching query (email or name substring) plus the total count.
+func (s *Service) ListUsers(ctx context.Context, query string, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, query, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}

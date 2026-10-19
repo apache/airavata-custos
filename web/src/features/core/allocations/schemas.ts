@@ -19,6 +19,7 @@ import { z } from "zod";
 import {
   zAllocationMembershipResponse,
   zAllocationStatus,
+  zComputeAllocation,
   zComputeAllocationChangeRequest,
   zComputeAllocationChangeRequestInput,
   zComputeAllocationMembershipInput,
@@ -46,6 +47,25 @@ export const changeRequestSchema = zComputeAllocationChangeRequest.extend({
   change_status: changeRequestStatusSchema,
 });
 export type ChangeRequest = z.infer<typeof changeRequestSchema>;
+
+export const createAllocationPayloadSchema = zComputeAllocation
+  .pick({
+    project_id: true,
+    name: true,
+    compute_cluster_id: true,
+    initial_su_amount: true,
+    start_time: true,
+    end_time: true,
+  })
+  .extend({
+    project_id: z.string().min(1),
+    name: z.string().min(1).max(255),
+    compute_cluster_id: z.string().min(1),
+    initial_su_amount: z.number().nonnegative(),
+    start_time: z.string().min(1),
+    end_time: z.string().min(1),
+  });
+export type CreateAllocationPayload = z.infer<typeof createAllocationPayloadSchema>;
 
 export const createMembershipPayloadSchema = zComputeAllocationMembershipInput.extend({
   compute_allocation_id: z.string().min(1),

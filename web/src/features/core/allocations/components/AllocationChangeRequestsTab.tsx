@@ -19,9 +19,10 @@
 
 import Link from "next/link";
 import * as React from "react";
+import { requires } from "@/shared/casl/permissions";
 import { Button } from "@/shared/ui/button";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import {
@@ -113,11 +114,16 @@ export function AllocationChangeRequestsTab({
     },
   ];
 
-  const headerCta = canSubmit ? (
-    <Button size="sm" onClick={() => setDrawerOpen(true)}>
+  const headerCta = (
+    <GuardedButton
+      size="sm"
+      allowed={canSubmit}
+      reason={requires("allocationsWrite")}
+      onClick={() => setDrawerOpen(true)}
+    >
       + Submit change request
-    </Button>
-  ) : null;
+    </GuardedButton>
+  );
 
   return (
     <div className="space-y-3">
@@ -127,14 +133,7 @@ export function AllocationChangeRequestsTab({
         </p>
         {headerCta}
       </div>
-      {rows.length === 0 ? (
-        <EmptyState
-          heading="No change requests"
-          description={canSubmit ? "Submit a request when this allocation needs more SUs or more time." : "There are no change requests for this allocation."}
-        />
-      ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
-      )}
+      <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} empty="No change requests." />
       <ChangeRequestSubmitDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}

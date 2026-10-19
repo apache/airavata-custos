@@ -21,10 +21,10 @@ import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/reac
 import {
   addProjectMember,
   createProject,
+  deleteProject,
   getProject,
   listProjectMembers,
   listProjects,
-  removeProjectMember,
   updateProjectMember,
   updateProjectStatus,
 } from "./api";
@@ -83,6 +83,15 @@ export function useCreateProject() {
   });
 }
 
+export function useDeleteProject() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: deleteProject,
+    // Marks lists stale without refetching the deleted project's own queries.
+    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all, refetchType: "none" }),
+  });
+}
+
 export function useUpdateProjectStatus() {
   const client = useQueryClient();
   return useMutation({
@@ -113,13 +122,5 @@ export function useUpdateProjectMember(projectId: string) {
       // Allocation member rows show the project role; a key prefix avoids importing allocations.
       client.invalidateQueries({ queryKey: ["allocations"] });
     },
-  });
-}
-
-export function useRemoveProjectMember(projectId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (memberId: string) => removeProjectMember(projectId, memberId),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
   });
 }

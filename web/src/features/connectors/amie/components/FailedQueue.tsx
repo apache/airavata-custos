@@ -20,7 +20,6 @@
 import { TriangleAlertIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
@@ -221,17 +220,12 @@ export function FailedQueue({
         <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          icon={<TriangleAlertIcon className="size-6" aria-hidden />}
-          heading="Nothing failed"
-          description="All packets have either processed cleanly or are still in-flight."
-        />
       ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          empty="Nothing failed."
           caption={`${total} failed packet${total === 1 ? "" : "s"}`}
         />
       )}

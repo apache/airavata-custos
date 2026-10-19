@@ -59,6 +59,11 @@ func TestAdminProject_CreateAssignRoleAndBlockPIChange(t *testing.T) {
 	if rr.Code != http.StatusCreated || created.Origination != "internal" {
 		t.Fatalf("create: %d %+v", rr.Code, created)
 	}
+	var got ProjectResponse
+	_ = json.NewDecoder(doGet(t, srv, "/projects/"+created.ID, "admin", models.ProjectsRead).Body).Decode(&got)
+	if got.Ref != "INTERNAL-"+created.ID[:8] {
+		t.Fatalf("ref: %q", got.Ref)
+	}
 	if roles := projectRoles(t, srv, created.ID); len(roles) != 1 || roles[f.piID] != "PI" {
 		t.Fatalf("created project roles: %v", roles)
 	}

@@ -75,9 +75,11 @@ export const projectsHandlers = [
 
   http.post("*/api/v1/projects", async ({ request }) => {
     const payload = createProjectPayloadSchema.parse(await request.json());
+    const id = `project-${Date.now()}`;
     const project: ProjectResponse = {
-      id: `project-${Date.now()}`,
-      originated_id: payload.originated_id ?? "",
+      id,
+      originated_id: "",
+      ref: `INTERNAL-${id.slice(-8)}`,
       title: payload.title,
       origination: payload.origination,
       project_pi_id: payload.project_pi_id,
@@ -130,15 +132,5 @@ export const projectsHandlers = [
     if (!existing) return HttpResponse.json({ error: "member not found" }, { status: 404 });
     if (patch.role) existing.role = patch.role;
     return HttpResponse.json(existing);
-  }),
-
-  http.delete<{ id: string; memberId: string }>("*/api/v1/projects/:id/members/:memberId", ({ params }) => {
-    const id = String(params.id);
-    const memberId = String(params.memberId);
-    const bucket = membersByProject[id] ?? [];
-    const idx = bucket.findIndex((m) => m.id === memberId);
-    if (idx === -1) return HttpResponse.json({ error: "member not found" }, { status: 404 });
-    bucket.splice(idx, 1);
-    return new HttpResponse(null, { status: 204 });
   }),
 ];

@@ -18,11 +18,12 @@
 "use client";
 
 import * as React from "react";
-import { useAbility } from "@/shared/casl/AbilityProvider";
+import { usePermissions } from "@/shared/casl/permissions";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { CreateProjectDialog } from "@/features/core/projects/components/CreateProjectDialog";
 import {
   NewProjectCta,
   ProjectsList,
@@ -36,7 +37,7 @@ function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
 }
 
 export function ProjectsListContainer() {
-  const ability = useAbility();
+  const can = usePermissions();
   const searchParams = useShallowSearchParams();
 
   const search = searchParams.get("q") ?? "";
@@ -54,7 +55,7 @@ export function ProjectsListContainer() {
 
   const query = useProjects({});
   const rows = query.data?.items ?? [];
-  const canCreate = ability.can("manage", "Project");
+  const [creating, setCreating] = React.useState(false);
 
   return (
     <ProjectsList
@@ -68,7 +69,12 @@ export function ProjectsListContainer() {
       onStatusFilterChange={(next) =>
         updateParam("status", next === "all" ? null : next)
       }
-      headerCta={<NewProjectCta canCreate={canCreate} />}
+      headerCta={
+        <>
+          <NewProjectCta canCreate={can.projectsWrite} onClick={() => setCreating(true)} />
+          {creating ? <CreateProjectDialog onOpenChange={setCreating} /> : null}
+        </>
+      }
     />
   );
 }

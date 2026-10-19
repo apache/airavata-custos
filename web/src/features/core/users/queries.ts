@@ -20,6 +20,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
 import type { Role, User, UserRole } from "@/generated/core/zod.gen";
 import { identityKeys } from "@/features/core/identity/queries";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import {
   assignUserRole,
   createUser,
@@ -268,4 +269,24 @@ export function useUpdateUserRoles() {
         client.invalidateQueries({ queryKey: identityKeys.access(variables.userId) }),
       ]).then(() => undefined),
   });
+}
+
+// Debounced server search behind an email field; `match` is the user whose email equals the typed text.
+export function useUserEmailSearch(email: string, enabled: boolean) {
+  const typed = email.trim();
+  const query = useDebounce(typed, 200);
+  const users = useUsers({ q: query, limit: 8 }, { enabled: enabled && query.length > 0 });
+  const found = query === typed ? (users.data?.items ?? []) : [];
+  return {
+    suggestions: found.map((u) => ({
+      value: u.email,
+      detail: [u.first_name, u.last_name].filter(Boolean).join(" "),
+    })),
+    match: found.find((u) => u.email.toLowerCase() === typed.toLowerCase()),
+    emptyMessage: !typed
+      ? "Type to search"
+      : query === typed && !users.isFetching
+        ? "No user with this email."
+        : "Searching…",
+  };
 }

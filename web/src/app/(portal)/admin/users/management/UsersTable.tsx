@@ -293,11 +293,7 @@ export function UsersTable({
             ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
             : undefined
         }
-        empty={
-          <span className="text-sm text-muted-foreground">
-            {filtersActive ? "No users match on this page." : "No users found."}
-          </span>
-        }
+        empty={filtersActive ? "No users match on this page." : "No users found."}
         pagination={{
           page,
           pageSize,

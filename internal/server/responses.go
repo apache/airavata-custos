@@ -29,6 +29,7 @@ type ProjectResponse struct {
 	models.Project
 	ProjectPIDisplayName string `json:"project_pi_display_name,omitempty"`
 	ProjectPIEmail       string `json:"project_pi_email,omitempty"`
+	Ref                  string `json:"ref"`
 }
 
 // ProjectListResponse is the paginated list envelope for projects.

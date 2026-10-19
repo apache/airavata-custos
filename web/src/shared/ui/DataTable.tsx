@@ -19,6 +19,7 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { TableEmptyRow } from "@/shared/ui/table";
 import { ChevronDown, ChevronsUpDown, ChevronUp } from "lucide-react";
 import * as React from "react";
 
@@ -61,7 +62,7 @@ export type DataTableProps<T> = {
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
   caption?: string;
-  empty?: React.ReactNode;
+  empty?: string;
   pagination?: DataTablePagination;
   className?: string;
   // Groups rows under a full-width header row, in order of first appearance; sorting applies within each group.
@@ -148,7 +149,7 @@ export function DataTable<T>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card",
+        "overflow-hidden rounded-lg border border-foreground/20 bg-card",
         className,
       )}
     >
@@ -209,15 +210,7 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {displayRows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  {empty ?? (
-                    <span className="text-sm text-muted-foreground">
-                      No data.
-                    </span>
-                  )}
-                </td>
-              </tr>
+              <TableEmptyRow colSpan={columns.length}>{empty ?? "No data."}</TableEmptyRow>
             ) : (
               displayRows.map((row, index) => [
                 groupHeader(row, displayRows[index - 1]),
@@ -225,7 +218,7 @@ export function DataTable<T>({
                   key={rowKey(row, index)}
                   className={cn(
                     "border-t border-border/60 bg-card",
-                    onRowClick && "cursor-pointer",
+                    onRowClick && "cursor-pointer hover:bg-muted/60",
                     rowClassName?.(row),
                   )}
                   onClick={

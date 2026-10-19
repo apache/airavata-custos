@@ -671,6 +671,8 @@ definitions:
         type: string
       project_pi_id:
         type: string
+      ref:
+        type: string
       status:
         $ref: '#/definitions/ProjectStatus'
       title:
@@ -2355,6 +2357,29 @@ paths:
       tags:
       - Compute Allocations
   /compute-allocations/{id}:
+    delete:
+      description: Removes the allocation with its memberships, resources and usage.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a compute allocation
+      tags:
+      - Compute Allocations
     get:
       description: Callers without the allocations read privilege must hold a membership
         on the allocation or a governance role on its project; others return 404.
@@ -4308,6 +4333,10 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Email or name substring
+        in: query
+        name: q
+        type: string
       produces:
       - application/json
       responses:
