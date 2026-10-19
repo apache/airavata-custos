@@ -20,10 +20,8 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -88,48 +86,69 @@ func TestResolveCaller_SubAlreadyBound_FastPath(t *testing.T) {
 	}
 }
 
-func TestResolveCaller_EmailFallback_HappyPath_LinksAndActivates(t *testing.T) {
+// Signing in as a pending user links no sub and writes nothing until they accept the user agreement.
+func TestResolveCaller_PendingUserSignInLinksNoSub(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	user := seedPendingUserWithEmail(t, database, "pending@example.edu")
+	claims := &identity.Claims{Sub: "sub-new", Email: "pending@example.edu", EmailVerified: true}
 
-	caller, _, err := svc.ResolveCaller(ctx(), &identity.Claims{
-		Sub:           "sub-new",
-		Email:         "pending@example.edu",
-		EmailVerified: true,
-	})
+	caller, privs, err := svc.ResolveCaller(ctx(), claims)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
-	if caller.UserID != user {
-		t.Errorf("user_id: got %s, want %s", caller.UserID, user)
+	if caller.UserID != user || !caller.NeedsOnboarding || !caller.ConsentPending || privs != nil {
+		t.Errorf("caller: got %+v privs %v, want NeedsOnboarding and ConsentPending for %s with no privileges", caller, privs, user)
 	}
-	// User should now be ACTIVE.
-	var status string
-	if err := database.Get(&status, "SELECT status FROM users WHERE id = $1", user); err != nil {
-		t.Fatalf("read status: %v", err)
+	if n := countRows(t, database, "SELECT COUNT(*) FROM user_identities WHERE user_id = $1", user); n != 0 {
+		t.Errorf("identities: got %d, want 0", n)
 	}
-	if status != string(models.UserActive) {
-		t.Errorf("status: got %s, want ACTIVE", status)
+	if u, err := svc.GetUser(ctx(), user); err != nil || u.Status != models.UserPending {
+		t.Errorf("status: got %+v, %v, want PENDING", u, err)
 	}
-	// Audit event emitted.
-	if got := countAuditEventsOfType(t, database, identityAuditLinked, user); got != 1 {
-		t.Errorf("audit IDENTITY_LINKED: got %d, want 1", got)
+	if got := countAuditEventsOfType(t, database, identityAuditLinked, user); got != 0 {
+		t.Errorf("audit IDENTITY_LINKED: got %d, want 0", got)
 	}
-	// oidc_sub binding now in place.
-	var sub string
-	if err := database.Get(&sub,
-		"SELECT oidc_sub FROM user_identities WHERE user_id = $1 AND source = 'oidc'", user,
-	); err != nil {
-		t.Fatalf("read binding: %v", err)
+
+	if _, err := database.Exec("UPDATE users SET status = $1 WHERE id = $2", models.UserSuspended, user); err != nil {
+		t.Fatalf("suspend: %v", err)
 	}
-	if sub != "sub-new" {
-		t.Errorf("oidc_sub: got %s, want sub-new", sub)
+	if _, _, err := svc.ResolveCaller(ctx(), claims); !errors.Is(err, identity.ErrUserDisabled) {
+		t.Errorf("second resolve: got %v, want ErrUserDisabled", err)
+	}
+}
+
+// A signed-in user stays gated until they accept the current agreement.
+// After accepting, their cached sign-in is cleared so the next request gets through.
+func TestResolveCaller_ConsentPendingClearsAfterAccept(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	user := seedUser(t, database, "bound@example.edu")
+	seedOIDCIdentity(t, database, user, "sub-bound", "bound@example.edu")
+	claims := &identity.Claims{Sub: "sub-bound"}
+
+	caller, _, err := svc.ResolveCaller(ctx(), claims)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if caller.NeedsOnboarding || !caller.ConsentPending {
+		t.Fatalf("before accept: got %+v, want bound caller with consent pending", caller)
+	}
+	if _, err := svc.AcceptUserAgreement(ctx(), user, aup.ID); err != nil {
+		t.Fatalf("accept: %v", err)
+	}
+	if caller, _, err = svc.ResolveCaller(ctx(), claims); err != nil || !caller.ConsentPending {
+		t.Errorf("before invalidate: got %+v err %v, want the cached caller", caller, err)
+	}
+	svc.InvalidateIdentity(claims.Sub)
+	if caller, _, err = svc.ResolveCaller(ctx(), claims); err != nil || caller.ConsentPending {
+		t.Errorf("after invalidate: got %+v err %v, want consent cleared", caller, err)
 	}
 }
 
 func TestResolveCaller_EmailFallback_RefusesUnverifiedEmail(t *testing.T) {
-	// TODO: re-enable when the email_verified gate is restored in linkBySub.
+	// TODO: re-enable when the email_verified gate is restored in matchPendingByEmail.
 	t.Skip("email_verified gate temporarily bypassed pending COmanage fix")
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -190,7 +209,7 @@ func TestResolveCaller_EmailFallback_RefusesUserWithExistingOIDCSub(t *testing.T
 	}
 }
 
-func TestResolveCaller_EmailFallback_LinksAMIEProvisioned(t *testing.T) {
+func TestResolveCaller_EmailFallback_MatchesAMIEProvisioned(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	user := seedPendingUserWithEmail(t, database, "pi@example.edu")
@@ -204,16 +223,8 @@ func TestResolveCaller_EmailFallback_LinksAMIEProvisioned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
-	if caller.UserID != user {
-		t.Errorf("user_id: got %s, want %s", caller.UserID, user)
-	}
-	// Both identities now coexist for this user: amie + oidc.
-	var count int
-	if err := database.Get(&count, "SELECT COUNT(*) FROM user_identities WHERE user_id = $1", user); err != nil {
-		t.Fatalf("count identities: %v", err)
-	}
-	if count != 2 {
-		t.Errorf("identity count: got %d, want 2 (amie + oidc)", count)
+	if caller.UserID != user || !caller.NeedsOnboarding {
+		t.Errorf("caller: got %+v, want NeedsOnboarding for %s", caller, user)
 	}
 }
 
@@ -248,50 +259,6 @@ func TestBootstrapSuperAdmin_CreatesPendingUserWhenMissing(t *testing.T) {
 	}
 	if has, err := svc.HasPrivilege(ctx(), userID, models.PrivilegesGrant); err != nil || !has {
 		t.Errorf("super_admin grant after bootstrap: has=%v err=%v", has, err)
-	}
-}
-
-// A user provisioned before their first sign-in has no sub in the registry.
-// The sub arrives at first user sign-in, when the user is matched by email, and the
-// registry gets it through this event.
-func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
-	database := setupTestDB(t)
-	bus := newTestBus(database)
-	svc := New(database, bus)
-	user := seedPendingUserWithEmail(t, database, "provision-first@example.edu")
-
-	got := make(chan models.UserIdentity, 1)
-	bus.SubscribeUserIdentityCreated("test-subscriber", func(_ context.Context, identity models.UserIdentity) error {
-		got <- identity
-		return nil
-	})
-
-	if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{
-		Sub:           "sub-provision-first",
-		Email:         "provision-first@example.edu",
-		EmailVerified: true,
-	}); err != nil {
-		t.Fatalf("resolve: %v", err)
-	}
-
-	// The event is stored, so the worker has to run for the subscriber to get it.
-	workerCtx, stopWorker := context.WithCancel(context.Background())
-	defer stopWorker()
-	go bus.Run(workerCtx)
-
-	select {
-	case identity := <-got:
-		if identity.UserID != user {
-			t.Errorf("user_id: got %s, want %s", identity.UserID, user)
-		}
-		if identity.Source != "oidc" {
-			t.Errorf("source: got %s, want oidc", identity.Source)
-		}
-		if identity.OIDCSub != "sub-provision-first" {
-			t.Errorf("oidc_sub: got %s, want sub-provision-first", identity.OIDCSub)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("no UserIdentityCreateEvent published on identity link")
 	}
 }
 

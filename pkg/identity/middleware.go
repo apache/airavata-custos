@@ -29,8 +29,9 @@ import (
 
 // Middleware verifies the bearer token once, resolves the caller, and
 // attaches Caller + privilege set to the request context. Public paths
-// bypass verification entirely.
-func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
+// bypass verification entirely. Callers who need onboarding or consent only
+// reach routes userAgreementPending matches; nil matches none.
+func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, userAgreementPending func(*http.Request) bool, next http.Handler) http.Handler {
 	publicSet := make(map[string]struct{}, len(publicPaths))
 	for _, path := range publicPaths {
 		publicSet[path] = struct{}{}
@@ -64,21 +65,35 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []str
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
-		ctx := WithCaller(req.Context(), caller)
+		pendingRoute := userAgreementPending != nil && userAgreementPending(req)
+		if caller.NeedsOnboarding && !pendingRoute {
+			writeJSONError(w, http.StatusForbidden, "onboarding_required", "Accept the user agreement to continue")
+			return
+		}
+		if caller.ConsentPending && !pendingRoute {
+			writeJSONError(w, http.StatusForbidden, "consent_required", "Accept the updated user agreement to continue")
+			return
+		}
+		ctx := WithClaims(req.Context(), claims)
+		ctx = WithCaller(ctx, caller)
 		ctx = withPrivileges(ctx, privileges)
 		next.ServeHTTP(w, req.WithContext(ctx))
 	})
 }
 
 // Router is the only path that lets HTTP routes hit the mux. The mux
-// field is unexported on purpose: callers must go through RequirePrivilege, RequireAuth, or Public.
+// field is unexported on purpose: callers must go through RequirePrivilege,
+// RequireAuth, RequireAuthUserAgreementPending, RequireScoped, or Public.
 type Router struct {
-	mux         *http.ServeMux
-	publicPaths []string
+	mux                     *http.ServeMux
+	userAgreementPendingMux *http.ServeMux
+	publicPaths             []string
 }
 
 // NewRouter wraps mux.
-func NewRouter(mux *http.ServeMux) *Router { return &Router{mux: mux} }
+func NewRouter(mux *http.ServeMux) *Router {
+	return &Router{mux: mux, userAgreementPendingMux: http.NewServeMux()}
+}
 
 // RequirePrivilege registers an authenticated handler. The wrapper checks privilege
 // against the caller's privilege set in ctx; absent → 403.
@@ -116,6 +131,22 @@ func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWrite
 		}
 		handler(w, req)
 	})
+}
+
+// RequireAuthUserAgreementPending registers a handler that signed-in callers
+// can reach before accepting the user agreement. Handlers read ClaimsFromContext.
+func (r *Router) RequireAuthUserAgreementPending(pattern string, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, handler)
+	r.userAgreementPendingMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
+}
+
+// UserAgreementPendingRoutes reports whether a request targets a
+// RequireAuthUserAgreementPending route, with the same pattern rules as the real mux.
+func (r *Router) UserAgreementPendingRoutes() func(*http.Request) bool {
+	return func(req *http.Request) bool {
+		_, pattern := r.userAgreementPendingMux.Handler(req)
+		return pattern != ""
+	}
 }
 
 // PublicPaths returns the path components of every Public() registration,

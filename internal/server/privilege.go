@@ -60,6 +60,18 @@ type CallerProfileResponse struct {
 	User       *models.User          `json:"user"`
 	Privileges []models.PrivilegeKey `json:"privileges"`
 	Roles      []CallerRoleGrant     `json:"roles"`
+	Consent    consentView           `json:"consent"`
+	Onboarding onboardingView        `json:"onboarding"`
+}
+
+type consentView struct {
+	Pending []models.UserAgreement `json:"pending"`
+}
+
+type onboardingView struct {
+	Required         bool   `json:"required"`
+	Username         string `json:"username"`
+	UsernameEditable bool   `json:"username_editable"`
 }
 
 // @Summary	Get the caller's user record, effective privileges, and roles
@@ -80,26 +92,50 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	// Read fresh instead of using the cached context set, so roles and the
-	// effective privileges in one response always agree with each other.
-	keys, err := s.svc.EffectivePrivileges(r.Context(), caller.UserID)
+	keys := []models.PrivilegeKey{}
+	roles := []CallerRoleGrant{}
+	if !caller.NeedsOnboarding {
+		// Read fresh instead of using the cached context set, so roles and the
+		// effective privileges in one response always agree with each other.
+		if keys, err = s.svc.EffectivePrivileges(r.Context(), caller.UserID); err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		for _, d := range details {
+			roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+		}
+	}
+	pending, err := s.svc.PendingUserAgreements(r.Context(), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
+	if pending == nil {
+		pending = []models.UserAgreement{}
+	}
+	accounts, err := s.svc.ListComputeClusterUsersByUser(r.Context(), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	roles := make([]CallerRoleGrant, 0, len(details))
-	for _, d := range details {
-		roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+	onboarding := onboardingView{
+		Required:         caller.NeedsOnboarding,
+		UsernameEditable: caller.NeedsOnboarding && user.Type == models.UserTypeClusterLocal && len(accounts) > 0,
+	}
+	if len(accounts) > 0 {
+		onboarding.Username = accounts[0].LocalUsername
 	}
 	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{
 		User:       user,
 		Privileges: keys,
 		Roles:      roles,
+		Consent:    consentView{Pending: pending},
+		Onboarding: onboarding,
 	})
 }
 
