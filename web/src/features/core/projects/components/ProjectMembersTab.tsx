@@ -27,8 +27,10 @@ import {
   useToggleAllocationAccess,
 } from "@/features/core/allocations/queries";
 import type { AllocationMembership } from "@/features/core/allocations/schemas";
+import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsDrawer";
 import { useUserEmailSearch } from "@/features/core/users/queries";
 import type { ComputeAllocation, User } from "@/generated/core/zod.gen";
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { requires, requiresAny } from "@/shared/casl/permissions";
 import { Button } from "@/shared/ui/button";
@@ -196,6 +198,7 @@ export function ProjectMembersTab({
   const [reviewing, setReviewing] = React.useState(false);
   const [applying, setApplying] = React.useState(false);
   const [adding, setAdding] = React.useState(false);
+  const [viewing, setViewing] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState("");
   const [newRole, setNewRole] = React.useState<ProjectMemberRole | "">("");
   const search = useUserEmailSearch(email, editing && canSearchUsers);
@@ -358,7 +361,11 @@ export function ProjectMembersTab({
             {rows.map((row) => {
               const role = roleOf(row);
               return (
-                <TableRow key={row.userId} className={isNew(row) ? CHANGED : undefined}>
+                <TableRow
+                  key={row.userId}
+                  className={cn(isNew(row) && CHANGED, !editing && "cursor-pointer hover:bg-muted/60")}
+                  onClick={editing ? undefined : () => setViewing(row.userId)}
+                >
                   <TableCell>
                     <MemberCell name={row.name} email={row.email} />
                   </TableCell>
@@ -480,6 +487,7 @@ export function ProjectMembersTab({
           </TableBody>
         </Table>
       </div>
+      <UserDetailsDrawer userId={viewing} onClose={() => setViewing(null)} />
       <Dialog open={reviewing} onOpenChange={(open) => !applying && setReviewing(open)}>
         <DialogContent>
           <DialogHeader>

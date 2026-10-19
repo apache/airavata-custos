@@ -50,6 +50,7 @@ const members = [
 ];
 
 const mutation = { mutate: vi.fn(), isPending: false };
+vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({ UserDetailsDrawer: () => null }));
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,

@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserManagementRow } from "@/features/core/users/types";
 import type { Role } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { UserAccountRow } from "@/features/core/users/types";
 import { UsersTable } from "../UsersTable";
 
 const searchParamMocks = vi.hoisted(() => ({
@@ -40,7 +40,7 @@ const adminRole: Role = {
   created_at: "2026-01-01T00:00:00Z",
 };
 
-const row: UserManagementRow = {
+const row: UserAccountRow = {
   id: "user-1",
   email: "user@example.org",
   first_name: "Example",
@@ -62,9 +62,10 @@ const row: UserManagementRow = {
   identitiesLoading: false,
   rolesError: false,
   identitiesError: false,
+  accounts: [],
 };
 
-function renderTable(canManageRoles: boolean, users: UserManagementRow[] = [row]) {
+function renderTable(canManageRoles: boolean, users: UserAccountRow[] = [row]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const onPageChange = vi.fn();
   const view = render(
@@ -75,6 +76,8 @@ function renderTable(canManageRoles: boolean, users: UserManagementRow[] = [row]
         currentUserEmail="user@example.org"
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={false}
+        canReadAllocations={false}
+        clusterAccounts={undefined}
         page={1}
         pageSize={25}
         total={users.length}

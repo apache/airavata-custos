@@ -16,7 +16,7 @@
 // under the License.
 
 import type { GetUsersData } from "@/generated/core/types.gen";
-import type { Role, User, UserIdentity } from "@/generated/core/zod.gen";
+import type { ClusterAccountResponse, Role, User, UserIdentity } from "@/generated/core/zod.gen";
 
 export type UserListParams = NonNullable<GetUsersData["query"]>;
 
@@ -38,4 +38,13 @@ export type UpdateUserRolesInput = {
   currentRoleIds: string[];
   desiredRoleIds: string[];
   reason?: string | undefined;
+};
+
+export type UserAccountRow = UserManagementRow & { accounts: ClusterAccountResponse[] };
+
+// What the details drawer needs to list cluster accounts; review handlers are absent without the privilege.
+export type ClusterAccountsView = {
+  clusters: Array<{ id: string; name: string }>;
+  onApprove: ((account: ClusterAccountResponse) => void) | undefined;
+  onDeny: ((account: ClusterAccountResponse) => void) | undefined;
 };

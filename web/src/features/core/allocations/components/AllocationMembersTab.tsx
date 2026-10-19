@@ -28,6 +28,7 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { useUpdateProjectMember } from "@/features/core/projects/queries";
+import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsDrawer";
 import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
 import type {
   AllocationMembership,
@@ -68,6 +69,7 @@ export function AllocationMembersTab({
   const roleMutation = useUpdateProjectMember(allocation.project_id);
   const removeMutation = useRemoveMember(allocation.id);
   const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
+  const [viewing, setViewing] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
 
   function handleAdd(payload: CreateMembershipPayload, role: Role) {
@@ -202,7 +204,14 @@ export function AllocationMembersTab({
         <h2 className="font-display text-lg font-semibold text-foreground">Memberships</h2>
         {headerCta}
       </div>
-      <DataTable columns={columns} rows={members} rowKey={(row) => row.id} empty="No members yet." />
+      <DataTable
+        columns={columns}
+        rows={members}
+        rowKey={(row) => row.id}
+        onRowClick={(row) => setViewing(row.user_id)}
+        empty="No members yet."
+      />
+      <UserDetailsDrawer userId={viewing} onClose={() => setViewing(null)} />
       <MemberEditDialog
         member={editing}
         onClose={() => setEditing(null)}

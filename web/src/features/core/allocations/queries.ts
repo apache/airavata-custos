@@ -38,6 +38,7 @@ import {
   listAllocationMembers,
   listAllocationResources,
   listAllocationUsage,
+  listUserMemberships,
   listAllocations,
   listChangeRequestEvents,
   listChangeRequests,
@@ -65,6 +66,7 @@ export const allocationKeys = {
   usedSU: (id: string) => [...allocationKeys.detail(id), "used-su"] as const,
   diffs: (id: string) => [...allocationKeys.detail(id), "diffs"] as const,
   members: (id: string) => [...allocationKeys.detail(id), "members"] as const,
+  userMemberships: (userId: string) => [...allocationKeys.all, "user-memberships", userId] as const,
   changeRequests: (params: ChangeRequestListParams = {}) =>
     [...allocationKeys.all, "change-requests", "list", params] as const,
   changeRequestDetail: (id: string) =>
@@ -307,5 +309,13 @@ export function useRejectChangeRequest() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: allocationKeys.all });
     },
+  });
+}
+
+export function useUserMemberships(userId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: userId ? allocationKeys.userMemberships(userId) : [...allocationKeys.all, "none"],
+    queryFn: userId && enabled ? () => listUserMemberships(userId) : skipToken,
+    ...DEFAULTS,
   });
 }

@@ -24,13 +24,7 @@ import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 
 const TABS = [
-  { href: "/admin/users/management", label: "User Management" },
-  {
-    href: "/admin/users/cluster-accounts",
-    label: "Cluster Accounts",
-    ability: { action: "read", subject: "Cluster" } as const,
-    badge: "pending-cluster-accounts",
-  },
+  { href: "/admin/users/management", label: "User Management", badge: "pending-cluster-accounts" },
   {
     href: "/admin/users/roles",
     label: "Role Management",
@@ -81,7 +75,7 @@ export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
                 )}
               >
                 {tab.label}
-                {"badge" in tab ? <PendingClusterAccountsBadge /> : null}
+                {"badge" in tab && ability.can("read", "Cluster") ? <PendingClusterAccountsBadge /> : null}
               </Link>
             </li>
           );

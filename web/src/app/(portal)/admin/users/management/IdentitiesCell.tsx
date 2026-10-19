@@ -19,7 +19,7 @@
 
 import type { UserIdentity } from "@/generated/core/zod.gen";
 import { Badge } from "@/shared/ui/badge";
-import { identitySourceIcon, identitySourceLabel } from "./identities";
+import { identitySourceIcon, identitySourceLabel } from "@/features/core/users/components/identities";
 
 const VISIBLE_IDENTITY_COUNT = 2;
 
