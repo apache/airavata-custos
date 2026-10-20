@@ -68,19 +68,18 @@ func (a *AssociationSubscriber) accountAssociations(ctx context.Context, cluster
 	if err != nil {
 		return nil, err
 	}
-	var mappings []models.ComputeAllocationResourceMapping
+	// Mappings are the account's grants, in the shape of a member's overrides.
+	var grants []models.ComputeAllocationMembershipResourceOverride
 	for _, r := range resources {
 		m, err := a.mappings.FindByPair(ctx, allocation.ID, r.ID)
 		if err != nil {
 			return nil, err
 		}
 		if m != nil {
-			mappings = append(mappings, *m)
+			grants = append(grants, models.ComputeAllocationMembershipResourceOverride{ComputeAllocationResourceID: r.ID, OverrideResourceAmount: m.ResourceAmount, OverrideResourceTime: m.ResourceTime})
 		}
 	}
-	limits, err := tresLimits(ctx, a, mappings, func(m models.ComputeAllocationResourceMapping) tresGrant {
-		return tresGrant{m.ComputeAllocationResourceID, m.ResourceAmount, m.ResourceTime}
-	})
+	limits, err := a.limitsFor(ctx, grants)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +101,7 @@ func (a *AssociationSubscriber) accountAssociations(ctx context.Context, cluster
 		if err != nil {
 			return nil, err
 		}
-		wants = append(wants, assoc)
+		wants = append(wants, *assoc)
 	}
 	return wants, settling
 }

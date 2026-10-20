@@ -112,7 +112,7 @@ func (a *AssociationSubscriber) syncCluster(ctx context.Context, cluster models.
 	if err != nil {
 		return err
 	}
-	defaults, err := a.slurmClient.ListAssociations(client.AssocFilter{Cluster: name, Account: client.DefaultAccount})
+	defaults, err := a.slurmClient.ListAssociations(client.AssocFilter{Cluster: name, Account: noAllocation})
 	if err != nil {
 		return err
 	}

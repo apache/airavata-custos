@@ -83,24 +83,30 @@ func sameTRES(want, got []client.TRES) bool {
 	return true
 }
 
+// noAllocation is every user's default account. It runs no jobs, so a job names the allocation it charges,
+// and no allocation is anyone's default, which SLURM would refuse to remove.
+const noAllocation = "none"
+
 // custos marks Custos-created accounts for the reconciler.
 const custos = "custos"
 
-func (a *AssociationSubscriber) writeAssociation(ctx context.Context, assoc client.Association) error {
-	create := func() error { return a.slurmClient.CreateUser(assoc.Cluster, assoc.User) }
+// writeAssociation upserts a user's association after making noAllocation their default.
+func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error {
 	if assoc.User == "" {
-		create = func() error {
-			return a.slurmClient.CreateAccount(client.Account{Name: assoc.Account, Organization: custos}, assoc.Cluster)
+		if err := a.slurmClient.CreateAccount(client.Account{Name: assoc.Account, Organization: custos}, assoc.Cluster); err != nil {
+			return err
 		}
+		return a.slurmClient.UpsertAssociation(assoc)
 	}
-	if err := create(); err != nil {
-		return err
+	noJobs := int64(0)
+	account := client.Account{Name: noAllocation, Description: "Default account; runs no jobs", GrpJobs: &noJobs}
+	if err := a.slurmClient.CreateAccount(account, assoc.Cluster); err != nil {
+		return fmt.Errorf("create %s account: %w", noAllocation, err)
 	}
-	if err := a.slurmClient.UpsertAssociation(assoc); err != nil {
-		return err
+	if err := a.slurmClient.SetDefaultAccount(assoc.Cluster, assoc.User, noAllocation); err != nil {
+		return fmt.Errorf("set default account: %w", err)
 	}
-	slog.InfoContext(ctx, "Wrote association", "cluster", assoc.Cluster, "account", assoc.Account, "user", assoc.User, "limits", assoc.Limits.GrpTRES)
-	return nil
+	return a.slurmClient.UpsertAssociation(assoc)
 }
 
 func (a *AssociationSubscriber) removeAssociation(ctx context.Context, assoc client.Association) error {
@@ -129,52 +135,61 @@ func (a *AssociationSubscriber) syncAssociations(ctx context.Context, scope clie
 	for _, w := range wants {
 		got, ok := have[keyOf(w)]
 		delete(have, keyOf(w))
-		if !ok || got.Limits.GrpJobs != nil || !sameLimits(w, got) {
-			errs = append(errs, a.writeAssociation(ctx, w))
+		if ok && got.Limits.GrpJobs == nil && sameLimits(w, got) {
+			continue
 		}
+		if err := a.writeAssociation(w); err != nil {
+			errs = append(errs, fmt.Errorf("upsert association: %w", err))
+			continue
+		}
+		slog.InfoContext(ctx, "Upserted association", "association", w)
 	}
 	for _, e := range have {
-		if e.User != "" && e.Account != client.DefaultAccount {
+		if e.User != "" && e.Account != noAllocation {
 			errs = append(errs, a.removeAssociation(ctx, e))
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// userAssociation has no partition, so the cluster's own partition settings decide where the member can run.
-func (a *AssociationSubscriber) userAssociation(ctx context.Context, cluster string, allocation models.ComputeAllocation, user, membershipID string) (client.Association, error) {
+// Builds the member's association without writing it. It has no partition,
+// so the cluster's own partition settings decide where the member can run.
+func (a *AssociationSubscriber) userAssociation(ctx context.Context, cluster string, allocation models.ComputeAllocation, user, membershipID string) (*client.Association, error) {
 	overrides, err := a.coreService.ListOverridesForMembership(ctx, membershipID)
 	if err != nil {
-		return client.Association{}, err
+		return nil, fmt.Errorf("list overrides for membership: %w", err)
 	}
-	limits, err := tresLimits(ctx, a, overrides, func(o models.ComputeAllocationMembershipResourceOverride) tresGrant {
-		return tresGrant{o.ComputeAllocationResourceID, o.OverrideResourceAmount, o.OverrideResourceTime}
-	})
-	return client.Association{Account: slurmAccount(allocation.Name), Cluster: cluster, User: user, QoS: []string{"normal"}, Limits: limits}, err
+	limits, err := a.limitsFor(ctx, overrides)
+	if err != nil {
+		return nil, err
+	}
+	return &client.Association{
+		Account: slurmAccount(allocation.Name),
+		Cluster: cluster,
+		User:    user,
+		QoS:     []string{"normal"},
+		Limits:  limits,
+	}, nil
 }
 
-type tresGrant struct {
-	resourceID   string
-	amount, time int64
-}
-
-// tresLimits sums grants per TRES: the association covers every partition, so two GPU resources become one limit.
-func tresLimits[T any](ctx context.Context, a *AssociationSubscriber, items []T, grantOf func(T) tresGrant) (client.AssocLimits, error) {
+// Builds the member's limits from their overrides. The association covers
+// every partition, so overrides on two GPU resources become one GPU limit,
+// their sum. CPU and GPU stay separate.
+func (a *AssociationSubscriber) limitsFor(ctx context.Context, overrides []models.ComputeAllocationMembershipResourceOverride) (client.AssocLimits, error) {
 	var limits client.AssocLimits
-	for _, item := range items {
-		g := grantOf(item)
-		resource, err := a.coreService.GetComputeAllocationResource(ctx, g.resourceID)
+	for _, o := range overrides {
+		resource, err := a.coreService.GetComputeAllocationResource(ctx, o.ComputeAllocationResourceID)
 		if err != nil {
 			return limits, fmt.Errorf("get compute allocation resource: %w", err)
 		}
 		if resource.ResourceType == "" {
 			return limits, errEmptyResourceType
 		}
-		if g.amount > 0 {
-			limits.GrpTRES = addTRES(limits.GrpTRES, tresFor(resource.ResourceType, g.amount))
+		if o.OverrideResourceAmount > 0 {
+			limits.GrpTRES = addTRES(limits.GrpTRES, tresFor(resource.ResourceType, o.OverrideResourceAmount))
 		}
-		if g.time > 0 {
-			limits.GrpTRESMins = addTRES(limits.GrpTRESMins, tresFor(resource.ResourceType, g.time))
+		if o.OverrideResourceTime > 0 {
+			limits.GrpTRESMins = addTRES(limits.GrpTRESMins, tresFor(resource.ResourceType, o.OverrideResourceTime))
 		}
 	}
 	return limits, nil

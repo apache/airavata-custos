@@ -74,11 +74,11 @@ func (f *fakeSlurm) ListAccounts() ([]client.Account, error) {
 	return out, nil
 }
 
-func (f *fakeSlurm) CreateUser(cluster, user string) error {
+func (f *fakeSlurm) SetDefaultAccount(cluster, user, account string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if !slices.ContainsFunc(f.assocs, func(x client.Association) bool { return x.User == user && x.Account == client.DefaultAccount }) {
-		f.upsert(client.Association{Account: client.DefaultAccount, Cluster: cluster, User: user})
+	if !slices.ContainsFunc(f.assocs, func(x client.Association) bool { return x.User == user && x.Account == account }) {
+		f.upsert(client.Association{Account: account, Cluster: cluster, User: user})
 	}
 	return nil
 }

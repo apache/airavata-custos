@@ -44,12 +44,12 @@ func slurmAccount(allocationName string) string {
 // SlurmClient is the subset of the REST client the subscribers use.
 type SlurmClient interface {
 	CreateAccount(a client.Account, cluster string) error
-	ListAccounts() ([]client.Account, error)
-	CreateUser(cluster, user string) error
-	DeleteUser(name string) error
-	ListAssociations(f client.AssocFilter) ([]client.Association, error)
 	UpsertAssociation(a client.Association) error
+	SetDefaultAccount(cluster, user, account string) error
+	ListAssociations(f client.AssocFilter) ([]client.Association, error)
 	DeleteAssociation(f client.AssocFilter) error
+	ListAccounts() ([]client.Account, error)
+	DeleteUser(name string) error
 	ListClusters() ([]string, error)
 }
 
@@ -107,7 +107,9 @@ func (a *AssociationSubscriber) handleEvent(ctx context.Context, name, id string
 	defer span.End()
 	span.SetAttributes(attribute.String("slurm."+entity+"_id", id))
 
-	err := work(ctx)
+	workCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
+	defer cancel()
+	err := work(workCtx)
 	if errors.Is(err, errNotProvisioned) {
 		return err
 	}

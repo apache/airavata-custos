@@ -30,6 +30,7 @@ import (
 )
 
 const (
+	coreCallTimeout = 10 * time.Second
 	// A sweep touches every provisioned member, so it gets a longer budget
 	// than a single event handler.
 	reconcileSweepTimeout = 5 * time.Minute
@@ -87,7 +88,7 @@ func (a *AssociationSubscriber) removeUser(ctx context.Context, cluster, user st
 	if err != nil {
 		return err
 	}
-	if !slices.ContainsFunc(others, func(x client.Association) bool { return x.Account == client.DefaultAccount }) {
+	if !slices.ContainsFunc(others, func(x client.Association) bool { return x.Account == noAllocation }) {
 		return nil
 	}
 	if !slices.ContainsFunc(others, func(x client.Association) bool { return x.Cluster != cluster }) && a.slurmClient.DeleteUser(user) == nil {

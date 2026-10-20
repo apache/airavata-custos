@@ -17,34 +17,7 @@
 
 package client
 
-import (
-	"fmt"
-	"net/http"
-)
-
-// DefaultAccount is every user's default account. It runs no jobs, so a job names the account it charges, and no
-// allocation's account is anyone's default, which Slurm would refuse to remove.
-const DefaultAccount = "none"
-
-// CreateUser also makes DefaultAccount the default of a user that exists.
-func (c *Client) CreateUser(cluster, user string) error {
-	noJobs := int64(0)
-	if err := c.CreateAccount(Account{Name: DefaultAccount, Description: "Default account; runs no jobs", GrpJobs: &noJobs}, cluster); err != nil {
-		return fmt.Errorf("create %s account: %w", DefaultAccount, err)
-	}
-	defaultAccount := map[string]string{"account": DefaultAccount}
-	body := map[string]any{
-		"association_condition": map[string]any{"accounts": []string{DefaultAccount}, "clusters": []string{cluster}, "users": []string{user}},
-		"user":                  map[string]any{"default": defaultAccount},
-	}
-	if _, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users_association/", body, nil); err != nil {
-		return err
-	}
-	// users_association leaves an existing user's default as it was.
-	users := map[string]any{"users": []map[string]any{{"name": user, "default": defaultAccount}}}
-	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users", users, nil)
-	return err
-}
+import "net/http"
 
 func (c *Client) DeleteUser(name string) error {
 	resp, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/user/"+name, nil, nil)

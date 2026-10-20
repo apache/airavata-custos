@@ -154,3 +154,19 @@ func (c *Client) DeleteAssociation(f AssocFilter) error {
 	}
 	return nil
 }
+
+// SetDefaultAccount gives user an association on account and makes it their default, creating the user if needed.
+func (c *Client) SetDefaultAccount(cluster, user, account string) error {
+	defaultAccount := map[string]string{"account": account}
+	body := map[string]any{
+		"association_condition": map[string]any{"accounts": []string{account}, "clusters": []string{cluster}, "users": []string{user}},
+		"user":                  map[string]any{"default": defaultAccount},
+	}
+	if _, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users_association/", body, nil); err != nil {
+		return err
+	}
+	// users_association leaves an existing user's default as it was.
+	users := map[string]any{"users": []map[string]any{{"name": user, "default": defaultAccount}}}
+	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users", users, nil)
+	return err
+}
