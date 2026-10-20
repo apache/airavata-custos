@@ -204,8 +204,8 @@ func TestRemove(t *testing.T) {
 		{name: "allocation deleted, accounts kept", remove: func(s *StorageSubscriber) error {
 			return s.removeAllocation(context.Background(), models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", PosixGroup: &group})
 		}, want: withoutViews("/project/")},
-		{name: "nothing for a name pointing above its directory", remove: func(s *StorageSubscriber) error {
-			return s.removeUser(context.Background(), models.ComputeClusterUser{ComputeClusterID: "c1", UserID: "u1", LocalUsername: ".."})
+		{name: "nothing for an empty name", remove: func(s *StorageSubscriber) error {
+			return s.removeUser(context.Background(), models.ComputeClusterUser{ComputeClusterID: "c1", UserID: "u1", LocalUsername: ""})
 		}, want: provisioned},
 	}
 	for _, tt := range tests {

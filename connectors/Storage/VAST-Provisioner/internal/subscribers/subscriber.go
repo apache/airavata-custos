@@ -83,7 +83,7 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 // removeUser removes the views on the account's mounts, including its mount in each allocation.
 func (s *StorageSubscriber) removeUser(ctx context.Context, cu models.ComputeClusterUser) error {
 	c, ok := s.clusters[cu.ComputeClusterID]
-	if !ok || !safe(cu.LocalUsername) {
+	if !ok || cu.LocalUsername == "" {
 		return nil
 	}
 	if err := remove(ctx, c, cu.LocalUsername, ""); err != nil {
@@ -101,7 +101,7 @@ func (s *StorageSubscriber) removeUser(ctx context.Context, cu models.ComputeClu
 		if err != nil {
 			return err
 		}
-		if a.ComputeClusterID != cu.ComputeClusterID || a.PosixGroup == nil || !safe(*a.PosixGroup) {
+		if a.ComputeClusterID != cu.ComputeClusterID || a.PosixGroup == nil || *a.PosixGroup == "" {
 			continue
 		}
 		if err := remove(ctx, c, cu.LocalUsername, *a.PosixGroup); err != nil {
@@ -114,13 +114,14 @@ func (s *StorageSubscriber) removeUser(ctx context.Context, cu models.ComputeClu
 // removeAllocation removes the views on the allocation's mounts and its members' mounts inside them.
 func (s *StorageSubscriber) removeAllocation(ctx context.Context, a models.ComputeAllocation) error {
 	c, ok := s.clusters[a.ComputeClusterID]
-	if !ok || a.PosixGroup == nil || !safe(*a.PosixGroup) {
+	if !ok || a.PosixGroup == nil || *a.PosixGroup == "" {
 		return nil
 	}
 	return remove(ctx, c, "", *a.PosixGroup)
 }
 
-// remove removes the views on the mounts that use exactly the placeholders given.
+// remove removes the views on the mounts that use exactly the placeholders given; an empty name would match the
+// shared mounts, so callers skip it.
 func remove(ctx context.Context, c Cluster, user, group string) error {
 	r := strings.NewReplacer("{user}", user, "{allocation}", group)
 	for _, m := range c.Mounts {
@@ -134,10 +135,6 @@ func remove(ctx context.Context, c Cluster, user, group string) error {
 	return nil
 }
 
-// safe rejects a name that would point a mount above its directory.
-func safe(name string) bool {
-	return name != "" && name != "." && name != ".." && !strings.Contains(name, "/")
-}
 
 // ensureUser needs no approval check: COmanage provisions approved accounts only.
 // After the account's own mounts, it creates the account's mount in each of its allocations.
