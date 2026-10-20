@@ -68,31 +68,31 @@ func TestSubscriberSpansOpenUnderParent(t *testing.T) {
 	sr := setupRecorder(t)
 
 	core := mockCoreServiceWithError(errors.New("mock get failed"))
-	sub := NewAssociationSubscriber(nil, nil, core, 0, 0)
+	sub := NewAssociationSubscriber(nil, nil, core, fakeMappings(nil), 0, 0)
 
 	ctx, root := tracing.Start(context.Background(), "test.parent")
 	rootTrace := root.SpanContext().TraceID()
 	rootSpan := root.SpanContext().SpanID()
 
-	sub.SubscribeToComputeAllocationCreation(ctx, models.ComputeAllocation{
+	sub.SubscribeToComputeAllocationChange(ctx, models.ComputeAllocation{
 		ID: "alloc-1", ComputeClusterID: "cluster-1",
 	})
-	sub.SubscribeToComputeAllocationResourceMappingCreation(ctx, models.ComputeAllocationResourceMapping{
+	sub.SubscribeToComputeAllocationResourceMappingChange(ctx, models.ComputeAllocationResourceMapping{
 		ID: "mapping-1", ComputeAllocationID: "alloc-1",
 	})
-	sub.SubscribeToComputeAllocationMembershipCreation(ctx, models.ComputeAllocationMembership{
+	sub.SubscribeToComputeAllocationMembershipChange(ctx, models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
 	})
-	sub.SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx, models.ComputeAllocationMembershipResourceOverride{
+	sub.SubscribeToComputeAllocationMembershipResourceOverrideChange(ctx, models.ComputeAllocationMembershipResourceOverride{
 		ID: "override-1", ComputeAllocationMembershipID: "mem-1",
 	})
 	root.End()
 
 	want := []string{
-		"slurm.compute_allocation_create",
-		"slurm.compute_allocation_resource_mapping_create",
-		"slurm.compute_allocation_membership_create",
-		"slurm.compute_allocation_membership_resource_override_create",
+		"slurm.compute_allocation_change",
+		"slurm.compute_allocation_resource_mapping_change",
+		"slurm.compute_allocation_membership_change",
+		"slurm.compute_allocation_membership_resource_override_change",
 	}
 
 	ended := sr.Ended()
@@ -114,15 +114,15 @@ func TestSubscriberSpansRecordErrorOnDownstreamFailure(t *testing.T) {
 	sr := setupRecorder(t)
 
 	core := mockCoreServiceWithError(errors.New("downstream failure"))
-	sub := NewAssociationSubscriber(nil, nil, core, 0, 0)
+	sub := NewAssociationSubscriber(nil, nil, core, fakeMappings(nil), 0, 0)
 
 	ctx, root := tracing.Start(context.Background(), "test.parent")
-	sub.SubscribeToComputeAllocationCreation(ctx, models.ComputeAllocation{
+	sub.SubscribeToComputeAllocationChange(ctx, models.ComputeAllocation{
 		ID: "alloc-err", ComputeClusterID: "cluster-err",
 	})
 	root.End()
 
-	s := findSpan(sr.Ended(), "slurm.compute_allocation_create")
+	s := findSpan(sr.Ended(), "slurm.compute_allocation_change")
 	if s == nil {
 		t.Fatalf("expected slurm.compute_allocation_create span")
 	}

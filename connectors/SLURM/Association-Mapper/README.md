@@ -19,7 +19,16 @@
 
 # SLURM Association-Mapper
 
-SLURM association creation logic lives in this plugin. It is triggered when the allocation manager has processed an allocation request and released it to downstream handlers. It talks to `slurmrestd` to manage accounts, associations, and TRES limits.
+Keeps Slurm accounts, users and associations in step with Custos through `slurmrestd`. Events apply each change; a
+sweep every `association_reconcile_interval` (default 5m) is the fallback and removes what Custos no longer names.
+
+| Custos event | Slurm |
+|---|---|
+| Allocation or resource mapping changed | The account with all mappings' limits and its active members, or the members removed |
+| Membership or override changed | The member's association, or its removal |
+| Cluster account provisioned or deleted | The user with the no-jobs `none` default, after `association_provision_grace` (default 30s), or its removal |
+
+Slurm refuses removals while jobs run, so such an association is blocked until the sweep can remove it.
 
 This package is part of the root `github.com/apache/airavata-custos` module.
 

@@ -31,6 +31,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/internal/connectors/health"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -39,7 +40,7 @@ import (
 // Type is the connector type in the config file and the subscriber name on the bus.
 const Type = "slurm-association-mapper"
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion string
@@ -99,10 +100,10 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	subscriber := subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService, reconcileInterval, provisionGrace)
+	subscriber := subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService, store.NewComputeAllocationResourceMappingStore(database), reconcileInterval, provisionGrace)
 	subscriber.RegisterSubscribers(Type)
 
-	// The sweep, not the events above, is what guarantees associations exist.
+	// The sweep is the fallback for lost events and refused removals.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

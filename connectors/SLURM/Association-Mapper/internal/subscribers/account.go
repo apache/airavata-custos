@@ -19,232 +19,90 @@ package subscribers
 
 import (
 	"context"
-	"log/slog"
-	"time"
+	"errors"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
-	"github.com/apache/airavata-custos/internal/audit"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context.Context, computeAllocation models.ComputeAllocation) error {
-	ctx = audit.WithSource(ctx, "slurm")
-	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_create")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("slurm.allocation_id", computeAllocation.ID),
-		attribute.String("slurm.cluster_id", computeAllocation.ComputeClusterID),
-	)
-
-	slog.InfoContext(ctx, "Received compute allocation creation event", "account", computeAllocation)
-
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	cluster, err := a.coreService.GetComputeCluster(ctx, computeAllocation.ComputeClusterID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get compute cluster for allocation creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get compute cluster. Error: "+err.Error())
-		return err
-	}
-
-	project, err := a.coreService.GetProject(ctx, computeAllocation.ProjectID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get project for allocation creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get project. Error: "+err.Error())
-		return err
-	}
-
-	pi, err := a.coreService.GetUser(ctx, project.ProjectPIID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get project PI for allocation creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get project PI. Error: "+err.Error())
-		return err
-	}
-
-	organization, err := a.coreService.GetOrganization(ctx, pi.OrganizationID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get organization for allocation creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to get organization. Error: "+err.Error())
-		return err
-	}
-
-	account := client.Account{
-		Name:         slurmAccount(computeAllocation.Name),
-		Description:  computeAllocation.Name,
-		Organization: organization.Name,
-	}
-
-	err = a.slurmClient.CreateAccount(account, cluster.Name) // TODO: where to get cluster name from?
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create SLURM account", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationCreationFailed", "compute_allocation", computeAllocation.ID, "Failed to create SLURM account. Error: "+err.Error())
-		return err
-	}
-
-	a.recordAuditEvent(ctx, "ComputeAllocationCreationSucceeded", "compute_allocation", computeAllocation.ID, "Successfully created SLURM account for compute allocation.")
-	slog.InfoContext(ctx, "Successfully created SLURM account for compute allocation", "account", account)
-	return nil
+func (a *AssociationSubscriber) SubscribeToComputeAllocationChange(ctx context.Context, allocation models.ComputeAllocation) error {
+	return a.handleEvent(ctx, "compute_allocation_change", allocation.ID, func(ctx context.Context) error { return a.syncAccount(ctx, allocation) })
 }
 
-// SubscribeToComputeAllocationDeletion revokes every member's access when the
-// allocation is deleted. The Slurm account is left in place so its job history
-// stays attributable.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context.Context, computeAllocation models.ComputeAllocation) error {
-	ctx = audit.WithSource(ctx, "slurm")
-	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_delete")
-	defer span.End()
-	span.SetAttributes(attribute.String("slurm.allocation_id", computeAllocation.ID))
-
-	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-		slog.ErrorContext(ctx, "Failed to remove associations for deleted allocation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationDeletionFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
-		return err
-	}
-	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deleted allocation.")
-	return nil
+func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingChange(ctx context.Context, mapping models.ComputeAllocationResourceMapping) error {
+	return a.handleEvent(ctx, "compute_allocation_resource_mapping_change", mapping.ID, func(ctx context.Context) error {
+		return a.syncAccount(ctx, models.ComputeAllocation{ID: mapping.ComputeAllocationID})
+	})
 }
 
-// SubscribeToComputeAllocationUpdate keeps cluster access in sync with the
-// allocation. An allocation that stops being active loses every association,
-// and one that becomes active again has them restored.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.Context, computeAllocation models.ComputeAllocation) error {
-	ctx = audit.WithSource(ctx, "slurm")
-	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
-	defer span.End()
-	span.SetAttributes(attribute.String("slurm.allocation_id", computeAllocation.ID))
-
-	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	if activeAllocation(computeAllocation) {
-		if err := a.restoreAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-			slog.ErrorContext(ctx, "Failed to restore associations for reactivated allocation", "error", err)
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to restore associations. Error: "+err.Error())
+func (a *AssociationSubscriber) syncAccount(ctx context.Context, allocation models.ComputeAllocation) error {
+	current, err := a.coreService.GetComputeAllocation(ctx, allocation.ID)
+	if err == nil {
+		allocation = *current
+	} else if !errors.Is(err, service.ErrNotFound) || allocation.Name == "" {
+		return err
+	}
+	cluster, err := a.slurmCluster(ctx, allocation.ComputeClusterID)
+	if err != nil || cluster == "" {
+		return err
+	}
+	var wants []client.Association
+	var settling error
+	if current != nil && allocation.Status == models.ACTIVE {
+		if wants, err = a.accountAssociations(ctx, cluster, allocation); err != nil && !errors.Is(err, errNotProvisioned) {
 			return err
 		}
-		a.recordAuditEvent(ctx, "ComputeAllocationProvisioned", "compute_allocation", computeAllocation.ID, "Restored cluster associations for the active allocation.")
-		return nil
+		settling = err
 	}
-
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-		slog.ErrorContext(ctx, "Failed to remove associations for deactivated allocation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
+	if err := a.syncAssociations(ctx, client.AssocFilter{Cluster: cluster, Account: slurmAccount(allocation.Name)}, wants); err != nil {
 		return err
 	}
-	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deactivated allocation.")
-	return nil
+	return settling
 }
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreation(ctx context.Context, mapping models.ComputeAllocationResourceMapping) error {
-	ctx = audit.WithSource(ctx, "slurm")
-	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_resource_mapping_create")
-	defer span.End()
-	span.SetAttributes(attribute.String("slurm.allocation_id", mapping.ComputeAllocationID))
-
-	slog.InfoContext(ctx, "Received compute allocation resource mapping creation event", "mapping", mapping)
-
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	allocation, err := a.coreService.GetComputeAllocation(ctx, mapping.ComputeAllocationID)
+// accountAssociations puts every mapping in one record, since Slurm replaces the whole record on each write.
+// It returns errNotProvisioned beside the rest while a member's account settles, so the event is retried.
+func (a *AssociationSubscriber) accountAssociations(ctx context.Context, cluster string, allocation models.ComputeAllocation) ([]client.Association, error) {
+	resources, err := a.coreService.ListResourcesForAllocation(ctx, allocation.ID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get compute allocation for resource mapping creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to get compute allocation. Error: "+err.Error())
-		return err
+		return nil, err
 	}
-
-	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get compute cluster for resource mapping creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to get compute cluster. Error: "+err.Error())
-		return err
-	}
-	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
-
-	resource, err := a.coreService.GetComputeAllocationResource(ctx, mapping.ComputeAllocationResourceID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get compute allocation resource for resource mapping creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to get compute allocation resource. Error: "+err.Error())
-		return err
-	}
-
-	grpTres := []client.TRES{}
-
-	if mapping.ResourceAmount > 0 {
-
-		if resource.ResourceType == "" {
-			slog.ErrorContext(ctx, "Resource type is empty for resource mapping creation", "mapping", mapping)
-			span.SetStatus(codes.Error, "resource type is empty")
-			a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Resource type is empty for resource mapping creation")
-			return errEmptyResourceType
+	var mappings []models.ComputeAllocationResourceMapping
+	for _, r := range resources {
+		m, err := a.mappings.FindByPair(ctx, allocation.ID, r.ID)
+		if err != nil {
+			return nil, err
 		}
-
-		grpTres = append(grpTres, tresFor(resource.ResourceType, mapping.ResourceAmount))
-	}
-
-	grpTresMins := []client.TRES{}
-	if mapping.ResourceTime > 0 {
-
-		if resource.ResourceType == "" {
-			slog.ErrorContext(ctx, "Resource type is empty for resource mapping creation", "mapping", mapping)
-			span.SetStatus(codes.Error, "resource type is empty")
-			a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Resource type is empty for resource mapping creation")
-			return errEmptyResourceType
+		if m != nil {
+			mappings = append(mappings, *m)
 		}
-
-		grpTresMins = append(grpTresMins, tresFor(resource.ResourceType, mapping.ResourceTime))
 	}
-
-	limits := client.AssocLimits{
-		GrpTRES:     grpTres,
-		GrpTRESMins: grpTresMins,
-	}
-
-	association := client.Association{
-		Account: slurmAccount(allocation.Name),
-		Cluster: cluster.Name,
-		Limits:  limits,
-	}
-
-	err = a.slurmClient.UpsertAssociation(association)
+	limits, err := tresLimits(ctx, a, mappings, func(m models.ComputeAllocationResourceMapping) tresGrant {
+		return tresGrant{m.ComputeAllocationResourceID, m.ResourceAmount, m.ResourceTime}
+	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to upsert association for membership resource override creation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationFailed", "compute_allocation_resource_mapping", mapping.ID, "Failed to upsert association. Error: "+err.Error())
-		return err
-	} else {
-		slog.InfoContext(ctx, "Successfully upserted association for membership resource override creation", "association", association)
-		a.recordAuditEvent(ctx, "ComputeAllocationResourceMappingCreationSucceeded", "compute_allocation_resource_mapping", mapping.ID, "Successfully upserted association for compute allocation resource mapping creation")
+		return nil, err
 	}
-	return nil
+	wants := []client.Association{{Account: slurmAccount(allocation.Name), Cluster: cluster, Limits: limits}}
+	members, err := a.coreService.ListMembersForAllocation(ctx, allocation.ID)
+	if err != nil {
+		return nil, err
+	}
+	var settling error
+	for _, m := range members {
+		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
+			continue
+		}
+		if !a.readyForAssociation(*m.ProvisionedAt) {
+			settling = errNotProvisioned
+			continue
+		}
+		assoc, err := a.userAssociation(ctx, cluster, allocation, m.LocalUsername, m.ID)
+		if err != nil {
+			return nil, err
+		}
+		wants = append(wants, assoc)
+	}
+	return wants, settling
 }

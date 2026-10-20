@@ -68,6 +68,20 @@ func (c *Client) CreateAccount(a Account, cluster string) error {
 	return err
 }
 
+func (c *Client) ListClusters() ([]string, error) {
+	var out struct {
+		Clusters []struct{ Name string } `json:"clusters"`
+	}
+	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/clusters", nil, &out); err != nil {
+		return nil, err
+	}
+	names := make([]string, len(out.Clusters))
+	for i, cl := range out.Clusters {
+		names[i] = cl.Name
+	}
+	return names, nil
+}
+
 func (c *Client) DeleteAccount(name string) error {
 	_, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/account/"+name, nil, nil)
 	return err
