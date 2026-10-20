@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 )
 
@@ -120,6 +121,41 @@ func TestViewPolicyID(t *testing.T) {
 			id, err := New(srv.URL, "u", "p", 1).ViewPolicyID(context.Background(), "local-access")
 			if id != tt.want || (err != nil) != tt.wantErr {
 				t.Fatalf("id=%d err=%v", id, err)
+			}
+		})
+	}
+}
+
+// Make sure only the views on and under the path go, not a prefix sibling's, and a refused delete is an error.
+func TestRemoveViews(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  int
+		want    []string
+		wantErr bool
+	}{
+		{name: "removed", status: 200, want: []string{"/api/views/1/", "/api/views/2/"}},
+		{name: "refused", status: 503, want: []string{"/api/views/1/"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var deleted []string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.Method {
+				case http.MethodPost:
+					_, _ = w.Write([]byte(`{"access":"fresh"}`))
+				case http.MethodGet:
+					_, _ = w.Write([]byte(`[{"id":1,"path":"/project/proj-a","tenant_id":1},{"id":2,"path":"/project/proj-a/custos-jdoe","tenant_id":1},
+						{"id":3,"path":"/project/proj-ab","tenant_id":1}]`))
+				case http.MethodDelete:
+					deleted = append(deleted, r.URL.Path)
+					w.WriteHeader(tt.status)
+				}
+			}))
+			defer srv.Close()
+			err := New(srv.URL, "u", "p", 1).RemoveViews(context.Background(), "/project/proj-a")
+			if (err != nil) != tt.wantErr || !slices.Equal(deleted, tt.want) {
+				t.Fatalf("err=%v deleted=%v, want %v", err, deleted, tt.want)
 			}
 		})
 	}

@@ -20,7 +20,7 @@
 # VAST-Provisioner
 
 Creates directories, views and quotas on each configured cluster's VAST through the VMS REST API, once the COmanage
-Identity-Provisioner has provisioned the account or the allocation's group. Nothing is changed once it exists, and nothing is deleted.
+Identity-Provisioner has provisioned the account or the allocation's group. Nothing is changed once it exists; deleting either removes its views and keeps its files.
 
 The directories come from each cluster's `targets` list in the config. Each entry's `path`, `owner` and `group` are
 templates over `{user}`, the account's username, and `{allocation}`, the allocation's group; the ones it uses decide
@@ -36,6 +36,8 @@ fields on a view. The policy is looked up once at startup, and Custos does not s
 | `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
 | `compute_allocation::group_provision` | The project's directories and each provisioned member's, once the group's first member puts it on the cluster |
 | `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
+| `compute_cluster_user::delete` | Removal of the views on the account's directories, including its directory in each project |
+| `compute_allocation::delete` | Removal of the views on the project's directories and its members' directories inside them |
 | Startup, then every 24 hours | Everything, for every account and allocation on each cluster |
 
 Each event creates only what it is about, so a failed delivery names the user it is for and can be retried alone.
@@ -51,6 +53,7 @@ VAST admins make these changes before the connector is enabled.
 | The COmanage LDAP is a VMS user-directory provider | VMS resolves owners only from its providers; Custos users and `proj-*` groups are otherwise unknown and every create retries |
 | The service account may create folders, views and quotas | The account the connector logs in with |
 | The view policy in `vast.view_policy` exists | Used for every view the connector creates |
+| The service account may delete views | Removals |
 
 VMS drops setgid from `create_dir_mode` (a `2770` request yields `0770`), so folders configured with setgid, such as
 `/project/{allocation}`, `shared` and `/project/{allocation}/{user}`, come out without it and files in them do not

@@ -30,6 +30,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -94,6 +95,30 @@ func (c *Client) ViewPolicyID(ctx context.Context, name string) (int, error) {
 		return 0, fmt.Errorf("vast: view policy %q not found", name)
 	}
 	return found[0].ID, nil
+}
+
+// RemoveViews deletes the views on path and under it; files and quotas stay.
+func (c *Client) RemoveViews(ctx context.Context, path string) error {
+	token, err := c.login(ctx)
+	if err != nil {
+		return err
+	}
+	var views []struct {
+		ID   int
+		Path string
+	}
+	if err := c.do(ctx, token, http.MethodGet, "views/?tenant_id="+strconv.Itoa(c.tenantID), nil, &views); err != nil {
+		return err
+	}
+	for _, v := range views {
+		if v.Path != path && !strings.HasPrefix(v.Path, path+"/") {
+			continue
+		}
+		if err := c.do(ctx, token, http.MethodDelete, fmt.Sprintf("views/%d/", v.ID), nil, nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Client) create(ctx context.Context, path string, body map[string]any, exists func(token string) bool) error {

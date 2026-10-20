@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -69,10 +71,11 @@ func allocationWithMembers() *service.CoreServiceMock {
 	}
 }
 
-// recordingVMS stands in for VMS and records each create as "<kind> <path>".
-func recordingVMS(t *testing.T) (Cluster, *[]string) {
+// recordingVMS stands in for VMS and records each create as "<kind> <path>", starting from held.
+// A deleted view becomes "removed".
+func recordingVMS(t *testing.T, held ...string) (Cluster, *[]string) {
 	t.Helper()
-	var log []string
+	log := slices.Clone(held)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body struct{ Path string }
 		_ = json.NewDecoder(r.Body).Decode(&body)
@@ -84,7 +87,21 @@ func recordingVMS(t *testing.T) (Cluster, *[]string) {
 		case "/api/quotas/":
 			log = append(log, "quota "+body.Path)
 		case "/api/views/":
-			log = append(log, "view "+body.Path)
+			if r.Method != http.MethodGet {
+				log = append(log, "view "+body.Path)
+				return
+			}
+			var views []map[string]any
+			for i, e := range log {
+				if p, ok := strings.CutPrefix(e, "view "); ok {
+					views = append(views, map[string]any{"id": i, "path": p})
+				}
+			}
+			_ = json.NewEncoder(w).Encode(views)
+		default:
+			if id, err := strconv.Atoi(strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/views/"), "/")); err == nil && r.Method == http.MethodDelete {
+				log[id] = "removed"
+			}
 		}
 	}))
 	t.Cleanup(srv.Close)
@@ -164,6 +181,45 @@ func TestEnsureAllocation(t *testing.T) {
 			a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group, GroupProvisionedAt: tt.groupProvisionedAt}
 			if err := s.ensureAllocation(context.Background(), a); err != nil || !slices.Equal(*log, tt.want) {
 				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
+			}
+		})
+	}
+}
+
+// Make sure a deletion removes only its own views, keeps folders and quotas, and repeats harmlessly.
+func TestRemove(t *testing.T) {
+	group := "proj-a"
+	provisioned := join(jdoeOwn, groupMounts, jdoeMember, asmithMember)
+	withoutViews := func(of string) []string {
+		return slices.DeleteFunc(slices.Clone(provisioned), func(e string) bool { return strings.HasPrefix(e, "view "+of) })
+	}
+	tests := []struct {
+		name   string
+		remove func(*StorageSubscriber) error
+		want   []string
+	}{
+		{name: "account deleted, allocation kept", remove: func(s *StorageSubscriber) error {
+			return s.removeUser(context.Background(), models.ComputeClusterUser{ComputeClusterID: "c1", UserID: "u1", LocalUsername: "custos-jdoe"})
+		}, want: slices.DeleteFunc(withoutViews("/scratch/custos-jdoe"), func(e string) bool { return e == "view /project/proj-a/custos-jdoe" })},
+		{name: "allocation deleted, accounts kept", remove: func(s *StorageSubscriber) error {
+			return s.removeAllocation(context.Background(), models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", PosixGroup: &group})
+		}, want: withoutViews("/project/")},
+		{name: "nothing for a name pointing above its directory", remove: func(s *StorageSubscriber) error {
+			return s.removeUser(context.Background(), models.ComputeClusterUser{ComputeClusterID: "c1", UserID: "u1", LocalUsername: ".."})
+		}, want: provisioned},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, log := recordingVMS(t, provisioned...)
+			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+			for run := range 2 {
+				if err := tt.remove(s); err != nil {
+					t.Fatalf("run %d: %v", run+1, err)
+				}
+				left := slices.DeleteFunc(slices.Clone(*log), func(e string) bool { return e == "removed" })
+				if !slices.Equal(left, tt.want) {
+					t.Fatalf("run %d: left %v, want %v", run+1, left, tt.want)
+				}
 			}
 		})
 	}

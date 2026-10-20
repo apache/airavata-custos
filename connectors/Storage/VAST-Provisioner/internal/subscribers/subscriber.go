@@ -18,7 +18,7 @@
 // Package subscribers creates the configured directories and quotas on VAST
 // once COmanage has provisioned the account, the allocation's group, or both, since VAST resolves owners by name
 // from the LDAP that COmanage feeds. Mounts are created in config order, so
-// parents come first.
+// parents come first. Deleting an account or allocation removes its views and keeps its files.
 package subscribers
 
 import (
@@ -76,6 +76,67 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
 	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.removeUser)
+	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.removeAllocation)
+}
+
+// removeUser removes the views on the account's mounts, including its mount in each allocation.
+func (s *StorageSubscriber) removeUser(ctx context.Context, cu models.ComputeClusterUser) error {
+	c, ok := s.clusters[cu.ComputeClusterID]
+	if !ok || !safe(cu.LocalUsername) {
+		return nil
+	}
+	if err := remove(ctx, c, cu.LocalUsername, ""); err != nil {
+		return err
+	}
+	memberships, err := s.core.ListAllocationsForUser(ctx, cu.UserID)
+	if err != nil {
+		return err
+	}
+	for _, m := range memberships {
+		a, err := s.core.GetComputeAllocation(ctx, m.ComputeAllocationID)
+		if errors.Is(err, service.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if a.ComputeClusterID != cu.ComputeClusterID || a.PosixGroup == nil || !safe(*a.PosixGroup) {
+			continue
+		}
+		if err := remove(ctx, c, cu.LocalUsername, *a.PosixGroup); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeAllocation removes the views on the allocation's mounts and its members' mounts inside them.
+func (s *StorageSubscriber) removeAllocation(ctx context.Context, a models.ComputeAllocation) error {
+	c, ok := s.clusters[a.ComputeClusterID]
+	if !ok || a.PosixGroup == nil || !safe(*a.PosixGroup) {
+		return nil
+	}
+	return remove(ctx, c, "", *a.PosixGroup)
+}
+
+// remove removes the views on the mounts that use exactly the placeholders given.
+func remove(ctx context.Context, c Cluster, user, group string) error {
+	r := strings.NewReplacer("{user}", user, "{allocation}", group)
+	for _, m := range c.Mounts {
+		if m.uses("{user}") != (user != "") || m.uses("{allocation}") != (group != "") {
+			continue
+		}
+		if err := c.VMS.RemoveViews(ctx, r.Replace(m.Path)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// safe rejects a name that would point a mount above its directory.
+func safe(name string) bool {
+	return name != "" && name != "." && name != ".." && !strings.Contains(name, "/")
 }
 
 // ensureUser needs no approval check: COmanage provisions approved accounts only.
