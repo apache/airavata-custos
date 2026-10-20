@@ -26,7 +26,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// Make sure removing an account takes it off the person and deletes its primary group, binding first.
+// Make sure removing an account takes it off the person and unbinds its primary group, keeping the group.
 func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", userGroup: 55}
 	srv := mockComanageServer(t, reg)
@@ -41,7 +41,7 @@ func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
 	if len(reg.put) != 1 || strings.Contains(string(reg.put[0]), "jdoe") {
 		t.Errorf("expected one person update without jdoe, got %d: %s", len(reg.put), reg.put)
 	}
-	want := []string{"/unix_cluster/unix_cluster_groups/3.json", "/co_groups/55.json"}
+	want := []string{"/unix_cluster/unix_cluster_groups/3.json"}
 	if !slices.Equal(reg.deleted, want) {
 		t.Errorf("deleted = %v, want %v", reg.deleted, want)
 	}

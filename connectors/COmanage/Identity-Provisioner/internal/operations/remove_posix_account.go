@@ -32,7 +32,8 @@ import (
 
 // RemovePOSIXAccount removes what provisioning created for a cluster account:
 // the account and login name on the person, the admin group membership, and
-// the account's primary group. The person stays in the registry. It is safe
+// the primary group's cluster binding. The person, with its uidnumber, and the
+// group stay in the registry, so a later grant gets the same uid and gid. It is safe
 // to run again, anything already removed is skipped.
 func (o *Orchestrator) RemovePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
 	ctx, span := tracing.Start(ctx, "comanage.remove_posix_account")
@@ -65,7 +66,7 @@ func (o *Orchestrator) RemovePOSIXAccount(ctx context.Context, cu *models.Comput
 		return fmt.Errorf("find primary group: %w", err)
 	}
 	if groupID != 0 {
-		if err := o.removeCoGroup(groupID); err != nil {
+		if err := o.unbindCoGroup(groupID); err != nil {
 			return err
 		}
 	}
@@ -124,19 +125,18 @@ func ignoreNotFound(err error) error {
 	return err
 }
 
-// removeCoGroup unbinds a group from the UnixCluster, then deletes it.
-func (o *Orchestrator) removeCoGroup(groupID int) error {
+// unbindCoGroup takes a group off the UnixCluster, and so off the cluster's LDAP. The group and its gid
+// identifier stay, so a later grant rebinds the same gid.
+func (o *Orchestrator) unbindCoGroup(groupID int) error {
 	bindingID, err := o.c.FindUnixClusterGroup(groupID)
 	if err != nil {
 		return fmt.Errorf("find cluster group binding: %w", err)
 	}
-	if bindingID != 0 {
-		if err := ignoreNotFound(o.c.DeleteUnixClusterGroup(bindingID)); err != nil {
-			return fmt.Errorf("delete cluster group binding: %w", err)
-		}
+	if bindingID == 0 {
+		return nil
 	}
-	if err := ignoreNotFound(o.c.DeleteCoGroup(groupID)); err != nil {
-		return fmt.Errorf("delete group: %w", err)
+	if err := ignoreNotFound(o.c.DeleteUnixClusterGroup(bindingID)); err != nil {
+		return fmt.Errorf("delete cluster group binding: %w", err)
 	}
 	return nil
 }
