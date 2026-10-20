@@ -135,7 +135,6 @@ func remove(ctx context.Context, c Cluster, user, group string) error {
 	return nil
 }
 
-
 // ensureUser needs no approval check: COmanage provisions approved accounts only.
 // After the account's own mounts, it creates the account's mount in each of its allocations.
 func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClusterUser) error {
