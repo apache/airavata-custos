@@ -30,6 +30,7 @@ import {
   addMember,
   approveChangeRequest,
   createAllocation,
+  deleteAllocation,
   getAllocation,
   getAllocationUsedSU,
   getChangeRequest,
@@ -122,6 +123,15 @@ export function useCreateAllocation() {
       return created;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
+  });
+}
+
+export function useDeleteAllocation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAllocation,
+    // The allocation stays until an admin approves, so only the pending deletions change.
+    onSuccess: () => client.invalidateQueries({ queryKey: ["deletion-requests"] }),
   });
 }
 

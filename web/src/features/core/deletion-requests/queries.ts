@@ -18,29 +18,22 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteAllocation } from "@/features/core/allocations/api";
 import { allocationKeys } from "@/features/core/allocations/queries";
 import { clusterAccountKeys } from "@/features/core/cluster-accounts/queries";
-import type { DeletionRequest } from "@/generated/core/zod.gen";
-import { type DeletionReview, listDeletionRequests, reviewDeletion } from "./api";
+import { type DeletionRequest, zGetDeletionRequestsResponse } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
+
+export type DeletionReview = "approve" | "deny";
 
 export const deletionRequestKeys = { all: ["deletion-requests"] as const };
 
 export function useDeletionRequests(enabled = true) {
   return useQuery({
     queryKey: deletionRequestKeys.all,
-    queryFn: listDeletionRequests,
+    queryFn: async () => zGetDeletionRequestsResponse.parse(await apiFetch("/deletion-requests")) ?? [],
     enabled,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
-  });
-}
-
-export function useRequestAllocationDeletion() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: deleteAllocation,
-    onSuccess: () => client.invalidateQueries({ queryKey: deletionRequestKeys.all }),
   });
 }
 
@@ -48,7 +41,7 @@ export function useReviewDeletion() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ row, action }: { row: DeletionRequest; action: DeletionReview }) =>
-      reviewDeletion(row, action),
+      apiFetch(`/deletion-requests/${row.entity_type}/${row.entity_id}/${action}`, { method: "POST" }),
     onSuccess: () =>
       Promise.all(
         [deletionRequestKeys.all, allocationKeys.all, clusterAccountKeys.all].map((queryKey) =>

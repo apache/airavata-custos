@@ -18,8 +18,11 @@
 "use client";
 
 import { toast } from "sonner";
-import type { DeletionReview } from "@/features/core/deletion-requests/api";
-import { useDeletionRequests, useReviewDeletion } from "@/features/core/deletion-requests/queries";
+import {
+  type DeletionReview,
+  useDeletionRequests,
+  useReviewDeletion,
+} from "@/features/core/deletion-requests/queries";
 import type { DeletionRequest } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
