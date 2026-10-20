@@ -179,6 +179,17 @@ type ProjectListFilter struct {
 }
 
 // ComputeAllocationStore defines persistence operations for compute allocations.
+type DeletionRequestStore interface {
+	// Create records a request to delete an entity, keeping an earlier one for the same entity.
+	Create(ctx context.Context, tx *sql.Tx, r *models.DeletionRequest) error
+	// Find returns the request to delete the entity, or nil if none is pending.
+	Find(ctx context.Context, entityType, entityID string) (*models.DeletionRequest, error)
+	// List returns every pending request, oldest first, with the entity's name and cluster.
+	List(ctx context.Context) ([]models.DeletionRequest, error)
+	// Delete removes the request to delete the entity within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, entityType, entityID string) error
+}
+
 type ComputeAllocationStore interface {
 	// FindByID returns the allocation with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error)

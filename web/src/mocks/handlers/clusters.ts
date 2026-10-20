@@ -32,6 +32,9 @@ const clusterUsers = z.array(zComputeClusterUser).parse(clusterUsersFixture);
 const clusterAccounts = z.array(zClusterAccountResponse).parse(clusterAccountsFixture);
 
 export const clustersHandlers = [
+  http.get("*/api/v1/deletion-requests", () => HttpResponse.json([])),
+  http.post("*/api/v1/deletion-requests/:entityType/:id/:action", () => new HttpResponse(null, { status: 204 })),
+  http.delete("*/api/v1/compute-allocations/:id", () => new HttpResponse(null, { status: 202 })),
   http.get("*/api/v1/compute-clusters", () => HttpResponse.json(clusters)),
 
   http.get("*/api/v1/compute-cluster-users", ({ request }) => {

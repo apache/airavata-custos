@@ -106,6 +106,10 @@ func (s *Server) routes() {
 	s.router.RequireScoped("GET /compute-allocations/{id}", s.canReadAllocation, s.getComputeAllocation)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}", models.AllocationsWrite, s.deleteComputeAllocation)
 
+	s.router.RequirePrivilege("GET /deletion-requests", models.ClustersRead, s.listDeletionRequests)
+	s.router.RequireScoped("POST /deletion-requests/{entity_type}/{id}/approve", canReviewDeletion, s.approveDeletion)
+	s.router.RequireScoped("POST /deletion-requests/{entity_type}/{id}/deny", canReviewDeletion, s.denyDeletion)
+
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/summary", models.AllocationsRead, s.listComputeAllocationResourceSummaries)

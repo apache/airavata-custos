@@ -199,8 +199,8 @@ definitions:
       end_time:
         type: string
       group_provisioned_at:
-        description: When the group gained its first member and so reached the
-          cluster; nil until then.
+        description: When the group gained its first member and so reached the cluster;
+          nil until then.
         type: string
       id:
         type: string
@@ -513,6 +513,23 @@ definitions:
       name:
         type: string
       type:
+        type: string
+    type: object
+  DeletionRequest:
+    properties:
+      cluster_name:
+        type: string
+      entity_id:
+        type: string
+      entity_type:
+        description: compute_cluster_user or compute_allocation
+        type: string
+      name:
+        description: The account's username or the allocation's name, when listed.
+        type: string
+      requested_at:
+        type: string
+      requested_by:
         type: string
     type: object
   DeliveryCounts:
@@ -2497,7 +2514,8 @@ paths:
       - Compute Allocations
   /compute-allocations/{id}:
     delete:
-      description: Removes the allocation with its memberships, resources and usage.
+      description: Once an admin approves, removes the allocation with its memberships,
+        resources and usage.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2505,8 +2523,8 @@ paths:
         required: true
         type: string
       responses:
-        "204":
-          description: No Content
+        "202":
+          description: Accepted
         "404":
           description: Not Found
           schema:
@@ -2516,7 +2534,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Delete a compute allocation
+      summary: Request deletion of a compute allocation
       tags:
       - Compute Allocations
     get:
@@ -3044,6 +3062,7 @@ paths:
       - Compute Cluster Users
   /compute-cluster-users/{id}:
     delete:
+      description: The account is deleted once an admin approves the request.
       parameters:
       - description: Compute cluster user ID
         in: path
@@ -3051,8 +3070,8 @@ paths:
         required: true
         type: string
       responses:
-        "204":
-          description: No Content
+        "202":
+          description: Accepted
         "404":
           description: Not Found
           schema:
@@ -3062,7 +3081,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Delete a compute cluster user
+      summary: Request deletion of a compute cluster user
       tags:
       - Compute Cluster Users
     get:
@@ -3376,6 +3395,97 @@ paths:
       summary: List configured connectors with their last known health
       tags:
       - Connectors
+  /deletion-requests:
+    get:
+      description: Cluster accounts and allocations whose deletion waits for an admin's
+        approval, oldest first.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/DeletionRequest'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List pending deletions
+      tags:
+      - Deletion Requests
+  /deletion-requests/{entity_type}/{id}/approve:
+    post:
+      description: Deletes the cluster account or allocation, which removes it from
+        the cluster.
+      parameters:
+      - description: compute_cluster_user | compute_allocation
+        in: path
+        name: entity_type
+        required: true
+        type: string
+      - description: Cluster account or allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: No pending deletion
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve a deletion
+      tags:
+      - Deletion Requests
+  /deletion-requests/{entity_type}/{id}/deny:
+    post:
+      description: Drops the request and keeps the cluster account or allocation.
+      parameters:
+      - description: compute_cluster_user | compute_allocation
+        in: path
+        name: entity_type
+        required: true
+        type: string
+      - description: Cluster account or allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: No pending deletion
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deny a deletion
+      tags:
+      - Deletion Requests
   /events/deliveries:
     get:
       description: Newest first, every status unless one is given. A pending delivery

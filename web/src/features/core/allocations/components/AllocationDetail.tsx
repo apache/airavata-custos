@@ -24,7 +24,9 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { DeleteButton } from "@/shared/ui/ConfirmDialog";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
-import { useAllocation, useAllocationMembers, useDeleteAllocation } from "../queries";
+import { useDeletionRequests, useRequestAllocationDeletion } from "@/features/core/deletion-requests/queries";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { useAllocation, useAllocationMembers } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
@@ -41,7 +43,8 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const { data: session } = useSession();
   const allocationQuery = useAllocation(allocationId);
   const membersQuery = useAllocationMembers(allocationId);
-  const remove = useDeleteAllocation();
+  const remove = useRequestAllocationDeletion();
+  const deletions = useDeletionRequests(can.allocationsWrite);
   useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
 
   if (allocationQuery.isLoading) return <CardSkeleton />;
@@ -62,17 +65,23 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <AllocationDetailHeader allocation={allocation} memberCount={memberCount} />
-        <DeleteButton
-          noun="Allocation"
-          id={allocation.id}
-          name={allocation.name}
-          mutation={remove}
-          redirectTo="/allocations"
-          allowed={can.allocationsWrite}
-          reason={requires("allocationsWrite")}
-        >
-          Its members, resources and usage records are deleted with it. This cannot be undone.
-        </DeleteButton>
+        {deletions.data?.some((d) => d.entity_id === allocation.id) ? (
+          <StatusBadge variant="pending" label="Deletion pending" />
+        ) : (
+          <DeleteButton
+            noun="Allocation"
+            id={allocation.id}
+            name={allocation.name}
+            mutation={remove}
+            redirectTo="/allocations"
+            allowed={can.allocationsWrite}
+            reason={requires("allocationsWrite")}
+            requestOnly
+          >
+            Once an admin approves, its members, resources and usage records are deleted with it. This
+            cannot be undone.
+          </DeleteButton>
+        )}
       </div>
       <TabsRouter
         defaultValue="overview"

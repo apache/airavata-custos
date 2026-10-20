@@ -81,6 +81,7 @@ export function DeleteButton({
   redirectTo,
   allowed,
   reason,
+  requestOnly,
   children,
 }: {
   noun: "Allocation" | "Project";
@@ -90,9 +91,11 @@ export function DeleteButton({
   redirectTo: string;
   allowed: boolean;
   reason: string;
+  requestOnly?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const verb = requestOnly ? "Request deletion" : "Delete";
   const [open, setOpen] = React.useState(false);
   return (
     <>
@@ -105,18 +108,23 @@ export function DeleteButton({
           setOpen(true);
         }}
       >
-        Delete
+        {verb}
       </GuardedButton>
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
-        title={`Delete ${name}?`}
-        confirmLabel={`Delete ${noun.toLowerCase()}`}
+        title={requestOnly ? `Request deletion of ${name}?` : `Delete ${name}?`}
+        confirmLabel={requestOnly ? verb : `Delete ${noun.toLowerCase()}`}
         pending={mutation.isPending}
         error={mutation.error}
         onConfirm={() =>
           mutation.mutate(id, {
             onSuccess: () => {
+              if (requestOnly) {
+                toast.success(`Deletion of ${noun.toLowerCase()} ${name} awaits admin approval.`);
+                setOpen(false);
+                return;
+              }
               toast.success(`${noun} ${name} deleted.`);
               router.push(redirectTo);
             },

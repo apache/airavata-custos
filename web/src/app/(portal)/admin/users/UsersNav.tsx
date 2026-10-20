@@ -20,6 +20,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useClusterAccounts } from "@/features/core/cluster-accounts/queries";
+import { useDeletionRequests } from "@/features/core/deletion-requests/queries";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 
@@ -32,6 +33,12 @@ const TABS = [
     badge: "pending-cluster-accounts",
   },
   {
+    href: "/admin/users/deletion-approvals",
+    label: "Deletion Approvals",
+    ability: { action: "manage", subject: "Cluster" } as const,
+    badge: "pending-deletions",
+  },
+  {
     href: "/admin/users/roles",
     label: "Role Management",
     ability: { action: "manage", subject: "Role" } as const,
@@ -42,7 +49,14 @@ const TABS = [
 // other tabs too.
 function PendingClusterAccountsBadge() {
   const query = useClusterAccounts({ approval_status: "PENDING", limit: 1 });
-  const count = query.data?.total ?? 0;
+  return <PendingBadge count={query.data?.total ?? 0} />;
+}
+
+function PendingDeletionsBadge() {
+  return <PendingBadge count={useDeletionRequests().data?.length ?? 0} />;
+}
+
+function PendingBadge({ count }: { count: number }) {
   if (count === 0) return null;
   return (
     <span
@@ -81,7 +95,10 @@ export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
                 )}
               >
                 {tab.label}
-                {"badge" in tab && ability.can("read", "Cluster") ? <PendingClusterAccountsBadge /> : null}
+                {"badge" in tab && tab.badge === "pending-cluster-accounts" && ability.can("read", "Cluster") ? (
+                  <PendingClusterAccountsBadge />
+                ) : null}
+                {"badge" in tab && tab.badge === "pending-deletions" ? <PendingDeletionsBadge /> : null}
               </Link>
             </li>
           );

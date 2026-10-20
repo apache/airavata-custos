@@ -25,6 +25,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // @Summary	Create a compute allocation
@@ -69,20 +70,16 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, a)
 }
 
-// @Summary	Delete a compute allocation
-// @Description	Removes the allocation with its memberships, resources and usage.
+// @Summary	Request deletion of a compute allocation
+// @Description	Once an admin approves, removes the allocation with its memberships, resources and usage.
 // @Tags	Compute Allocations
 // @Security	BearerAuth
 // @Param	id	path	string	true	"Compute allocation ID"
-// @Success	204	"No Content"
+// @Success	202	"Accepted"
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id} [delete]
 func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request) {
-	if err := s.svc.DeleteComputeAllocation(r.Context(), r.PathValue("id")); err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	s.requestDeletion(w, r, service.DeletionOfAllocation)
 }
 
 // @Summary	Create a compute allocation diff

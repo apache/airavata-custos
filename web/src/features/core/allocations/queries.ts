@@ -30,7 +30,6 @@ import {
   addMember,
   approveChangeRequest,
   createAllocation,
-  deleteAllocation,
   getAllocation,
   getAllocationUsedSU,
   getChangeRequest,
@@ -123,15 +122,6 @@ export function useCreateAllocation() {
       return created;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
-  });
-}
-
-export function useDeleteAllocation() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: deleteAllocation,
-    // Marks lists stale without refetching the deleted allocation's own queries.
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
   });
 }
 

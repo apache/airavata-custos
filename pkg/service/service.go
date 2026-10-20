@@ -58,6 +58,7 @@ type Service struct {
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
 	auditTraces         store.AuditTraceStore
+	deletions           store.DeletionRequestStore
 	identityCache       *identityCache
 }
 
@@ -89,6 +90,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
+		deletions:           store.NewDeletionRequestStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -146,6 +148,7 @@ func NewWithStores(
 		roles:               roles,
 		userRoles:           userRoles,
 		auditTraces:         store.NewAuditTraceStore(database),
+		deletions:           store.NewDeletionRequestStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }

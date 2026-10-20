@@ -23,6 +23,7 @@ import (
 
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // @Summary	Create a compute cluster
@@ -173,19 +174,16 @@ func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request
 	common.WriteJSON(w, http.StatusOK, &cu)
 }
 
-// @Summary	Delete a compute cluster user
+// @Summary	Request deletion of a compute cluster user
+// @Description	The account is deleted once an admin approves the request.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
 // @Param	id	path	string	true	"Compute cluster user ID"
-// @Success	204	"No Content"
+// @Success	202	"Accepted"
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-cluster-users/{id} [delete]
 func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request) {
-	if err := s.svc.DeleteComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	s.requestDeletion(w, r, service.DeletionOfClusterUser)
 }
 
 // @Summary	List cluster accounts by approval status

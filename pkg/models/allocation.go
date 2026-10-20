@@ -64,6 +64,16 @@ type ComputeClusterUser struct {
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
 }
 
+// DeletionRequest is a deletion of a cluster account or an allocation that waits for an admin's approval.
+type DeletionRequest struct {
+	EntityType  string    `json:"entity_type"  db:"entity_type"` // compute_cluster_user or compute_allocation
+	EntityID    string    `json:"entity_id"    db:"entity_id"`
+	RequestedBy string    `json:"requested_by" db:"requested_by"`
+	RequestedAt time.Time `json:"requested_at" db:"requested_at"`
+	Name        string    `json:"name,omitempty"         db:"name"` // The account's username or the allocation's name, when listed.
+	ClusterName string    `json:"cluster_name,omitempty" db:"cluster_name"`
+}
+
 type ComputeAllocation struct {
 	ID               string           `json:"id"                 db:"id"`
 	ProjectID        string           `json:"project_id"         db:"project_id"`
