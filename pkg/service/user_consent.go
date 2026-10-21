@@ -45,7 +45,6 @@ type UsernameCheck struct {
 }
 
 // PendingUserAgreements returns the current agreement if the user has not accepted it.
-// SYSTEM users are never asked.
 func (s *Service) PendingUserAgreements(ctx context.Context, userID string) ([]models.UserAgreement, error) {
 	return s.agreements.ListPendingForUser(ctx, userID)
 }
