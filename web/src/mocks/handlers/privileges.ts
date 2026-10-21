@@ -34,6 +34,8 @@ const ALL_PRIVILEGES: Privilege[] = [
   "core:traces:read",
   "core:privileges:grant",
   "core:roles:manage",
+  "core:agreements:read",
+  "core:agreements:manage",
   "amie:packets:read",
   "amie:packets:write",
   "amie:replies:read",

@@ -17,6 +17,7 @@
 
 import { http, HttpResponse } from "msw";
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
+import { gateProfile } from "./agreements";
 import { effectivePrivileges } from "./privileges";
 
 type RoleDetail = (typeof fixture.roleDetails)[keyof typeof fixture.roleDetails];
@@ -26,7 +27,9 @@ type RoleDetail = (typeof fixture.roleDetails)[keyof typeof fixture.roleDetails]
 let user = { ...fixture.user };
 
 export const identityHandlers = [
-  http.get("*/api/v1/me", () => HttpResponse.json({ user, privileges: effectivePrivileges() })),
+  http.get("*/api/v1/me", () =>
+    HttpResponse.json({ user, privileges: effectivePrivileges(), ...gateProfile() }),
+  ),
   http.get("*/api/v1/users/:id/user-identities", ({ params }) =>
     HttpResponse.json(String(params.id) === fixture.user.id ? fixture.identities : []),
   ),

@@ -24,6 +24,42 @@ function looksLikeJwt(token: string | null | undefined): boolean {
   return typeof token === "string" && token.split(".").length === 3;
 }
 
+// Some IdPs hand out opaque access tokens; use the JWT-shaped
+// bearer for the backend call so the verifier accepts it.
+function backendBearer(accessToken?: string, idToken?: string): string | undefined {
+  return looksLikeJwt(accessToken) ? accessToken : (idToken ?? accessToken);
+}
+
+type ProfileToken = {
+  custosUserId?: string;
+  privileges?: Privilege[];
+  needsOnboarding?: boolean;
+  consentPending?: boolean;
+};
+
+async function loadProfile(token: object, bearer: string | undefined) {
+  try {
+    const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/me`, {
+      headers: { authorization: `Bearer ${bearer}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const body = (await res.json()) as {
+      user?: { id?: string };
+      privileges?: Privilege[];
+      onboarding?: { required?: boolean };
+      consent?: { pending?: unknown[] };
+    };
+    const t = token as ProfileToken;
+    t.custosUserId = body.user?.id;
+    t.privileges = body.privileges ?? [];
+    t.needsOnboarding = body.onboarding?.required === true;
+    t.consentPending = (body.consent?.pending?.length ?? 0) > 0;
+  } catch {
+    // On failure the token keeps what it had.
+  }
+}
+
 const isProduction = serverEnv.NODE_ENV === "production";
 const sessionCookieName = isProduction
   ? "__Secure-custos.session-token"
@@ -59,31 +95,13 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, trigger }) {
       if (account?.access_token) {
         (token as { accessToken?: string }).accessToken = account.access_token;
-        // Some IdPs hand out opaque access tokens; use the JWT-shaped
-        // bearer for the backend call so the verifier accepts it.
-        const bearer = looksLikeJwt(account.access_token)
-          ? account.access_token
-          : (account.id_token ?? account.access_token);
-        try {
-          const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/me`, {
-            headers: { authorization: `Bearer ${bearer}` },
-            cache: "no-store",
-          });
-          if (res.ok) {
-            const body = (await res.json()) as {
-              user?: { id?: string };
-              privileges?: Privilege[];
-            };
-            const t = token as { custosUserId?: string; privileges?: Privilege[] };
-            t.custosUserId = body.user?.id;
-            t.privileges = body.privileges ?? [];
-          }
-        } catch {
-          // The token stays without a Custos user, so the portal shows the no-access notice.
-        }
+        await loadProfile(token, backendBearer(account.access_token, account.id_token));
+      } else if (trigger === "update") {
+        const t = token as { accessToken?: string; idToken?: string };
+        await loadProfile(token, backendBearer(t.accessToken, t.idToken));
       }
       if (account?.id_token) {
         // Needed for the Keycloak end-session endpoint's id_token_hint.
@@ -95,14 +113,14 @@ export const authConfig: NextAuthConfig = {
       const t = token as {
         accessToken?: string | null;
         idToken?: string | null;
-        privileges?: Privilege[];
         sub?: string;
-        custosUserId?: string;
-      };
+      } & ProfileToken;
       if (t.accessToken) session.accessToken = t.accessToken;
       if (t.idToken) session.idToken = t.idToken;
       session.privileges = t.privileges ?? [];
       session.custosUserId = t.custosUserId;
+      session.needsOnboarding = t.needsOnboarding === true;
+      session.consentPending = t.consentPending === true;
       if (session.user) {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.
