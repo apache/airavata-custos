@@ -47,6 +47,8 @@ import * as React from "react";
 import { IdentitiesCell } from "./IdentitiesCell";
 import { RolesCell } from "./RolesCell";
 
+const USER_TYPE = { CLUSTER_LOCAL: "Cluster local", VIRTUAL: "Virtual", SYSTEM: "System" };
+
 export type AccountStatusFilter = ClusterAccountApproval | "ALL";
 
 const ACCOUNT_STATUS_LABELS: Record<AccountStatusFilter, string> = {
@@ -202,6 +204,7 @@ export function UsersTable({
       header: "Email",
       cell: (row) => <span className="text-muted-foreground">{row.email}</span>,
     },
+    { key: "type", header: "Type", cell: (row) => USER_TYPE[row.type] },
   ];
 
   for (const cluster of clusterAccounts?.clusters ?? []) {

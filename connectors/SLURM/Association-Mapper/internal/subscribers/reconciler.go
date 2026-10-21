@@ -20,6 +20,7 @@ package subscribers
 import (
 	"context"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
@@ -94,6 +95,11 @@ func (a *AssociationSubscriber) reconcile(ctx context.Context) {
 }
 
 func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster models.ComputeCluster) {
+	// Custos may list clusters this slurmdbd does not keep.
+	if hosted, err := a.slurmClient.ListClusters(); err != nil || !slices.Contains(hosted, cluster.Name) {
+		health.Record(a.name, cluster.ID, err)
+		return
+	}
 	clusterUsers, err := a.coreService.ListComputeClusterUsersByCluster(ctx, cluster.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Association reconciler: failed to list cluster users", "cluster_id", cluster.ID, "error", err)
@@ -111,11 +117,13 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 	}
 
 	desired := make(map[assocKey]struct{})
+	provisioned := make(map[string]bool, len(clusterUsers))
 	written := 0
 	for _, csu := range clusterUsers {
 		if csu.ProvisionedAt == nil {
 			continue
 		}
+		provisioned[csu.LocalUsername] = true
 		memberships, err := a.coreService.ListAllocationsForUser(ctx, csu.UserID)
 		if err != nil {
 			slog.ErrorContext(ctx, "Association reconciler: failed to list memberships", "user_id", csu.UserID, "error", err)
@@ -144,7 +152,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			}
 			// A user without the no-allocation association predates it, so the write also moves their default.
 			_, hasDefault := existing[assocKey{account: noAllocation, user: record.User}]
-			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault {
+			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && got.Limits.GrpSubmitJobs == nil && hasDefault {
 				continue
 			}
 			if err := a.writeAssociation(*record); err != nil {
@@ -157,6 +165,14 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 	}
 
 	removed := a.pruneStaleAssociations(ctx, cluster, existing, desired)
+	// A user left holding noAllocation without a provisioned account is one Custos no longer has.
+	for key := range existing {
+		if key.account == noAllocation && key.user != "" && !provisioned[key.user] {
+			if err := a.removeUser(ctx, cluster.Name, key.user); err != nil {
+				slog.ErrorContext(ctx, "Association reconciler: failed to remove Slurm user", "user", key.user, "error", err)
+			}
+		}
+	}
 	slog.DebugContext(ctx, "Association reconciler pass complete",
 		"cluster", cluster.Name, "written", written, "removed", removed)
 }
@@ -202,7 +218,7 @@ func (a *AssociationSubscriber) pruneStaleAssociations(ctx context.Context, clus
 			User:      assoc.User,
 			Partition: assoc.Partition,
 		}
-		if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+		if err := a.deleteAssociations(ctx, filter); err != nil {
 			slog.ErrorContext(ctx, "Association reconciler: failed to remove stale association",
 				"account", assoc.Account, "user", assoc.User, "partition", assoc.Partition, "error", err)
 			continue

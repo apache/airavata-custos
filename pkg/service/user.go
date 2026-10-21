@@ -237,6 +237,16 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	if existing == nil {
 		return ErrNotFound
 	}
+	// Each cluster account is deleted on its own first, so its connectors remove the access.
+	accounts, err := s.clusterUsers.FindByUser(ctx, id)
+	if err != nil {
+		return fmt.Errorf("list cluster accounts: %w", err)
+	}
+	for _, cu := range accounts {
+		if err := s.DeleteComputeClusterUser(ctx, cu.ID); err != nil {
+			return err
+		}
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.users.Delete(ctx, tx, id); err != nil {
 			return err

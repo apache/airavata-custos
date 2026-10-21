@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -111,6 +112,12 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	} else if existing != nil {
 		return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
 			ErrAlreadyExists, cu.UserID, cu.ComputeClusterID)
+	}
+	// A returning user gets back the username they left on the cluster, and no one else may take it.
+	if own, _, err := s.clusterUsers.Retired(ctx, cu.ComputeClusterID, cu.UserID, cu.LocalUsername); err != nil {
+		return nil, fmt.Errorf("lookup retired usernames: %w", err)
+	} else if own != "" {
+		cu.LocalUsername = own
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
@@ -248,7 +255,7 @@ func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, revi
 }
 
 func isLocalUsernameDuplicate(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_local_username")
+	return errors.Is(err, store.ErrUsernameHeld) || err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_local_username")
 }
 
 func isPairDuplicate(err error) bool {
@@ -360,6 +367,9 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu)
 	}); err != nil {
+		if isLocalUsernameDuplicate(err) {
+			return fmt.Errorf("%w: %s", ErrAlreadyExists, cu.LocalUsername)
+		}
 		return fmt.Errorf("update compute cluster user: %w", err)
 	}
 	return nil
@@ -422,4 +432,19 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 		return fmt.Errorf("delete compute cluster user: %w", err)
 	}
 	return nil
+}
+
+// ListUsernames returns the cluster's usernames, live and held.
+func (s *Service) ListUsernames(ctx context.Context, clusterID string) ([]models.ClusterUsername, error) {
+	return s.clusterUsers.ListUsernames(ctx, clusterID)
+}
+
+// ReleaseRetiredUsername frees a held username for anyone on the cluster.
+func (s *Service) ReleaseRetiredUsername(ctx context.Context, clusterID, localUsername, actorID string) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.clusterUsers.Release(ctx, tx, clusterID, localUsername); err != nil {
+			return err
+		}
+		return s.writeClusterUserAuditTx(ctx, tx, "CLUSTER_USERNAME_RELEASED", clusterID+"/"+localUsername, map[string]any{"actor_id": actorID})
+	})
 }

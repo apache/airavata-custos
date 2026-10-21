@@ -175,6 +175,31 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx
 	return nil
 }
 
+// SubscribeToComputeClusterUserDeletion removes the Slurm user of a deleted cluster account.
+func (a *AssociationSubscriber) SubscribeToComputeClusterUserDeletion(ctx context.Context, csu models.ComputeClusterUser) error {
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_cluster_user_delete")
+	defer span.End()
+	span.SetAttributes(attribute.String("slurm.user_id", csu.UserID))
+
+	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
+	defer cancel()
+
+	cluster, err := a.coreService.GetComputeCluster(fetchCtx, csu.ComputeClusterID)
+	if err == nil {
+		err = a.removeUser(fetchCtx, cluster.Name, csu.LocalUsername)
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to remove Slurm user for deleted cluster account", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeClusterUserDeletionFailed", "compute_cluster_user", csu.ID, "Failed to remove Slurm user. Error: "+err.Error())
+		return err
+	}
+	a.recordAuditEvent(ctx, "ComputeClusterUserDeprovisioned", "compute_cluster_user", csu.ID, "Removed the Slurm user for the deleted cluster account.")
+	return nil
+}
+
 // SubscribeToComputeAllocationMembershipDeletion removes the member's access
 // when the membership row itself goes away.
 func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(ctx context.Context, membership models.ComputeAllocationMembership) error {

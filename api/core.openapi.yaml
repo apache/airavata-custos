@@ -201,6 +201,19 @@ definitions:
       user_id:
         type: string
     type: object
+  ClusterUsername:
+    properties:
+      email:
+        type: string
+      held:
+        type: boolean
+      local_username:
+        type: string
+      since:
+        type: string
+      user_id:
+        type: string
+    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -3314,6 +3327,49 @@ paths:
       summary: Get a compute cluster by ID
       tags:
       - Compute Clusters
+  /compute-clusters/{id}/usernames:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ClusterUsername'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List a cluster's usernames
+      tags:
+      - Compute Cluster Users
+  /compute-clusters/{id}/usernames/{username}:
+    delete:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Retired username
+        in: path
+        name: username
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Release a retired username
+      tags:
+      - Compute Cluster Users
   /compute-clusters/{id}/users:
     get:
       parameters:

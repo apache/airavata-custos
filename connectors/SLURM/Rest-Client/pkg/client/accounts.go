@@ -72,3 +72,20 @@ func (c *Client) DeleteAccount(name string) error {
 	_, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/account/"+name, nil, nil)
 	return err
 }
+
+// DeleteUser deletes a user with all its associations.
+func (c *Client) DeleteUser(name string) error {
+	_, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/user/"+name, nil, nil)
+	return err
+}
+
+// ListClusters names the clusters this slurmdbd keeps accounting for.
+func (c *Client) ListClusters() ([]string, error) {
+	var out struct{ Clusters []struct{ Name string } }
+	_, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/clusters", nil, &out)
+	var names []string
+	for _, cl := range out.Clusters {
+		names = append(names, cl.Name)
+	}
+	return names, err
+}

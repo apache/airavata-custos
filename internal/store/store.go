@@ -112,8 +112,14 @@ type ComputeClusterUserStore interface {
 	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
 	// dropping fromUserID's rows on clusters where toUserID already has one.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
-	// Delete removes a mapping by ID within the provided transaction.
+	// Delete removes a mapping by ID within the provided transaction, holding its username for its user.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// Retired returns the username userID left on the cluster, and whether another user left localUsername there.
+	Retired(ctx context.Context, clusterID, userID, localUsername string) (own string, takenByOther bool, err error)
+	// ListUsernames returns the cluster's usernames with their user's email, held ones first, then by name.
+	ListUsernames(ctx context.Context, clusterID string) ([]models.ClusterUsername, error)
+	// Release frees a held username for anyone.
+	Release(ctx context.Context, tx *sql.Tx, clusterID, localUsername string) error
 }
 
 // UserIdentityStore defines persistence operations for the bindings between

@@ -37,13 +37,31 @@ type fakeSlurmClient struct {
 	defaults []string
 	deletes  []client.AssocFilter
 	existing []client.Association
+	// deleteErr stands for Slurm refusing a removal while jobs run.
+	deleteErr    error
+	deletedUsers []string
+	clusters     []string
 }
 
 func (f *fakeSlurmClient) DeleteAssociation(filter client.AssocFilter) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.deletes = append(f.deletes, filter)
-	return nil
+	return f.deleteErr
+}
+
+func (f *fakeSlurmClient) DeleteUser(name string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.deletedUsers = append(f.deletedUsers, name)
+	return f.deleteErr
+}
+
+func (f *fakeSlurmClient) ListClusters() ([]string, error) {
+	if f.clusters == nil {
+		return []string{"testcluster"}, nil
+	}
+	return f.clusters, nil
 }
 
 func (f *fakeSlurmClient) allDeletes() []client.AssocFilter {

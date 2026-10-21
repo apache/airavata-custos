@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -57,7 +58,7 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 		Account: slurmAccount(allocation.Name),
 		User:    csu.LocalUsername,
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+	if err := a.deleteAssociations(ctx, filter); err != nil {
 		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
 	}
 	slog.InfoContext(ctx, "Removed associations for membership",
@@ -85,12 +86,32 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 		Cluster: cluster.Name,
 		Account: slurmAccount(allocation.Name),
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+	if err := a.deleteAssociations(ctx, filter); err != nil {
 		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
 	}
 	slog.InfoContext(ctx, "Removed associations for allocation",
 		"account", allocation.Name, "cluster", cluster.Name)
 	return nil
+}
+
+// removeUser deletes a cluster account's Slurm user. A user still on another cluster, or running jobs, loses only
+// this cluster's associations.
+func (a *AssociationSubscriber) removeUser(ctx context.Context, cluster, user string) error {
+	assocs, err := a.slurmClient.ListAssociations(client.AssocFilter{User: user})
+	if err != nil {
+		return err
+	}
+	if !slices.ContainsFunc(assocs, func(x client.Association) bool { return x.Cluster != cluster }) && a.slurmClient.DeleteUser(user) == nil {
+		slog.InfoContext(ctx, "Deleted Slurm user", "user", user, "cluster", cluster)
+		return nil
+	}
+	var errs []error
+	for _, x := range assocs {
+		if x.Cluster == cluster && x.Account != noAllocation {
+			errs = append(errs, a.deleteAssociations(ctx, client.AssocFilter{Cluster: cluster, Account: x.Account, User: user}))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // activeAllocation reports whether an allocation should still grant access.

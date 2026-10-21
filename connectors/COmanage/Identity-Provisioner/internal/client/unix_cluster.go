@@ -117,21 +117,3 @@ func (c *Client) CreateUnixClusterGroup(coGroupId int) (int, error) {
 		return 0, &HTTPError{Method: "POST", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 }
-
-func (c *Client) DeleteUnixClusterGroup(id int) error {
-	u := c.restAPI(fmt.Sprintf("/unix_cluster/unix_cluster_groups/%d.json", id))
-	resp, respBody, err := c.Do(http.MethodDelete, u, nil)
-	if err != nil {
-		return err
-	}
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusNoContent:
-		return nil
-	case http.StatusUnauthorized:
-		return ErrAuth401
-	case http.StatusNotFound:
-		return ErrNotFound
-	default:
-		return &HTTPError{Method: "DELETE", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
-	}
-}
