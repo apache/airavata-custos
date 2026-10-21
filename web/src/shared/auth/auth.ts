@@ -19,6 +19,7 @@ import { privilegeKeySchema } from "@/features/core/identity/schemas";
 import { zUser } from "@/generated/core/zod.gen";
 import { serverEnv } from "@/lib/env";
 import NextAuth, { type NextAuthConfig } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import Keycloak from "next-auth/providers/keycloak";
 import { z } from "zod";
 
@@ -26,10 +27,35 @@ import { z } from "zod";
 const meTokenSchema = z.object({
   user: zUser.pick({ id: true }).nullable(),
   privileges: z.array(privilegeKeySchema),
+  onboarding: z.object({ required: z.boolean() }),
+  consent: z.object({ pending: z.array(z.unknown()) }),
 });
 
 function looksLikeJwt(token: string | null | undefined): boolean {
   return typeof token === "string" && token.split(".").length === 3;
+}
+
+// Some IdPs hand out opaque access tokens; use the JWT-shaped
+// bearer for the backend call so the verifier accepts it.
+function backendBearer(accessToken?: string, idToken?: string): string | undefined {
+  return looksLikeJwt(accessToken) ? accessToken : (idToken ?? accessToken);
+}
+
+async function loadProfile(token: JWT, bearer: string | undefined) {
+  try {
+    const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/me`, {
+      headers: { authorization: `Bearer ${bearer}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const body = meTokenSchema.parse(await res.json());
+    if (body.user) token.custosUserId = body.user.id;
+    token.privileges = body.privileges;
+    token.needsOnboarding = body.onboarding.required;
+    token.consentPending = body.consent.pending.length > 0;
+  } catch {
+    // The token stays without a Custos user, so the portal shows the no-access notice.
+  }
 }
 
 const isProduction = serverEnv.NODE_ENV === "production";
@@ -65,27 +91,12 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, trigger }) {
       if (account?.access_token) {
         token.accessToken = account.access_token;
-        // Some IdPs hand out opaque access tokens; use the JWT-shaped
-        // bearer for the backend call so the verifier accepts it.
-        const bearer = looksLikeJwt(account.access_token)
-          ? account.access_token
-          : (account.id_token ?? account.access_token);
-        try {
-          const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/me`, {
-            headers: { authorization: `Bearer ${bearer}` },
-            cache: "no-store",
-          });
-          if (res.ok) {
-            const body = meTokenSchema.parse(await res.json());
-            if (body.user) token.custosUserId = body.user.id;
-            token.privileges = body.privileges;
-          }
-        } catch {
-          // The token stays without a Custos user, so the portal shows the no-access notice.
-        }
+        await loadProfile(token, backendBearer(account.access_token, account.id_token));
+      } else if (trigger === "update") {
+        await loadProfile(token, backendBearer(token.accessToken, token.idToken));
       }
       if (account?.id_token) {
         // Needed for the Keycloak end-session endpoint's id_token_hint.
@@ -98,6 +109,8 @@ export const authConfig: NextAuthConfig = {
       if (token.idToken) session.idToken = token.idToken;
       session.privileges = token.privileges ?? [];
       if (token.custosUserId) session.custosUserId = token.custosUserId;
+      session.needsOnboarding = token.needsOnboarding === true;
+      session.consentPending = token.consentPending === true;
       if (session.user) {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.

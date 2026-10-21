@@ -24,6 +24,8 @@ declare module "next-auth" {
     privileges?: Privilege[];
     // Unset when the sign-in matches no Custos user.
     custosUserId?: string;
+    needsOnboarding?: boolean;
+    consentPending?: boolean;
   }
   interface User {
     privileges?: Privilege[];
@@ -36,5 +38,7 @@ declare module "next-auth/jwt" {
     idToken?: string;
     privileges?: Privilege[];
     custosUserId?: string;
+    needsOnboarding?: boolean;
+    consentPending?: boolean;
   }
 }

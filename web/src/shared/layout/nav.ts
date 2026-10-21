@@ -23,6 +23,7 @@ import {
   FolderKanban,
   HardDrive,
   type LucideIcon,
+  ScrollText,
   Send,
   Server,
   UserCog,
@@ -107,5 +108,12 @@ export const portalNav: NavItem[] = [
     icon: HardDrive,
     group: "admin",
     ability: { action: "read", subject: "Cluster" },
+  },
+  {
+    href: "/admin/agreements",
+    label: "Agreements",
+    icon: ScrollText,
+    group: "admin",
+    ability: { action: "read", subject: "Agreement" },
   },
 ];
