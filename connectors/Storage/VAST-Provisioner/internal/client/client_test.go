@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 )
 
@@ -122,5 +123,57 @@ func TestViewPolicyID(t *testing.T) {
 				t.Fatalf("id=%d err=%v", id, err)
 			}
 		})
+	}
+}
+
+// Make sure the quota is created, or recreated when its limits differ.
+func TestCreateQuota(t *testing.T) {
+	tests := []struct {
+		name, existing string
+		want           []string
+	}{
+		{name: "missing", existing: `[]`, want: []string{"POST /api/quotas/"}},
+		{name: "correct", existing: `[{"id":7,"path":"/home/custos-jdoe","hard_limit":100,"hard_limit_inodes":10}]`},
+		{name: "unset limits", existing: `[{"id":7,"path":"/home/custos-jdoe","hard_limit":null}]`, want: []string{"DELETE /api/quotas/7/", "POST /api/quotas/"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var calls []string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.URL.Path == "/api/token/":
+					_, _ = w.Write([]byte(`{"access":"fresh"}`))
+				case r.Method == http.MethodGet:
+					_, _ = w.Write([]byte(tt.existing))
+				default:
+					calls = append(calls, r.Method+" "+r.URL.Path)
+				}
+			}))
+			defer srv.Close()
+			if err := New(srv.URL, "u", "p", 1).CreateQuota(context.Background(), "/home/custos-jdoe", 100, 10); err != nil || !slices.Equal(calls, tt.want) {
+				t.Fatalf("err=%v calls=%v, want %v", err, calls, tt.want)
+			}
+		})
+	}
+}
+
+// Make sure only the views and quotas on and under the path go, not a prefix sibling's, then the folder.
+func TestRemove(t *testing.T) {
+	var deleted []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			_, _ = w.Write([]byte(`{"access":"fresh"}`))
+		case http.MethodGet:
+			_, _ = w.Write([]byte(`[{"id":1,"path":"/project/proj-a","tenant_id":1},{"id":2,"path":"/project/proj-a/custos-jdoe","tenant_id":1},
+				{"id":3,"path":"/project/proj-ab","tenant_id":1}]`))
+		case http.MethodDelete:
+			deleted = append(deleted, r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+	want := []string{"/api/views/1/", "/api/views/2/", "/api/quotas/1/", "/api/quotas/2/", "/api/folders/delete_folder/"}
+	if err := New(srv.URL, "u", "p", 1).Remove(context.Background(), "/project/proj-a"); err != nil || !slices.Equal(deleted, want) {
+		t.Fatalf("err=%v deleted=%v, want %v", err, deleted, want)
 	}
 }
