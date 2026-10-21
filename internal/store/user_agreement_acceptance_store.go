@@ -30,7 +30,7 @@ import (
 const userAgreementAcceptanceColumns = `id, user_id, agreement_id, accepted_at, body_hash`
 
 // pendingUserFilter matches users who still need to consent to an agreement. $1 is the agreement id.
-const pendingUserFilter = `u.type <> 'SYSTEM' AND u.status IN ('PENDING', 'ACTIVE')
+const pendingUserFilter = `u.status IN ('PENDING', 'ACTIVE')
 	AND NOT EXISTS (SELECT 1 FROM user_agreement_acceptances a WHERE a.user_id = u.id AND a.agreement_id = $1)`
 
 type pgUserAgreementAcceptanceStore struct {
