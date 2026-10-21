@@ -73,8 +73,8 @@ cannot overwrite the block when Custos is the source of truth.
 Each active allocation with a `posix_group` gets a CoGroup of that name, set up
 as in steps 5-7 with gid 3000000 plus the CoGroup id. Allocation, membership and
 account events keep it holding exactly the allocation's provisioned, active
-members; deleting the allocation unbinds the group from the UnixCluster and keeps it, so a later grant
-reuses its gid. Removing an account likewise keeps the person's uidnumber and unbinds their primary group.
+members; deleting the allocation removes its members and keeps the group, so a later grant reuses its gid.
+Removing an account likewise keeps the person's uidnumber and empties their primary group.
 
 ## Audit events
 
@@ -89,7 +89,7 @@ core service. `audit_events.entity_id` is the `compute_cluster_users.id`, or the
 | `ComanageAllocationGroupCreated` | An active allocation's CoGroup was created. |
 | `ComanageAllocationGroupMemberAdded` | A provisioned, active member was added to the allocation's CoGroup. |
 | `ComanageAllocationGroupMemberRemoved` | A membership row the allocation no longer calls for was removed from its CoGroup. |
-| `ComanageAllocationGroupUnbound` | A deleted allocation's CoGroup was unbound from the UnixCluster and kept. |
+| `ComanageAllocationGroupEmptied` | A deleted allocation's CoGroup lost its members and was kept. |
 | `ComanageProvisioningFailed` | Any step returned an error. The `details` field carries `step=<name> err=<message>` so the dead-letter is tractable from the audit log alone. |
 
 The AMIE-Processor side of this flow also emits:
