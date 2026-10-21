@@ -30,7 +30,13 @@ import (
 
 // Caller is the verified identity behind an HTTP request.
 type Caller struct {
-	UserID string
+	UserID    string
+	Issuer    string
+	Subject   string
+	SessionID string
+	AuthTime  int64
+	TokenID   string
+	IssuedAt  int64
 }
 
 // Wrap the ErrNotLinked to keep the specific cause in the log while the middleware

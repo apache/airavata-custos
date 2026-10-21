@@ -73,4 +73,5 @@ type User struct {
 	Email          string     `json:"email"           db:"email"`
 	Status         UserStatus `json:"status"          db:"status"`
 	Type           UserType   `json:"type"            db:"type"`
+	Timezone       *string    `json:"timezone,omitempty" db:"timezone"`
 }
