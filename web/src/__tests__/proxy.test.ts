@@ -17,30 +17,30 @@
 
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
-import { middleware } from "../middleware";
+import { proxy } from "../proxy";
 
 function request(cookie?: string) {
   return new NextRequest("http://localhost:3000/", cookie ? { headers: { cookie } } : {});
 }
 
-describe("root middleware", () => {
+describe("root proxy", () => {
   it("rewrites signed-out users to the landing page", () => {
-    const res = middleware(request());
+    const res = proxy(request());
     expect(res.headers.get("x-middleware-rewrite")).toContain("/landing/index.html");
   });
 
   it("passes signed-in users through to the portal", () => {
-    const res = middleware(request("custos.session-token=abc"));
+    const res = proxy(request("custos.session-token=abc"));
     expect(res.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   it("recognizes the production cookie name", () => {
-    const res = middleware(request("__Secure-custos.session-token=abc"));
+    const res = proxy(request("__Secure-custos.session-token=abc"));
     expect(res.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   it("recognizes chunked session cookies", () => {
-    const res = middleware(request("__Secure-custos.session-token.0=abc"));
+    const res = proxy(request("__Secure-custos.session-token.0=abc"));
     expect(res.headers.get("x-middleware-rewrite")).toBeNull();
   });
 });
