@@ -17,8 +17,8 @@
 
 "use client";
 
-import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { allocationKeys } from "@/features/core/allocations/queries";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type CreateResourcePayload,
   createResource,

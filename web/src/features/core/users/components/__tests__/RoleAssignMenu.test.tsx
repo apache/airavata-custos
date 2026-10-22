@@ -100,9 +100,7 @@ describe("RoleAssignMenu", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith([], "Onboarding new team member"),
-    );
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith([], "Onboarding new team member"));
   });
 
   it("confirms before self-removing a role-manager role", async () => {

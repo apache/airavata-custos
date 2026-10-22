@@ -219,7 +219,12 @@ function CenterText({
   }
   return (
     <>
-      <text x="21" y="20.5" textAnchor="middle" className="fill-foreground text-[5px] font-semibold">
+      <text
+        x="21"
+        y="20.5"
+        textAnchor="middle"
+        className="fill-foreground text-[5px] font-semibold"
+      >
         {formatCredits(remaining)}
       </text>
       <text x="21" y="25" textAnchor="middle" className="fill-muted-foreground text-[2.4px]">
@@ -266,10 +271,7 @@ function LegendRow({
         onClick={onToggle}
       >
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
-        <span
-          className={`min-w-0 flex-1 truncate ${emphasis ? "font-medium" : ""}`}
-          title={label}
-        >
+        <span className={`min-w-0 flex-1 truncate ${emphasis ? "font-medium" : ""}`} title={label}>
           {label}
         </span>
         <span className="shrink-0 tabular-nums text-muted-foreground">

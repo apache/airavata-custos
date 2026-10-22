@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { privilegeKeySchema } from "@/features/core/identity/schemas";
+import { zUser } from "@/generated/core/zod.gen";
+import { serverEnv } from "@/lib/env";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Keycloak from "next-auth/providers/keycloak";
 import { z } from "zod";
-import { serverEnv } from "@/lib/env";
-import { privilegeKeySchema } from "@/features/core/identity/schemas";
-import { zUser } from "@/generated/core/zod.gen";
 
 // Only what the token keeps from GET /me.
 const meTokenSchema = z.object({
@@ -33,9 +33,7 @@ function looksLikeJwt(token: string | null | undefined): boolean {
 }
 
 const isProduction = serverEnv.NODE_ENV === "production";
-const sessionCookieName = isProduction
-  ? "__Secure-custos.session-token"
-  : "custos.session-token";
+const sessionCookieName = isProduction ? "__Secure-custos.session-token" : "custos.session-token";
 
 // Match the access_token's natural lifetime; without refresh-token handling a
 // longer session is misleading — the inner bearer dies first.

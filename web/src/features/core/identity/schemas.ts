@@ -15,12 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import {
-  zRole,
-  zUser,
-  zUserPrivilege,
-  zUserRole,
   zCallerRoleGrant,
   zGetMeResponse,
   zGetRolesByIdResponse,
@@ -28,7 +23,12 @@ import {
   zGetUserPrivilegesResponse,
   zGetUsersByIdRolesResponse,
   zGetUsersByIdUserIdentitiesResponse,
+  zRole,
+  zUser,
+  zUserPrivilege,
+  zUserRole,
 } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
 // Any non-empty string. Connector registries extend the catalog at runtime,
 // so the generated core-only enum can't be a tight bound.
@@ -62,9 +62,7 @@ export const userIdentitiesResponseSchema = zGetUsersByIdUserIdentitiesResponse.
   (value) => value ?? [],
 );
 
-export const userRolesResponseSchema = zGetUsersByIdRolesResponse.transform(
-  (value) => value ?? [],
-);
+export const userRolesResponseSchema = zGetUsersByIdRolesResponse.transform((value) => value ?? []);
 
 export const userPrivilegesResponseSchema = z
   .array(userPrivilegeSchema)

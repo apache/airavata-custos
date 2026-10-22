@@ -15,14 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import projects from "@/features/core/projects/__fixtures__/projects.json";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import projects from "@/features/core/projects/__fixtures__/projects.json";
 import { AllocationsList } from "../components/AllocationsList";
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 

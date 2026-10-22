@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
@@ -29,6 +27,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import * as React from "react";
+import { toast } from "sonner";
 import { useSetAllocationResources } from "../queries";
 import { ResourcePicker } from "./ResourcePicker";
 

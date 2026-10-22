@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
 import { zPutUsersByIdBody, zUser } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
 import { effectivePrivileges } from "./privileges";
 
 const roleDetails = new Map(Object.entries(fixture.roleDetails));

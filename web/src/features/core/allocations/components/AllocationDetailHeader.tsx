@@ -17,10 +17,10 @@
 
 "use client";
 
-import { Gauge, Server, UserSquare } from "lucide-react";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { CopyValue } from "@/shared/ui/CopyValue";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { Gauge, Server, UserSquare } from "lucide-react";
 
 export type AllocationDetailHeaderProps = {
   allocation: ComputeAllocation;
@@ -53,7 +53,12 @@ export function AllocationDetailHeader({ allocation, memberCount }: AllocationDe
           {allocation.name}
         </h1>
         <p className="mt-1 font-mono text-xs text-muted-foreground">
-          ID: <CopyValue value={allocation.id} label="allocation ID" className="text-muted-foreground" />
+          ID:{" "}
+          <CopyValue
+            value={allocation.id}
+            label="allocation ID"
+            className="text-muted-foreground"
+          />
         </p>
       </div>
       <MetaItem

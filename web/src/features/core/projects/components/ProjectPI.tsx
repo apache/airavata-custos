@@ -20,7 +20,8 @@ import type { ProjectResponse } from "@/generated/core/zod.gen";
 type PI = Pick<ProjectResponse, "project_pi_id" | "project_pi_display_name" | "project_pi_email">;
 
 export function ProjectPI({ project }: { project: PI }) {
-  if (!project.project_pi_display_name) return <span className="font-mono">{project.project_pi_id}</span>;
+  if (!project.project_pi_display_name)
+    return <span className="font-mono">{project.project_pi_id}</span>;
   return (
     <div className="leading-tight">
       <div>{project.project_pi_display_name}</div>

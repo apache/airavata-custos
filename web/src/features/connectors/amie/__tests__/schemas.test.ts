@@ -157,6 +157,8 @@ describe("amie schemas", () => {
   });
 
   it("linkUnmappedPayloadSchema rejects an empty entity_id", () => {
-    expect(() => linkUnmappedPayloadSchema.parse({ entity_type: "project", entity_id: "" })).toThrow();
+    expect(() =>
+      linkUnmappedPayloadSchema.parse({ entity_type: "project", entity_id: "" }),
+    ).toThrow();
   });
 });

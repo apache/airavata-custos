@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import {
   type Project,
   type ProjectListResponse,
@@ -25,6 +24,7 @@ import {
   zProjectResponse,
   zPutProjectsByIdStatusResponse,
 } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 import {
   type AddProjectMemberPayload,
   type CreateProjectPayload,

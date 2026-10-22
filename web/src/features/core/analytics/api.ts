@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import type { GetConnectorsAnalyticsAllocationsByIdJobsData } from "@/generated/analytics/types.gen";
 import {
   type AllocationJobs,
@@ -23,6 +22,7 @@ import {
   zAllocationJobs,
   zUsageSummary,
 } from "@/generated/analytics/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 import { type AnalyticsContext, analyticsContextsSchema } from "./schemas";
 
 export async function getAnalyticsContexts(): Promise<AnalyticsContext[]> {

@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { useClusters } from "@/features/core/clusters/queries";
 import { useConnectors } from "@/features/core/connectors/queries";
 import { relativeTime } from "@/features/core/events/utils";
@@ -26,6 +25,7 @@ import type { ConnectorCheck, ConnectorStatus } from "@/generated/core/zod.gen";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
+import * as React from "react";
 
 type Tone = "ok" | "warn" | "error" | "off";
 

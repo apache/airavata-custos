@@ -60,9 +60,9 @@ describe("allocationMembershipSchema", () => {
     ).toBe(true);
   });
   it("rejects an unknown role", () => {
-    expect(
-      allocationMembershipSchema.safeParse({ ...validMember, role: "queen" }).success,
-    ).toBe(false);
+    expect(allocationMembershipSchema.safeParse({ ...validMember, role: "queen" }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -148,8 +148,8 @@ describe("updateChangeRequestPayloadSchema", () => {
     expect(updateChangeRequestPayloadSchema.safeParse({}).success).toBe(false);
   });
   it("accepts a single-field patch", () => {
-    expect(
-      updateChangeRequestPayloadSchema.safeParse({ change_status: "APPROVED" }).success,
-    ).toBe(true);
+    expect(updateChangeRequestPayloadSchema.safeParse({ change_status: "APPROVED" }).success).toBe(
+      true,
+    );
   });
 });

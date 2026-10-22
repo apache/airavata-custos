@@ -17,9 +17,6 @@
 
 "use client";
 
-import { RefreshCwIcon, UnplugIcon } from "lucide-react";
-import * as React from "react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
@@ -30,6 +27,9 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
+import { RefreshCwIcon, UnplugIcon } from "lucide-react";
+import * as React from "react";
+import { toast } from "sonner";
 import { DELIVERY_PAGE_SIZE } from "../api";
 import { useDeliveries, useDelivery, useRetryDelivery, useSubscriptions } from "../queries";
 import type { Delivery, DeliveryView } from "../types";
@@ -40,7 +40,10 @@ const VIEWS: DeliveryView[] = ["all", "waiting", "failed"];
 
 const VIEW_INFO: Record<DeliveryView, { label: string; empty: string }> = {
   all: { label: "All", empty: "No events yet." },
-  waiting: { label: "Waiting", empty: "Nothing is waiting. Every delivery has succeeded or failed." },
+  waiting: {
+    label: "Waiting",
+    empty: "Nothing is waiting. Every delivery has succeeded or failed.",
+  },
   failed: { label: "Failed", empty: "No failed deliveries." },
 };
 
@@ -133,8 +136,8 @@ export function EventsPage() {
         <output className="flex items-start gap-2 rounded-md bg-[color:var(--tone-warn-bg)] px-4 py-3 text-sm text-[color:var(--tone-warn-fg)]">
           <UnplugIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
-            Not running on this server: <span className="font-mono">{notRunning.join(", ")}</span>
-            . Their deliveries wait until the connector starts.
+            Not running on this server: <span className="font-mono">{notRunning.join(", ")}</span>.
+            Their deliveries wait until the connector starts.
           </span>
         </output>
       ) : null}

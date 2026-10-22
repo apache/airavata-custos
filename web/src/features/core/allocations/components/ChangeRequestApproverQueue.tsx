@@ -17,26 +17,19 @@
 
 "use client";
 
+import { requires } from "@/shared/casl/permissions";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { requires } from "@/shared/casl/permissions";
-import { Button } from "@/shared/ui/button";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import {
-  useApproveChangeRequest,
-  useChangeRequests,
-  useRejectChangeRequest,
-} from "../queries";
+import { useApproveChangeRequest, useChangeRequests, useRejectChangeRequest } from "../queries";
 import type { ChangeRequest, ChangeRequestStatus } from "../schemas";
 
 export type ChangeRequestApproverQueueProps = {
@@ -71,9 +64,7 @@ export function ChangeRequestApproverQueue({
   const [search, setSearch] = React.useState("");
   const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set());
 
-  const query = useChangeRequests(
-    statusFilter === "all" ? {} : { status: statusFilter },
-  );
+  const query = useChangeRequests(statusFilter === "all" ? {} : { status: statusFilter });
   const approveMutation = useApproveChangeRequest();
   const rejectMutation = useRejectChangeRequest();
 
@@ -157,7 +148,9 @@ export function ChangeRequestApproverQueue({
       sortable: true,
       sortValue: (row) => row.requested_su_amount,
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.requested_su_amount)}
+        </span>
       ),
     },
     {
@@ -265,10 +258,7 @@ export function ChangeRequestApproverQueue({
       {query.isLoading ? (
         <TableSkeleton rows={5} columns={6} />
       ) : query.error ? (
-        <ErrorState
-          message={query.error.message}
-          onRetry={() => query.refetch()}
-        />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : (
         <DataTable
           columns={columns}

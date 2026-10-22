@@ -17,10 +17,6 @@
 
 "use client";
 
-import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
-import * as React from "react";
-import { toast } from "sonner";
 import { PacketDetailDrawer } from "@/features/connectors/amie/components/PacketDetailDrawer";
 import {
   type PacketFilters,
@@ -46,6 +42,10 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
+import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+import * as React from "react";
+import { toast } from "sonner";
 
 // Recharts is heavy; defer until the inbox has hydrated so first paint stays fast.
 const PacketsTrendChart = dynamic(

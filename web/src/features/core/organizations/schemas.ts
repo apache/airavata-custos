@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import { zPostOrganizationsBody } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
 export const createOrganizationPayloadSchema = zPostOrganizationsBody
   .pick({ originated_id: true })

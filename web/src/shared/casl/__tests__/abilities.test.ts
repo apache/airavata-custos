@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { describe, expect, it } from "vitest";
-import { zPrivilegeKey } from "@/generated/core/zod.gen";
 import type { Privilege } from "@/features/core/identity/types";
+import { zPrivilegeKey } from "@/generated/core/zod.gen";
+import { describe, expect, it } from "vitest";
 import { PRIVILEGE_ABILITY_MAP, defineAbilitiesFor } from "../abilities";
 
 // Update alongside each connector's privileges.go registry.
@@ -198,10 +198,7 @@ describe("defineAbilitiesFor (table-driven)", () => {
   });
 
   it("composes rules across multiple privileges", () => {
-    const ability = defineAbilitiesFor([
-      "core:allocations:read",
-      "amie:packets:write",
-    ]);
+    const ability = defineAbilitiesFor(["core:allocations:read", "amie:packets:write"]);
     expect(ability.can("read", "Allocation")).toBe(true);
     expect(ability.can("manage", "AMIE")).toBe(true);
     expect(ability.can("manage", "Cluster")).toBe(false);

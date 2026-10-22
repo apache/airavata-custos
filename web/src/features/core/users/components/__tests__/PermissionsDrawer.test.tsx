@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserAccountRow } from "../../types";
 import type { Role } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { UserAccountRow } from "../../types";
 import { PermissionsDrawer } from "../PermissionsDrawer";
 
 const queryMocks = vi.hoisted(() => ({

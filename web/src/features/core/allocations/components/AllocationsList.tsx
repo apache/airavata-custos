@@ -17,24 +17,20 @@
 
 "use client";
 
+import { ProjectGroupHeader } from "@/features/core/projects/components/ProjectGroupHeader";
+import type { AllocationStatus, ComputeAllocation } from "@/generated/core/zod.gen";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusIcon } from "@/shared/ui/StatusIcon";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Server } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
-import { ProjectGroupHeader } from "@/features/core/projects/components/ProjectGroupHeader";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { StatusIcon } from "@/shared/ui/StatusIcon";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import type { AllocationStatus, ComputeAllocation } from "@/generated/core/zod.gen";
-import {
-  useAllocationResources,
-  useAllocationUsedSU,
-  useSetAllocationResources,
-} from "../queries";
+import { useAllocationResources, useAllocationUsedSU, useSetAllocationResources } from "../queries";
 import { AllocationResourcesDialog } from "./AllocationResourcesDialog";
 
 function formatDate(iso: string): string {
@@ -90,7 +86,10 @@ function RemainingSU({ allocation }: { allocation: ComputeAllocation }) {
 
 const PILL = "rounded-full border bg-card px-2 py-0.5 text-xs";
 
-function ResourcePills({ allocation, canEdit }: { allocation: ComputeAllocation; canEdit: boolean }) {
+function ResourcePills({
+  allocation,
+  canEdit,
+}: { allocation: ComputeAllocation; canEdit: boolean }) {
   const resources = useAllocationResources(allocation.id).data ?? [];
   const save = useSetAllocationResources(allocation.id);
   const [editing, setEditing] = React.useState(false);
@@ -256,7 +255,10 @@ export function AllocationsList({
       ) : (
         <div className="space-y-3">
           {[...Map.groupBy(filtered, (row) => row.project_id)].map(([projectId, rows]) => (
-            <section key={projectId} className="overflow-hidden rounded-lg border border-foreground/20 bg-card">
+            <section
+              key={projectId}
+              className="overflow-hidden rounded-lg border border-foreground/20 bg-card"
+            >
               <div className="border-b border-border bg-muted px-4 py-2.5">
                 <ProjectGroupHeader id={projectId} />
               </div>

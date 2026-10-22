@@ -17,17 +17,14 @@
 
 "use client";
 
-import * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  ProjectAutocomplete,
-  type ProjectAutocompletePick,
-} from "@/shared/ui/ProjectAutocomplete";
+import { ProjectAutocomplete, type ProjectAutocompletePick } from "@/shared/ui/ProjectAutocomplete";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
 import type { Packet } from "../types";
 import { formatDate } from "../utils";
 

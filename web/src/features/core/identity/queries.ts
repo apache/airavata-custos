@@ -17,10 +17,10 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
 import type { UserNameUpdateRequest } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   getMe,
   getMyDirectPrivileges,
@@ -85,7 +85,9 @@ export function useMe() {
 
 export function useMyIdentities(userId: string | undefined) {
   return useQuery({
-    queryKey: userId ? identityKeys.identities(userId) : [...identityKeys.all, "identities", "none"],
+    queryKey: userId
+      ? identityKeys.identities(userId)
+      : [...identityKeys.all, "identities", "none"],
     queryFn: userId ? () => getMyIdentities(userId) : skipToken,
     ...DEFAULTS,
   });

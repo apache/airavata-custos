@@ -17,9 +17,9 @@
 
 "use client";
 
+import { ApiError } from "@/shared/api/client";
 import { signOut } from "next-auth/react";
 import { useCallback } from "react";
-import { ApiError } from "@/shared/api/client";
 import { useSignOut } from "./useSignOut";
 
 function readCode(body: unknown): string | null {

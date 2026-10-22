@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
-import { z } from "zod";
+import membersFixture from "@/features/core/projects/__fixtures__/members.json";
+import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import {
   type ProjectMember,
   addProjectMemberPayloadSchema,
@@ -25,9 +25,9 @@ import {
   updateProjectMemberPayloadSchema,
   updateProjectStatusPayloadSchema,
 } from "@/features/core/projects/schemas";
-import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
-import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import { type ProjectResponse, zProjectResponse } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
 const projects: ProjectResponse[] = z.array(zProjectResponse).parse(projectsFixture);
 const membersByProject: Record<string, ProjectMember[]> = z
@@ -123,14 +123,17 @@ export const projectsHandlers = [
     return HttpResponse.json(member, { status: 201 });
   }),
 
-  http.put<{ id: string; memberId: string }>("*/api/v1/projects/:id/members/:memberId", async ({ params, request }) => {
-    const id = String(params.id);
-    const memberId = String(params.memberId);
-    const patch = updateProjectMemberPayloadSchema.parse(await request.json());
-    const bucket = membersByProject[id] ?? [];
-    const existing = bucket.find((m) => m.id === memberId);
-    if (!existing) return HttpResponse.json({ error: "member not found" }, { status: 404 });
-    if (patch.role) existing.role = patch.role;
-    return HttpResponse.json(existing);
-  }),
+  http.put<{ id: string; memberId: string }>(
+    "*/api/v1/projects/:id/members/:memberId",
+    async ({ params, request }) => {
+      const id = String(params.id);
+      const memberId = String(params.memberId);
+      const patch = updateProjectMemberPayloadSchema.parse(await request.json());
+      const bucket = membersByProject[id] ?? [];
+      const existing = bucket.find((m) => m.id === memberId);
+      if (!existing) return HttpResponse.json({ error: "member not found" }, { status: 404 });
+      if (patch.role) existing.role = patch.role;
+      return HttpResponse.json(existing);
+    },
+  ),
 ];

@@ -17,8 +17,6 @@
 
 "use client";
 
-import { LogOut, Settings } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useSignOut } from "@/shared/auth/useSignOut";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
@@ -29,6 +27,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { LogOut, Settings } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 export function UserPill() {
   const { data: session, status } = useSession();

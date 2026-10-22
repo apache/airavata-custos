@@ -17,11 +17,11 @@
 
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useClusterAccounts } from "@/features/core/cluster-accounts/queries";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/admin/users/management", label: "User Management" },
@@ -81,7 +81,9 @@ export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
                 )}
               >
                 {tab.label}
-                {"badge" in tab && ability.can("read", "Cluster") ? <PendingClusterAccountsBadge /> : null}
+                {"badge" in tab && ability.can("read", "Cluster") ? (
+                  <PendingClusterAccountsBadge />
+                ) : null}
               </Link>
             </li>
           );

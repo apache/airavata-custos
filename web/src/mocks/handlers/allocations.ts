@@ -15,15 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
-import { z } from "zod";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
-import resourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
-import diffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
-import usageFixture from "@/features/core/allocations/__fixtures__/usage.json";
-import membersFixture from "@/features/core/allocations/__fixtures__/members.json";
 import changeRequestsFixture from "@/features/core/allocations/__fixtures__/change-requests.json";
+import diffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
 import eventsFixture from "@/features/core/allocations/__fixtures__/events.json";
+import membersFixture from "@/features/core/allocations/__fixtures__/members.json";
+import resourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
+import usageFixture from "@/features/core/allocations/__fixtures__/usage.json";
 import {
   type AllocationMembership,
   type ChangeRequest,
@@ -42,6 +40,8 @@ import {
   zComputeAllocationResource,
   zComputeAllocationUsage,
 } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
 const byId = <T extends z.ZodType>(row: T) => z.record(z.string(), z.array(row));
 
@@ -168,7 +168,9 @@ export const allocationsHandlers = [
   http.get("*/api/v1/compute-allocation-change-requests", ({ request }) => {
     const url = new URL(request.url);
     const status = url.searchParams.get("status");
-    const filtered = status ? changeRequests.filter((cr) => cr.change_status === status) : changeRequests;
+    const filtered = status
+      ? changeRequests.filter((cr) => cr.change_status === status)
+      : changeRequests;
     return HttpResponse.json(filtered);
   }),
 
@@ -202,39 +204,47 @@ export const allocationsHandlers = [
     return HttpResponse.json(cr, { status: 201 });
   }),
 
-  http.put<{ id: string }>("*/api/v1/compute-allocation-change-requests/:id", async ({ params, request }) => {
-    const id = String(params.id);
-    const patch = updateChangeRequestPayloadSchema.parse(await request.json());
-    const existing = changeRequests.find((cr) => cr.id === id);
-    if (!existing) return HttpResponse.json({ error: "change request not found" }, { status: 404 });
-    if (patch.change_status) existing.change_status = patch.change_status;
-    if (patch.approver_id) existing.approver_id = patch.approver_id;
-    if (patch.reason) existing.reason = patch.reason;
-    if (typeof patch.requested_su_amount === "number")
-      existing.requested_su_amount = patch.requested_su_amount;
-    if (patch.requested_status) existing.requested_status = patch.requested_status;
-    if (patch.change_status === "APPROVED" || patch.change_status === "REJECTED") {
-      ensureEventsBucket(existing.id).push({
-        id: `evt-${eventSeq++}`,
-        compute_allocation_change_request_id: existing.id,
-        event_type: patch.change_status,
-        description: `${patch.change_status === "APPROVED" ? "Approved" : "Rejected"} by ${patch.approver_id ?? "unknown"}`,
-        timestamp: new Date().toISOString(),
-      });
-    }
-    return HttpResponse.json(existing);
-  }),
+  http.put<{ id: string }>(
+    "*/api/v1/compute-allocation-change-requests/:id",
+    async ({ params, request }) => {
+      const id = String(params.id);
+      const patch = updateChangeRequestPayloadSchema.parse(await request.json());
+      const existing = changeRequests.find((cr) => cr.id === id);
+      if (!existing)
+        return HttpResponse.json({ error: "change request not found" }, { status: 404 });
+      if (patch.change_status) existing.change_status = patch.change_status;
+      if (patch.approver_id) existing.approver_id = patch.approver_id;
+      if (patch.reason) existing.reason = patch.reason;
+      if (typeof patch.requested_su_amount === "number")
+        existing.requested_su_amount = patch.requested_su_amount;
+      if (patch.requested_status) existing.requested_status = patch.requested_status;
+      if (patch.change_status === "APPROVED" || patch.change_status === "REJECTED") {
+        ensureEventsBucket(existing.id).push({
+          id: `evt-${eventSeq++}`,
+          compute_allocation_change_request_id: existing.id,
+          event_type: patch.change_status,
+          description: `${patch.change_status === "APPROVED" ? "Approved" : "Rejected"} by ${patch.approver_id ?? "unknown"}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return HttpResponse.json(existing);
+    },
+  ),
 
   http.delete<{ id: string }>("*/api/v1/compute-allocation-change-requests/:id", ({ params }) => {
     const id = String(params.id);
     const idx = changeRequests.findIndex((cr) => cr.id === id);
-    if (idx === -1) return HttpResponse.json({ error: "change request not found" }, { status: 404 });
+    if (idx === -1)
+      return HttpResponse.json({ error: "change request not found" }, { status: 404 });
     changeRequests.splice(idx, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get<{ id: string }>("*/api/v1/compute-allocation-change-requests/:id/events", ({ params }) => {
-    const id = String(params.id);
-    return HttpResponse.json(eventsByCr[id] ?? []);
-  }),
+  http.get<{ id: string }>(
+    "*/api/v1/compute-allocation-change-requests/:id/events",
+    ({ params }) => {
+      const id = String(params.id);
+      return HttpResponse.json(eventsByCr[id] ?? []);
+    },
+  ),
 ];

@@ -114,7 +114,11 @@ export function ReplyTracker({
           <select
             id="reply-status"
             value={statusFilter}
-            onChange={(e) => onStatusChange(replyStatusSchema.options.find((s) => s === e.currentTarget.value) ?? "all")}
+            onChange={(e) =>
+              onStatusChange(
+                replyStatusSchema.options.find((s) => s === e.currentTarget.value) ?? "all",
+              )
+            }
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             <option value="all">All</option>
@@ -134,7 +138,12 @@ export function ReplyTracker({
       ) : isLoading ? (
         <TableSkeleton />
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} empty="No outgoing replies." />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.id}
+          empty="No outgoing replies."
+        />
       )}
     </div>
   );

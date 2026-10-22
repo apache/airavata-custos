@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocationResourceRate } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeAllocationResourceRate } from "@/generated/core/zod.gen";
 import type { createResourceRate } from "../api";
 
 // Windows are anchored far in the past/future so classifyRate stays stable
@@ -27,8 +27,19 @@ const supersededRate = rate("rate-super", 0.04, "2001-01-01T00:00:00Z", "2100-01
 const activeRate = rate("rate-active", 0.05, "2010-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
 const scheduledRate = rate("rate-sched", 0.06, "2099-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
 
-function rate(id: string, value: number, start: string, end: string): ComputeAllocationResourceRate {
-  return { id, compute_allocation_resource_id: "res-1", rate: value, start_time: start, end_time: end };
+function rate(
+  id: string,
+  value: number,
+  start: string,
+  end: string,
+): ComputeAllocationResourceRate {
+  return {
+    id,
+    compute_allocation_resource_id: "res-1",
+    rate: value,
+    start_time: start,
+    end_time: end,
+  };
 }
 
 let rates: ComputeAllocationResourceRate[] = [];
@@ -90,7 +101,11 @@ describe("<ResourcesRatesDrawer />", () => {
 
     effective = undefined;
     rerender(
-      <ResourcesRatesDrawer resourceId="res-1" resourceName="ClusterA CPU" onOpenChange={vi.fn()} />,
+      <ResourcesRatesDrawer
+        resourceId="res-1"
+        resourceName="ClusterA CPU"
+        onOpenChange={vi.fn()}
+      />,
     );
     expect(screen.queryByText("Effective rate")).not.toBeInTheDocument();
   });
@@ -99,7 +114,9 @@ describe("<ResourcesRatesDrawer />", () => {
     effective = undefined; // keep ACTIVE unique to the table
     renderDrawer();
     const rows = screen.getAllByRole("row").slice(1); // drop header
-    const badges = rows.map((r) => within(r).getByText(/ACTIVE|SCHEDULED|SUPERSEDED|EXPIRED/).textContent);
+    const badges = rows.map(
+      (r) => within(r).getByText(/ACTIVE|SCHEDULED|SUPERSEDED|EXPIRED/).textContent,
+    );
     expect(badges).toEqual(["SCHEDULED", "ACTIVE", "SUPERSEDED", "EXPIRED"]);
   });
 
@@ -110,7 +127,11 @@ describe("<ResourcesRatesDrawer />", () => {
 
     canManage = true;
     rerender(
-      <ResourcesRatesDrawer resourceId="res-1" resourceName="ClusterA CPU" onOpenChange={vi.fn()} />,
+      <ResourcesRatesDrawer
+        resourceId="res-1"
+        resourceName="ClusterA CPU"
+        onOpenChange={vi.fn()}
+      />,
     );
     expect(screen.getByRole("button", { name: "+ Add rate" })).toBeInTheDocument();
   });
@@ -166,7 +187,9 @@ describe("<ResourcesRatesDrawer />", () => {
   });
 
   it("keeps the populated form and shows a backend error without toasting", async () => {
-    mutation.mutateAsync = vi.fn<typeof createResourceRate>().mockRejectedValue(new Error("Rate conflicts with an existing window"));
+    mutation.mutateAsync = vi
+      .fn<typeof createResourceRate>()
+      .mockRejectedValue(new Error("Rate conflicts with an existing window"));
     renderDrawer();
     openForm();
     fireEvent.change(screen.getByLabelText("Rate"), { target: { value: "0.09" } });

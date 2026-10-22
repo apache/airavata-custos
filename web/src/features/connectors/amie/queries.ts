@@ -40,8 +40,7 @@ const DEFAULT_GC_TIME = 5 * 60_000;
 
 export const amieKeys = {
   all: ["amie"] as const,
-  packets: (params: PacketListParams = {}) =>
-    [...amieKeys.all, "packets", "list", params] as const,
+  packets: (params: PacketListParams = {}) => [...amieKeys.all, "packets", "list", params] as const,
   packet: (id: string) => [...amieKeys.all, "packets", "detail", id] as const,
   events: (id: string) => [...amieKeys.all, "packets", "events", id] as const,
   replies: (params: ReplyListParams = {}) => [...amieKeys.all, "replies", params] as const,

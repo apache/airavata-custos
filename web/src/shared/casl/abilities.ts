@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type MongoAbility, createMongoAbility } from "@casl/ability";
 import type { Privilege } from "@/features/core/identity/types";
+import { type MongoAbility, createMongoAbility } from "@casl/ability";
 
 export type AppAbility = MongoAbility;
 export type Ability = AppAbility;

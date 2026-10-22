@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -28,6 +27,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
 import type { AllocationMembership } from "../schemas";
 
 // Only these roles are portal-assignable. PI and CO_PI come from upstream and

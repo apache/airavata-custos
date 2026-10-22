@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 // A read-only checkbox; the label names what it marks.
 export function CheckMark({ checked, label }: { checked: boolean; label: string }) {

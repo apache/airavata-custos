@@ -17,9 +17,9 @@
 
 "use client";
 
-import { useQuery, skipToken } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getAllocationJobs, getAnalyticsContexts, getUsageSummary, type JobsParams } from "./api";
+import { type JobsParams, getAllocationJobs, getAnalyticsContexts, getUsageSummary } from "./api";
 
 export const analyticsKeys = {
   all: ["analytics"] as const,

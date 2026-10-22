@@ -68,8 +68,6 @@
     "yaml": "^2.9.1"
   },
   "msw": {
-    "workerDirectory": [
-      "public"
-    ]
+    "workerDirectory": ["public"]
   }
 }

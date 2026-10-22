@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { TraceListContainer } from "@/features/core/audit/components/TraceListContainer";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Trace · Admin",

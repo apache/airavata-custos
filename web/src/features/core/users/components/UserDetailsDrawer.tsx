@@ -36,7 +36,10 @@ export function UserDetailsDrawer({
   const canManageRoles = ability.can("manage", "Role");
   const canReadAccounts = ability.can("read", "Cluster");
   const { user: currentUser } = useCurrentUser();
-  const fetched = useUsersById(userId ? [userId] : [], Boolean(userId) && ability.can("read", "User"));
+  const fetched = useUsersById(
+    userId ? [userId] : [],
+    Boolean(userId) && ability.can("read", "User"),
+  );
   const rolesQuery = useRolesCatalog(canManageRoles);
   const [details] = useUserPageDetails(
     fetched.users,

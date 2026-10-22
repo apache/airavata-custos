@@ -111,15 +111,11 @@ describe("end-session route", () => {
     fetchMock.mockResolvedValueOnce(discoveryResponse({}));
     const req = new NextRequest("http://localhost:3000/api/auth/end-session", {
       headers: {
-        cookie:
-          "__Secure-custos.session-token.0=aaa; __Secure-custos.session-token.1=bbb",
+        cookie: "__Secure-custos.session-token.0=aaa; __Secure-custos.session-token.1=bbb",
       },
     });
     const res = await GET(req);
-    for (const name of [
-      "__Secure-custos.session-token.0",
-      "__Secure-custos.session-token.1",
-    ]) {
+    for (const name of ["__Secure-custos.session-token.0", "__Secure-custos.session-token.1"]) {
       const cookie = res.cookies.get(name);
       expect(cookie?.value).toBe("");
       expect(cookie?.maxAge).toBe(0);

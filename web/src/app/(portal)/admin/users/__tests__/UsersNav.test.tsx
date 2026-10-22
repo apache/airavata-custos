@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import type { Privilege } from "@/features/core/identity/types";
+import { defineAbilitiesFor } from "@/shared/casl/abilities";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UsersNav } from "../UsersNav";

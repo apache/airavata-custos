@@ -17,9 +17,9 @@
 
 "use client";
 
-import type * as React from "react";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import type * as React from "react";
 
 export function AmiePermissionGate({ children }: { children: React.ReactNode }) {
   const ability = useAbility();

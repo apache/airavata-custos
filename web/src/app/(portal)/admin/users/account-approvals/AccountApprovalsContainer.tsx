@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { ClusterAccountsTable } from "@/features/core/cluster-accounts/components/ClusterAccountsTable";
 import {
   type ReviewAction,
@@ -37,6 +35,8 @@ import {
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import * as React from "react";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
 
@@ -61,9 +61,10 @@ export function AccountApprovalsContainer() {
   const params = useShallowSearchParams();
   const filter = readFilter(params);
   const [page, setPage] = React.useState(1);
-  const [review, setReview] = React.useState<{ account: ClusterAccountResponse; action: ReviewAction } | null>(
-    null,
-  );
+  const [review, setReview] = React.useState<{
+    account: ClusterAccountResponse;
+    action: ReviewAction;
+  } | null>(null);
   const [reviewError, setReviewError] = React.useState<string | null>(null);
 
   const query = useClusterAccounts(

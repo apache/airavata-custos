@@ -21,6 +21,12 @@ import {
   clusterAccountLabel,
   clusterAccountStatus,
 } from "@/features/core/cluster-accounts/components/ClusterAccountBadge";
+import { PermissionsDrawer } from "@/features/core/users/components/PermissionsDrawer";
+import { userStatusLabel } from "@/features/core/users/components/UserStatusBadge";
+import {
+  IDENTITY_SOURCE_LABELS,
+  identitySourceLabel,
+} from "@/features/core/users/components/identities";
 import type {
   ClusterAccountsView,
   UserAccountRow,
@@ -33,19 +39,13 @@ import {
 } from "@/shared/hooks/useShallowSearchParams";
 import { CheckMark } from "@/shared/ui/CheckMark";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { Input } from "@/shared/ui/input";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { ChevronRight, UserRound } from "lucide-react";
 import * as React from "react";
 import { IdentitiesCell } from "./IdentitiesCell";
-import { PermissionsDrawer } from "@/features/core/users/components/PermissionsDrawer";
 import { RolesCell } from "./RolesCell";
-import { userStatusLabel } from "@/features/core/users/components/UserStatusBadge";
-import {
-  IDENTITY_SOURCE_LABELS,
-  identitySourceLabel,
-} from "@/features/core/users/components/identities";
 
 export type AccountStatusFilter = ClusterAccountApproval | "ALL";
 
@@ -289,7 +289,10 @@ export function UsersTable({
           value={identityFilter}
           onValueChange={(value) => updateFilterParam("identity", value)}
         >
-          <SelectTrigger aria-label="Filter this page by external identity" className="h-9 w-56 px-3">
+          <SelectTrigger
+            aria-label="Filter this page by external identity"
+            className="h-9 w-56 px-3"
+          >
             <SelectValue>{(value: string) => identityLabelFor(value)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -327,8 +330,8 @@ export function UsersTable({
         <>
           {filtersActive ? (
             <p className="text-sm text-muted-foreground">
-              Showing {filteredUsers.length} match{filteredUsers.length === 1 ? "" : "es"} on this page;{" "}
-              {total} users total.
+              Showing {filteredUsers.length} match{filteredUsers.length === 1 ? "" : "es"} on this
+              page; {total} users total.
             </p>
           ) : null}
 

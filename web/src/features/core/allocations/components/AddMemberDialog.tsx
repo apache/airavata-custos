@@ -17,9 +17,9 @@
 
 "use client";
 
-import * as React from "react";
 import { useUserEmailSearch } from "@/features/core/users/queries";
 import { requires } from "@/shared/casl/permissions";
+import { SuggestInput } from "@/shared/ui/SuggestInput";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -30,7 +30,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
-import { SuggestInput } from "@/shared/ui/SuggestInput";
+import * as React from "react";
 import type { CreateMembershipPayload } from "../schemas";
 
 const ROLES = ["CO_PI", "ALLOCATION_MANAGER", "MEMBER"] as const;

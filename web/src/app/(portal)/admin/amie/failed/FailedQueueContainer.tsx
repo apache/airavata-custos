@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { FailedQueue } from "@/features/connectors/amie/components/FailedQueue";
 import { PacketDetailDrawer } from "@/features/connectors/amie/components/PacketDetailDrawer";
 import {
@@ -30,6 +28,8 @@ import {
 } from "@/features/connectors/amie/queries";
 import type { Packet } from "@/features/connectors/amie/types";
 import { pluralize } from "@/features/connectors/amie/utils";
+import * as React from "react";
+import { toast } from "sonner";
 
 function failedOver24h(rows: Packet[]): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;

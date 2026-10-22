@@ -17,9 +17,9 @@
 
 "use client";
 
+import { useSignOut } from "@/shared/auth/useSignOut";
 import * as React from "react";
 import { toast } from "sonner";
-import { useSignOut } from "@/shared/auth/useSignOut";
 
 const HEADING = "No portal access";
 const BODY = "No account was found for this sign-in. Ask an administrator for access.";

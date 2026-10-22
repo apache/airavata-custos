@@ -17,17 +17,17 @@
 
 "use client";
 
+import type { ProjectResponse, ProjectStatus } from "@/generated/core/zod.gen";
+import { requires } from "@/shared/casl/permissions";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { requires } from "@/shared/casl/permissions";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import type { ProjectResponse, ProjectStatus } from "@/generated/core/zod.gen";
 import { ProjectStatusIcon } from "./ProjectStatusIcon";
 
 function statusLabelFor(value: string): string {

@@ -17,18 +17,18 @@
 
 "use client";
 
-import * as React from "react";
+import type { UsageSummary } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
+import * as React from "react";
 import {
+  CHART_OTHER_COLOR,
+  type ResourceSeries,
   buildPeriods,
   buildResourceSeries,
-  CHART_OTHER_COLOR,
   formatCredits,
   formatCreditsFull,
   formatDate,
-  type ResourceSeries,
 } from "../lib";
-import type { UsageSummary } from "@/generated/analytics/zod.gen";
 
 const PLOT_HEIGHT = 160;
 

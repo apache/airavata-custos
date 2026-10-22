@@ -190,7 +190,9 @@ describe("listChangeRequests", () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [changeRequest]));
     const out = await listChangeRequests({ allocation_id: "alloc-001" });
     expect(out).toHaveLength(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("/compute-allocations/alloc-001/change-requests");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain(
+      "/compute-allocations/alloc-001/change-requests",
+    );
   });
 
   it("scopes to requester when requester_id present", async () => {

@@ -46,7 +46,9 @@ const ciraInAlpha = { id: "m-1", compute_allocation_id: "a-1", user_id: "u-3" };
 
 const roleMutation = { mutateAsync: vi.fn(async () => undefined), isPending: false };
 const toggle = { mutateAsync: vi.fn(async () => undefined), isPending: false };
-vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({ UserDetailsDrawer: () => null }));
+vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({
+  UserDetailsDrawer: () => null,
+}));
 vi.mock("../queries", () => ({
   useProjectMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useUpdateProjectMember: () => roleMutation,

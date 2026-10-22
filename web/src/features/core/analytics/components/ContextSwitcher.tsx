@@ -17,7 +17,6 @@
 
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
 import type { Allocation } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import {
@@ -26,7 +25,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { creditsBand, formatCredits, pctRemaining, type UrgencyBand } from "../lib";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { type UrgencyBand, creditsBand, formatCredits, pctRemaining } from "../lib";
 import type { AnalyticsContext } from "../schemas";
 
 function balance(a: Allocation): string {

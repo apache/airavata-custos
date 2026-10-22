@@ -17,6 +17,7 @@
 
 "use client";
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import {
   type QueryClient,
   skipToken,
@@ -38,10 +39,10 @@ import {
   listAllocationMembers,
   listAllocationResources,
   listAllocationUsage,
-  listUserMemberships,
   listAllocations,
   listChangeRequestEvents,
   listChangeRequests,
+  listUserMemberships,
   rejectChangeRequest,
   removeMember,
   setAllocationResources,
@@ -53,13 +54,11 @@ import type {
   CreateChangeRequestPayload,
   CreateMembershipPayload,
 } from "./schemas";
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
 
 export const allocationKeys = {
   all: ["allocations"] as const,
-  list: (params: AllocationListParams = {}) =>
-    [...allocationKeys.all, "list", params] as const,
+  list: (params: AllocationListParams = {}) => [...allocationKeys.all, "list", params] as const,
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
@@ -131,7 +130,8 @@ export function useDeleteAllocation() {
   return useMutation({
     mutationFn: deleteAllocation,
     // Marks lists stale without refetching the deleted allocation's own queries.
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
   });
 }
 
@@ -216,9 +216,7 @@ export function useMembershipsByAllocation(allocationIds: string[]) {
       ...DEFAULTS,
     })),
     combine: (results) => ({
-      byAllocation: Object.fromEntries(
-        allocationIds.map((id, i) => [id, results[i]?.data ?? []]),
-      ),
+      byAllocation: Object.fromEntries(allocationIds.map((id, i) => [id, results[i]?.data ?? []])),
       isLoading: results.some((r) => r.isLoading),
       error: results.find((r) => r.error)?.error ?? null,
       refetch: () => Promise.all(results.map((r) => r.refetch())),
@@ -293,7 +291,11 @@ export function useSubmitChangeRequest() {
 export function useApproveChangeRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
+    mutationFn: ({
+      id,
+      approverId,
+      comment,
+    }: { id: string; approverId: string; comment?: string }) =>
       approveChangeRequest(id, approverId, comment),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: allocationKeys.all });
@@ -304,7 +306,11 @@ export function useApproveChangeRequest() {
 export function useRejectChangeRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
+    mutationFn: ({
+      id,
+      approverId,
+      comment,
+    }: { id: string; approverId: string; comment?: string }) =>
       rejectChangeRequest(id, approverId, comment),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: allocationKeys.all });

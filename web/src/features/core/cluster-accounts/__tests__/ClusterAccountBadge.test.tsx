@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { type ClusterAccountResponse, zClusterAccountResponse } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
@@ -23,7 +24,6 @@ import {
   ClusterAccountDecisions,
   clusterAccountStatus,
 } from "../components/ClusterAccountBadge";
-import { type ClusterAccountResponse, zClusterAccountResponse } from "@/generated/core/zod.gen";
 
 const rows = zClusterAccountResponse.array().parse(fixture);
 

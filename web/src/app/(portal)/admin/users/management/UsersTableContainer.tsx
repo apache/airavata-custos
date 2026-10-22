@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { useAllocations } from "@/features/core/allocations/queries";
 import {
   type ReviewAction,
@@ -45,15 +43,13 @@ import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
-import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { Button } from "@/shared/ui/button";
+import * as React from "react";
+import { toast } from "sonner";
 import { AddUserDialog } from "./AddUserDialog";
-import {
-  type AccountStatusFilter,
-  toAccountStatus,
-  UsersTable,
-} from "./UsersTable";
+import { type AccountStatusFilter, UsersTable, toAccountStatus } from "./UsersTable";
 
 const PAGE_SIZE = 25;
 
@@ -98,7 +94,11 @@ export function UsersTableContainer() {
     { enabled: canReadUsers && !byStatus },
   );
   const accountsQuery = useClusterAccounts(
-    { ...(filter === "ALL" ? {} : { approval_status: filter }), limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE },
+    {
+      ...(filter === "ALL" ? {} : { approval_status: filter }),
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
+    },
     { enabled: canReadUsers && byStatus },
   );
   const accountUsers = useUsersById(
@@ -109,16 +109,14 @@ export function UsersTableContainer() {
   const { clusters, byUser } = useUserClusterAccounts(pageUsers, canReadAccounts);
   const rolesQuery = useRolesCatalog(canManageRoles);
   const roleReadsEnabled = canManageRoles && rolesQuery.isSuccess;
-  const hydratedRows = useUserPageDetails(
-    pageUsers,
-    rolesQuery.data ?? [],
-    roleReadsEnabled,
-  ).map((row) => ({
-    ...row,
-    rolesLoading: canManageRoles && (rolesQuery.isLoading || row.rolesLoading),
-    rolesError: canManageRoles && (rolesQuery.isError || row.rolesError),
-    accounts: byUser.get(row.id) ?? [],
-  }));
+  const hydratedRows = useUserPageDetails(pageUsers, rolesQuery.data ?? [], roleReadsEnabled).map(
+    (row) => ({
+      ...row,
+      rolesLoading: canManageRoles && (rolesQuery.isLoading || row.rolesLoading),
+      rolesError: canManageRoles && (rolesQuery.isError || row.rolesError),
+      accounts: byUser.get(row.id) ?? [],
+    }),
+  );
 
   function setFilter(next: AccountStatusFilter) {
     const nextParams = new URLSearchParams(params);

@@ -17,12 +17,11 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { useClusters } from "@/features/core/clusters/queries";
 import { useProjects } from "@/features/core/projects/queries";
 import type { ProjectResponse } from "@/generated/core/zod.gen";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import { SuggestInput } from "@/shared/ui/SuggestInput";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -34,7 +33,8 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { SuggestInput } from "@/shared/ui/SuggestInput";
+import * as React from "react";
+import { toast } from "sonner";
 import { useCreateAllocation } from "../queries";
 import { ResourcePicker } from "./ResourcePicker";
 
@@ -50,10 +50,7 @@ const projectLabel = (p: Pick<ProjectResponse, "title" | "ref">) => `${p.ref}: $
 const isoDate = (d: Date) => d.toLocaleDateString("en-CA");
 const startOfDay = (day: string) => new Date(`${day}T00:00:00`).toISOString();
 
-export function CreateAllocationDialog({
-  onOpenChange,
-  project,
-}: CreateAllocationDialogProps) {
+export function CreateAllocationDialog({ onOpenChange, project }: CreateAllocationDialogProps) {
   const create = useCreateAllocation();
   const clusters = useClusters();
   const [projectText, setProjectText] = React.useState("");
@@ -199,9 +196,7 @@ export function CreateAllocationDialog({
             <Label>Resources</Label>
             <ResourcePicker clusterId={cluster} value={resourceIds} onChange={setResourceIds} />
           </div>
-          {create.error ? (
-            <p className="text-destructive text-sm">{create.error.message}</p>
-          ) : null}
+          {create.error ? <p className="text-destructive text-sm">{create.error.message}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
 import type { Organization } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { OrganizationsList } from "../components/OrganizationsList";
 
 const org: Organization = {

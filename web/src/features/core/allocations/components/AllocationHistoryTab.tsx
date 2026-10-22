@@ -17,12 +17,12 @@
 
 "use client";
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
 import { useAllocationDiffs } from "../queries";
-import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 
 export type AllocationHistoryTabProps = {
   allocation: ComputeAllocation;
@@ -74,9 +74,7 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
       width: "10rem",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">
-          {new Intl.NumberFormat().format(row.new_su_amount)}
-        </span>
+        <span className="tabular-nums">{new Intl.NumberFormat().format(row.new_su_amount)}</span>
       ),
     },
     {

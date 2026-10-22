@@ -57,10 +57,7 @@ export function permissionRowsFor(
       const ai = ACTION_ORDER.indexOf(a.action);
       const bi = ACTION_ORDER.indexOf(b.action);
       if (ai !== bi) {
-        return (
-          (ai === -1 ? ACTION_ORDER.length : ai) -
-          (bi === -1 ? ACTION_ORDER.length : bi)
-        );
+        return (ai === -1 ? ACTION_ORDER.length : ai) - (bi === -1 ? ACTION_ORDER.length : bi);
       }
       return a.action.localeCompare(b.action);
     }),
@@ -77,7 +74,10 @@ export function rwStateFor(permissions: PermissionKey[], catalog?: readonly Perm
 
 // Write implies read (you can't write what you can't read), so granting
 // write also grants read, and revoking read also revokes write.
-export function togglePermission(permissions: PermissionKey[], key: PermissionKey): PermissionKey[] {
+export function togglePermission(
+  permissions: PermissionKey[],
+  key: PermissionKey,
+): PermissionKey[] {
   const held = new Set(permissions);
   const { action } = splitPermission(key);
   const isRead = action === "read";

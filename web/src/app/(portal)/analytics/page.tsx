@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { AnalyticsPage } from "@/features/core/analytics/components/AnalyticsPage";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Analytics" };
 
