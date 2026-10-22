@@ -1,8 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createClient } from "@hey-api/openapi-ts";
 import { parse } from "yaml";
+import { emit } from "./emit-zod.mjs";
 import { GoIndex, applyPresence, isNode } from "./go-presence.mjs";
 import { settle, supplement } from "./spec-supplement.mjs";
 
@@ -50,17 +50,8 @@ async function main() {
     const report = applyPresence(spec, go);
     settle(mod.name, spec);
     console.log(`gen-api: ${mod.name} presence ${JSON.stringify(report)}`);
-    await createClient({
-      input: spec,
-      output: { path: mod.output, postProcess: [] },
-      plugins: [
-        { name: "@hey-api/typescript" },
-        {
-          name: "zod",
-          definitions: { types: { infer: { case: "PascalCase", name: "{{name}}" } } },
-        },
-      ],
-    });
+    rmSync(mod.output, { recursive: true, force: true });
+    emit(spec, mod.output);
     console.log(`gen-api: emitted ${mod.name} → ${path.relative(webRoot, mod.output)}`);
   }
 }
