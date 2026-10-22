@@ -22,7 +22,7 @@ const SESSION_COOKIES = ["__Secure-custos.session-token", "custos.session-token"
 
 // Signed-out users get the landing page; the check is presence-only, an
 // invalid cookie falls through to the portal's own auth gate.
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   // Match chunked cookies (name.0, name.1, ...) too.
   const hasSession = request.cookies
     .getAll()

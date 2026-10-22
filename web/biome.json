@@ -40,7 +40,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended",
+      "recommended": true,
       "suspicious": {
         "noExplicitAny": "error",
         "noArrayIndexKey": "off",
@@ -51,7 +51,7 @@
         "useImportType": "error"
       },
       "a11y": {
-        "preset": "recommended",
+        "recommended": true,
         "noNoninteractiveTabindex": "off",
         "noStaticElementInteractions": "off",
         "useAriaPropsSupportedByRole": "off",
