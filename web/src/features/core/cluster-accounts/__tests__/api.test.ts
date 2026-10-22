@@ -43,6 +43,7 @@ const account = {
   display_name: "Jane Doe",
   email: "jdoe@example.edu",
   cluster_name: "cluster-a",
+  requested_at: "2026-10-14T09:00:00Z",
 };
 
 afterEach(() => fetchMock.mockReset());

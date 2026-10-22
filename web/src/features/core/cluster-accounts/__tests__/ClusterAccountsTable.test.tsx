@@ -16,12 +16,21 @@
 // under the License.
 
 import { type ClusterAccountResponse, zClusterAccountResponse } from "@/generated/core/zod.gen";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { projectsHandlers } from "@/mocks/handlers/projects";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { setupServer } from "msw/node";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
 import { ClusterAccountsTable } from "../components/ClusterAccountsTable";
 
 const rows = zClusterAccountResponse.array().parse(fixture);
+const pending = rows.filter((r) => r.approval_status === "PENDING");
+
+const server = setupServer(...projectsHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 function byId(id: string): ClusterAccountResponse {
   const row = rows.find((r) => r.id === id);
@@ -35,49 +44,56 @@ function rowOf(text: string): HTMLTableRowElement {
   return row;
 }
 
-function renderTable(canReview: boolean, shown: ClusterAccountResponse[] = rows) {
+function renderTable(canReview: boolean, shown: ClusterAccountResponse[] = rows, grouped = false) {
   const onApprove = vi.fn();
   const onDeny = vi.fn();
+  const onApproveAll = vi.fn();
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <ClusterAccountsTable
-      rows={shown}
-      isLoading={false}
-      error={null}
-      canReview={canReview}
-      onApprove={onApprove}
-      onDeny={onDeny}
-      page={1}
-      pageSize={25}
-      total={shown.length}
-      onPageChange={vi.fn()}
-      emptyHeading="Nothing waiting for approval."
-    />,
+    <QueryClientProvider client={client}>
+      <ClusterAccountsTable
+        rows={shown}
+        isLoading={false}
+        error={null}
+        canReview={canReview}
+        onApprove={onApprove}
+        onDeny={onDeny}
+        onApproveAll={onApproveAll}
+        grouped={grouped}
+        page={1}
+        pageSize={25}
+        total={shown.length}
+        onPageChange={vi.fn()}
+        emptyHeading="Nothing waiting for approval."
+      />
+    </QueryClientProvider>,
   );
-  return { onApprove, onDeny };
+  return { onApprove, onDeny, onApproveAll };
 }
 
 describe("ClusterAccountsTable", () => {
   // Make sure only a pending account offers decisions; the rest show their approval status in that column.
   it("offers decisions on pending accounts and the status on the rest", () => {
     renderTable(true);
-    const pending = rowOf("jdoe");
-    expect(pending.textContent).toContain("Approve");
-    expect(pending.textContent).toContain("Deny");
+    const row = rowOf("custos-jdoe");
+    expect(row.textContent).toContain("Approve");
+    expect(row.textContent).toContain("Deny");
 
-    const denied = rowOf("sokafor");
+    const denied = rowOf("custos-lroe");
     expect(denied.querySelector("button")).toBeNull();
     expect(denied.textContent).toContain("Denied");
 
-    expect(rowOf("wzhang").textContent).toContain("Approved · provisioning");
-    expect(rowOf("tbecker").textContent).toContain("Active");
+    expect(rowOf("custos-sdoe").textContent).toContain("Approved · provisioning");
+    expect(rowOf("custos-jdoe2").textContent).toContain("Active");
   });
 
   // Make sure a reader without the write privilege sees the pending status but no decision buttons.
   it("hides the decisions without the review privilege", () => {
-    renderTable(false);
+    renderTable(false, pending, true);
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Deny" })).toBeNull();
-    expect(rowOf("jdoe").textContent).toContain("Pending approval");
+    expect(screen.queryByRole("button", { name: /^Approve all/ })).toBeNull();
+    expect(rowOf("custos-jdoe").textContent).toContain("Pending approval");
   });
 
   it("hands the clicked account to the approve and deny callbacks", () => {
@@ -93,5 +109,35 @@ describe("ClusterAccountsTable", () => {
   it("shows the denial note on the row", () => {
     renderTable(false, [byId("ccu-denied-1")]);
     expect(screen.getByText("Not on the approved collaborator list.")).toBeInTheDocument();
+  });
+
+  // Make sure each pending request sits under its own allocation's card, in server order.
+  it("groups pending requests by allocation in server order", () => {
+    const unlinked = pending.filter((r) => !r.allocation_id);
+    const linked = pending.filter((r) => r.allocation_id);
+    renderTable(true, [...linked, ...unlinked], true);
+
+    const sections = screen.getAllByRole("region");
+    const names = sections.map(
+      (s) => document.getElementById(s.getAttribute("aria-labelledby") ?? "")?.textContent,
+    );
+    expect(names).toEqual([
+      "Genomic Sequencing - GPU Pool",
+      "Plasma Simulation - GPU",
+      "No allocation",
+    ]);
+    expect(within(sections[0] as HTMLElement).getByText("custos-jroe")).toBeInTheDocument();
+    expect(within(sections[2] as HTMLElement).getByText("custos-adoe")).toBeInTheDocument();
+  });
+
+  // Make sure Approve all shows only on an allocation with two or more requests, and hands over just those.
+  it("offers Approve all only on a linked group with several requests", () => {
+    const { onApproveAll } = renderTable(true, pending, true);
+    const buttons = screen.getAllByRole("button", { name: /^Approve all/ });
+    expect(buttons).toHaveLength(1);
+
+    fireEvent.click(buttons[0] as HTMLElement);
+    const ids = (onApproveAll.mock.calls[0]?.[0] as ClusterAccountResponse[]).map((r) => r.id);
+    expect(ids).toEqual(["ccu-pending-1", "ccu-pending-2", "ccu-pending-3"]);
   });
 });

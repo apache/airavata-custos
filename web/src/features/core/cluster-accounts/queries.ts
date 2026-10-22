@@ -73,6 +73,8 @@ export function useUserClusterAccounts(users: User[], enabled: boolean) {
             cluster_name: names.get(a.compute_cluster_id) ?? a.compute_cluster_id,
             display_name: [user.first_name, user.last_name].filter(Boolean).join(" "),
             email: user.email,
+            // The per-user route has no request date.
+            requested_at: "",
           })),
         ]),
       ),
@@ -85,6 +87,15 @@ export function useApproveClusterAccount() {
   return useMutation({
     mutationFn: (id: string) => approveClusterAccount(id),
     onSuccess: () => client.invalidateQueries({ queryKey: clusterAccountKeys.all }),
+  });
+}
+
+// One call per account so a failure does not stop the rest.
+export function useApproveClusterAccounts() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => Promise.allSettled(ids.map((id) => approveClusterAccount(id))),
+    onSettled: () => client.invalidateQueries({ queryKey: clusterAccountKeys.all }),
   });
 }
 
