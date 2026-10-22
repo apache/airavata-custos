@@ -22,6 +22,7 @@ package notify
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -31,7 +32,11 @@ func TestLiveSend(t *testing.T) {
 	if to == "" {
 		t.Skip("EMAIL_TEST_TO not set")
 	}
-	sender, err := NewSMTP(os.Getenv("EMAIL_SMTP_HOST"), 587, os.Getenv("EMAIL_SMTP_USERNAME"), os.Getenv("EMAIL_SMTP_PASSWORD"), os.Getenv("EMAIL_FROM"))
+	port := 587
+	if p, err := strconv.Atoi(os.Getenv("EMAIL_SMTP_PORT")); err == nil {
+		port = p
+	}
+	sender, err := NewSMTP(os.Getenv("EMAIL_SMTP_HOST"), port, os.Getenv("EMAIL_SMTP_USERNAME"), os.Getenv("EMAIL_SMTP_PASSWORD"), os.Getenv("EMAIL_FROM"))
 	if err != nil {
 		t.Fatal(err)
 	}

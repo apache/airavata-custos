@@ -62,7 +62,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		LogoURL:      get("logo_url"),
 	}
 	for key, v := range map[string]string{
-		"smtp_host": host, "username": username, "password": password, "from": from,
+		"smtp_host": host, "from": from,
 		"site_name": site.SiteName, "portal_url": site.PortalURL, "cluster_host": site.ClusterHost, "support_email": site.SupportEmail,
 	} {
 		if v == "" {
