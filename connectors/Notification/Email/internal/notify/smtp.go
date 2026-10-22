@@ -34,20 +34,24 @@ type Sender interface {
 	Send(ctx context.Context, m Message) error
 }
 
-// SMTP sends through any relay that accepts authenticated STARTTLS on the configured port.
 type SMTP struct {
 	client *mail.Client
 	from   string
 }
 
+// NewSMTP TLS is required only with a login, so a password never goes out unencrypted.
 func NewSMTP(host string, port int, username, password, from string) (*SMTP, error) {
-	client, err := mail.NewClient(host,
-		mail.WithPort(port),
-		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(username),
-		mail.WithPassword(password),
-		mail.WithTLSPolicy(mail.TLSMandatory),
-	)
+	opts := []mail.Option{mail.WithPort(port), mail.WithTLSPolicy(mail.TLSOpportunistic)}
+	if username != "" {
+		opts = []mail.Option{
+			mail.WithPort(port),
+			mail.WithTLSPolicy(mail.TLSMandatory),
+			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithUsername(username),
+			mail.WithPassword(password),
+		}
+	}
+	client, err := mail.NewClient(host, opts...)
 	if err != nil {
 		return nil, err
 	}
