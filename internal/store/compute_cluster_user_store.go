@@ -32,10 +32,15 @@ import (
 // review list shows.
 type ComputeClusterUserWithUser struct {
 	models.ComputeClusterUser
-	FirstName   string `db:"first_name"`
-	LastName    string `db:"last_name"`
-	Email       string `db:"user_email"`
-	ClusterName string `db:"cluster_name"`
+	RequestedAt    time.Time `db:"created_at"`
+	FirstName      string    `db:"first_name"`
+	LastName       string    `db:"last_name"`
+	Email          string    `db:"user_email"`
+	ClusterName    string    `db:"cluster_name"`
+	ReviewerName   *string   `db:"reviewer_name"`
+	AllocationID   *string   `db:"allocation_id"`
+	AllocationName *string   `db:"allocation_name"`
+	ProjectID      *string   `db:"project_id"`
 }
 
 type pgComputeClusterUserStore struct {
@@ -147,25 +152,47 @@ func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *m
 	return err
 }
 
-func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
+// clusterAccountListFrom links each account to the user's newest allocation on
+// the same cluster.
+// TODO The request does not store its allocation, so this is inferred.
+const clusterAccountListFrom = `
+	  FROM compute_cluster_users cu
+	  JOIN users u            ON u.id = cu.user_id
+	  JOIN compute_clusters c ON c.id = cu.compute_cluster_id
+	  LEFT JOIN users r       ON r.id = cu.reviewed_by
+	  LEFT JOIN LATERAL (
+	       SELECT ca.id, ca.name, ca.project_id, p.title
+	         FROM compute_allocation_memberships m
+	         JOIN compute_allocations ca ON ca.id = m.compute_allocation_id
+	         JOIN projects p             ON p.id = ca.project_id
+	        WHERE m.user_id = cu.user_id AND ca.compute_cluster_id = cu.compute_cluster_id
+	        ORDER BY m.created_at DESC
+	        LIMIT 1) a ON true
+	 WHERE ($1 = '' OR cu.approval_status = $1)
+	   AND ($2 = '' OR CONCAT_WS(' ', u.first_name, u.last_name, u.email, cu.local_username, a.name, a.title) ILIKE '%' || $2 || '%')`
+
+func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
+	// Pending is worked one allocation at a time, so its rows come grouped.
+	order := `cu.created_at DESC, cu.id`
+	if status == models.ClusterAccountPending {
+		order = `a.id IS NULL, a.title, a.name, a.id, cu.created_at, cu.id`
+	}
 	var rows []ComputeClusterUserWithUser
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at,
-		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note,
-		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name
-		   FROM compute_cluster_users cu
-		   JOIN users u            ON u.id = cu.user_id
-		   JOIN compute_clusters c ON c.id = cu.compute_cluster_id
-		  WHERE $1 = '' OR cu.approval_status = $1
-		  ORDER BY cu.created_at DESC
-		  LIMIT $2 OFFSET $3`,
-		status, limit, offset)
+		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.created_at,
+		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name,
+		        NULLIF(TRIM(CONCAT_WS(' ', r.first_name, r.last_name)), '') AS reviewer_name,
+		        a.id AS allocation_id, a.name AS allocation_name, a.project_id`+
+			clusterAccountListFrom+`
+		  ORDER BY `+order+`
+		  LIMIT $3 OFFSET $4`,
+		status, query, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	var total int
-	if err := s.db.GetContext(ctx, &total,
-		`SELECT COUNT(*) FROM compute_cluster_users WHERE $1 = '' OR approval_status = $1`, status); err != nil {
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+clusterAccountListFrom, status, query); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

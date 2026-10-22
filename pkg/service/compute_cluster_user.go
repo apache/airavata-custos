@@ -139,15 +139,13 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	return cu, nil
 }
 
-// ListComputeClusterUsersByApproval returns cluster users in the given
-// approval status with their user and cluster, newest first. An empty status means any status.
-func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ClusterAccountApproval, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
+func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
 	switch status {
 	case "", models.ClusterAccountPending, models.ClusterAccountApproved, models.ClusterAccountDenied:
 	default:
 		return nil, 0, fmt.Errorf("%w: unknown approval status %q", ErrInvalidInput, status)
 	}
-	rows, total, err := s.clusterUsers.ListByApprovalStatus(ctx, status, limit, offset)
+	rows, total, err := s.clusterUsers.ListByApprovalStatus(ctx, status, strings.TrimSpace(query), limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list compute cluster users by approval: %w", err)
 	}
