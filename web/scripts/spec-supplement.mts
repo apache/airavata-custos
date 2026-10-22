@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { type GoIndex, type Node, at, isNode } from "./go-presence.mjs";
+import { type GoIndex, type Node, at, isNode } from "./go-presence.mts";
 
 const ref = (name: string) => ({ $ref: `#/definitions/${name}` });
 const array = (items: unknown) => ({ type: "array", items });
