@@ -51,7 +51,7 @@ For runtime topology and the audit conventions every component follows, see [doc
 
 ## Prerequisites
 
-* Go 1.24+
+* Go 1.27+
 * Docker and Docker Compose
 
 ## Quick Start

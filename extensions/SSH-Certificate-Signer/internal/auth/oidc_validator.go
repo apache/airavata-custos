@@ -24,8 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v2/jwk"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
@@ -116,7 +116,7 @@ func (v *OIDCValidator) ValidateAccessToken(ctx context.Context, tokenString str
 		return nil, &AuthError{Code: "invalid_token", Message: fmt.Sprintf("Failed to parse token: %v", err), Status: 401}
 	}
 
-	issuer := insecureToken.Issuer()
+	issuer, _ := insecureToken.Issuer()
 	if issuer == "" {
 		return nil, &AuthError{Code: "invalid_token", Message: "Token missing issuer claim", Status: 401}
 	}
@@ -161,15 +161,12 @@ func (v *OIDCValidator) ValidateAccessToken(ctx context.Context, tokenString str
 	}
 
 	var email string
-	if v, ok := token.Get("email"); ok {
-		if s, ok := v.(string); ok {
-			email = s
-		}
-	}
+	_ = token.Get("email", &email)
 
+	subject, _ := token.Subject()
 	return &UserIdentity{
 		Issuer:    issuer,
-		Subject:   token.Subject(),
+		Subject:   subject,
 		Email:     email,
 		Principal: principal,
 	}, nil
@@ -177,21 +174,12 @@ func (v *OIDCValidator) ValidateAccessToken(ctx context.Context, tokenString str
 
 func extractPrincipal(token jwt.Token) string {
 	// Priority: sub, preferred_username, email, username
-	if s := token.Subject(); s != "" {
+	if s, _ := token.Subject(); s != "" {
 		return s
 	}
-	if v, ok := token.Get("preferred_username"); ok {
-		if s, ok := v.(string); ok && s != "" {
-			return s
-		}
-	}
-	if v, ok := token.Get("email"); ok {
-		if s, ok := v.(string); ok && s != "" {
-			return s
-		}
-	}
-	if v, ok := token.Get("username"); ok {
-		if s, ok := v.(string); ok && s != "" {
+	for _, claim := range []string{"preferred_username", "email", "username"} {
+		var s string
+		if token.Get(claim, &s) == nil && s != "" {
 			return s
 		}
 	}

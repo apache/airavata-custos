@@ -27,7 +27,7 @@ Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a securit
 
 ## Prerequisites
 
-- Go 1.22+
+- Go 1.27+
 - PostgreSQL 17+
 - Vault / OpenBao with KV v2 secrets engine enabled
 

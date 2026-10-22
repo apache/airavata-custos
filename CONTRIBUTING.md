@@ -25,7 +25,7 @@ For instructions on running Custos locally against a database, see [INSTALL.md](
 
 ## Prerequisites
 
-- Go **1.24+**
+- Go **1.27+**
 - `git`
 
 ## Repository layout
