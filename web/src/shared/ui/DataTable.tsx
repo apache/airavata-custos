@@ -20,7 +20,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { TableEmptyRow } from "@/shared/ui/table";
-import { ChevronDown, ChevronsUpDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 export type DataTableSortValue = string | number | Date | null | undefined;
@@ -148,10 +148,7 @@ export function DataTable<T>({
 
   return (
     <div
-      className={cn(
-        "overflow-hidden rounded-lg border border-foreground/20 bg-card",
-        className,
-      )}
+      className={cn("overflow-hidden rounded-lg border border-foreground/20 bg-card", className)}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -246,10 +243,7 @@ export function DataTable<T>({
                   onKeyDown={
                     onRowClick
                       ? (e) => {
-                          if (
-                            e.key === "Enter" &&
-                            e.target === e.currentTarget
-                          ) {
+                          if (e.key === "Enter" && e.target === e.currentTarget) {
                             onRowClick(row);
                           }
                         }
@@ -292,7 +286,7 @@ export function DataTable<T>({
                       );
                     });
                   })()}
-                </tr>
+                </tr>,
               ])
             )}
           </tbody>

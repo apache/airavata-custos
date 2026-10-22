@@ -17,8 +17,8 @@
 
 "use client";
 
-import * as React from "react";
 import { StackedAreaUsage } from "@/shared/charts/StackedAreaUsage";
+import * as React from "react";
 import { type PacketStatBucket, type PacketStatus, packetStatusLabel } from "../types";
 
 const STATUS_ORDER: PacketStatus[] = [

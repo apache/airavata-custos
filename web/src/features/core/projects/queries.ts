@@ -67,9 +67,7 @@ export function useProject(id: string | undefined) {
 
 export function useProjectMembers(projectId: string | undefined) {
   return useQuery({
-    queryKey: projectId
-      ? projectKeys.members(projectId)
-      : [...projectKeys.all, "members", "none"],
+    queryKey: projectId ? projectKeys.members(projectId) : [...projectKeys.all, "members", "none"],
     queryFn: projectId ? () => listProjectMembers(projectId) : skipToken,
     ...DEFAULTS,
   });

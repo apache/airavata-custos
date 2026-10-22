@@ -17,8 +17,6 @@
 
 "use client";
 
-import { Server } from "lucide-react";
-import Link from "next/link";
 import { useAllocation, useUserMemberships } from "@/features/core/allocations/queries";
 import {
   ClusterAccountBadge,
@@ -32,15 +30,17 @@ import {
 import type { ComputeAllocationMembership, Role } from "@/generated/core/zod.gen";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
-import { TableEmptyRow } from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
+import { TableEmptyRow } from "@/shared/ui/table";
+import { Server } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
+import type { ClusterAccountsView, UserAccountRow } from "../types";
 import { PrivilegeList } from "./PrivilegeList";
 import { RoleAssignMenu } from "./RoleAssignMenu";
-import { identitySourceIcon, identitySourceLabel } from "./identities";
-import type { ClusterAccountsView, UserAccountRow } from "../types";
 import { UserStatusBadge } from "./UserStatusBadge";
+import { identitySourceIcon, identitySourceLabel } from "./identities";
 
 const HEADING = "mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 

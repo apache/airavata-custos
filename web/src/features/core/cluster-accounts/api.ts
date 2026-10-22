@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import type { PostComputeClusterUsersByIdDenyData } from "@/generated/core/types.gen";
 import {
   type ClusterAccountListResponse,
@@ -25,6 +24,7 @@ import {
   zPostComputeClusterUsersByIdApproveResponse,
   zPostComputeClusterUsersByIdDenyResponse,
 } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 import type { ClusterAccountListParams } from "./types";
 
 export async function listClusterAccounts(

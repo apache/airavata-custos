@@ -17,12 +17,12 @@
 
 "use client";
 
-import { Button } from "@/shared/ui/button";
+import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import { Button } from "@/shared/ui/button";
 import { clusterAccountStatus } from "./ClusterAccountBadge";
 
 function formatDate(iso?: string | null): string {

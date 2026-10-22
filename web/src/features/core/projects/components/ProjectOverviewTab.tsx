@@ -17,14 +17,14 @@
 
 "use client";
 
-import { Server } from "lucide-react";
-import Link from "next/link";
-import type * as React from "react";
 import { useAllocationsByProject } from "@/features/core/allocations/queries";
 import { ClusterName } from "@/features/core/clusters/components/ClusterName";
 import type { ProjectResponse } from "@/generated/core/zod.gen";
 import { usePermissions } from "@/shared/casl/permissions";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
+import { Server } from "lucide-react";
+import Link from "next/link";
+import type * as React from "react";
 import { ProjectPI } from "./ProjectPI";
 
 export type ProjectOverviewTabProps = {
@@ -50,7 +50,11 @@ export function ProjectOverviewTab({ project, addAllocation }: ProjectOverviewTa
         <ul className="space-y-0.5">
           {allocations.map((a) => (
             <li key={a.id} className="flex items-center gap-2">
-              <StatusIcon icon={Server} active={a.status === "ACTIVE"} label={a.status.toLowerCase()} />
+              <StatusIcon
+                icon={Server}
+                active={a.status === "ACTIVE"}
+                label={a.status.toLowerCase()}
+              />
               <Link href={`/allocations/${a.id}`} className="hover:underline">
                 {a.name}
               </Link>

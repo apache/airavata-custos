@@ -17,9 +17,9 @@
 
 "use client";
 
-import type { ReactNode } from "react";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import type { ReactNode } from "react";
 
 export function ChangeRequestsPermissionGate({ children }: { children: ReactNode }) {
   const ability = useAbility();

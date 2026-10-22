@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { describe, expect, it } from "vitest";
 import {
   type ComputeAllocationResourceRate,
   zComputeAllocationResourceRate,
 } from "@/generated/core/zod.gen";
+import { describe, expect, it } from "vitest";
 import { isRateActive } from "../schemas";
 
 describe("isRateActive", () => {

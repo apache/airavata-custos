@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { FolderKanban } from "lucide-react";
 import type { ProjectStatus } from "@/generated/core/zod.gen";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
+import { FolderKanban } from "lucide-react";
 
 export function ProjectStatusIcon({ status }: { status: ProjectStatus }) {
   return (

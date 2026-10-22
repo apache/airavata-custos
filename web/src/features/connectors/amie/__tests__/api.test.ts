@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getPacket,
   getPacketEvents,

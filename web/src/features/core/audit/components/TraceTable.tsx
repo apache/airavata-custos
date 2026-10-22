@@ -20,6 +20,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -35,7 +36,6 @@ import {
   plainName,
   shortHex,
 } from "../utils";
-import { CopyValue } from "@/shared/ui/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 
@@ -220,11 +220,7 @@ export function TraceTable({
             </div>
           ) : error ? (
             <div className="p-4">
-              <ErrorState
-                message={error.message}
-                onRetry={onRetry}
-                retryLabel="Retry"
-              />
+              <ErrorState message={error.message} onRetry={onRetry} retryLabel="Retry" />
             </div>
           ) : traces.length === 0 ? (
             <div

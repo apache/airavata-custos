@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 
 let diffs: ComputeAllocationDiff[] = [];
 

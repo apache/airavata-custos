@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import type { Privilege } from "@/features/core/identity/types";
+import { http, HttpResponse } from "msw";
 
 // Default to admin-grade so MSW-only browsing exercises the full UI; tests
 // override per-case via server.use().
@@ -46,9 +46,7 @@ const ALL_PRIVILEGES: Privilege[] = [
 // Unset (MSW-only browsing, unit tests) falls back to full access.
 function effectivePrivileges(): Privilege[] {
   if (typeof document === "undefined") return ALL_PRIVILEGES;
-  const match = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("custos.test-privileges="));
+  const match = document.cookie.split("; ").find((c) => c.startsWith("custos.test-privileges="));
   if (!match) return ALL_PRIVILEGES;
   const list = decodeURIComponent(match.slice("custos.test-privileges=".length))
     .split(",")

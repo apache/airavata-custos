@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { z } from "zod";
-import { zPostUsersBody } from "@/generated/core/zod.gen";
 import type { roleDetailResponseSchema } from "@/features/core/identity/schemas";
+import { zPostUsersBody } from "@/generated/core/zod.gen";
+import type { z } from "zod";
 
 export const createUserPayloadSchema = zPostUsersBody.required({ email: true });
 

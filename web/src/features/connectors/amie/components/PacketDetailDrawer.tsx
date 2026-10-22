@@ -17,15 +17,15 @@
 
 "use client";
 
-import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CenteredSpinner } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Button } from "@/shared/ui/button";
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import * as React from "react";
 import type { Packet, PacketEvent } from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketEventsTable } from "./PacketEventsTable";
@@ -72,11 +72,7 @@ const STATE_BREADCRUMB: Array<{
     key: "terminal",
     label: "PROCESSED | FAILED",
     whenAt: (p) =>
-      p.status === "PROCESSED"
-        ? p.processed_at
-        : p.status === "FAILED"
-          ? p.updated_at
-          : undefined,
+      p.status === "PROCESSED" ? p.processed_at : p.status === "FAILED" ? p.updated_at : undefined,
   },
 ];
 

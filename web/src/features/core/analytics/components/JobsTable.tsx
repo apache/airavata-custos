@@ -17,14 +17,14 @@
 
 "use client";
 
-import * as React from "react";
 import type { Job } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { TableEmptyRow } from "@/shared/ui/table";
-import { useAllocationJobs } from "../queries";
+import * as React from "react";
 import { CHART_OTHER_COLOR, formatCredits, formatDateTime, formatNative } from "../lib";
+import { useAllocationJobs } from "../queries";
 
 const PAGE_SIZE = 10;
 

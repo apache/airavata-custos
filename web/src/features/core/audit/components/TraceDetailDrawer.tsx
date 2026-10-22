@@ -21,6 +21,7 @@
 
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/shared/api/client";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TabsRouter, type TabsRouterTab } from "@/shared/ui/TabsRouter";
 import { Button, buttonVariants } from "@/shared/ui/button";
@@ -43,7 +44,6 @@ import {
 } from "../utils";
 import { TraceFlowTab } from "./TraceFlowTab";
 import { TraceRawTab } from "./TraceRawTab";
-import { CopyValue } from "@/shared/ui/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 

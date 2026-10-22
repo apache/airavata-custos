@@ -19,7 +19,6 @@ import type {
   PostComputeAllocationResourceRatesData,
   PostComputeAllocationResourcesData,
 } from "@/generated/core/types.gen";
-import { apiFetch } from "@/shared/api/client";
 import {
   type ComputeAllocationResource,
   type ComputeAllocationResourceRate,
@@ -31,6 +30,7 @@ import {
   zPostComputeAllocationResourcesResponse,
   zPutComputeAllocationResourcesByIdResponse,
 } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 
 export async function listResourceSummaries(): Promise<ComputeAllocationResourceSummary[]> {
   const raw = await apiFetch("/compute-allocation-resources/summary");
@@ -69,10 +69,7 @@ export async function createResourceRate(
 }
 
 export type CreateResourcePayload = Required<
-  Pick<
-    PostComputeAllocationResourcesData["body"],
-    "name" | "resource_type" | "compute_cluster_id"
-  >
+  Pick<PostComputeAllocationResourcesData["body"], "name" | "resource_type" | "compute_cluster_id">
 >;
 
 export async function createResource(
@@ -86,7 +83,10 @@ export async function updateResource(
   id: string,
   payload: CreateResourcePayload,
 ): Promise<ComputeAllocationResource> {
-  const raw = await apiFetch(`/compute-allocation-resources/${id}`, { method: "PUT", body: payload });
+  const raw = await apiFetch(`/compute-allocation-resources/${id}`, {
+    method: "PUT",
+    body: payload,
+  });
   return zPutComputeAllocationResourcesByIdResponse.parse(raw);
 }
 

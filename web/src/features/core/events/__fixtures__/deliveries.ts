@@ -95,9 +95,27 @@ const retrying: DeliveryDetail = {
     created_at: "2026-10-02T08:00:00Z",
   },
   history: [
-    attempt("dlv-retrying-1", 1, "2026-10-02T08:00:05Z", "slurmrestd 500", "slurm-association-mapper"),
-    attempt("dlv-retrying-1", 2, "2026-10-02T08:00:40Z", "slurmrestd 500", "slurm-association-mapper"),
-    attempt("dlv-retrying-1", 3, "2026-10-02T08:01:50Z", "slurmrestd 500", "slurm-association-mapper"),
+    attempt(
+      "dlv-retrying-1",
+      1,
+      "2026-10-02T08:00:05Z",
+      "slurmrestd 500",
+      "slurm-association-mapper",
+    ),
+    attempt(
+      "dlv-retrying-1",
+      2,
+      "2026-10-02T08:00:40Z",
+      "slurmrestd 500",
+      "slurm-association-mapper",
+    ),
+    attempt(
+      "dlv-retrying-1",
+      3,
+      "2026-10-02T08:01:50Z",
+      "slurmrestd 500",
+      "slurm-association-mapper",
+    ),
   ],
 };
 
@@ -138,7 +156,15 @@ const notRunning: DeliveryDetail = {
 export const deliveryFixtures: DeliveryDetail[] = [retrying, notRunning, succeeded, failed];
 
 export const subscriptionFixtures: Subscription[] = [
-  { subscriber: "comanage-identity-provisioner", event_type: "compute_cluster_user::approve", loaded: true },
-  { subscriber: "slurm-association-mapper", event_type: "compute_allocation::create", loaded: true },
+  {
+    subscriber: "comanage-identity-provisioner",
+    event_type: "compute_cluster_user::approve",
+    loaded: true,
+  },
+  {
+    subscriber: "slurm-association-mapper",
+    event_type: "compute_allocation::create",
+    loaded: true,
+  },
   { subscriber: "signer-principal-sync", event_type: "compute_allocation::create", loaded: false },
 ];

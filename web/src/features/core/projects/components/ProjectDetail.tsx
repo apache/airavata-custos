@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { CreateAllocationDialog } from "@/features/core/allocations/components/CreateAllocationDialog";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
@@ -25,6 +24,7 @@ import { DeleteButton } from "@/shared/ui/ConfirmDialog";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { CardSkeleton } from "@/shared/ui/Loading";
+import * as React from "react";
 import { useDeleteProject, useProject } from "../queries";
 import { ProjectDetailHeader } from "./ProjectDetailHeader";
 import { ProjectMembersTab } from "./ProjectMembersTab";
@@ -44,10 +44,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   if (projectQuery.isLoading) return <CardSkeleton />;
   if (projectQuery.error) {
     return (
-      <ErrorState
-        message={projectQuery.error.message}
-        onRetry={() => projectQuery.refetch()}
-      />
+      <ErrorState message={projectQuery.error.message} onRetry={() => projectQuery.refetch()} />
     );
   }
   const project = projectQuery.data;

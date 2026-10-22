@@ -17,10 +17,16 @@
 
 "use client";
 
-import { useMutation, useQueries, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
-import type { Role, User, UserRole } from "@/generated/core/zod.gen";
 import { identityKeys } from "@/features/core/identity/queries";
+import type { Role, User, UserRole } from "@/generated/core/zod.gen";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import {
+  skipToken,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   assignUserRole,
   createUser,

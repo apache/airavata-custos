@@ -17,10 +17,6 @@
 
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
-import Link from "next/link";
-import * as React from "react";
-import { toast } from "sonner";
 import {
   useAllocationsByProject,
   useMembershipsByAllocation,
@@ -31,10 +27,15 @@ import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsD
 import { useUserEmailSearch } from "@/features/core/users/queries";
 import type { ComputeAllocation, User } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { requires, requiresAny } from "@/shared/casl/permissions";
-import { Button } from "@/shared/ui/button";
 import { CheckMark } from "@/shared/ui/CheckMark";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { SuggestInput } from "@/shared/ui/SuggestInput";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -43,11 +44,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { EmptyState } from "@/shared/ui/EmptyState";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import { SuggestInput } from "@/shared/ui/SuggestInput";
 import {
   Table,
   TableBody,
@@ -57,6 +53,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
+import { Pencil, Plus } from "lucide-react";
+import Link from "next/link";
+import * as React from "react";
+import { toast } from "sonner";
 import { useProjectMembers, useUpdateProjectMember } from "../queries";
 import { type ProjectMemberRole, projectMemberRoleSchema } from "../schemas";
 
@@ -363,7 +363,10 @@ export function ProjectMembersTab({
               return (
                 <TableRow
                   key={row.userId}
-                  className={cn(isNew(row) && CHANGED, !editing && "cursor-pointer hover:bg-muted/60")}
+                  className={cn(
+                    isNew(row) && CHANGED,
+                    !editing && "cursor-pointer hover:bg-muted/60",
+                  )}
                   onClick={editing ? undefined : () => setViewing(row.userId)}
                 >
                   <TableCell>

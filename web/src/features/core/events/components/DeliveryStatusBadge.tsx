@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { cn } from "@/lib/utils";
 import {
   CircleCheckIcon,
   CircleXIcon,
@@ -23,7 +24,6 @@ import {
   RotateCwIcon,
   UnplugIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { DeliveryState } from "../utils";
 
 const STATE_STYLE: Record<DeliveryState, { label: string; icon: LucideIcon; className: string }> = {

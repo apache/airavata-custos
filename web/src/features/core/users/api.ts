@@ -15,6 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import {
+  type UserPrivilege,
+  roleDetailResponseSchema,
+  rolesResponseSchema,
+  userIdentitiesResponseSchema,
+  userPrivilegesResponseSchema,
+  userRolesResponseSchema,
+} from "@/features/core/identity/schemas";
 import type { PostUsersByIdRolesData } from "@/generated/core/types.gen";
 import {
   type Role,
@@ -28,14 +36,6 @@ import {
   zUserRole,
 } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import {
-  type UserPrivilege,
-  roleDetailResponseSchema,
-  rolesResponseSchema,
-  userIdentitiesResponseSchema,
-  userPrivilegesResponseSchema,
-  userRolesResponseSchema,
-} from "@/features/core/identity/schemas";
 import { type CreateUserPayload, type RoleDetail, createUserPayloadSchema } from "./schemas";
 import type { UserListParams } from "./types";
 

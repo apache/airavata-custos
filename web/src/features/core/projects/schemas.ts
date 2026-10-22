@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import {
   zProjectMemberAllocationRef,
   zProjectMemberResponse,
@@ -23,6 +22,7 @@ import {
   zPutProjectsByIdMembersByUserIdBody,
   zPutProjectsByIdStatusBody,
 } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
 export const projectMemberRoleSchema = z.enum(["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"]);
 export type ProjectMemberRole = z.infer<typeof projectMemberRoleSchema>;

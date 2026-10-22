@@ -17,9 +17,8 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
-import * as React from "react";
 import { useUserEmailSearch } from "@/features/core/users/queries";
+import { SuggestInput } from "@/shared/ui/SuggestInput";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -31,7 +30,8 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { SuggestInput } from "@/shared/ui/SuggestInput";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { useCreateProject } from "../queries";
 
 export type CreateProjectDialogProps = {
@@ -92,9 +92,7 @@ export function CreateProjectDialog({ onOpenChange }: CreateProjectDialogProps) 
               required
             />
           </div>
-          {create.error ? (
-            <p className="text-destructive text-sm">{create.error.message}</p>
-          ) : null}
+          {create.error ? <p className="text-destructive text-sm">{create.error.message}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

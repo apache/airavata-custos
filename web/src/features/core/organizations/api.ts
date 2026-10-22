@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import {
   type Organization,
   type OrganizationListResponse,
   zGetOrganizationsResponse,
   zPostOrganizationsResponse,
 } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 import { type CreateOrganizationPayload, createOrganizationPayloadSchema } from "./schemas";
 import type { OrganizationListParams } from "./types";
 

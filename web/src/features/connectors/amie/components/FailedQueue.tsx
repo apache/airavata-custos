@@ -17,12 +17,12 @@
 
 "use client";
 
-import { TriangleAlertIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
+import { TriangleAlertIcon } from "lucide-react";
 import type { Packet } from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";

@@ -17,8 +17,8 @@
 
 "use client";
 
-import { CenteredSpinner } from "@/shared/ui/Loading";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { CenteredSpinner } from "@/shared/ui/Loading";
 import { useMe, useMyAccess, useMyIdentities } from "../queries";
 import { AccessCard } from "./AccessCard";
 import { AppearanceCard } from "./AppearanceCard";

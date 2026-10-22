@@ -111,11 +111,7 @@ export function TabsRouter({
             ? panelClassName[tab.value]
             : panelClassName;
         return (
-          <TabsPrimitive.Panel
-            key={tab.value}
-            value={tab.value}
-            className={cn("pt-6", perPanel)}
-          >
+          <TabsPrimitive.Panel key={tab.value} value={tab.value} className={cn("pt-6", perPanel)}>
             {tab.content}
           </TabsPrimitive.Panel>
         );

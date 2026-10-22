@@ -17,10 +17,10 @@
 
 "use client";
 
-import { Building2, Calendar, UserSquare } from "lucide-react";
+import type { ProjectResponse } from "@/generated/core/zod.gen";
 import { CopyValue } from "@/shared/ui/CopyValue";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { ProjectResponse } from "@/generated/core/zod.gen";
+import { Building2, Calendar, UserSquare } from "lucide-react";
 
 export type ProjectDetailHeaderProps = {
   project: ProjectResponse;
@@ -54,7 +54,11 @@ export function ProjectDetailHeader({ project }: ProjectDetailHeaderProps) {
       <div className="flex flex-wrap items-center gap-3">
         <MetaItem variant="status" tone={tone} value={project.status} className="py-1.5" />
         <MetaRow>
-          <MetaItem icon={UserSquare} label="PI" value={project.project_pi_display_name ?? project.project_pi_id} />
+          <MetaItem
+            icon={UserSquare}
+            label="PI"
+            value={project.project_pi_display_name ?? project.project_pi_id}
+          />
           <MetaItem icon={Building2} label="Origin" value={project.origination.toUpperCase()} />
           <MetaItem icon={Calendar} label="Created" value={formatDate(project.created_time)} />
         </MetaRow>

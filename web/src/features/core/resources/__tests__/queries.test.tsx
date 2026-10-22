@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zPostComputeAllocationResourceRatesBody } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { zPostComputeAllocationResourceRatesBody } from "@/generated/core/zod.gen";
 import { resourceKeys, useCreateResourceRate } from "../queries";
 
 const server = setupServer(

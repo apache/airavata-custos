@@ -17,18 +17,18 @@
 
 "use client";
 
-import * as React from "react";
 import { useClusters } from "@/features/core/clusters/queries";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
 import { requires, usePermissions } from "@/shared/casl/permissions";
-import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { GuardedButton } from "@/shared/ui/GuardedButton";
-import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import * as React from "react";
 import { useDeleteResource, useEffectiveRate, useResourceSummaries } from "../queries";
-import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
 import { ResourceDialog } from "./ResourceDialog";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
@@ -49,7 +49,9 @@ export function ResourcesTab() {
   const query = useResourceSummaries();
   const clusters = useClusters().data ?? [];
   const [search, setSearch] = React.useState("");
-  const [editing, setEditing] = React.useState<ComputeAllocationResourceSummary | "new" | null>(null);
+  const [editing, setEditing] = React.useState<ComputeAllocationResourceSummary | "new" | null>(
+    null,
+  );
   const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResourceSummary | null>(null);
   const [deleting, setDeleting] = React.useState<ComputeAllocationResourceSummary | null>(null);
   const remove = useDeleteResource();
@@ -150,7 +152,9 @@ export function ResourcesTab() {
           columns={columns}
           rows={filtered}
           rowKey={(row) => row.id}
-          empty={rows.length === 0 ? "No resources registered." : "No resources match these filters."}
+          empty={
+            rows.length === 0 ? "No resources registered." : "No resources match these filters."
+          }
         />
       )}
 

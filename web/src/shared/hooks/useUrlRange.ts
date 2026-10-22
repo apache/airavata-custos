@@ -49,7 +49,10 @@ function parseIso(input: string | null): Date | null {
   return new Date(ms);
 }
 
-export function rangeFromPreset(preset: Exclude<RangePreset, "custom">, now = Date.now()): AnalyticsRange {
+export function rangeFromPreset(
+  preset: Exclude<RangePreset, "custom">,
+  now = Date.now(),
+): AnalyticsRange {
   return { from: new Date(now - PRESET_DAYS[preset] * DAY_MS), to: new Date(now), preset };
 }
 

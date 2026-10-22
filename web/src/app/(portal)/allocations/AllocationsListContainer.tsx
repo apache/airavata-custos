@@ -17,17 +17,17 @@
 
 "use client";
 
-import * as React from "react";
 import { AllocationsList } from "@/features/core/allocations/components/AllocationsList";
 import { CreateAllocationDialog } from "@/features/core/allocations/components/CreateAllocationDialog";
 import { useAllocations } from "@/features/core/allocations/queries";
 import type { AllocationStatus } from "@/generated/core/zod.gen";
 import { requires, usePermissions } from "@/shared/casl/permissions";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): AllocationStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;

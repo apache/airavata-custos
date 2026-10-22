@@ -63,7 +63,10 @@ export function RoleAssignMenu({
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState("");
-  const details = useRoleDetails(roles.map((role) => role.id), open);
+  const details = useRoleDetails(
+    roles.map((role) => role.id),
+    open,
+  );
   const detailById = new Map(details.roles.map((role) => [role.id, role]));
 
   function handleOpenChange(next: boolean) {

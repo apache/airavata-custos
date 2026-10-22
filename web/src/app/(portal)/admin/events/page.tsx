@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Metadata } from "next";
 import { EventsPage } from "@/features/core/events/components/EventsPage";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Events — Admin",

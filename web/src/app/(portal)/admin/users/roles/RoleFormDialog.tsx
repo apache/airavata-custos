@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { useCreateRole, usePrivilegeCatalog, useUpdateRole } from "@/features/core/roles/queries";
 import type { RoleRow } from "@/features/core/roles/schemas";
 import { useUsers } from "@/features/core/users/queries";
@@ -37,6 +35,8 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { togglePermission } from "@/shared/users-admin/permissions";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
+import * as React from "react";
+import { toast } from "sonner";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 
 function fullNameFor(user: User): string {

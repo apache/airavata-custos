@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import {
   type ComputeCluster,
   zGetComputeClustersByIdResponse,
   zGetComputeClustersResponse,
 } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 
 export async function listClusters(): Promise<ComputeCluster[]> {
   const raw = await apiFetch("/compute-clusters");

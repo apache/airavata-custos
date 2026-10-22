@@ -17,19 +17,16 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { requires } from "@/shared/casl/permissions";
-import { Button } from "@/shared/ui/button";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
+import Link from "next/link";
+import * as React from "react";
 import { useChangeRequests } from "../queries";
 import type { ChangeRequest } from "../schemas";
 import { ChangeRequestSubmitDrawer } from "./ChangeRequestSubmitDrawer";
@@ -86,7 +83,9 @@ export function AllocationChangeRequestsTab({
       width: "10rem",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.requested_su_amount)}
+        </span>
       ),
     },
     {
@@ -138,7 +137,12 @@ export function AllocationChangeRequestsTab({
         </p>
         {headerCta}
       </div>
-      <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} empty="No change requests." />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => row.id}
+        empty="No change requests."
+      />
       <ChangeRequestSubmitDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}

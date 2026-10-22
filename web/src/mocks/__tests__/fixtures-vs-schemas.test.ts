@@ -17,26 +17,24 @@
 
 // Guards MSW fixtures against the schemas they're rendered with.
 
-import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
-import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationDiffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
+import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
 import allocationUsageFixture from "@/features/core/allocations/__fixtures__/usage.json";
+import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
+import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
+import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import { analyticsContextsSchema } from "@/features/core/analytics/schemas";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
+import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
+import { roleDetailResponseSchema } from "@/features/core/identity/schemas";
 import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
-import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
-import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import { projectMemberSchema } from "@/features/core/projects/schemas";
-import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
-import { roleDetailResponseSchema } from "@/features/core/identity/schemas";
-import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
-import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
-import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
-import { analyticsContextsSchema } from "@/features/core/analytics/schemas";
+import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
+import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
 import { zJob, zUsageSummary } from "@/generated/analytics/zod.gen";
 import {
   zAllocationStatus,
@@ -53,6 +51,8 @@ import {
   zUserPrivilege,
   zUserRole,
 } from "@/generated/core/zod.gen";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 describe("MSW fixtures pass current Zod schemas", () => {
   it("project fixtures validate against zProjectResponse", () => {

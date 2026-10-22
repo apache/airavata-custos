@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import {
   zAllocationMembershipResponse,
   zAllocationStatus,
@@ -24,6 +23,7 @@ import {
   zComputeAllocationChangeRequestInput,
   zComputeAllocationMembershipInput,
 } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
 export const changeRequestStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 export type ChangeRequestStatus = z.infer<typeof changeRequestStatusSchema>;

@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { UserAccountRow } from "@/features/core/users/types";
 import type { Role } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { UserAccountRow } from "@/features/core/users/types";
 import { UsersTable } from "../UsersTable";
 
 const searchParamMocks = vi.hoisted(() => ({

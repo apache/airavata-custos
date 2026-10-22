@@ -34,7 +34,11 @@ describe("historyRuns", () => {
       ["attempt", "attempt"],
       ["retry", "attempt"],
     ]);
-    expect(runs[1]?.[0]).toMatchObject({ kind: "retry", actorId: "user-admin", previousAttempts: 2 });
+    expect(runs[1]?.[0]).toMatchObject({
+      kind: "retry",
+      actorId: "user-admin",
+      previousAttempts: 2,
+    });
     expect(runs[1]?.[1]).toMatchObject({ kind: "attempt", attempt: 1, ok: false });
   });
 });

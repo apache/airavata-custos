@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zClusterAccountResponse } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
 import { ReviewClusterAccountDialog } from "../components/ReviewClusterAccountDialog";
-import { zClusterAccountResponse } from "@/generated/core/zod.gen";
 
 const [pending] = zClusterAccountResponse.array().parse(fixture);
 if (!pending) throw new Error("no cluster account fixture");

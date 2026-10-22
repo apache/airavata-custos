@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import {
   type PrivilegeKey,
   roleDetailResponseSchema,
@@ -27,6 +26,7 @@ import type {
   PutRolesByIdData,
 } from "@/generated/core/types.gen";
 import { type Role, zRole } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 import {
   type RoleInput,
   type RoleRow,
@@ -76,7 +76,10 @@ export async function createRole(input: RoleInput): Promise<Role> {
   return zRole.parse(
     await apiFetch("/roles", {
       method: "POST",
-      body: { name: payload.name, description: payload.description } satisfies PostRolesData["body"],
+      body: {
+        name: payload.name,
+        description: payload.description,
+      } satisfies PostRolesData["body"],
     }),
   );
 }
@@ -86,15 +89,15 @@ export async function updateRole(roleId: string, input: RoleInput): Promise<Role
   return zRole.parse(
     await apiFetch(`/roles/${roleId}`, {
       method: "PUT",
-      body: { name: payload.name, description: payload.description } satisfies PutRolesByIdData["body"],
+      body: {
+        name: payload.name,
+        description: payload.description,
+      } satisfies PutRolesByIdData["body"],
     }),
   );
 }
 
-export async function addPrivilegeToRole(
-  roleId: string,
-  privilege: PrivilegeKey,
-): Promise<void> {
+export async function addPrivilegeToRole(roleId: string, privilege: PrivilegeKey): Promise<void> {
   await apiFetch(`/roles/${roleId}/privileges`, {
     method: "POST",
     body: { privilege },

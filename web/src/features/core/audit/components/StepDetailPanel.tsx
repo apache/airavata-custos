@@ -20,6 +20,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { buttonVariants } from "@/shared/ui/button";
 import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
@@ -39,7 +40,6 @@ import {
   parseDetails,
   plainName,
 } from "../utils";
-import { CopyValue } from "@/shared/ui/CopyValue";
 import { SourcePill } from "./primitives/SourcePill";
 import { StatusPill } from "./primitives/StatusPill";
 

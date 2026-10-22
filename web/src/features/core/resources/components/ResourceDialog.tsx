@@ -17,8 +17,6 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
@@ -31,6 +29,8 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
+import { toast } from "sonner";
 import { useEffectiveRate, useSaveResource } from "../queries";
 
 // SLURM TRES names the usage monitor bills against.
@@ -78,7 +78,9 @@ function ResourceForm({
   const cluster = clusterId || clusters[0]?.id || "";
   const rateText = rate ?? (current === undefined ? "" : String(current));
   const newRate = rateText !== "" && Number(rateText) !== current ? Number(rateText) : undefined;
-  const ready = Boolean(name.trim() && cluster && (rateText === "" ? resource : Number(rateText) >= 0));
+  const ready = Boolean(
+    name.trim() && cluster && (rateText === "" ? resource : Number(rateText) >= 0),
+  );
 
   return (
     <form

@@ -17,12 +17,12 @@
 
 "use client";
 
-import * as React from "react";
 import type { Allocation } from "@/generated/analytics/zod.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import * as React from "react";
 import { pctRemaining } from "./lib";
 import type { AnalyticsContext } from "./schemas";
 

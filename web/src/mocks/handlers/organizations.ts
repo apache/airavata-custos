@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
+import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
 import { createOrganizationPayloadSchema } from "@/features/core/organizations/schemas";
 import type { Organization } from "@/generated/core/zod.gen";
-import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
+import { http, HttpResponse } from "msw";
 
 const organizations: Organization[] = organizationsFixture.map((o) => ({
   ...o,

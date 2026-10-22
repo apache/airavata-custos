@@ -18,7 +18,7 @@
 "use client";
 
 import type { EventDeliveryStatus } from "@/generated/core/zod.gen";
-import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDelivery, getUserName, listDeliveries, listSubscriptions, retryDelivery } from "./api";
 
 export const eventKeys = {

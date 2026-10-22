@@ -15,8 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
-import { z } from "zod";
 import eventsFixture from "@/features/connectors/amie/__fixtures__/events.json";
 import packetsFixture from "@/features/connectors/amie/__fixtures__/packets.json";
 import repliesFixture from "@/features/connectors/amie/__fixtures__/replies.json";
@@ -28,6 +26,8 @@ import {
   replyListResponseSchema,
 } from "@/features/connectors/amie/schemas";
 import type { Packet } from "@/features/connectors/amie/types";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
 const allPackets = packetListResponseSchema.parse(packetsFixture).packets;
 const eventsByPacket = z.record(z.string(), z.array(packetEventSchema)).parse(eventsFixture);
@@ -98,19 +98,22 @@ export const amieHandlers = [
     return HttpResponse.json({ queued: true, packet });
   }),
 
-  http.post<IdParams>("/api/v1/connectors/amie/packets/:id/resolve", async ({ params, request }) => {
-    const id = String(params.id);
-    const packet = allPackets.find((p) => p.id === id);
-    if (!packet) return HttpResponse.json({ error: "not_found" }, { status: 404 });
-    const body = resolveBodySchema.parse(await request.json().catch(() => ({})));
-    if (!body.reason || body.reason.trim().length < 3) {
-      return HttpResponse.json({ error: "reason_required" }, { status: 400 });
-    }
-    packet.status = "PROCESSED";
-    packet.processed_at = new Date().toISOString();
-    packet.updated_at = packet.processed_at;
-    return HttpResponse.json(packet);
-  }),
+  http.post<IdParams>(
+    "/api/v1/connectors/amie/packets/:id/resolve",
+    async ({ params, request }) => {
+      const id = String(params.id);
+      const packet = allPackets.find((p) => p.id === id);
+      if (!packet) return HttpResponse.json({ error: "not_found" }, { status: 404 });
+      const body = resolveBodySchema.parse(await request.json().catch(() => ({})));
+      if (!body.reason || body.reason.trim().length < 3) {
+        return HttpResponse.json({ error: "reason_required" }, { status: 400 });
+      }
+      packet.status = "PROCESSED";
+      packet.processed_at = new Date().toISOString();
+      packet.updated_at = packet.processed_at;
+      return HttpResponse.json(packet);
+    },
+  ),
 
   http.get("/api/v1/connectors/amie/replies", ({ request }) => {
     const url = new URL(request.url);

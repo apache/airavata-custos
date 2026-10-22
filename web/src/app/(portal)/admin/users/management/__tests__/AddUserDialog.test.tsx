@@ -75,9 +75,7 @@ describe("AddUserDialog", () => {
     });
     fireEvent.change(screen.getByLabelText("Username"), { target: { value: "jkellett" } });
     fireEvent.click(screen.getByRole("button", { name: "Add user" }));
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ username: "jkellett" }),
-    );
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ username: "jkellett" }));
   });
 
   it("submits a portal admin without a cluster account", () => {

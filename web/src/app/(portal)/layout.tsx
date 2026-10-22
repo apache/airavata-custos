@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { redirect } from "next/navigation";
 import { auth } from "@/shared/auth/auth";
 import { NoAccessNotice } from "@/shared/layout/NoAccessNotice";
 import { PortalLayout } from "@/shared/layout/PortalLayout";
+import { redirect } from "next/navigation";
 
 export default async function PortalRoutesLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();

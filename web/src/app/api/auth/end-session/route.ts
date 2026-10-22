@@ -15,17 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { serverEnv } from "@/lib/env";
 import { auth } from "@/shared/auth/auth";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 
-const SESSION_COOKIES = [
-  "custos.session-token",
-  "__Secure-custos.session-token",
-];
+const SESSION_COOKIES = ["custos.session-token", "__Secure-custos.session-token"];
 
 // Cookies are deleted on the redirect response itself; sign-out must not
 // depend on an IdP logout hop, which some issuers do not have.
@@ -35,9 +32,7 @@ function clearAuthCookies(request: NextRequest, res: NextResponse) {
     // Browsers reject __Secure- deletions that aren't marked Secure.
     const secure = name.startsWith("__Secure-");
     // Oversized sessions get chunked into name.0, name.1, ...
-    const chunks = requestCookies
-      .filter((c) => c.name.startsWith(`${name}.`))
-      .map((c) => c.name);
+    const chunks = requestCookies.filter((c) => c.name.startsWith(`${name}.`)).map((c) => c.name);
     for (const target of [name, ...chunks]) {
       res.cookies.set({ name: target, value: "", path: "/", maxAge: 0, httpOnly: true, secure });
     }

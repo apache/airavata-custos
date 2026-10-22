@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import type { ComputeAllocationResourceRate } from "@/generated/core/zod.gen";
+import { z } from "zod";
 
 // A rate is active when now falls within [start_time, end_time).
 export function isRateActive(rate: ComputeAllocationResourceRate, at: Date = new Date()): boolean {

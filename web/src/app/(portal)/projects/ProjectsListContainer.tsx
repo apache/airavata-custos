@@ -17,19 +17,16 @@
 
 "use client";
 
-import * as React from "react";
+import { CreateProjectDialog } from "@/features/core/projects/components/CreateProjectDialog";
+import { NewProjectCta, ProjectsList } from "@/features/core/projects/components/ProjectsList";
+import { useProjects } from "@/features/core/projects/queries";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
 import { usePermissions } from "@/shared/casl/permissions";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
-import { CreateProjectDialog } from "@/features/core/projects/components/CreateProjectDialog";
-import {
-  NewProjectCta,
-  ProjectsList,
-} from "@/features/core/projects/components/ProjectsList";
-import { useProjects } from "@/features/core/projects/queries";
-import type { ProjectStatus } from "@/generated/core/zod.gen";
+import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;
@@ -66,9 +63,7 @@ export function ProjectsListContainer() {
       search={search}
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
-      onStatusFilterChange={(next) =>
-        updateParam("status", next === "all" ? null : next)
-      }
+      onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
       headerCta={
         <>
           <NewProjectCta canCreate={can.projectsWrite} onClick={() => setCreating(true)} />

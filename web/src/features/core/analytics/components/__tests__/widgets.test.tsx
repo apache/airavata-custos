@@ -15,14 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
 import type {
   Allocation,
   UsageMember,
   UsageResource,
   UsageSummary,
 } from "@/generated/analytics/zod.gen";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import type { AnalyticsContext } from "../../schemas";
 import { ContextSwitcher } from "../ContextSwitcher";
 import { HeroTiles } from "../HeroTiles";

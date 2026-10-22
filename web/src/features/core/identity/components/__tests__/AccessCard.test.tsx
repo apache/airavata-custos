@@ -17,8 +17,8 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { AccessCard } from "../AccessCard";
 import type { MyAccess } from "../../queries";
+import { AccessCard } from "../AccessCard";
 
 const role = (id: string, name: string) => ({
   id,

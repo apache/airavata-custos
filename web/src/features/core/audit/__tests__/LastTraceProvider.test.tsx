@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { recordTraceId } from "@/shared/api/last-trace-id";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { recordTraceId } from "@/shared/api/last-trace-id";
 
 beforeEach(() => recordTraceId(null));
 afterEach(() => recordTraceId(null));

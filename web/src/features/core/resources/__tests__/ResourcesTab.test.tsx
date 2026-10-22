@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
 
 let resources: ComputeAllocationResourceSummary[] = [];
 const clusters: ComputeCluster[] = [
@@ -26,7 +26,12 @@ const clusters: ComputeCluster[] = [
 ];
 
 vi.mock("../queries", () => ({
-  useResourceSummaries: () => ({ data: resources, isLoading: false, error: null, refetch: vi.fn() }),
+  useResourceSummaries: () => ({
+    data: resources,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
   useEffectiveRate: (id: string) => ({
     data: id === "res-a-cpu" ? { rate: 2.5 } : undefined,
     isLoading: false,

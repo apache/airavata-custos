@@ -17,13 +17,13 @@
 
 "use client";
 
-import { useSession } from "next-auth/react";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
-import { ErrorState } from "@/shared/ui/ErrorState";
 import { DeleteButton } from "@/shared/ui/ConfirmDialog";
+import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
+import { useSession } from "next-auth/react";
 import { useAllocation, useAllocationMembers, useDeleteAllocation } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";

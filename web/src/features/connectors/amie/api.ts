@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
 import type {
   GetConnectorsAmieStatsData,
   GetConnectorsAmieUnmappedData,
 } from "@/generated/amie/types.gen";
 import { apiFetch } from "@/shared/api/client";
+import { z } from "zod";
 import {
   linkUnmappedPayloadSchema,
   packetEventSchema,

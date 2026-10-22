@@ -15,8 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
-import { z } from "zod";
 import clusterAccountsFixture from "@/features/core/cluster-accounts/__fixtures__/cluster-accounts.json";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
@@ -26,6 +24,8 @@ import {
   zComputeClusterUser,
   zDenyClusterAccountRequest,
 } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
 const clusters = z.array(zComputeCluster).parse(clustersFixture);
 const clusterUsers = z.array(zComputeClusterUser).parse(clusterUsersFixture);
@@ -56,22 +56,25 @@ export const clustersHandlers = [
     return HttpResponse.json(found);
   }),
 
-  http.post<{ id: string }>("*/api/v1/compute-cluster-users/:id/deny", async ({ params, request }) => {
-    const found = clusterAccounts.find((a) => a.id === String(params.id));
-    if (!found) return HttpResponse.json({ error: "cluster user not found" }, { status: 404 });
-    if (found.approval_status !== "PENDING") {
-      return HttpResponse.json({ error: "already reviewed" }, { status: 409 });
-    }
-    const body = zDenyClusterAccountRequest.parse(await request.json().catch(() => ({})));
-    if (!body.note?.trim()) {
-      return HttpResponse.json({ error: "a reason is required to deny" }, { status: 400 });
-    }
-    found.approval_status = "DENIED";
-    found.reviewed_at = new Date().toISOString();
-    found.reviewed_by = "user-admin";
-    found.review_note = body.note.trim();
-    return HttpResponse.json(found);
-  }),
+  http.post<{ id: string }>(
+    "*/api/v1/compute-cluster-users/:id/deny",
+    async ({ params, request }) => {
+      const found = clusterAccounts.find((a) => a.id === String(params.id));
+      if (!found) return HttpResponse.json({ error: "cluster user not found" }, { status: 404 });
+      if (found.approval_status !== "PENDING") {
+        return HttpResponse.json({ error: "already reviewed" }, { status: 409 });
+      }
+      const body = zDenyClusterAccountRequest.parse(await request.json().catch(() => ({})));
+      if (!body.note?.trim()) {
+        return HttpResponse.json({ error: "a reason is required to deny" }, { status: 400 });
+      }
+      found.approval_status = "DENIED";
+      found.reviewed_at = new Date().toISOString();
+      found.reviewed_by = "user-admin";
+      found.review_note = body.note.trim();
+      return HttpResponse.json(found);
+    },
+  ),
 
   http.get<{ id: string }>("*/api/v1/compute-clusters/:id", ({ params }) => {
     const id = String(params.id);

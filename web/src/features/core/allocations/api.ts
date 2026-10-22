@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import {
   type ComputeAllocation,
   type ComputeAllocationChangeRequestEvent,
@@ -31,10 +30,11 @@ import {
   zGetComputeAllocationsByIdUsagesResponse,
   zGetComputeAllocationsByIdUsagesTotalResponse,
   zGetComputeAllocationsResponse,
+  zGetUsersByIdComputeAllocationMembershipsResponse,
   zPostComputeAllocationMembershipsResponse,
   zPostComputeAllocationsResponse,
-  zGetUsersByIdComputeAllocationMembershipsResponse,
 } from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
 import {
   type AllocationMembership,
   type ChangeRequest,
@@ -65,7 +65,9 @@ export async function listAllocations(
   return zGetComputeAllocationsResponse.parse(raw);
 }
 
-export async function createAllocation(payload: CreateAllocationPayload): Promise<ComputeAllocation> {
+export async function createAllocation(
+  payload: CreateAllocationPayload,
+): Promise<ComputeAllocation> {
   const raw = await apiFetch("/compute-allocations", {
     method: "POST",
     body: createAllocationPayloadSchema.parse(payload),
@@ -131,9 +133,7 @@ export async function listChangeRequests(
   params: ChangeRequestListParams = {},
 ): Promise<ChangeRequest[]> {
   if (params.allocation_id) {
-    const raw = await apiFetch(
-      `/compute-allocations/${params.allocation_id}/change-requests`,
-    );
+    const raw = await apiFetch(`/compute-allocations/${params.allocation_id}/change-requests`);
     return changeRequestSchema.array().parse(raw ?? []);
   }
   if (params.requester_id) {

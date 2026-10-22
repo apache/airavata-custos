@@ -18,13 +18,13 @@
 import type { Allocation } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import {
+  type UrgencyBand,
   creditsBand,
   daysBand,
   daysUntil,
   formatCredits,
   formatDate,
   pctRemaining,
-  type UrgencyBand,
 } from "../lib";
 import { BAND_METER_CLASS, BAND_PILL_CLASS, BAND_PILL_LABEL, BAND_RULE_CLASS } from "./bands";
 

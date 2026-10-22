@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
 
 const members = [
   {
@@ -50,7 +50,9 @@ const members = [
 ];
 
 const mutation = { mutate: vi.fn(), isPending: false };
-vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({ UserDetailsDrawer: () => null }));
+vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({
+  UserDetailsDrawer: () => null,
+}));
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,

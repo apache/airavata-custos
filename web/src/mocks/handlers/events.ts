@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import {
   deliveryFixtures,
   subscriptionFixtures,
 } from "@/features/core/events/__fixtures__/deliveries";
 import type { DeliveryDetail } from "@/features/core/events/types";
+import { http, HttpResponse } from "msw";
 
 // A copy, so a retry in one browser session does not change the fixtures.
 const deliveries: DeliveryDetail[] = structuredClone(deliveryFixtures);

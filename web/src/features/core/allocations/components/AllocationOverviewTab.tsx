@@ -17,17 +17,17 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
 import { ClusterName } from "@/features/core/clusters/components/ClusterName";
 import { ProjectPI } from "@/features/core/projects/components/ProjectPI";
 import { useProject } from "@/features/core/projects/queries";
 import { useEffectiveRate } from "@/features/core/resources/queries";
+import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { GuardedButton } from "@/shared/ui/GuardedButton";
+import Link from "next/link";
+import * as React from "react";
 import { useAllocationResources } from "../queries";
-import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { AllocationResourcesDialog } from "./AllocationResourcesDialog";
 
 export type AllocationOverviewTabProps = {
@@ -121,13 +121,18 @@ export function AllocationOverviewTab({ allocation, canEdit }: AllocationOvervie
 
         <dt className="text-muted-foreground">Group provisioned</dt>
         <dd className="text-foreground">
-          {allocation.group_provisioned_at ? formatDate(allocation.group_provisioned_at) : "Pending first member"}
+          {allocation.group_provisioned_at
+            ? formatDate(allocation.group_provisioned_at)
+            : "Pending first member"}
         </dd>
 
         <dt className="text-muted-foreground">Resources</dt>
         <dd className="text-foreground">
           {resourcesQuery.error ? (
-            <ErrorState message={resourcesQuery.error.message} onRetry={() => resourcesQuery.refetch()} />
+            <ErrorState
+              message={resourcesQuery.error.message}
+              onRetry={() => resourcesQuery.refetch()}
+            />
           ) : (
             <ul className="space-y-0.5">
               {(resourcesQuery.data ?? []).map((resource) => (

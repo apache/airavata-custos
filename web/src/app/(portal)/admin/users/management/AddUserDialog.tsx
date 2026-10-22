@@ -17,22 +17,16 @@
 
 "use client";
 
-import * as React from "react";
 import type { CreateUserPayload } from "@/features/core/users/schemas";
 import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { ShieldCheck } from "lucide-react";
+import * as React from "react";
 
 const NO_ALLOCATION = "none";
 
@@ -80,7 +74,10 @@ export function AddUserDialog({
   const isAdmin = userType === "admin";
   const noAdminAccess = isAdmin && !portalAdmin && !clusterAdmin;
   const adminNotice = noAdminAccess
-    ? { title: "Pick at least one kind of admin access", detail: "Otherwise there is nothing to grant." }
+    ? {
+        title: "Pick at least one kind of admin access",
+        detail: "Otherwise there is nothing to grant.",
+      }
     : portalAdmin && clusterAdmin
       ? {
           title: "This user will be a portal and cluster admin",
@@ -186,8 +183,7 @@ export function AddUserDialog({
                 spellCheck={false}
               />
               <p className="text-xs text-muted-foreground">
-                Generated from the name when left empty, the same way ingested accounts get
-                theirs.
+                Generated from the name when left empty, the same way ingested accounts get theirs.
               </p>
             </div>
           ) : null}

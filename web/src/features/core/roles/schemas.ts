@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
+import { type PrivilegeKey, privilegeKeySchema } from "@/features/core/identity/schemas";
 import { type Role, zGetRolesByIdHoldersResponse } from "@/generated/core/zod.gen";
-import { privilegeKeySchema, type PrivilegeKey } from "@/features/core/identity/schemas";
+import { z } from "zod";
 
 export const roleHoldersResponseSchema = zGetRolesByIdHoldersResponse.transform(
   (value) => value ?? [],

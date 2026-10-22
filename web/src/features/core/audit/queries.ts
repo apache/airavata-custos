@@ -20,7 +20,7 @@
 "use client";
 
 import { getLastTraceId, subscribeLastTraceId } from "@/shared/api/last-trace-id";
-import { useQuery, skipToken } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { type TraceListFilters, getTrace, listAuditSources, listTraces } from "./api";
 import { useLastTraceContext } from "./components/LastTraceProvider";

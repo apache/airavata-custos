@@ -17,18 +17,18 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { requires } from "@/shared/casl/permissions";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { useUpdateProjectMember } from "@/features/core/projects/queries";
 import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsDrawer";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { requires } from "@/shared/casl/permissions";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import * as React from "react";
+import { toast } from "sonner";
 import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
 import type {
   AllocationMembership,
@@ -131,9 +131,7 @@ export function AllocationMembersTab({
       key: "role",
       header: "Role",
       width: "11rem",
-      cell: (row) => (
-        <span className="text-sm">{ROLE_LABELS[row.role]}</span>
-      ),
+      cell: (row) => <span className="text-sm">{ROLE_LABELS[row.role]}</span>,
     },
     {
       key: "status",

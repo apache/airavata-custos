@@ -17,6 +17,8 @@
 
 "use client";
 
+import { useClusters } from "@/features/core/clusters/queries";
+import type { ClusterAccountResponse, User } from "@/generated/core/zod.gen";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   approveClusterAccount,
@@ -24,8 +26,6 @@ import {
   listClusterAccounts,
   listUserClusterAccounts,
 } from "./api";
-import { useClusters } from "@/features/core/clusters/queries";
-import type { ClusterAccountResponse, User } from "@/generated/core/zod.gen";
 import type { ClusterAccountListParams } from "./types";
 
 export const clusterAccountKeys = {
