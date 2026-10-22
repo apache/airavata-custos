@@ -2,9 +2,9 @@ import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
-import { emit } from "./emit-zod.mjs";
-import { GoIndex, applyPresence, isNode } from "./go-presence.mjs";
-import { settle, supplement } from "./spec-supplement.mjs";
+import { emit } from "./emit-zod.mts";
+import { GoIndex, applyPresence, isNode } from "./go-presence.mts";
+import { settle, supplement } from "./spec-supplement.mts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(here, "..");

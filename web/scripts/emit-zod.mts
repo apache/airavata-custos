@@ -8,7 +8,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { type Node, isNode } from "./go-presence.mjs";
+import { type Node, isNode } from "./go-presence.mts";
 
 type Schema = {
   $ref?: string;
@@ -23,7 +23,10 @@ type Schema = {
 };
 type Param = Schema & { in: string; name: string; required?: boolean; schema?: Schema };
 type Operation = { parameters?: Param[]; responses?: Record<string, { schema?: Schema }> };
-type Spec = { definitions?: Record<string, Schema>; paths?: Record<string, Record<string, Operation>> };
+type Spec = {
+  definitions?: Record<string, Schema>;
+  paths?: Record<string, Record<string, Operation>>;
+};
 
 const words = (s: string) => s.match(/[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+/g) ?? [];
 const pascal = (s: string) =>
@@ -70,7 +73,8 @@ function base(s: Schema, emitted: Set<string>): string {
       if (!s.properties) return "z.record(z.string(), z.unknown())";
       const required = new Set(s.required);
       const fields = Object.entries(s.properties).map(
-        ([k, v]) => `${JSON.stringify(k)}: ${render(v, emitted)}${required.has(k) ? "" : ".optional()"}`,
+        ([k, v]) =>
+          `${JSON.stringify(k)}: ${render(v, emitted)}${required.has(k) ? "" : ".optional()"}`,
       );
       return `z.object({ ${fields.join(", ")} })`;
     }
@@ -138,7 +142,12 @@ export function emit(document: Node, output: string): void {
         `export type ${name}Data = {`,
         field("body", !!body, !!body?.required, "Body"),
         field("path", pathParams.length > 0, true, "Path"),
-        field("query", query.length > 0, query.some((p) => p.required), "Query"),
+        field(
+          "query",
+          query.length > 0,
+          query.some((p) => p.required),
+          "Query",
+        ),
         `  url: "${route}";`,
         "};",
         "",
