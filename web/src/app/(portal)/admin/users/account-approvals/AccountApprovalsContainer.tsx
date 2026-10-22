@@ -24,23 +24,34 @@ import {
 } from "@/features/core/cluster-accounts/components/ReviewClusterAccountDialog";
 import {
   useApproveClusterAccount,
+  useApproveClusterAccounts,
   useClusterAccounts,
   useDenyClusterAccount,
 } from "@/features/core/cluster-accounts/queries";
 import type { ClusterAccountApproval, ClusterAccountResponse } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
+import { ApiError } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Search } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
+// Pending is not paged so Approve all covers a whole allocation.
+const PENDING_LIMIT = 200;
 
 type Filter = ClusterAccountApproval | "ALL";
+
+type Review = { accounts: ClusterAccountResponse[]; action: ReviewAction; bulk: boolean };
 
 const FILTERS: Array<{ value: Filter; label: string; empty: string }> = [
   { value: "PENDING", label: "Pending approval", empty: "Nothing waiting for approval." },
@@ -61,21 +72,32 @@ export function AccountApprovalsContainer() {
   const params = useShallowSearchParams();
   const filter = readFilter(params);
   const [page, setPage] = React.useState(1);
-  const [review, setReview] = React.useState<{
-    account: ClusterAccountResponse;
-    action: ReviewAction;
-  } | null>(null);
+  const [search, setSearch] = React.useState(() => params.get("q") ?? "");
+  const q = useDebounce(search.trim(), 300);
+  const [review, setReview] = React.useState<Review | null>(null);
   const [reviewError, setReviewError] = React.useState<string | null>(null);
+  const [failures, setFailures] = React.useState<Record<string, string>>({});
 
+  React.useEffect(() => {
+    const next = new URLSearchParams(window.location.search);
+    if (q) next.set("q", q);
+    else next.delete("q");
+    replaceShallowSearchParams(next);
+  }, [q]);
+
+  const grouped = filter === "PENDING";
   const query = useClusterAccounts(
     {
       ...(filter === "ALL" ? {} : { approval_status: filter }),
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
+      ...(q ? { q } : {}),
+      ...(grouped
+        ? { limit: PENDING_LIMIT }
+        : { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
     },
     { enabled: canRead },
   );
   const approve = useApproveClusterAccount();
+  const approveMany = useApproveClusterAccounts();
   const deny = useDenyClusterAccount();
 
   function setFilter(next: Filter) {
@@ -89,23 +111,59 @@ export function AccountApprovalsContainer() {
   function openReview(action: ReviewAction) {
     return (account: ClusterAccountResponse) => {
       setReviewError(null);
-      setReview({ account, action });
+      setReview({ accounts: [account], action, bulk: false });
     };
+  }
+
+  function openApproveAll(accounts: ClusterAccountResponse[]) {
+    setReviewError(null);
+    setFailures({});
+    setReview({ accounts, action: "approve", bulk: true });
+  }
+
+  async function handleApproveAll(accounts: ClusterAccountResponse[]) {
+    const results = await approveMany.mutateAsync(accounts.map((a) => a.id));
+    const failed: Record<string, string> = {};
+    results.forEach((result, i) => {
+      const account = accounts[i];
+      if (result.status === "fulfilled" || !account) return;
+      // 409: already approved by someone else.
+      if (result.reason instanceof ApiError && result.reason.status === 409) return;
+      failed[account.id] =
+        result.reason instanceof Error ? result.reason.message : "Approval failed.";
+    });
+    const failedAccounts = accounts.filter((a) => failed[a.id]);
+    if (failedAccounts.length === 0) {
+      const n = accounts.length;
+      toast.success(
+        `Approved ${n} cluster account${n === 1 ? "" : "s"} on ${accounts[0]?.cluster_name}.`,
+      );
+      setReview(null);
+      return;
+    }
+    toast.error(
+      `Approved ${accounts.length - failedAccounts.length} of ${accounts.length}. ${failedAccounts.length} failed.`,
+    );
+    setFailures(failed);
+    setReview({ accounts: failedAccounts, action: "approve", bulk: true });
   }
 
   async function handleConfirm(note: string) {
     if (!review) return;
+    if (review.bulk) return handleApproveAll(review.accounts);
+    const [account] = review.accounts;
+    if (!account) return;
     setReviewError(null);
     try {
       if (review.action === "approve") {
-        await approve.mutateAsync(review.account.id);
+        await approve.mutateAsync(account.id);
         toast.success(
-          `Cluster account approved for ${review.account.local_username} on ${review.account.cluster_name}`,
+          `Cluster account approved for ${account.local_username} on ${account.cluster_name}`,
         );
       } else {
-        await deny.mutateAsync({ id: review.account.id, note });
+        await deny.mutateAsync({ id: account.id, note });
         toast.success(
-          `Cluster account denied for ${review.account.local_username} on ${review.account.cluster_name}`,
+          `Cluster account denied for ${account.local_username} on ${account.cluster_name}`,
         );
       }
       setReview(null);
@@ -120,6 +178,9 @@ export function AccountApprovalsContainer() {
 
   const emptyHeading =
     FILTERS.find((f) => f.value === filter)?.empty ?? "Nothing waiting for approval.";
+  const rows = query.data?.items ?? [];
+  const total = query.data?.total ?? 0;
+  const noMatch = q !== "" && !query.isLoading && !query.error && rows.length === 0;
 
   return (
     <div className="space-y-4">
@@ -150,31 +211,71 @@ export function AccountApprovalsContainer() {
         </p>
       </div>
 
-      <ClusterAccountsTable
-        rows={query.data?.items ?? []}
-        isLoading={query.isLoading}
-        error={query.error}
-        onRetry={() => void query.refetch()}
-        canReview={canReview}
-        onApprove={openReview("approve")}
-        onDeny={openReview("deny")}
-        page={page}
-        pageSize={PAGE_SIZE}
-        total={query.data?.total ?? 0}
-        onPageChange={setPage}
-        emptyHeading={emptyHeading}
-      />
+      <div className="relative max-w-lg">
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          type="search"
+          placeholder="Search by name, email, username, allocation or project"
+          aria-label="Search requests"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="h-9 pl-9"
+        />
+      </div>
+
+      {noMatch ? (
+        <EmptyState
+          heading={`No requests match "${q}".`}
+          cta={
+            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+              Clear search
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          {grouped && total > PENDING_LIMIT ? (
+            <p className="text-sm text-muted-foreground">
+              Showing {PENDING_LIMIT} of {total}. Approve some to see the rest.
+            </p>
+          ) : null}
+          <ClusterAccountsTable
+            rows={rows}
+            isLoading={query.isLoading}
+            error={query.error}
+            onRetry={() => void query.refetch()}
+            canReview={canReview}
+            onApprove={openReview("approve")}
+            onDeny={openReview("deny")}
+            onApproveAll={openApproveAll}
+            grouped={grouped}
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+            emptyHeading={emptyHeading}
+          />
+        </>
+      )}
 
       {canReview ? (
         <ReviewClusterAccountDialog
-          account={review?.account ?? null}
+          accounts={review?.accounts ?? []}
           action={review?.action ?? "approve"}
+          bulk={review?.bulk ?? false}
           onOpenChange={(open) => {
             if (!open) setReview(null);
           }}
           onConfirm={handleConfirm}
-          isPending={approve.isPending || deny.isPending}
+          isPending={approve.isPending || approveMany.isPending || deny.isPending}
           error={reviewError}
+          failures={failures}
         />
       ) : null}
     </div>

@@ -32,6 +32,7 @@ export async function listClusterAccounts(
 ): Promise<ClusterAccountListResponse> {
   const search = new URLSearchParams();
   if (params.approval_status) search.set("approval_status", params.approval_status);
+  if (params.q) search.set("q", params.q);
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   const query = search.toString();

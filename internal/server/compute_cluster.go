@@ -189,11 +189,12 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 }
 
 // @Summary	List cluster accounts by approval status
-// @Description	Cluster users with their user and cluster, newest first. Every status unless one is given.
+// @Description	Cluster users with their user, cluster, and the user's newest allocation on that cluster. PENDING comes grouped by allocation, the rest newest first. Every status unless one is given.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
 // @Produce	json
 // @Param	approval_status	query	string	false	"PENDING | APPROVED | DENIED"
+// @Param	q	query	string	false	"Matches name, email, username, allocation, or project"
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
 // @Success	200	{object}	ClusterAccountListResponse
@@ -203,7 +204,7 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	status := models.ClusterAccountApproval(q.Get("approval_status"))
 	limit, offset := common.Paged(q)
-	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, limit, offset)
+	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, q.Get("q"), limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -212,9 +213,14 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		items = append(items, ClusterAccountResponse{
 			ComputeClusterUser: row.ComputeClusterUser,
+			RequestedAt:        row.RequestedAt,
 			DisplayName:        strings.TrimSpace(row.FirstName + " " + row.LastName),
 			Email:              row.Email,
 			ClusterName:        row.ClusterName,
+			ReviewerName:       row.ReviewerName,
+			AllocationID:       row.AllocationID,
+			AllocationName:     row.AllocationName,
+			ProjectID:          row.ProjectID,
 		})
 	}
 	common.WriteJSON(w, http.StatusOK, ClusterAccountListResponse{Items: items, Total: total})

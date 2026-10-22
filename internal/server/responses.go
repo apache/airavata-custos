@@ -18,6 +18,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -63,12 +65,17 @@ type AllocationMembershipResponse struct {
 	Email       string `json:"email,omitempty"`
 }
 
-// ClusterAccountResponse is a cluster user with the user's name and email and the cluster name, for the review list.
+// ClusterAccountResponse is one row of the cluster account review list.
 type ClusterAccountResponse struct {
 	models.ComputeClusterUser
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
-	ClusterName string `json:"cluster_name"`
+	RequestedAt    time.Time `json:"requested_at"`
+	DisplayName    string    `json:"display_name"`
+	Email          string    `json:"email"`
+	ClusterName    string    `json:"cluster_name"`
+	ReviewerName   *string   `json:"reviewer_name,omitempty"`
+	AllocationID   *string   `json:"allocation_id,omitempty"`
+	AllocationName *string   `json:"allocation_name,omitempty"`
+	ProjectID      *string   `json:"project_id,omitempty"`
 }
 
 // ClusterAccountListResponse is the paginated list envelope for cluster accounts.

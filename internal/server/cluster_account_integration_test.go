@@ -37,13 +37,23 @@ import (
 // seedClusterUser creates a cluster and a user, then a cluster user with no approval given, and returns it.
 func seedClusterUser(t *testing.T, database *sqlx.DB, svc *service.Service) *models.ComputeClusterUser {
 	t.Helper()
+	return seedClusterUserOn(t, database, svc, seedCluster(t, svc))
+}
+
+func seedCluster(t *testing.T, svc *service.Service) string {
+	t.Helper()
 	cluster, err := svc.CreateComputeCluster(t.Context(), &models.ComputeCluster{Name: "appr-" + uuid.NewString()[:8]})
 	if err != nil {
 		t.Fatalf("create cluster: %v", err)
 	}
+	return cluster.ID
+}
+
+func seedClusterUserOn(t *testing.T, database *sqlx.DB, svc *service.Service, clusterID string) *models.ComputeClusterUser {
+	t.Helper()
 	userID := seedUser(t, database, fmt.Sprintf("member-%s@example.edu", uuid.NewString()))
 	cu, err := svc.CreateComputeClusterUser(t.Context(), &models.ComputeClusterUser{
-		ComputeClusterID: cluster.ID,
+		ComputeClusterID: clusterID,
 		UserID:           userID,
 		LocalUsername:    "appr-" + uuid.NewString()[:8],
 	})
@@ -51,6 +61,113 @@ func seedClusterUser(t *testing.T, database *sqlx.DB, svc *service.Service) *mod
 		t.Fatalf("create cluster user: %v", err)
 	}
 	return cu
+}
+
+func seedAllocation(t *testing.T, database *sqlx.DB, svc *service.Service, clusterID, projectTitle string) *models.ComputeAllocation {
+	t.Helper()
+	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
+	project, err := svc.CreateProject(t.Context(), &models.Project{Title: projectTitle, ProjectPIID: pi})
+	if err != nil {
+		t.Fatalf("create project: %v", err)
+	}
+	alloc, err := svc.CreateComputeAllocation(t.Context(), &models.ComputeAllocation{
+		Name: "alloc-" + uuid.NewString()[:8], ProjectID: project.ID, ComputeClusterID: clusterID,
+	})
+	if err != nil {
+		t.Fatalf("create allocation: %v", err)
+	}
+	return alloc
+}
+
+func addMember(t *testing.T, svc *service.Service, allocationID, userID string) {
+	t.Helper()
+	if _, err := svc.CreateComputeAllocationMembership(t.Context(), &models.ComputeAllocationMembership{
+		ComputeAllocationID: allocationID, UserID: userID,
+	}); err != nil {
+		t.Fatalf("create membership: %v", err)
+	}
+}
+
+func listClusterAccounts(t *testing.T, srv *Server, admin, query string) ClusterAccountListResponse {
+	t.Helper()
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/compute-cluster-users?"+query, nil), admin, models.ClustersRead))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	var body ClusterAccountListResponse
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	return body
+}
+
+// Make sure a request shows the user's allocation on the same cluster, not one on another
+// cluster, since the account only gives access to its own cluster.
+func TestListClusterAccounts_ShowsAllocationOnSameCluster(t *testing.T) {
+	database, svc, srv := setupTestStack(t)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	clusterID := seedCluster(t, svc)
+	cu := seedClusterUserOn(t, database, svc, clusterID)
+	here := seedAllocation(t, database, svc, clusterID, "Turbulent mixing")
+	addMember(t, svc, here.ID, cu.UserID)
+	elsewhere := seedAllocation(t, database, svc, seedCluster(t, svc), "Other cluster work")
+	addMember(t, svc, elsewhere.ID, cu.UserID)
+
+	body := listClusterAccounts(t, srv, admin, "approval_status=PENDING")
+	if len(body.Items) != 1 {
+		t.Fatalf("expected one account, got %+v", body)
+	}
+	got := body.Items[0]
+	if got.AllocationID == nil || *got.AllocationID != here.ID || got.ProjectID == nil || *got.ProjectID != here.ProjectID {
+		t.Fatalf("expected the allocation on the account's cluster, got %+v", got)
+	}
+}
+
+// Make sure pending requests come grouped by project and allocation with unlinked ones last,
+// even when they arrived interleaved, so a page never splits one allocation's rows apart.
+func TestListClusterAccounts_GroupsPendingByAllocation(t *testing.T) {
+	database, svc, srv := setupTestStack(t)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	clusterID := seedCluster(t, svc)
+	alpha := seedAllocation(t, database, svc, clusterID, "Alpha project")
+	beta := seedAllocation(t, database, svc, clusterID, "Beta project")
+
+	seedClusterUserOn(t, database, svc, clusterID)
+	for _, alloc := range []*models.ComputeAllocation{beta, alpha, beta, alpha} {
+		cu := seedClusterUserOn(t, database, svc, clusterID)
+		addMember(t, svc, alloc.ID, cu.UserID)
+	}
+
+	body := listClusterAccounts(t, srv, admin, "approval_status=PENDING")
+	var got []string
+	for _, item := range body.Items {
+		id := "none"
+		if item.AllocationID != nil {
+			id = *item.AllocationID
+		}
+		got = append(got, id)
+	}
+	want := []string{alpha.ID, alpha.ID, beta.ID, beta.ID, "none"}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("order: got %v, want %v", got, want)
+	}
+}
+
+// Make sure search matches the allocation name, so an admin can find every request for one allocation.
+func TestListClusterAccounts_SearchesByAllocation(t *testing.T) {
+	database, svc, srv := setupTestStack(t)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	clusterID := seedCluster(t, svc)
+	alloc := seedAllocation(t, database, svc, clusterID, "Searchable project")
+	member := seedClusterUserOn(t, database, svc, clusterID)
+	addMember(t, svc, alloc.ID, member.UserID)
+	seedClusterUserOn(t, database, svc, clusterID)
+
+	body := listClusterAccounts(t, srv, admin, "q="+alloc.Name)
+	if body.Total != 1 || len(body.Items) != 1 || body.Items[0].ID != member.ID {
+		t.Fatalf("expected only the member of %s, got %+v", alloc.Name, body)
+	}
 }
 
 // Make sure the list can be narrowed to the accounts waiting for approval and

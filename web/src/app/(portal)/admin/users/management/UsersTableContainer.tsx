@@ -213,7 +213,7 @@ export function UsersTableContainer() {
       ) : null}
       {canReviewAccounts ? (
         <ReviewClusterAccountDialog
-          account={review?.account ?? null}
+          accounts={review ? [review.account] : []}
           action={review?.action ?? "approve"}
           onOpenChange={(open) => {
             if (!open) setReview(null);

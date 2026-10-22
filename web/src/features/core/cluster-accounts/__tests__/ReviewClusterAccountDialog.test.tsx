@@ -16,28 +16,45 @@
 // under the License.
 
 import { zClusterAccountResponse } from "@/generated/core/zod.gen";
+import { projectsHandlers } from "@/mocks/handlers/projects";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { setupServer } from "msw/node";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
-import { ReviewClusterAccountDialog } from "../components/ReviewClusterAccountDialog";
+import {
+  type ReviewAction,
+  ReviewClusterAccountDialog,
+} from "../components/ReviewClusterAccountDialog";
 
 const [pending] = zClusterAccountResponse.array().parse(fixture);
 if (!pending) throw new Error("no cluster account fixture");
 
-describe("ReviewClusterAccountDialog", () => {
-  // Make sure the denial passes the typed reason through, since it ends up in
-  // the audit log.
-  it("sends the note with a denial", () => {
-    const onConfirm = vi.fn();
-    render(
+const server = setupServer(...projectsHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+function renderDialog(action: ReviewAction, onConfirm = vi.fn()) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
       <ReviewClusterAccountDialog
-        account={pending}
-        action="deny"
+        accounts={pending ? [pending] : []}
+        action={action}
         onOpenChange={vi.fn()}
         onConfirm={onConfirm}
         isPending={false}
-      />,
-    );
+      />
+    </QueryClientProvider>,
+  );
+  return onConfirm;
+}
+
+describe("ReviewClusterAccountDialog", () => {
+  // Make sure the denial passes the typed reason through, since it ends up in the audit log.
+  it("sends the note with a denial", () => {
+    const onConfirm = renderDialog("deny");
     fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: "  Not on the list " } });
     fireEvent.click(screen.getByRole("button", { name: "Deny" }));
     expect(onConfirm).toHaveBeenCalledWith("Not on the list");
@@ -46,15 +63,7 @@ describe("ReviewClusterAccountDialog", () => {
   // Make sure a denial cannot be sent without a reason, since the backend
   // refuses it and the reason is passed on to whoever requested the account.
   it("keeps Deny disabled until a reason is typed", () => {
-    render(
-      <ReviewClusterAccountDialog
-        account={pending}
-        action="deny"
-        onOpenChange={vi.fn()}
-        onConfirm={vi.fn()}
-        isPending={false}
-      />,
-    );
+    renderDialog("deny");
     expect(screen.getByRole("button", { name: "Deny" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: "   " } });
     expect(screen.getByRole("button", { name: "Deny" })).toBeDisabled();
@@ -65,17 +74,10 @@ describe("ReviewClusterAccountDialog", () => {
   // Make sure the approval names the account the admin is about to create, so
   // a wrong row is caught before it goes to the cluster.
   it("restates the account before approving", () => {
-    render(
-      <ReviewClusterAccountDialog
-        account={pending}
-        action="approve"
-        onOpenChange={vi.fn()}
-        onConfirm={vi.fn()}
-        isPending={false}
-      />,
-    );
-    expect(screen.getByText("jdoe")).toBeInTheDocument();
+    renderDialog("approve");
+    expect(screen.getByText("custos-jdoe")).toBeInTheDocument();
     expect(screen.getByText("cluster-a")).toBeInTheDocument();
+    expect(screen.getByText("Genomic Sequencing - GPU Pool")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("recorded as the approver");
     expect(screen.queryByLabelText(/Reason/)).toBeNull();
   });
