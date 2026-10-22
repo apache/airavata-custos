@@ -25,7 +25,7 @@ This package is part of the root `github.com/apache/airavata-custos` module.
 
 ## Prerequisites
 
-- Go **1.24+**
+- Go **1.27+**
 - A reachable `slurmrestd` endpoint (for integration runs) plus a SLURM user name and JWT token
 
 ## Layout

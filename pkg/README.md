@@ -40,7 +40,7 @@ module and are not importable from outside the repository.
 
 ## Requirements
 
-- Go 1.24+
+- Go 1.27+
 - PostgreSQL 17+
 
 ---
