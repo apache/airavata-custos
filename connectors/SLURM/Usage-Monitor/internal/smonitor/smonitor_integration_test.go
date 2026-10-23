@@ -207,7 +207,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 			}, nil
 		},
 
-		GetComputeClusterUserByClusterAndLocalUsernameFunc: func(ctx context.Context, localUsername string, clusterId string) (*models.ComputeClusterUser, error) {
+		GetComputeClusterUserByClusterAndLocalUsernameFunc: func(ctx context.Context, clusterId string, localUsername string) (*models.ComputeClusterUser, error) {
 			return &models.ComputeClusterUser{
 				ID:               "user-" + localUsername,
 				ComputeClusterID: clusterId,
@@ -230,6 +230,10 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 				ResourceAmount:   4,
 				ComputeClusterID: clusterId,
 			}, nil
+		},
+
+		GetEffectiveRateForResourceFunc: func(context.Context, string, time.Time) (*models.ComputeAllocationResourceRate, error) {
+			return &models.ComputeAllocationResourceRate{Rate: 1}, nil
 		},
 
 		GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc: func(ctx context.Context, allocationID string, jobID string) (*models.ComputeAllocationUsage, error) {
