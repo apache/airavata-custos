@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -149,5 +150,60 @@ func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	}
 	if left, _ := svc.memberships.FindByUser(ctx(), member); len(left) != 0 {
 		t.Fatalf("%d memberships left", len(left))
+	}
+}
+
+// Make sure a deleted account's username is held for its user, given back when they return, and freed on release,
+// and that deleting a user deletes each of their accounts with its own event.
+func TestDeletedUsernameIsHeldForItsUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserDeleted("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "held-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	alice := seedUser(t, database, fmt.Sprintf("alice-%s@example.edu", uuid.NewString()))
+	bob := seedUser(t, database, fmt.Sprintf("bob-%s@example.edu", uuid.NewString()))
+	held := "held-" + uuid.NewString()[:8]
+	create := func(user, name string) (*models.ComputeClusterUser, error) {
+		return svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: user, LocalUsername: name})
+	}
+
+	cu, err := create(alice, held)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := svc.DeleteComputeClusterUser(ctx(), cu.ID); err != nil {
+		t.Fatalf("delete account: %v", err)
+	}
+	if _, err := create(bob, held); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("another user took a held username: %v", err)
+	}
+	carol, err := create(seedUser(t, database, fmt.Sprintf("carol-%s@example.edu", uuid.NewString())), "carol-"+uuid.NewString()[:8])
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	carol.LocalUsername = held
+	if err := svc.UpdateComputeClusterUser(ctx(), carol); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("renamed an account onto a held username: %v", err)
+	}
+	back, err := create(alice, "other-"+uuid.NewString()[:8])
+	if err != nil || back.LocalUsername != held {
+		t.Fatalf("returning user got %v (err %v), want %s", back, err, held)
+	}
+
+	if err := svc.DeleteUser(ctx(), alice); err != nil {
+		t.Fatalf("delete user: %v", err)
+	}
+	deliveries, err := svc.EventBus().ListDeliveries(ctx(), "", 10)
+	if err != nil || len(deliveries) != 2 {
+		t.Fatalf("got %d account delete deliveries (err %v), want one per deletion", len(deliveries), err)
+	}
+	if err := svc.ReleaseRetiredUsername(ctx(), cluster.ID, held, bob); err != nil {
+		t.Fatalf("release: %v", err)
+	}
+	if _, err := create(bob, held); err != nil {
+		t.Fatalf("released username: %v", err)
 	}
 }

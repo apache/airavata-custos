@@ -64,6 +64,16 @@ type ComputeClusterUser struct {
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
 }
 
+// ClusterUsername is a username taken on a cluster: by a live account, or held for the user of a deleted one until an
+// admin releases it.
+type ClusterUsername struct {
+	LocalUsername string    `json:"local_username" db:"local_username"`
+	UserID        string    `json:"user_id"        db:"user_id"`
+	Email         string    `json:"email"          db:"email"`
+	Since         time.Time `json:"since"          db:"since"`
+	Held          bool      `json:"held"           db:"held"`
+}
+
 type ComputeAllocation struct {
 	ID               string           `json:"id"                 db:"id"`
 	ProjectID        string           `json:"project_id"         db:"project_id"`

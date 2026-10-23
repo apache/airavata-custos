@@ -19,6 +19,8 @@ package subscribers
 
 import (
 	"context"
+	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -298,5 +300,47 @@ func TestReconcilerRemovesAssociationsForInactiveAllocation(t *testing.T) {
 	// holds and nothing is revoked. The event handler does that job.
 	if n := len(slurm.allDeletes()); n != 0 {
 		t.Fatalf("expected the empty-desired guard to hold, got %d deletes", n)
+	}
+}
+
+func TestClusterUserDeletionDeletesSlurmUser(t *testing.T) {
+	slurm := &fakeSlurmClient{existing: []client.Association{{Account: noAllocation, Cluster: "testcluster", User: "testuser"}}}
+	err := NewAssociationSubscriber(slurm, nil, coreMock(mockOpts{}), 0, 0).
+		SubscribeToComputeClusterUserDeletion(context.Background(), models.ComputeClusterUser{ID: "csu-1", ComputeClusterID: "cluster-1", LocalUsername: "testuser"})
+	if err != nil || !slices.Equal(slurm.deletedUsers, []string{"testuser"}) {
+		t.Fatalf("err=%v deleted users %v", err, slurm.deletedUsers)
+	}
+}
+
+func TestRemovalWhileJobsRunBlocksTheAssociation(t *testing.T) {
+	slurm := &fakeSlurmClient{deleteErr: errors.New("slurmrestd 500: code=7001"),
+		existing: []client.Association{{Account: "test-alloc", Cluster: "testcluster", User: "testuser"}}}
+	err := NewAssociationSubscriber(slurm, nil, coreMock(mockOpts{provisionedAt: ago(time.Minute)}), 0, 0).
+		SubscribeToComputeAllocationMembershipDeletion(context.Background(), testMembership())
+	got := slurm.all()
+	if err == nil || len(got) != 1 || got[0].Limits.GrpSubmitJobs == nil || *got[0].Limits.GrpSubmitJobs != 0 {
+		t.Fatalf("err=%v writes %+v, want the association blocked and the error kept for a retry", err, got)
+	}
+}
+
+// The sweep is the backstop for a lost deletion: a user holding noAllocation without a provisioned account goes.
+func TestReconcilerRemovesSlurmUserWithoutAccount(t *testing.T) {
+	core := coreMock(mockOpts{provisionedAt: ago(time.Minute), memberships: []models.ComputeAllocationMembership{testMembership()}})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: noAllocation, Cluster: "testcluster", User: "testuser"},
+		{Account: noAllocation, Cluster: "testcluster", User: "ghost"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+	if !slices.Equal(slurm.deletedUsers, []string{"ghost"}) {
+		t.Fatalf("deleted users %v, want only ghost", slurm.deletedUsers)
+	}
+}
+
+func TestReconcilerSkipsClustersSlurmDoesNotHost(t *testing.T) {
+	core := coreMock(mockOpts{provisionedAt: ago(time.Minute), memberships: []models.ComputeAllocationMembership{testMembership()}})
+	slurm := &fakeSlurmClient{clusters: []string{"elsewhere"}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+	if n := len(slurm.all()); n != 0 {
+		t.Fatalf("wrote %d associations to a cluster Slurm does not host", n)
 	}
 }

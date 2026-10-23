@@ -335,3 +335,38 @@ func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Re
 	}
 	common.WriteJSON(w, http.StatusOK, users)
 }
+
+// @Summary	List a cluster's usernames
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Success	200	{array}	models.ClusterUsername
+// @Router	/compute-clusters/{id}/usernames [get]
+func (s *Server) listUsernames(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListUsernames(r.Context(), r.PathValue("id"))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, rows)
+}
+
+// @Summary	Release a retired username
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Param	username	path	string	true	"Retired username"
+// @Success	204	"No Content"
+// @Router	/compute-clusters/{id}/usernames/{username} [delete]
+func (s *Server) releaseRetiredUsername(w http.ResponseWriter, r *http.Request) {
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	if err := s.svc.ReleaseRetiredUsername(r.Context(), r.PathValue("id"), r.PathValue("username"), caller.UserID); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

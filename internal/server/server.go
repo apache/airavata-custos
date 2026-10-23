@@ -100,6 +100,8 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /compute-clusters/{id}/users", models.ClustersRead, s.listComputeClusterUsersByCluster)
 	s.router.RequirePrivilege("GET /compute-clusters/{id}/users/{userId}", models.ClustersRead, s.getComputeClusterUserByPair)
 	s.router.RequirePrivilege("GET /users/{id}/compute-cluster-users", models.ClustersRead, s.listComputeClusterUsersByUser)
+	s.router.RequirePrivilege("GET /compute-clusters/{id}/usernames", models.ClustersRead, s.listUsernames)
+	s.router.RequirePrivilege("DELETE /compute-clusters/{id}/usernames/{username}", models.ClustersWrite, s.releaseRetiredUsername)
 
 	s.router.RequireAuth("GET /compute-allocations", s.listComputeAllocations)
 	s.router.RequirePrivilege("POST /compute-allocations", models.AllocationsWrite, s.createComputeAllocation)

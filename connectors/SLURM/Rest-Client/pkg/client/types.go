@@ -54,6 +54,8 @@ type AssocLimits struct {
 	GrpTRES     []TRES `json:"grp_tres,omitempty"`
 	GrpTRESMins []TRES `json:"grp_tres_mins,omitempty"`
 	MaxWallPM   *int64 `json:"max_wall_pj,omitempty"`
+	// GrpSubmitJobs caps queued and running jobs.
+	GrpSubmitJobs *int64 `json:"grp_submit_jobs,omitempty"`
 }
 
 type Association struct {
@@ -109,6 +111,7 @@ type assocMaxJobs struct {
 
 type assocMaxJobsPer struct {
 	Count     *SlurmNumber `json:"count,omitempty"`      // GrpJobs
+	Submitted *SlurmNumber `json:"submitted,omitempty"`  // GrpSubmitJobs
 	WallClock *SlurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
 }
 
@@ -160,6 +163,14 @@ func (a Association) MarshalJSON() ([]byte, error) {
 		m.Jobs = &assocMaxJobs{Per: per}
 		touched = true
 	}
+	// An unset GrpSubmitJobs is sent as unlimited, which lifts a block left by a refused deletion.
+	if m.Jobs == nil {
+		m.Jobs, touched = &assocMaxJobs{Per: &assocMaxJobsPer{}}, true
+	}
+	m.Jobs.Per.Submitted = &SlurmNumber{Infinite: true}
+	if a.Limits.GrpSubmitJobs != nil {
+		m.Jobs.Per.Submitted = numPtr(a.Limits.GrpSubmitJobs)
+	}
 	if len(a.Limits.GrpTRES) > 0 || len(a.Limits.GrpTRESMins) > 0 {
 		t := &assocMaxTRES{}
 		if len(a.Limits.GrpTRES) > 0 {
@@ -195,6 +206,7 @@ func (a *Association) UnmarshalJSON(data []byte) error {
 		if w.Max.Jobs != nil && w.Max.Jobs.Per != nil {
 			a.Limits.GrpJobs = ptrNum(w.Max.Jobs.Per.Count)
 			a.Limits.MaxWallPM = ptrNum(w.Max.Jobs.Per.WallClock)
+			a.Limits.GrpSubmitJobs = ptrNum(w.Max.Jobs.Per.Submitted)
 		}
 		if w.Max.TRES != nil {
 			a.Limits.GrpTRES = w.Max.TRES.Total

@@ -101,6 +101,23 @@ func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error
 	return a.slurmClient.UpsertAssociation(assoc)
 }
 
+// deleteAssociations removes the associations matching f. Slurm refuses while jobs are queued or run, so what is
+// left refuses new jobs instead while the queue drains, and the error stands so the removal is retried.
+func (a *AssociationSubscriber) deleteAssociations(ctx context.Context, f client.AssocFilter) error {
+	err := a.slurmClient.DeleteAssociation(f)
+	if err == nil {
+		return nil
+	}
+	left, _ := a.slurmClient.ListAssociations(f)
+	for _, assoc := range left {
+		assoc.Limits.GrpSubmitJobs = new(int64)
+		if assoc.User != "" && a.slurmClient.UpsertAssociation(assoc) == nil {
+			slog.WarnContext(ctx, "Blocked association while jobs run", "account", assoc.Account, "user", assoc.User, "cluster", assoc.Cluster)
+		}
+	}
+	return err
+}
+
 // The event handlers use this. An event means something changed, so the
 // record is written without checking the cluster first.
 func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {

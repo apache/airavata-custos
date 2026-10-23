@@ -64,7 +64,11 @@ func (s *Service) generateClusterUsername(ctx context.Context, clusterID, firstN
 		if err != nil {
 			return "", fmt.Errorf("check username: %w", err)
 		}
-		if existing == nil {
+		_, retired, err := s.clusterUsers.Retired(ctx, clusterID, "", candidate)
+		if err != nil {
+			return "", fmt.Errorf("check retired username: %w", err)
+		}
+		if existing == nil && !retired {
 			return candidate, nil
 		}
 	}
@@ -270,6 +274,9 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		}
 		return nil
 	}); err != nil {
+		if isLocalUsernameDuplicate(err) {
+			return nil, fmt.Errorf("%w: username %q is taken on cluster %q", ErrAlreadyExists, in.Username, in.ComputeClusterID)
+		}
 		return nil, err
 	}
 

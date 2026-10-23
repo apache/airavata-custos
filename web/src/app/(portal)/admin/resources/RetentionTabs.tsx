@@ -23,6 +23,10 @@ import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  type ClusterUsername,
+  zGetComputeClustersByIdUsernamesResponse,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
@@ -354,4 +358,50 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
       {editing ? <QuotaDialog folder={editing} onClose={() => setEditing(null)} /> : null}
     </>
   );
+}
+
+// A cluster's usernames: live accounts, and deleted ones' usernames held for their user until an admin releases them.
+export function UsernamesTab({ clusterId }: { clusterId: string | undefined }) {
+  const release = useDeleteColumn<ClusterUsername>(
+    "usernames",
+    "outline",
+    "Release",
+    (row) =>
+      row.held && {
+        path: `/compute-clusters/${clusterId}/usernames/${row.local_username}`,
+        done: `${row.local_username} released`,
+      },
+  );
+  const columns: Array<DataTableColumn<ClusterUsername>> = [
+    {
+      key: "username",
+      header: "Username",
+      cell: (row) => (
+        <span
+          className="flex items-center gap-2"
+          title={row.held ? "Held for a deleted account" : "Active"}
+        >
+          <User
+            aria-hidden
+            className={`size-3.5 shrink-0 ${row.held ? "text-muted-foreground/40" : "text-[color:var(--tone-ok-fg)]"}`}
+          />
+          {mono(row.local_username)}
+        </span>
+      ),
+    },
+    { key: "user", header: "User", cell: (row) => row.email || row.user_id },
+    { key: "since", header: "Since", cell: (row) => new Date(row.since).toLocaleString() },
+    release,
+  ];
+  return clusterId ? (
+    <Listing
+      list="usernames"
+      path={`/compute-clusters/${clusterId}/usernames`}
+      parse={(data) => zGetComputeClustersByIdUsernamesResponse.parse(data)}
+      columns={columns}
+      rowKey={(row) => `${row.held}/${row.local_username}`}
+      rowClassName={(row) => (row.held ? DISPOSABLE : undefined)}
+      empty="No usernames on this cluster."
+    />
+  ) : null;
 }

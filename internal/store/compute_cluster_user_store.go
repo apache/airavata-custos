@@ -149,8 +149,26 @@ func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *m
 		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, access_level, approval_status, reviewed_at, reviewed_by)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy)
+	if err != nil {
+		return err
+	}
+	return claimLocalUsername(ctx, tx, c)
+}
+
+// claimLocalUsername runs after the write, which waits for a concurrent delete of this username to commit, so its
+// retirement is visible. A user taking back their own held username frees it.
+func claimLocalUsername(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
+	var held bool
+	err := tx.QueryRowContext(ctx, `WITH d AS (DELETE FROM retired_local_usernames WHERE compute_cluster_id = $1 AND local_username = $2 RETURNING user_id)
+		SELECT EXISTS (SELECT 1 FROM d WHERE user_id <> $3)`, c.ComputeClusterID, c.LocalUsername, c.UserID).Scan(&held)
+	if err == nil && held {
+		return ErrUsernameHeld
+	}
 	return err
 }
+
+// ErrUsernameHeld reports a username held for the user who left it.
+var ErrUsernameHeld = errors.New("local username is held for its former user")
 
 // clusterAccountListFrom links each account to the user's newest allocation on
 // the same cluster.
@@ -215,7 +233,10 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
                 local_username     = $3
           WHERE id = $4`,
 		c.ComputeClusterID, c.UserID, c.LocalUsername, c.ID)
-	return err
+	if err != nil {
+		return err
+	}
+	return claimLocalUsername(ctx, tx, c)
 }
 
 func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
@@ -228,6 +249,17 @@ func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	if _, err := tx.ExecContext(ctx,
+		retireLocalUsernames+`
+		 WHERE user_id = $1
+		   AND compute_cluster_id IN (SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $2)
+		ON CONFLICT DO NOTHING`,
+		fromUserID, toUserID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE retired_local_usernames SET user_id = $2 WHERE user_id = $1`, fromUserID, toUserID); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM compute_cluster_users
 		 WHERE user_id = $1
@@ -246,6 +278,44 @@ func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx
 }
 
 func (s *pgComputeClusterUserStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	if _, err := tx.ExecContext(ctx, retireLocalUsernames+` WHERE id = $1 ON CONFLICT DO NOTHING`, id); err != nil {
+		return err
+	}
 	_, err := tx.ExecContext(ctx, `DELETE FROM compute_cluster_users WHERE id = $1`, id)
+	return err
+}
+
+// retireLocalUsernames holds the usernames of the mappings about to be deleted for their users.
+const retireLocalUsernames = `INSERT INTO retired_local_usernames (compute_cluster_id, local_username, user_id)
+	SELECT compute_cluster_id, local_username, user_id FROM compute_cluster_users`
+
+func (s *pgComputeClusterUserStore) Retired(ctx context.Context, clusterID, userID, localUsername string) (string, bool, error) {
+	var r struct {
+		Own   string `db:"own"`
+		Taken bool   `db:"taken"`
+	}
+	err := s.db.GetContext(ctx, &r,
+		`SELECT COALESCE(MAX(local_username) FILTER (WHERE user_id = $2), '') AS own,
+		        COALESCE(BOOL_OR(local_username = $3 AND user_id <> $2), false) AS taken
+		   FROM retired_local_usernames WHERE compute_cluster_id = $1`,
+		clusterID, userID, localUsername)
+	return r.Own, r.Taken, err
+}
+
+func (s *pgComputeClusterUserStore) ListUsernames(ctx context.Context, clusterID string) ([]models.ClusterUsername, error) {
+	rows := []models.ClusterUsername{}
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT n.local_username, n.user_id, COALESCE(u.email, '') AS email, n.since, n.held
+		   FROM (SELECT local_username, user_id, created_at AS since, false AS held FROM compute_cluster_users WHERE compute_cluster_id = $1
+		         UNION ALL
+		         SELECT local_username, user_id, retired_at, true FROM retired_local_usernames WHERE compute_cluster_id = $1) n
+		   LEFT JOIN users u ON u.id = n.user_id
+		  ORDER BY n.held DESC, n.local_username`, clusterID)
+	return rows, err
+}
+
+func (s *pgComputeClusterUserStore) Release(ctx context.Context, tx *sql.Tx, clusterID, localUsername string) error {
+	_, err := tx.ExecContext(ctx,
+		`DELETE FROM retired_local_usernames WHERE compute_cluster_id = $1 AND local_username = $2`, clusterID, localUsername)
 	return err
 }

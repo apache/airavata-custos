@@ -23,12 +23,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// Make sure removing an account takes it off the person and deletes its primary group, binding first.
-func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
-	reg := &mockRegistry{account: "jdoe", userGroup: 55}
+// Make sure removing an account takes it off the person and empties its primary group, keeping the group.
+func TestRemovePOSIXAccount_RemovesTheAccountAndEmptiesItsPrimaryGroup(t *testing.T) {
+	reg := &mockRegistry{account: "jdoe", userGroup: 55,
+		members: []client.CoGroupMemberListOne{{Id: 12, CoGroupId: 55, Person: client.IdentifierParent{Type: "CO", Id: 42}, Member: true}}}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := adminCore()
@@ -41,7 +43,7 @@ func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
 	if len(reg.put) != 1 || strings.Contains(string(reg.put[0]), "jdoe") {
 		t.Errorf("expected one person update without jdoe, got %d: %s", len(reg.put), reg.put)
 	}
-	want := []string{"/unix_cluster/unix_cluster_groups/3.json", "/co_groups/55.json"}
+	want := []string{"/co_group_members/12.json"}
 	if !slices.Equal(reg.deleted, want) {
 		t.Errorf("deleted = %v, want %v", reg.deleted, want)
 	}
