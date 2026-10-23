@@ -76,6 +76,10 @@ func recordingVMS(t *testing.T) (Cluster, *[]string) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body struct{ Path string }
 		_ = json.NewDecoder(r.Body).Decode(&body)
+		if r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
 		switch r.URL.Path {
 		case "/api/token/":
 			_, _ = w.Write([]byte(`{"access":"t"}`))
@@ -88,7 +92,7 @@ func recordingVMS(t *testing.T) (Cluster, *[]string) {
 		}
 	}))
 	t.Cleanup(srv.Close)
-	return Cluster{VMS: client.New(srv.URL, "u", "p", 1), Mounts: layout}, &log
+	return Cluster{VMS: client.New(srv.URL, "u", "p", 1), Mounts: layout, Folders: &registry{}}, &log
 }
 
 func join(parts ...[]string) []string {
@@ -164,6 +168,51 @@ func TestEnsureAllocation(t *testing.T) {
 			a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group, GroupProvisionedAt: tt.groupProvisionedAt}
 			if err := s.ensureAllocation(context.Background(), a); err != nil || !slices.Equal(*log, tt.want) {
 				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
+			}
+		})
+	}
+}
+
+type registry []string
+
+func (r *registry) Record(_ context.Context, _, path, kind, name, unixOwner string, _ *models.ComputeAllocation) (int64, error) {
+	*r = append(*r, "record "+path+" "+kind+" "+name+" "+unixOwner)
+	return 0, nil
+}
+
+func (r *registry) MarkPending(_ context.Context, _, kind, name string) error {
+	*r = append(*r, "mark "+kind+" "+name)
+	return nil
+}
+
+// Make sure ensure records each folder with its owner, and a deletion only marks its owner's folders.
+func TestRegistry(t *testing.T) {
+	group, now := "proj-a", time.Now()
+	jdoe := models.ComputeClusterUser{ComputeClusterID: "c1", UserID: "u1", LocalUsername: "custos-jdoe", ProvisionedAt: &now}
+	tests := []struct {
+		name string
+		run  func(*StorageSubscriber) error
+		want []string
+	}{
+		{name: "account provisioned", run: func(s *StorageSubscriber) error { return s.ensureUser(context.Background(), jdoe) }, want: []string{
+			"record /home/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe",
+			"record /scratch/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe",
+			"record /project/proj-a allocation proj-a 0:proj-a",
+			"record /project/proj-a/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe"}},
+		{name: "account deleted", run: func(s *StorageSubscriber) error { return s.markUser(context.Background(), jdoe) },
+			want: []string{"mark cluster_user custos-jdoe"}},
+		{name: "allocation deleted", run: func(s *StorageSubscriber) error {
+			return s.markAllocation(context.Background(), models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", PosixGroup: &group})
+		}, want: []string{"mark allocation proj-a"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, _ := recordingVMS(t)
+			var reg registry
+			c.Folders = &reg
+			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
+			if err := tt.run(s); err != nil || !slices.Equal(reg, tt.want) {
+				t.Fatalf("err=%v registry=%v, want %v", err, reg, tt.want)
 			}
 		})
 	}

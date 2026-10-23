@@ -1,0 +1,180 @@
+#!/bin/sh
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# vms: a command line for the VAST VMS REST API, used like rclone; README.md beside it is the manual.
+# Every command is a short composition over api(), which reaches any endpoint as METHOD RESOURCE key=value...
+# Settings come from $VMS_CONFIG (written by `vms config`); each run logs in afresh, and when VMS is reachable only
+# through SSH the first run opens a SOCKS tunnel that later runs reuse through its control socket.
+
+set -eu
+conf=${VMS_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/vms}
+VMS= VMS_SSH= VMS_PROXY_PORT=${VMS_PROXY_PORT:-1080}
+[ ! -f "$conf/vms.conf" ] || . "$conf/vms.conf"
+sock=$conf/tunnel.sock
+nl='
+'
+
+usage() {
+  cat <<'USAGE'
+usage: vms [command [argument...]]       vms alone opens an interactive prompt
+
+  config                          set the VMS URL, ssh route and credentials
+  connect | disconnect            open or close the ssh tunnel
+  browse                          open the VMS web interface through the tunnel
+  info PATH                       metadata, quota, serving and nested views, Catalog entry
+  views                           every view: id, path, protocols, policy
+  mkdir PATH UID GID [MODE]       create a folder, mode 750 by default
+  mkview PATH [POLICY] [PROTOS]   export PATH, policy default, protocols NFS,NFS4
+  quota PATH BYTES [INODES]       set a hard quota
+  rmview | rmquota PATH           remove the view or quota; data stays
+  purge PATH                      move PATH and everything under it to the trash
+  get|post|put|patch|delete RESOURCE [key=value | key:=json ... | -]
+                                  any endpoint under /api/; see $VMS/docs
+USAGE
+}
+
+die() { echo "vms: $*" >&2; exit 1; }
+need() { [ "$1" -ge "$2" ] || die "usage: vms $3"; }
+confirm() { [ ! -t 0 ] || { printf '%s [y/N] ' "$1"; read -r a; [ "$a" = y ] || die cancelled; }; }
+
+connect() {
+  [ -n "$VMS_SSH" ] || die "no ssh route configured; run vms config"
+  ! { [ -S "$sock" ] && ssh -S "$sock" -O check vms 2>/dev/null; } || return 0
+  # shellcheck disable=SC2086 # VMS_SSH holds ssh arguments
+  ssh -f -N -M -S "$sock" -o ControlPersist=yes -o ExitOnForwardFailure=yes -D "127.0.0.1:$VMS_PROXY_PORT" $VMS_SSH
+  echo "vms: tunnel through $VMS_SSH on 127.0.0.1:$VMS_PROXY_PORT" >&2
+}
+
+ready() {
+  [ -n "$VMS" ] || die "no VMS configured; run vms config"
+  [ -z "$VMS_SSH" ] || { connect; export ALL_PROXY="socks5h://127.0.0.1:$VMS_PROXY_PORT"; }
+  [ -z "${VMS_TOKEN:-}" ] || return 0
+  [ -r "$conf/login.json" ] || die "no credentials; run vms config"
+  VMS_TOKEN=$(curl -sk "$VMS/api/token/" -H 'Content-Type: application/json' -d @"$conf/login.json" | jq -r '.access // empty')
+  [ -n "$VMS_TOKEN" ] || die "login to $VMS failed"
+  export VMS_TOKEN
+}
+
+# api METHOD RESOURCE [key=value | key:=json ... | -]: prints the response body; fails on an HTTP error.
+api() {
+  m=$(printf %s "$1" | tr '[:lower:]' '[:upper:]') r=${2#/}
+  shift 2
+  case $r in *\?*) ;; *) r=${r%/}/ ;; esac
+  if [ "$m" = GET ]; then
+    for kv; do set -- "$@" --data-urlencode "$kv"; shift; done
+    set -- -G "$@"
+  elif [ "$*" = - ]; then
+    set -- -d @-
+  elif [ $# -gt 0 ]; then
+    set -- -d "$(jq -cn '[$ARGS.positional[] | capture("^(?<k>[^:=]+)(?<op>:?=)(?<v>.*)$"; "s")
+      | {(.k): (if .op == ":=" then (.v | fromjson) else .v end)}] | add' --args "$@")"
+  fi
+  res=$(curl -sk -X "$m" -H "Authorization: Bearer $VMS_TOKEN" -H 'Content-Type: application/json' \
+    -w "$nl%{http_code}" "$@" "$VMS/api/$r")
+  code=${res##*"$nl"} body=${res%"$nl"*}
+  [ -z "$body" ] || printf '%s\n' "$body"
+  [ "$code" -lt 400 ]
+}
+
+call() {
+  rc=0; out=$(api "$@") || rc=$?
+  [ -z "$out" ] || printf '%s\n' "$out" | jq . 2>/dev/null || printf '%s\n' "$out"
+  return $rc
+}
+
+id_at() { api get "$1" path="$2" | jq -e --arg p "$2" 'map(select(.path == $p))[0].id' || die "no $1 at $2"; }
+
+info() {
+  stat=$(api post folders/stat_path path="$1") || die "$(printf '%s' "$stat" | jq -r .detail 2>/dev/null || printf '%s' "$stat")"
+  catalog=$(api get bigcatalogconfig/query_data path="$1") || catalog=null
+  jq -n --arg p "$1" --argjson stat "$stat" --argjson quotas "$(api get quotas path="$1")" \
+    --argjson views "$(api get views)" --argjson catalog "$catalog" '
+    def view: {id, path, protocols, policy};
+    { path: $p, metadata: $stat,
+      quota: ($quotas | map(select(.path == $p))[0] // null
+        | if . then {hard_limit, hard_limit_inodes, used_capacity, used_inodes, state} else . end),
+      serving_view: ($views | map(select(.path as $v | $p == $v or ($p | startswith(($v | rtrimstr("/")) + "/"))))
+        | max_by(.path | length) | view),
+      nested_views: ($views | map(select(.path | startswith(($p | rtrimstr("/")) + "/")) | view)),
+      catalog: $catalog }'
+}
+
+browse() {
+  for b in "${VMS_BROWSER:-}" google-chrome chromium "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; do
+    command -v "$b" >/dev/null 2>&1 || continue
+    [ -z "$VMS_SSH" ] || set -- --user-data-dir="$conf/browser" --proxy-server="socks5://127.0.0.1:$VMS_PROXY_PORT"
+    exec "$b" "$@" "$VMS" >/dev/null 2>&1
+  done
+  die "no Chrome or Chromium found; set VMS_BROWSER"
+}
+
+config() {
+  mkdir -p "$conf" && chmod 700 "$conf"
+  printf 'VMS URL [%s]: ' "$VMS"; read -r a; VMS=${a:-$VMS}
+  printf 'ssh arguments reaching a host that reaches VMS, - for none [%s]: ' "$VMS_SSH"; read -r a
+  case $a in -) VMS_SSH= ;; ?*) VMS_SSH=$a ;; esac
+  printf 'username (empty keeps the saved one): '; read -r u
+  if [ -n "$u" ]; then
+    printf 'password: '; stty -echo 2>/dev/null || :; read -r pw; stty echo 2>/dev/null || :; echo
+    (umask 077; jq -n --arg u "$u" --arg p "$pw" '{username: $u, password: $p}' > "$conf/login.json")
+  fi
+  (umask 077; printf "VMS='%s'\nVMS_SSH='%s'\n" "$VMS" "$VMS_SSH" > "$conf/vms.conf")
+  ready && echo "logged in to $VMS; settings in $conf"
+}
+
+shell() {
+  ready
+  echo "vms on $VMS; help lists commands, quit leaves"
+  while printf 'vms> ' && read -r line; do
+    case $line in '') ;; quit | exit | q) break ;; *) (eval "set -- $line" && main "$@") || : ;; esac
+  done
+}
+
+main() {
+  cmd=${1:-}
+  [ $# -eq 0 ] || shift
+  case $cmd in
+    '') if [ -t 0 ]; then shell; else usage; fi ;;
+    help | -h | --help) usage ;;
+    config) config ;;
+    connect) connect ;;
+    disconnect) ssh -S "$sock" -O exit vms 2>/dev/null || echo "vms: no tunnel" >&2 ;;
+    browse) ready; browse ;;
+    get | post | put | patch | delete) need $# 1 "$cmd RESOURCE [key=value...]"; ready; call "$cmd" "$@" ;;
+    views) ready; api get views | jq -r 'sort_by(.path)[] | [.id, .path, (.protocols | join(",")), .policy] | @tsv' ;;
+    info) need $# 1 "info PATH"; ready; info "$1" ;;
+    mkdir) need $# 3 "mkdir PATH UID GID [MODE]"; ready
+      call post folders/create_folder path="$1" user="$2" group="$3" owner_is_group:=false create_dir_mode="${4:-750}" ;;
+    mkview) need $# 1 "mkview PATH [POLICY] [PROTOCOL,...]"; ready
+      pid=$(api get viewpolicies name="${2:-default}" | jq -e '.[0].id') || die "no view policy ${2:-default}"
+      call post views path="$1" policy_id:="$pid" protocols:="$(printf %s "${3:-NFS,NFS4}" | jq -cR 'split(",")')" ;;
+    quota) need $# 2 "quota PATH BYTES [INODES]"; ready
+      call post quotas name="$1" path="$1" hard_limit:="$2" ${3:+hard_limit_inodes:="$3"} ;;
+    rmview) need $# 1 "rmview PATH"; ready
+      id=$(id_at views "$1"); confirm "remove the view at $1? data stays"; call delete "views/$id" ;;
+    rmquota) need $# 1 "rmquota PATH"; ready
+      id=$(id_at quotas "$1"); confirm "remove the quota on $1?"; call delete "quotas/$id" ;;
+    purge) need $# 1 "purge PATH"; ready
+      api post folders/stat_path path="$1" >/dev/null || die "no such path $1"
+      confirm "delete $1 and everything under it?"; call delete folders/delete_folder path="$1" ;;
+    *) die "unknown command $cmd; vms help lists them" ;;
+  esac
+}
+
+main "$@"

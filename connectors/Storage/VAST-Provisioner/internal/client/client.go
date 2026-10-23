@@ -59,8 +59,28 @@ func (c *Client) CreateFolder(ctx context.Context, path, user, group string, mod
 	})
 }
 
-// CreateQuota creates a quota on path, named after it, unless a quota by that name exists.
+// CreateQuota creates a quota on path, named after it, unless one with these limits exists.
+// One on path with other limits is recreated, since VMS refuses to modify a quota it failed to apply.
 func (c *Client) CreateQuota(ctx context.Context, path string, hardLimit, hardLimitInodes int64) error {
+	token, err := c.login(ctx)
+	if err != nil {
+		return err
+	}
+	var found []struct {
+		ID int
+		Quota
+	}
+	if err := c.do(ctx, token, http.MethodGet, fmt.Sprintf("quotas/?tenant_id=%d&path=%s", c.tenantID, url.QueryEscape(path)), nil, &found); err != nil {
+		return err
+	}
+	for _, q := range found {
+		if q.HardLimit == hardLimit && q.HardLimitInodes == hardLimitInodes {
+			return nil
+		}
+		if err := c.do(ctx, token, http.MethodDelete, fmt.Sprintf("quotas/%d/", q.ID), nil, nil); err != nil {
+			return err
+		}
+	}
 	return c.create(ctx, "quotas/", map[string]any{
 		"name": path, "path": path, "create_dir": false, "hard_limit": hardLimit, "hard_limit_inodes": hardLimitInodes, "tenant_id": c.tenantID,
 	}, func(token string) bool {
@@ -94,6 +114,59 @@ func (c *Client) ViewPolicyID(ctx context.Context, name string) (int, error) {
 		return 0, fmt.Errorf("vast: view policy %q not found", name)
 	}
 	return found[0].ID, nil
+}
+
+// Quota is a folder's quota, in bytes.
+type Quota struct {
+	HardLimit       int64 `json:"hard_limit"`
+	HardLimitInodes int64 `json:"hard_limit_inodes"`
+	Used            int64 `json:"used_capacity"`
+}
+
+// Quotas returns the tenant's quotas by path.
+func (c *Client) Quotas(ctx context.Context) (map[string]Quota, error) {
+	token, err := c.login(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var found []struct {
+		Path string
+		Quota
+	}
+	if err := c.do(ctx, token, http.MethodGet, fmt.Sprintf("quotas/?tenant_id=%d", c.tenantID), nil, &found); err != nil {
+		return nil, err
+	}
+	byPath := make(map[string]Quota, len(found))
+	for _, q := range found {
+		byPath[q.Path] = q.Quota
+	}
+	return byPath, nil
+}
+
+// Remove deletes the views and quotas on path and under it, then moves path to VAST's trash.
+func (c *Client) Remove(ctx context.Context, path string) error {
+	token, err := c.login(ctx)
+	if err != nil {
+		return err
+	}
+	for _, kind := range []string{"views", "quotas"} {
+		var found []struct {
+			ID   int
+			Path string
+		}
+		if err := c.do(ctx, token, http.MethodGet, fmt.Sprintf("%s/?tenant_id=%d", kind, c.tenantID), nil, &found); err != nil {
+			return err
+		}
+		for _, f := range found {
+			if f.Path != path && !strings.HasPrefix(f.Path, path+"/") {
+				continue
+			}
+			if err := c.do(ctx, token, http.MethodDelete, fmt.Sprintf("%s/%d/", kind, f.ID), nil, nil); err != nil {
+				return err
+			}
+		}
+	}
+	return c.do(ctx, token, http.MethodDelete, "folders/delete_folder/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil)
 }
 
 func (c *Client) create(ctx context.Context, path string, body map[string]any, exists func(token string) bool) error {

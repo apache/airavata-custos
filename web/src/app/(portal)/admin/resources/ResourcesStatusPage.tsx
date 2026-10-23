@@ -24,8 +24,11 @@ import { ResourcesTab } from "@/features/core/resources/components/ResourcesTab"
 import type { ConnectorCheck, ConnectorStatus } from "@/generated/core/zod.gen";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
+import { TabsRouter } from "@/shared/ui/TabsRouter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import * as React from "react";
+import { StorageFoldersTab } from "./RetentionTabs";
 
 type Tone = "ok" | "warn" | "error" | "off";
 
@@ -83,14 +86,32 @@ export function ResourcesStatusPage() {
   const clusters = useClusters();
   const connectors = useConnectors();
   const checks = (connectors.data ?? []).flatMap((c) => c.checks ?? []);
+  const [picked, setPicked] = React.useState<string>();
+  const clusterId = picked ?? clusters.data?.[0]?.id;
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="grid grid-flow-col grid-cols-[1fr_auto] grid-rows-[auto_auto] items-start gap-x-4">
         <h1 className="font-display text-[28px] font-bold leading-tight">Resources</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Cluster reachability, connector health and the resources allocations are billed on.
         </p>
+        {(clusters.data ?? []).length > 1 ? (
+          <Select value={clusterId} onValueChange={(id) => setPicked(id ?? undefined)}>
+            <SelectTrigger aria-label="Cluster" className="h-9 w-48 px-3">
+              <SelectValue>
+                {(id: string) => clusters.data?.find((c) => c.id === id)?.name ?? id}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {(clusters.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
       </div>
 
       {clusters.isLoading || connectors.isLoading ? (
@@ -105,22 +126,21 @@ export function ResourcesStatusPage() {
         />
       ) : (
         <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
-          {(clusters.data ?? []).map((cluster) => {
-            const check = latest(checks.filter((c) => c.target === cluster.id));
-            return (
-              <React.Fragment key={cluster.id}>
-                <dt className="text-muted-foreground">Cluster</dt>
-                <dd>
-                  <StatusPill
-                    tone={check ? (check.ok ? "ok" : "error") : "off"}
-                    name={cluster.name}
-                    status={check ? (check.ok ? "Reachable" : "Unreachable") : "Not checked yet"}
-                    check={check}
-                  />
-                </dd>
-              </React.Fragment>
-            );
-          })}
+          <dt className="text-muted-foreground">Clusters</dt>
+          <dd className="flex flex-wrap gap-2">
+            {(clusters.data ?? []).map((cluster) => {
+              const check = latest(checks.filter((c) => c.target === cluster.id));
+              return (
+                <StatusPill
+                  key={cluster.id}
+                  tone={check ? (check.ok ? "ok" : "error") : "off"}
+                  name={cluster.name}
+                  status={check ? (check.ok ? "Reachable" : "Unreachable") : "Not checked yet"}
+                  check={check}
+                />
+              );
+            })}
+          </dd>
 
           <dt className="text-muted-foreground">Connectors</dt>
           <dd className="flex flex-wrap gap-2">
@@ -141,7 +161,17 @@ export function ResourcesStatusPage() {
         </dl>
       )}
 
-      <ResourcesTab />
+      <TabsRouter
+        defaultValue="resources"
+        tabs={[
+          { value: "resources", label: "Resources", content: <ResourcesTab /> },
+          {
+            value: "storage",
+            label: "Storage",
+            content: <StorageFoldersTab clusterId={clusterId} />,
+          },
+        ]}
+      />
     </div>
   );
 }
