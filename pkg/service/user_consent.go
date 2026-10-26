@@ -169,29 +169,8 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 		}
 
 		if user.Type == models.UserTypeClusterLocal && in.Username != "" {
-			if err := s.ValidateUsername(in.Username); err != nil {
+			if err := s.renameClusterAccountsTx(ctx, tx, user, in.Username); err != nil {
 				return err
-			}
-			accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
-			if err != nil {
-				return fmt.Errorf("lookup cluster accounts: %w", err)
-			}
-			for i := range accounts {
-				acc := &accounts[i]
-				if acc.LocalUsername == in.Username {
-					continue
-				}
-				free, err := s.usernameFree(ctx, accounts[i:i+1], user.ID, in.Username)
-				if err != nil {
-					return err
-				}
-				if !free {
-					return fmt.Errorf("%w: username %q is taken on cluster %q", ErrAlreadyExists, in.Username, acc.ComputeClusterID)
-				}
-				acc.LocalUsername = in.Username
-				if err := s.clusterUsers.Update(ctx, tx, acc); err != nil {
-					return fmt.Errorf("rename cluster account: %w", err)
-				}
 			}
 		}
 
@@ -209,6 +188,51 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 		return nil, err
 	}
 	return s.GetUser(ctx, matched.ID)
+}
+
+// A locked name is skipped, not refused, so onboarding still finishes.
+func (s *Service) renameClusterAccountsTx(ctx context.Context, tx *sql.Tx, user *models.User, name string) error {
+	accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
+	if err != nil {
+		return fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	editable, err := s.UsernameEditable(ctx, user, accounts)
+	if err != nil || !editable {
+		return err
+	}
+	if err := s.ValidateUsername(name); err != nil {
+		return err
+	}
+	for i := range accounts {
+		acc := &accounts[i]
+		if acc.LocalUsername == name {
+			continue
+		}
+		free, err := s.usernameFree(ctx, accounts[i:i+1], user.ID, name)
+		if err != nil {
+			return err
+		}
+		if !free {
+			return fmt.Errorf("%w: username %q is taken on cluster %q", ErrAlreadyExists, name, acc.ComputeClusterID)
+		}
+		acc.LocalUsername = name
+		if err := s.clusterUsers.Update(ctx, tx, acc); err != nil {
+			return fmt.Errorf("rename cluster account: %w", err)
+		}
+	}
+	return nil
+}
+
+// UsernameEditable is false once the registry knows the user, since the name may already be on the cluster.
+func (s *Service) UsernameEditable(ctx context.Context, user *models.User, accounts []models.ComputeClusterUser) (bool, error) {
+	if user.Type != models.UserTypeClusterLocal || len(accounts) == 0 {
+		return false, nil
+	}
+	registered, err := s.userIdentities.FindByUserAndSource(ctx, user.ID, identitySourceComanage)
+	if err != nil {
+		return false, fmt.Errorf("lookup registry identity: %w", err)
+	}
+	return registered == nil, nil
 }
 
 func (s *Service) acceptTx(ctx context.Context, tx *sql.Tx, userID string, a *models.UserAgreement) (*models.UserAgreementAcceptance, error) {

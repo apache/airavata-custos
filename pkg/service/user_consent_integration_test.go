@@ -143,6 +143,27 @@ func TestCompleteOnboarding_MissingAcceptance(t *testing.T) {
 	}
 }
 
+// Make sure a user the registry already knows finishes onboarding with their username unchanged.
+func TestCompleteOnboarding_RegisteredUserKeepsUsername(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	user := seedPendingUserWithEmail(t, database, email)
+	newClusterAccount(t, svc, user, "custos-jdoe")
+	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: user, Source: "comanage", ExternalID: "100001"}); err != nil {
+		t.Fatalf("create comanage identity: %v", err)
+	}
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
+
+	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
+		t.Fatalf("CompleteOnboarding: %v", err)
+	}
+	if accounts, err := svc.ListComputeClusterUsersByUser(ctx(), user); err != nil || len(accounts) != 1 || accounts[0].LocalUsername != "custos-jdoe" {
+		t.Errorf("cluster account: got %+v, %v, want one named custos-jdoe", accounts, err)
+	}
+}
+
 // Make sure there's no error accepting the same version of user agreement several times and only create one record
 func TestAcceptUserAgreement_SimultaneousAcceptsRecordOne(t *testing.T) {
 	database := setupTestDB(t)

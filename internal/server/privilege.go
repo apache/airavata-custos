@@ -131,9 +131,12 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	onboarding := onboardingView{
-		Required:         caller.NeedsOnboarding,
-		UsernameEditable: caller.NeedsOnboarding && user.Type == models.UserTypeClusterLocal && len(accounts) > 0,
+	onboarding := onboardingView{Required: caller.NeedsOnboarding}
+	if caller.NeedsOnboarding {
+		if onboarding.UsernameEditable, err = s.svc.UsernameEditable(r.Context(), user, accounts); err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
 	}
 	if len(accounts) > 0 {
 		onboarding.Username = accounts[0].LocalUsername

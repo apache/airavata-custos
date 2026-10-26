@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	identityAuditLinked = "IDENTITY_LINKED"
-	identitySourceOIDC  = "oidc"
+	identityAuditLinked    = "IDENTITY_LINKED"
+	identitySourceOIDC     = "oidc"
+	identitySourceComanage = "comanage"
 )
 
 // identityCacheDefaultTTL is the fallback TTL when SetIdentityCacheTTL is never
