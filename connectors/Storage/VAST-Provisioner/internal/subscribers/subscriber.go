@@ -22,6 +22,7 @@
 package subscribers
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"log/slog"
@@ -53,10 +54,18 @@ func (m Mount) uses(placeholder string) bool {
 }
 
 type Cluster struct {
+	ID            string
 	VMS           *client.Client
 	Mounts        []Mount
 	ViewPolicyID  int
 	ViewProtocols []string
+	Folders       Registry
+}
+
+// Registry records the folders ensure makes and marks a deleted owner's for an admin to review.
+type Registry interface {
+	Record(ctx context.Context, clusterID, path, ownerKind, ownerName, unixOwner string, a *models.ComputeAllocation) (int64, error)
+	MarkPending(ctx context.Context, clusterID, ownerKind, ownerName string) error
 }
 
 type StorageSubscriber struct {
@@ -76,6 +85,26 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
 	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.markUser)
+	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.markAllocation)
+}
+
+func (s *StorageSubscriber) markUser(ctx context.Context, cu models.ComputeClusterUser) error {
+	return s.mark(ctx, cu.ComputeClusterID, "cluster_user", cu.LocalUsername)
+}
+
+func (s *StorageSubscriber) markAllocation(ctx context.Context, a models.ComputeAllocation) error {
+	if a.PosixGroup == nil {
+		return nil
+	}
+	return s.mark(ctx, a.ComputeClusterID, "allocation", *a.PosixGroup)
+}
+
+func (s *StorageSubscriber) mark(ctx context.Context, clusterID, ownerKind, ownerName string) error {
+	if c, ok := s.clusters[clusterID]; ok {
+		return c.Folders.MarkPending(ctx, clusterID, ownerKind, ownerName)
+	}
+	return nil
 }
 
 // ensureUser needs no approval check: COmanage provisions approved accounts only.
@@ -85,7 +114,7 @@ func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClu
 	if !ok || cu.ProvisionedAt == nil {
 		return nil
 	}
-	if err := s.ensure(ctx, c, cu.LocalUsername, ""); err != nil {
+	if err := s.ensure(ctx, c, cu.LocalUsername, nil); err != nil {
 		return err
 	}
 	memberships, err := s.core.ListAllocationsForUser(ctx, cu.UserID)
@@ -103,7 +132,7 @@ func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClu
 		if a == nil || a.ComputeClusterID != cu.ComputeClusterID {
 			continue
 		}
-		if err := s.ensureMemberMounts(ctx, c, cu.LocalUsername, *a.PosixGroup); err != nil {
+		if err := s.ensureMemberMounts(ctx, c, cu.LocalUsername, a); err != nil {
 			return err
 		}
 	}
@@ -126,7 +155,7 @@ func (s *StorageSubscriber) ensureMember(ctx context.Context, m models.ComputeAl
 	}
 	for _, mw := range members {
 		if mw.UserID == m.UserID && mw.ProvisionedAt != nil {
-			return s.ensureMemberMounts(ctx, c, mw.LocalUsername, *a.PosixGroup)
+			return s.ensureMemberMounts(ctx, c, mw.LocalUsername, a)
 		}
 	}
 	return nil
@@ -155,11 +184,11 @@ func (s *StorageSubscriber) activeAllocation(ctx context.Context, id string) (*m
 }
 
 // ensureMemberMounts creates the group's mounts, then the user's mount inside them.
-func (s *StorageSubscriber) ensureMemberMounts(ctx context.Context, c Cluster, user, group string) error {
-	if err := s.ensure(ctx, c, "", group); err != nil {
+func (s *StorageSubscriber) ensureMemberMounts(ctx context.Context, c Cluster, user string, a *models.ComputeAllocation) error {
+	if err := s.ensure(ctx, c, "", a); err != nil {
 		return err
 	}
-	return s.ensure(ctx, c, user, group)
+	return s.ensure(ctx, c, user, a)
 }
 
 // ensureAllocation creates an allocation's mounts once its group is on the cluster, then each provisioned member's.
@@ -168,7 +197,7 @@ func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.Compu
 	if !ok {
 		return nil
 	}
-	if err := s.ensure(ctx, c, "", *a.PosixGroup); err != nil {
+	if err := s.ensure(ctx, c, "", &a); err != nil {
 		return err
 	}
 	members, err := s.core.ListMembersForAllocation(ctx, a.ID)
@@ -180,20 +209,32 @@ func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.Compu
 		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
 			continue
 		}
-		errs = append(errs, s.ensure(ctx, c, m.LocalUsername, *a.PosixGroup))
+		errs = append(errs, s.ensure(ctx, c, m.LocalUsername, &a))
 	}
 	return errors.Join(errs...)
 }
 
-// ensure creates the mounts that use exactly the placeholders given.
-func (s *StorageSubscriber) ensure(ctx context.Context, c Cluster, user, group string) error {
+// ensure creates the mounts that use exactly the placeholders given; a is nil for the user's own mounts.
+func (s *StorageSubscriber) ensure(ctx context.Context, c Cluster, user string, a *models.ComputeAllocation) error {
+	group := ""
+	if a != nil {
+		group = *a.PosixGroup
+	}
 	r := strings.NewReplacer("{user}", user, "{allocation}", group)
+	kind, owner := "allocation", group
+	if user != "" {
+		kind, owner = "cluster_user", user
+	}
 	for _, m := range c.Mounts {
 		if m.uses("{user}") != (user != "") || m.uses("{allocation}") != (group != "") {
 			continue
 		}
 		path := r.Replace(m.Path)
 		if err := c.VMS.CreateFolder(ctx, path, r.Replace(m.Owner), r.Replace(m.Group), m.Mode); err != nil {
+			return err
+		}
+		override, err := c.Folders.Record(ctx, c.ID, path, kind, owner, r.Replace(m.Owner)+":"+r.Replace(m.Group), a)
+		if err != nil {
 			return err
 		}
 		if m.View {
@@ -204,7 +245,7 @@ func (s *StorageSubscriber) ensure(ctx context.Context, c Cluster, user, group s
 		if m.HardLimit == 0 {
 			continue
 		}
-		if err := c.VMS.CreateQuota(ctx, path, m.HardLimit, m.HardLimitInodes); err != nil {
+		if err := c.VMS.CreateQuota(ctx, path, cmp.Or(override, m.HardLimit), m.HardLimitInodes); err != nil {
 			return err
 		}
 	}
@@ -231,7 +272,7 @@ func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster)
 	errs := []error{err}
 	for _, cu := range users {
 		if cu.ProvisionedAt != nil {
-			errs = append(errs, s.ensure(ctx, c, cu.LocalUsername, ""))
+			errs = append(errs, s.ensure(ctx, c, cu.LocalUsername, nil))
 		}
 	}
 	allocs, err := s.core.ListComputeAllocationsByCluster(ctx, id)

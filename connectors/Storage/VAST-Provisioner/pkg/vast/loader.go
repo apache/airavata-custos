@@ -32,8 +32,10 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/folders"
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -42,9 +44,19 @@ import (
 // Type is the connector type in the config file and the subscriber name on the bus.
 const Type = "vast-storage-provisioner"
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
+	if err := db.MigrateConnectorFS(database, folders.Migrations, "migrations", "vast"); err != nil {
+		return err
+	}
 	entries, _ := connectorConfig.Config["clusters"].([]interface{})
 	clusters := map[string]subscribers.Cluster{}
+	registry := folders.New(database, func(clusterID string) (folders.VMS, error) {
+		c, ok := clusters[clusterID]
+		if !ok {
+			return nil, fmt.Errorf("vast provisioner: cluster %q is not configured", clusterID)
+		}
+		return c.VMS, nil
+	}, coreService)
 	for _, e := range entries {
 		cluster, _ := e.(map[string]interface{})
 		vms, _ := cluster["vast"].(map[string]interface{})
@@ -59,7 +71,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 		if err != nil {
 			return err
 		}
-		c := subscribers.Cluster{VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts}
+		c := subscribers.Cluster{ID: clusterID, VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts, Folders: registry}
 		// Verify that view policy is set otherwise stop the startup instead of failing every create request.
 		if slices.ContainsFunc(mounts, func(m subscribers.Mount) bool { return m.View }) {
 			policy := setting(vms, "view_policy")
@@ -89,6 +101,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 		}
 		interval = d
 	}
+	registry.RegisterRoutes(router)
 	subscriber := subscribers.NewStorageSubscriber(eventBus, coreService, clusters)
 	subscriber.RegisterSubscribers(Type)
 	wg.Add(1)
