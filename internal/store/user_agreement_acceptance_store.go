@@ -41,11 +41,11 @@ func NewUserAgreementAcceptanceStore(db *sqlx.DB) UserAgreementAcceptanceStore {
 	return &pgUserAgreementAcceptanceStore{db: db}
 }
 
-func (s *pgUserAgreementAcceptanceStore) Find(ctx context.Context, userID, agreementID string) (*models.UserAgreementAcceptance, error) {
+func (s *pgUserAgreementAcceptanceStore) FindTx(ctx context.Context, tx *sql.Tx, userID, agreementID string) (*models.UserAgreementAcceptance, error) {
 	var a models.UserAgreementAcceptance
-	err := s.db.GetContext(ctx, &a,
+	err := tx.QueryRowContext(ctx,
 		`SELECT `+userAgreementAcceptanceColumns+` FROM user_agreement_acceptances WHERE user_id = $1 AND agreement_id = $2`,
-		userID, agreementID)
+		userID, agreementID).Scan(&a.ID, &a.UserID, &a.AgreementID, &a.AcceptedAt, &a.BodyHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -55,12 +55,17 @@ func (s *pgUserAgreementAcceptanceStore) Find(ctx context.Context, userID, agree
 	return &a, nil
 }
 
-func (s *pgUserAgreementAcceptanceStore) Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreementAcceptance) error {
-	_, err := tx.ExecContext(ctx,
+func (s *pgUserAgreementAcceptanceStore) Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreementAcceptance) (bool, error) {
+	res, err := tx.ExecContext(ctx,
 		`INSERT INTO user_agreement_acceptances (id, user_id, agreement_id, body_hash)
-		 VALUES ($1, $2, $3, $4)`,
+		 VALUES ($1, $2, $3, $4)
+		 ON CONFLICT (user_id, agreement_id) DO NOTHING`,
 		a.ID, a.UserID, a.AgreementID, a.BodyHash)
-	return err
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
 }
 
 func (s *pgUserAgreementAcceptanceStore) ListByAgreement(ctx context.Context, agreementID string, limit, offset int) ([]models.UserAgreementAcceptance, error) {

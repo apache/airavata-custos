@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -139,5 +140,36 @@ func TestCompleteOnboarding_MissingAcceptance(t *testing.T) {
 	}
 	if accounts, err := svc.ListComputeClusterUsersByUser(ctx(), user); err != nil || len(accounts) != 1 || accounts[0].LocalUsername != "custos-jdoe" {
 		t.Errorf("cluster account: got %+v, %v, want one named custos-jdoe", accounts, err)
+	}
+}
+
+// Make sure there's no error accepting the same version of user agreement several times and only create one record
+func TestAcceptUserAgreement_SimultaneousAcceptsRecordOne(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	user := seedPendingUserWithEmail(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 10)
+	for range 10 {
+		wg.Go(func() {
+			_, err := svc.AcceptUserAgreement(ctx(), user, aup.ID)
+			errs <- err
+		})
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Errorf("accept: %v", err)
+		}
+	}
+	if n := countRows(t, database, "SELECT COUNT(*) FROM user_agreement_acceptances WHERE user_id = $1", user); n != 1 {
+		t.Errorf("acceptances: got %d, want 1", n)
+	}
+	if got := countAuditEventsOfType(t, database, "USER_AGREEMENT_ACCEPTED", user); got != 1 {
+		t.Errorf("audit USER_AGREEMENT_ACCEPTED: got %d, want 1", got)
 	}
 }

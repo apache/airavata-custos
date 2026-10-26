@@ -58,13 +58,6 @@ func (s *Service) AcceptUserAgreement(ctx context.Context, userID, agreementID s
 	if a.Status != models.UserAgreementPublished {
 		return nil, fmt.Errorf("%w: only a published agreement can be accepted", ErrInvalidInput)
 	}
-	existing, err := s.acceptances.Find(ctx, userID, agreementID)
-	if err != nil {
-		return nil, fmt.Errorf("lookup acceptance: %w", err)
-	}
-	if existing != nil {
-		return existing, nil
-	}
 	var acc *models.UserAgreementAcceptance
 	if err := s.inTx(ctx, func(tx *sql.Tx) (err error) {
 		acc, err = s.acceptTx(ctx, tx, userID, a)
@@ -226,8 +219,12 @@ func (s *Service) acceptTx(ctx context.Context, tx *sql.Tx, userID string, a *mo
 		AcceptedAt:  nowUTC(),
 		BodyHash:    a.BodyHash,
 	}
-	if err := s.acceptances.Create(ctx, tx, acc); err != nil {
+	created, err := s.acceptances.Create(ctx, tx, acc)
+	if err != nil {
 		return nil, fmt.Errorf("insert acceptance: %w", err)
+	}
+	if !created {
+		return s.acceptances.FindTx(ctx, tx, userID, a.ID)
 	}
 	if err := s.writePrivilegeAuditTx(ctx, tx, userAgreementAuditAccepted, userID, map[string]any{
 		"agreement_id":  a.ID,

@@ -551,10 +551,10 @@ type UserAgreementStore interface {
 
 // UserAgreementAcceptanceStore defines persistence operations for the record of who accepted which agreement.
 type UserAgreementAcceptanceStore interface {
-	// Find returns the user's acceptance of the agreement, or nil.
-	Find(ctx context.Context, userID, agreementID string) (*models.UserAgreementAcceptance, error)
-	// Create inserts an acceptance.
-	Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreementAcceptance) error
+	// FindTx returns the user's acceptance of the agreement inside tx, or nil.
+	FindTx(ctx context.Context, tx *sql.Tx, userID, agreementID string) (*models.UserAgreementAcceptance, error)
+	// Create inserts an acceptance and returns false when the user already accepted that agreement.
+	Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreementAcceptance) (bool, error)
 	// ListByAgreement returns acceptances newest first.
 	ListByAgreement(ctx context.Context, agreementID string, limit, offset int) ([]models.UserAgreementAcceptance, error)
 	// ListPendingUsers returns the users counted by CountPendingUsers, ordered by email.
