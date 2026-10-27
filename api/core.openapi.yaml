@@ -786,6 +786,22 @@ definitions:
       name:
         type: string
     type: object
+  SetupStatusResponse:
+    properties:
+      steps:
+        items:
+          $ref: '#/definitions/SetupStep'
+        type: array
+    type: object
+  SetupStep:
+    properties:
+      done_at:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+    type: object
   Subscription:
     properties:
       created_at:
@@ -4255,6 +4271,31 @@ paths:
       security:
       - BearerAuth: []
       summary: Finish a first sign-in
+      tags:
+      - Onboarding
+  /me/onboarding/status:
+    get:
+      description: 'One entry per step, with done_at once it is done. registry: the
+        user is in the identity registry. cluster_account: the account on the named
+        cluster is created. project_group: the named allocation''s group is on the
+        cluster.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/SetupStatusResponse'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Report provisioning progress after onboarding
       tags:
       - Onboarding
   /me/onboarding/username:

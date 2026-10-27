@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -258,4 +259,48 @@ func (s *Service) acceptTx(ctx context.Context, tx *sql.Tx, userID string, a *mo
 		return nil, err
 	}
 	return acc, s.eventBus.Publish(ctx, tx, events.UserAgreementAcceptanceCreateEvent, acc)
+}
+
+// SetupStep is one provisioning step shown after onboarding. Name is the cluster or
+// allocation the step is for, and DoneAt is nil until it is done.
+type SetupStep struct {
+	Key    string     `json:"key"`
+	Name   string     `json:"name,omitempty"`
+	DoneAt *time.Time `json:"done_at,omitempty"`
+}
+
+// SetupSteps returns the provisioning steps that apply to the user and when each was done.
+func (s *Service) SetupSteps(ctx context.Context, userID string) ([]SetupStep, error) {
+	registered, err := s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceComanage)
+	if err != nil {
+		return nil, fmt.Errorf("lookup registry identity: %w", err)
+	}
+	var registeredAt *time.Time
+	if registered != nil {
+		registeredAt = &registered.CreatedAt
+	}
+	steps := []SetupStep{{Key: "registry", DoneAt: registeredAt}}
+
+	accounts, err := s.clusterUsers.FindByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	for _, a := range accounts {
+		cluster, err := s.GetComputeCluster(ctx, a.ComputeClusterID)
+		if err != nil {
+			return nil, err
+		}
+		steps = append(steps, SetupStep{Key: "cluster_account", Name: cluster.Name, DoneAt: a.ProvisionedAt})
+	}
+
+	allocations, err := s.ListComputeAllocationsForParticipant(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range allocations {
+		if a.PosixGroup != nil {
+			steps = append(steps, SetupStep{Key: "project_group", Name: a.Name, DoneAt: a.GroupProvisionedAt})
+		}
+	}
+	return steps, nil
 }

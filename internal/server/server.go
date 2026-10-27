@@ -184,6 +184,7 @@ func (s *Server) routes() {
 	s.router.RequireAuthUserAgreementPending("POST /me/agreements/{id}/accept", s.acceptCallerAgreement)
 	s.router.RequireAuthUserAgreementPending("GET /me/onboarding/username", s.checkOnboardingUsername)
 	s.router.RequireAuthUserAgreementPending("POST /me/onboarding", s.completeOnboarding)
+	s.router.RequireAuth("GET /me/onboarding/status", s.getSetupStatus)
 	s.router.RequirePrivilege("GET /privileges/catalog", models.PrivilegesGrant, s.getPrivilegeCatalog)
 	s.router.RequirePrivilege("GET /users/{id}/privileges", models.PrivilegesGrant, s.listUserPrivileges)
 	s.router.RequirePrivilege("GET /privileges/{key}/holders", models.PrivilegesGrant, s.listPrivilegeHolders)

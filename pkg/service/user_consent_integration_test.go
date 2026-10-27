@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 
@@ -43,15 +44,17 @@ func seedAgreementManager(t *testing.T, database *sqlx.DB) string {
 	return actor
 }
 
-func newClusterAccount(t *testing.T, svc *Service, userID, name string) {
+func newClusterAccount(t *testing.T, svc *Service, userID, name string) *models.ComputeClusterUser {
 	t.Helper()
 	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "onb-" + uuid.NewString()[:8]})
 	if err != nil {
 		t.Fatalf("create cluster: %v", err)
 	}
-	if _, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: userID, LocalUsername: name}); err != nil {
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: userID, LocalUsername: name})
+	if err != nil {
 		t.Fatalf("create cluster account: %v", err)
 	}
+	return cu
 }
 
 func seedPublishedAgreement(t *testing.T, svc *Service, actor, version string) *models.UserAgreement {
@@ -192,5 +195,38 @@ func TestAcceptUserAgreement_SimultaneousAcceptsRecordOne(t *testing.T) {
 	}
 	if got := countAuditEventsOfType(t, database, "USER_AGREEMENT_ACCEPTED", user); got != 1 {
 		t.Errorf("audit USER_AGREEMENT_ACCEPTED: got %d, want 1", got)
+	}
+}
+
+// Make sure the setup steps follow what provisioning has recorded.
+func TestSetupSteps_FollowProvisioning(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedPendingUserWithEmail(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+	cu := newClusterAccount(t, svc, user, "jdoe")
+	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
+	if err != nil {
+		t.Fatalf("get cluster: %v", err)
+	}
+
+	want := []SetupStep{{Key: "registry"}, {Key: "cluster_account", Name: cluster.Name}}
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || !slices.Equal(got, want) {
+		t.Fatalf("before provisioning: got %+v, %v, want %+v", got, err, want)
+	}
+
+	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: user, Source: "comanage", ExternalID: "100001"}); err != nil {
+		t.Fatalf("create comanage identity: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	got, err := svc.SetupSteps(ctx(), user)
+	if err != nil || len(got) != 2 {
+		t.Fatalf("after provisioning: got %+v, %v, want registry and cluster_account", got, err)
+	}
+	for _, step := range got {
+		if step.DoneAt == nil {
+			t.Errorf("step %s: got %+v, want a done time", step.Key, step)
+		}
 	}
 }

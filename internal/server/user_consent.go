@@ -153,3 +153,29 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	s.svc.InvalidateIdentity(claims.Sub)
 	common.WriteJSON(w, http.StatusOK, user)
 }
+
+// SetupStatusResponse lists the provisioning steps after onboarding.
+type SetupStatusResponse struct {
+	Steps []service.SetupStep `json:"steps"`
+}
+
+// @Summary	Report provisioning progress after onboarding
+// @Description	One entry per step, with done_at once it is done. registry: the user is in the identity registry. cluster_account: the account on the named cluster is created. project_group: the named allocation's group is on the cluster.
+// @Tags	Onboarding
+// @Security	BearerAuth
+// @Produce	json
+// @Success	200	{object}	SetupStatusResponse
+// @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
+// @Router	/me/onboarding/status [get]
+func (s *Server) getSetupStatus(w http.ResponseWriter, r *http.Request) {
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	steps, err := s.svc.SetupSteps(r.Context(), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, SetupStatusResponse{Steps: steps})
+}
