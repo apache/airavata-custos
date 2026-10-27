@@ -16,24 +16,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-version: "3.8"
 services:
   db:
     container_name: custos_db
-    image: mariadb:11.2
+    # 17 is the newest major with a full year of patch releases; 18 is still young.
+    image: postgres:17
     restart: always
-    command: --character-set-server=utf8 --collation-server=utf8_general_ci
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:5432:5432"
     environment:
-      MARIADB_ROOT_PASSWORD: ${CUSTOS_DB_ROOT_PASSWORD:-root}
-      MARIADB_USER: admin
-      MARIADB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
-      MAX_ALLOWED_PACKET: 1073741824
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
+      POSTGRES_DB: custos
+      TZ: UTC
     volumes:
       - ./dbinit:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d custos"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -47,8 +46,8 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: mariadb
-      KC_DB_URL: jdbc:mariadb://db:3306/keycloak
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
       KC_DB_USERNAME: admin
       KC_DB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
       KC_HOSTNAME_URL: http://localhost:8081

@@ -24,10 +24,12 @@
 # upstream emits so the connector can be exercised end-to-end without a
 # decoder shim.
 
+import json
 import os
 import random
 import time
 import uuid
+from datetime import date, timedelta
 from flask import Flask, jsonify, request
 from pathlib import Path
 
@@ -35,7 +37,8 @@ app = Flask(__name__)
 
 pending_packets = []
 replied_packets = {}
-packet_counter = 900000
+# Seeded from the clock so a restarted mock never reuses ids the connector already stored.
+packet_counter = int(time.time())
 stats = {"created": 0, "fetched": 0, "replied": 0}
 
 # Maps GrantNumber → Custos project UUID, populated as notify_project_create
@@ -45,6 +48,8 @@ grant_to_project_id = {}
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
 DEV_EMAIL = os.getenv("DEV_EMAIL", "").strip()
+# Set to a resource in the Custos cluster catalog so allocations get a partition.
+RESOURCE = os.getenv("MOCK_AMIE_RESOURCE", "mock-cluster.example.edu")
 
 
 def next_id():
@@ -53,20 +58,38 @@ def next_id():
     return packet_counter
 
 
+EXPECTED_REPLY = {
+    "request_project_create": "notify_project_create",
+    "request_account_create": "notify_account_create",
+    "request_project_inactivate": "notify_project_inactivate",
+    "request_project_reactivate": "notify_project_reactivate",
+    "request_account_inactivate": "notify_account_inactivate",
+    "request_account_reactivate": "notify_account_reactivate",
+}
+
+
 def make_packet(packet_type, body, transaction_id=None):
     rec_id = next_id()
+    expected = EXPECTED_REPLY.get(packet_type, "inform_transaction_complete")
     return {
-        "header": {
-            "packet_rec_id": rec_id,
-            "transaction_id": transaction_id or f"TXN-{uuid.uuid4().hex[:8]}",
-            "packet_type": packet_type,
-            "type_id": 1,
-            "local_site_name": "MockSite",
-            "remote_site_name": "TGCDB",
-            "packet_state": "in_progress",
-            "packet_timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        },
+        "DATA_TYPE": "Packet",
         "type": packet_type,
+        "header": {
+            "expected_reply_list": [{"type": expected, "timeout": 30240}],
+            "packet_id": 0,
+            "trans_rec_id": next_id(),
+            "transaction_id": transaction_id or 0,
+            "remote_site_name": "TESTSITE",
+            "local_site_name": "TGCDB",
+            "originating_site_name": "TGCDB",
+            "outgoing_flag": 1,
+            "packet_rec_id": rec_id,
+            "packet_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime()),
+            "client_state": None,
+            "packet_state": "in-progress",
+            "client_json": None,
+            "transaction_state": "in-progress",
+        },
         "body": body,
     }
 
@@ -94,16 +117,17 @@ def gen_valid_project_create():
         "ServiceUnitsAllocated": str(random.randint(1000, 50000)),
         "StartDate": "2026-01-01",
         "EndDate": "2026-12-31",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
-def gen_valid_account_create():
-    """request_account_create — user requests an account on an existing project."""
+def gen_valid_account_create(grant=None):
+    """request_account_create — user requests an account on an existing project.
+    With a grant, the ProjectID resolves once that project's create is replied to."""
     gid = str(random.randint(100000, 999999))
     return make_packet("request_account_create", {
-        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
-        "GrantNumber": f"TST{random.randint(100000, 999999)}",
+        "ProjectID": f"__GRANT__{grant}" if grant else f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "GrantNumber": grant or f"TST{random.randint(100000, 999999)}",
         "UserPersonID": f"person-{uuid.uuid4().hex[:8]}",
         "UserGlobalID": gid,
         "UserFirstName": random.choice(["Frank", "Grace", "Heidi", "Ivan", "Judy"]),
@@ -113,7 +137,7 @@ def gen_valid_account_create():
         "UserOrgCode": "MI",
         "NsfStatusCode": "GR",
         "UserDnList": [f"/C=US/O=Mock Institute/CN=User {gid}"],
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -179,7 +203,7 @@ def gen_valid_project_inactivate():
     return make_packet("request_project_inactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
         "GrantNumber": f"TST{random.randint(100000, 999999)}",
     })
 
@@ -188,7 +212,7 @@ def gen_valid_project_reactivate():
     return make_packet("request_project_reactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
         "GrantNumber": f"TST{random.randint(100000, 999999)}",
     })
 
@@ -197,7 +221,7 @@ def gen_valid_account_inactivate():
     return make_packet("request_account_inactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -205,7 +229,7 @@ def gen_valid_account_reactivate():
     return make_packet("request_account_reactivate", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "PersonID": f"person-{uuid.uuid4().hex[:8]}",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -240,7 +264,7 @@ def gen_missing_global_id():
         "UserFirstName": "NoGlobalID",
         "UserLastName": "User",
         "UserEmail": "noglobal@example.edu",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -252,7 +276,7 @@ def gen_missing_grant_number():
         "PiLastName": "User",
         "PiEmail": "nogrant@example.edu",
         "NsfStatusCode": "AC",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -264,7 +288,7 @@ def gen_missing_pi_global_id():
         "PiLastName": "Person",
         "PiEmail": "nopi@example.edu",
         "NsfStatusCode": "AC",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     })
 
 
@@ -307,7 +331,7 @@ def gen_dev_email_scenario():
         "ServiceUnitsAllocated": "100000",
         "StartDate": "2026-01-01",
         "EndDate": "2026-12-31",
-        "ResourceList": ["mock-cluster.example.edu"],
+        "ResourceList": [RESOURCE],
     }))
     for grant, title, pi_first, pi_last, pi_email, pi_gid, dev_role in DEV_MEMBER_PROJECTS:
         packets.append(make_packet("request_project_create", {
@@ -325,7 +349,7 @@ def gen_dev_email_scenario():
             "ServiceUnitsAllocated": "50000",
             "StartDate": "2026-01-01",
             "EndDate": "2026-12-31",
-            "ResourceList": ["mock-cluster.example.edu"],
+            "ResourceList": [RESOURCE],
         }))
         packets.append(make_packet("request_account_create", {
             "ProjectID": f"PRJ-{grant}",
@@ -340,7 +364,7 @@ def gen_dev_email_scenario():
             "NsfStatusCode": "AC",
             "UserDnList": ["/C=US/O=Dev Lab/CN=Dev User"],
             "UserRole": dev_role,
-            "ResourceList": ["mock-cluster.example.edu"],
+            "ResourceList": [RESOURCE],
         }))
     return packets
 
@@ -402,10 +426,14 @@ def generate_all_handlers_once():
     data_user_gid = f"data-user-{random.randint(100000, 999999)}"
     data_pi_gid = f"data-pi-{random.randint(100000, 999999)}"
 
+    # Account packets join this project, so they resolve instead of failing.
+    project = gen_valid_project_create()
+    grant = project["body"]["GrantNumber"]
+
     def account_create_with_gid(gid):
         return make_packet("request_account_create", {
-            "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
-            "GrantNumber": f"TST{random.randint(100000, 999999)}",
+            "ProjectID": f"__GRANT__{grant}",
+            "GrantNumber": grant,
             "UserPersonID": f"person-{uuid.uuid4().hex[:8]}",
             "UserGlobalID": gid,
             "UserFirstName": "Test",
@@ -415,18 +443,18 @@ def generate_all_handlers_once():
             "UserOrgCode": "MI",
             "NsfStatusCode": "AC",
             "UserDnList": [],
-            "ResourceList": ["mock-cluster.example.edu"],
+            "ResourceList": [RESOURCE],
         })
 
     return [
+        project,
         # Set up: create the users that downstream handlers need.
         account_create_with_gid(primary_gid),
         account_create_with_gid(secondary_gid),
         account_create_with_gid(data_user_gid),
         account_create_with_gid(data_pi_gid),
         # One packet per handler type:
-        gen_valid_project_create(),
-        gen_valid_account_create(),
+        gen_valid_account_create(grant),
         gen_valid_user_modify(),
         gen_valid_user_modify_delete(),
         make_packet("data_account_create", {
@@ -621,6 +649,103 @@ def gen_baseline_scenario():
     ]
 
 
+# ----- Configurations read from scenarios/<name>.json -----
+
+def load_site():
+    # people.json holds real people
+    path = SCENARIOS_DIR / "people.json"
+    if not path.is_file():
+        path = SCENARIOS_DIR / "people.example.json"
+    return json.loads(path.read_text())
+
+
+def person_fields(prefix, key, site):
+    """The person's fields as ACCESS sends them, prefixed Pi or User. The
+    optional ones come from the person's entry in people.json."""
+    person = site["people"][key]
+    fields = {
+        f"{prefix}GlobalID": person.get("global_id", f"e2e-{key}"),
+        f"{prefix}FirstName": person["first"],
+        f"{prefix}LastName": person["last"],
+        f"{prefix}Email": person["email"],
+        f"{prefix}Organization": site["org"],
+        f"{prefix}OrgCode": site["org_code"],
+        "NsfStatusCode": person.get("nsf_status", "AC"),
+    }
+    for key_in_file, field in [
+        ("phone", "BusinessPhoneNumber"),
+        ("address", "StreetAddress"),
+        ("address2", "StreetAddress2"),
+        ("city", "City"),
+        ("zip", "Zip"),
+        ("country", "Country"),
+        ("dn_list", "DnList"),
+        ("requested_logins", "RequestedLoginList"),
+    ]:
+        if key_in_file in person:
+            fields[f"{prefix}{field}"] = person[key_in_file]
+    if "degree" in person:
+        fields["AcademicDegree"] = [{"Field": person["degree"]["field"], "Degree": person["degree"]["degree"]}]
+    if "site_person_ids" in person:
+        fields["SitePersonId"] = [{"Site": s["site"], "PersonID": s["person_id"]} for s in person["site_person_ids"]]
+    return fields
+
+
+def gen_from_file(name):
+    config = json.loads((SCENARIOS_DIR / f"{name}.json").read_text())
+    site = load_site()
+    start = date.today()
+    packets = []
+    for project in config.get("projects", []):
+        grant = project["grant"]
+        # A project can name its own resource, the way ACCESS names the whole
+        # cluster resource rather than a partition.
+        resource = project.get("resource", site["resource"])
+        packets.append(make_packet("request_project_create", {
+            "GrantNumber": grant,
+            "ChargeNumber": grant,
+            "ProposalNumber": grant,
+            "PfosNumber": f"PFOS-{grant}",
+            "ProjectTitle": project["title"],
+            "Abstract": project.get("abstract", project["title"]),
+            "ServiceUnitsAllocated": f"{project['su']}.0",
+            "StartDate": start.isoformat(),
+            "EndDate": (start + timedelta(days=365)).isoformat(),
+            "ResourceList": [resource],
+            "AllocatedResource": resource,
+            "RecordID": f"XRAS-{random.randint(100000, 999999)}-{resource}",
+            "RecordIdentity": {"RecordID": f"rpc.{random.randint(100000, 999999)}"},
+            "Sfos": [{"Number": "0"}],
+            "AllocationType": project.get("allocation_type", "new"),
+            "RequestType": "new",
+            "GrantType": "Research",
+            "BoardType": "Explore",
+            **person_fields("Pi", project["pi"], site),
+        }))
+        for key, role in project.get("users", {}).items():
+            packets.append(make_packet("request_account_create", {
+                "ProjectID": f"__GRANT__{grant}",
+                "GrantNumber": grant,
+                "UserPersonID": f"e2e-{key}-person",
+                "UserRole": role,
+                "ResourceList": [resource],
+                **person_fields("User", key, site),
+            }))
+    for merge in config.get("merges", []):
+        packets.append(make_packet("request_person_merge", {
+            "KeepGlobalID": f"e2e-{merge['keep']}",
+            "KeepPersonID": f"e2e-{merge['keep']}-person",
+            "DeleteGlobalID": f"e2e-{merge['retire']}",
+            "DeletePersonID": f"e2e-{merge['retire']}-person",
+            "MergeReason": "Duplicate person records",
+        }))
+    return packets
+
+
+def file_scenarios():
+    return sorted(p.stem for p in SCENARIOS_DIR.glob("*.json") if not p.stem.startswith("people"))
+
+
 # ----- API endpoints -----
 
 @app.route("/packets/<site>", methods=["GET"])
@@ -694,12 +819,20 @@ def create_scenario(site):
         packets = gen_dev_email_scenario()
     elif scenario_type == "baseline":
         packets = gen_baseline_scenario()
+    elif scenario_type in file_scenarios():
+        packets = gen_from_file(scenario_type)
     else:
         packets = generate_batch(success_count=3, failure_count=2)
     pending_packets.extend(packets)
     stats["created"] += len(packets)
     app.logger.info(f"Created {len(packets)} packets ({scenario_type}) for site {site}")
     return jsonify({"message": "Test scenario initiated", "result": None})
+
+
+# The connector's health check reads the base URL.
+@app.route("/", methods=["GET"])
+def root():
+    return jsonify({"status": "ok"})
 
 
 @app.route("/stats", methods=["GET"])
@@ -718,10 +851,13 @@ if __name__ == "__main__":
     print("  POST /test/{site}/scenarios?type=heavy          — 15 success + 10 failure")
     print("  POST /test/{site}/scenarios?type=all_handlers   — one packet per handler type")
     print("  POST /test/{site}/scenarios?type=dev_email      — scripted dev_email scenario")
+    for name in file_scenarios():
+        print(f"  POST /test/{{site}}/scenarios?type={name}")
     print()
     if DEV_EMAIL:
         print(f"DEV_EMAIL injection enabled: {DEV_EMAIL}")
     else:
         print("DEV_EMAIL unset; dev_email scenario will be empty")
     print()
-    app.run(host="0.0.0.0", port=8180, debug=False)
+    # The mock has no auth, so it listens on loopback unless MOCK_AMIE_HOST says otherwise.
+    app.run(host=os.getenv("MOCK_AMIE_HOST", "127.0.0.1"), port=8180, debug=False)

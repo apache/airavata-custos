@@ -44,14 +44,14 @@ func seedUser(t *testing.T, database *sqlx.DB, userGlobalID, firstName, lastName
 	t.Helper()
 	orgID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+		"INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		orgID, "SEED-ORG", "Seed Org",
 	); err != nil {
 		t.Fatalf("seed organization: %v", err)
 	}
 	userID = uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		userID, orgID, firstName, lastName, "", email, string(models.UserActive),
 	); err != nil {
 		t.Fatalf("seed user: %v", err)
@@ -66,7 +66,7 @@ func seedUser(t *testing.T, database *sqlx.DB, userGlobalID, firstName, lastName
 		t.Fatalf("marshal seed metadata: %v", err)
 	}
 	if _, err := database.Exec(
-		"INSERT INTO user_identities (id, user_id, source, external_id, email, metadata) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO user_identities (id, user_id, source, external_id, email, metadata) VALUES ($1, $2, $3, $4, $5, $6)",
 		identityID, userID, "access", userGlobalID, email, string(seedMeta),
 	); err != nil {
 		t.Fatalf("seed user_identity: %v", err)
@@ -74,7 +74,7 @@ func seedUser(t *testing.T, database *sqlx.DB, userGlobalID, firstName, lastName
 	for _, dn := range dns {
 		dnID := uuid.NewString()
 		if _, err := database.Exec(
-			"INSERT INTO amie_user_dns (id, user_id, dn) VALUES (?, ?, ?)",
+			"INSERT INTO amie_user_dns (id, user_id, dn) VALUES ($1, $2, $3)",
 			dnID, userID, dn,
 		); err != nil {
 			t.Fatalf("seed amie_user_dns: %v", err)
@@ -90,7 +90,7 @@ func listUserDNs(t *testing.T, database *sqlx.DB, userID string) []string {
 	t.Helper()
 	var dns []string
 	if err := database.Select(&dns,
-		"SELECT dn FROM amie_user_dns WHERE user_id = ? ORDER BY dn",
+		"SELECT dn FROM amie_user_dns WHERE user_id = $1 ORDER BY dn",
 		userID,
 	); err != nil {
 		t.Fatalf("list amie_user_dns: %v", err)
@@ -168,7 +168,7 @@ func TestRequestUserModify_ReplaceHappyPath(t *testing.T) {
 		LastName  string `db:"last_name"`
 		Email     string `db:"email"`
 	}
-	if err := database.Get(&user, "SELECT first_name, last_name, email FROM users WHERE id = ?", userID); err != nil {
+	if err := database.Get(&user, "SELECT first_name, last_name, email FROM users WHERE id = $1", userID); err != nil {
 		t.Fatalf("read user: %v", err)
 	}
 	if user.FirstName != "New" {
@@ -186,7 +186,7 @@ func TestRequestUserModify_ReplaceHappyPath(t *testing.T) {
 		Email    *string `db:"email"`
 		Metadata *string `db:"metadata"`
 	}
-	if err := database.Get(&ident, "SELECT email, metadata FROM user_identities WHERE id = ?", identityID); err != nil {
+	if err := database.Get(&ident, "SELECT email, metadata FROM user_identities WHERE id = $1", identityID); err != nil {
 		t.Fatalf("read user_identity: %v", err)
 	}
 	if ident.Email == nil || *ident.Email != "new@example.edu" {
@@ -423,7 +423,7 @@ func TestRequestUserModify_DeleteHappyPath(t *testing.T) {
 		Email     string `db:"email"`
 		Status    string `db:"status"`
 	}
-	if err := database.Get(&user, "SELECT first_name, last_name, email, status FROM users WHERE id = ?", userID); err != nil {
+	if err := database.Get(&user, "SELECT first_name, last_name, email, status FROM users WHERE id = $1", userID); err != nil {
 		t.Fatalf("read user: %v", err)
 	}
 	if user.FirstName != origFirst || user.LastName != origLast || user.Email != origEmail {
@@ -438,7 +438,7 @@ func TestRequestUserModify_DeleteHappyPath(t *testing.T) {
 		t.Errorf("user_identities: got %d, want 1", got)
 	}
 	var identUserID string
-	if err := database.Get(&identUserID, "SELECT user_id FROM user_identities WHERE id = ?", identityID); err != nil {
+	if err := database.Get(&identUserID, "SELECT user_id FROM user_identities WHERE id = $1", identityID); err != nil {
 		t.Fatalf("read user_identity: %v", err)
 	}
 	if identUserID != userID {
@@ -543,7 +543,7 @@ func TestRequestUserModify_UnsupportedActionType(t *testing.T) {
 		FirstName string `db:"first_name"`
 		Email     string `db:"email"`
 	}
-	if err := database.Get(&user, "SELECT first_name, email FROM users WHERE id = ?", userID); err != nil {
+	if err := database.Get(&user, "SELECT first_name, email FROM users WHERE id = $1", userID); err != nil {
 		t.Fatalf("read user: %v", err)
 	}
 	if user.FirstName != "Stay" || user.Email != "user1005@example.edu" {

@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AttachedResource, ComputeAllocation } from "../schemas";
 
-let attached: AttachedResource[] = [];
+let attached: ComputeAllocationResource[] = [];
 
 vi.mock("../queries", () => ({
   useAllocationResources: () => ({
@@ -28,6 +28,12 @@ vi.mock("../queries", () => ({
     error: null,
     refetch: vi.fn(),
   }),
+}));
+
+vi.mock("@/features/core/projects/queries", () => ({ useProject: () => ({ data: undefined }) }));
+vi.mock("@/shared/casl/permissions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/shared/casl/permissions")>()),
+  usePermissions: () => ({}),
 }));
 
 vi.mock("@/features/core/resources/queries", () => ({
@@ -49,6 +55,8 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
+  group_provisioned_at: null,
 };
 
 beforeEach(() => {
@@ -71,23 +79,22 @@ beforeEach(() => {
 });
 
 describe("<AllocationOverviewTab />", () => {
-  it("renders attached resource names, types, and amounts", () => {
-    render(<AllocationOverviewTab allocation={allocation} />);
+  it("renders attached resource names and types", () => {
+    render(<AllocationOverviewTab allocation={allocation} canEdit />);
     expect(screen.getByText("ClusterA GPU")).toBeInTheDocument();
     expect(screen.getByText("ClusterB GPU A100")).toBeInTheDocument();
-    expect(screen.getByText("50,000")).toBeInTheDocument();
   });
 
   it("renders the effective rate, omitting it when the lookup 404s", () => {
-    render(<AllocationOverviewTab allocation={allocation} />);
-    expect(screen.getByText("0.5 SU/unit")).toBeInTheDocument();
+    render(<AllocationOverviewTab allocation={allocation} canEdit />);
+    expect(screen.getByText(/0\.5 SU\/unit/)).toBeInTheDocument();
     // res-b-gpu has no effective rate, so only one rate line shows.
     expect(screen.getAllByText(/SU\/unit/)).toHaveLength(1);
   });
 
-  it("shows the empty state when nothing is attached", () => {
+  it("offers to add a resource when nothing is attached", () => {
     attached = [];
-    render(<AllocationOverviewTab allocation={allocation} />);
-    expect(screen.getByText(/no resources attached/i)).toBeInTheDocument();
+    render(<AllocationOverviewTab allocation={allocation} canEdit />);
+    expect(screen.getByRole("button", { name: "Add resource" })).toBeEnabled();
   });
 });

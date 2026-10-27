@@ -17,11 +17,12 @@
 
 "use client";
 
-import { CenteredSpinner } from "@/shared/ui/Loading";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { CenteredSpinner } from "@/shared/ui/Loading";
 import { useMe, useMyAccess, useMyIdentities } from "../queries";
 import { AccessCard } from "./AccessCard";
 import { AppearanceCard } from "./AppearanceCard";
+import { ClusterAccountsCard } from "./ClusterAccountsCard";
 import { IdentitiesCard } from "./IdentitiesCard";
 import { ProfileCard } from "./ProfileCard";
 
@@ -50,6 +51,7 @@ export function SettingsPage() {
         <div className="space-y-6">
           <ProfileCard user={me.data.user} />
           {identities.data ? <IdentitiesCard identities={identities.data} /> : null}
+          <ClusterAccountsCard accounts={me.data.clusterAccounts} />
           {access.data ? <AccessCard access={access.data} /> : null}
           <AppearanceCard />
         </div>

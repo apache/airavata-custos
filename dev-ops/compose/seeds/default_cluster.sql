@@ -21,9 +21,12 @@
 -- reference. NOT applied automatically. Apply after core has run its
 -- migrations (which create the compute_clusters table):
 --
---   docker exec -i custos_db mariadb -u admin -padmin custos \
+--   docker exec -i custos_db psql -U admin -d custos \
 --     < dev-ops/compose/seeds/default_cluster.sql
 --
 
-INSERT IGNORE INTO compute_clusters (id, name)
-VALUES ('00000000-0000-0000-0000-000000000001', 'default-cluster');
+SET TIME ZONE 'UTC';
+
+INSERT INTO compute_clusters (id, name)
+VALUES ('00000000-0000-0000-0000-000000000001', 'default-cluster')
+ON CONFLICT DO NOTHING;

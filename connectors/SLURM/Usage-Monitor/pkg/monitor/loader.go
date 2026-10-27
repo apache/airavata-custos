@@ -19,23 +19,30 @@ package monitor
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/internal/smonitor"
 	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
 
+// Type is the connector type in the config file.
+const Type = "slurm-usage-monitor"
+
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion, clusterID string
+	var pollOverlap time.Duration
 
 	if connectorConfig != nil {
 		slurmAPI, err := connectorConfig.GetNestedConfig("slurm_api")
@@ -55,6 +62,13 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 		}
 		if id, ok := connectorConfig.Config["cluster_id"].(string); ok {
 			clusterID = id
+		}
+		if lb, ok := connectorConfig.Config["usage_lookback"].(string); ok && lb != "" {
+			if d, err := time.ParseDuration(lb); err == nil {
+				pollOverlap = d
+			} else {
+				slog.Warn("invalid usage_lookback, using default", "value", lb, "error", err)
+			}
 		}
 	}
 
@@ -81,12 +95,13 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 
 	if apiUrl == "" || user == "" || token == "" || apiVersion == "" {
 		slog.Warn("SLURM API credentials not fully provided, skipping SLURM Usage Monitor connector")
-		slog.Warn("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token", token, "apiVersion", apiVersion)
+		slog.Warn("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token_set", token != "", "apiVersion", apiVersion)
+		health.Record(Type, "config", errors.New("SLURM API credentials not fully provided"))
 		return nil
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService, clusterID)
+	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService, clusterID, pollOverlap)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

@@ -29,18 +29,18 @@ import (
 
 const roleColumns = "id, name, description, is_system, created_at"
 
-type mysqlRoleStore struct {
+type pgRoleStore struct {
 	db *sqlx.DB
 }
 
 func NewRoleStore(db *sqlx.DB) RoleStore {
-	return &mysqlRoleStore{db: db}
+	return &pgRoleStore{db: db}
 }
 
-func (s *mysqlRoleStore) FindByID(ctx context.Context, id string) (*models.Role, error) {
+func (s *pgRoleStore) FindByID(ctx context.Context, id string) (*models.Role, error) {
 	var r models.Role
 	err := s.db.GetContext(ctx, &r,
-		`SELECT `+roleColumns+` FROM roles WHERE id = ?`, id)
+		`SELECT `+roleColumns+` FROM roles WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -50,10 +50,10 @@ func (s *mysqlRoleStore) FindByID(ctx context.Context, id string) (*models.Role,
 	return &r, nil
 }
 
-func (s *mysqlRoleStore) FindByName(ctx context.Context, name string) (*models.Role, error) {
+func (s *pgRoleStore) FindByName(ctx context.Context, name string) (*models.Role, error) {
 	var r models.Role
 	err := s.db.GetContext(ctx, &r,
-		`SELECT `+roleColumns+` FROM roles WHERE name = ?`, name)
+		`SELECT `+roleColumns+` FROM roles WHERE name = $1`, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -63,7 +63,7 @@ func (s *mysqlRoleStore) FindByName(ctx context.Context, name string) (*models.R
 	return &r, nil
 }
 
-func (s *mysqlRoleStore) List(ctx context.Context) ([]models.Role, error) {
+func (s *pgRoleStore) List(ctx context.Context) ([]models.Role, error) {
 	var rows []models.Role
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+roleColumns+` FROM roles ORDER BY name`)
@@ -73,53 +73,53 @@ func (s *mysqlRoleStore) List(ctx context.Context) ([]models.Role, error) {
 	return rows, nil
 }
 
-func (s *mysqlRoleStore) Create(ctx context.Context, tx *sql.Tx, r *models.Role) error {
+func (s *pgRoleStore) Create(ctx context.Context, tx *sql.Tx, r *models.Role) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO roles (id, name, description, is_system) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO roles (id, name, description, is_system) VALUES ($1, $2, $3, $4)`,
 		r.ID, r.Name, r.Description, r.IsSystem)
 	return err
 }
 
-func (s *mysqlRoleStore) Update(ctx context.Context, tx *sql.Tx, r *models.Role) error {
+func (s *pgRoleStore) Update(ctx context.Context, tx *sql.Tx, r *models.Role) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE roles SET name = ?, description = ? WHERE id = ?`,
+		`UPDATE roles SET name = $1, description = $2 WHERE id = $3`,
 		r.Name, r.Description, r.ID)
 	return err
 }
 
-func (s *mysqlRoleStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM roles WHERE id = ?`, id)
+func (s *pgRoleStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM roles WHERE id = $1`, id)
 	return err
 }
 
-func (s *mysqlRoleStore) ListPrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error) {
+func (s *pgRoleStore) ListPrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error) {
 	var keys []models.PrivilegeKey
 	err := s.db.SelectContext(ctx, &keys,
-		`SELECT privilege FROM role_privileges WHERE role_id = ? ORDER BY privilege`, roleID)
+		`SELECT privilege FROM role_privileges WHERE role_id = $1 ORDER BY privilege`, roleID)
 	if err != nil {
 		return nil, err
 	}
 	return keys, nil
 }
 
-func (s *mysqlRoleStore) AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
+func (s *pgRoleStore) AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO role_privileges (role_id, privilege) VALUES (?, ?)`,
+		`INSERT INTO role_privileges (role_id, privilege) VALUES ($1, $2)`,
 		roleID, privilege)
 	return err
 }
 
-func (s *mysqlRoleStore) RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
+func (s *pgRoleStore) RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
 	_, err := tx.ExecContext(ctx,
-		`DELETE FROM role_privileges WHERE role_id = ? AND privilege = ?`,
+		`DELETE FROM role_privileges WHERE role_id = $1 AND privilege = $2`,
 		roleID, privilege)
 	return err
 }
 
-func (s *mysqlRoleStore) HasPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) (bool, error) {
+func (s *pgRoleStore) HasPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) (bool, error) {
 	var n int
 	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM role_privileges WHERE role_id = ? AND privilege = ?`,
+		`SELECT COUNT(*) FROM role_privileges WHERE role_id = $1 AND privilege = $2`,
 		roleID, privilege).Scan(&n)
 	if err != nil {
 		return false, err
@@ -129,10 +129,10 @@ func (s *mysqlRoleStore) HasPrivilege(ctx context.Context, tx *sql.Tx, roleID st
 
 // CountRolesGrantingPrivilege returns the number of roles carrying the
 // given key. Used by the last-meta-holder guard.
-func (s *mysqlRoleStore) CountRolesGrantingPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error) {
+func (s *pgRoleStore) CountRolesGrantingPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error) {
 	var n int
 	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM role_privileges WHERE privilege = ?`,
+		`SELECT COUNT(*) FROM role_privileges WHERE privilege = $1`,
 		privilege).Scan(&n)
 	if err != nil {
 		return 0, err

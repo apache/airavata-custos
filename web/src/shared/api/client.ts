@@ -63,16 +63,16 @@ async function parseBody(response: Response): Promise<unknown> {
 // show the guard message instead of a generic "API 409 on ...".
 function errorMessageFromBody(body: unknown): string | undefined {
   if (body && typeof body === "object" && "error" in body) {
-    const { error } = body as { error: unknown };
+    const { error } = body;
     if (typeof error === "string" && error.length > 0) return error;
   }
   return undefined;
 }
 
-export async function apiFetch<T = unknown>(path: string, init: ApiFetchInit = {}): Promise<T> {
+export async function apiFetch(path: string, init: ApiFetchInit = {}): Promise<unknown> {
   const url = buildUrl(path);
   const headers = new Headers(init.headers);
-  let body: BodyInit | undefined;
+  let body: BodyInit | null = null;
 
   if (init.body !== undefined && init.body !== null) {
     if (
@@ -80,7 +80,7 @@ export async function apiFetch<T = unknown>(path: string, init: ApiFetchInit = {
       init.body instanceof FormData ||
       init.body instanceof Blob
     ) {
-      body = init.body as BodyInit;
+      body = init.body;
     } else {
       if (!headers.has("content-type")) headers.set("content-type", "application/json");
       body = JSON.stringify(init.body);
@@ -98,5 +98,5 @@ export async function apiFetch<T = unknown>(path: string, init: ApiFetchInit = {
   if (!response.ok) {
     throw new ApiError(response.status, url, parsed, errorMessageFromBody(parsed));
   }
-  return parsed as T;
+  return parsed;
 }

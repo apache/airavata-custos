@@ -24,8 +24,7 @@ import type { OrganizationListParams } from "./types";
 
 export const organizationKeys = {
   all: ["organizations"] as const,
-  list: (params: OrganizationListParams = {}) =>
-    [...organizationKeys.all, "list", params] as const,
+  list: (params: OrganizationListParams = {}) => [...organizationKeys.all, "list", params] as const,
 };
 
 const DEFAULTS = {

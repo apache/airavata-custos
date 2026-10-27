@@ -43,7 +43,7 @@ type Allocation struct {
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
 	Status          string    `json:"status"`
-	InitialSUAmount int64     `json:"initial_su_amount"`
+	InitialSUAmount float64   `json:"initial_su_amount"`
 	UsedSUAmount    float64   `json:"used_su_amount"`
 	StartTime       time.Time `json:"start_time"`
 	EndTime         time.Time `json:"end_time"`
@@ -89,7 +89,7 @@ type UsageMember struct {
 // UsageSummary is the aggregated usage for one allocation. ByMember is null
 // unless the caller may see per-member data.
 type UsageSummary struct {
-	Total      int64              `json:"total"`
+	Total      float64            `json:"total"`
 	Used       float64            `json:"used"`
 	Daily      []UsageDailyBucket `json:"daily"`
 	ByResource []UsageResource    `json:"by_resource"`
@@ -117,8 +117,8 @@ type AllocationJobs struct {
 	Total int   `json:"total"`
 }
 
-// Service aggregates usage on top of core data. It reads through its own store
-// and leans on the core service only to load an allocation.
+// Service aggregates usage on top of core data. It reads usage through its own
+// store and allocations and roles through the core service.
 type Service struct {
 	core  *coreservice.Service
 	store Store
@@ -136,20 +136,10 @@ func (s *Service) GetAllocation(ctx context.Context, id string) (*models.Compute
 	return s.core.GetComputeAllocation(ctx, id)
 }
 
-// ProjectRoleForUser returns the caller's governance role on a project, or an
-// empty role when they hold none.
-func (s *Service) ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error) {
-	role, err := s.store.ProjectRole(ctx, projectID, userID)
-	if err != nil {
-		return "", err
-	}
-	return models.ProjectRole(role), nil
-}
-
-// IsAllocationMember reports whether the user holds an active membership on the
-// allocation.
-func (s *Service) IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error) {
-	return s.store.IsActiveMember(ctx, allocationID, userID)
+// AllocationRoleForUser returns the caller's role on the allocation, or "" for
+// none.
+func (s *Service) AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error) {
+	return s.core.AllocationRoleForUser(ctx, allocationID, userID)
 }
 
 // AllocationJobsPage returns a page of the allocation's usage records, newest
@@ -203,11 +193,15 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 	if len(projRows) == 0 {
 		return []ProjectContext{}, nil
 	}
-	ids := make([]string, len(projRows))
-	for i, p := range projRows {
-		ids[i] = p.ProjectID
+	allocs, err := s.core.ListComputeAllocationsForParticipant(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
-	allocRows, err := s.store.AllocationsForProjects(ctx, ids, userID)
+	ids := make([]string, len(allocs))
+	for i, a := range allocs {
+		ids[i] = a.ID
+	}
+	allocRows, err := s.store.AllocationsByID(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -249,8 +243,6 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 // controls whether the per-member breakdown is populated; when false ByMember
 // is left nil so the response serializes it as null.
 func (s *Service) AllocationUsageSummary(ctx context.Context, alloc *models.ComputeAllocation, callerID string, includeMembers bool) (*UsageSummary, error) {
-	// Round the total the same way the per-resource and daily sums do, so the
-	// headline reconciles with the breakdowns (used_su_amount is a DOUBLE).
 	used, err := s.store.TotalUsed(ctx, alloc.ID)
 	if err != nil {
 		return nil, err

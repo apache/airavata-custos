@@ -125,6 +125,7 @@ type CoPersonListOne struct {
 	Version string `json:"Version"`
 	Id      int    `json:"Id"`
 	CoId    int    `json:"CoId"`
+	Status  string `json:"Status"`
 }
 
 // FindCoPersonByEmail searches for CoPeople. search.mail is a LIKE match in

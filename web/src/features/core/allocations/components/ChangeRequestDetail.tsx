@@ -17,18 +17,15 @@
 
 "use client";
 
+import { useCurrentUser } from "@/features/core/identity/queries";
+import { requires, usePermissions } from "@/shared/casl/permissions";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { CardSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { CardSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import { useCurrentUser } from "@/features/core/identity/queries";
 import {
   useApproveChangeRequest,
   useChangeRequest,
@@ -54,7 +51,7 @@ function formatSU(n: number): string {
 
 export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProps) {
   const { user } = useCurrentUser();
-  const ability = useAbility();
+  const can = usePermissions();
   const query = useChangeRequest(changeRequestId);
   const eventsQuery = useChangeRequestEvents(changeRequestId);
   const approveMutation = useApproveChangeRequest();
@@ -63,14 +60,12 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
 
   if (query.isLoading) return <CardSkeleton />;
   if (query.error) {
-    return (
-      <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
-    );
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const request = query.data;
   if (!request) return null;
 
-  const canApprove = ability.can("manage", "Allocation") && request.change_status === "PENDING";
+  const isPending = request.change_status === "PENDING";
 
   async function decide(kind: "approve" | "reject") {
     if (!request) return;
@@ -84,7 +79,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
         toast.success("Rejected");
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setPending(false);
     }
@@ -110,14 +105,25 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
             label={request.change_status}
           />
         </div>
-        {canApprove ? (
+        {isPending ? (
           <div className="flex justify-end gap-2">
-            <Button variant="outline" disabled={pending} onClick={() => decide("reject")}>
+            <GuardedButton
+              variant="outline"
+              allowed={can.allocationsWrite}
+              reason={requires("allocationsWrite")}
+              disabled={pending}
+              onClick={() => decide("reject")}
+            >
               Reject
-            </Button>
-            <Button disabled={pending} onClick={() => decide("approve")}>
+            </GuardedButton>
+            <GuardedButton
+              allowed={can.allocationsWrite}
+              reason={requires("allocationsWrite")}
+              disabled={pending}
+              onClick={() => decide("approve")}
+            >
               Approve
-            </Button>
+            </GuardedButton>
           </div>
         ) : null}
       </header>
@@ -153,10 +159,7 @@ export function ChangeRequestDetail({ changeRequestId }: ChangeRequestDetailProp
         {eventsQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading events…</p>
         ) : eventsQuery.error ? (
-          <ErrorState
-            message={(eventsQuery.error as Error).message}
-            onRetry={() => eventsQuery.refetch()}
-          />
+          <ErrorState message={eventsQuery.error.message} onRetry={() => eventsQuery.refetch()} />
         ) : !eventsQuery.data || eventsQuery.data.length === 0 ? (
           <p className="text-sm text-muted-foreground">No events recorded.</p>
         ) : (

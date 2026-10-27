@@ -27,8 +27,8 @@ Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a securit
 
 ## Prerequisites
 
-- Go 1.22+
-- MariaDB 10.6+
+- Go 1.27+
+- PostgreSQL 17+
 - Vault / OpenBao with KV v2 secrets engine enabled
 
 ---
@@ -77,6 +77,7 @@ Environment variables take precedence over YAML values.
 | `DEV_MODE` | `dev_mode.enabled` | Enable dev mode (disables OIDC validation) |
 | `DEV_DEFAULT_EMAIL` | `dev_mode.default_email` | Default email in dev mode |
 | `ALLOWED_ISSUERS` | `signer.auth.allowed_issuers` | Comma-separated list of allowed OIDC issuers |
+| `CORE_API_BASE_URL` | `signer.core_api_base_url` | Custos Core URL used to resolve administrator privileges |
 | `LOG_LEVEL` | `logging.level` | Log level: debug, info, warn, error |
 
 ---
@@ -86,7 +87,7 @@ Environment variables take precedence over YAML values.
 ### Create the database
 
 ```sql
-CREATE DATABASE custos_signer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE custos_signer;
 ```
 
 If using the project's Docker Compose, the `custos_signer` database is created automatically by `compose/dbinit/init-db.sh`.
@@ -104,7 +105,7 @@ This applies any pending migrations and exits. It's idempotent — safe to run r
 You can also apply SQL directly:
 
 ```bash
-mysql -u admin -p custos_signer < migrations/001_initial_schema.up.sql
+psql -U admin -d custos_signer < migrations/001_initial_schema.up.sql
 ```
 
 The initial migration creates three tables:
@@ -218,10 +219,39 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 | `POST` | `/api/v1/admin/rotate-ca` | Client credentials | Rotate CA keys |
 | `GET` | `/api/v1/certificates` | OIDC Bearer | List certificates for authenticated user |
 | `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | Get certificate details |
+| `POST` | `/api/v1/certificates/{serial}/revoke` | OIDC Bearer | Revoke an owned active certificate, or any active certificate with signer write privilege |
 | `GET` | `/api/v1/userinfo` | OIDC Bearer | Get authenticated user profile |
+| `GET` | `/api/v1/admin/certificates` | OIDC Bearer + signer read privilege | List all certificates |
+| `GET` | `/api/v1/admin/certificates/{serial}` | OIDC Bearer + signer read privilege | Get any certificate |
 | `GET` | `/metrics` | None | Prometheus metrics |
 
 Client credentials are passed via `X-Client-Id` (format: `{tenant_id}:{client_id}`) and `X-Client-Secret` headers. OIDC Bearer endpoints use `Authorization: Bearer <token>`.
+
+Custos Core loads extension-owned privileges from its configuration before
+connectors start. The `core:` namespace is reserved and cannot be configured as
+an extension privilege:
+
+```yaml
+privileges:
+  extensions:
+    - signer:certificates:read
+    - signer:certificates:write
+```
+
+The deployment-wide list/detail routes ask Custos Core for the caller's current
+effective privileges. `signer:certificates:read` grants deployment-wide read
+access. The shared revoke route authorizes certificate owners locally; only a
+non-owner revoke asks Core for `signer:certificates:write`, so owner revocation
+continues to work if Core is temporarily unavailable.
+
+The deployment-wide list uses keyset pagination. Pass `limit` and the opaque
+`cursor` returned as `next_cursor`; unlike the owner-scoped list, this response
+does not include an exact total or offset.
+
+> **Revocation enforcement:** these endpoints create authoritative signer
+> revocation state and audit history. OpenSSH KRL generation and distribution
+> are not implemented yet, so a revocation does not by itself make login nodes
+> reject the certificate.
 
 ### API Examples
 
@@ -280,7 +310,7 @@ curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| "failed to connect to database" | MariaDB unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
+| "failed to connect to database" | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
 | "failed to create vault client" | Vault unreachable or bad token | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled |
 | HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is `tenant_id:client_id` format, check bcrypt hash matches |
 | HTTP 403 "Client is disabled" | Client row has `enabled=false` | Set `enabled=true` in `client_ssh_configs` |

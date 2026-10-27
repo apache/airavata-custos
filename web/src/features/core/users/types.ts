@@ -15,12 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Role, User, UserIdentity } from "./schemas";
+import type { GetUsersData } from "@/generated/core/types.gen";
+import type { ClusterAccountResponse, Role, User, UserIdentity } from "@/generated/core/zod.gen";
 
-export type UserListParams = {
-  limit?: number;
-  offset?: number;
-};
+export type UserListParams = NonNullable<GetUsersData["query"]>;
 
 export type RoleWithPrivileges = Role & {
   privileges: string[];
@@ -39,5 +37,14 @@ export type UpdateUserRolesInput = {
   userId: string;
   currentRoleIds: string[];
   desiredRoleIds: string[];
-  reason?: string;
+  reason?: string | undefined;
+};
+
+export type UserAccountRow = UserManagementRow & { accounts: ClusterAccountResponse[] };
+
+// What the details drawer needs to list cluster accounts; review handlers are absent without the privilege.
+export type ClusterAccountsView = {
+  clusters: Array<{ id: string; name: string }>;
+  onApprove: ((account: ClusterAccountResponse) => void) | undefined;
+  onDeny: ((account: ClusterAccountResponse) => void) | undefined;
 };

@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -29,20 +30,23 @@ import (
 
 const computeAllocationUsageColumns = "id, compute_allocation_id, used_raw_amount, used_su_amount, calculated_time, user_id, job_id, compute_allocation_resource_id"
 
-type mysqlComputeAllocationUsageStore struct {
+// The end date counts as a whole day.
+const inAllocationPeriod = `u.calculated_time >= a.start_time AND u.calculated_time < a.end_time + INTERVAL '1 day'`
+
+type pgComputeAllocationUsageStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationUsageStore returns a MySQL-backed
+// NewComputeAllocationUsageStore returns a PostgreSQL-backed
 // ComputeAllocationUsageStore.
 func NewComputeAllocationUsageStore(db *sqlx.DB) ComputeAllocationUsageStore {
-	return &mysqlComputeAllocationUsageStore{db: db}
+	return &pgComputeAllocationUsageStore{db: db}
 }
 
-func (s *mysqlComputeAllocationUsageStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationUsage, error) {
+func (s *pgComputeAllocationUsageStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationUsage, error) {
 	var u models.ComputeAllocationUsage
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+computeAllocationUsageColumns+` FROM compute_allocation_usages WHERE id = ?`, id)
+		`SELECT `+computeAllocationUsageColumns+` FROM compute_allocation_usages WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,25 +56,27 @@ func (s *mysqlComputeAllocationUsageStore) FindByID(ctx context.Context, id stri
 	return &u, nil
 }
 
-func (s *mysqlComputeAllocationUsageStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error) {
+func (s *pgComputeAllocationUsageStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error) {
 	var rows []models.ComputeAllocationUsage
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+computeAllocationUsageColumns+`
-		 FROM compute_allocation_usages
-		 WHERE compute_allocation_id = ?
-		 ORDER BY calculated_time`, allocationID)
+		`SELECT u.id, u.compute_allocation_id, u.used_raw_amount, u.used_su_amount,
+		        u.calculated_time, u.user_id, u.job_id, u.compute_allocation_resource_id
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod+`
+		 ORDER BY u.calculated_time`, allocationID)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationUsageStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error) {
+func (s *pgComputeAllocationUsageStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error) {
 	var rows []models.ComputeAllocationUsage
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationUsageColumns+`
 		 FROM compute_allocation_usages
-		 WHERE user_id = ?
+		 WHERE user_id = $1
 		 ORDER BY calculated_time`, userID)
 	if err != nil {
 		return nil, err
@@ -78,10 +84,10 @@ func (s *mysqlComputeAllocationUsageStore) FindByUser(ctx context.Context, userI
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationUsageStore) FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error) {
+func (s *pgComputeAllocationUsageStore) FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error) {
 	var u models.ComputeAllocationUsage
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+computeAllocationUsageColumns+` FROM compute_allocation_usages WHERE compute_allocation_id = ? AND job_id = ?`, allocationID, jobID)
+		`SELECT `+computeAllocationUsageColumns+` FROM compute_allocation_usages WHERE compute_allocation_id = $1 AND job_id = $2`, allocationID, jobID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -91,40 +97,49 @@ func (s *mysqlComputeAllocationUsageStore) FindByComputeAllocationIDAndJobID(ctx
 	return &u, nil
 }
 
-func (s *mysqlComputeAllocationUsageStore) SumSUForAllocation(ctx context.Context, allocationID string) (int64, error) {
-	var total sql.NullInt64
+func (s *pgComputeAllocationUsageStore) SumSUForAllocation(ctx context.Context, allocationID string) (float64, error) {
+	var total float64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT COALESCE(SUM(used_su_amount), 0)
-		 FROM compute_allocation_usages
-		 WHERE compute_allocation_id = ?`, allocationID)
-	if err != nil {
-		return 0, err
-	}
-	return total.Int64, nil
+		`SELECT COALESCE(SUM(u.used_su_amount), 0)
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE u.compute_allocation_id = $1 AND `+inAllocationPeriod, allocationID)
+	return total, err
 }
 
-func (s *mysqlComputeAllocationUsageStore) SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error) {
-	var total sql.NullInt64
+func (s *pgComputeAllocationUsageStore) SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error) {
+	var total float64
 	err := s.db.GetContext(ctx, &total,
-		`SELECT COALESCE(SUM(used_su_amount), 0)
-		 FROM compute_allocation_usages
-		 WHERE compute_allocation_id = ? AND user_id = ?`, allocationID, userID)
-	if err != nil {
-		return 0, err
-	}
-	return total.Int64, nil
+		`SELECT COALESCE(SUM(u.used_su_amount), 0)
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE u.compute_allocation_id = $1 AND u.user_id = $2 AND `+inAllocationPeriod, allocationID, userID)
+	return total, err
 }
 
-func (s *mysqlComputeAllocationUsageStore) Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error {
+func (s *pgComputeAllocationUsageStore) LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
+	var latest sql.NullTime
+	err := s.db.GetContext(ctx, &latest,
+		`SELECT MAX(u.calculated_time)
+		 FROM compute_allocation_usages u
+		 JOIN compute_allocations a ON a.id = u.compute_allocation_id
+		 WHERE a.compute_cluster_id = $1`, clusterID)
+	if err != nil || !latest.Valid {
+		return nil, err
+	}
+	return &latest.Time, nil
+}
+
+func (s *pgComputeAllocationUsageStore) Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_usages
 		     (id, compute_allocation_id, used_raw_amount, used_su_amount, calculated_time, user_id, job_id, compute_allocation_resource_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		u.ID, u.ComputeAllocationID, u.UsedRawAmount, u.UsedSUAmount, u.CalculatedTime, u.UserID, u.JobID, u.ComputeAllocationResourceID)
 	return err
 }
 
-func (s *mysqlComputeAllocationUsageStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_usages WHERE id = ?`, id)
+func (s *pgComputeAllocationUsageStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_usages WHERE id = $1`, id)
 	return err
 }

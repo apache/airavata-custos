@@ -34,7 +34,7 @@ function cloneCertificates(): Certificate[] {
 }
 
 function cookiePrivileges(route: Route): string[] {
-  const cookie = route.request().headers().cookie ?? "";
+  const cookie = route.request().headers()["cookie"] ?? "";
   const match = cookie
     .split("; ")
     .find((entry) => entry.startsWith("custos.test-privileges="));

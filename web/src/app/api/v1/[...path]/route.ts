@@ -27,7 +27,7 @@ type Context = { params: Promise<{ path: string[] }> };
 async function proxy(request: NextRequest, ctx: Context) {
   const { path } = await ctx.params;
   const isSigner = path[0] === "signer";
-  if (isSigner && process.env.CUSTOS_E2E_FAIL_ON_SIGNER_PROXY_REQUEST === "true") {
+  if (isSigner && process.env["CUSTOS_E2E_FAIL_ON_SIGNER_PROXY_REQUEST"] === "true") {
     console.error("Unexpected signer proxy request during hermetic E2E", {
       method: request.method,
       path: request.nextUrl.pathname,
@@ -64,7 +64,7 @@ async function proxy(request: NextRequest, ctx: Context) {
   headers.set("authorization", `Bearer ${bearer}`);
 
   const method = request.method;
-  const body = method === "GET" || method === "HEAD" ? undefined : await request.text();
+  const body = method === "GET" || method === "HEAD" ? null : await request.text();
 
   let upstream: Response;
   try {

@@ -162,7 +162,7 @@ test.describe("ssh certificates", () => {
   test("users without signer read privilege cannot access signer administration", async ({
     page,
   }) => {
-    await signInAs(page, "viewer");
+    await signInAs(page, "readOnlyAdmin");
     await page.goto("/admin/signer/certificates");
     await expect(page.getByText(/not permitted/i)).toBeVisible();
     await expect(page.getByRole("heading", { name: /^SSH Certificates$/ })).toHaveCount(0);

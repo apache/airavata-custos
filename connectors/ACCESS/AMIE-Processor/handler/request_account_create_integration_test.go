@@ -24,6 +24,7 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -63,7 +64,7 @@ func seedProjectForRAC(t *testing.T, database *sqlx.DB) string {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": rpcPkt.Type, "body": rpcBody}, rpcPkt, "")
@@ -154,7 +155,7 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		`SELECT u.id, u.first_name, u.last_name, u.email, u.status
 		   FROM users u
 		   JOIN user_identities ui ON ui.user_id = u.id
-		  WHERE ui.source = ? AND ui.external_id = ?`,
+		  WHERE ui.source = $1 AND ui.external_id = $2`,
 		"access", "bl-user-001",
 	); err != nil {
 		t.Fatalf("read account user: %v", err)
@@ -177,7 +178,7 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		LocalUsername    string `db:"local_username"`
 	}
 	if err := database.Get(&cu,
-		"SELECT user_id, compute_cluster_id, local_username FROM compute_cluster_users WHERE user_id = ?",
+		"SELECT user_id, compute_cluster_id, local_username FROM compute_cluster_users WHERE user_id = $1",
 		user.ID,
 	); err != nil {
 		t.Fatalf("read compute_cluster_user: %v", err)
@@ -190,25 +191,34 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 	}
 
 	// Membership row links the account user to the project's existing
-	// allocation.
+	// allocation and carries the allocation's start and end times.
 	var mem struct {
-		UserID              string `db:"user_id"`
-		ComputeAllocationID string `db:"compute_allocation_id"`
+		UserID              string    `db:"user_id"`
+		ComputeAllocationID string    `db:"compute_allocation_id"`
+		StartTime           time.Time `db:"start_time"`
+		EndTime             time.Time `db:"end_time"`
 	}
 	if err := database.Get(&mem,
-		"SELECT user_id, compute_allocation_id FROM compute_allocation_memberships WHERE user_id = ?",
+		"SELECT user_id, compute_allocation_id, start_time, end_time FROM compute_allocation_memberships WHERE user_id = $1",
 		user.ID,
 	); err != nil {
 		t.Fatalf("read membership: %v", err)
 	}
-	var allocID string
-	if err := database.Get(&allocID,
-		"SELECT id FROM compute_allocations WHERE project_id = ? LIMIT 1", projectID,
-	); err != nil {
-		t.Fatalf("read allocation id: %v", err)
+	var alloc struct {
+		ID        string    `db:"id"`
+		StartTime time.Time `db:"start_time"`
+		EndTime   time.Time `db:"end_time"`
 	}
-	if mem.ComputeAllocationID != allocID {
-		t.Errorf("membership.compute_allocation_id: got %q, want %q", mem.ComputeAllocationID, allocID)
+	if err := database.Get(&alloc,
+		"SELECT id, start_time, end_time FROM compute_allocations WHERE project_id = $1 LIMIT 1", projectID,
+	); err != nil {
+		t.Fatalf("read allocation: %v", err)
+	}
+	if mem.ComputeAllocationID != alloc.ID {
+		t.Errorf("membership.compute_allocation_id: got %q, want %q", mem.ComputeAllocationID, alloc.ID)
+	}
+	if mem.StartTime.IsZero() || !mem.StartTime.Equal(alloc.StartTime) || !mem.EndTime.Equal(alloc.EndTime) {
+		t.Errorf("membership times: got %s to %s, want the allocation's %s to %s", mem.StartTime, mem.EndTime, alloc.StartTime, alloc.EndTime)
 	}
 
 	// Audit trail for this packet: CREATE_PERSON, CREATE_ACCOUNT,
@@ -217,21 +227,22 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		model.AuditCreatePerson,
 		model.AuditCreateAccount,
 		model.AuditCreateMembership,
-		model.AuditReplySent,
+		model.AuditReplyHeld,
 	} {
 		if got := countAuditActions(t, database, pkt.ID, action); got != 1 {
 			t.Errorf("audit %s: got %d, want 1", action, got)
 		}
 	}
 
-	// Reply: notify_account_create with the required fields:
-	// AccountActivityTime, ProjectID, ResourceList, UserRemoteSiteLogin.
-	if got, want := amie.lastReplyType(), "notify_account_create"; got != want {
-		t.Fatalf("reply type: got %q, want %q", got, want)
+	// The cluster account is new and not approved yet, so nothing goes to ACCESS. The
+	// reply is kept on the packet: notify_account_create with the required
+	// fields AccountActivityTime, ProjectID, ResourceList, UserRemoteSiteLogin.
+	if len(amie.Replies) != 0 {
+		t.Fatalf("expected no reply before approval, got %d", len(amie.Replies))
 	}
-	reply := amie.lastReplyBody()
-	if reply == nil {
-		t.Fatal("reply body missing")
+	replyType, reply := heldReply(t, pkt)
+	if replyType != "notify_account_create" {
+		t.Fatalf("reply type: got %q, want %q", replyType, "notify_account_create")
 	}
 	if got, _ := reply["ProjectID"].(string); got != projectID {
 		t.Errorf("reply.ProjectID: got %q, want %q", got, projectID)
@@ -317,7 +328,7 @@ func TestRequestAccountCreate_IdempotentReDelivery(t *testing.T) {
 		model.AuditCreatePerson,
 		model.AuditCreateAccount,
 		model.AuditCreateMembership,
-		model.AuditReplySent,
+		model.AuditReplyHeld,
 	} {
 		if got := countAuditActions(t, database, firstPkt.ID, action); got != 1 {
 			t.Errorf("first delivery audit %s: got %d, want 1", action, got)
@@ -327,8 +338,104 @@ func TestRequestAccountCreate_IdempotentReDelivery(t *testing.T) {
 		}
 	}
 
-	if len(amie.Replies) != 2 {
-		t.Errorf("amie replies after two deliveries: got %d, want 2", len(amie.Replies))
+	if len(amie.Replies) != 0 {
+		t.Errorf("amie replies before approval: got %d, want 0", len(amie.Replies))
+	}
+}
+
+// Make sure a person who already has an approved cluster account gets the
+// reply at once, since a new project for them needs no new approval.
+func TestRequestAccountCreate_ApprovedAccountRepliesAtOnce(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	body := baseRACBody()
+	body["ProjectID"] = projectID
+
+	svc := newTestCoreService(database)
+	amie := &fakeAmieClient{}
+	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, newTestAuditService(database))
+	handle := func(pkt *model.Packet) {
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+	}
+	handle(insertPacket(t, database, "request_account_create", body))
+	approvePendingAccounts(t, database, svc)
+
+	pkt := insertPacket(t, database, "request_account_create", body)
+	handle(pkt)
+
+	if got := amie.lastReplyType(); got != "notify_account_create" {
+		t.Fatalf("reply type: got %q, want notify_account_create", got)
+	}
+	if pkt.Status == model.PacketStatusWaitingApproval || pkt.HeldReply != nil {
+		t.Errorf("expected the reply to be sent, not held, got status %s", pkt.Status)
+	}
+}
+
+// Make sure an account request for an inactivated member of an active
+// allocation sets the membership back to active.
+func TestRequestAccountCreate_ReactivatesInactiveMember(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	body := baseRACBody()
+	body["ProjectID"] = projectID
+
+	svc := newTestCoreService(database)
+	h := NewRequestAccountCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database))
+	handle := func() {
+		pkt := insertPacket(t, database, "request_account_create", body)
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+	}
+	handle()
+	const member = "user_id = (SELECT id FROM users WHERE email = $1)"
+	if _, err := database.Exec("UPDATE compute_allocation_memberships SET membership_status = 'INACTIVE' WHERE "+member, body["UserEmail"]); err != nil {
+		t.Fatalf("inactivate membership: %v", err)
+	}
+	handle()
+
+	var status string
+	if err := database.Get(&status, "SELECT membership_status FROM compute_allocation_memberships WHERE "+member, body["UserEmail"]); err != nil {
+		t.Fatalf("read membership: %v", err)
+	}
+	if status != "ACTIVE" {
+		t.Errorf("membership_status: got %s, want ACTIVE", status)
+	}
+}
+
+// Make sure an account request for the project's PI, under any role, is
+// refused and leaves the PI and project roles untouched.
+func TestRequestAccountCreate_ForThePI(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	svc := newTestCoreService(database)
+	amie := &fakeAmieClient{}
+	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, newTestAuditService(database))
+	pi := baseRPCBody()
+	for _, role := range []string{"MEMBER", "CO_PI"} {
+		body := baseRACBody()
+		body["ProjectID"], body["UserGlobalID"], body["UserEmail"], body["UserRole"] = projectID, pi["PiGlobalID"], pi["PiEmail"], role
+		pkt := insertPacket(t, database, "request_account_create", body)
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle as %s: %v", role, err)
+		}
+		if pkt.Status != model.PacketStatusRefused || amie.lastReplyBody()["StatusCode"] != "Failure" {
+			t.Errorf("as %s: got status %s and reply %v, want a refusal", role, pkt.Status, amie.lastReplyBody())
+		}
+	}
+	if got := countRows(t, database, "compute_allocation_memberships"); got != 1 {
+		t.Errorf("memberships: got %d, want 1", got)
+	}
+	if got := countRows(t, database, "project_memberships"); got != 0 {
+		t.Errorf("project role rows: got %d, want 0", got)
 	}
 }
 
@@ -458,13 +565,23 @@ func TestRequestAccountCreate_ReplyFailurePropagates(t *testing.T) {
 
 	body := baseRACBody()
 	body["ProjectID"] = projectID
-	pkt := insertPacket(t, database, "request_account_create", body)
 
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
-	amie := &fakeAmieClient{FailWith: errors.New("simulated AMIE outage")}
+	amie := &fakeAmieClient{}
 	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, audit)
 
+	// Only an approved cluster account is replied to at once, so create and approve it first.
+	first := insertPacket(t, database, "request_account_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": first.Type, "body": body}, first, "")
+	}); err != nil {
+		t.Fatalf("first Handle: %v", err)
+	}
+	approvePendingAccounts(t, database, svc)
+
+	amie.FailWith = errors.New("simulated AMIE outage")
+	pkt := insertPacket(t, database, "request_account_create", body)
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
 	})

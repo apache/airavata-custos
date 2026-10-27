@@ -36,7 +36,7 @@ import (
 func seedCluster(t *testing.T, db *sqlx.DB) string {
 	t.Helper()
 	id := uuid.NewString()
-	if _, err := db.Exec(`INSERT INTO compute_clusters (id, name) VALUES (?, ?)`, id, "Cluster "+id[:8]); err != nil {
+	if _, err := db.Exec(`INSERT INTO compute_clusters (id, name) VALUES ($1, $2)`, id, "Cluster "+id[:8]); err != nil {
 		t.Fatalf("seed cluster: %v", err)
 	}
 	return id
@@ -47,22 +47,12 @@ func seedProject(t *testing.T, db *sqlx.DB, piUserID string) string {
 	id := uuid.NewString()
 	if _, err := db.Exec(
 		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status, created_time)
-		 VALUES (?, ?, ?, ?, ?, ?, NOW(6))`,
+		 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
 		id, "REC-"+id[:8], "Project "+id[:8], "TEST", piUserID, string(models.ProjectActive),
 	); err != nil {
 		t.Fatalf("seed project: %v", err)
 	}
 	return id
-}
-
-func seedProjectRole(t *testing.T, db *sqlx.DB, projectID, userID string, role models.ProjectRole) {
-	t.Helper()
-	if _, err := db.Exec(
-		`INSERT INTO project_memberships (project_id, user_id, role, added_time) VALUES (?, ?, ?, NOW(6))`,
-		projectID, userID, string(role),
-	); err != nil {
-		t.Fatalf("seed project role: %v", err)
-	}
 }
 
 func seedAllocation(t *testing.T, db *sqlx.DB, projectID, clusterID string, initialSU int64, start, end time.Time) string {
@@ -71,7 +61,7 @@ func seedAllocation(t *testing.T, db *sqlx.DB, projectID, clusterID string, init
 	if _, err := db.Exec(
 		`INSERT INTO compute_allocations
 		     (id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		id, projectID, "alloc-"+id[:8], string(models.ACTIVE), clusterID, initialSU, start, end,
 	); err != nil {
 		t.Fatalf("seed allocation: %v", err)
@@ -85,7 +75,7 @@ func seedAllocMember(t *testing.T, db *sqlx.DB, allocID, userID string) {
 	if _, err := db.Exec(
 		`INSERT INTO compute_allocation_memberships
 		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		uuid.NewString(), allocID, userID, now, now.AddDate(1, 0, 0), string(models.ACTIVE),
 	); err != nil {
 		t.Fatalf("seed alloc member: %v", err)
@@ -97,7 +87,7 @@ func seedResource(t *testing.T, db *sqlx.DB, clusterID, name, resourceType strin
 	id := uuid.NewString()
 	if _, err := db.Exec(
 		`INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		id, name, resourceType, 0, clusterID,
 	); err != nil {
 		t.Fatalf("seed resource: %v", err)
@@ -110,7 +100,7 @@ func seedUsage(t *testing.T, db *sqlx.DB, allocID, resourceID, userID string, su
 	if _, err := db.Exec(
 		`INSERT INTO compute_allocation_usages
 		     (id, compute_allocation_id, used_raw_amount, used_su_amount, calculated_time, user_id, job_id, compute_allocation_resource_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		uuid.NewString(), allocID, raw, su, at, userID, "job-"+uuid.NewString()[:8], resourceID,
 	); err != nil {
 		t.Fatalf("seed usage: %v", err)
@@ -149,7 +139,6 @@ func TestAnalyticsContexts_PIRoleAndAllocations(t *testing.T) {
 	pi := seedUser(t, database, "pi@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 
 	start := time.Now().UTC().AddDate(0, 0, -10)
 	end1 := time.Now().UTC().AddDate(0, 0, 20)
@@ -227,7 +216,6 @@ func TestAnalyticsContexts_MemberSeesOnlySiblingTheyBelongTo(t *testing.T) {
 	member := seedUser(t, database, "member-sib@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -5)
 	end := time.Now().UTC().AddDate(0, 0, 25)
 	mine := seedAllocation(t, database, project, cluster, 1000, start, end)
@@ -308,7 +296,7 @@ func TestUsageSummary_InactiveMember_404(t *testing.T) {
 	if _, err := database.Exec(
 		`INSERT INTO compute_allocation_memberships
 		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		uuid.NewString(), alloc, former, time.Now().UTC().AddDate(0, 0, -30), time.Now().UTC(), string(models.INACTIVE),
 	); err != nil {
 		t.Fatalf("seed inactive membership: %v", err)
@@ -349,7 +337,7 @@ func TestUsageSummary_MemberSeesOwnSliceNoMembers(t *testing.T) {
 		t.Errorf("by_member: got %v, want null for a plain member", got.ByMember)
 	}
 	if got.Total != 1000 {
-		t.Errorf("total: got %d, want 1000", got.Total)
+		t.Errorf("total: got %g, want 1000", got.Total)
 	}
 	if got.Used != 500 {
 		t.Errorf("used: got %v, want 500", got.Used)
@@ -378,7 +366,6 @@ func TestUsageSummary_PISeesRankedMembers(t *testing.T) {
 	member := seedUser(t, database, "m5@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -2)
 	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 28))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -415,11 +402,10 @@ func TestUsageSummary_MemberWithoutNameFallsBackToEmail(t *testing.T) {
 	pi := seedUser(t, database, "pi7@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -2)
 	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 28))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
-	if _, err := database.Exec("UPDATE users SET first_name = '', last_name = '' WHERE id = ?", pi); err != nil {
+	if _, err := database.Exec("UPDATE users SET first_name = '', last_name = '' WHERE id = $1", pi); err != nil {
 		t.Fatalf("blank name: %v", err)
 	}
 	seedUsage(t, database, alloc, res, pi, 400, 40, time.Now().UTC().AddDate(0, 0, -1))
@@ -527,7 +513,6 @@ func TestAllocationJobs_ManagerSeesAllAndCanFilterMine(t *testing.T) {
 	member := seedUser(t, database, "mj3@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	alloc := seedAllocation(t, database, project, cluster, 1000,
 		time.Now().UTC().AddDate(0, 0, -3), time.Now().UTC().AddDate(0, 0, 27))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -567,7 +552,6 @@ func TestAllocationJobs_Pagination(t *testing.T) {
 	pi := seedUser(t, database, "pij4@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	alloc := seedAllocation(t, database, project, cluster, 100000,
 		time.Now().UTC().AddDate(0, 0, -5), time.Now().UTC().AddDate(0, 0, 25))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -607,7 +591,6 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 	pi := seedUser(t, database, "pi7@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -5)
 	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 25))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -644,5 +627,48 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 	}
 	if nonEmpty != 2 {
 		t.Errorf("non-empty days: got %d, want 2", nonEmpty)
+	}
+}
+
+// A CO_PI who is also a member sees each allocation once with undoubled usage,
+// and a project without allocations still lists for its role holder.
+func TestAnalyticsContexts_CoPIMemberAndProjectWithoutAllocations(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "copi-pi@example.edu")
+	copi := seedUser(t, database, "copi@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	empty := seedProject(t, database, pi)
+	for _, p := range []string{project, empty} {
+		if _, err := database.Exec(`INSERT INTO project_memberships (project_id, user_id, role, added_time) VALUES ($1, $2, 'CO_PI', NOW())`, p, copi); err != nil {
+			t.Fatalf("seed tag: %v", err)
+		}
+	}
+	start, end := time.Now().UTC().AddDate(0, 0, -10), time.Now().UTC().AddDate(0, 0, 20)
+	alloc1 := seedAllocation(t, database, project, cluster, 1000, start, end)
+	_ = seedAllocation(t, database, project, cluster, 2000, start, end)
+	seedAllocMember(t, database, alloc1, copi)
+	seedUsage(t, database, alloc1, seedResource(t, database, cluster, "gpu-02", "GPU_HOURS"), copi, 300, 30, time.Now().UTC().AddDate(0, 0, -1))
+
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/contexts", nil), copi))
+	var got []ProjectContext
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil || rr.Code != http.StatusOK {
+		t.Fatalf("contexts: %d %v %s", rr.Code, err, rr.Body.String())
+	}
+	allocs := map[string][]Allocation{}
+	for _, c := range got {
+		if c.Role != string(models.ProjectRoleCoPI) {
+			t.Errorf("project %s role: got %q, want CO_PI", c.ProjectID, c.Role)
+		}
+		allocs[c.ProjectID] = c.Allocations
+	}
+	if len(got) != 2 || len(allocs[project]) != 2 || len(allocs[empty]) != 0 {
+		t.Fatalf("contexts: %+v", got)
+	}
+	for _, a := range allocs[project] {
+		if a.ID == alloc1 && a.UsedSUAmount != 300 {
+			t.Errorf("alloc1 used: got %v, want 300", a.UsedSUAmount)
+		}
 	}
 }

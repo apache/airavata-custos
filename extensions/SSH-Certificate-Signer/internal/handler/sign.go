@@ -18,11 +18,13 @@ package handler
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/apache/airavata-custos/signer/internal/audit"
 	"github.com/apache/airavata-custos/signer/internal/auth"
@@ -311,9 +313,10 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// isDuplicateKeyError detects MySQL error 1062 (duplicate key constraint).
+// isDuplicateKeyError detects a unique-constraint violation (SQLSTATE 23505).
 func isDuplicateKeyError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "Duplicate entry")
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 func stringPtrIfNonEmpty(s string) *string {

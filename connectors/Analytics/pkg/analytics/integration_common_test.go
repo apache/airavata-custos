@@ -20,8 +20,10 @@
 package analytics
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -73,7 +75,11 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *Service, http.Handler) {
 	}
 	truncateAll(t, sharedDB)
 
-	svc := NewService(coreservice.New(sharedDB, events.New()), sharedDB)
+	bus, err := events.New(context.Background(), sharedDB)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
+	svc := NewService(coreservice.New(sharedDB, bus), sharedDB)
 	router := identity.NewRouter(http.NewServeMux())
 	NewHandlers(svc).RegisterRoutes(router)
 	return sharedDB, svc, router
@@ -98,16 +104,8 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"users",
 		"organizations",
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range tables {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
-	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 
@@ -115,14 +113,14 @@ func seedUser(t *testing.T, database *sqlx.DB, email string) string {
 	t.Helper()
 	orgID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+		"INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		orgID, "TEST-ORG-"+orgID[:8], "Test Org",
 	); err != nil {
 		t.Fatalf("seed org: %v", err)
 	}
 	userID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		userID, orgID, "Test", "User", "", email, string(models.UserActive),
 	); err != nil {
 		t.Fatalf("seed user %s: %v", email, err)

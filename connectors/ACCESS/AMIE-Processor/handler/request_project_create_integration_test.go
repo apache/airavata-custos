@@ -28,6 +28,8 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/pkg/models"
+	coreservice "github.com/apache/airavata-custos/pkg/service"
+	"github.com/jmoiron/sqlx"
 )
 
 // baseRPCBody returns a fully populated request_project_create body with
@@ -37,6 +39,7 @@ func baseRPCBody() map[string]any {
 		"AllocationType":        "new",
 		"EndDate":               "2027-01-01",
 		"GrantNumber":           "TG-BL-001",
+		"ProjectTitle":          "Baseline project",
 		"PfosNumber":            "PFOS-1",
 		"PiFirstName":           "Pat",
 		"PiLastName":            "First",
@@ -69,7 +72,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -88,6 +91,11 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 	if got := countRows(t, database, "projects"); got != 1 {
 		t.Errorf("projects: got %d, want 1", got)
+	}
+
+	var title string
+	if err := database.Get(&title, "SELECT title FROM projects LIMIT 1"); err != nil || title != "Baseline project" {
+		t.Errorf("project title: got %q, %v; want %q", title, err, "Baseline project")
 	}
 	if got := countRows(t, database, "compute_allocations"); got != 1 {
 		t.Errorf("compute_allocations: got %d, want 1", got)
@@ -170,10 +178,10 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 
 	var alloc struct {
-		ProjectID        string `db:"project_id"`
-		Name             string `db:"name"`
-		InitialSUAmount  int64  `db:"initial_su_amount"`
-		ComputeClusterID string `db:"compute_cluster_id"`
+		ProjectID        string  `db:"project_id"`
+		Name             string  `db:"name"`
+		InitialSUAmount  float64 `db:"initial_su_amount"`
+		ComputeClusterID string  `db:"compute_cluster_id"`
 	}
 	if err := database.Get(&alloc,
 		"SELECT project_id, name, initial_su_amount, compute_cluster_id FROM compute_allocations LIMIT 1",
@@ -184,7 +192,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 		t.Errorf("allocation.project_id: got %q, want %q", alloc.ProjectID, proj.ID)
 	}
 	if alloc.InitialSUAmount != 1000 {
-		t.Errorf("allocation.initial_su_amount: got %d, want 1000", alloc.InitialSUAmount)
+		t.Errorf("allocation.initial_su_amount: got %g, want 1000", alloc.InitialSUAmount)
 	}
 	if alloc.ComputeClusterID != testClusterID {
 		t.Errorf("allocation.compute_cluster_id: got %q, want %q", alloc.ComputeClusterID, testClusterID)
@@ -206,7 +214,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 		LocalUsername string `db:"local_username"`
 	}
 	if err := database.Get(&piCU,
-		"SELECT local_username FROM compute_cluster_users WHERE user_id = ? AND compute_cluster_id = ?",
+		"SELECT local_username FROM compute_cluster_users WHERE user_id = $1 AND compute_cluster_id = $2",
 		user.ID, testClusterID,
 	); err != nil {
 		t.Fatalf("read PI compute_cluster_user: %v", err)
@@ -235,10 +243,8 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 }
 
-// TestRequestProjectCreate_SupplementIsIdempotent asserts the protocol supplement
-// rule: re-delivery of request_project_create against the same GrantNumber
-// MUST NOT create a second Project or a second base Allocation. The grant
-// event is recorded as a compute_allocation_diffs row instead.
+// Make sure a supplement for a known grant adds its SUs to the existing
+// allocation and records a history row, without a second project or allocation.
 func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 	database := setupTestDB(t)
 
@@ -248,7 +254,7 @@ func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": firstPkt.Type, "body": first}, firstPkt, "")
@@ -279,8 +285,8 @@ func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 	}
 
 	var diff struct {
-		DiffType    string `db:"diff_type"`
-		NewSUAmount int64  `db:"new_su_amount"`
+		DiffType    string  `db:"diff_type"`
+		NewSUAmount float64 `db:"new_su_amount"`
 	}
 	if err := database.Get(&diff,
 		"SELECT diff_type, new_su_amount FROM compute_allocation_diffs LIMIT 1",
@@ -291,7 +297,167 @@ func TestRequestProjectCreate_SupplementIsIdempotent(t *testing.T) {
 		t.Errorf("diff.diff_type: got %q, want SUPPLEMENT", diff.DiffType)
 	}
 	if diff.NewSUAmount != 500 {
-		t.Errorf("diff.new_su_amount: got %d, want 500 (this packet's delta only, not cumulative)", diff.NewSUAmount)
+		t.Errorf("diff.new_su_amount: got %g, want 500 (this packet's delta only, not cumulative)", diff.NewSUAmount)
+	}
+	if got := allocationAfter(t, database); got.InitialSUAmount != 1500 {
+		t.Errorf("initial_su_amount: got %g, want 1500", got.InitialSUAmount)
+	}
+}
+
+// deliverTwice runs the base project packet, then a second one for the same grant with the given fields changed.
+func deliverTwice(t *testing.T, changes map[string]any) (*sqlx.DB, *coreservice.Service) {
+	t.Helper()
+	database := setupTestDB(t)
+	svc := newTestCoreService(database)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+
+	second := baseRPCBody()
+	for k, v := range changes {
+		second[k] = v
+	}
+	for _, body := range []map[string]any{baseRPCBody(), second} {
+		pkt := insertPacket(t, database, "request_project_create", body)
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		}); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+	}
+	return database, svc
+}
+
+func allocationAfter(t *testing.T, database *sqlx.DB) models.ComputeAllocation {
+	t.Helper()
+	var a models.ComputeAllocation
+	if err := database.Get(&a,
+		"SELECT id, initial_su_amount, start_time, end_time FROM compute_allocations LIMIT 1",
+	); err != nil {
+		t.Fatalf("read allocation: %v", err)
+	}
+	return a
+}
+
+// Make sure a renewal replaces the SUs and the dates, so usage from the
+// earlier period stops counting and usage up to the new end date counts exactly.
+func TestRequestProjectCreate_RenewalReplacesGrant(t *testing.T) {
+	database, svc := deliverTwice(t, map[string]any{
+		"AllocationType":        "renewal",
+		"RecordID":              "rec-bl-001-renew",
+		"ServiceUnitsAllocated": "2000",
+		"StartDate":             "2027-01-01",
+		"EndDate":               "2028-01-01",
+	})
+
+	got := allocationAfter(t, database)
+	if got.InitialSUAmount != 2000 {
+		t.Errorf("initial_su_amount: got %g, want 2000", got.InitialSUAmount)
+	}
+	if got.StartTime.UTC().Format("2006-01-02") != "2027-01-01" || got.EndTime.UTC().Format("2006-01-02") != "2028-01-01" {
+		t.Errorf("dates: got %s to %s, want 2027-01-01 to 2028-01-01", got.StartTime, got.EndTime)
+	}
+
+	if _, err := database.Exec(
+		`INSERT INTO compute_allocation_usages (id, compute_allocation_id, used_su_amount, calculated_time)
+		 VALUES ('old-usage', $1, 800, '2026-06-01'), ('new-usage', $1, 0.25, '2028-01-01 23:00:00+00')`, got.ID); err != nil {
+		t.Fatalf("insert usage: %v", err)
+	}
+	used, err := svc.GetTotalSUUsageForAllocation(context.Background(), got.ID)
+	if err != nil {
+		t.Fatalf("usage: %v", err)
+	}
+	if used != 0.25 {
+		t.Errorf("usage after renewal: got %g, want 0.25", used)
+	}
+}
+
+// Make sure an extension moves only the end date and leaves the SUs alone.
+func TestRequestProjectCreate_ExtensionMovesEndDate(t *testing.T) {
+	database, _ := deliverTwice(t, map[string]any{
+		"AllocationType":        "extension",
+		"RecordID":              "rec-bl-001-ext",
+		"ServiceUnitsAllocated": "0",
+		"EndDate":               "2027-06-01",
+	})
+
+	got := allocationAfter(t, database)
+	if got.InitialSUAmount != 1000 {
+		t.Errorf("initial_su_amount: got %g, want 1000", got.InitialSUAmount)
+	}
+	if got.EndTime.UTC().Format("2006-01-02") != "2027-06-01" {
+		t.Errorf("end date: got %s, want 2027-06-01", got.EndTime)
+	}
+}
+
+// Make sure a project packet for an inactivated project sets the project, its
+// allocation and the PI's membership back to active.
+func TestRequestProjectCreate_ReactivatesInactiveProject(t *testing.T) {
+	database := setupTestDB(t)
+	seedProjectForRAC(t, database)
+	for _, q := range []string{
+		"UPDATE projects SET status = 'INACTIVE'",
+		"UPDATE compute_allocations SET status = 'INACTIVE'",
+		"UPDATE compute_allocation_memberships SET membership_status = 'INACTIVE'",
+	} {
+		if _, err := database.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+
+	svc := newTestCoreService(database)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+	body := baseRPCBody()
+	pkt := insertPacket(t, database, "request_project_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+
+	var statuses []string
+	if err := database.Select(&statuses,
+		`SELECT status FROM projects
+		 UNION ALL SELECT status FROM compute_allocations
+		 UNION ALL SELECT membership_status FROM compute_allocation_memberships`); err != nil {
+		t.Fatalf("read statuses: %v", err)
+	}
+	for _, s := range statuses {
+		if s != "ACTIVE" {
+			t.Errorf("statuses: got %v, want all ACTIVE", statuses)
+			break
+		}
+	}
+}
+
+// Make sure a negative transfer deducts its exact amount, fraction included,
+// from the existing allocation.
+func TestRequestProjectCreate_NegativeTransferDeducts(t *testing.T) {
+	database, _ := deliverTwice(t, map[string]any{
+		"AllocationType":        "transfer",
+		"RecordID":              "rec-bl-001-out",
+		"ServiceUnitsAllocated": "-300.5",
+	})
+
+	if got := allocationAfter(t, database); got.InitialSUAmount != 699.5 {
+		t.Errorf("initial_su_amount: got %g, want 699.5", got.InitialSUAmount)
+	}
+}
+
+// Make sure a project packet whose PI has no email is rejected as invalid and creates nothing.
+func TestRequestProjectCreate_MissingPIEmailIsInvalid(t *testing.T) {
+	database := setupTestDB(t)
+	body := baseRPCBody()
+	delete(body, "PiEmail")
+	pkt := insertPacket(t, database, "request_project_create", body)
+	h := NewRequestProjectCreateHandler(newTestCoreService(database), testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+
+	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	})
+	if !errors.Is(err, model.ErrInvalidPacket) {
+		t.Fatalf("error: got %v, want an invalid packet error", err)
+	}
+	if got := countRows(t, database, "organizations"); got != 0 {
+		t.Errorf("organizations: got %d, want 0", got)
 	}
 }
 
@@ -307,7 +473,7 @@ func TestRequestProjectCreate_MissingGrantNumber(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -344,7 +510,7 @@ func TestRequestProjectCreate_ReplyFailurePropagates(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{FailWith: errors.New("simulated AMIE outage")}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
 		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
@@ -369,7 +535,7 @@ func TestRequestProjectCreate_AttachesRegisteredResources(t *testing.T) {
 	svc := newTestCoreService(database)
 	audit := newTestAuditService(database)
 	amie := &fakeAmieClient{}
-	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit, nil)
 
 	resource, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
 		Name:             "compute.access-ci.org",
@@ -424,6 +590,40 @@ func TestRequestProjectCreate_AttachesRegisteredResources(t *testing.T) {
 	}
 	if got := countAuditActions(t, database, secondPkt.ID, model.AuditAttachResource); got != 0 {
 		t.Errorf("audit ATTACH_RESOURCE on re-delivery: got %d, want 0", got)
+	}
+}
+
+// Make sure an alias with two catalog resources attaches the allocation to both.
+func TestRequestProjectCreate_AttachesEveryAliasedResource(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestCoreService(database)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), map[string][]string{
+		"compute.access-ci.org": {"gpu-b200", "gpu-rtxpro"},
+	})
+	for _, name := range []string{"gpu-b200", "gpu-rtxpro"} {
+		if _, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
+			Name: name, ResourceType: "gres/gpu", ResourceAmount: 1, ComputeClusterID: testClusterID,
+		}); err != nil {
+			t.Fatalf("seed catalog resource %s: %v", name, err)
+		}
+	}
+
+	body := baseRPCBody()
+	pkt := insertPacket(t, database, "request_project_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle returned error: %v", err)
+	}
+
+	var attached []string
+	if err := database.Select(&attached,
+		`SELECT r.name FROM compute_allocation_resource_mappings m
+		 JOIN compute_allocation_resources r ON r.id = m.compute_allocation_resource_id ORDER BY r.name`); err != nil {
+		t.Fatalf("read mappings: %v", err)
+	}
+	if strings.Join(attached, ",") != "gpu-b200,gpu-rtxpro" {
+		t.Errorf("attached resources: got %v, want gpu-b200 and gpu-rtxpro", attached)
 	}
 }
 

@@ -140,7 +140,7 @@ func getMembershipStatus(t *testing.T, database *sqlx.DB, membershipID string) s
 	t.Helper()
 	var status string
 	if err := database.Get(&status,
-		"SELECT membership_status FROM compute_allocation_memberships WHERE id = ?", membershipID,
+		"SELECT membership_status FROM compute_allocation_memberships WHERE id = $1", membershipID,
 	); err != nil {
 		t.Fatalf("read membership %s: %v", membershipID, err)
 	}
@@ -150,7 +150,7 @@ func getMembershipStatus(t *testing.T, database *sqlx.DB, membershipID string) s
 func getUserStatus(t *testing.T, database *sqlx.DB, userID string) string {
 	t.Helper()
 	var status string
-	if err := database.Get(&status, "SELECT status FROM users WHERE id = ?", userID); err != nil {
+	if err := database.Get(&status, "SELECT status FROM users WHERE id = $1", userID); err != nil {
 		t.Fatalf("read user %s: %v", userID, err)
 	}
 	return status
@@ -305,9 +305,6 @@ func TestRequestAccountInactivate_MissingRequiredField(t *testing.T) {
 // TestRequestAccountInactivate_ReplyFailurePropagates asserts the handler
 // surfaces a ReplyToPacket failure to the caller so the processor can decide
 // to retry. The REPLY_SENT audit row must be absent when the reply failed.
-// (Note the broader atomicity gap: the membership flip is already committed
-// because UpdateMembershipStatus opens its own tx; this test only asserts
-// the error propagation + audit shape.)
 func TestRequestAccountInactivate_ReplyFailurePropagates(t *testing.T) {
 	database := setupTestDB(t)
 	seed := seedMembership(t, database)
@@ -331,6 +328,9 @@ func TestRequestAccountInactivate_ReplyFailurePropagates(t *testing.T) {
 	}
 	if got := countAuditActions(t, database, pkt.ID, model.AuditReplySent); got != 0 {
 		t.Errorf("audit REPLY_SENT on failed reply: got %d, want 0", got)
+	}
+	if got := getMembershipStatus(t, database, seed.Membership.ID); got != string(models.ACTIVE) {
+		t.Errorf("membership after failed reply: got %q, want ACTIVE", got)
 	}
 }
 

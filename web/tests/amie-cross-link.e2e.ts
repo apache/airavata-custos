@@ -19,9 +19,7 @@ import { expect, test } from "@playwright/test";
 import { signInAs } from "./fixtures/auth";
 
 test.describe("AMIE → Traces cross-link", () => {
-  test("clicking View trace on an AMIE event navigates into the trace drawer", async ({
-    page,
-  }) => {
+  test("clicking View trace on an AMIE event navigates into the trace drawer", async ({ page }) => {
     await signInAs(page, "admin");
     // pkt-100 has an event with trace_id a3b1c92d3f4e5a6b7c8d9e0f12345678.
     await page.goto("/admin/amie/packets/pkt-100");

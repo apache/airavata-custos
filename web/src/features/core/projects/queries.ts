@@ -17,14 +17,14 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addProjectMember,
   createProject,
+  deleteProject,
   getProject,
   listProjectMembers,
   listProjects,
-  removeProjectMember,
   updateProjectMember,
   updateProjectStatus,
 } from "./api";
@@ -60,19 +60,15 @@ export function useProjects(params: ProjectListParams = {}) {
 export function useProject(id: string | undefined) {
   return useQuery({
     queryKey: id ? projectKeys.detail(id) : [...projectKeys.all, "detail", "none"],
-    queryFn: () => getProject(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getProject(id) : skipToken,
     ...DEFAULTS,
   });
 }
 
 export function useProjectMembers(projectId: string | undefined) {
   return useQuery({
-    queryKey: projectId
-      ? projectKeys.members(projectId)
-      : [...projectKeys.all, "members", "none"],
-    queryFn: () => listProjectMembers(projectId as string),
-    enabled: Boolean(projectId),
+    queryKey: projectId ? projectKeys.members(projectId) : [...projectKeys.all, "members", "none"],
+    queryFn: projectId ? () => listProjectMembers(projectId) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -82,6 +78,15 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: (payload: CreateProjectPayload) => createProject(payload),
     onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all }),
+  });
+}
+
+export function useDeleteProject() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: deleteProject,
+    // Marks lists stale without refetching the deleted project's own queries.
+    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all, refetchType: "none" }),
   });
 }
 
@@ -108,21 +113,12 @@ export function useAddProjectMember(projectId: string) {
 export function useUpdateProjectMember(projectId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      memberId,
-      payload,
-    }: {
-      memberId: string;
-      payload: UpdateProjectMemberPayload;
-    }) => updateProjectMember(projectId, memberId, payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
-  });
-}
-
-export function useRemoveProjectMember(projectId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (memberId: string) => removeProjectMember(projectId, memberId),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
+    mutationFn: ({ userId, payload }: { userId: string; payload: UpdateProjectMemberPayload }) =>
+      updateProjectMember(projectId, userId, payload),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: projectKeys.members(projectId) });
+      // Allocation member rows show the project role; a key prefix avoids importing allocations.
+      client.invalidateQueries({ queryKey: ["allocations"] });
+    },
   });
 }

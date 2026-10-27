@@ -48,7 +48,7 @@ func baseDataProjectCreateBody() map[string]any {
 		"ProjectID": "TG-BL-001",
 		"GlobalID":  "bl-pi-001",
 		"DnList": []any{
-			dpcExistingDN, // duplicate of seeded row; INSERT IGNORE keeps one
+			dpcExistingDN, // duplicate of seeded row; conflict is ignored, one row kept
 			dpcNewDN1,
 			dpcNewDN2,
 		},
@@ -153,7 +153,7 @@ func TestDataProjectCreate_HappyPath(t *testing.T) {
 	}
 
 	// Additive write: the existing DN must still be present; the two new DNs
-	// must be added. Duplicate of existing DN is a silent no-op (INSERT IGNORE).
+	// must be added. Duplicate of existing DN is a silent no-op.
 	if got, want := countDNsForUser(t, database, userID), 3; got != want {
 		t.Errorf("amie_user_dns for PI: got %d, want %d", got, want)
 	}

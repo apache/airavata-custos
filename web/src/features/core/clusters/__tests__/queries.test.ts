@@ -23,8 +23,7 @@ describe("clusterKeys", () => {
     expect(clusterKeys.all).toEqual(["clusters"]);
   });
 
-  it("detail and users keys carry the id", () => {
+  it("detail keys carry the id", () => {
     expect(clusterKeys.detail("cluster-a")).toEqual(["clusters", "detail", "cluster-a"]);
-    expect(clusterKeys.users("cluster-a")).toEqual(["clusters", "users", "cluster-a"]);
   });
 });

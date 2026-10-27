@@ -17,14 +17,17 @@
 
 "use client";
 
-import * as React from "react";
 import { AllocationsList } from "@/features/core/allocations/components/AllocationsList";
+import { CreateAllocationDialog } from "@/features/core/allocations/components/CreateAllocationDialog";
 import { useAllocations } from "@/features/core/allocations/queries";
-import type { AllocationStatus } from "@/features/core/allocations/schemas";
+import type { AllocationStatus } from "@/generated/core/zod.gen";
+import { requires, usePermissions } from "@/shared/casl/permissions";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): AllocationStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;
@@ -32,6 +35,7 @@ function statusFilterFromUrl(raw: string | null): AllocationStatus | "all" {
 }
 
 export function AllocationsListContainer() {
+  const can = usePermissions();
   const searchParams = useShallowSearchParams();
   const search = searchParams.get("q") ?? "";
   const statusFilter = statusFilterFromUrl(searchParams.get("status"));
@@ -48,17 +52,31 @@ export function AllocationsListContainer() {
 
   const query = useAllocations({});
   const rows = query.data?.items ?? [];
+  const [creating, setCreating] = React.useState(false);
 
   return (
     <AllocationsList
       rows={rows}
       isLoading={query.isLoading}
-      error={(query.error as Error | null) ?? null}
+      error={query.error}
       onRetry={() => query.refetch()}
       search={search}
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
       onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
+      canEditResources={can.allocationsWrite}
+      headerCta={
+        <>
+          <GuardedButton
+            allowed={can.allocationsWrite && can.clustersRead}
+            reason={requires("allocationsWrite", "clustersRead")}
+            onClick={() => setCreating(true)}
+          >
+            + Add allocation
+          </GuardedButton>
+          {creating ? <CreateAllocationDialog onOpenChange={setCreating} /> : null}
+        </>
+      }
     />
   );
 }

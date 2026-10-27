@@ -17,7 +17,7 @@
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { assert, describe, expect, it, vi } from "vitest";
 import { DateRangePicker, type DateRangeValue } from "../DateRangePicker";
 
 function Harness({
@@ -46,7 +46,7 @@ describe("DateRangePicker", () => {
   };
 
   it("opens popover on trigger click and shows preset chips", () => {
-    const spy = vi.fn();
+    const spy = vi.fn<(v: DateRangeValue) => void>();
     render(<Harness initial={baseValue} onChangeSpy={spy} />);
     fireEvent.click(screen.getByRole("button", { name: /Range:/ }));
     const presetGroup = screen.getByRole("group", { name: /Date range presets/i });
@@ -57,13 +57,14 @@ describe("DateRangePicker", () => {
   });
 
   it("preset click fires onChange with from/to and preset", () => {
-    const spy = vi.fn();
+    const spy = vi.fn<(v: DateRangeValue) => void>();
     render(<Harness initial={baseValue} onChangeSpy={spy} />);
     fireEvent.click(screen.getByRole("button", { name: /Range:/ }));
     const presetGroup = screen.getByRole("group", { name: /Date range presets/i });
     fireEvent.click(within(presetGroup).getByRole("button", { name: "7d" }));
     expect(spy).toHaveBeenCalledTimes(1);
-    const arg = spy.mock.calls[0]?.[0] as DateRangeValue;
+    const arg = spy.mock.calls[0]?.[0];
+    assert(arg);
     expect(arg.preset).toBe("7d");
     expect(arg.from).toBeInstanceOf(Date);
     expect(arg.to).toBeInstanceOf(Date);
@@ -71,24 +72,25 @@ describe("DateRangePicker", () => {
   });
 
   it("valid custom range fires onChange when Apply clicked", () => {
-    const spy = vi.fn();
+    const spy = vi.fn<(v: DateRangeValue) => void>();
     render(<Harness initial={baseValue} onChangeSpy={spy} />);
     fireEvent.click(screen.getByRole("button", { name: /Range:/ }));
     fireEvent.click(screen.getByRole("button", { name: /Custom/i }));
-    const fromInput = screen.getByLabelText("From") as HTMLInputElement;
-    const toInput = screen.getByLabelText("To") as HTMLInputElement;
+    const fromInput = screen.getByLabelText("From");
+    const toInput = screen.getByLabelText("To");
     fireEvent.change(fromInput, { target: { value: "2026-05-01" } });
     fireEvent.change(toInput, { target: { value: "2026-05-15" } });
     const apply = screen.getByRole("button", { name: "Apply" });
     expect(apply).not.toBeDisabled();
     fireEvent.click(apply);
     expect(spy).toHaveBeenCalledTimes(1);
-    const arg = spy.mock.calls[0]?.[0] as DateRangeValue;
+    const arg = spy.mock.calls[0]?.[0];
+    assert(arg);
     expect(arg.preset).toBe("custom");
   });
 
   it("disables Apply when from > to", () => {
-    const spy = vi.fn();
+    const spy = vi.fn<(v: DateRangeValue) => void>();
     render(<Harness initial={baseValue} onChangeSpy={spy} />);
     fireEvent.click(screen.getByRole("button", { name: /Range:/ }));
     fireEvent.click(screen.getByRole("button", { name: /Custom/i }));

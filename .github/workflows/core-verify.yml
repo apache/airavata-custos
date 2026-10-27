@@ -41,28 +41,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      mariadb:
-        image: mariadb:11.2
+      postgres:
+        image: postgres:17
         env:
-          MARIADB_ROOT_PASSWORD: root
-          MARIADB_DATABASE: custos
-          MARIADB_USER: admin
-          MARIADB_PASSWORD: admin
+          POSTGRES_DB: custos
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-cmd="pg_isready -U admin -d custos"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       - name: Check formatting
@@ -84,8 +83,9 @@ jobs:
         run: go test ./...
 
       # The AMIE integration suite has its own workflow and compose stack;
-      # this covers the core suite only.
+      # this covers the core suite only. The packages share one database and
+      # truncate tables, so they must not run in parallel.
       - name: Core integration tests
         env:
-          CORE_TEST_DATABASE_DSN: "admin:admin@tcp(127.0.0.1:3306)/custos?parseTime=true&charset=utf8mb4&multiStatements=true"
-        run: go test -tags integration ./internal/...
+          CORE_TEST_DATABASE_DSN: "postgres://admin:admin@127.0.0.1:5432/custos?sslmode=disable"
+        run: go test -tags integration -p 1 ./internal/...

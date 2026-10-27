@@ -22,17 +22,15 @@ package pipeline
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
@@ -51,11 +49,9 @@ import (
 const testClusterID = "00000000-0000-0000-0000-000000000001"
 
 var (
-	sharedDB         *sqlx.DB
-	sharedDBOnce     sync.Once
-	sharedDBErr      error
-	tracingInitOnce  sync.Once
-	tracingInitError error
+	sharedDB     *sqlx.DB
+	sharedDBOnce sync.Once
+	sharedDBErr  error
 )
 
 func isLocalAMIEConfigAvailable() bool {
@@ -101,16 +97,6 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 	if sharedDBErr != nil {
 		t.Fatalf("setup db: %v", sharedDBErr)
 	}
-	tracingInitOnce.Do(func() {
-		_, tracingInitError = tracing.Init(tracing.InitConfig{
-			Mode:        tracing.ModeProduction,
-			Logger:      slog.Default(),
-			ServiceName: "custos",
-		})
-	})
-	if tracingInitError != nil {
-		t.Fatalf("tracing init: %v", tracingInitError)
-	}
 	truncateAll(t, sharedDB)
 	seedCluster(t, sharedDB)
 	return sharedDB
@@ -121,6 +107,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 	tables := []string{
 		"amie_audit_extras",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
@@ -143,23 +132,15 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"users",
 		"organizations",
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range tables {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
-	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 
 func seedCluster(t *testing.T, database *sqlx.DB) {
 	t.Helper()
 	if _, err := database.Exec(
-		"INSERT INTO compute_clusters (id, name) VALUES (?, ?)",
+		"INSERT INTO compute_clusters (id, name) VALUES ($1, $2)",
 		testClusterID, "default-cluster",
 	); err != nil {
 		t.Fatalf("seed cluster: %v", err)
@@ -167,7 +148,7 @@ func seedCluster(t *testing.T, database *sqlx.DB) {
 	// Catalog entry matching the mock packets' ResourceList, so
 	// request_project_create exercises the resource-mapping path.
 	if _, err := database.Exec(
-		"INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id) VALUES ($1, $2, $3, $4, $5)",
 		"baseline-resource", "baseline-cluster.example.edu", "CPU_HOURS", 0, testClusterID,
 	); err != nil {
 		t.Fatalf("seed catalog resource: %v", err)
@@ -178,6 +159,8 @@ func seedCluster(t *testing.T, database *sqlx.DB) {
 // server.
 type testPipeline struct {
 	db       *sqlx.DB
+	svc      *coreservice.Service
+	ctx      context.Context
 	baseURL  string
 	siteCode string
 	cancel   context.CancelFunc
@@ -202,7 +185,10 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	}
 
 	amieClient := amieclient.New(cfg)
-	eventBus := events.New()
+	eventBus, err := events.New(context.Background(), database)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
 	coreSvc := coreservice.New(database, eventBus)
 
 	packetStore := store.NewPacketStore(database)
@@ -213,13 +199,13 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	auditSvc := amieservice.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
 
 	router := handler.NewRouter(
-		handler.NewRequestProjectCreateHandler(coreSvc, testClusterID, amieClient, auditSvc),
+		handler.NewRequestProjectCreateHandler(coreSvc, testClusterID, amieClient, auditSvc, nil),
 		handler.NewRequestAccountCreateHandler(coreSvc, testClusterID, amieClient, auditSvc),
 		handler.NewRequestProjectInactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestProjectReactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestAccountInactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestAccountReactivateHandler(coreSvc, amieClient, auditSvc),
-		handler.NewRequestPersonMergeHandler(coreSvc, userDNStore, amieClient, auditSvc),
+		handler.NewRequestPersonMergeHandler(coreSvc, userDNStore, eventStore, amieClient, auditSvc),
 		handler.NewRequestUserModifyHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewDataProjectCreateHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewDataAccountCreateHandler(coreSvc, userDNStore, amieClient, auditSvc),
@@ -227,18 +213,22 @@ func newTestPipeline(t *testing.T) *testPipeline {
 		handler.NewNoOpHandler(),
 	)
 
+	handler.NewHeldReplies(database, packetStore, amieClient, auditSvc).Subscribe(eventBus, "amie-processor")
+
 	met := metrics.NewWithRegistry(prometheus.NewRegistry())
 	poller := worker.NewPoller(amieClient, packetStore, eventStore, met, database, cfg)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, database, cfg)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, amieClient, database, cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	pipe := &testPipeline{
 		db:       database,
+		svc:      coreSvc,
+		ctx:      ctx,
 		baseURL:  cfg.BaseURL,
 		siteCode: cfg.SiteCode,
 		cancel:   cancel,
 	}
-	pipe.wg.Add(2)
+	pipe.wg.Add(3)
 	go func() {
 		defer pipe.wg.Done()
 		poller.Run(ctx)
@@ -247,21 +237,45 @@ func newTestPipeline(t *testing.T) *testPipeline {
 		defer pipe.wg.Done()
 		processor.Run(ctx)
 	}()
+	go func() {
+		defer pipe.wg.Done()
+		eventBus.Run(ctx)
+	}()
 	return pipe
+}
+
+// startApproving stands in for an admin who approves every new cluster
+// account, so held replies are released, and the scenario can finish.
+func (p *testPipeline) startApproving() {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-p.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+			var ids []string
+			var reviewer string
+			if p.db.SelectContext(p.ctx, &ids, "SELECT id FROM compute_cluster_users WHERE approval_status = 'PENDING'") != nil ||
+				len(ids) == 0 || p.db.GetContext(p.ctx, &reviewer, "SELECT id FROM users LIMIT 1") != nil {
+				continue
+			}
+			ctx, span := tracing.Start(p.ctx, "test.approve")
+			for _, id := range ids {
+				_, _ = p.svc.ApproveComputeClusterUser(ctx, id, reviewer)
+			}
+			span.End()
+		}
+	}()
 }
 
 func (p *testPipeline) stop() {
 	p.cancel()
 	p.wg.Wait()
-	flushTracing()
-}
-
-func flushTracing() {
-	if tp, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider); ok {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = tp.ForceFlush(ctx)
-	}
 }
 
 func (p *testPipeline) fireScenario(t *testing.T, scenarioType string) {
@@ -289,7 +303,7 @@ func (p *testPipeline) waitForDrain(t *testing.T, expectPackets int, deadline ti
 			t.Fatalf("count packets: %v", err)
 		}
 		if err := p.db.Get(&pendingDecode,
-			"SELECT COUNT(*) FROM amie_packets WHERE status = 'NEW'",
+			"SELECT COUNT(*) FROM amie_packets WHERE status IN ('NEW', 'WAITING_APPROVAL')",
 		); err != nil {
 			t.Fatalf("count pending packets: %v", err)
 		}
@@ -307,13 +321,13 @@ func (p *testPipeline) waitForDrain(t *testing.T, expectPackets int, deadline ti
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
-	var decoded int
-	if err := p.db.Get(&decoded,
-		"SELECT COUNT(*) FROM amie_packets WHERE status = 'DECODED'",
+	var processed int
+	if err := p.db.Get(&processed,
+		"SELECT COUNT(*) FROM amie_packets WHERE status = 'PROCESSED'",
 	); err != nil {
-		t.Fatalf("count decoded: %v", err)
+		t.Fatalf("count processed: %v", err)
 	}
-	return decoded
+	return processed
 }
 
 func countRows(t *testing.T, database *sqlx.DB, table string) int {

@@ -17,17 +17,26 @@
 
 "use client";
 
-import * as React from "react";
 import { StackedAreaUsage } from "@/shared/charts/StackedAreaUsage";
-import type { PacketStatBucket, PacketStatus } from "../types";
+import * as React from "react";
+import { type PacketStatBucket, type PacketStatus, packetStatusLabel } from "../types";
 
-const STATUS_ORDER: PacketStatus[] = ["PROCESSED", "DECODED", "NEW", "FAILED"];
+const STATUS_ORDER: PacketStatus[] = [
+  "PROCESSED",
+  "DECODED",
+  "NEW",
+  "WAITING_APPROVAL",
+  "REFUSED",
+  "FAILED",
+];
 // Recharts paints area fill AND tooltip label in the same color on white.
 // Use 700-step so tooltip labels clear WCAG AA 4.5:1.
 const STATUS_COLORS: Record<PacketStatus, string> = {
   PROCESSED: "var(--custos-green-700)",
   DECODED: "var(--custos-amber-700)",
   NEW: "var(--custos-blue-700)",
+  WAITING_APPROVAL: "var(--custos-purple-700)",
+  REFUSED: "var(--custos-gray-500)",
   FAILED: "var(--custos-red-700)",
 };
 
@@ -40,13 +49,16 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
   const byDay = React.useMemo(() => {
     const days = new Map<string, Record<PacketStatus, number> & { date: string }>();
     for (const b of buckets) {
-      const row =
-        days.get(b.date) ??
-        ({ date: b.date, NEW: 0, DECODED: 0, PROCESSED: 0, FAILED: 0 } as Record<
-          PacketStatus,
-          number
-        > & { date: string });
-      row[b.status] = (row[b.status] ?? 0) + b.count;
+      const row = days.get(b.date) ?? {
+        date: b.date,
+        PROCESSED: 0,
+        DECODED: 0,
+        NEW: 0,
+        WAITING_APPROVAL: 0,
+        REFUSED: 0,
+        FAILED: 0,
+      };
+      row[b.status] += b.count;
       days.set(b.date, row);
     }
     return Array.from(days.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -79,7 +91,7 @@ export function PacketsTrendChart({ buckets, height = 220 }: PacketsTrendChartPr
               className="inline-block size-2 rounded-full"
               style={{ background: STATUS_COLORS[s] }}
             />
-            {s}
+            {packetStatusLabel(s)}
           </li>
         ))}
       </ul>

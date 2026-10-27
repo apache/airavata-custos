@@ -74,6 +74,9 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err := requireText(userGlobalID, "UserGlobalID"); err != nil {
 		return err
 	}
+	if err := requireText(getString(body, "UserEmail"), "UserEmail"); err != nil {
+		return err
+	}
 	if h.clusterID == "" {
 		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}
@@ -91,6 +94,16 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	project, err := h.svc.GetProject(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectID, err)
+	}
+	if user.ID == project.ProjectPIID {
+		if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, map[string]any{
+			"type": "inform_transaction_complete",
+			"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": "user is already the project PI"},
+		}); err != nil {
+			return fmt.Errorf("request_account_create: sending failure reply: %w", err)
+		}
+		packet.Status = model.PacketStatusRefused
+		return h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", string(packet.Status))
 	}
 
 	allocations, err := h.svc.ListComputeAllocationsByProject(ctx, project.ID)
@@ -111,7 +124,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 
 	role := normalizeAMIERole(normalizeRole(getString(body, "UserRole")))
-	membership, err := h.ensureMembership(ctx, allocation.ID, user.ID)
+	membership, err := h.ensureMembership(ctx, tx, &allocation, user.ID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure membership: %w", err)
 	}
@@ -134,11 +147,8 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		replyBody["UserOrgCode"] = v
 	}
 	reply := map[string]any{"type": "notify_account_create", "body": replyBody}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_account_create: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_account_create: audit REPLY_SENT: %w", err)
+	if err := replyWhenAccountApproved(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, account, reply); err != nil {
+		return fmt.Errorf("request_account_create: %w", err)
 	}
 	return nil
 }
@@ -191,22 +201,26 @@ func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Conte
 	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
-// ensureMembership returns the existing (allocation, user) membership or
-// creates a new one. Idempotent for re-delivered packets.
-func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
-	existing, err := h.svc.ListMembersForAllocation(ctx, allocationID)
+// ensureMembership reactivates a known member only while the allocation is active.
+// On an inactive project the member stays inactive, as the spec says.
+func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, userID string) (*models.ComputeAllocationMembership, error) {
+	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
 	if err != nil {
 		return nil, fmt.Errorf("list memberships: %w", err)
 	}
 	for _, m := range existing {
 		if m.UserID == userID {
-			cm := m.ComputeAllocationMembership
-			return &cm, nil
+			if allocation.Status != models.ACTIVE {
+				return &m.ComputeAllocationMembership, nil
+			}
+			return reactivate(ctx, tx, h.svc, m.ComputeAllocationMembership)
 		}
 	}
 	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
-		ComputeAllocationID: allocationID,
+		ComputeAllocationID: allocation.ID,
 		UserID:              userID,
+		StartTime:           allocation.StartTime,
+		EndTime:             allocation.EndTime,
 	})
 }
 

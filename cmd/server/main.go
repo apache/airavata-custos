@@ -18,7 +18,7 @@
 // Command server starts the Custos HTTP API.
 package main
 
-//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency --useStructName
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../internal/connectors,../../pkg/models -o ../../api --outputTypes yaml --parseDependency --useStructName
 //go:generate mv ../../api/swagger.yaml ../../api/core.openapi.yaml
 
 import (
@@ -102,12 +102,7 @@ func run() error {
 		return err
 	}
 
-	tracingMode := tracing.ModeProduction
-	if os.Getenv("CUSTOS_TRACING_MODE") == "noop" {
-		tracingMode = tracing.ModeNoop
-	}
 	tracingShutdown, err := tracing.Init(tracing.InitConfig{
-		Mode:        tracingMode,
 		Logger:      slog.Default(),
 		ServiceName: "custos",
 	})
@@ -122,12 +117,16 @@ func run() error {
 		}
 	}()
 
-	// Create a new event bus instance to async messaging between service and connectors
-	eventBus := events.New()
-	svc := service.New(database, eventBus)
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	// The bus carries events from the service to the connectors through the
+	// database, so nothing is lost across a restart or a failed handler.
+	eventBus, err := events.New(ctx, database)
+	if err != nil {
+		return err
+	}
+	svc := service.New(database, eventBus)
 
 	tryBootstrap(ctx, svc)
 
@@ -140,6 +139,13 @@ func run() error {
 	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, router); err != nil {
 		return err
 	}
+	// Started after the connectors, so every handler is registered before
+	// the first delivery.
+	connectorsWG.Add(1)
+	go func() {
+		defer connectorsWG.Done()
+		eventBus.Run(ctx)
+	}()
 
 	verifier, err := identity.NewJWTVerifier(ctx, cfg.Core.Auth.OIDC.Issuer, cfg.Core.Auth.OIDC.Audience)
 	if err != nil {
@@ -150,7 +156,7 @@ func run() error {
 	// identity.Middleware sits in front of the router-backed server, so every
 	// gated route sees a verified caller + privilege set on ctx.
 	authed := identity.Middleware(verifier, svc, router.PublicPaths(), srv)
-	handler := server.LoggingMiddleware(authed)
+	handler := server.LoggingMiddleware(tracing.Middleware(authed))
 
 	httpServer := &http.Server{
 		Addr:              addr,

@@ -29,7 +29,7 @@ const baseCertificate: Certificate = {
 const state = vi.hoisted(() => ({
   canManage: true,
   query: {} as {
-    data?: Certificate;
+    data: Certificate | undefined;
     isLoading: boolean;
     error: Error | null;
     refetch: ReturnType<typeof vi.fn>;

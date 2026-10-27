@@ -30,7 +30,7 @@ trap cleanup EXIT
 make -s -C dev-ops/local-amie down >/dev/null 2>&1 || true
 make -s -C dev-ops/local-amie up
 
-export DATABASE_DSN="admin:admin@tcp(localhost:3307)/custos?parseTime=true&charset=utf8mb4&multiStatements=true"
+export DATABASE_DSN="postgres://admin:admin@localhost:5433/custos?sslmode=disable"
 export AMIE_BASE_URL="http://localhost:8181"
 export AMIE_SITE_CODE="TESTSITE"
 export AMIE_API_KEY="dev"

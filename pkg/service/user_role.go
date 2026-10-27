@@ -180,7 +180,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 			return fmt.Errorf("lookup existing assignment: %w", err)
 		}
 		if existing != nil {
-			slog.Info("bootstrap: super_admin already granted to user, skipping", "email", email)
+			slog.InfoContext(ctx, "bootstrap: super_admin already granted to user, skipping", "email", email)
 			return nil
 		}
 		// If another user already holds super_admin, install is past bootstrap.
@@ -189,7 +189,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 			return fmt.Errorf("count super_admin holders: %w", err)
 		}
 		if len(holders) > 0 {
-			slog.Info("bootstrap: super_admin already held by another user, skipping", "email", email)
+			slog.InfoContext(ctx, "bootstrap: super_admin already held by another user, skipping", "email", email)
 			return nil
 		}
 		assignment := &models.UserRole{
@@ -209,7 +209,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		}); err != nil {
 			return fmt.Errorf("audit bootstrap assignment: %w", err)
 		}
-		slog.Info("bootstrap: super_admin granted", "user_id", user.ID, "email", email, "source", source)
+		slog.InfoContext(ctx, "bootstrap: super_admin granted", "user_id", user.ID, "email", email, "source", source)
 		return nil
 	})
 }
@@ -219,19 +219,9 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 func (s *Service) createBootstrapUser(ctx context.Context, email, source string) (*models.User, error) {
 	var created *models.User
 	err := s.inTx(ctx, func(tx *sql.Tx) error {
-		org, err := s.orgs.FindByID(ctx, bootstrapSystemOrgID)
+		org, err := s.ensureSystemOrgTx(ctx, tx)
 		if err != nil {
-			return fmt.Errorf("lookup system org: %w", err)
-		}
-		if org == nil {
-			org = &models.Organization{
-				ID:           bootstrapSystemOrgID,
-				OriginatedID: bootstrapSystemOrgID,
-				Name:         "System",
-			}
-			if err := s.orgs.Create(ctx, tx, org); err != nil {
-				return fmt.Errorf("create system org: %w", err)
-			}
+			return err
 		}
 		created = &models.User{
 			ID:             newID(),
@@ -251,7 +241,7 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
+	slog.InfoContext(ctx, "bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
 	return created, nil
 }
 
@@ -302,6 +292,54 @@ func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*mode
 	return role, nil
 }
 
+// ensureSystemOrgTx returns the organization for users without an upstream one, creating it on first use.
+func (s *Service) ensureSystemOrgTx(ctx context.Context, tx *sql.Tx) (*models.Organization, error) {
+	org, err := s.orgs.FindByID(ctx, bootstrapSystemOrgID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup system org: %w", err)
+	}
+	if org == nil {
+		org = &models.Organization{
+			ID:           bootstrapSystemOrgID,
+			OriginatedID: bootstrapSystemOrgID,
+			Name:         "System",
+		}
+		if err := s.orgs.Create(ctx, tx, org); err != nil {
+			return nil, fmt.Errorf("create system org: %w", err)
+		}
+	}
+	return org, nil
+}
+
+// ensureAdminRoleTx creates the admin role on first use. Privileges are seeded only at creation.
+func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
+	role, err := s.roles.FindByName(ctx, models.SystemRoleAdmin)
+	if err != nil {
+		return nil, fmt.Errorf("lookup admin role: %w", err)
+	}
+	if role != nil {
+		return role, nil
+	}
+	role = &models.Role{
+		ID:          newID(),
+		Name:        models.SystemRoleAdmin,
+		Description: stringPtrOrNil("day-to-day administration, everything except grants and role management"),
+		IsSystem:    true,
+	}
+	if err := s.roles.Create(ctx, tx, role); err != nil {
+		return nil, fmt.Errorf("create admin role: %w", err)
+	}
+	for _, key := range models.KnownPrivileges() {
+		if key == models.PrivilegesGrant || key == models.RolesManage {
+			continue
+		}
+		if err := s.roles.AddPrivilege(ctx, tx, role.ID, key); err != nil {
+			return nil, fmt.Errorf("attach %s to admin: %w", key, err)
+		}
+	}
+	return role, nil
+}
+
 // assertNotLastMetaHolderTx refuses revoke if it would leave no holder of
 // privileges:grant or roles:manage anywhere in the system.
 func (s *Service) assertNotLastMetaHolderTx(ctx context.Context, tx *sql.Tx, userID, roleID string) error {
@@ -343,11 +381,11 @@ func (s *Service) countUsersHoldingPrivilegeTx(ctx context.Context, tx *sql.Tx, 
 	var n int
 	err := tx.QueryRowContext(ctx,
 		`SELECT COUNT(DISTINCT user_id) FROM (
-		   SELECT user_id FROM user_privileges WHERE privilege = ?
+		   SELECT user_id FROM user_privileges WHERE privilege = $1
 		   UNION
 		   SELECT ur.user_id FROM user_roles ur
 		     JOIN role_privileges rp ON rp.role_id = ur.role_id
-		     WHERE rp.privilege = ?
+		     WHERE rp.privilege = $2
 		 ) AS holders`, key, key).Scan(&n)
 	return n, err
 }
@@ -358,11 +396,11 @@ func (s *Service) userHasPrivilegeOutsideTx(ctx context.Context, tx *sql.Tx, use
 	var n int
 	err := tx.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM (
-		   SELECT 1 FROM user_privileges WHERE user_id = ? AND privilege = ?
+		   SELECT 1 FROM user_privileges WHERE user_id = $1 AND privilege = $2
 		   UNION ALL
 		   SELECT 1 FROM user_roles ur
 		     JOIN role_privileges rp ON rp.role_id = ur.role_id
-		     WHERE ur.user_id = ? AND ur.role_id <> ? AND rp.privilege = ?
+		     WHERE ur.user_id = $3 AND ur.role_id <> $4 AND rp.privilege = $5
 		 ) AS sources`, userID, key, userID, excludeRoleID, key).Scan(&n)
 	if err != nil {
 		return false, err

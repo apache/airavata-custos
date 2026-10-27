@@ -19,21 +19,45 @@ import { describe, expect, it } from "vitest";
 import { buildPrivilegeRows } from "../privileges";
 import type { MyAccess } from "../queries";
 
+const role = (id: string, name: string) => ({
+  id,
+  name,
+  description: null,
+  is_system: false,
+  created_at: "2026-01-01T00:00:00Z",
+});
+const grant = (role_id: string) => ({
+  user_id: "u-1",
+  role_id,
+  granted_at: "2026-01-01T00:00:00Z",
+  granted_by: null,
+  reason: null,
+});
+
 const access: MyAccess = {
   provenance: true,
   roles: [
     {
-      role: { id: "role-admin", name: "Administrator", is_system: true },
+      role: { ...role("role-admin", "Administrator"), is_system: true },
       privileges: ["core:users:read", "core:users:write", "core:roles:manage"],
-      grant: { role_id: "role-admin" },
+      grant: grant("role-admin"),
     },
     {
-      role: { id: "role-amie", name: "AMIE Operator" },
+      role: role("role-amie", "AMIE Operator"),
       privileges: ["amie:packets:read", "amie:packets:write"],
-      grant: { role_id: "role-amie" },
+      grant: grant("role-amie"),
     },
   ],
-  direct: [{ privilege: "core:traces:read" }],
+  direct: [
+    {
+      id: "grant-1",
+      user_id: "u-1",
+      privilege: "core:traces:read",
+      granted_at: "2026-01-01T00:00:00Z",
+      granted_by: null,
+      reason: null,
+    },
+  ],
   privileges: [
     "core:users:read",
     "core:users:write",

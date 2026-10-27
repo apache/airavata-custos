@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -29,6 +30,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -83,32 +85,36 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"roles",
 		"user_privileges",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"user_identities",
 		"users",
 		"organizations",
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range tables {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
-	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 
 func newTestService(database *sqlx.DB) *Service {
-	return New(database, events.New())
+	return New(database, newTestBus(database))
+}
+
+// newTestBus creates a bus on the test database and panics if that fails.
+func newTestBus(database *sqlx.DB) *events.Bus {
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		panic("event bus: " + err.Error())
+	}
+	return bus
 }
 
 func seedOrg(t *testing.T, database *sqlx.DB) string {
 	t.Helper()
 	orgID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+		"INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		orgID, "TEST-ORG-"+orgID[:8], "Test Org",
 	); err != nil {
 		t.Fatalf("seed org: %v", err)
@@ -121,7 +127,7 @@ func seedUser(t *testing.T, database *sqlx.DB, email string) string {
 	orgID := seedOrg(t, database)
 	userID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		userID, orgID, "Test", "User", "", email, string(models.UserActive), string(models.UserTypeClusterLocal),
 	); err != nil {
 		t.Fatalf("seed user %s: %v", email, err)
@@ -136,7 +142,7 @@ func seedPrivilegesGrant(t *testing.T, database *sqlx.DB, userID string) {
 	t.Helper()
 	if _, err := database.Exec(
 		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES (?, ?, ?, NOW(6), 'seed')`,
+		 VALUES ($1, $2, $3, NOW(), 'seed')`,
 		uuid.NewString(), userID, string(models.PrivilegesGrant),
 	); err != nil {
 		t.Fatalf("seed privileges:grant for %s: %v", userID, err)
@@ -147,7 +153,7 @@ func countAuditEventsOfType(t *testing.T, database *sqlx.DB, eventType, entityID
 	t.Helper()
 	var n int
 	if err := database.Get(&n,
-		"SELECT COUNT(*) FROM audit_events WHERE event_type = ? AND entity_id = ?",
+		"SELECT COUNT(*) FROM audit_events WHERE event_type = $1 AND entity_id = $2",
 		eventType, entityID,
 	); err != nil {
 		t.Fatalf("count audit_events: %v", err)
@@ -155,4 +161,4 @@ func countAuditEventsOfType(t *testing.T, database *sqlx.DB, eventType, entityID
 	return n
 }
 
-func ctx() context.Context { return context.Background() }
+func ctx() context.Context { return tracingtest.Context() }

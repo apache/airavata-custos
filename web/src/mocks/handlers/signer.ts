@@ -69,7 +69,7 @@ export const signerHandlers = [
   }),
 
   http.get("*/api/v1/signer/admin/certificates/:serial", ({ params }) => {
-    const serial = Number(params.serial);
+    const serial = Number(params["serial"]);
     const found = certificates.find((c) => c.serial_number === serial);
     if (!found) return HttpResponse.json({ error: "certificate not found" }, { status: 404 });
     return HttpResponse.json(found);
@@ -101,7 +101,7 @@ export const signerHandlers = [
         { status: 403 },
       );
     }
-    const serial = Number(params.serial);
+    const serial = Number(params["serial"]);
     const cert = certificates.find((c) => c.serial_number === serial);
     if (!cert) return HttpResponse.json({ error: "certificate not found" }, { status: 404 });
 

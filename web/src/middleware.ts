@@ -18,10 +18,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 // Inlined from shared/auth/auth.ts to keep next-auth out of the bundle.
-const SESSION_COOKIES = [
-  "__Secure-custos.session-token",
-  "custos.session-token",
-];
+const SESSION_COOKIES = ["__Secure-custos.session-token", "custos.session-token"];
 
 // Signed-out users get the landing page; the check is presence-only, an
 // invalid cookie falls through to the portal's own auth gate.

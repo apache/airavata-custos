@@ -20,6 +20,8 @@ package tracing
 import (
 	"context"
 	"log/slog"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 type slogHandler struct {
@@ -35,12 +37,8 @@ func (h *slogHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *slogHandler) Handle(ctx context.Context, record slog.Record) error {
-	traceID, spanID := IDsFromContext(ctx)
-	if traceID != "" {
-		record.AddAttrs(slog.String("trace_id", traceID))
-	}
-	if spanID != "" {
-		record.AddAttrs(slog.String("span_id", spanID))
+	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
+		record.AddAttrs(slog.String("trace_id", sc.TraceID().String()), slog.String("span_id", sc.SpanID().String()))
 	}
 	return h.inner.Handle(ctx, record)
 }

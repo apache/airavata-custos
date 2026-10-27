@@ -55,6 +55,119 @@ func mergeUnixClusterAccount(composite json.RawMessage, block UnixClusterAccount
 	return out, nil
 }
 
+// removeLogin returns the person's record without the cluster account and the
+// uid identifier of this username. Everything else on the person is kept.
+//
+// This is how the two are deleted in the registry. The caller sends the
+// record back with the person update (PUT), and the registry deletes any
+// entry the record no longer has. The person itself is not deleted.
+//
+// It reports false when the person has neither, so there is nothing to send.
+func removeLogin(composite json.RawMessage, username string) ([]byte, bool, error) {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(composite, &top); err != nil {
+		return nil, false, fmt.Errorf("decode composite: %w", err)
+	}
+	is := func(raw json.RawMessage, want string) bool {
+		var got string
+		return json.Unmarshal(raw, &got) == nil && got == want
+	}
+	account, err := dropEntries(top, "UnixClusterAccount", func(e map[string]json.RawMessage) bool {
+		return is(e["username"], username)
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	ident, err := dropEntries(top, "Identifier", func(e map[string]json.RawMessage) bool {
+		return is(e["type"], "uid") && is(e["identifier"], username)
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	out, err := json.Marshal(top)
+	if err != nil {
+		return nil, false, fmt.Errorf("encode composite: %w", err)
+	}
+	return out, account || ident, nil
+}
+
+// dropEntries removes the matching entries of one composite array and reports
+// whether any matched.
+func dropEntries(top map[string]json.RawMessage, key string, match func(map[string]json.RawMessage) bool) (bool, error) {
+	raw, ok := top[key]
+	if !ok {
+		return false, nil
+	}
+	var entries []map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		return false, fmt.Errorf("decode %s array: %w", key, err)
+	}
+	kept := make([]map[string]json.RawMessage, 0, len(entries))
+	for _, e := range entries {
+		if !match(e) {
+			kept = append(kept, e)
+		}
+	}
+	keptJSON, err := json.Marshal(kept)
+	if err != nil {
+		return false, fmt.Errorf("encode %s array: %w", key, err)
+	}
+	top[key] = keptJSON
+	return len(kept) != len(entries), nil
+}
+
+// mergeLoginIdentifier sets the composite's uid identifier to username. The
+// composite PUT is the only person-identifier write the registry authorizes,
+// and the directory maps the login name from this entry.
+func mergeLoginIdentifier(composite json.RawMessage, username string) ([]byte, error) {
+	return mergeIdentifier(composite, "uid", username, false)
+}
+
+// mergeIdentifier sets one identifier of the given type, replacing an existing
+// entry of the same type rather than adding a second one.
+func mergeIdentifier(composite json.RawMessage, identifierType, value string, login bool) ([]byte, error) {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(composite, &top); err != nil {
+		return nil, fmt.Errorf("decode composite: %w", err)
+	}
+	var idents []map[string]json.RawMessage
+	if raw, ok := top["Identifier"]; ok {
+		if err := json.Unmarshal(raw, &idents); err != nil {
+			return nil, fmt.Errorf("decode Identifier array: %w", err)
+		}
+	}
+	encoded, _ := json.Marshal(value)
+	replaced := false
+	for _, ident := range idents {
+		var typ string
+		_ = json.Unmarshal(ident["type"], &typ)
+		if typ == identifierType {
+			ident["identifier"] = encoded
+			replaced = true
+		}
+	}
+	if !replaced {
+		loginJSON, _ := json.Marshal(login)
+		typeJSON, _ := json.Marshal(identifierType)
+		idents = append(idents, map[string]json.RawMessage{
+			"identifier": encoded,
+			"type":       typeJSON,
+			"login":      loginJSON,
+			"status":     json.RawMessage(`"A"`),
+		})
+	}
+	identsJSON, err := json.Marshal(idents)
+	if err != nil {
+		return nil, fmt.Errorf("encode Identifier array: %w", err)
+	}
+	top["Identifier"] = identsJSON
+	out, err := json.Marshal(top)
+	if err != nil {
+		return nil, fmt.Errorf("encode merged composite: %w", err)
+	}
+	return out, nil
+}
+
 // extractIdentifier returns the first Identifier.identifier whose type matches,
 // or "" if none.
 func extractIdentifier(composite json.RawMessage, identifierType string) (string, error) {

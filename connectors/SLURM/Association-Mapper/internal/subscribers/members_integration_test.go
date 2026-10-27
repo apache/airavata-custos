@@ -121,7 +121,7 @@ func TestSubscribeToComputeAllocationMembershipCreation(t *testing.T) {
 		UserID:              "user-001",
 		ComputeAllocationID: computeAllocationID,
 	}
-	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService)
+	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
 	associationSubscriber.SubscribeToComputeAllocationMembershipCreation(context.Background(), *membership)
 
 	if len(auditEvents) != 1 {
@@ -248,7 +248,7 @@ func TestSubscribeToComputeAllocationMembershipResourceOverrideCreation(t *testi
 		OverrideResourceTime:          1,
 	}
 
-	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService)
+	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
 
 	associationSubscriber.SubscribeToComputeAllocationMembershipResourceOverrideCreation(context.Background(), *override)
 

@@ -32,11 +32,36 @@ type ComputeCluster struct {
 	Name string `json:"name" db:"name"` // A human-readable name for the compute cluster, e.g., "Cluster A", "Cluster B", etc.
 }
 
+// ClusterAccessLevel is the user's access on the cluster, a regular login or
+// an administrator. It is separate from the roles they hold in Custos.
+type ClusterAccessLevel string
+
+const (
+	ClusterAccessUser  ClusterAccessLevel = "USER"
+	ClusterAccessAdmin ClusterAccessLevel = "ADMIN"
+)
+
+// ClusterAccountApproval is the admin's decision on a cluster account.
+// The account is created on the cluster only after it is approved.
+type ClusterAccountApproval string
+
+const (
+	ClusterAccountPending  ClusterAccountApproval = "PENDING"
+	ClusterAccountApproved ClusterAccountApproval = "APPROVED"
+	ClusterAccountDenied   ClusterAccountApproval = "DENIED"
+)
+
 type ComputeClusterUser struct {
-	ID               string `json:"id"                db:"id"`
-	ComputeClusterID string `json:"compute_cluster_id" db:"compute_cluster_id"`
-	UserID           string `json:"user_id"            db:"user_id"`
-	LocalUsername    string `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	ID               string                 `json:"id"                db:"id"`
+	ComputeClusterID string                 `json:"compute_cluster_id" db:"compute_cluster_id"`
+	UserID           string                 `json:"user_id"            db:"user_id"`
+	LocalUsername    string                 `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	AccessLevel      ClusterAccessLevel     `json:"access_level"       db:"access_level"`
+	ProvisionedAt    *time.Time             `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
+	ApprovalStatus   ClusterAccountApproval `json:"approval_status"    db:"approval_status"`
+	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
+	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
 }
 
 type ComputeAllocation struct {
@@ -45,9 +70,12 @@ type ComputeAllocation struct {
 	Name             string           `json:"name"               db:"name"`
 	Status           AllocationStatus `json:"status"             db:"status"`             // ACTIVE, INACTIVE, DELETED, etc.
 	ComputeClusterID string           `json:"compute_cluster_id" db:"compute_cluster_id"` // The ID of the compute cluster where the allocation is provisioned.
-	InitialSUAmount  int64            `json:"initial_su_amount"  db:"initial_su_amount"`  // SUs allocated at the time of allocation creation.
+	InitialSUAmount  float64          `json:"initial_su_amount"  db:"initial_su_amount"`  // The allocation's SU budget, exactly as the source granted it.
 	StartTime        time.Time        `json:"start_time"         db:"start_time"`
 	EndTime          time.Time        `json:"end_time"           db:"end_time"`
+
+	PosixGroup         *string    `json:"posix_group" db:"posix_group"`                   // Fixed at creation; the group's name everywhere.
+	GroupProvisionedAt *time.Time `json:"group_provisioned_at" db:"group_provisioned_at"` // When the group gained its first member and so reached the cluster; nil until then.
 }
 
 // Typically store the a paritition information
@@ -80,7 +108,7 @@ type ComputeAllocationDiff struct { // Diff will occur either through a change r
 	ID                  string           `json:"id"                    db:"id"`
 	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
 	DiffType            string           `json:"diff_type"             db:"diff_type"`     // "USAGE_UPDATE", "ALLOCATION_STATUS_CHANGE", etc.
-	NewSUAmount         int64            `json:"new_su_amount"         db:"new_su_amount"` // New allocation amount in SUs, e.g., 900 SUs, etc.
+	NewSUAmount         float64          `json:"new_su_amount"         db:"new_su_amount"` // The SU amount of this change, as the source sent it.
 	Status              AllocationStatus `json:"status"                db:"status"`        // ACTIVE, INACTIVE, DELETED, etc.
 	Timestamp           time.Time        `json:"timestamp"             db:"timestamp"`     // The time when the diff was generated.
 	Description         string           `json:"description,omitempty" db:"description"`   // Optional description of the diff, e.g., "SU usage updated based on job completion", "Allocation marked as INACTIVE due to end time reached", etc.
@@ -89,7 +117,7 @@ type ComputeAllocationDiff struct { // Diff will occur either through a change r
 type ComputeAllocationChangeRequest struct { // Represents a request to change the allocation, e.g., requesting more SUs, requesting a reduction in SUs, etc from users or admins.
 	ID                  string           `json:"id"                    db:"id"`
 	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
-	RequestedSUAmount   int64            `json:"requested_su_amount"   db:"requested_su_amount"` // The requested allocation amount in SUs, e.g., 1200 SUs, etc.
+	RequestedSUAmount   float64          `json:"requested_su_amount"   db:"requested_su_amount"` // The requested allocation amount in SUs, e.g., 1200 SUs, etc.
 	RequestedStatus     AllocationStatus `json:"requested_status"      db:"requested_status"`    // ACTIVE, INACTIVE, DELETED, etc.
 	Reason              string           `json:"reason"                db:"reason"`              // The reason for the change request, e.g., "Need more SUs for upcoming jobs", "Requesting reduction in SUs due to project completion", etc.
 	ChangeStatus        string           `json:"change_status"         db:"change_status"`       // "PENDING", "APPROVED", "REJECTED", etc.
@@ -111,7 +139,7 @@ type ComputeAllocationUsage struct { // Represents the usage of a compute alloca
 	ComputeAllocationID         string    `json:"compute_allocation_id"          db:"compute_allocation_id"`
 	UsedRawAmount               float64   `json:"used_raw_amount"                db:"used_raw_amount"`                // The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours, etc.
 	UsedSUAmount                float64   `json:"used_su_amount"                 db:"used_su_amount"`                 // SUs used by the allocation, e.g., 200 SUs, etc.
-	CalculatedTime              time.Time `json:"last_updated"                   db:"calculated_time"`                // The last time the usage was updated. SU should be calculated up to this point in time and charge rates should be applied based on the rates effective at this time.
+	CalculatedTime              time.Time `json:"last_updated"                   db:"calculated_time"`                // When the job ended. Picks the rate and the allocation period the usage counts against.
 	UserID                      string    `json:"user_id"                        db:"user_id"`                        // The ID of the user who used the allocation.
 	JobID                       string    `json:"job_id"                         db:"job_id"`                         // The ID of the job that consumed the allocation.
 	ComputeAllocationResourceID string    `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"` // The specific resource consumed, e.g., 20 CPU hours, 10 GPU hours, etc.

@@ -28,7 +28,7 @@ definitions:
       compute_allocation_id:
         type: string
       total_su_amount:
-        type: integer
+        type: number
     type: object
   AllocationStatus:
     enum:
@@ -40,8 +40,74 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
+  AuditEvent:
+    properties:
+      details:
+        description: Additional details about the event, stored as a JSON string or
+          plain text.
+        type: string
+      entity_id:
+        description: ID of the entity the event is about.
+        type: string
+      entity_type:
+        description: Kind of the entity ("user", "role", "compute_cluster_user", "packet",
+          etc.).
+        type: string
+      event_time:
+        type: string
+      event_type:
+        description: e.g., "COMPUTE_ALLOCATION_CREATED", "COMPUTE_ALLOCATION_UPDATED",
+          "COMPUTE_ALLOCATION_DELETED", etc.
+        type: string
+      id:
+        type: string
+      parent_span_id:
+        type: string
+      source:
+        description: Subsystem that produced the event (e.g., "amie", "comanage",
+          "slurm", "core", etc.).
+        type: string
+      span_id:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  CallerClusterAccount:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
+      user_id:
+        type: string
+    type: object
   CallerProfileResponse:
     properties:
+      cluster_accounts:
+        items:
+          $ref: '#/definitions/CallerClusterAccount'
+        type: array
       privileges:
         items:
           $ref: '#/definitions/PrivilegeKey'
@@ -64,6 +130,77 @@ definitions:
       role:
         $ref: '#/definitions/Role'
     type: object
+  ClusterAccessLevel:
+    enum:
+    - USER
+    - ADMIN
+    type: string
+    x-enum-varnames:
+    - ClusterAccessUser
+    - ClusterAccessAdmin
+  ClusterAccountApproval:
+    enum:
+    - PENDING
+    - APPROVED
+    - DENIED
+    type: string
+    x-enum-varnames:
+    - ClusterAccountPending
+    - ClusterAccountApproved
+    - ClusterAccountDenied
+  ClusterAccountListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ClusterAccountResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ClusterAccountResponse:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      project_id:
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      requested_at:
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
+      reviewer_name:
+        type: string
+      user_id:
+        type: string
+    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -71,12 +208,19 @@ definitions:
         type: string
       end_time:
         type: string
+      group_provisioned_at:
+        description: When the group gained its first member and so reached the cluster;
+          nil until then.
+        type: string
       id:
         type: string
       initial_su_amount:
-        description: SUs allocated at the time of allocation creation.
-        type: integer
+        description: The allocation's SU budget, exactly as the source granted it.
+        type: number
       name:
+        type: string
+      posix_group:
+        description: Fixed at creation; the group's name everywhere.
         type: string
       project_id:
         type: string
@@ -110,7 +254,7 @@ definitions:
         description: ACTIVE, INACTIVE, DELETED, etc.
       requested_su_amount:
         description: The requested allocation amount in SUs, e.g., 1200 SUs, etc.
-        type: integer
+        type: number
       requester_id:
         description: The ID of the user who made the change request.
         type: string
@@ -150,8 +294,8 @@ definitions:
       id:
         type: string
       new_su_amount:
-        description: New allocation amount in SUs, e.g., 900 SUs, etc.
-        type: integer
+        description: The SU amount of this change, as the source sent it.
+        type: number
       status:
         allOf:
         - $ref: '#/definitions/AllocationStatus'
@@ -297,9 +441,8 @@ definitions:
         description: The ID of the job that consumed the allocation.
         type: string
       last_updated:
-        description: The last time the usage was updated. SU should be calculated
-          up to this point in time and charge rates should be applied based on the
-          rates effective at this time.
+        description: When the job ended. Picks the rate and the allocation period
+          the usage counts against.
         type: string
       used_raw_amount:
         description: The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours,
@@ -323,6 +466,10 @@ definitions:
     type: object
   ComputeClusterUser:
     properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
       compute_cluster_id:
         type: string
       id:
@@ -331,9 +478,120 @@ definitions:
         description: The username of the user on the compute cluster, which may be
           different from their Airavata Custos username.
         type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
       user_id:
         type: string
     type: object
+  ConnectorCheck:
+    properties:
+      checked_at:
+        type: string
+      error:
+        type: string
+      ok:
+        type: boolean
+      target:
+        type: string
+    type: object
+  ConnectorListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ConnectorStatus'
+        type: array
+    type: object
+  ConnectorStatus:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/ConnectorCheck'
+        type: array
+      enabled:
+        type: boolean
+      failed_deliveries:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  DeliveryCounts:
+    properties:
+      attempts:
+        type: integer
+      failed:
+        type: integer
+      pending:
+        type: integer
+      succeeded:
+        type: integer
+    type: object
+  DeliveryHistory:
+    properties:
+      attempts:
+        type: integer
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/Event'
+      event_id:
+        type: string
+      finished_at:
+        type: string
+      history:
+        items:
+          $ref: '#/definitions/AuditEvent'
+        type: array
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
+  Event:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: string
+      payload:
+        type: object
+      source:
+        description: Subsystem that published the event.
+        type: string
+      span_id:
+        description: Publisher's span, the parent of its deliveries.
+        type: string
+      trace_id:
+        type: string
+    type: object
+  EventDeliveryStatus:
+    enum:
+    - PENDING
+    - SUCCEEDED
+    - FAILED
+    type: string
+    x-enum-varnames:
+    - EventDeliveryPending
+    - EventDeliverySucceeded
+    - EventDeliveryFailed
   Organization:
     properties:
       id:
@@ -354,6 +612,29 @@ definitions:
       total:
         type: integer
     type: object
+  PendingDelivery:
+    properties:
+      attempts:
+        type: integer
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/Event'
+      event_id:
+        type: string
+      finished_at:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   PrivilegeKey:
     enum:
     - core:clusters:read
@@ -369,6 +650,7 @@ definitions:
     - core:traces:read
     - core:privileges:grant
     - core:roles:manage
+    - core:events:manage
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -384,6 +666,7 @@ definitions:
     - TracesRead
     - PrivilegesGrant
     - RolesManage
+    - EventsManage
   Project:
     properties:
       created_time:
@@ -435,6 +718,7 @@ definitions:
       email:
         type: string
       id:
+        description: The user's id.
         type: string
       project_id:
         type: string
@@ -464,6 +748,8 @@ definitions:
         type: string
       project_pi_id:
         type: string
+      ref:
+        type: string
       status:
         $ref: '#/definitions/ProjectStatus'
       title:
@@ -492,6 +778,36 @@ definitions:
       name:
         type: string
     type: object
+  Subscription:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      loaded:
+        type: boolean
+      subscriber:
+        type: string
+    type: object
+  TraceDelivery:
+    properties:
+      attempts:
+        type: integer
+      event_type:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      span_id:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   TraceEvent:
     properties:
       created_at:
@@ -503,6 +819,8 @@ definitions:
       entity_type:
         type: string
       event_type:
+        type: string
+      id:
         type: string
       parent_span_id:
         type: string
@@ -529,6 +847,8 @@ definitions:
         type: string
       event_type:
         type: string
+      id:
+        type: string
       parent_span_id:
         type: string
       source:
@@ -540,6 +860,8 @@ definitions:
     type: object
   TraceSummary:
     properties:
+      deliveries:
+        $ref: '#/definitions/DeliveryCounts'
       ended_at:
         type: string
       event_count:
@@ -579,7 +901,7 @@ definitions:
       compute_allocation_id:
         type: string
       total_su_amount:
-        type: integer
+        type: number
       user_id:
         type: string
     type: object
@@ -677,11 +999,46 @@ definitions:
       resource_time:
         type: integer
     type: object
+  createComputeClusterUserRequest:
+    properties:
+      compute_cluster_id:
+        type: string
+      local_username:
+        type: string
+      user_id:
+        type: string
+    type: object
   createRoleRequest:
     properties:
       description:
         type: string
       name:
+        type: string
+    type: object
+  createUserRequest:
+    properties:
+      allocation_id:
+        type: string
+      cluster_admin:
+        type: boolean
+      compute_cluster_id:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      organization_id:
+        type: string
+      portal_admin:
+        type: boolean
+      username:
+        type: string
+    type: object
+  denyClusterAccountRequest:
+    properties:
+      note:
         type: string
     type: object
   grantPrivilegeRequest:
@@ -720,12 +1077,26 @@ definitions:
       privilege:
         $ref: '#/definitions/PrivilegeKey'
     type: object
+  setAllocationResourcesRequest:
+    properties:
+      resource_ids:
+        items:
+          type: string
+        type: array
+    type: object
   updateAllocationResourceMappingRequest:
     properties:
       resource_amount:
         type: integer
       resource_time:
         type: integer
+    type: object
+  updateProjectRequest:
+    properties:
+      project_pi_id:
+        type: string
+      title:
+        type: string
     type: object
   updateRoleRequest:
     properties:
@@ -912,6 +1283,12 @@ paths:
           description: OK
           schema:
             properties:
+              deliveries:
+                items:
+                  $ref: '#/definitions/TraceDelivery'
+                type: array
+              status:
+                type: string
               trace_id:
                 type: string
               tree:
@@ -1732,6 +2109,29 @@ paths:
       tags:
       - Compute Allocation Resources
   /compute-allocation-resources/{id}:
+    delete:
+      description: Removes the resource with its rates and its grants to allocations.
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a compute allocation resource
+      tags:
+      - Compute Allocation Resources
     get:
       parameters:
       - description: Resource ID
@@ -1758,6 +2158,47 @@ paths:
       summary: Get a compute allocation resource
       tags:
       - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeAllocationResource'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationResource'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a compute allocation resource
+      tags:
+      - Compute Allocation Resources
   /compute-allocation-resources/{id}/allocations:
     get:
       parameters:
@@ -1773,7 +2214,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/ComputeAllocationResourceMapping'
+              $ref: '#/definitions/ComputeAllocation'
             type: array
         "404":
           description: Not Found
@@ -1991,6 +2432,10 @@ paths:
       - Compute Allocation Usages
   /compute-allocations:
     get:
+      description: Callers without the allocations read privilege get only allocations
+        where they hold a membership or a governance role on the parent project; for
+        them only project_id applies, and other filters and pagination apply to privileged
+        callers only.
       parameters:
       - description: Filter by project ID
         in: query
@@ -2019,6 +2464,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ComputeAllocationListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: List compute allocations (filtered + paginated)
@@ -2054,7 +2506,32 @@ paths:
       tags:
       - Compute Allocations
   /compute-allocations/{id}:
+    delete:
+      description: Removes the allocation with its memberships, resources and usage.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a compute allocation
+      tags:
+      - Compute Allocations
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2068,6 +2545,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ComputeAllocation'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2167,6 +2651,8 @@ paths:
       - Compute Allocation Diffs
   /compute-allocations/{id}/memberships:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2182,6 +2668,13 @@ paths:
             items:
               $ref: '#/definitions/AllocationMembershipResponse'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2196,6 +2689,8 @@ paths:
       - Compute Allocation Memberships
   /compute-allocations/{id}/resources:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2211,6 +2706,13 @@ paths:
             items:
               $ref: '#/definitions/ComputeAllocationResourceMapping'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2264,6 +2766,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Attach a resource to a compute allocation
+      tags:
+      - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      description: Replaces the allocation's resources with the given ones. Usage
+        on any of them is charged to the allocation's SUs.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/setAllocationResourcesRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set the resources a compute allocation grants
       tags:
       - Compute Allocation Resources
   /compute-allocations/{id}/resources/{resourceId}:
@@ -2342,6 +2883,8 @@ paths:
       - Compute Allocation Resources
   /compute-allocations/{id}/usages:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2357,6 +2900,13 @@ paths:
             items:
               $ref: '#/definitions/ComputeAllocationUsage'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2371,6 +2921,8 @@ paths:
       - Compute Allocation Usages
   /compute-allocations/{id}/usages/total:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2384,6 +2936,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/AllocationSUTotalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2429,6 +2988,46 @@ paths:
       tags:
       - Compute Allocation Usages
   /compute-cluster-users:
+    get:
+      description: Cluster users with their user, cluster, and the user's newest allocation
+        on that cluster. PENDING comes grouped by allocation, the rest newest first.
+        Every status unless one is given.
+      parameters:
+      - description: PENDING | APPROVED | DENIED
+        in: query
+        name: approval_status
+        type: string
+      - description: Matches name, email, username, allocation, or project
+        in: query
+        name: q
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ClusterAccountListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List cluster accounts by approval status
+      tags:
+      - Compute Cluster Users
     post:
       consumes:
       - application/json
@@ -2438,7 +3037,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/ComputeClusterUser'
+          $ref: '#/definitions/createComputeClusterUserRequest'
       produces:
       - application/json
       responses:
@@ -2521,7 +3120,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/ComputeClusterUser'
+          $ref: '#/definitions/createComputeClusterUserRequest'
       produces:
       - application/json
       responses:
@@ -2546,6 +3145,94 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a compute cluster user
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/approve:
+    post:
+      description: Records the caller as the approver and starts creating the account
+        on the cluster.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterUser'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Already approved
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve a cluster account
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/deny:
+    post:
+      consumes:
+      - application/json
+      description: Records the caller's decision and the reason. No account is created
+        on the cluster, and the reason is passed on to whoever requested the account.
+        The user keeps portal access.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason for the denial
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/denyClusterAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterUser'
+        "400":
+          description: Reason missing
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Already approved or denied
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deny a cluster account
       tags:
       - Compute Cluster Users
   /compute-clusters:
@@ -2688,6 +3375,144 @@ paths:
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
+  /connectors:
+    get:
+      description: Checks are the cached outcome of each connector's own work; nothing
+        is probed on request.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ConnectorListResponse'
+      security:
+      - BearerAuth: []
+      summary: List configured connectors with their last known health
+      tags:
+      - Connectors
+  /events/deliveries:
+    get:
+      description: Newest first, every status unless one is given. A pending delivery
+        with no attempts means its subscriber is not loaded, so it waits until that
+        connector starts.
+      parameters:
+      - description: PENDING | SUCCEEDED | FAILED
+        in: query
+        name: status
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/PendingDelivery'
+                type: array
+            type: object
+        "400":
+          description: Invalid status or limit
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List event deliveries
+      tags:
+      - Events
+  /events/deliveries/{id}:
+    get:
+      description: Returns the delivery with its event and its history. The history
+        lists each delivery attempt and each admin retry, the oldest first.
+      parameters:
+      - description: Delivery id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/DeliveryHistory'
+        "404":
+          description: Delivery not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an event delivery
+      tags:
+      - Events
+  /events/deliveries/{id}/retry:
+    post:
+      description: Makes the delivery due again with a fresh attempt count and records
+        who retried it. The worker picks it up on its next pass.
+      parameters:
+      - description: Delivery id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Delivery not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Delivery has not failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retry a failed event delivery
+      tags:
+      - Events
+  /events/subscriptions:
+    get:
+      description: Every saved subscription and whether its subscriber is loaded in
+        this process.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/Subscription'
+                type: array
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List event subscriptions
+      tags:
+      - Events
   /me:
     get:
       description: Roles are the caller's own grants; unlike /users/{id}/roles this
@@ -2708,7 +3533,8 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get the caller's user record, effective privileges, and roles
+      summary: Get the caller's user record, effective privileges, roles, and cluster
+        accounts
       tags:
       - Caller
   /organizations:
@@ -2809,6 +3635,7 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
         in: path
         name: key
         required: true
@@ -2866,6 +3693,8 @@ paths:
       - Privileges
   /projects:
     get:
+      description: Callers without the projects read privilege get only the projects
+        they participate in; filters and pagination apply to privileged callers only.
       parameters:
       - description: Filter by PI user ID
         in: query
@@ -2894,6 +3723,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ProjectListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: List projects (filtered + paginated, PI joined)
@@ -2929,7 +3765,38 @@ paths:
       tags:
       - Projects
   /projects/{id}:
+    delete:
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Project has allocations
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a project without allocations
+      tags:
+      - Projects
     get:
+      description: Callers without the projects read privilege only see projects they
+        participate in; others return 404.
       parameters:
       - description: Project ID
         in: path
@@ -2943,6 +3810,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2953,6 +3827,54 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a project by ID
+      tags:
+      - Projects
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to change
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Project'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: PI change
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a project
       tags:
       - Projects
   /projects/{id}/members:
@@ -2982,6 +3904,59 @@ paths:
       security:
       - BearerAuth: []
       summary: List project members (one row per distinct user, with allocations)
+      tags:
+      - Projects
+  /projects/{id}/members/{userId}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Role
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            role:
+              type: string
+          type: object
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: PI change
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set a project member's role; MEMBER removes the role
       tags:
       - Projects
   /projects/{id}/status:
@@ -3316,6 +4291,7 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
         in: path
         name: key
         required: true
@@ -3567,6 +4543,10 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Email or name substring
+        in: query
+        name: q
+        type: string
       produces:
       - application/json
       responses:
@@ -3582,13 +4562,14 @@ paths:
     post:
       consumes:
       - application/json
+      description: Creates a researcher (both admin flags false) or an admin.
       parameters:
       - description: User payload
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/User'
+          $ref: '#/definitions/createUserRequest'
       produces:
       - application/json
       responses:
@@ -3598,6 +4579,13 @@ paths:
             $ref: '#/definitions/User'
         "400":
           description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             properties:
               error:
@@ -3912,6 +4900,7 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
         in: path
         name: key
         required: true

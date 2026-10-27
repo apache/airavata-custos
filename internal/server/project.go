@@ -18,13 +18,21 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
+
+type updateProjectRequest struct {
+	Title       string `json:"title"`
+	ProjectPIID string `json:"project_pi_id"`
+}
 
 // @Summary	Create a project
 // @Tags	Projects
@@ -41,6 +49,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	p.Origination, p.OriginatedID = "internal", ""
 	created, err := s.svc.CreateProject(r.Context(), &p)
 	if err != nil {
 		common.WriteServiceError(w, err)
@@ -50,11 +59,13 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary	Get a project by ID
+// @Description	Callers without the projects read privilege only see projects they participate in; others return 404.
 // @Tags	Projects
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Project ID"
 // @Success	200	{object}	ProjectResponse
+// @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/projects/{id} [get]
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +79,7 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 
 // projectResponseFrom builds the API response shape from a JOIN-fetched row.
 func projectResponseFrom(p *store.ProjectWithPI) ProjectResponse {
-	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail}
+	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail, Ref: posix.ProjectRef(p.Project)}
 	if full := strings.TrimSpace(p.PIFirstName + " " + p.PILastName); full != "" {
 		v.ProjectPIDisplayName = full
 	} else if p.PIEmail != "" {
@@ -102,7 +113,50 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, p)
 }
 
+// @Summary	Update a project
+// @Tags	Projects
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Project ID"
+// @Param	request	body	updateProjectRequest	true	"Fields to change"
+// @Success	200	{object}	models.Project
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"PI change"
+// @Router	/projects/{id} [put]
+func (s *Server) updateProject(w http.ResponseWriter, r *http.Request) {
+	var req updateProjectRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	p := models.Project{ID: r.PathValue("id"), Title: req.Title, ProjectPIID: req.ProjectPIID}
+	if err := s.svc.UpdateProject(r.Context(), &p); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, p)
+}
+
+// @Summary	Delete a project without allocations
+// @Tags	Projects
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Project ID"
+// @Success	204	"No Content"
+// @Failure	409	{object}	object{error=string}	"Project has allocations"
+// @Failure	404	{object}	object{error=string}
+// @Router	/projects/{id} [delete]
+func (s *Server) deleteProject(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteProject(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // @Summary	List projects (filtered + paginated, PI joined)
+// @Description	Callers without the projects read privilege get only the projects they participate in; filters and pagination apply to privileged callers only.
 // @Tags	Projects
 // @Security	BearerAuth
 // @Produce	json
@@ -112,15 +166,34 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
 // @Success	200	{object}	ProjectListResponse
+// @Failure	401	{object}	object{error=string}
 // @Router	/projects [get]
 func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	if !identity.HasPrivilege(r.Context(), models.ProjectsRead) {
+		rows, err := s.svc.ListProjectsForParticipant(r.Context(), caller.UserID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		items := make([]ProjectResponse, 0, len(rows))
+		for i := range rows {
+			items = append(items, projectResponseFrom(&rows[i]))
+		}
+		common.WriteJSON(w, http.StatusOK, ProjectListResponse{Items: items, Total: len(items)})
+		return
+	}
 	q := r.URL.Query()
+	limit, offset := common.Paged(q)
 	f := store.ProjectListFilter{
 		PIID:   q.Get("pi_id"),
 		Status: q.Get("status"),
 		Query:  q.Get("q"),
-		Limit:  atoiOr(q.Get("limit"), 50),
-		Offset: atoiOr(q.Get("offset"), 0),
+		Limit:  limit,
+		Offset: offset,
 	}
 	rows, total, err := s.svc.ListProjectsWithPI(r.Context(), f)
 	if err != nil {
@@ -149,43 +222,36 @@ func (s *Server) listProjectMembers(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
+	common.WriteJSON(w, http.StatusOK, rows)
+}
 
-	// Role is project-level (single value per user), so the dedup just
-	// collects the user's allocations.
-	type aggregate struct {
-		base        store.MembershipWithUser
-		allocations []ProjectMemberAllocationRef
+// @Summary	Set a project member's role; MEMBER removes the role
+// @Tags	Projects
+// @Security	BearerAuth
+// @Accept	json
+// @Param	id	path	string	true	"Project ID"
+// @Param	userId	path	string	true	"User ID"
+// @Param	request	body	object{role=string}	true	"Role"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"PI change"
+// @Router	/projects/{id}/members/{userId} [put]
+func (s *Server) updateProjectMember(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Role string `json:"role"`
 	}
-	byUser := map[string]*aggregate{}
-	order := []string{}
-	for _, m := range rows {
-		agg, ok := byUser[m.UserID]
-		if !ok {
-			agg = &aggregate{base: m}
-			byUser[m.UserID] = agg
-			order = append(order, m.UserID)
-		}
-		agg.allocations = append(agg.allocations, ProjectMemberAllocationRef{
-			ID:   m.ComputeAllocationID,
-			Name: m.AllocationName,
-			Role: m.Role,
-		})
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
 	}
-
-	out := make([]ProjectMemberResponse, 0, len(order))
-	for _, uid := range order {
-		agg := byUser[uid]
-		out = append(out, ProjectMemberResponse{
-			ID:          agg.base.ID,
-			ProjectID:   projectID,
-			UserID:      agg.base.UserID,
-			Email:       agg.base.Email,
-			DisplayName: agg.base.DisplayName,
-			Role:        agg.base.Role,
-			Status:      string(agg.base.MembershipStatus),
-			AddedTime:   agg.base.StartTime.UTC(),
-			Allocations: agg.allocations,
-		})
+	if req.Role == "" {
+		common.WriteError(w, http.StatusBadRequest, errors.New("role is required"))
+		return
 	}
-	common.WriteJSON(w, http.StatusOK, out)
+	if err := s.svc.EnsureProjectMembership(r.Context(), r.PathValue("id"), r.PathValue("userId"), req.Role); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

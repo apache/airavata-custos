@@ -29,21 +29,21 @@ import (
 
 const projectMembershipColumns = "project_id, user_id, role, added_time"
 
-type mysqlProjectMembershipStore struct {
+type pgProjectMembershipStore struct {
 	db *sqlx.DB
 }
 
-// NewProjectMembershipStore returns a MySQL-backed ProjectMembershipStore.
+// NewProjectMembershipStore returns a PostgreSQL-backed ProjectMembershipStore.
 func NewProjectMembershipStore(db *sqlx.DB) ProjectMembershipStore {
-	return &mysqlProjectMembershipStore{db: db}
+	return &pgProjectMembershipStore{db: db}
 }
 
-func (s *mysqlProjectMembershipStore) FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error) {
+func (s *pgProjectMembershipStore) FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error) {
 	var pm models.ProjectMembership
 	err := s.db.GetContext(ctx, &pm,
 		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = ? AND user_id = ?`, projectID, userID)
+		   FROM project_roles
+		  WHERE project_id = $1 AND user_id = $2 AND compute_allocation_id IS NULL`, projectID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -53,72 +53,47 @@ func (s *mysqlProjectMembershipStore) FindByPair(ctx context.Context, projectID,
 	return &pm, nil
 }
 
-func (s *mysqlProjectMembershipStore) FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-	var rows []models.ProjectMembership
-	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = ?
-		  ORDER BY added_time`, projectID)
+// IsParticipant reports whether the user has any role on the project.
+func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID, userID string) (bool, error) {
+	var participant bool
+	err := s.db.GetContext(ctx, &participant,
+		`SELECT EXISTS (SELECT 1 FROM project_roles WHERE project_id = $1 AND user_id = $2)`,
+		projectID, userID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return rows, nil
+	return participant, nil
 }
 
-// FindPIByProject returns the project's PI row when one exists.
-func (s *mysqlProjectMembershipStore) FindPIByProject(ctx context.Context, projectID string) (*models.ProjectMembership, error) {
-	var pm models.ProjectMembership
-	err := s.db.GetContext(ctx, &pm,
-		`SELECT `+projectMembershipColumns+`
-		   FROM project_memberships
-		  WHERE project_id = ? AND role = 'PI'`, projectID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &pm, nil
-}
-
-func (s *mysqlProjectMembershipStore) Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
+func (s *pgProjectMembershipStore) Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
-		 VALUES (?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4)
+		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
 		pm.ProjectID, pm.UserID, string(pm.Role), pm.AddedTime)
 	return err
 }
 
-func (s *mysqlProjectMembershipStore) UpdateRole(ctx context.Context, tx *sql.Tx, projectID, userID string, role models.ProjectRole) error {
+func (s *pgProjectMembershipStore) Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE project_memberships SET role = ? WHERE project_id = ? AND user_id = ?`,
-		string(role), projectID, userID)
-	return err
-}
-
-func (s *mysqlProjectMembershipStore) Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error {
-	_, err := tx.ExecContext(ctx,
-		`DELETE FROM project_memberships WHERE project_id = ? AND user_id = ?`,
+		`DELETE FROM project_memberships WHERE project_id = $1 AND user_id = $2`,
 		projectID, userID)
 	return err
 }
 
-// ReassignUser moves all project_memberships rows from fromUserID to toUserID.
-// Rows that would collide on the survivor's PK (same project) are dropped
-// from the retiring user first; remaining rows are then re-pointed.
-func (s *mysqlProjectMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+// ReassignUser moves fromUserID's tags to toUserID, keeping CO_PI over
+// ALLOCATION_MANAGER, then drops toUserID's tags on projects it leads.
+func (s *pgProjectMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM project_memberships
-		  WHERE user_id = ?
-		    AND project_id IN (SELECT project_id FROM (
-		        SELECT project_id FROM project_memberships WHERE user_id = ?
-		    ) AS s)`,
+		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
+		 SELECT project_id, $2, role, added_time FROM project_memberships WHERE user_id = $1
+		 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE EXCLUDED.role = 'CO_PI'`,
 		fromUserID, toUserID); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx,
-		`UPDATE project_memberships SET user_id = ? WHERE user_id = ?`,
-		toUserID, fromUserID)
+		`DELETE FROM project_memberships pm USING projects p
+		  WHERE pm.project_id = p.id AND (pm.user_id = $1 OR (pm.user_id = $2 AND p.project_pi_id = $2))`,
+		fromUserID, toUserID)
 	return err
 }

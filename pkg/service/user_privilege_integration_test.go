@@ -266,13 +266,13 @@ func TestSchema_RejectsTwoActivePrivilegesOfSameKey(t *testing.T) {
 	database := setupTestDB(t)
 	user := seedUser(t, database, "u@example.edu")
 	if _, err := database.Exec(
-		`INSERT INTO user_privileges (id, user_id, privilege, granted_at) VALUES (?, ?, ?, NOW(6))`,
+		`INSERT INTO user_privileges (id, user_id, privilege, granted_at) VALUES ($1, $2, $3, NOW())`,
 		uuid.NewString(), user, string(models.ClustersRead),
 	); err != nil {
 		t.Fatalf("first insert: %v", err)
 	}
 	_, err := database.Exec(
-		`INSERT INTO user_privileges (id, user_id, privilege, granted_at) VALUES (?, ?, ?, NOW(6))`,
+		`INSERT INTO user_privileges (id, user_id, privilege, granted_at) VALUES ($1, $2, $3, NOW())`,
 		uuid.NewString(), user, string(models.ClustersRead),
 	)
 	if err == nil {

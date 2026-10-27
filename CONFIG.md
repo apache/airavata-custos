@@ -48,13 +48,13 @@ The `core` section contains essential server settings:
 ```yaml
 core:
   database:
-    url: "admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
+    url: "postgres://admin:admin@localhost:5432/custos?sslmode=disable"
   api:
     port: 8080
   log_level: "info"
 ```
 
-- **database.url**: MariaDB / MySQL DSN (the server uses the `go-sql-driver/mysql` driver). Required.
+- **database.url**: PostgreSQL DSN (the server uses the `pgx` driver). Required.
 - **api.port**: HTTP API port (default: 8080)
 - **log_level**: Logging level (info, debug, warn, error)
 
@@ -132,6 +132,38 @@ connectors:
       http_timeout: "30s"
 ```
 
+#### Storage VAST-Provisioner
+
+```yaml
+  vast-provisioner:
+    type: "vast-storage-provisioner"
+    enabled: true
+    clusters:
+      - id: "cluster-001"
+        vast:
+          url: "http://vms.example.org"
+          username: "custos"
+          password: "${VAST_API_PASSWORD}"
+          tenant_id: 1
+          view_policy: "${VAST_VIEW_POLICY}"         # must exist in VMS when any target has `view: true`
+          view_protocols: "${VAST_VIEW_PROTOCOLS}"   # comma-separated, such as NFS,NFS4
+        # config/custos.yaml holds the full list.
+        targets:
+          - path: "/home/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 107374182400      # 100 GiB
+            hard_limit_inodes: 1000000
+          - path: "/scratch/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 10000000
+            view: true
+```
+
 #### AMIE Processor
 
 ```yaml
@@ -171,7 +203,7 @@ core:
 
 In your shell:
 ```bash
-export DATABASE_URL="admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
+export DATABASE_URL="postgres://admin:admin@localhost:5432/custos?sslmode=disable"
 ./custos
 ```
 
@@ -223,6 +255,7 @@ When a connector is disabled:
 - `slurm-association-mapper` - SLURM Association Mapper
 - `slurm-usage-monitor` - SLURM Usage Monitor
 - `comanage-identity-provisioner` - COmanage Identity Provisioner
+- `vast-storage-provisioner` - Storage VAST-Provisioner
 - `amie-processor` - AMIE Processor
 
 New connector types can be added by:

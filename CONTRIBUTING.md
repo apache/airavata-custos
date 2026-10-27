@@ -25,7 +25,7 @@ For instructions on running Custos locally against a database, see [INSTALL.md](
 
 ## Prerequisites
 
-- Go **1.24+**
+- Go **1.27+**
 - `git`
 
 ## Repository layout
@@ -35,7 +35,7 @@ For instructions on running Custos locally against a database, see [INSTALL.md](
 - `pkg/` — public packages (models, service, events)
 - `connectors/` — protocol/site-specific connectors (ACCESS, SLURM, …)
 - `extensions/` — out-of-process extensions (PAM module, SSH cert signer, …)
-- `dev-ops/compose/` — local Docker Compose stack (MariaDB, Adminer, Prometheus, Grafana, Vault)
+- `dev-ops/compose/` — local Docker Compose stack (PostgreSQL, Adminer, Prometheus, Grafana, Vault)
 
 ## Build
 
@@ -69,6 +69,7 @@ Every SQL file must carry the Apache 2.0 license header (see existing files for 
 - Database work happens inside `s.inTx(ctx, func(*sql.Tx) error { … })`. Do not nest transactions.
 - HTTP routing uses the Go 1.22 `ServeMux` with `r.PathValue` for path parameters.
 - Publish domain events through `pkg/events.Bus` from the service layer; never from handlers or stores.
+- An audit event that records a failure must have `Failed`, `Error` or `Rejected` in its event type (for example `ComanageProvisioningFailed`, `PosixUsernameBuildFailed`). The trace view reads a step's outcome from its name, so a failure named otherwise shows as ok.
 
 ## Tests
 
@@ -91,23 +92,23 @@ required env vars:
 
 ```bash
 # General integration tests (server, core service, identity resolver).
-# Reuses the dev compose stack on :3306.
-export CORE_TEST_DATABASE_DSN='admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4&multiStatements=true'
+# Reuses the dev compose stack on :5432 (custos_test database).
+export CORE_TEST_DATABASE_DSN='postgres://admin:admin@localhost:5432/custos_test?sslmode=disable'
 go test -tags integration ./...
 ```
 
 The AMIE connector ships its own integration stack because its tests mutate a
 lot of state and we don't want to corrupt the dev DB. It brings up an isolated
-MariaDB on `:3307` and a mock AMIE server on `:8181`, runs the suite, then
+PostgreSQL on `:5433` and a mock AMIE server on `:8181`, runs the suite, then
 tears it down:
 
 ```bash
 make integration-test-amie
 ```
 
-(equivalent to `scripts/run-amie-integration-tests.sh`). The `:3307` is
+(equivalent to `scripts/run-amie-integration-tests.sh`). The `:5433` is
 deliberate. It's a separate stack defined in `dev-ops/local-amie/`, independent
-of the `:3306` dev compose.
+of the `:5432` dev compose.
 
 If you see a test file you expect to run but `go test ./...` reports zero tests
 for the package, check the first line for `//go:build integration`.

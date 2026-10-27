@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 )
 
 type CoGroupMemberCreateRequest struct {
@@ -37,6 +38,8 @@ type CoGroupMemberCreateOne struct {
 	Owner     bool             `json:"Owner"`
 }
 
+// CreateCoGroupMember adds a person to a group as a plain member, never as an owner.
+// An owner can add anyone to the group in the registry, going around Custos.
 func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int) (int, error) {
 	body, err := json.Marshal(CoGroupMemberCreateRequest{
 		RequestType: "CoGroupMembers",
@@ -46,7 +49,7 @@ func (c *Client) CreateCoGroupMember(coPersonId, coGroupId int) (int, error) {
 			Person:    IdentifierParent{Type: "CO", Id: coPersonId},
 			CoGroupId: coGroupId,
 			Member:    true,
-			Owner:     true,
+			Owner:     false,
 		}},
 	})
 	if err != nil {
@@ -117,5 +120,46 @@ func (c *Client) FindCoGroupMember(coGroupId, coPersonId int) (int, error) {
 		return 0, ErrAuth401
 	default:
 		return 0, &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
+	}
+}
+
+func (c *Client) DeleteCoGroupMember(id int) error {
+	u := c.restAPI(fmt.Sprintf("/co_group_members/%d.json", id))
+	resp, respBody, err := c.Do(http.MethodDelete, u, nil)
+	if err != nil {
+		return err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusNoContent:
+		return nil
+	case http.StatusUnauthorized:
+		return ErrAuth401
+	case http.StatusNotFound:
+		return ErrNotFound
+	default:
+		return &HTTPError{Method: "DELETE", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
+	}
+}
+
+// ListCoGroupMembers returns every membership row of a group.
+func (c *Client) ListCoGroupMembers(coGroupId int) ([]CoGroupMemberListOne, error) {
+	u := c.restAPI(fmt.Sprintf("/co_group_members.json?cogroupid=%d", coGroupId))
+	resp, respBody, err := c.Do(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var out CoGroupMemberListResponse
+		if err := json.Unmarshal(respBody, &out); err != nil {
+			return nil, fmt.Errorf("decode co_group_members list: %w", err)
+		}
+		return slices.DeleteFunc(out.CoGroupMembers, func(m CoGroupMemberListOne) bool { return m.CoGroupId != coGroupId }), nil
+	case http.StatusNoContent:
+		return nil, nil
+	case http.StatusUnauthorized:
+		return nil, ErrAuth401
+	default:
+		return nil, &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 }

@@ -21,10 +21,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 // ListComputeAllocations returns a paginated, filterable slice of compute
@@ -35,6 +37,26 @@ func (s *Service) ListComputeAllocations(ctx context.Context, f store.Allocation
 		return nil, 0, fmt.Errorf("list compute allocations: %w", err)
 	}
 	return rows, total, nil
+}
+
+// ListComputeAllocationsForParticipant returns the allocations where the
+// user holds an active membership, or a governance role on the parent
+// project.
+func (s *Service) ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user id is required", ErrInvalidInput)
+	}
+	rows, err := s.allocs.FindByParticipant(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute allocations for participant: %w", err)
+	}
+	return rows, nil
+}
+
+// AllocationRoleForUser returns the user's role on the allocation, a
+// project-wide role before MEMBER, or "" for none.
+func (s *Service) AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error) {
+	return s.allocs.RoleForUser(ctx, allocationID, userID)
 }
 
 // CreateComputeAllocation persists a new compute allocation. The referenced
@@ -60,7 +82,8 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		alloc.Status = models.ACTIVE
 	}
 
-	if proj, err := s.projs.FindByID(ctx, alloc.ProjectID); err != nil {
+	proj, err := s.projs.FindByID(ctx, alloc.ProjectID)
+	if err != nil {
 		return nil, fmt.Errorf("lookup project: %w", err)
 	} else if proj == nil {
 		return nil, fmt.Errorf("%w: project %q not found", ErrInvalidInput, alloc.ProjectID)
@@ -72,13 +95,33 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		return nil, fmt.Errorf("%w: compute cluster %q not found", ErrInvalidInput, alloc.ComputeClusterID)
 	}
 
+	// Named after the project's ref, the name the portal shows, so it remains the same through renewals.
+	siblings, err := s.allocs.FindByCluster(ctx, alloc.ComputeClusterID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup cluster allocations: %w", err)
+	}
+	taken := map[string]bool{}
+	for _, a := range siblings {
+		if a.PosixGroup != nil {
+			taken[*a.PosixGroup] = true
+		}
+	}
+	base := posix.ProjectRef(*proj)
+	group := base[:min(len(base), posix.MaxLoginLen)]
+	for n := 2; taken[group]; n++ {
+		suffix := "-" + strconv.Itoa(n)
+		group = base[:min(len(base), posix.MaxLoginLen-len(suffix))] + suffix
+	}
+	alloc.PosixGroup = &group
+
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.allocs.Create(ctx, tx, alloc)
+		if err := s.allocs.Create(ctx, tx, alloc); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationCreateEvent, alloc)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationCreateEvent, alloc)
 	return alloc, nil
 }
 
@@ -115,16 +158,43 @@ func (s *Service) ListComputeAllocationsByCluster(ctx context.Context, clusterID
 
 // UpdateComputeAllocation persists changes to an existing compute allocation.
 func (s *Service) UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.UpdateComputeAllocationTx(ctx, tx, alloc)
+	})
+}
+
+func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, alloc *models.ComputeAllocation) error {
 	if alloc == nil || alloc.ID == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
 	}
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.allocs.Update(ctx, tx, alloc)
-	}); err != nil {
+	if err := func() error {
+		if err := s.allocs.Update(ctx, tx, alloc); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc)
+	}(); err != nil {
 		return fmt.Errorf("update compute allocation: %w", err)
 	}
+	return nil
+}
 
-	s.eventBus.Publish(ctx, events.ComputeAllocationUpdateEvent, alloc)
+// MarkComputeAllocationGroupProvisioned stamps group_provisioned_at and publishes the group provision event the first time only.
+func (s *Service) MarkComputeAllocationGroupProvisioned(ctx context.Context, id string) error {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		now := nowUTC()
+		firstTime, err := s.allocs.MarkGroupProvisioned(ctx, tx, id, now)
+		if err != nil || !firstTime {
+			return err
+		}
+		alloc, err := s.allocs.FindByID(ctx, id)
+		if err != nil || alloc == nil {
+			return err
+		}
+		alloc.GroupProvisionedAt = &now
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc)
+	}); err != nil {
+		return fmt.Errorf("mark compute allocation group provisioned: %w", err)
+	}
 	return nil
 }
 
@@ -141,11 +211,12 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.allocs.Delete(ctx, tx, id)
+		if err := s.allocs.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDeleteEvent, alloc)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationDeleteEvent, alloc)
 	return nil
 }

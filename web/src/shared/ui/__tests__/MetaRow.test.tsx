@@ -17,7 +17,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { Calendar } from "lucide-react";
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
 import { MetaItem, MetaRow } from "../MetaRow";
 
 describe("MetaRow", () => {
@@ -27,7 +27,8 @@ describe("MetaRow", () => {
         <MetaItem label="PI" value="Eroma" />
       </MetaRow>,
     );
-    const root = container.firstElementChild as HTMLElement;
+    const root = container.firstElementChild;
+    assert(root);
     expect(root.tagName).toBe("DIV");
     expect(root.getAttribute("role")).toBe("group");
     expect(root.getAttribute("aria-label")).toBe("Metadata");

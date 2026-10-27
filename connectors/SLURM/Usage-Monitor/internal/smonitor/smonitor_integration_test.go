@@ -207,7 +207,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 			}, nil
 		},
 
-		GetComputeClusterUserByLocalUsernameAndClusterFunc: func(ctx context.Context, localUsername string, clusterId string) (*models.ComputeClusterUser, error) {
+		GetComputeClusterUserByClusterAndLocalUsernameFunc: func(ctx context.Context, clusterId string, localUsername string) (*models.ComputeClusterUser, error) {
 			return &models.ComputeClusterUser{
 				ID:               "user-" + localUsername,
 				ComputeClusterID: clusterId,
@@ -232,6 +232,10 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 			}, nil
 		},
 
+		GetEffectiveRateForResourceFunc: func(context.Context, string, time.Time) (*models.ComputeAllocationResourceRate, error) {
+			return &models.ComputeAllocationResourceRate{Rate: 1}, nil
+		},
+
 		GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc: func(ctx context.Context, allocationID string, jobID string) (*models.ComputeAllocationUsage, error) {
 			return nil, service.ErrNotFound
 		},
@@ -251,7 +255,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 	}
 
 	// Call the poll method directly for testing
-	monitor.poll()
+	monitor.poll(context.Background())
 
 	t.Logf("Total CreateComputeAllocationUsage calls: %d", len(comAllcUsages))
 

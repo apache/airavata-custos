@@ -28,7 +28,6 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/internal/store"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -68,16 +67,6 @@ func (s *AuditService) Log(ctx context.Context, tx *sql.Tx, packetID, eventID st
 		EntityType: entityType,
 		Details:    summary,
 		Source:     auditSource,
-	}
-	tracing.PopulateAuditIDs(ctx, &event.TraceID, &event.SpanID, &event.ParentSpanID)
-	if event.TraceID == "" {
-		slog.WarnContext(ctx, "audit write outside an active span",
-			"packet_id", packetID,
-			"event_id", eventID,
-			"action", string(action),
-			"entity_type", entityType,
-			"entity_id", entityID,
-		)
 	}
 
 	if err := s.coreEvents.Create(ctx, tx, event); err != nil {

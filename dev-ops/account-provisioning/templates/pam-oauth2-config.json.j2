@@ -41,6 +41,11 @@
     "filter": "{{ pam_oauth2_ldap_filter }}",
     "attr": "{{ pam_oauth2_ldap_attr }}"
   },
-  "qr": { "show": false, "error_correction_level": 1 },
+  "qr": { "error_correction_level": 0 },
+  "prompt": {
+    "hostname": "{{ pam_prompt_hostname | default(inventory_hostname) }}"{% if pam_logo_file_src is defined %},
+    "logo_file": "/etc/pam_oauth2_device/logo.txt"
+{% endif %}
+  },
   "tls": { "ca_bundle": "{{ ldap_tls_cacert }}" }
 }

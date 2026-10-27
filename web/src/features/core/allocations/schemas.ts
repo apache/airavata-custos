@@ -15,69 +15,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import {
+  zAllocationMembershipResponse,
+  zAllocationStatus,
+  zComputeAllocation,
+  zComputeAllocationChangeRequest,
+  zComputeAllocationChangeRequestInput,
+  zComputeAllocationMembershipInput,
+} from "@/generated/core/zod.gen";
 import { z } from "zod";
-import { zAllocationStatus, zComputeAllocationDiff } from "@/generated/core/zod.gen";
-
-export const allocationStatusSchema = zAllocationStatus;
-export type AllocationStatus = z.infer<typeof allocationStatusSchema>;
 
 export const changeRequestStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 export type ChangeRequestStatus = z.infer<typeof changeRequestStatusSchema>;
-
-// Mirrors pkg/models/allocation.go#ComputeCluster. status is intentionally
-// omitted until the Go model grows the column.
-export const computeClusterSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-export type ComputeCluster = z.infer<typeof computeClusterSchema>;
-
-// Mirrors pkg/models/allocation.go#ComputeAllocation 1:1.
-export const computeAllocationSchema = z.object({
-  id: z.string(),
-  project_id: z.string(),
-  name: z.string(),
-  status: allocationStatusSchema,
-  compute_cluster_id: z.string(),
-  initial_su_amount: z.number().int(),
-  start_time: z.string(),
-  end_time: z.string(),
-});
-export type ComputeAllocation = z.infer<typeof computeAllocationSchema>;
-
-// Portal-side envelope. The backend has no list endpoint today
-// (only POST /compute-allocations + GET /compute-allocations/{id}); MSW serves
-// the list and the real route is expected to mirror this shape.
-export const computeAllocationListSchema = z.object({
-  items: z.array(computeAllocationSchema),
-  total: z.number().int().nonnegative(),
-});
-export type ComputeAllocationList = z.infer<typeof computeAllocationListSchema>;
-
-// GET /compute-allocations/{id}/resources returns the resource records joined
-// through the allocation's mappings; per-allocation amounts are not exposed.
-export const attachedResourceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  resource_type: z.string(),
-  resource_amount: z.number().int(),
-  compute_cluster_id: z.string(),
-});
-export type AttachedResource = z.infer<typeof attachedResourceSchema>;
-
-export const attachedResourceListSchema = z.array(attachedResourceSchema);
-
-// Mirrors zComputeAllocationDiff; tighten the fields the history view reads.
-export const allocationDiffSchema = zComputeAllocationDiff.required({
-  id: true,
-  compute_allocation_id: true,
-  diff_type: true,
-  status: true,
-  timestamp: true,
-});
-export type AllocationDiff = z.infer<typeof allocationDiffSchema>;
-
-export const allocationDiffListSchema = z.array(allocationDiffSchema);
 
 export const allocationMembershipRoleSchema = z.enum([
   "PI",
@@ -87,101 +36,60 @@ export const allocationMembershipRoleSchema = z.enum([
 ]);
 export type AllocationMembershipRole = z.infer<typeof allocationMembershipRoleSchema>;
 
-// Mirrors pkg/models/allocation.go#ComputeAllocationMembership.
-export const allocationMembershipSchema = z.object({
-  id: z.string(),
-  compute_allocation_id: z.string(),
-  user_id: z.string(),
-  start_time: z.string(),
-  end_time: z.string(),
-  membership_status: allocationStatusSchema,
-  role: allocationMembershipRoleSchema.optional(),
-  display_name: z.string().optional(),
-  email: z.string().optional(),
+// The Go role is a string; the portal narrows it to the project roles.
+export const allocationMembershipSchema = zAllocationMembershipResponse.extend({
+  role: allocationMembershipRoleSchema,
 });
 export type AllocationMembership = z.infer<typeof allocationMembershipSchema>;
 
-export const allocationMembershipListSchema = z.array(allocationMembershipSchema);
-
-// Mirrors pkg/models/allocation.go#ComputeAllocationChangeRequest. ChangeStatus
-// is a free-form string on the Go side; we narrow to the documented enum.
-export const changeRequestSchema = z.object({
-  id: z.string(),
-  compute_allocation_id: z.string(),
-  requested_su_amount: z.number().int().nonnegative(),
-  requested_status: allocationStatusSchema,
-  reason: z.string(),
+// ChangeStatus is a free-form string on the Go side; we narrow to the documented enum.
+export const changeRequestSchema = zComputeAllocationChangeRequest.extend({
   change_status: changeRequestStatusSchema,
-  requester_id: z.string(),
-  approver_id: z.string().optional(),
-  timestamp: z.string(),
 });
 export type ChangeRequest = z.infer<typeof changeRequestSchema>;
 
-export const changeRequestListSchema = z.array(changeRequestSchema);
+export const createAllocationPayloadSchema = zComputeAllocation
+  .pick({
+    project_id: true,
+    name: true,
+    compute_cluster_id: true,
+    initial_su_amount: true,
+    start_time: true,
+    end_time: true,
+  })
+  .extend({
+    project_id: z.string().min(1),
+    name: z.string().min(1).max(255),
+    compute_cluster_id: z.string().min(1),
+    initial_su_amount: z.number().nonnegative(),
+    start_time: z.string().min(1),
+    end_time: z.string().min(1),
+  });
+export type CreateAllocationPayload = z.infer<typeof createAllocationPayloadSchema>;
 
-// Mirrors pkg/models/allocation.go#ComputeAllocationChangeRequestEvent.
-export const changeRequestEventSchema = z.object({
-  id: z.string(),
-  compute_allocation_change_request_id: z.string(),
-  event_type: z.string(),
-  description: z.string().optional(),
-  timestamp: z.string(),
-});
-export type ChangeRequestEvent = z.infer<typeof changeRequestEventSchema>;
-
-export const changeRequestEventListSchema = z.array(changeRequestEventSchema);
-
-export const allocationUsageSchema = z.object({
-  id: z.string(),
-  compute_allocation_id: z.string(),
-  used_raw_amount: z.number().int(),
-  used_su_amount: z.number().int(),
-  last_updated: z.string(),
-  user_id: z.string(),
-  job_id: z.string(),
-  compute_allocation_resource_id: z.string(),
-});
-export type AllocationUsage = z.infer<typeof allocationUsageSchema>;
-
-export const allocationUsageListSchema = z.array(allocationUsageSchema);
-
-export const createMembershipPayloadSchema = z.object({
+export const createMembershipPayloadSchema = zComputeAllocationMembershipInput.extend({
   compute_allocation_id: z.string().min(1),
   user_id: z.string().min(1),
   start_time: z.string().min(1),
   end_time: z.string().min(1),
-  membership_status: allocationStatusSchema.default("ACTIVE"),
-  role: allocationMembershipRoleSchema.optional(),
+  membership_status: zAllocationStatus.default("ACTIVE"),
 });
 export type CreateMembershipPayload = z.input<typeof createMembershipPayloadSchema>;
 
-export const updateMembershipPayloadSchema = z
-  .object({
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-    membership_status: allocationStatusSchema.optional(),
-    role: allocationMembershipRoleSchema.optional(),
-  })
-  .refine((v) => Object.keys(v).length > 0, { message: "patch is empty" });
-export type UpdateMembershipPayload = z.infer<typeof updateMembershipPayloadSchema>;
-
-export const createChangeRequestPayloadSchema = z.object({
+export const createChangeRequestPayloadSchema = zComputeAllocationChangeRequestInput.extend({
   compute_allocation_id: z.string().min(1),
-  requested_su_amount: z.number().int().nonnegative(),
-  requested_status: allocationStatusSchema,
+  requested_su_amount: z.number().nonnegative(),
+  requested_status: zAllocationStatus,
   reason: z.string().min(1),
   requester_id: z.string().min(1),
 });
 export type CreateChangeRequestPayload = z.infer<typeof createChangeRequestPayloadSchema>;
 
-export const updateChangeRequestPayloadSchema = z
-  .object({
+export const updateChangeRequestPayloadSchema = zComputeAllocationChangeRequestInput
+  .pick({ approver_id: true, reason: true, requested_status: true })
+  .extend({
     change_status: changeRequestStatusSchema.optional(),
-    approver_id: z.string().optional(),
-    reason: z.string().optional(),
-    requested_su_amount: z.number().int().nonnegative().optional(),
-    requested_status: allocationStatusSchema.optional(),
+    requested_su_amount: z.number().nonnegative().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "patch is empty" });
 export type UpdateChangeRequestPayload = z.infer<typeof updateChangeRequestPayloadSchema>;

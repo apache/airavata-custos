@@ -29,20 +29,20 @@ import (
 
 const computeAllocationChangeRequestEventColumns = "id, compute_allocation_change_request_id, event_type, description, timestamp"
 
-type mysqlComputeAllocationChangeRequestEventStore struct {
+type pgComputeAllocationChangeRequestEventStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationChangeRequestEventStore returns a MySQL-backed
+// NewComputeAllocationChangeRequestEventStore returns a PostgreSQL-backed
 // ComputeAllocationChangeRequestEventStore.
 func NewComputeAllocationChangeRequestEventStore(db *sqlx.DB) ComputeAllocationChangeRequestEventStore {
-	return &mysqlComputeAllocationChangeRequestEventStore{db: db}
+	return &pgComputeAllocationChangeRequestEventStore{db: db}
 }
 
-func (s *mysqlComputeAllocationChangeRequestEventStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequestEvent, error) {
+func (s *pgComputeAllocationChangeRequestEventStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequestEvent, error) {
 	var e models.ComputeAllocationChangeRequestEvent
 	err := s.db.GetContext(ctx, &e,
-		`SELECT `+computeAllocationChangeRequestEventColumns+` FROM compute_allocation_change_request_events WHERE id = ?`, id)
+		`SELECT `+computeAllocationChangeRequestEventColumns+` FROM compute_allocation_change_request_events WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,12 +52,12 @@ func (s *mysqlComputeAllocationChangeRequestEventStore) FindByID(ctx context.Con
 	return &e, nil
 }
 
-func (s *mysqlComputeAllocationChangeRequestEventStore) FindByChangeRequest(ctx context.Context, changeRequestID string) ([]models.ComputeAllocationChangeRequestEvent, error) {
+func (s *pgComputeAllocationChangeRequestEventStore) FindByChangeRequest(ctx context.Context, changeRequestID string) ([]models.ComputeAllocationChangeRequestEvent, error) {
 	var rows []models.ComputeAllocationChangeRequestEvent
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationChangeRequestEventColumns+`
 		 FROM compute_allocation_change_request_events
-		 WHERE compute_allocation_change_request_id = ?
+		 WHERE compute_allocation_change_request_id = $1
 		 ORDER BY timestamp`, changeRequestID)
 	if err != nil {
 		return nil, err
@@ -65,12 +65,12 @@ func (s *mysqlComputeAllocationChangeRequestEventStore) FindByChangeRequest(ctx 
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationChangeRequestEventStore) FindLatestByChangeRequest(ctx context.Context, changeRequestID string) (*models.ComputeAllocationChangeRequestEvent, error) {
+func (s *pgComputeAllocationChangeRequestEventStore) FindLatestByChangeRequest(ctx context.Context, changeRequestID string) (*models.ComputeAllocationChangeRequestEvent, error) {
 	var e models.ComputeAllocationChangeRequestEvent
 	err := s.db.GetContext(ctx, &e,
 		`SELECT `+computeAllocationChangeRequestEventColumns+`
 		 FROM compute_allocation_change_request_events
-		 WHERE compute_allocation_change_request_id = ?
+		 WHERE compute_allocation_change_request_id = $1
 		 ORDER BY timestamp DESC
 		 LIMIT 1`, changeRequestID)
 	if err != nil {
@@ -82,16 +82,16 @@ func (s *mysqlComputeAllocationChangeRequestEventStore) FindLatestByChangeReques
 	return &e, nil
 }
 
-func (s *mysqlComputeAllocationChangeRequestEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.ComputeAllocationChangeRequestEvent) error {
+func (s *pgComputeAllocationChangeRequestEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.ComputeAllocationChangeRequestEvent) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_change_request_events
 		     (id, compute_allocation_change_request_id, event_type, description, timestamp)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		e.ID, e.ComputeAllocationChangeRequestID, e.EventType, e.Description, e.Timestamp)
 	return err
 }
 
-func (s *mysqlComputeAllocationChangeRequestEventStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_change_request_events WHERE id = ?`, id)
+func (s *pgComputeAllocationChangeRequestEventStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_change_request_events WHERE id = $1`, id)
 	return err
 }

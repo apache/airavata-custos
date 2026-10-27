@@ -17,15 +17,15 @@
 
 "use client";
 
-import { ExternalLinkIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import type * as React from "react";
 import { cn } from "@/lib/utils";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { ExternalLinkIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import type * as React from "react";
 import { shortHex } from "../utils";
 
 export type ViewTraceLinkProps = {

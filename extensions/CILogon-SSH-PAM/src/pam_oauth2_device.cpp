@@ -129,29 +129,75 @@ std::string getQr(const char *text, const int ecc = 0, const int border = 1)
     return oss.str();
 }
 
-std::string DeviceAuthResponse::get_prompt(const int qr_ecc = 0)
+static const char lockup[] =
+    "       ▄▄███████\n"
+    "     ▄██████████\n"
+    "   ▄████████████\n"
+    "    ▀▀█████▀▀▀▀█\n"
+    " ▄▄██▄▄▀▀          ▄█▀▀▀█▄ ██   ██ ▄█▀▀▀█▄ ███████ ▄█▀▀▀█▄ ▄█▀▀▀█▄\n"
+    "████████           ██      ██   ██ ▀█▄▄▄▄    ███   ██   ██ ▀█▄▄▄▄\n"
+    "████████           ██   ▄▄ ██   ██ ▄▄   ██   ███   ██   ██ ▄▄   ██\n"
+    " ▀▀██▀▀▄▄           ▀▀▀▀▀   ▀▀▀▀▀   ▀▀▀▀▀    ▀▀▀    ▀▀▀▀▀   ▀▀▀▀▀\n"
+    "    ▄▄█████▄▄▄▄█\n"
+    "   ▀████████████\n"
+    "     ▀██████████\n"
+    "       ▀▀███████\n";
+
+// Printable characters only in the prompt. The SSH client escapes control
+// bytes in auth messages, so ANSI color codes come out as literal text.
+
+static std::string load_logo(Config const &config)
+{
+    if (!config.prompt_logo_file.empty())
+    {
+        std::ifstream file(config.prompt_logo_file);
+        std::ostringstream art;
+        art << file.rdbuf();
+        if (file && !art.str().empty())
+        {
+            std::string logo = art.str();
+            if (logo.back() != '\n')
+                logo += '\n';
+            return logo;
+        }
+    }
+    return lockup;
+}
+
+std::string DeviceAuthResponse::get_prompt(Config const &config)
 {
     bool complete_url = !verification_uri_complete.empty();
+    std::string const &link = complete_url ? verification_uri_complete : verification_uri;
+
+    std::string host = config.prompt_hostname.empty() ? "custos-cluster" : config.prompt_hostname;
+
     std::ostringstream prompt;
-    prompt << "Authenticate at\n-----------------\n"
-           << (complete_url ? verification_uri_complete : verification_uri)
-           << "\n-----------------\n";
-    if (!complete_url)
+    // the SSH client prints its own "(user@host)" prefix on the first line;
+    // a leading blank line separates it out from the artwork
+    prompt << "\n";
+    prompt << load_logo(config);
+    prompt << "\n"
+           << "Sign in to " << host << " to finish connecting.\n\n"
+           << "  Open this link in a browser\n"
+           << "      " << link << "\n";
+
+    std::string note = complete_url
+        ? "The page will show " + user_code + "."
+        : "Enter code " + user_code + " when asked.";
+    if (expires_in >= 60)
+        note += "  Expires in " + std::to_string(expires_in / 60) + " min.";
+    prompt << "      " << note << "\n";
+
+    if (config.qr_error_correction_level >= 0)
     {
-        prompt << "With code " << user_code
-               << "\n-----------------\n";
+        prompt << "\n  Or scan this code with your phone\n\n";
+        std::istringstream qr(getQr(link.c_str(), config.qr_error_correction_level));
+        std::string row;
+        while (std::getline(qr, row))
+            prompt << "      " << row << "\n";
     }
 
-    if (qr_ecc >= 0) {
-        prompt << "Or scan the QR code to authenticate with a mobile device"
-               << std::endl
-               << std::endl
-               << getQr((complete_url ? verification_uri_complete : verification_uri).c_str(), qr_ecc)
-               << std::endl
-               << "Hit enter when you have finished authenticating\n";
-    } else {
-        prompt << "Hit enter when you have finished authenticating\n";
-    }
+    prompt << "\nPress Enter once you've signed in, or Ctrl-C to cancel.\n";
     return prompt.str();
 }
 
@@ -181,6 +227,10 @@ void make_authorization_request(const Config &config,
         if (data.find("verification_uri_complete") != data.end())
         {
             response->verification_uri_complete = data.at("verification_uri_complete");
+        }
+        if (data.find("expires_in") != data.end() && data.at("expires_in").is_number())
+        {
+            response->expires_in = data.at("expires_in");
         }
     }
     catch (json::exception &e)
@@ -291,7 +341,7 @@ get_userinfo(const Config &config,
 }
 
 void show_prompt(pam_handle_t *pamh,
-                 int qr_error_correction_level,
+                 Config const &config,
                  DeviceAuthResponse *device_auth_response)
 {
     int pam_err;
@@ -305,7 +355,7 @@ void show_prompt(pam_handle_t *pamh,
     pam_err = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
     if (pam_err != PAM_SUCCESS)
         throw PamError("Prompt: failed to get PAM_CONV");
-    prompt = device_auth_response->get_prompt(qr_error_correction_level);
+    prompt = device_auth_response->get_prompt(config);
     msg.msg_style = PAM_PROMPT_ECHO_OFF;
     msg.msg = prompt.c_str();
     msgp = &msg;
@@ -508,7 +558,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
             config.client_id, config.client_secret,
             config.scope, config.device_endpoint,
             &device_auth_response);
-        show_prompt(pamh, config.qr_error_correction_level, &device_auth_response);
+        show_prompt(pamh, config, &device_auth_response);
         poll_for_token(config, logger,
 		       config.client_id, config.client_secret,
                        config.token_endpoint,

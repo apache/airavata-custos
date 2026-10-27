@@ -23,20 +23,19 @@
 services:
   db:
     container_name: custos_amie_test_db
-    image: mariadb:11.2
+    image: postgres:17
     restart: "no"
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
-      - "3307:3306"
+      - "5433:5432"
     environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_USER: admin
-      MARIADB_PASSWORD: admin
-      MAX_ALLOWED_PACKET: 1073741824
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: custos
+      TZ: UTC
     volumes:
       - ../compose/dbinit:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: [ "CMD", "mariadb-admin", "ping", "-uroot", "-proot", "--silent" ]
+      test: [ "CMD-SHELL", "pg_isready -U admin -d custos" ]
       interval: 2s
       timeout: 5s
       retries: 30

@@ -38,10 +38,13 @@ type RequestProjectCreateHandler struct {
 	clusterID  string
 	amieClient AmieClient
 	auditSvc   AuditService
+	// Packet resource names that are not catalog names, mapped to the catalog
+	// resource they stand for in the custos.yaml
+	resourceAliases map[string][]string
 }
 
-func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService) *RequestProjectCreateHandler {
-	return &RequestProjectCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc}
+func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService, resourceAliases map[string][]string) *RequestProjectCreateHandler {
+	return &RequestProjectCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc, resourceAliases: resourceAliases}
 }
 
 func (h *RequestProjectCreateHandler) SupportsType() string { return "request_project_create" }
@@ -72,6 +75,9 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err := requireText(piGlobalID, "PiGlobalID"); err != nil {
 		return err
 	}
+	if err := requireText(getString(body, "PiEmail"), "PiEmail"); err != nil {
+		return err
+	}
 	if h.clusterID == "" {
 		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}
@@ -99,7 +105,11 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_ACCOUNT (PI): %w", err)
 	}
 
-	project, err := h.ensureProject(ctx, projectOriginatedID, grantNumber, pi.ID)
+	title := getString(body, "ProjectTitle")
+	if title == "" {
+		title = grantNumber
+	}
+	project, err := h.ensureProject(ctx, tx, projectOriginatedID, title, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure project: %w", err)
 	}
@@ -107,7 +117,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_PROJECT: %w", err)
 	}
 
-	allocation, err := h.ensureAllocation(ctx, body, project.ID, grantNumber)
+	allocation, err := h.ensureAllocation(ctx, tx, body, project.ID, grantNumber)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure allocation: %w", err)
 	}
@@ -119,7 +129,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: ensure resource mappings: %w", err)
 	}
 
-	piMembership, created, err := h.ensurePIMembership(ctx, allocation, pi.ID)
+	piMembership, created, err := h.ensurePIMembership(ctx, tx, allocation, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure PI membership: %w", err)
 	}
@@ -139,6 +149,10 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		"PiRemoteSiteLogin": piClusterUser.LocalUsername,
 		"ResourceList":      getResourceList(body),
 	}
+
+	// NOTE - Not held for the PI's cluster account approval. This reply gives ACCESS the
+	// project ID, and holding it would block the whole project there. ACCESS gets
+	// the PI's login early, but the account is only created after admin approval.
 	reply := map[string]any{"type": "notify_project_create", "body": replyBody}
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_project_create: sending reply: %w", err)
@@ -194,38 +208,42 @@ func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, u
 	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
-func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, grantNumber, piID string) (*models.Project, error) {
+func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, tx *sql.Tx, originatedID, title, piID string) (*models.Project, error) {
 	if p, err := h.svc.GetProjectByOriginatedID(ctx, originatedID); err == nil {
+		// The spec says a project packet for an inactive project reactivates it.
+		if p.Status != models.ProjectActive {
+			return h.svc.UpdateProjectStatusTx(ctx, tx, p.ID, models.ProjectActive)
+		}
 		return p, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return nil, err
 	}
 	return h.svc.CreateProject(ctx, &models.Project{
 		OriginatedID: originatedID,
-		Title:        grantNumber,
+		Title:        title,
 		Origination:  amieIdentitySource,
 		ProjectPIID:  piID,
 	})
 }
 
-// ensureAllocation creates a ComputeAllocation for the project on first
-// delivery. On repeat delivery (supplement / renewal / extension / adjustment),
-// the existing row is preserved and a ComputeAllocationDiff is recorded
-// capturing the grant event. InitialSUAmount on the parent row stays as the
-// original grant; effective SUs = InitialSUAmount + sum(grant diffs).
-func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+// ensureAllocation also changes the allocation when the project already has one.
+func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+	su, err := getNumber(body, "ServiceUnitsAllocated")
+	if err != nil {
+		return nil, err
+	}
 	existing, err := h.svc.ListComputeAllocationsByProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("list allocations: %w", err)
 	}
 	if len(existing) > 0 {
-		return h.recordAllocationDiff(ctx, body, &existing[0])
+		// A grant has one allocation, active or not. This handler never makes a second.
+		return h.changeAllocation(ctx, tx, body, &existing[0], su)
+	}
+	if su < 0 {
+		return nil, fmt.Errorf("%w: negative service units for a project with no allocation", model.ErrInvalidPacket)
 	}
 
-	su, err := getInt64(body, "ServiceUnitsAllocated")
-	if err != nil {
-		return nil, err
-	}
 	start, err := getDate(body, "StartDate")
 	if err != nil {
 		return nil, err
@@ -250,26 +268,40 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 // already stored on the allocation, so mappings carry no native caps;
 // unregistered names are skipped rather than failing the packet.
 func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
-	for _, name := range getResourceList(body) {
-		resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
-		if errors.Is(err, service.ErrNotFound) {
-			slog.Warn("amie: packet resource not in the cluster catalog, mapping skipped",
-				"resource", name, "allocation_id", allocation.ID)
-			continue
+	for _, packetName := range getResourceList(body) {
+		// One packet resource can stand for several catalog resources, such as two GPU partitions with their own rates.
+		names, ok := h.resourceAliases[packetName]
+		if !ok {
+			names = []string{packetName}
 		}
-		if err != nil {
-			return fmt.Errorf("lookup resource %q: %w", name, err)
+		for _, name := range names {
+			if err := h.attachResource(ctx, tx, allocation, packet, eventID, name); err != nil {
+				return err
+			}
 		}
-		mapping, err := h.svc.AttachResourceToAllocation(ctx, allocation.ID, resource.ID, 0, 0)
-		if errors.Is(err, service.ErrAlreadyExists) {
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("attach resource %q: %w", name, err)
-		}
-		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditAttachResource, "compute_allocation_resource_mapping", mapping.ID, name); err != nil {
-			return fmt.Errorf("audit ATTACH_RESOURCE: %w", err)
-		}
+	}
+	return nil
+}
+
+func (h *RequestProjectCreateHandler) attachResource(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, packet *model.Packet, eventID, name string) error {
+	resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
+	if errors.Is(err, service.ErrNotFound) {
+		slog.WarnContext(ctx, "amie: packet resource not in the cluster catalog, mapping skipped",
+			"resource", name, "allocation_id", allocation.ID)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("lookup resource %q: %w", name, err)
+	}
+	mapping, err := h.svc.AttachResourceToAllocation(ctx, allocation.ID, resource.ID, 0, 0)
+	if errors.Is(err, service.ErrAlreadyExists) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("attach resource %q: %w", name, err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditAttachResource, "compute_allocation_resource_mapping", mapping.ID, name); err != nil {
+		return fmt.Errorf("audit ATTACH_RESOURCE: %w", err)
 	}
 	return nil
 }
@@ -278,15 +310,15 @@ func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context
 // Returns (membership, created=true) when it inserted a new row, or
 // (existing, created=false) on redelivery. The service rejects a second
 // distinct PI on the same allocation.
-func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
+func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
 	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
 	if err != nil {
 		return nil, false, fmt.Errorf("list memberships: %w", err)
 	}
 	for _, m := range existing {
 		if m.UserID == piID {
-			cm := m.ComputeAllocationMembership
-			return &cm, false, nil
+			active, err := reactivate(ctx, tx, h.svc, m.ComputeAllocationMembership)
+			return active, false, err
 		}
 	}
 	created, err := h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
@@ -302,29 +334,46 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, al
 	return created, true, nil
 }
 
-// recordAllocationDiff writes a ComputeAllocationDiff for a re-delivered
-// request_project_create against an existing allocation (the AMIE pattern for
-// supplements / renewals / extensions / adjustments). DiffType is the upper-cased
-// AllocationType from the packet body; falls back to "GRANT" when AMIE did not supply one.
-// NewSUAmount carries this packet's ServiceUnitsAllocated, the delta granted
-// by this event, not the cumulative total.
-func (h *RequestProjectCreateHandler) recordAllocationDiff(ctx context.Context, body map[string]any, existing *models.ComputeAllocation) (*models.ComputeAllocation, error) {
-	su, err := getInt64(body, "ServiceUnitsAllocated")
-	if err != nil {
-		return nil, err
-	}
+// changeAllocation applies a repeat packet by its AllocationType and keeps a
+// diff row as history. See "Allocation types" in ../README.md.
+func (h *RequestProjectCreateHandler) changeAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, alloc *models.ComputeAllocation, su float64) (*models.ComputeAllocation, error) {
 	diffType := strings.ToUpper(strings.TrimSpace(getString(body, "AllocationType")))
 	if diffType == "" {
 		diffType = "GRANT"
 	}
-	if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
-		ComputeAllocationID: existing.ID,
+	switch diffType {
+	case "RENEWAL":
+		start, err := getDate(body, "StartDate")
+		if err != nil {
+			return nil, err
+		}
+		end, err := getDate(body, "EndDate")
+		if err != nil {
+			return nil, err
+		}
+		alloc.InitialSUAmount, alloc.StartTime, alloc.EndTime = su, start, end
+	case "EXTENSION":
+		end, err := getDate(body, "EndDate")
+		if err != nil {
+			return nil, err
+		}
+		alloc.EndTime = end
+	default:
+		// NEW, TRANSFER, SUPPLEMENT, ADJUSTMENT, ADVANCE. The amount is signed, so a negative transfer deducts.
+		alloc.InitialSUAmount += su
+	}
+	alloc.Status = models.ACTIVE
+	if err := h.svc.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
+		return nil, fmt.Errorf("change allocation: %w", err)
+	}
+	if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
+		ComputeAllocationID: alloc.ID,
 		DiffType:            diffType,
 		NewSUAmount:         su,
 		Status:              models.ACTIVE,
-		Description:         fmt.Sprintf("AMIE %s of %d SUs", diffType, su),
+		Description:         fmt.Sprintf("AMIE %s of %g SUs", diffType, su),
 	}); err != nil {
 		return nil, fmt.Errorf("record allocation diff: %w", err)
 	}
-	return existing, nil
+	return alloc, nil
 }

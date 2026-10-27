@@ -21,13 +21,18 @@
 import type { Page } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 
-export type Persona = "viewer" | "manager" | "signer-reader" | "admin";
+// researcher - no privileges, sees only their own allocations and projects
+// readOnlyAdmin - reads users, organizations, clusters and allocations
+// manager - reads and writes allocations and projects, reads the rest and AMIE
+// admin - reads and writes everything, manages roles and privileges
+export type Persona =   | "researcher" | "readOnlyAdmin" | "manager" | "signer-reader" | "admin";
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
 // gates resolve per persona. The MSW /user/privileges handler reads the
 // matching test-privileges cookie set below.
 const PRIVILEGES: Record<Persona, string[]> = {
-  viewer: [
+  researcher: [],
+  readOnlyAdmin: [
     "core:users:read",
     "core:organizations:read",
     "core:clusters:read",
@@ -56,6 +61,7 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "core:organizations:read",
     "core:organizations:write",
     "core:traces:read",
+    "core:events:manage",
     "core:privileges:grant",
     "core:roles:manage",
     "amie:packets:read",
@@ -71,10 +77,11 @@ const PRIVILEGES: Record<Persona, string[]> = {
 };
 
 const NAMES: Record<Persona, string> = {
-  viewer: "Test Viewer",
+  researcher: "Test Researcher",
+  readOnlyAdmin: "Test Read-only Admin",
   manager: "Test Manager",
-  "signer-reader": "Test Signer Reader",
   admin: "Test Admin",
+  "signer-reader": "Test Signer Reader",
 };
 
 export async function signInAs(page: Page, persona: Persona = "admin") {
@@ -88,6 +95,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
     secret,
     token: {
       sub: `test-${persona}`,
+      custosUserId: `test-${persona}`,
       name: NAMES[persona],
       email: `${persona}@custos.local`,
       privileges: PRIVILEGES[persona],

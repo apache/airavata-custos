@@ -15,27 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import contexts from "@/features/core/analytics/__fixtures__/contexts.json";
 import jobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
 import summaries from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import { zJob } from "@/generated/analytics/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-type JobEntry = { callerId: string; jobs: Array<{ user_id: string }> };
+const summaryById = new Map<string, unknown>(Object.entries(summaries));
+const jobsById = z
+  .record(z.string(), z.object({ callerId: z.string(), jobs: z.array(zJob) }))
+  .parse(jobsFixture);
 
 // The fixture bakes the privacy rule per allocation: the researcher project's
 // allocation carries by_member: null, the PI project's carries the ranked list.
 // Unknown ids 404 like the real membership-scoped endpoint.
 export const analyticsHandlers = [
   http.get("*/api/v1/connectors/analytics/contexts", () => HttpResponse.json(contexts)),
-  http.get("*/api/v1/connectors/analytics/allocations/:id/usage-summary", ({ params }) => {
-    const summary = (summaries as Record<string, unknown>)[String(params.id)];
+  http.get("*/api/v1/connectors/analytics/allocations/:id/usage-summary", ({ params: { id } }) => {
+    const summary = summaryById.get(String(id));
     if (!summary) {
       return HttpResponse.json({ error: "not found" }, { status: 404 });
     }
     return HttpResponse.json(summary);
   }),
-  http.get("*/api/v1/connectors/analytics/allocations/:id/jobs", ({ params, request }) => {
-    const entry = (jobsFixture as Record<string, JobEntry>)[String(params.id)];
+  http.get("*/api/v1/connectors/analytics/allocations/:id/jobs", ({ params: { id }, request }) => {
+    const entry = jobsById[String(id)];
     if (!entry) {
       return HttpResponse.json({ error: "not found" }, { status: 404 });
     }

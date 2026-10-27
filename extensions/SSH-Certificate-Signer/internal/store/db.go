@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
@@ -31,10 +31,10 @@ type DB struct {
 }
 
 func NewDB(cfg config.DatabaseConfig) (*DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=UTC&charset=utf8mb4",
-		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.Name)
 
-	db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)
 	}

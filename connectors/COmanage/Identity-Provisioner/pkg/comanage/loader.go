@@ -21,9 +21,11 @@ package comanage
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,15 +34,14 @@ import (
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
-	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func init() {
-	tracing.RegisterTerminalMarkers("comanage", "ComanageClusterAccountAttached")
-}
+// Type is the connector type in the config file and the subscriber name on the bus.
+const Type = "comanage-identity-provisioner"
 
 // LoadConnector wires the subscriber to the event bus. Reads YAML config first
 // and falls back to environment variables. If neither yields a complete
@@ -51,11 +52,12 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		cfg, ok = loadConfigFromEnv()
 		if !ok {
 			slog.Info("comanage provisioner: required config not set; skipping")
+			health.Record(Type, "config", errors.New("required config not set"))
 			return nil
 		}
 	}
 	httpClient := client.New(cfg)
-	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers()
+	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
 	slog.Info("comanage provisioner: subscriber registered",
 		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.CustosClusterID)
 	// Custos is the source of truth: CoPerson and UnixClusterAccount records
@@ -71,6 +73,7 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 	}
 
 	var registryURL, apiUser, apiKey, personIDType, custosCluster, defaultShell, homedirPrefix string
+	var adminGroup string
 	var coID, unixClusterID int
 	timeout := 30 * time.Second
 
@@ -93,6 +96,10 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		unixClusterID = asInt(unixCluster["id"])
 		if pType, ok := unixCluster["person_id_type"].(string); ok {
 			personIDType = pType
+		}
+		// Treat "${...}" as an unset env var in the yaml
+		if g, ok := unixCluster["admin_group"].(string); ok && !strings.HasPrefix(g, "${") {
+			adminGroup = g
 		}
 	}
 
@@ -126,16 +133,17 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 	}
 
 	return client.Config{
-		RegistryURL:     registryURL,
-		COID:            coID,
-		APIUser:         apiUser,
-		APIKey:          apiKey,
-		PersonIDType:    personIDType,
-		UnixClusterID:   unixClusterID,
-		CustosClusterID: custosCluster,
-		DefaultShell:    defaultShell,
-		HomedirPrefix:   homedirPrefix,
-		HTTPTimeout:     timeout,
+		RegistryURL:       registryURL,
+		COID:              coID,
+		APIUser:           apiUser,
+		APIKey:            apiKey,
+		PersonIDType:      personIDType,
+		UnixClusterID:     unixClusterID,
+		ClusterAdminGroup: adminGroup,
+		CustosClusterID:   custosCluster,
+		DefaultShell:      defaultShell,
+		HomedirPrefix:     homedirPrefix,
+		HTTPTimeout:       timeout,
 	}, true
 }
 
@@ -159,6 +167,7 @@ func loadConfigFromEnv() (client.Config, bool) {
 	apiKey := os.Getenv("COMANAGE_API_KEY")
 	personIDType := os.Getenv("COMANAGE_PERSON_ID_TYPE")
 	unixClusterStr := os.Getenv("COMANAGE_UNIX_CLUSTER_ID")
+	adminGroup := os.Getenv("COMANAGE_CLUSTER_ADMIN_GROUP")
 	custosCluster := os.Getenv("CUSTOS_CLUSTER_ID")
 
 	if registryURL == "" || coIDStr == "" || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterStr == "" || custosCluster == "" {
@@ -192,15 +201,16 @@ func loadConfigFromEnv() (client.Config, bool) {
 	}
 
 	return client.Config{
-		RegistryURL:     registryURL,
-		COID:            coID,
-		APIUser:         apiUser,
-		APIKey:          apiKey,
-		PersonIDType:    personIDType,
-		UnixClusterID:   unixClusterID,
-		CustosClusterID: custosCluster,
-		DefaultShell:    defaultShell,
-		HomedirPrefix:   homedirPrefix,
-		HTTPTimeout:     timeout,
+		RegistryURL:       registryURL,
+		COID:              coID,
+		APIUser:           apiUser,
+		APIKey:            apiKey,
+		PersonIDType:      personIDType,
+		UnixClusterID:     unixClusterID,
+		ClusterAdminGroup: adminGroup,
+		CustosClusterID:   custosCluster,
+		DefaultShell:      defaultShell,
+		HomedirPrefix:     homedirPrefix,
+		HTTPTimeout:       timeout,
 	}, true
 }

@@ -31,9 +31,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v2/jwa"
-	"github.com/lestrrat-go/jwx/v2/jwk"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
@@ -46,7 +46,7 @@ func createTestJWT(t *testing.T, key crypto.Signer, alg jwa.SignatureAlgorithm, 
 		tok.Set(k, v)
 	}
 
-	jwkKey, err := jwk.FromRaw(key)
+	jwkKey, err := jwk.Import(key)
 	if err != nil {
 		t.Fatalf("creating JWK from key: %v", err)
 	}
@@ -63,7 +63,7 @@ func createTestJWT(t *testing.T, key crypto.Signer, alg jwa.SignatureAlgorithm, 
 func createJWKSServer(t *testing.T, pubKey crypto.PublicKey, alg jwa.SignatureAlgorithm, requestCount *atomic.Int32) *httptest.Server {
 	t.Helper()
 
-	jwkKey, err := jwk.FromRaw(pubKey)
+	jwkKey, err := jwk.Import(pubKey)
 	if err != nil {
 		t.Fatalf("creating JWK: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestOIDCValidator_ValidRS256Token(t *testing.T) {
 	}
 
 	var reqCount atomic.Int32
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, &reqCount)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), &reqCount)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -149,7 +149,7 @@ func TestOIDCValidator_ValidRS256Token(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "user123",
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -170,7 +170,7 @@ func TestOIDCValidator_ValidES256Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := createJWKSServer(t, &ecKey.PublicKey, jwa.ES256, nil)
+	server := createJWKSServer(t, &ecKey.PublicKey, jwa.ES256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -178,7 +178,7 @@ func TestOIDCValidator_ValidES256Token(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, ecKey, jwa.ES256, map[string]interface{}{
+	token := createTestJWT(t, ecKey, jwa.ES256(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "ecuser",
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -199,7 +199,7 @@ func TestOIDCValidator_ValidEdDSAToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := createJWKSServer(t, edKey.Public(), jwa.EdDSA, nil)
+	server := createJWKSServer(t, edKey.Public(), jwa.EdDSA(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -207,7 +207,7 @@ func TestOIDCValidator_ValidEdDSAToken(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, edKey, jwa.EdDSA, map[string]interface{}{
+	token := createTestJWT(t, edKey, jwa.EdDSA(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "eduser",
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -224,7 +224,7 @@ func TestOIDCValidator_ValidEdDSAToken(t *testing.T) {
 
 func TestOIDCValidator_ExpiredToken(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -232,7 +232,7 @@ func TestOIDCValidator_ExpiredToken(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "user",
 		"exp": time.Now().Add(-time.Hour).Unix(),
@@ -253,7 +253,7 @@ func TestOIDCValidator_ExpiredToken(t *testing.T) {
 
 func TestOIDCValidator_FutureNBF(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -261,7 +261,7 @@ func TestOIDCValidator_FutureNBF(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "user",
 		"exp": time.Now().Add(2 * time.Hour).Unix(),
@@ -279,7 +279,7 @@ func TestOIDCValidator_InvalidSignature(t *testing.T) {
 	rsaKey2, _ := rsa.GenerateKey(rand.Reader, 2048)
 
 	// JWKS serves key2's public key, but token signed with key1
-	server := createJWKSServer(t, &rsaKey2.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey2.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -287,7 +287,7 @@ func TestOIDCValidator_InvalidSignature(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey1, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey1, jwa.RS256(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "user",
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -301,7 +301,7 @@ func TestOIDCValidator_InvalidSignature(t *testing.T) {
 
 func TestOIDCValidator_PrincipalFromSub(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -309,7 +309,7 @@ func TestOIDCValidator_PrincipalFromSub(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss":   server.URL,
 		"sub":   "user123",
 		"email": "user@example.com",
@@ -327,7 +327,7 @@ func TestOIDCValidator_PrincipalFromSub(t *testing.T) {
 
 func TestOIDCValidator_EmptySubject(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -335,7 +335,7 @@ func TestOIDCValidator_EmptySubject(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss": server.URL,
 		"sub": "",
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -359,7 +359,7 @@ func TestOIDCValidator_MissingIssuer(t *testing.T) {
 
 	v := newTestValidator(nil)
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"sub": "user",
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
@@ -374,7 +374,7 @@ func TestOIDCValidator_JWKSCaching(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 
 	var fetchCount atomic.Int32
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator(nil)
@@ -384,7 +384,7 @@ func TestOIDCValidator_JWKSCaching(t *testing.T) {
 	}
 
 	for i := 0; i < 5; i++ {
-		token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+		token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 			"iss": server.URL,
 			"sub": fmt.Sprintf("user%d", i),
 			"exp": time.Now().Add(time.Hour).Unix(),
@@ -402,7 +402,7 @@ func TestOIDCValidator_JWKSCaching(t *testing.T) {
 
 func TestOIDCValidator_DisallowedIssuer(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator([]string{"https://allowed.example.com"})
@@ -410,7 +410,7 @@ func TestOIDCValidator_DisallowedIssuer(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss": "https://other.example.com",
 		"sub": "user",
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -428,7 +428,7 @@ func TestOIDCValidator_DisallowedIssuer(t *testing.T) {
 
 func TestOIDCValidator_EmptyAllowedIssuersAcceptsAll(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256, nil)
+	server := createJWKSServer(t, &rsaKey.PublicKey, jwa.RS256(), nil)
 	defer server.Close()
 
 	v := newTestValidator([]string{})
@@ -436,7 +436,7 @@ func TestOIDCValidator_EmptyAllowedIssuersAcceptsAll(t *testing.T) {
 		return jwk.Fetch(ctx, server.URL+"/.well-known/jwks.json")
 	}
 
-	token := createTestJWT(t, rsaKey, jwa.RS256, map[string]interface{}{
+	token := createTestJWT(t, rsaKey, jwa.RS256(), map[string]interface{}{
 		"iss": "https://any-issuer.example.com",
 		"sub": "user",
 		"exp": time.Now().Add(time.Hour).Unix(),

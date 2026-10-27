@@ -61,7 +61,7 @@ func TestSubscribeToComputeAllocationCreation(t *testing.T) {
 		},
 	}
 
-	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService)
+	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
 
 	computeAccount := models.ComputeAllocation{
 		ID:               "test_compute_account_id",
@@ -124,7 +124,7 @@ func TestSubscribeToComputeAllocationCreationWrongCluster(t *testing.T) {
 		},
 	}
 
-	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService)
+	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
 
 	computeAccount := models.ComputeAllocation{
 		ID:               "test_compute_account_id",
@@ -157,7 +157,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 	projectID string, allocationMappingId string,
 	allocationResourceId string, partitionName string) error {
 
-	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService)
+	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
 
 	computeAllocation := models.ComputeAllocation{
 		ID:               computeAllocationID,

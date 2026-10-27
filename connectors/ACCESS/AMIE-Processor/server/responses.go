@@ -19,7 +19,6 @@ package server
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
@@ -115,9 +114,9 @@ func packetEventResponseFrom(e model.ProcessingEvent) PacketEventResponse {
 	out := PacketEventResponse{
 		ID:        e.ID,
 		PacketID:  e.PacketID,
-		EventType: mapEventType(string(e.Type), string(e.Status)),
+		EventType: mapEventType(e.Status),
 		Actor:     "amie-worker",
-		Status:    mapEventStatus(string(e.Status)),
+		Status:    mapEventStatus(e.Status),
 		Timestamp: ts.UTC().Format(time.RFC3339Nano),
 		Message:   e.LastError,
 	}
@@ -155,35 +154,19 @@ func mostRecent(received time.Time, others ...*time.Time) time.Time {
 	return latest
 }
 
-// mapEventType folds amie_processing_events.type into the portal's enum.
-func mapEventType(t, status string) string {
-	if strings.EqualFold(status, "FAILED") {
+// mapEventType folds a processing event into the portal's enum; DECODE_PACKET is the only type.
+func mapEventType(s model.ProcessingStatus) string {
+	if mapEventStatus(s) == "FAILED" {
 		return "FAILED"
-	}
-	switch strings.ToLower(t) {
-	case "received":
-		return "RECEIVED"
-	case "decoded":
-		return "DECODED"
-	case "handled", "processed":
-		return "HANDLED"
-	case "retry_scheduled":
-		return "RETRY_SCHEDULED"
-	case "retry":
-		return "RETRY"
-	case "manual_resolve":
-		return "MANUAL_RESOLVE"
-	case "manual_link":
-		return "MANUAL_LINK"
 	}
 	return "HANDLED"
 }
 
-func mapEventStatus(s string) string {
-	switch strings.ToUpper(s) {
-	case "FAILED", "ERROR":
+func mapEventStatus(s model.ProcessingStatus) string {
+	switch s {
+	case model.ProcessingStatusFailed, model.ProcessingStatusPermanentlyFailed:
 		return "FAILED"
-	case "RUNNING", "STARTED", "IN_PROGRESS":
+	case model.ProcessingStatusNew, model.ProcessingStatusRunning, model.ProcessingStatusRetryScheduled:
 		return "RUNNING"
 	}
 	return "SUCCEEDED"

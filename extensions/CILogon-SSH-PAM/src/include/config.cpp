@@ -149,6 +149,8 @@ Config::load(const char *path)
 	 variable({"oauth","username_attribute"},value(""),true, username_attribute),
 	 variable({"oauth","local_username_suffix"},value(""),false, local_username_suffix),
 	 variable({"qr","error_correction_level"},value(-1),false, qr_error_correction_level),
+	 variable({"prompt","hostname"},value(""),false, prompt_hostname),
+	 variable({"prompt","logo_file"},value(""),false, prompt_logo_file),
 	 variable({"client_debug"},value(false),false, client_debug),
 	 variable({"http_basic_auth"},value(true),false, http_basic_auth),
 	 variable({"cloud","access"},value(false),false, cloud_access),

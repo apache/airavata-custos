@@ -51,17 +51,21 @@ func (o *Orchestrator) findStoredPersonID(ctx context.Context, userID string) (s
 	return "", nil
 }
 
-// storePersonID writes the COmanage CoPerson identifier into user_identities.
-// No-op if a row already exists.
+// storePersonID writes or repoints the COmanage CoPerson identifier in user_identities.
 func (o *Orchestrator) storePersonID(ctx context.Context, userID, personID string) error {
 	ctx, span := tracing.Start(ctx, "comanage.store_person_id")
 	defer span.End()
-	if existing, err := o.findStoredPersonID(ctx, userID); err != nil {
+	if idents, err := o.core.ListUserIdentitiesForUser(ctx, userID); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
-	} else if existing != "" {
-		return nil
+	} else {
+		for _, id := range idents {
+			if id.Source == comanageIdentitySource && id.ExternalID != "" {
+				id.ExternalID = personID
+				return o.core.UpdateUserIdentity(ctx, &id)
+			}
+		}
 	}
 	_, err := o.core.CreateUserIdentity(ctx, &models.UserIdentity{
 		UserID:     userID,
@@ -91,7 +95,9 @@ func (o *Orchestrator) findByEmailExact(email string) (int, error) {
 		return 0, err
 	}
 	for _, p := range candidates {
-		if p.CoId == o.c.Config().COID {
+		// Soft-deleted people stay searchable; reusing one provisions into a
+		// dead record, so only Active matches count.
+		if p.CoId == o.c.Config().COID && p.Status == "Active" {
 			return p.Id, nil
 		}
 	}

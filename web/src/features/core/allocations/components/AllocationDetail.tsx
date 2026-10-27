@@ -17,13 +17,14 @@
 
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useAbility } from "@/shared/casl/AbilityProvider";
+import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
+import { DeleteButton } from "@/shared/ui/ConfirmDialog";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
-import { useAllocation, useAllocationMembers } from "../queries";
+import { useSession } from "next-auth/react";
+import { useAllocation, useAllocationMembers, useDeleteAllocation } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
@@ -36,17 +37,18 @@ export type AllocationDetailProps = {
 };
 
 export function AllocationDetail({ allocationId }: AllocationDetailProps) {
-  const ability = useAbility();
+  const can = usePermissions();
   const { data: session } = useSession();
   const allocationQuery = useAllocation(allocationId);
   const membersQuery = useAllocationMembers(allocationId);
+  const remove = useDeleteAllocation();
   useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
 
   if (allocationQuery.isLoading) return <CardSkeleton />;
   if (allocationQuery.error) {
     return (
       <ErrorState
-        message={(allocationQuery.error as Error).message}
+        message={allocationQuery.error.message}
         onRetry={() => allocationQuery.refetch()}
       />
     );
@@ -54,24 +56,41 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const allocation = allocationQuery.data;
   if (!allocation) return null;
 
-  const canManage = ability.can("manage", "Allocation");
   const memberCount = membersQuery.data?.length ?? 0;
 
   return (
     <section className="space-y-6">
-      <AllocationDetailHeader allocation={allocation} memberCount={memberCount} />
+      <div className="flex items-start justify-between gap-4">
+        <AllocationDetailHeader allocation={allocation} memberCount={memberCount} />
+        <DeleteButton
+          noun="Allocation"
+          id={allocation.id}
+          name={allocation.name}
+          mutation={remove}
+          redirectTo="/allocations"
+          allowed={can.allocationsWrite}
+          reason={requires("allocationsWrite")}
+        >
+          Its members, resources and usage records are deleted with it. This cannot be undone.
+        </DeleteButton>
+      </div>
       <TabsRouter
         defaultValue="overview"
         tabs={[
           {
             value: "overview",
             label: "Overview",
-            content: <AllocationOverviewTab allocation={allocation} />,
-          },
-          {
-            value: "members",
-            label: "Members",
-            content: <AllocationMembersTab allocation={allocation} canManage={canManage} />,
+            content: (
+              <div className="space-y-6">
+                <AllocationOverviewTab allocation={allocation} canEdit={can.allocationsWrite} />
+                <AllocationMembersTab
+                  allocation={allocation}
+                  canEditAccess={can.allocationsWrite}
+                  canEditRoles={can.projectsWrite}
+                  canSearchUsers={can.usersRead}
+                />
+              </div>
+            ),
           },
           {
             value: "change-requests",
@@ -79,7 +98,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
             content: (
               <AllocationChangeRequestsTab
                 allocation={allocation}
-                canSubmit={canManage}
+                canSubmit={can.allocationsWrite}
                 requesterId={session?.user?.id ?? ""}
               />
             ),

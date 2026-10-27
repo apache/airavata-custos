@@ -19,6 +19,8 @@ package operations
 
 import (
 	"encoding/json"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -118,7 +120,7 @@ func TestMergeUnixClusterAccount_PreservesAllKeysAndAppendsBlock(t *testing.T) {
 
 func TestBuildCreatePersonBody_Shape(t *testing.T) {
 	u := &models.User{FirstName: "GoalE2E", LastName: "Throwaway", Email: "goal-e2e@example.invalid"}
-	raw, err := buildCreatePersonBody(2, u)
+	raw, err := buildCreatePersonBody(2, u, "http://idp.invalid/users/9")
 	if err != nil {
 		t.Fatalf("buildCreatePersonBody: %v", err)
 	}
@@ -126,9 +128,196 @@ func TestBuildCreatePersonBody_Shape(t *testing.T) {
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	for _, key := range []string{"CoPerson", "Name", "EmailAddress"} {
+	for _, key := range []string{"CoPerson", "Name", "EmailAddress", "Identifier"} {
 		if _, ok := got[key]; !ok {
 			t.Errorf("body missing %q", key)
 		}
 	}
+	body := string(raw)
+	if !strings.Contains(body, `"verified":true`) {
+		t.Errorf("email must be created verified: %s", body)
+	}
+	if !strings.Contains(body, `"type":"oidcsub"`) || !strings.Contains(body, `"login":true`) {
+		t.Errorf("create body must carry the login oidcsub identifier: %s", body)
+	}
+
+	raw, err = buildCreatePersonBody(2, u, "")
+	if err != nil {
+		t.Fatalf("buildCreatePersonBody without sub: %v", err)
+	}
+	if strings.Contains(string(raw), "Identifier") {
+		t.Errorf("no Identifier block expected without a sub: %s", raw)
+	}
+}
+
+// The composite PUT deletes anything the body leaves out, so merging an identifier must return the person whole.
+func TestMergeIdentifier_KeepsEveryPropertyOfThePerson(t *testing.T) {
+	person := `{
+      "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A", "date_of_birth": null, "timezone": null},
+      "Name": [{"given": "Jane", "family": "Doe", "type": "official", "primary_name": true, "language": "en"}],
+      "EmailAddress": [{"mail": "jdoe@example.invalid", "type": "official", "verified": true}],
+      "Identifier": [
+        {"identifier": "Person100099", "type": "comanage_id", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "uidnumber", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "gidnumber", "login": false, "status": "A"},
+        {"identifier": "jdoe", "type": "uid", "login": false, "status": "A"}
+      ],
+      "CoPersonRole": [{"affiliation": "member", "status": "A"}],
+      "CoGroupMember": [{"co_group_id": 64, "member": true, "owner": false}],
+      "UnixClusterAccount": [{"username": "jdoe", "uid": 2000093, "unix_cluster_id": 1}],
+      "Url": [],
+      "SshKey": []
+    }`
+
+	merged, err := mergeIdentifier(json.RawMessage(person), "oidcsub", "http://idp.invalid/users/9", true)
+	if err != nil {
+		t.Fatalf("mergeIdentifier: %v", err)
+	}
+
+	var before, after map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(person), &before); err != nil {
+		t.Fatalf("decode fixture: %v", err)
+	}
+	if err := json.Unmarshal(merged, &after); err != nil {
+		t.Fatalf("decode merged: %v", err)
+	}
+
+	// Same sections in and out. Only `Identifier` will be changed
+	if len(after) != len(before) {
+		t.Fatalf("section count: got %d, want %d", len(after), len(before))
+	}
+	for key, want := range before {
+		got, ok := after[key]
+		if !ok {
+			t.Fatalf("PUT body dropped %q, the registry would delete it", key)
+		}
+		if key != "Identifier" && !sameJSON(t, got, want) {
+			t.Errorf("%s changed\n got: %s\nwant: %s", key, got, want)
+		}
+	}
+
+	// Identifier is the old list plus the one new entry from the `mergeIdentifier`
+	var oldIDs, newIDs []json.RawMessage
+	if err := json.Unmarshal(before["Identifier"], &oldIDs); err != nil {
+		t.Fatalf("decode fixture identifiers: %v", err)
+	}
+	if err := json.Unmarshal(after["Identifier"], &newIDs); err != nil {
+		t.Fatalf("decode merged identifiers: %v", err)
+	}
+	if len(newIDs) != len(oldIDs)+1 {
+		t.Fatalf("identifier count: got %d, want %d", len(newIDs), len(oldIDs)+1)
+	}
+	for i, want := range oldIDs {
+		if !sameJSON(t, newIDs[i], want) {
+			t.Errorf("identifier %d changed\n got: %s\nwant: %s", i, newIDs[i], want)
+		}
+	}
+	var added struct {
+		Identifier string `json:"identifier"`
+		Type       string `json:"type"`
+		Login      bool   `json:"login"`
+	}
+	if err := json.Unmarshal(newIDs[len(oldIDs)], &added); err != nil {
+		t.Fatalf("decode added identifier: %v", err)
+	}
+	if added.Type != "oidcsub" || added.Identifier != "http://idp.invalid/users/9" || !added.Login {
+		t.Errorf("added identifier = %+v, want oidcsub http://idp.invalid/users/9 login=true", added)
+	}
+}
+
+// Make sure removing a login takes only the cluster account and the uid
+// identifier with that username, since the composite PUT deletes anything the
+// body leaves out and the rest of the attributes of the person must survive.
+func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
+	person := `{
+      "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A"},
+      "Name": [{"given": "Jane", "family": "Doe", "type": "official", "primary_name": true}],
+      "EmailAddress": [{"mail": "jdoe@example.edu", "type": "official", "verified": true}],
+      "Identifier": [
+        {"identifier": "Person100099", "type": "comanage_id", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "uidnumber", "login": false, "status": "A"},
+        {"identifier": "jdoe", "type": "uid", "login": false, "status": "A"},
+        {"identifier": "http://idp.example.edu/users/9", "type": "oidcsub", "login": true, "status": "A"}
+      ],
+      "CoGroupMember": [{"co_group_id": 64, "member": true, "owner": false}],
+      "UnixClusterAccount": [{"username": "jdoe", "uid": 2000093, "unix_cluster_id": 1}]
+    }`
+	want := `{
+      "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A"},
+      "Name": [{"given": "Jane", "family": "Doe", "type": "official", "primary_name": true}],
+      "EmailAddress": [{"mail": "jdoe@example.edu", "type": "official", "verified": true}],
+      "Identifier": [
+        {"identifier": "Person100099", "type": "comanage_id", "login": false, "status": "A"},
+        {"identifier": "2000093", "type": "uidnumber", "login": false, "status": "A"},
+        {"identifier": "http://idp.example.edu/users/9", "type": "oidcsub", "login": true, "status": "A"}
+      ],
+      "CoGroupMember": [{"co_group_id": 64, "member": true, "owner": false}],
+      "UnixClusterAccount": []
+    }`
+
+	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	if err != nil {
+		t.Fatalf("removeLogin: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected the person to be reported as changed")
+	}
+	if !sameJSON(t, got, json.RawMessage(want)) {
+		t.Errorf("person after removal\n got: %s\nwant: %s", got, want)
+	}
+}
+
+// Make sure a person who has no account with the username being removed is
+// left unchanged. The person is found by an email search, which can match someone else.
+func TestRemoveLogin_LeavesAnotherPersonUntouched(t *testing.T) {
+	person := `{
+      "CoPerson": {"co_id": 2},
+      "Identifier": [{"identifier": "asmith", "type": "uid", "login": false, "status": "A"}],
+      "UnixClusterAccount": [{"username": "asmith", "uid": 2000094, "unix_cluster_id": 1}]
+    }`
+	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	if err != nil {
+		t.Fatalf("removeLogin: %v", err)
+	}
+	if changed || !sameJSON(t, got, json.RawMessage(person)) {
+		t.Errorf("expected no change, got changed=%v body=%s", changed, got)
+	}
+}
+
+// A person whose sub changes must end with one oidcsub, not two.
+func TestMergeIdentifier_ReplacesSameType(t *testing.T) {
+	person := `{"CoPerson":{"co_id":2},"Identifier":[{"identifier":"old-sub","type":"oidcsub","login":true,"status":"A"}]}`
+	merged, err := mergeIdentifier(json.RawMessage(person), "oidcsub", "new-sub", true)
+	if err != nil {
+		t.Fatalf("mergeIdentifier: %v", err)
+	}
+	var out struct {
+		Identifier []struct {
+			Identifier string `json:"identifier"`
+			Type       string `json:"type"`
+		} `json:"Identifier"`
+	}
+	if err := json.Unmarshal(merged, &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(out.Identifier) != 1 {
+		t.Fatalf("want 1 oidcsub, got %d: %s", len(out.Identifier), merged)
+	}
+	if out.Identifier[0].Identifier != "new-sub" {
+		t.Errorf("identifier = %q, want new-sub", out.Identifier[0].Identifier)
+	}
+}
+
+// sameJSON compares two raw messages by value, since marshalling compacts
+// whitespace and would make identical content look different.
+func sameJSON(t *testing.T, a, b json.RawMessage) bool {
+	t.Helper()
+	var x, y interface{}
+	if err := json.Unmarshal(a, &x); err != nil {
+		t.Fatalf("decode a: %v", err)
+	}
+	if err := json.Unmarshal(b, &y); err != nil {
+		t.Fatalf("decode b: %v", err)
+	}
+	return reflect.DeepEqual(x, y)
 }

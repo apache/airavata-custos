@@ -24,6 +24,9 @@ var _ CoreService = &CoreServiceMock{}
 //			AddPrivilegeToRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the AddPrivilegeToRole method")
 //			},
+//			AllocationRoleForUserFunc: func(ctx context.Context, allocationID string, userID string) (models.ProjectRole, error) {
+//				panic("mock out the AllocationRoleForUser method")
+//			},
 //			AttachResourceToAllocationFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the AttachResourceToAllocation method")
 //			},
@@ -189,8 +192,8 @@ var _ CoreService = &CoreServiceMock{}
 //			GetComputeClusterUserFunc: func(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 //				panic("mock out the GetComputeClusterUser method")
 //			},
-//			GetComputeClusterUserByLocalUsernameAndClusterFunc: func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
-//				panic("mock out the GetComputeClusterUserByLocalUsernameAndCluster method")
+//			GetComputeClusterUserByClusterAndLocalUsernameFunc: func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
+//				panic("mock out the GetComputeClusterUserByClusterAndLocalUsername method")
 //			},
 //			GetComputeClusterUserByPairFunc: func(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error) {
 //				panic("mock out the GetComputeClusterUserByPair method")
@@ -219,10 +222,10 @@ var _ CoreService = &CoreServiceMock{}
 //			GetRoleFunc: func(ctx context.Context, roleID string) (*models.Role, error) {
 //				panic("mock out the GetRole method")
 //			},
-//			GetTotalSUUsageForAllocationFunc: func(ctx context.Context, allocationID string) (int64, error) {
+//			GetTotalSUUsageForAllocationFunc: func(ctx context.Context, allocationID string) (float64, error) {
 //				panic("mock out the GetTotalSUUsageForAllocation method")
 //			},
-//			GetTotalSUUsageForUserInAllocationFunc: func(ctx context.Context, allocationID string, userID string) (int64, error) {
+//			GetTotalSUUsageForUserInAllocationFunc: func(ctx context.Context, allocationID string, userID string) (float64, error) {
 //				panic("mock out the GetTotalSUUsageForUserInAllocation method")
 //			},
 //			GetUserFunc: func(ctx context.Context, id string) (*models.User, error) {
@@ -251,6 +254,12 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			HasPrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error) {
 //				panic("mock out the HasPrivilege method")
+//			},
+//			IsProjectParticipantFunc: func(ctx context.Context, projectID string, userID string) (bool, error) {
+//				panic("mock out the IsProjectParticipant method")
+//			},
+//			LatestUsageTimeForClusterFunc: func(ctx context.Context, clusterID string) (*time.Time, error) {
+//				panic("mock out the LatestUsageTimeForCluster method")
 //			},
 //			ListAllAuditEventsFunc: func(ctx context.Context) ([]*models.AuditEvent, error) {
 //				panic("mock out the ListAllAuditEvents method")
@@ -288,6 +297,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ListComputeAllocationsByProjectFunc: func(ctx context.Context, projectID string) ([]models.ComputeAllocation, error) {
 //				panic("mock out the ListComputeAllocationsByProject method")
 //			},
+//			ListComputeAllocationsForParticipantFunc: func(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
+//				panic("mock out the ListComputeAllocationsForParticipant method")
+//			},
 //			ListComputeClusterUsersByClusterFunc: func(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error) {
 //				panic("mock out the ListComputeClusterUsersByCluster method")
 //			},
@@ -306,7 +318,7 @@ var _ CoreService = &CoreServiceMock{}
 //			ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
 //				panic("mock out the ListMembersForAllocation method")
 //			},
-//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 //				panic("mock out the ListMembersForProject method")
 //			},
 //			ListOverridesForMembershipFunc: func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error) {
@@ -318,11 +330,8 @@ var _ CoreService = &CoreServiceMock{}
 //			ListPrivilegeHoldersFunc: func(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error) {
 //				panic("mock out the ListPrivilegeHolders method")
 //			},
-//			ListProjectMembershipsFunc: func(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-//				panic("mock out the ListProjectMemberships method")
-//			},
-//			ListProjectsByPIFunc: func(ctx context.Context, piUserID string) ([]models.Project, error) {
-//				panic("mock out the ListProjectsByPI method")
+//			ListProjectsForParticipantFunc: func(ctx context.Context, userID string) ([]store.ProjectWithPI, error) {
+//				panic("mock out the ListProjectsForParticipant method")
 //			},
 //			ListRatesForResourceFunc: func(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error) {
 //				panic("mock out the ListRatesForResource method")
@@ -356,6 +365,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			ListUsersByOrganizationFunc: func(ctx context.Context, organizationID string) ([]models.User, error) {
 //				panic("mock out the ListUsersByOrganization method")
+//			},
+//			MarkComputeClusterUserProvisionedFunc: func(ctx context.Context, id string) error {
+//				panic("mock out the MarkComputeClusterUserProvisioned method")
 //			},
 //			MergeUsersFunc: func(ctx context.Context, survivingID string, retiringID string) (*models.User, error) {
 //				panic("mock out the MergeUsers method")
@@ -432,6 +444,9 @@ var _ CoreService = &CoreServiceMock{}
 type CoreServiceMock struct {
 	// AddPrivilegeToRoleFunc mocks the AddPrivilegeToRole method.
 	AddPrivilegeToRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+
+	// AllocationRoleForUserFunc mocks the AllocationRoleForUser method.
+	AllocationRoleForUserFunc func(ctx context.Context, allocationID string, userID string) (models.ProjectRole, error)
 
 	// AttachResourceToAllocationFunc mocks the AttachResourceToAllocation method.
 	AttachResourceToAllocationFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
@@ -598,8 +613,8 @@ type CoreServiceMock struct {
 	// GetComputeClusterUserFunc mocks the GetComputeClusterUser method.
 	GetComputeClusterUserFunc func(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 
-	// GetComputeClusterUserByLocalUsernameAndClusterFunc mocks the GetComputeClusterUserByLocalUsernameAndCluster method.
-	GetComputeClusterUserByLocalUsernameAndClusterFunc func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error)
+	// GetComputeClusterUserByClusterAndLocalUsernameFunc mocks the GetComputeClusterUserByClusterAndLocalUsername method.
+	GetComputeClusterUserByClusterAndLocalUsernameFunc func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error)
 
 	// GetComputeClusterUserByPairFunc mocks the GetComputeClusterUserByPair method.
 	GetComputeClusterUserByPairFunc func(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error)
@@ -629,10 +644,10 @@ type CoreServiceMock struct {
 	GetRoleFunc func(ctx context.Context, roleID string) (*models.Role, error)
 
 	// GetTotalSUUsageForAllocationFunc mocks the GetTotalSUUsageForAllocation method.
-	GetTotalSUUsageForAllocationFunc func(ctx context.Context, allocationID string) (int64, error)
+	GetTotalSUUsageForAllocationFunc func(ctx context.Context, allocationID string) (float64, error)
 
 	// GetTotalSUUsageForUserInAllocationFunc mocks the GetTotalSUUsageForUserInAllocation method.
-	GetTotalSUUsageForUserInAllocationFunc func(ctx context.Context, allocationID string, userID string) (int64, error)
+	GetTotalSUUsageForUserInAllocationFunc func(ctx context.Context, allocationID string, userID string) (float64, error)
 
 	// GetUserFunc mocks the GetUser method.
 	GetUserFunc func(ctx context.Context, id string) (*models.User, error)
@@ -660,6 +675,12 @@ type CoreServiceMock struct {
 
 	// HasPrivilegeFunc mocks the HasPrivilege method.
 	HasPrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error)
+
+	// IsProjectParticipantFunc mocks the IsProjectParticipant method.
+	IsProjectParticipantFunc func(ctx context.Context, projectID string, userID string) (bool, error)
+
+	// LatestUsageTimeForClusterFunc mocks the LatestUsageTimeForCluster method.
+	LatestUsageTimeForClusterFunc func(ctx context.Context, clusterID string) (*time.Time, error)
 
 	// ListAllAuditEventsFunc mocks the ListAllAuditEvents method.
 	ListAllAuditEventsFunc func(ctx context.Context) ([]*models.AuditEvent, error)
@@ -697,6 +718,9 @@ type CoreServiceMock struct {
 	// ListComputeAllocationsByProjectFunc mocks the ListComputeAllocationsByProject method.
 	ListComputeAllocationsByProjectFunc func(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 
+	// ListComputeAllocationsForParticipantFunc mocks the ListComputeAllocationsForParticipant method.
+	ListComputeAllocationsForParticipantFunc func(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
+
 	// ListComputeClusterUsersByClusterFunc mocks the ListComputeClusterUsersByCluster method.
 	ListComputeClusterUsersByClusterFunc func(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 
@@ -716,7 +740,7 @@ type CoreServiceMock struct {
 	ListMembersForAllocationFunc func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
 
 	// ListMembersForProjectFunc mocks the ListMembersForProject method.
-	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
+	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.ProjectMember, error)
 
 	// ListOverridesForMembershipFunc mocks the ListOverridesForMembership method.
 	ListOverridesForMembershipFunc func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
@@ -727,11 +751,8 @@ type CoreServiceMock struct {
 	// ListPrivilegeHoldersFunc mocks the ListPrivilegeHolders method.
 	ListPrivilegeHoldersFunc func(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
 
-	// ListProjectMembershipsFunc mocks the ListProjectMemberships method.
-	ListProjectMembershipsFunc func(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
-
-	// ListProjectsByPIFunc mocks the ListProjectsByPI method.
-	ListProjectsByPIFunc func(ctx context.Context, piUserID string) ([]models.Project, error)
+	// ListProjectsForParticipantFunc mocks the ListProjectsForParticipant method.
+	ListProjectsForParticipantFunc func(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
 
 	// ListRatesForResourceFunc mocks the ListRatesForResource method.
 	ListRatesForResourceFunc func(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error)
@@ -765,6 +786,9 @@ type CoreServiceMock struct {
 
 	// ListUsersByOrganizationFunc mocks the ListUsersByOrganization method.
 	ListUsersByOrganizationFunc func(ctx context.Context, organizationID string) ([]models.User, error)
+
+	// MarkComputeClusterUserProvisionedFunc mocks the MarkComputeClusterUserProvisioned method.
+	MarkComputeClusterUserProvisionedFunc func(ctx context.Context, id string) error
 
 	// MergeUsersFunc mocks the MergeUsers method.
 	MergeUsersFunc func(ctx context.Context, survivingID string, retiringID string) (*models.User, error)
@@ -844,6 +868,15 @@ type CoreServiceMock struct {
 			Privilege models.PrivilegeKey
 			// ActorID is the actorID argument value.
 			ActorID string
+		}
+		// AllocationRoleForUser holds details about calls to the AllocationRoleForUser method.
+		AllocationRoleForUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+			// UserID is the userID argument value.
+			UserID string
 		}
 		// AttachResourceToAllocation holds details about calls to the AttachResourceToAllocation method.
 		AttachResourceToAllocation []struct {
@@ -1256,8 +1289,8 @@ type CoreServiceMock struct {
 			// ID is the id argument value.
 			ID string
 		}
-		// GetComputeClusterUserByLocalUsernameAndCluster holds details about calls to the GetComputeClusterUserByLocalUsernameAndCluster method.
-		GetComputeClusterUserByLocalUsernameAndCluster []struct {
+		// GetComputeClusterUserByClusterAndLocalUsername holds details about calls to the GetComputeClusterUserByClusterAndLocalUsername method.
+		GetComputeClusterUserByClusterAndLocalUsername []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// ClusterID is the clusterID argument value.
@@ -1429,6 +1462,22 @@ type CoreServiceMock struct {
 			// Privilege is the privilege argument value.
 			Privilege models.PrivilegeKey
 		}
+		// IsProjectParticipant holds details about calls to the IsProjectParticipant method.
+		IsProjectParticipant []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ProjectID is the projectID argument value.
+			ProjectID string
+			// UserID is the userID argument value.
+			UserID string
+		}
+		// LatestUsageTimeForCluster holds details about calls to the LatestUsageTimeForCluster method.
+		LatestUsageTimeForCluster []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
+		}
 		// ListAllAuditEvents holds details about calls to the ListAllAuditEvents method.
 		ListAllAuditEvents []struct {
 			// Ctx is the ctx argument value.
@@ -1509,6 +1558,13 @@ type CoreServiceMock struct {
 			// ProjectID is the projectID argument value.
 			ProjectID string
 		}
+		// ListComputeAllocationsForParticipant holds details about calls to the ListComputeAllocationsForParticipant method.
+		ListComputeAllocationsForParticipant []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// ListComputeClusterUsersByCluster holds details about calls to the ListComputeClusterUsersByCluster method.
 		ListComputeClusterUsersByCluster []struct {
 			// Ctx is the ctx argument value.
@@ -1577,19 +1633,12 @@ type CoreServiceMock struct {
 			// Privilege is the privilege argument value.
 			Privilege models.PrivilegeKey
 		}
-		// ListProjectMemberships holds details about calls to the ListProjectMemberships method.
-		ListProjectMemberships []struct {
+		// ListProjectsForParticipant holds details about calls to the ListProjectsForParticipant method.
+		ListProjectsForParticipant []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ProjectID is the projectID argument value.
-			ProjectID string
-		}
-		// ListProjectsByPI holds details about calls to the ListProjectsByPI method.
-		ListProjectsByPI []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// PiUserID is the piUserID argument value.
-			PiUserID string
+			// UserID is the userID argument value.
+			UserID string
 		}
 		// ListRatesForResource holds details about calls to the ListRatesForResource method.
 		ListRatesForResource []struct {
@@ -1665,6 +1714,13 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// OrganizationID is the organizationID argument value.
 			OrganizationID string
+		}
+		// MarkComputeClusterUserProvisioned holds details about calls to the MarkComputeClusterUserProvisioned method.
+		MarkComputeClusterUserProvisioned []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
 		}
 		// MergeUsers holds details about calls to the MergeUsers method.
 		MergeUsers []struct {
@@ -1854,6 +1910,7 @@ type CoreServiceMock struct {
 		}
 	}
 	lockAddPrivilegeToRole                                     sync.RWMutex
+	lockAllocationRoleForUser                                  sync.RWMutex
 	lockAttachResourceToAllocation                             sync.RWMutex
 	lockBootstrapSuperAdmin                                    sync.RWMutex
 	lockCreateAuditEvent                                       sync.RWMutex
@@ -1909,7 +1966,7 @@ type CoreServiceMock struct {
 	lockGetComputeCluster                                      sync.RWMutex
 	lockGetComputeClusterByName                                sync.RWMutex
 	lockGetComputeClusterUser                                  sync.RWMutex
-	lockGetComputeClusterUserByLocalUsernameAndCluster         sync.RWMutex
+	lockGetComputeClusterUserByClusterAndLocalUsername         sync.RWMutex
 	lockGetComputeClusterUserByPair                            sync.RWMutex
 	lockGetEffectiveRateForResource                            sync.RWMutex
 	lockGetLatestDiffForAllocation                             sync.RWMutex
@@ -1930,6 +1987,8 @@ type CoreServiceMock struct {
 	lockGrantPrivilege                                         sync.RWMutex
 	lockGrantRoleToUser                                        sync.RWMutex
 	lockHasPrivilege                                           sync.RWMutex
+	lockIsProjectParticipant                                   sync.RWMutex
+	lockLatestUsageTimeForCluster                              sync.RWMutex
 	lockListAllAuditEvents                                     sync.RWMutex
 	lockListAllocationsForResource                             sync.RWMutex
 	lockListAllocationsForUser                                 sync.RWMutex
@@ -1942,6 +2001,7 @@ type CoreServiceMock struct {
 	lockListComputeAllocationResourcesByTypeAndCluster         sync.RWMutex
 	lockListComputeAllocationsByCluster                        sync.RWMutex
 	lockListComputeAllocationsByProject                        sync.RWMutex
+	lockListComputeAllocationsForParticipant                   sync.RWMutex
 	lockListComputeClusterUsersByCluster                       sync.RWMutex
 	lockListComputeClusterUsersByUser                          sync.RWMutex
 	lockListComputeClusters                                    sync.RWMutex
@@ -1952,8 +2012,7 @@ type CoreServiceMock struct {
 	lockListOverridesForMembership                             sync.RWMutex
 	lockListOverridesForResource                               sync.RWMutex
 	lockListPrivilegeHolders                                   sync.RWMutex
-	lockListProjectMemberships                                 sync.RWMutex
-	lockListProjectsByPI                                       sync.RWMutex
+	lockListProjectsForParticipant                             sync.RWMutex
 	lockListRatesForResource                                   sync.RWMutex
 	lockListResourcesForAllocation                             sync.RWMutex
 	lockListRoleHolders                                        sync.RWMutex
@@ -1965,6 +2024,7 @@ type CoreServiceMock struct {
 	lockListUserPrivileges                                     sync.RWMutex
 	lockListUserRoles                                          sync.RWMutex
 	lockListUsersByOrganization                                sync.RWMutex
+	lockMarkComputeClusterUserProvisioned                      sync.RWMutex
 	lockMergeUsers                                             sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
@@ -2030,6 +2090,46 @@ func (mock *CoreServiceMock) AddPrivilegeToRoleCalls() []struct {
 	mock.lockAddPrivilegeToRole.RLock()
 	calls = mock.calls.AddPrivilegeToRole
 	mock.lockAddPrivilegeToRole.RUnlock()
+	return calls
+}
+
+// AllocationRoleForUser calls AllocationRoleForUserFunc.
+func (mock *CoreServiceMock) AllocationRoleForUser(ctx context.Context, allocationID string, userID string) (models.ProjectRole, error) {
+	if mock.AllocationRoleForUserFunc == nil {
+		panic("CoreServiceMock.AllocationRoleForUserFunc: method is nil but CoreService.AllocationRoleForUser was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+		UserID:       userID,
+	}
+	mock.lockAllocationRoleForUser.Lock()
+	mock.calls.AllocationRoleForUser = append(mock.calls.AllocationRoleForUser, callInfo)
+	mock.lockAllocationRoleForUser.Unlock()
+	return mock.AllocationRoleForUserFunc(ctx, allocationID, userID)
+}
+
+// AllocationRoleForUserCalls gets all the calls that were made to AllocationRoleForUser.
+// Check the length with:
+//
+//	len(mockedCoreService.AllocationRoleForUserCalls())
+func (mock *CoreServiceMock) AllocationRoleForUserCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+	UserID       string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+	}
+	mock.lockAllocationRoleForUser.RLock()
+	calls = mock.calls.AllocationRoleForUser
+	mock.lockAllocationRoleForUser.RUnlock()
 	return calls
 }
 
@@ -4065,10 +4165,10 @@ func (mock *CoreServiceMock) GetComputeClusterUserCalls() []struct {
 	return calls
 }
 
-// GetComputeClusterUserByLocalUsernameAndCluster calls GetComputeClusterUserByLocalUsernameAndClusterFunc.
-func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndCluster(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
-	if mock.GetComputeClusterUserByLocalUsernameAndClusterFunc == nil {
-		panic("CoreServiceMock.GetComputeClusterUserByLocalUsernameAndClusterFunc: method is nil but CoreService.GetComputeClusterUserByLocalUsernameAndCluster was just called")
+// GetComputeClusterUserByClusterAndLocalUsername calls GetComputeClusterUserByClusterAndLocalUsernameFunc.
+func (mock *CoreServiceMock) GetComputeClusterUserByClusterAndLocalUsername(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
+	if mock.GetComputeClusterUserByClusterAndLocalUsernameFunc == nil {
+		panic("CoreServiceMock.GetComputeClusterUserByClusterAndLocalUsernameFunc: method is nil but CoreService.GetComputeClusterUserByClusterAndLocalUsername was just called")
 	}
 	callInfo := struct {
 		Ctx           context.Context
@@ -4079,17 +4179,17 @@ func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndCluster(ctx 
 		ClusterID:     clusterID,
 		LocalUsername: localUsername,
 	}
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.Lock()
-	mock.calls.GetComputeClusterUserByLocalUsernameAndCluster = append(mock.calls.GetComputeClusterUserByLocalUsernameAndCluster, callInfo)
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.Unlock()
-	return mock.GetComputeClusterUserByLocalUsernameAndClusterFunc(ctx, clusterID, localUsername)
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.Lock()
+	mock.calls.GetComputeClusterUserByClusterAndLocalUsername = append(mock.calls.GetComputeClusterUserByClusterAndLocalUsername, callInfo)
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.Unlock()
+	return mock.GetComputeClusterUserByClusterAndLocalUsernameFunc(ctx, clusterID, localUsername)
 }
 
-// GetComputeClusterUserByLocalUsernameAndClusterCalls gets all the calls that were made to GetComputeClusterUserByLocalUsernameAndCluster.
+// GetComputeClusterUserByClusterAndLocalUsernameCalls gets all the calls that were made to GetComputeClusterUserByClusterAndLocalUsername.
 // Check the length with:
 //
-//	len(mockedCoreService.GetComputeClusterUserByLocalUsernameAndClusterCalls())
-func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndClusterCalls() []struct {
+//	len(mockedCoreService.GetComputeClusterUserByClusterAndLocalUsernameCalls())
+func (mock *CoreServiceMock) GetComputeClusterUserByClusterAndLocalUsernameCalls() []struct {
 	Ctx           context.Context
 	ClusterID     string
 	LocalUsername string
@@ -4099,9 +4199,9 @@ func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndClusterCalls
 		ClusterID     string
 		LocalUsername string
 	}
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.RLock()
-	calls = mock.calls.GetComputeClusterUserByLocalUsernameAndCluster
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.RUnlock()
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.RLock()
+	calls = mock.calls.GetComputeClusterUserByClusterAndLocalUsername
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.RUnlock()
 	return calls
 }
 
@@ -4438,7 +4538,7 @@ func (mock *CoreServiceMock) GetRoleCalls() []struct {
 }
 
 // GetTotalSUUsageForAllocation calls GetTotalSUUsageForAllocationFunc.
-func (mock *CoreServiceMock) GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error) {
+func (mock *CoreServiceMock) GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (float64, error) {
 	if mock.GetTotalSUUsageForAllocationFunc == nil {
 		panic("CoreServiceMock.GetTotalSUUsageForAllocationFunc: method is nil but CoreService.GetTotalSUUsageForAllocation was just called")
 	}
@@ -4474,7 +4574,7 @@ func (mock *CoreServiceMock) GetTotalSUUsageForAllocationCalls() []struct {
 }
 
 // GetTotalSUUsageForUserInAllocation calls GetTotalSUUsageForUserInAllocationFunc.
-func (mock *CoreServiceMock) GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID string, userID string) (int64, error) {
+func (mock *CoreServiceMock) GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID string, userID string) (float64, error) {
 	if mock.GetTotalSUUsageForUserInAllocationFunc == nil {
 		panic("CoreServiceMock.GetTotalSUUsageForUserInAllocationFunc: method is nil but CoreService.GetTotalSUUsageForUserInAllocation was just called")
 	}
@@ -4870,6 +4970,82 @@ func (mock *CoreServiceMock) HasPrivilegeCalls() []struct {
 	mock.lockHasPrivilege.RLock()
 	calls = mock.calls.HasPrivilege
 	mock.lockHasPrivilege.RUnlock()
+	return calls
+}
+
+// IsProjectParticipant calls IsProjectParticipantFunc.
+func (mock *CoreServiceMock) IsProjectParticipant(ctx context.Context, projectID string, userID string) (bool, error) {
+	if mock.IsProjectParticipantFunc == nil {
+		panic("CoreServiceMock.IsProjectParticipantFunc: method is nil but CoreService.IsProjectParticipant was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ProjectID string
+		UserID    string
+	}{
+		Ctx:       ctx,
+		ProjectID: projectID,
+		UserID:    userID,
+	}
+	mock.lockIsProjectParticipant.Lock()
+	mock.calls.IsProjectParticipant = append(mock.calls.IsProjectParticipant, callInfo)
+	mock.lockIsProjectParticipant.Unlock()
+	return mock.IsProjectParticipantFunc(ctx, projectID, userID)
+}
+
+// IsProjectParticipantCalls gets all the calls that were made to IsProjectParticipant.
+// Check the length with:
+//
+//	len(mockedCoreService.IsProjectParticipantCalls())
+func (mock *CoreServiceMock) IsProjectParticipantCalls() []struct {
+	Ctx       context.Context
+	ProjectID string
+	UserID    string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ProjectID string
+		UserID    string
+	}
+	mock.lockIsProjectParticipant.RLock()
+	calls = mock.calls.IsProjectParticipant
+	mock.lockIsProjectParticipant.RUnlock()
+	return calls
+}
+
+// LatestUsageTimeForCluster calls LatestUsageTimeForClusterFunc.
+func (mock *CoreServiceMock) LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error) {
+	if mock.LatestUsageTimeForClusterFunc == nil {
+		panic("CoreServiceMock.LatestUsageTimeForClusterFunc: method is nil but CoreService.LatestUsageTimeForCluster was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+	}
+	mock.lockLatestUsageTimeForCluster.Lock()
+	mock.calls.LatestUsageTimeForCluster = append(mock.calls.LatestUsageTimeForCluster, callInfo)
+	mock.lockLatestUsageTimeForCluster.Unlock()
+	return mock.LatestUsageTimeForClusterFunc(ctx, clusterID)
+}
+
+// LatestUsageTimeForClusterCalls gets all the calls that were made to LatestUsageTimeForCluster.
+// Check the length with:
+//
+//	len(mockedCoreService.LatestUsageTimeForClusterCalls())
+func (mock *CoreServiceMock) LatestUsageTimeForClusterCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+	}
+	mock.lockLatestUsageTimeForCluster.RLock()
+	calls = mock.calls.LatestUsageTimeForCluster
+	mock.lockLatestUsageTimeForCluster.RUnlock()
 	return calls
 }
 
@@ -5297,6 +5473,42 @@ func (mock *CoreServiceMock) ListComputeAllocationsByProjectCalls() []struct {
 	return calls
 }
 
+// ListComputeAllocationsForParticipant calls ListComputeAllocationsForParticipantFunc.
+func (mock *CoreServiceMock) ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
+	if mock.ListComputeAllocationsForParticipantFunc == nil {
+		panic("CoreServiceMock.ListComputeAllocationsForParticipantFunc: method is nil but CoreService.ListComputeAllocationsForParticipant was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		UserID string
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+	}
+	mock.lockListComputeAllocationsForParticipant.Lock()
+	mock.calls.ListComputeAllocationsForParticipant = append(mock.calls.ListComputeAllocationsForParticipant, callInfo)
+	mock.lockListComputeAllocationsForParticipant.Unlock()
+	return mock.ListComputeAllocationsForParticipantFunc(ctx, userID)
+}
+
+// ListComputeAllocationsForParticipantCalls gets all the calls that were made to ListComputeAllocationsForParticipant.
+// Check the length with:
+//
+//	len(mockedCoreService.ListComputeAllocationsForParticipantCalls())
+func (mock *CoreServiceMock) ListComputeAllocationsForParticipantCalls() []struct {
+	Ctx    context.Context
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID string
+	}
+	mock.lockListComputeAllocationsForParticipant.RLock()
+	calls = mock.calls.ListComputeAllocationsForParticipant
+	mock.lockListComputeAllocationsForParticipant.RUnlock()
+	return calls
+}
+
 // ListComputeClusterUsersByCluster calls ListComputeClusterUsersByClusterFunc.
 func (mock *CoreServiceMock) ListComputeClusterUsersByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error) {
 	if mock.ListComputeClusterUsersByClusterFunc == nil {
@@ -5510,7 +5722,7 @@ func (mock *CoreServiceMock) ListMembersForAllocationCalls() []struct {
 }
 
 // ListMembersForProject calls ListMembersForProjectFunc.
-func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 	if mock.ListMembersForProjectFunc == nil {
 		panic("CoreServiceMock.ListMembersForProjectFunc: method is nil but CoreService.ListMembersForProject was just called")
 	}
@@ -5653,75 +5865,39 @@ func (mock *CoreServiceMock) ListPrivilegeHoldersCalls() []struct {
 	return calls
 }
 
-// ListProjectMemberships calls ListProjectMembershipsFunc.
-func (mock *CoreServiceMock) ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
-	if mock.ListProjectMembershipsFunc == nil {
-		panic("CoreServiceMock.ListProjectMembershipsFunc: method is nil but CoreService.ListProjectMemberships was just called")
+// ListProjectsForParticipant calls ListProjectsForParticipantFunc.
+func (mock *CoreServiceMock) ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error) {
+	if mock.ListProjectsForParticipantFunc == nil {
+		panic("CoreServiceMock.ListProjectsForParticipantFunc: method is nil but CoreService.ListProjectsForParticipant was just called")
 	}
 	callInfo := struct {
-		Ctx       context.Context
-		ProjectID string
+		Ctx    context.Context
+		UserID string
 	}{
-		Ctx:       ctx,
-		ProjectID: projectID,
+		Ctx:    ctx,
+		UserID: userID,
 	}
-	mock.lockListProjectMemberships.Lock()
-	mock.calls.ListProjectMemberships = append(mock.calls.ListProjectMemberships, callInfo)
-	mock.lockListProjectMemberships.Unlock()
-	return mock.ListProjectMembershipsFunc(ctx, projectID)
+	mock.lockListProjectsForParticipant.Lock()
+	mock.calls.ListProjectsForParticipant = append(mock.calls.ListProjectsForParticipant, callInfo)
+	mock.lockListProjectsForParticipant.Unlock()
+	return mock.ListProjectsForParticipantFunc(ctx, userID)
 }
 
-// ListProjectMembershipsCalls gets all the calls that were made to ListProjectMemberships.
+// ListProjectsForParticipantCalls gets all the calls that were made to ListProjectsForParticipant.
 // Check the length with:
 //
-//	len(mockedCoreService.ListProjectMembershipsCalls())
-func (mock *CoreServiceMock) ListProjectMembershipsCalls() []struct {
-	Ctx       context.Context
-	ProjectID string
+//	len(mockedCoreService.ListProjectsForParticipantCalls())
+func (mock *CoreServiceMock) ListProjectsForParticipantCalls() []struct {
+	Ctx    context.Context
+	UserID string
 } {
 	var calls []struct {
-		Ctx       context.Context
-		ProjectID string
+		Ctx    context.Context
+		UserID string
 	}
-	mock.lockListProjectMemberships.RLock()
-	calls = mock.calls.ListProjectMemberships
-	mock.lockListProjectMemberships.RUnlock()
-	return calls
-}
-
-// ListProjectsByPI calls ListProjectsByPIFunc.
-func (mock *CoreServiceMock) ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
-	if mock.ListProjectsByPIFunc == nil {
-		panic("CoreServiceMock.ListProjectsByPIFunc: method is nil but CoreService.ListProjectsByPI was just called")
-	}
-	callInfo := struct {
-		Ctx      context.Context
-		PiUserID string
-	}{
-		Ctx:      ctx,
-		PiUserID: piUserID,
-	}
-	mock.lockListProjectsByPI.Lock()
-	mock.calls.ListProjectsByPI = append(mock.calls.ListProjectsByPI, callInfo)
-	mock.lockListProjectsByPI.Unlock()
-	return mock.ListProjectsByPIFunc(ctx, piUserID)
-}
-
-// ListProjectsByPICalls gets all the calls that were made to ListProjectsByPI.
-// Check the length with:
-//
-//	len(mockedCoreService.ListProjectsByPICalls())
-func (mock *CoreServiceMock) ListProjectsByPICalls() []struct {
-	Ctx      context.Context
-	PiUserID string
-} {
-	var calls []struct {
-		Ctx      context.Context
-		PiUserID string
-	}
-	mock.lockListProjectsByPI.RLock()
-	calls = mock.calls.ListProjectsByPI
-	mock.lockListProjectsByPI.RUnlock()
+	mock.lockListProjectsForParticipant.RLock()
+	calls = mock.calls.ListProjectsForParticipant
+	mock.lockListProjectsForParticipant.RUnlock()
 	return calls
 }
 
@@ -6114,6 +6290,42 @@ func (mock *CoreServiceMock) ListUsersByOrganizationCalls() []struct {
 	mock.lockListUsersByOrganization.RLock()
 	calls = mock.calls.ListUsersByOrganization
 	mock.lockListUsersByOrganization.RUnlock()
+	return calls
+}
+
+// MarkComputeClusterUserProvisioned calls MarkComputeClusterUserProvisionedFunc.
+func (mock *CoreServiceMock) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
+	if mock.MarkComputeClusterUserProvisionedFunc == nil {
+		panic("CoreServiceMock.MarkComputeClusterUserProvisionedFunc: method is nil but CoreService.MarkComputeClusterUserProvisioned was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockMarkComputeClusterUserProvisioned.Lock()
+	mock.calls.MarkComputeClusterUserProvisioned = append(mock.calls.MarkComputeClusterUserProvisioned, callInfo)
+	mock.lockMarkComputeClusterUserProvisioned.Unlock()
+	return mock.MarkComputeClusterUserProvisionedFunc(ctx, id)
+}
+
+// MarkComputeClusterUserProvisionedCalls gets all the calls that were made to MarkComputeClusterUserProvisioned.
+// Check the length with:
+//
+//	len(mockedCoreService.MarkComputeClusterUserProvisionedCalls())
+func (mock *CoreServiceMock) MarkComputeClusterUserProvisionedCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	mock.lockMarkComputeClusterUserProvisioned.RLock()
+	calls = mock.calls.MarkComputeClusterUserProvisioned
+	mock.lockMarkComputeClusterUserProvisioned.RUnlock()
 	return calls
 }
 

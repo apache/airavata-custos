@@ -107,7 +107,9 @@ export function DateRangePicker({
   const customFromDate = fromDateInputValue(customFrom);
   const customToDate = fromDateInputValue(customTo);
   const canApplyCustom =
-    customFromDate !== null && customToDate !== null && customFromDate.getTime() <= customToDate.getTime();
+    customFromDate !== null &&
+    customToDate !== null &&
+    customFromDate.getTime() <= customToDate.getTime();
 
   const handleApplyCustom = () => {
     if (!canApplyCustom || !customFromDate || !customToDate) return;

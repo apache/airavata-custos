@@ -80,11 +80,13 @@ func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 }
 
 // @Summary	List usages for a compute allocation
+// @Description	Callers without the allocations read privilege must hold a membership on the allocation or a governance role on its project; others return 404.
 // @Tags	Compute Allocation Usages
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationUsage
+// @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/usages [get]
 func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request) {
@@ -114,11 +116,13 @@ func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary	Get total SU usage for a compute allocation
+// @Description	Callers without the allocations read privilege must hold a membership on the allocation or a governance role on its project; others return 404.
 // @Tags	Compute Allocation Usages
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{object}	AllocationSUTotalResponse
+// @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/usages/total [get]
 func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Request) {

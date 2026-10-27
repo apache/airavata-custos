@@ -27,7 +27,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  ...(process.env.CI ? { workers: 1 } : {}),
   reporter: "line",
   use: {
     baseURL,
@@ -40,7 +40,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `corepack pnpm dev --port ${port}`,
+    command: `pnpm dev --port ${port}`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,

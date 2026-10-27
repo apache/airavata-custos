@@ -47,7 +47,7 @@ export AMIE_API_KEY="your-api-key"
 ```
 
 AMIE reads its config from the `connectors.amie-processor` block in `config/custos.yaml`. The defaults work against the
-Docker Compose MariaDB.
+Docker Compose PostgreSQL.
 
 For local dev without a real ACCESS endpoint, point the service at the local mock AMIE server in [
 `mock-server/`](./mock-server/README.md)
@@ -88,7 +88,7 @@ vars set:
 
 - `DATABASE_DSN`, `AMIE_BASE_URL`, `AMIE_SITE_CODE`, `AMIE_API_KEY`, `AMIE_CLUSTER_ID`
 
-The canonical runner brings up an isolated DB on `:3307` + mock AMIE on `:8181`, applies all migrations, fires every
+The canonical runner brings up an isolated DB on `:5433` + mock AMIE on `:8181`, applies all migrations, fires every
 integration test, then tears down:
 
 ```bash
@@ -220,6 +220,23 @@ AMIE API ──poll──> Poller ──persist──> DB (packets + events)
 | InformTransactionComplete | `inform_transaction_complete` | *(none, terminal)*            |
 | NoOp                      | *(catch-all)*                 | *(none)*                      |
 
+### Allocation types
+
+A `request_project_create` carries an `AllocationType`. The spec (AMIE in
+ACCESS, section notify_project_create) defines what each one means for the site.
+
+| Type         | Unknown project or resource       | Existing allocation                           |
+|--------------|-----------------------------------|-----------------------------------------------|
+| `new`        | create the allocation             | create the allocation                         |
+| `transfer`   | create, as a supplement           | add the SUs; a negative amount is deducted    |
+| `supplement` | create                            | add the SUs, dates unchanged                  |
+| `renewal`    | create, with the given dates      | replace the SUs and dates from the start date |
+| `extension`  | not expected                      | change the end date only                      |
+| `adjustment` | not expected                      | add or deduct, like a transfer                |
+| `advance`    | listed in the spec, not described |
+
+A negative `transfer` for an unknown allocation is an error.
+
 ## Configuration Reference
 
 Configuration lives in the `connectors.amie-processor` block of [`config/custos.yaml`](../../../config/custos.yaml).
@@ -233,5 +250,8 @@ Sensitive values come from env vars sourced by the server on startup:
 | `AMIE_CLUSTER_ID` | UUID of the cluster this connector serves   |
 
 Poll intervals, worker interval, and HTTP timeouts are set in the YAML block. Log level and format are inherited from
-the core server. The database DSN is shared with core via `DATABASE_DSN`; this connector does not maintain its own
+the core server. A packet's `ResourceList` names are matched against the cluster's resource catalog by name; when
+ACCESS uses a different name for a resource, map it under `resource_aliases` in the same block, for example
+`my-gpu.site.access-ci.org: gpu-a100`. An alias can also list several catalog resources, such as
+`my-gpu.site.access-ci.org: [gpu-a100, gpu-h100]`, and the allocation is attached to each. The database DSN is shared with core via `DATABASE_DSN`; this connector does not maintain its own
 connection.

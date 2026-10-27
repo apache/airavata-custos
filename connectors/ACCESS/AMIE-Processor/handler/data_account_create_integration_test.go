@@ -47,7 +47,7 @@ func baseDataAccountCreateBody() map[string]any {
 		"ProjectID": "TG-BL-001",
 		"GlobalID":  "bl-user-001",
 		"DnList": []any{
-			dacExistingDN, // duplicate; INSERT IGNORE keeps the existing row
+			dacExistingDN, // duplicate; conflict is ignored, existing row kept
 			dacNewDN1,
 			dacNewDN2,
 		},

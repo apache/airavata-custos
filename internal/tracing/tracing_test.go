@@ -23,33 +23,8 @@ import (
 	"time"
 )
 
-func TestInitNoopProducesNonRecordingSpans(t *testing.T) {
-	shutdown, err := Init(InitConfig{Mode: ModeNoop})
-	if err != nil {
-		t.Fatalf("Init(noop) returned error: %v", err)
-	}
-
-	ctx, span := Start(context.Background(), "test.noop")
-	if span.IsRecording() {
-		t.Fatalf("expected noop span to be non-recording")
-	}
-
-	traceID, spanID := IDsFromContext(ctx)
-	if traceID != "" || spanID != "" {
-		t.Fatalf("expected empty IDs from noop ctx, got trace=%q span=%q", traceID, spanID)
-	}
-
-	span.End()
-
-	sctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	if err := shutdown(sctx); err != nil {
-		t.Fatalf("shutdown returned error: %v", err)
-	}
-}
-
 func TestInitProductionMintsValidIDs(t *testing.T) {
-	shutdown, err := Init(InitConfig{Mode: ModeProduction, ServiceName: "custos-test"})
+	shutdown, err := Init(InitConfig{ServiceName: "custos-test"})
 	if err != nil {
 		t.Fatalf("Init(production) returned error: %v", err)
 	}
@@ -62,14 +37,14 @@ func TestInitProductionMintsValidIDs(t *testing.T) {
 	ctx, span := Start(context.Background(), "test.production")
 	defer span.End()
 
-	traceID, spanID := IDsFromContext(ctx)
+	traceID, spanID, _ := IDsFromContext(ctx)
 	if traceID == "" || spanID == "" {
 		t.Fatalf("expected non-empty IDs from production ctx, got trace=%q span=%q", traceID, spanID)
 	}
 }
 
 func TestStartCapturesParentSpanID(t *testing.T) {
-	shutdown, err := Init(InitConfig{Mode: ModeProduction, ServiceName: "custos-test"})
+	shutdown, err := Init(InitConfig{ServiceName: "custos-test"})
 	if err != nil {
 		t.Fatalf("Init returned error: %v", err)
 	}
@@ -86,7 +61,7 @@ func TestStartCapturesParentSpanID(t *testing.T) {
 	ctx2, span2 := Start(ctx1, "inner")
 	defer span2.End()
 
-	got := ParentSpanIDFromContext(ctx2)
+	got := *ParentSpanIDFromContext(ctx2)
 	if len(got) != 16 {
 		t.Fatalf("expected 16 hex chars, got %d", len(got))
 	}
@@ -94,7 +69,7 @@ func TestStartCapturesParentSpanID(t *testing.T) {
 		t.Errorf("parent mismatch: want %s got %s", span1ID.String(), got)
 	}
 
-	if root := ParentSpanIDFromContext(ctx1); root != "" {
-		t.Errorf("expected empty parent on root span ctx, got %s", root)
+	if root := ParentSpanIDFromContext(ctx1); root != nil {
+		t.Errorf("expected empty parent on root span ctx, got %s", *root)
 	}
 }

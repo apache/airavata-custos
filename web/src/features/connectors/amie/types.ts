@@ -15,7 +15,26 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export type PacketStatus = "NEW" | "DECODED" | "PROCESSED" | "FAILED";
+import type { z } from "zod";
+import {
+  type packetEventSchema,
+  type packetListResponseSchema,
+  type packetSchema,
+  type packetStatBucketSchema,
+  type packetStatsSchema,
+  packetStatusSchema,
+  type replyListResponseSchema,
+  type replySchema,
+  type replyStatusSchema,
+} from "./schemas";
+
+export type PacketStatus = z.infer<typeof packetStatusSchema>;
+
+export const PACKET_STATUSES = packetStatusSchema.options;
+
+export function packetStatusLabel(status: PacketStatus): string {
+  return status.replaceAll("_", " ");
+}
 
 export const PACKET_TYPES = [
   "request_project_create",
@@ -35,89 +54,18 @@ export const PACKET_TYPES = [
 
 export type PacketType = (typeof PACKET_TYPES)[number];
 
-export type LinkedEntityType = "project" | "account" | "person" | "user_merge";
+export type Packet = z.infer<typeof packetSchema>;
 
-export type LinkedEntityRef = {
-  type: LinkedEntityType;
-  id: string;
-  display_id?: string;
-};
+export type PacketEvent = z.infer<typeof packetEventSchema>;
 
-export type Packet = {
-  id: string;
-  amie_id: string;
-  type: string;
-  status: PacketStatus;
-  source: string;
-  raw_json?: string;
-  decoded_payload?: Record<string, unknown>;
-  received_at: string;
-  updated_at: string;
-  decoded_at?: string;
-  processed_at?: string;
-  retries: number;
-  last_error?: string;
-  linked_entity?: LinkedEntityRef;
-};
+export type ReplyStatus = z.infer<typeof replyStatusSchema>;
 
-export type PacketEventType =
-  | "RECEIVED"
-  | "DECODED"
-  | "HANDLED"
-  | "RETRY_SCHEDULED"
-  | "RETRY"
-  | "FAILED"
-  | "MANUAL_RESOLVE"
-  | "MANUAL_LINK";
+export type Reply = z.infer<typeof replySchema>;
 
-export type PacketEvent = {
-  id: string;
-  packet_id: string;
-  event_type: PacketEventType;
-  actor: string;
-  status: "SUCCEEDED" | "FAILED" | "RUNNING";
-  message?: string;
-  timestamp: string;
-  duration_ms?: number;
-  trace_id?: string;
-};
+export type PacketStatBucket = z.infer<typeof packetStatBucketSchema>;
 
-export type ReplyStatus = "PENDING" | "SENT" | "ACKED" | "FAILED";
+export type PacketStats = z.infer<typeof packetStatsSchema>;
 
-export type Reply = {
-  id: string;
-  amie_id: string;
-  type: string;
-  status: ReplyStatus;
-  in_reply_to_packet_id?: string;
-  sent_at?: string;
-  acked_at?: string;
-  retries: number;
-  last_error?: string;
-  created_at: string;
-};
+export type PacketListResponse = z.infer<typeof packetListResponseSchema>;
 
-export type PacketStatBucket = {
-  date: string;
-  status: PacketStatus;
-  type: string;
-  count: number;
-};
-
-export type PacketStats = {
-  byDay: PacketStatBucket[];
-};
-
-export type PacketListResponse = {
-  packets: Packet[];
-  total: number;
-  limit: number;
-  offset: number;
-};
-
-export type ReplyListResponse = {
-  replies: Reply[];
-  total: number;
-  limit: number;
-  offset: number;
-};
+export type ReplyListResponse = z.infer<typeof replyListResponseSchema>;

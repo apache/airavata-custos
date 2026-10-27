@@ -17,8 +17,11 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestPrincipalRegex(t *testing.T) {
@@ -68,10 +71,10 @@ func TestIsDuplicateKeyError(t *testing.T) {
 	}{
 		{"nil error", nil, false},
 		{"generic error", errors.New("connection refused"), false},
-		{"mysql duplicate entry", errors.New("Error 1062 (23000): Duplicate entry '42' for key 'serial_number'"), true},
-		{"wrapped duplicate entry", errors.New("failed to insert: Duplicate entry '99' for key 'PRIMARY'"), true},
-		{"partial match", errors.New("Duplicate entry"), true},
-		{"case sensitive no match", errors.New("duplicate entry"), false},
+		{"unique violation", &pgconn.PgError{Code: "23505", Message: "duplicate key value violates unique constraint \"serial_number\""}, true},
+		{"wrapped unique violation", fmt.Errorf("failed to insert: %w", &pgconn.PgError{Code: "23505"}), true},
+		{"other pg error", &pgconn.PgError{Code: "23503", Message: "foreign key violation"}, false},
+		{"plain message no match", errors.New("duplicate key value violates unique constraint"), false},
 	}
 
 	for _, tt := range tests {

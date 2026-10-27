@@ -67,12 +67,13 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.memberships.Create(ctx, tx, m)
+		if err := s.memberships.Create(ctx, tx, m); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipCreateEvent, m)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation membership: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipCreateEvent, m)
 	return m, nil
 }
 
@@ -103,10 +104,8 @@ func (s *Service) ListMembersForAllocation(ctx context.Context, allocationID str
 	return rows, nil
 }
 
-// ListMembersForProject derives project members from allocation memberships:
-// one row per distinct user with a membership on any of the project's
-// allocations. The project's PI is always asserted with role=PI.
-func (s *Service) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+// ListMembersForProject lists the project's members and role holders, one row per user.
+func (s *Service) ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("%w: project_id is required", ErrInvalidInput)
 	}
@@ -161,25 +160,34 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.memberships.Update(ctx, tx, m)
+		if err := s.memberships.Update(ctx, tx, m); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, m)
 	}); err != nil {
 		return nil, fmt.Errorf("update compute allocation membership: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipUpdateEvent, m)
 	return m, nil
 }
 
 // UpdateMembershipStatus sets the lifecycle status (ACTIVE, INACTIVE, etc.)
 // of the membership identified by the given ID. Other fields are preserved.
-func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error) {
+func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (m *models.ComputeAllocationMembership, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		m, err = s.UpdateMembershipStatusTx(ctx, tx, id, status)
+		return
+	})
+	return
+}
+
+func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error) {
 	if id == "" {
 		return nil, fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: membership_status is required", ErrInvalidInput)
 	}
-	existing, err := s.memberships.FindByID(ctx, id)
+	existing, err := s.memberships.FindByIDTx(ctx, tx, id)
 	if err != nil {
 		return nil, fmt.Errorf("lookup compute allocation membership: %w", err)
 	}
@@ -187,13 +195,14 @@ func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status 
 		return nil, ErrNotFound
 	}
 	existing.MembershipStatus = status
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.memberships.Update(ctx, tx, existing)
-	}); err != nil {
+	if err := func() error {
+		if err := s.memberships.Update(ctx, tx, existing); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, existing)
+	}(); err != nil {
 		return nil, fmt.Errorf("update compute allocation membership status: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -210,11 +219,12 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.memberships.Delete(ctx, tx, id)
+		if err := s.memberships.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation membership: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipDeleteEvent, existing)
 	return nil
 }

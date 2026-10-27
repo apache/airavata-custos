@@ -1,52 +1,157 @@
 {
+  "limit": 50,
+  "offset": 0,
+  "total": 10,
   "traces": [
     {
-      "trace_id": "a3b1c92d3f4e5a6b7c8d9e0f12345678",
-      "root_operation": "amie.process_event:request_account_create",
+      "trace_id": "a1d6dfd489a73b7af2d8c81b5c06f809",
+      "root_operation": "CLUSTER_ACCOUNT_APPROVED",
+      "source": "core",
+      "status": "in_progress",
+      "started_at": "2026-10-09T20:29:05.375218-04:00",
+      "ended_at": "2026-10-09T20:31:05.392654-04:00",
+      "event_count": 15,
+      "deliveries": {
+        "pending": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "attempts": 4
+      }
+    },
+    {
+      "trace_id": "0c87f7a2b3e8ef5b363bf0a4db4fa31d",
+      "root_operation": "CLUSTER_ACCOUNT_APPROVED",
+      "source": "core",
+      "status": "error",
+      "started_at": "2026-10-09T20:29:05.373114-04:00",
+      "ended_at": "2026-10-09T20:30:45.391577-04:00",
+      "event_count": 33,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 1,
+        "failed": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "0f73c2379f0363d8fdfe797b1d2926f6",
+      "root_operation": "CLUSTER_ACCOUNT_APPROVED",
+      "source": "core",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.378453-04:00",
+      "ended_at": "2026-10-09T20:29:15.391003-04:00",
+      "event_count": 8,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 3,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "9b2d81059e1b99bf7614b556033fa8ff",
+      "root_operation": "CLUSTER_ACCOUNT_DENIED",
+      "source": "core",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.376776-04:00",
+      "ended_at": "2026-10-09T20:29:05.405815-04:00",
+      "event_count": 5,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 2,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "e675c4c340756a2a46149f34975bb89f",
+      "root_operation": "NOTIFICATION_SENT",
+      "source": "email-notifier",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.392931-04:00",
+      "ended_at": "2026-10-09T20:29:05.393485-04:00",
+      "event_count": 2,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 1,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "cae43e34121d3403b77fdf729eb914e0",
+      "root_operation": "NOTIFICATION_SENT",
+      "source": "email-notifier",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.39141-04:00",
+      "ended_at": "2026-10-09T20:29:05.391995-04:00",
+      "event_count": 2,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 1,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "52b684557ae202d9c9063fd157390130",
+      "root_operation": "NOTIFICATION_SENT",
+      "source": "email-notifier",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.389901-04:00",
+      "ended_at": "2026-10-09T20:29:05.390488-04:00",
+      "event_count": 2,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 1,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "ea225f5ce91881fbff02683b951c9598",
+      "root_operation": "NOTIFICATION_SENT",
+      "source": "email-notifier",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.388315-04:00",
+      "ended_at": "2026-10-09T20:29:05.38891-04:00",
+      "event_count": 2,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 1,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "e186c967b21292011f99f03fd01fe7be",
+      "root_operation": "NOTIFICATION_SENT",
+      "source": "email-notifier",
+      "status": "ok",
+      "started_at": "2026-10-09T20:29:05.386214-04:00",
+      "ended_at": "2026-10-09T20:29:05.387115-04:00",
+      "event_count": 2,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 1,
+        "failed": 0,
+        "attempts": 0
+      }
+    },
+    {
+      "trace_id": "ee812de56cd0f2e257aa56916fb56c0e",
+      "root_operation": "PACKET_RECEIVED",
       "source": "amie",
       "status": "error",
-      "started_at": "2026-06-08T14:21:32.412Z",
-      "ended_at": "2026-06-08T14:21:33.612Z",
-      "event_count": 14
-    },
-    {
-      "trace_id": "b4c2da3e405f6b7c8d9e0f1234567890",
-      "root_operation": "amie.process_event:request_project_create",
-      "source": "amie",
-      "status": "ok",
-      "started_at": "2026-06-08T14:19:01.000Z",
-      "ended_at": "2026-06-08T14:19:02.250Z",
-      "event_count": 10
-    },
-    {
-      "trace_id": "c5d3eb4f516a7b8c9d0e1f2345678901",
-      "root_operation": "http.POST /users",
-      "source": "http",
-      "status": "ok",
-      "started_at": "2026-06-08T14:15:30.000Z",
-      "ended_at": "2026-06-08T14:15:30.042Z",
-      "event_count": 3
-    },
-    {
-      "trace_id": "d6e4fc5062716c7d8e9f02345678abcd",
-      "root_operation": "comanage.ensure_posix",
-      "source": "comanage",
-      "status": "in_progress",
-      "started_at": "2026-06-08T14:10:00.000Z",
-      "ended_at": "0001-01-01T00:00:00Z",
-      "event_count": 2
-    },
-    {
-      "trace_id": "e7f50d617382b7c8d9e0f1234567abef",
-      "root_operation": "slurm.create_account",
-      "source": "slurm",
-      "status": "ok",
-      "started_at": "2026-06-04T10:01:00.000Z",
-      "ended_at": "2026-06-04T10:01:00.180Z",
-      "event_count": 4
+      "started_at": "2026-10-09T20:29:05.379417-04:00",
+      "ended_at": "2026-10-09T20:29:05.380589-04:00",
+      "event_count": 3,
+      "deliveries": {
+        "pending": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "attempts": 0
+      }
     }
-  ],
-  "total": 5,
-  "limit": 50,
-  "offset": 0
+  ]
 }

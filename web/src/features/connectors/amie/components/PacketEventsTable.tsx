@@ -17,10 +17,10 @@
 
 "use client";
 
-import { CenteredSpinner } from "@/shared/ui/Loading";
 // ADR-0004: sanctioned cross-feature import — ViewTraceLink is the ONE primitive
 // other features may pull from core/audit. See web/CLAUDE.md "Pitfalls" §4.
 import { ViewTraceLink } from "@/features/core/audit/components/ViewTraceLink";
+import { CenteredSpinner } from "@/shared/ui/Loading";
 import type { PacketEvent } from "../types";
 import { formatDate } from "../utils";
 

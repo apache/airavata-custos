@@ -176,7 +176,7 @@ export function CertificateList({
           columns={columns}
           rows={filtered}
           rowKey={(row) => String(row.serial_number)}
-          pagination={pagination}
+          {...(pagination !== undefined ? { pagination } : {})}
         />
       )}
     </div>

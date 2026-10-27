@@ -31,9 +31,7 @@ export function useSignOut() {
     // The end-session route reads idToken from the session before clearing
     // the cookie, so it can build a Keycloak logout URL with id_token_hint
     // (otherwise Keycloak skips the SSO invalidation).
-    window.location.assign(
-      `/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
-    );
+    window.location.assign(`/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }, []);
   return { signOut, isPending };
 }

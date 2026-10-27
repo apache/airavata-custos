@@ -32,17 +32,17 @@ type AuditExtrasStore interface {
 	Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error
 }
 
-type mariaDBauditExtrasStore struct {
+type pgAuditExtrasStore struct {
 	db *sqlx.DB
 }
 
 func NewAuditExtrasStore(db *sqlx.DB) AuditExtrasStore {
-	return &mariaDBauditExtrasStore{db: db}
+	return &pgAuditExtrasStore{db: db}
 }
 
-func (s *mariaDBauditExtrasStore) Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error {
+func (s *pgAuditExtrasStore) Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_audit_extras (audit_event_id, packet_id, event_id) VALUES (?, ?, ?)`,
+		`INSERT INTO amie_audit_extras (audit_event_id, packet_id, event_id) VALUES ($1, $2, $3)`,
 		e.AuditEventID, e.PacketID, e.EventID)
 	return err
 }

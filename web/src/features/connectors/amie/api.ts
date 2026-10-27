@@ -15,8 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
+import type {
+  GetConnectorsAmieStatsData,
+  GetConnectorsAmieUnmappedData,
+} from "@/generated/amie/types.gen";
 import { apiFetch } from "@/shared/api/client";
+import { z } from "zod";
 import {
   linkUnmappedPayloadSchema,
   packetEventSchema,
@@ -36,10 +40,10 @@ import type {
 } from "./types";
 
 export type PacketListParams = {
-  status?: PacketStatus | "all" | string;
-  type?: string;
-  source?: string;
-  q?: string;
+  status?: PacketStatus | "all" | string | undefined;
+  type?: string | undefined;
+  source?: string | undefined;
+  q?: string | undefined;
   from?: string;
   to?: string;
   limit?: number;
@@ -88,7 +92,7 @@ export async function resolvePacket(id: string, payload: { reason: string }): Pr
 }
 
 export type ReplyListParams = {
-  status?: string;
+  status?: string | undefined;
   from?: string;
   to?: string;
   limit?: number;
@@ -107,10 +111,7 @@ export async function retryReply(id: string): Promise<{ queued: true }> {
   return z.object({ queued: z.literal(true) }).parse(raw);
 }
 
-export type UnmappedListParams = {
-  limit?: number;
-  offset?: number;
-};
+export type UnmappedListParams = NonNullable<GetConnectorsAmieUnmappedData["query"]>;
 
 export async function listUnmapped(params: UnmappedListParams = {}): Promise<PacketListResponse> {
   const raw = await apiFetch(`/connectors/amie/unmapped${qs(params)}`);
@@ -129,9 +130,7 @@ export async function linkUnmapped(
   return packetSchema.parse(raw);
 }
 
-export type StatsParams = {
-  window?: string;
-};
+export type StatsParams = NonNullable<GetConnectorsAmieStatsData["query"]>;
 
 export async function getPacketStats(
   params: StatsParams = { window: "30d" },

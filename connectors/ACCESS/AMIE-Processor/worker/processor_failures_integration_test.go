@@ -23,9 +23,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/google/uuid"
 )
 
@@ -46,7 +49,7 @@ func TestProcessor_RouterWriteRolledBackOnError(t *testing.T) {
 		work: func(ctx context.Context, tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx,
 				`INSERT INTO audit_events (id, event_type, event_time, entity_id, entity_type, details, source)
-				 VALUES (?, ?, UTC_TIMESTAMP(6), ?, ?, ?, ?)`,
+				 VALUES ($1, $2, NOW(), $3, $4, $5, $6)`,
 				probeID, "CREATE_PROJECT", packetID, "probe", auditProbe, "amie",
 			)
 			return err
@@ -60,7 +63,7 @@ func TestProcessor_RouterWriteRolledBackOnError(t *testing.T) {
 	// The audit write must NOT be visible, tx rolled back.
 	var hits int
 	if err := database.Get(&hits,
-		"SELECT COUNT(*) FROM audit_events WHERE details = ?", auditProbe,
+		"SELECT COUNT(*) FROM audit_events WHERE details = $1", auditProbe,
 	); err != nil {
 		t.Fatalf("query audit probe: %v", err)
 	}
@@ -115,6 +118,38 @@ func TestProcessor_FAILEDStatusIsUnreachable(t *testing.T) {
 	}
 	if failedCount != 0 {
 		t.Errorf("amie_processing_events in FAILED status: got %d, want 0 (B1: unreachable)", failedCount)
+	}
+}
+
+// Make sure an invalid packet fails at once, is recorded as failed on its trace, and gets one failure reply.
+func TestProcessor_InvalidPacketFailsWithTraceAndReply(t *testing.T) {
+	database := setupTestDB(t)
+	packetID, eventID := seedNewEvent(t, database)
+	replier := &stubReplier{}
+	p := newProcessor(database, &fakeRouter{errors: []error{
+		fmt.Errorf("%w: 'PiEmail' must not be empty", model.ErrInvalidPacket),
+	}}, &stubMetrics{})
+	p.amie = replier
+
+	p.processPendingEvents(context.Background())
+
+	if ev := readEvent(t, database, eventID); ev.Status != model.ProcessingStatusPermanentlyFailed {
+		t.Errorf("event status: got %q, want PERMANENTLY_FAILED", ev.Status)
+	}
+	var actions []string
+	if err := database.Select(&actions,
+		"SELECT event_type FROM audit_events WHERE entity_id = $1 ORDER BY event_time", packetID); err != nil {
+		t.Fatalf("read audit: %v", err)
+	}
+	if strings.Join(actions, ",") != "PACKET_RECEIVED,PACKET_FAILED" {
+		t.Errorf("audit rows: got %v, want PACKET_RECEIVED then PACKET_FAILED", actions)
+	}
+	tree, _, _, err := corestore.NewAuditTraceStore(database).GetTraceTree(context.Background(), pollTraceID)
+	if err != nil || tree == nil || len(tree.Children) == 0 {
+		t.Errorf("trace tree: got %+v (%v), want the failed packet's steps", tree, err)
+	}
+	if len(replier.replies) != 1 || replier.replies[0]["body"].(map[string]any)["StatusCode"] != "Failure" {
+		t.Errorf("replies: got %v, want one Failure reply", replier.replies)
 	}
 }
 

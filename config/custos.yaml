@@ -32,20 +32,32 @@ connectors:
     type: "slurm-association-mapper"
     enabled: true
     slurm_api:
-      url: "https://slurm-api.example.com"
-      version: "0.0.38"
-      username: "slurm_admin"
-      token: "${SLURM_TOKEN}" # Reference to environment variable
+      url: "${SLURM_API_URL}"
+      version: "${SLURM_API_VERSION}"
+      username: "${SLURM_API_USERNAME}"
+      token: "${SLURM_TOKEN}"
+    # How often the sweep re-declares associations for provisioned members.
+    # This is what guarantees an association exists, so it also decides how
+    # long a member waits when an event is lost or the account provisions late.
+    association_reconcile_interval: "5m"
+    # How long to hold a just-provisioned account back before writing its
+    # association. Covers the directory export and the cluster's name cache,
+    # which Custos cannot observe. Raise it if users hit "Invalid account"
+    # right after being added.
+    association_provision_grace: "30s"
 
   slurm-usage-monitor:
     type: "slurm-usage-monitor"
     enabled: true
     slurm_api:
-      url: "https://slurm-api.example.com"
-      version: "0.0.38"
-      username: "slurm_admin"
-      token: "${SLURM_TOKEN}" # Reference to environment variable
-    cluster_id: "slurm-cluster"
+      url: "${SLURM_API_URL}"
+      version: "${SLURM_API_VERSION}"
+      username: "${SLURM_API_USERNAME}"
+      token: "${SLURM_TOKEN}"
+    cluster_id: "${CUSTOS_CLUSTER_ID}"
+    # How far back each poll re-scans to catch jobs SLURM writes to its
+    # accounting database late. Tune to the cluster's slurmdbd commit lag.
+    usage_lookback: "15m"
 
   comanage-provisioner:
     type: "comanage-identity-provisioner"
@@ -58,11 +70,58 @@ connectors:
     unix_cluster:
       id: ${COMANAGE_UNIX_CLUSTER_ID}
       person_id_type: "${COMANAGE_PERSON_ID_TYPE}"
+      admin_group: "${COMANAGE_CLUSTER_ADMIN_GROUP}"
     provisioning:
       custos_cluster_id: "${CUSTOS_CLUSTER_ID}"
       default_shell: "/bin/bash"
       homedir_prefix: "/home/"
       http_timeout: "30s"
+
+  vast-provisioner:
+    type: "vast-storage-provisioner"
+    enabled: false
+    reconcile_interval: "5m"
+    clusters:
+      - id: "${CUSTOS_CLUSTER_ID}"
+        vast:
+          url: "${VAST_VMS_URL}"
+          username: "${VAST_API_USER}"
+          password: "${VAST_API_PASSWORD}"
+          tenant_id: ${VAST_TENANT_ID}
+          # Used by targets with `view: true`. When the connector is enabled, Custos does not start if VMS has no policy by this name.
+          view_policy: "${VAST_VIEW_POLICY}"
+          view_protocols: "${VAST_VIEW_PROTOCOLS}"    # comma-separated, such as NFS,NFS4
+        targets:
+          - path: "/home/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 107374182400      # 100 GiB
+            hard_limit_inodes: 1000000
+          - path: "/scratch/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 10000000
+            view: true
+          - path: "/project/{allocation}"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2750"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 300000000
+            view: true
+          - path: "/project/{allocation}/shared"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2770"
+            view: true
+          - path: "/project/{allocation}/{user}"
+            owner: "{user}"
+            group: "{allocation}"
+            mode: "2700"
+            view: true
 
   amie-processor:
     type: "amie-processor"
@@ -73,13 +132,18 @@ connectors:
       api_key: "${AMIE_API_KEY}"
     cluster:
       id: "${AMIE_CLUSTER_ID}"
+    # Maps a packet resource name to one or more catalog resources. The allocation is attached to each of them.
+    # resource_aliases:
+    #   my-gpu.site.access-ci.org: [gpu-a100, gpu-h100]
+    #   my-cpu.site.access-ci.org: cpu-general
+    resource_aliases: {}
     polling:
       poll_interval: "30s"
       worker_interval: "5s"
       poller_enabled: true
     timeouts:
       connect_timeout: "5s"
-      read_timeout: "20s"
+      read_timeout: "60s"
 
   temp-account:
     type: "temp-account"
@@ -88,3 +152,20 @@ connectors:
   analytics:
     type: "analytics"
     enabled: true
+
+  email-notifier:
+    type: "email-notifier"
+    enabled: true
+    smtp_host: "${EMAIL_SMTP_HOST}"
+    smtp_port: 587
+    username: "${EMAIL_SMTP_USERNAME}"
+    password: "${EMAIL_SMTP_PASSWORD}"
+    from: "${EMAIL_FROM}"
+    support_email: "${EMAIL_SUPPORT}"
+    site_name: "${EMAIL_SITE_NAME}"
+    portal_url: "${EMAIL_PORTAL_URL}"
+    cluster_host: "${EMAIL_CLUSTER_HOST}"
+    # A square PNG. Defaults to the portal's /brand/logo/custos-mark.png.
+    logo_url: "${EMAIL_LOGO_URL}"
+    # Optional. A directory with custom email templates.
+    templates_dir: "${EMAIL_TEMPLATES_DIR}"

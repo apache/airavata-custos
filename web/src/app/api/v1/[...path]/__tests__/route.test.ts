@@ -35,8 +35,8 @@ vi.mock("@/shared/auth/session", () => ({
 
 import { GET, POST } from "../route";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 const ctx = { params: Promise.resolve({ path: ["roles", "role-1", "privileges"] }) };
 

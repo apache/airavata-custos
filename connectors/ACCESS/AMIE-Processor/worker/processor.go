@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -33,6 +34,7 @@ import (
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/pkg/events"
 )
 
 const rootEventMaxBytes = 64 * 1024
@@ -79,6 +81,10 @@ type processorAuditService interface {
 	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
 }
 
+type processorReplier interface {
+	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
+}
+
 type Processor struct {
 	eventStore     processorEventStore
 	packetStore    processorPacketStore
@@ -86,11 +92,12 @@ type Processor struct {
 	router         processorRouter
 	metrics        processorMetrics
 	auditSvc       processorAuditService
+	amie           processorReplier
 	db             *sqlx.DB
 	workerInterval time.Duration
 }
 
-func NewProcessor(eventStore processorEventStore, packetStore processorPacketStore, errorStore processorErrorStore, router processorRouter, metrics processorMetrics, auditSvc processorAuditService, db *sqlx.DB, cfg amieclient.Config) *Processor {
+func NewProcessor(eventStore processorEventStore, packetStore processorPacketStore, errorStore processorErrorStore, router processorRouter, metrics processorMetrics, auditSvc processorAuditService, amie processorReplier, db *sqlx.DB, cfg amieclient.Config) *Processor {
 	return &Processor{
 		eventStore:     eventStore,
 		packetStore:    packetStore,
@@ -98,6 +105,7 @@ func NewProcessor(eventStore processorEventStore, packetStore processorPacketSto
 		router:         router,
 		metrics:        metrics,
 		auditSvc:       auditSvc,
+		amie:           amie,
 		db:             db,
 		workerInterval: cfg.WorkerInterval,
 	}
@@ -137,6 +145,7 @@ func (p *Processor) processPendingEvents(ctx context.Context) {
 	slog.Info("processing pending events", "count", len(events))
 
 	for _, ewp := range events {
+		ctx := tracing.ContextWithSpanContext(ctx, ewp.TraceID, ewp.SpanID)
 		logger := slog.With(
 			"eventId", ewp.ID,
 			"packetId", ewp.PacketID,
@@ -147,9 +156,9 @@ func (p *Processor) processPendingEvents(ctx context.Context) {
 		stopTimer := p.metrics.StartProcessingTimer()
 
 		if err := p.executeInTransaction(ctx, ewp); err != nil {
-			logger.Error("event processing failed", "error", err)
+			logger.ErrorContext(ctx, "event processing failed", "error", err)
 			if recordErr := p.recordFailureInNewTransaction(ctx, ewp.ID, err); recordErr != nil {
-				logger.Error("failed to record processing failure", "error", recordErr)
+				logger.ErrorContext(ctx, "failed to record processing failure", "error", recordErr)
 			}
 		}
 
@@ -183,7 +192,7 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 	}()
 
 	return custosdb.TxFn(ctx, p.db, func(tx *sql.Tx) error {
-		slog.Info("Processing event",
+		slog.InfoContext(ctx, "Processing event",
 			"eventId", ewp.ID,
 			"type", ewp.Type,
 			"attempt", ewp.Attempts+1,
@@ -207,17 +216,25 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			return fmt.Errorf("unmarshal packet raw JSON: %w", err)
 		}
 
-		// Load the full packet from DB to preserve all fields (e.g. retries).
+		// Load the full packet from DB to preserve all fields (e.g., retries).
 		packet, err := p.packetStore.FindByID(ctx, ewp.PacketID)
 		if err != nil {
 			return fmt.Errorf("load packet %s: %w", ewp.PacketID, err)
 		}
 
+		// A handler that holds its reply sets the status to waiting.
+		decodedAt := time.Now().UTC()
+		packet.Status = model.PacketStatusDecoded
+		packet.DecodedAt = &decodedAt
 		if err := p.router.Route(ctx, tx, packetJSON, packet, ewp.ID); err != nil {
 			return fmt.Errorf("route packet: %w", err)
 		}
 
 		finishedAt := time.Now().UTC()
+		if packet.Status == model.PacketStatusDecoded {
+			packet.Status = model.PacketStatusProcessed
+			packet.ProcessedAt = &finishedAt
+		}
 		ewp.Status = model.ProcessingStatusSucceeded
 		ewp.FinishedAt = &finishedAt
 		ewp.NextRetryAt = nil
@@ -225,11 +242,8 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			return fmt.Errorf("update event to SUCCEEDED: %w", err)
 		}
 
-		decodedAt := time.Now().UTC()
-		packet.Status = model.PacketStatusDecoded
-		packet.DecodedAt = &decodedAt
 		if err := p.packetStore.Update(ctx, tx, packet); err != nil {
-			return fmt.Errorf("update packet to DECODED: %w", err)
+			return fmt.Errorf("update packet: %w", err)
 		}
 
 		p.metrics.RecordPacketProcessed(ewp.PacketType, "succeeded")
@@ -243,6 +257,9 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 // the event afresh (with the pre-rollback attempt count) and schedules a retry
 // or marks the event as permanently failed.
 func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID string, cause error) error {
+	// Its own span, so the audit rows written here have a parent on the trace.
+	ctx, span := tracing.Start(ctx, "amie.record_failure")
+	defer span.End()
 	return custosdb.TxFn(ctx, p.db, func(tx *sql.Tx) error {
 		// Re-read the event -- the processing transaction was rolled back,
 		// so the attempt count is still the pre-increment value.
@@ -251,7 +268,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			return fmt.Errorf("find event for failure recording: %w", err)
 		}
 		if event == nil {
-			slog.Warn("event not found for failure recording", "eventId", eventID)
+			slog.WarnContext(ctx, "event not found for failure recording", "eventId", eventID)
 			return nil
 		}
 
@@ -263,7 +280,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 		// The processing transaction rolled back, so event.Attempts is the
 		// old value. Compute the effective attempt count.
 		effectiveAttempts := event.Attempts + 1
-		isRetryable := effectiveAttempts < MaxAttempts
+		isRetryable := effectiveAttempts < MaxAttempts && !errors.Is(cause, model.ErrInvalidPacket)
 
 		event.Attempts = effectiveAttempts
 		errMsg := cause.Error()
@@ -284,7 +301,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 
 			p.metrics.RecordRetry()
 			p.metrics.RecordPacketProcessed(packet.Type, "retry_scheduled")
-			slog.Warn("event failed, scheduling retry",
+			slog.WarnContext(ctx, "event failed, scheduling retry",
 				"eventId", eventID,
 				"attempt", effectiveAttempts,
 				"nextRetryAt", nextRetry,
@@ -293,13 +310,30 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			event.Status = model.ProcessingStatusPermanentlyFailed
 			event.NextRetryAt = nil
 			p.metrics.RecordPacketProcessed(packet.Type, "permanently_failed")
-			slog.Error("event permanently failed after max attempts", "eventId", eventID)
+			slog.ErrorContext(ctx, "event permanently failed after max attempts", "eventId", eventID)
 
 			packet.Status = model.PacketStatusFailed
 			packet.Retries = effectiveAttempts
 			packet.LastError = &errMsg
 			if err := p.packetStore.Update(ctx, tx, packet); err != nil {
 				return fmt.Errorf("update packet status: %w", err)
+			}
+			// The handler's audit rows rolled back with it. Write them here so the failed packet shows up on the trace.
+			if err := p.auditSvc.Log(ctx, tx, packet.ID, event.ID, model.AuditPacketReceived, "packet", packet.ID, packet.Type); err != nil {
+				return fmt.Errorf("audit PACKET_RECEIVED: %w", err)
+			}
+			if err := p.auditSvc.Log(ctx, tx, packet.ID, event.ID, model.AuditPacketFailed, "packet", packet.ID, errMsg); err != nil {
+				return fmt.Errorf("audit PACKET_FAILED: %w", err)
+			}
+			// An invalid packet never succeeds, so end its transaction at ACCESS. Other failures wait for an admin to fix and retry.
+			if errors.Is(cause, model.ErrInvalidPacket) {
+				failure := map[string]any{
+					"type": "inform_transaction_complete",
+					"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": errMsg},
+				}
+				if err := p.amie.ReplyToPacket(ctx, packet.AmieID, failure); err != nil {
+					slog.ErrorContext(ctx, "failure reply not sent", "packetId", packet.ID, "error", err)
+				}
 			}
 		}
 
@@ -323,16 +357,8 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 	})
 }
 
-// ComputeNextRetryAt calculates the next retry time using exponential backoff.
-// The delay is BaseBackoffSeconds * 2^(attempt-1), capped at MaxBackoffSeconds.
+// ComputeNextRetryAt calculates the next retry time.
 func ComputeNextRetryAt(attempt int) time.Time {
-	exp := attempt - 1
-	if exp < 0 {
-		exp = 0
-	}
-	delaySec := BaseBackoffSeconds * (1 << exp) // 30 * 2^exp
-	if delaySec > MaxBackoffSeconds {
-		delaySec = MaxBackoffSeconds
-	}
-	return time.Now().UTC().Add(time.Duration(delaySec) * time.Second)
+	delay := events.NextRetryDelay(attempt, BaseBackoffSeconds*time.Second, MaxBackoffSeconds*time.Second)
+	return time.Now().UTC().Add(delay)
 }

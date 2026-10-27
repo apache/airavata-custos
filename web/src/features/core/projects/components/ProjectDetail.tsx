@@ -17,13 +17,15 @@
 
 "use client";
 
-import { useAbility } from "@/shared/casl/AbilityProvider";
+import { CreateAllocationDialog } from "@/features/core/allocations/components/CreateAllocationDialog";
+import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
+import { DeleteButton } from "@/shared/ui/ConfirmDialog";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { TabsRouter } from "@/shared/ui/TabsRouter";
-import { useProject } from "../queries";
-import { ProjectAllocationsTab } from "./ProjectAllocationsTab";
+import * as React from "react";
+import { useDeleteProject, useProject } from "../queries";
 import { ProjectDetailHeader } from "./ProjectDetailHeader";
 import { ProjectMembersTab } from "./ProjectMembersTab";
 import { ProjectOverviewTab } from "./ProjectOverviewTab";
@@ -33,47 +35,60 @@ export type ProjectDetailProps = {
 };
 
 export function ProjectDetail({ projectId }: ProjectDetailProps) {
-  const ability = useAbility();
+  const can = usePermissions();
   const projectQuery = useProject(projectId);
+  const [addingAllocation, setAddingAllocation] = React.useState(false);
+  const remove = useDeleteProject();
   useBreadcrumbLabel(projectId, projectQuery.data?.title);
 
   if (projectQuery.isLoading) return <CardSkeleton />;
   if (projectQuery.error) {
     return (
-      <ErrorState
-        message={(projectQuery.error as Error).message}
-        onRetry={() => projectQuery.refetch()}
-      />
+      <ErrorState message={projectQuery.error.message} onRetry={() => projectQuery.refetch()} />
     );
   }
   const project = projectQuery.data;
   if (!project) return null;
 
-  const canManage = ability.can("manage", "Project");
-
   return (
     <section className="space-y-6">
-      <ProjectDetailHeader project={project} />
-      <TabsRouter
-        defaultValue="overview"
-        tabs={[
-          {
-            value: "overview",
-            label: "Overview",
-            content: <ProjectOverviewTab project={project} />,
-          },
-          {
-            value: "allocations",
-            label: "Allocations",
-            content: <ProjectAllocationsTab projectId={project.id} />,
-          },
-          {
-            value: "members",
-            label: "Members",
-            content: <ProjectMembersTab projectId={project.id} canManage={canManage} />,
-          },
-        ]}
+      <div className="flex items-start justify-between gap-4">
+        <ProjectDetailHeader project={project} />
+        <DeleteButton
+          noun="Project"
+          id={project.id}
+          name={project.title}
+          mutation={remove}
+          redirectTo="/projects"
+          allowed={can.projectsWrite}
+          reason={requires("projectsWrite")}
+        >
+          A project can be deleted only once it has no allocations. This cannot be undone.
+        </DeleteButton>
+      </div>
+      <ProjectOverviewTab
+        project={project}
+        addAllocation={
+          <GuardedButton
+            variant="link"
+            className="h-auto border-0 p-0"
+            allowed={can.allocationsWrite && can.clustersRead}
+            reason={requires("allocationsWrite", "clustersRead")}
+            onClick={() => setAddingAllocation(true)}
+          >
+            Add allocation
+          </GuardedButton>
+        }
       />
+      <ProjectMembersTab
+        projectId={project.id}
+        canEditRoles={can.projectsWrite}
+        canEditAccess={can.allocationsWrite}
+        canSearchUsers={can.usersRead}
+      />
+      {addingAllocation ? (
+        <CreateAllocationDialog onOpenChange={setAddingAllocation} project={project} />
+      ) : null}
     </section>
   );
 }

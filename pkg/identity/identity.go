@@ -41,7 +41,12 @@ var (
 	ErrNoUserMatchesEmail    = fmt.Errorf("%w: no user matches email", ErrNotLinked)
 	ErrUserNotPending        = fmt.Errorf("%w: user is not pending", ErrNotLinked)
 	ErrUserAlreadyOIDCLinked = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
+	ErrUserDisabled          = errors.New("user is disabled")
 )
+
+type TokenVerifier interface {
+	Verify(ctx context.Context, rawToken string) (*Claims, error)
+}
 
 // UserResolver maps verified OIDC claims to a Caller and the effective
 // privilege set.

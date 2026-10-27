@@ -20,8 +20,10 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -70,7 +72,11 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 		t.Fatalf("setup db: %v", sharedDBErr)
 	}
 	truncateAll(t, sharedDB)
-	svc := service.New(sharedDB, events.New())
+	bus, err := events.New(context.Background(), sharedDB)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
+	svc := service.New(sharedDB, bus)
 	router := identity.NewRouter(http.NewServeMux())
 	return sharedDB, svc, New(svc, router)
 }
@@ -83,20 +89,24 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"roles",
 		"user_privileges",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
+		"compute_allocation_usages",
+		"compute_allocation_memberships",
+		"compute_allocation_resource_mappings",
+		"compute_allocation_resources",
+		"compute_allocations",
+		"project_memberships",
+		"projects",
+		"compute_cluster_users",
+		"compute_clusters",
 		"user_identities",
 		"users",
 		"organizations",
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range tables {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
-	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 
@@ -104,14 +114,14 @@ func seedUser(t *testing.T, database *sqlx.DB, email string) string {
 	t.Helper()
 	orgID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+		"INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		orgID, "TEST-ORG-"+orgID[:8], "Test Org",
 	); err != nil {
 		t.Fatalf("seed org: %v", err)
 	}
 	userID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		userID, orgID, "Test", "User", "", email, string(models.UserActive),
 	); err != nil {
 		t.Fatalf("seed user %s: %v", email, err)
@@ -126,7 +136,7 @@ func seedPrivilegesGrant(t *testing.T, database *sqlx.DB, userID string) {
 	t.Helper()
 	if _, err := database.Exec(
 		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES (?, ?, ?, NOW(6), 'seed')`,
+		 VALUES ($1, $2, $3, NOW(), 'seed')`,
 		uuid.NewString(), userID, string(models.PrivilegesGrant),
 	); err != nil {
 		t.Fatalf("seed privileges:grant for %s: %v", userID, err)

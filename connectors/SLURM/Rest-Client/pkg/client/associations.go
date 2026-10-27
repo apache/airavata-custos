@@ -137,11 +137,36 @@ func tresSliceEqualUnordered(a, b []TRES) bool {
 	return true
 }
 
+// DeleteAssociation deletes the user associations matching f one at a time, as slurmrestd requires.
 func (c *Client) DeleteAssociation(f AssocFilter) error {
-	path := "/slurmdb/v0.0." + c.apiVersion + "/association"
-	if q := f.query(); q != "" {
-		path += "?" + q
+	matched, err := c.ListAssociations(f)
+	if err != nil {
+		return err
 	}
-	_, err := c.do("DELETE", path, nil, nil)
+	for _, assoc := range matched {
+		if assoc.User == "" {
+			continue
+		}
+		item := AssocFilter{Cluster: assoc.Cluster, Account: assoc.Account, User: assoc.User, Partition: assoc.Partition}
+		if _, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/association?"+item.query(), nil, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SetDefaultAccount gives user an association on account and makes it their default, creating the user if needed.
+func (c *Client) SetDefaultAccount(cluster, user, account string) error {
+	defaultAccount := map[string]string{"account": account}
+	body := map[string]any{
+		"association_condition": map[string]any{"accounts": []string{account}, "clusters": []string{cluster}, "users": []string{user}},
+		"user":                  map[string]any{"default": defaultAccount},
+	}
+	if _, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users_association/", body, nil); err != nil {
+		return err
+	}
+	// users_association leaves an existing user's default as it was.
+	users := map[string]any{"users": []map[string]any{{"name": user, "default": defaultAccount}}}
+	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/users", users, nil)
 	return err
 }

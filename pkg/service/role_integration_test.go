@@ -188,7 +188,7 @@ func seedPrivilege(t *testing.T, database *sqlx.DB, userID string, p models.Priv
 	t.Helper()
 	if _, err := database.Exec(
 		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES (?, ?, ?, NOW(6), 'seed')`,
+		 VALUES ($1, $2, $3, NOW(), 'seed')`,
 		uuid.NewString(), userID, string(p),
 	); err != nil {
 		t.Fatalf("seed privilege %s for %s: %v", p, userID, err)

@@ -68,6 +68,52 @@ func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Req
 	common.WriteJSON(w, http.StatusOK, res)
 }
 
+// @Summary	Update a compute allocation resource
+// @Tags	Compute Allocation Resources
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Resource ID"
+// @Param	request	body	models.ComputeAllocationResource	true	"Resource payload"
+// @Success	200	{object}	models.ComputeAllocationResource
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id} [put]
+func (s *Server) updateComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
+	// Decoding onto the stored resource keeps the fields a client omits.
+	res, err := s.svc.GetComputeAllocationResource(r.Context(), r.PathValue("id"))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	if err := common.DecodeJSON(r, res); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	res.ID = r.PathValue("id")
+	if err := s.svc.UpdateComputeAllocationResource(r.Context(), res); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, res)
+}
+
+// @Summary	Delete a compute allocation resource
+// @Description	Removes the resource with its rates and its grants to allocations.
+// @Tags	Compute Allocation Resources
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Resource ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id} [delete]
+func (s *Server) deleteComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationResource(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // @Summary	List all compute allocation resources
 // @Tags	Compute Allocation Resources
 // @Security	BearerAuth
@@ -181,11 +227,13 @@ func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Req
 }
 
 // @Summary	List resources attached to a compute allocation
+// @Description	Callers without the allocations read privilege must hold a membership on the allocation or a governance role on its project; others return 404.
 // @Tags	Compute Allocation Resources
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/resources [get]
 func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Request) {
@@ -197,12 +245,40 @@ func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Reque
 	common.WriteJSON(w, http.StatusOK, resources)
 }
 
+type setAllocationResourcesRequest struct {
+	ResourceIDs []string `json:"resource_ids"`
+}
+
+// @Summary	Set the resources a compute allocation grants
+// @Description	Replaces the allocation's resources with the given ones. Usage on any of them is charged to the allocation's SUs.
+// @Tags	Compute Allocation Resources
+// @Security	BearerAuth
+// @Accept	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	request	body	setAllocationResourcesRequest	true	"Resource IDs"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/resources [put]
+func (s *Server) setAllocationResources(w http.ResponseWriter, r *http.Request) {
+	var body setAllocationResourcesRequest
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.svc.SetAllocationResources(r.Context(), r.PathValue("id"), body.ResourceIDs); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // @Summary	List compute allocations attached to a resource
 // @Tags	Compute Allocation Resources
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation resource ID"
-// @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Success	200	{array}	models.ComputeAllocation
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocation-resources/{id}/allocations [get]
 func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Request) {

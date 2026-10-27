@@ -23,6 +23,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -57,6 +58,9 @@ func (f *fakeRouter) Route(_ context.Context, _ *sql.Tx, _ map[string]any, _ *mo
 	return nil
 }
 
+// The poll pass that seeded events are ingested under.
+const pollTraceID, pollSpanID = "4bf92f3577b34da6a3ce929d0e0e4736", "00f067aa0ba902b7"
+
 // seedNewEvent inserts an amie_packets row + amie_processing_events row both
 // in NEW state. Returns the IDs so tests can refetch state directly.
 func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
@@ -67,7 +71,7 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 
 	if _, err := database.Exec(
 		`INSERT INTO amie_packets (id, amie_id, type, status, raw_json, received_at, retries)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		packetID, time.Now().UnixNano(), "request_project_create", string(model.PacketStatusNew),
 		`{"type":"request_project_create","body":{}}`, now, 0,
 	); err != nil {
@@ -75,9 +79,9 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 	}
 
 	if _, err := database.Exec(
-		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, now,
+		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at, trace_id, span_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, now, pollTraceID, pollSpanID,
 	); err != nil {
 		t.Fatalf("seed event: %v", err)
 	}
@@ -93,9 +97,20 @@ func newProcessor(database *sqlx.DB, router processorRouter, met *stubMetrics) *
 		router,
 		met,
 		service.NewAuditService(corestore.NewAuditEventStore(database), store.NewAuditExtrasStore(database)),
+		&stubReplier{},
 		database,
 		cfg,
 	)
+}
+
+// stubReplier keeps the replies the processor sends to AMIE.
+type stubReplier struct {
+	replies []map[string]any
+}
+
+func (s *stubReplier) ReplyToPacket(_ context.Context, _ int64, reply map[string]any) error {
+	s.replies = append(s.replies, reply)
+	return nil
 }
 
 func readEvent(t *testing.T, database *sqlx.DB, id string) *model.ProcessingEvent {
@@ -103,7 +118,7 @@ func readEvent(t *testing.T, database *sqlx.DB, id string) *model.ProcessingEven
 	var e model.ProcessingEvent
 	if err := database.Get(&e,
 		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
-		 FROM amie_processing_events WHERE id = ?`, id,
+		 FROM amie_processing_events WHERE id = $1`, id,
 	); err != nil {
 		t.Fatalf("read event %s: %v", id, err)
 	}
@@ -115,7 +130,7 @@ func readPacket(t *testing.T, database *sqlx.DB, id string) *model.Packet {
 	var p model.Packet
 	if err := database.Get(&p,
 		`SELECT id, amie_id, type, status, raw_json, received_at, decoded_at, processed_at, retries, last_error
-		 FROM amie_packets WHERE id = ?`, id,
+		 FROM amie_packets WHERE id = $1`, id,
 	); err != nil {
 		t.Fatalf("read packet %s: %v", id, err)
 	}
@@ -128,7 +143,7 @@ func readPacket(t *testing.T, database *sqlx.DB, id string) *model.Packet {
 func forceRetryNow(t *testing.T, database *sqlx.DB, eventID string) {
 	t.Helper()
 	if _, err := database.Exec(
-		"UPDATE amie_processing_events SET next_retry_at = NULL WHERE id = ?", eventID,
+		"UPDATE amie_processing_events SET next_retry_at = NULL WHERE id = $1", eventID,
 	); err != nil {
 		t.Fatalf("force retry: %v", err)
 	}
@@ -157,11 +172,15 @@ func TestProcessor_SuccessFirstAttempt(t *testing.T) {
 		t.Errorf("next_retry_at: got %v, want nil", ev.NextRetryAt)
 	}
 	pkt := readPacket(t, database, ev.PacketID)
-	if pkt.Status != model.PacketStatusDecoded {
-		t.Errorf("packet status: got %q, want DECODED", pkt.Status)
+	if pkt.Status != model.PacketStatusProcessed || pkt.ProcessedAt == nil {
+		t.Errorf("packet status: got %q (processed_at %v), want PROCESSED", pkt.Status, pkt.ProcessedAt)
 	}
 	if got := countRows(t, database, "amie_processing_errors"); got != 0 {
 		t.Errorf("error rows: got %d, want 0", got)
+	}
+	var trace, parent string
+	if err := database.QueryRow("SELECT trace_id, parent_span_id FROM audit_events WHERE event_type = 'PACKET_RECEIVED'").Scan(&trace, &parent); err != nil || trace != pollTraceID || parent != pollSpanID {
+		t.Errorf("PACKET_RECEIVED trace %q parent %q (%v), want the poll pass %q %q", trace, parent, err, pollTraceID, pollSpanID)
 	}
 }
 
@@ -234,6 +253,24 @@ func TestProcessor_FailThreeTimesPermanentlyFails(t *testing.T) {
 	}
 	if got := countRows(t, database, "amie_processing_errors"); got != MaxAttempts {
 		t.Errorf("error rows: got %d, want %d", got, MaxAttempts)
+	}
+}
+
+// An invalid packet cannot pass on a retry, so it fails on the first attempt.
+func TestProcessor_InvalidPacketFailsWithoutRetry(t *testing.T) {
+	database := setupTestDB(t)
+	_, eventID := seedNewEvent(t, database)
+
+	router := &fakeRouter{errors: []error{fmt.Errorf("%w: 'GrantNumber' must not be empty", model.ErrInvalidPacket)}}
+	p := newProcessor(database, router, &stubMetrics{})
+	p.processPendingEvents(context.Background())
+
+	ev := readEvent(t, database, eventID)
+	if ev.Status != model.ProcessingStatusPermanentlyFailed || ev.Attempts != 1 {
+		t.Errorf("event: status=%q attempts=%d, want PERMANENTLY_FAILED/1", ev.Status, ev.Attempts)
+	}
+	if pkt := readPacket(t, database, ev.PacketID); pkt.Status != model.PacketStatusFailed {
+		t.Errorf("packet status: got %q, want FAILED", pkt.Status)
 	}
 }
 

@@ -72,12 +72,13 @@ func (s *Service) CreateComputeAllocationMembershipResourceOverride(ctx context.
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.membershipOverrides.Create(ctx, tx, o)
+		if err := s.membershipOverrides.Create(ctx, tx, o); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipResourceOverrideCreateEvent, o)
 	}); err != nil {
 		return nil, fmt.Errorf("create membership resource override: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipResourceOverrideCreateEvent, o)
 	return o, nil
 }
 
@@ -165,12 +166,13 @@ func (s *Service) UpdateComputeAllocationMembershipResourceOverride(ctx context.
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.membershipOverrides.Update(ctx, tx, o)
+		if err := s.membershipOverrides.Update(ctx, tx, o); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipResourceOverrideUpdateEvent, o)
 	}); err != nil {
 		return nil, fmt.Errorf("update membership resource override: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipResourceOverrideUpdateEvent, o)
 	return o, nil
 }
 
@@ -187,11 +189,12 @@ func (s *Service) DeleteComputeAllocationMembershipResourceOverride(ctx context.
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.membershipOverrides.Delete(ctx, tx, id)
+		if err := s.membershipOverrides.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipResourceOverrideDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("delete membership resource override: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipResourceOverrideDeleteEvent, existing)
 	return nil
 }

@@ -29,26 +29,43 @@ import (
 // CreateUser persists a new user. If user.ID is empty a new UUID is generated.
 // The referenced organization must already exist.
 func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	if err := s.checkNewUser(ctx, user); err != nil {
+		return nil, err
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.users.Create(ctx, tx, user); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserCreateEvent, user)
+	}); err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+	return user, nil
+}
+
+// checkNewUser validates the user and fills in the defaults. Split from
+// CreateUser so a caller can validate before opening its own transaction.
+func (s *Service) checkNewUser(ctx context.Context, user *models.User) error {
 	if user == nil {
-		return nil, fmt.Errorf("%w: user is nil", ErrInvalidInput)
+		return fmt.Errorf("%w: user is nil", ErrInvalidInput)
 	}
 	if user.Email == "" {
-		return nil, fmt.Errorf("%w: user email is required", ErrInvalidInput)
+		return fmt.Errorf("%w: user email is required", ErrInvalidInput)
 	}
 	if user.OrganizationID == "" {
-		return nil, fmt.Errorf("%w: user organization_id is required", ErrInvalidInput)
+		return fmt.Errorf("%w: user organization_id is required", ErrInvalidInput)
 	}
 
 	if org, err := s.orgs.FindByID(ctx, user.OrganizationID); err != nil {
-		return nil, fmt.Errorf("verify organization: %w", err)
+		return fmt.Errorf("verify organization: %w", err)
 	} else if org == nil {
-		return nil, fmt.Errorf("%w: organization %q does not exist", ErrInvalidInput, user.OrganizationID)
+		return fmt.Errorf("%w: organization %q does not exist", ErrInvalidInput, user.OrganizationID)
 	}
 
 	if existing, err := s.users.FindByEmail(ctx, user.Email); err != nil {
-		return nil, fmt.Errorf("lookup user by email: %w", err)
+		return fmt.Errorf("lookup user by email: %w", err)
 	} else if existing != nil {
-		return nil, fmt.Errorf("%w: user with email %q", ErrAlreadyExists, user.Email)
+		return fmt.Errorf("%w: user with email %q", ErrAlreadyExists, user.Email)
 	}
 
 	if user.ID == "" {
@@ -60,20 +77,12 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	if user.Type == "" {
 		user.Type = models.UserTypeClusterLocal
 	}
-
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Create(ctx, tx, user)
-	}); err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
-	}
-
-	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
-	return user, nil
+	return nil
 }
 
-// ListUsers returns a page of users plus the total count.
-func (s *Service) ListUsers(ctx context.Context, limit, offset int) ([]models.User, int, error) {
-	rows, total, err := s.users.List(ctx, limit, offset)
+// ListUsers returns a page of users matching query (email or name substring) plus the total count.
+func (s *Service) ListUsers(ctx context.Context, query string, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, query, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
@@ -177,12 +186,13 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Update(ctx, tx, user)
+		if err := s.users.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
 	}); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, user)
 	return nil
 }
 
@@ -202,14 +212,16 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	if existing == nil {
 		return nil, ErrNotFound
 	}
+	existing.Status = status
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.UpdateStatus(ctx, tx, id, status)
+		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
-	existing.Status = status
-
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, existing)
+	s.InvalidateAllIdentities()
 	return existing, nil
 }
 
@@ -226,11 +238,13 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Delete(ctx, tx, id)
+		if err := s.users.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserDeleteEvent, existing)
+	s.InvalidateAllIdentities()
 	return nil
 }

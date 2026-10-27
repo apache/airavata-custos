@@ -17,18 +17,14 @@
 
 "use client";
 
-import * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  ProjectAutocomplete,
-  type ProjectAutocompletePick,
-} from "@/shared/ui/ProjectAutocomplete";
+import { ProjectAutocomplete, type ProjectAutocompletePick } from "@/shared/ui/ProjectAutocomplete";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
 import type { Packet } from "../types";
 import { formatDate } from "../utils";
 
@@ -153,16 +149,16 @@ export function ReconciliationQueue({
       </div>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load queue"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="Inbox clean"
-          description="Every decoded packet is mapped to a domain entity."
-        />
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.id}
+          empty="Inbox clean. Every decoded packet is mapped to a domain entity."
+        />
       )}
     </div>
   );

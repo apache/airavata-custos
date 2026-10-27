@@ -252,3 +252,13 @@ func TestUpdateUser_RequiresPrivilege(t *testing.T) {
 		t.Fatalf("status: got %d, want 403", rr.Code)
 	}
 }
+
+func TestListClusterAccounts_NegativePagingClamps(t *testing.T) {
+	_, _, srv := setupTestStack(t)
+	rr := httptest.NewRecorder()
+	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/compute-cluster-users?approval_status=PENDING&limit=-1&offset=-1", nil), "u-1", models.ClustersRead)
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rr.Code)
+	}
+}

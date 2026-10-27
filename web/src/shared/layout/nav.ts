@@ -24,6 +24,7 @@ import {
   HardDrive,
   KeyRound,
   type LucideIcon,
+  Send,
   Server,
   UserCog,
 } from "lucide-react";
@@ -46,23 +47,21 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 };
 
 export const portalNav: NavItem[] = [
+  // No ability gates on this group: the backend scopes these reads to the
+  // caller's own memberships.
   {
     href: "/allocations",
     label: "Allocations",
     icon: Server,
     group: "allocations",
-    ability: { action: "read", subject: "Allocation" },
   },
   {
     href: "/projects",
     label: "Projects",
     icon: FolderKanban,
     group: "allocations",
-    ability: { action: "read", subject: "Project" },
   },
   {
-    // No ability gate: every signed-in user can see their own usage. Access is
-    // membership-scoped by the backend (empty state when they belong to nothing).
     href: "/analytics",
     label: "Analytics",
     icon: ChartColumn,
@@ -86,6 +85,13 @@ export const portalNav: NavItem[] = [
     href: "/admin/traces",
     label: "Tracing",
     icon: Activity,
+    group: "admin",
+    ability: { action: "read", subject: "Trace" },
+  },
+  {
+    href: "/admin/events",
+    label: "Events",
+    icon: Send,
     group: "admin",
     ability: { action: "read", subject: "Trace" },
   },

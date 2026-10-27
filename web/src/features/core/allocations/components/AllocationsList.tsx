@@ -17,19 +17,21 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
+import { ProjectGroupHeader } from "@/features/core/projects/components/ProjectGroupHeader";
+import type { AllocationStatus, ComputeAllocation } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusIcon } from "@/shared/ui/StatusIcon";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-import type { AllocationStatus, ComputeAllocation } from "../schemas";
+import { Server } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { toast } from "sonner";
+import { useAllocationResources, useAllocationUsedSU, useSetAllocationResources } from "../queries";
+import { AllocationResourcesDialog } from "./AllocationResourcesDialog";
 
 function formatDate(iso: string): string {
   try {
@@ -69,7 +71,70 @@ export type AllocationsListProps = {
   onSearchChange: (next: string) => void;
   statusFilter: AllocationStatus | "all";
   onStatusFilterChange: (next: AllocationStatus | "all") => void;
+  canEditResources: boolean;
+  headerCta?: React.ReactNode;
 };
+
+function RemainingSU({ allocation }: { allocation: ComputeAllocation }) {
+  const used = useAllocationUsedSU(allocation.id).data;
+  return (
+    <span className="tabular-nums" title={`of ${formatSU(allocation.initial_su_amount)}`}>
+      {used === undefined ? "…" : formatSU(allocation.initial_su_amount - used)}
+    </span>
+  );
+}
+
+const PILL = "rounded-full border bg-card px-2 py-0.5 text-xs";
+
+function ResourcePills({
+  allocation,
+  canEdit,
+}: { allocation: ComputeAllocation; canEdit: boolean }) {
+  const resources = useAllocationResources(allocation.id).data ?? [];
+  const save = useSetAllocationResources(allocation.id);
+  const [editing, setEditing] = React.useState(false);
+  return (
+    <div className="flex items-center gap-1">
+      {resources.map((r) => (
+        <span key={r.id} className={`${PILL} inline-flex items-center gap-1`}>
+          {r.name}
+          {canEdit ? (
+            <button
+              type="button"
+              aria-label={`Unassign ${r.name}`}
+              className="text-muted-foreground hover:text-foreground"
+              disabled={save.isPending}
+              onClick={() =>
+                save.mutate(
+                  resources.filter((x) => x.id !== r.id).map((x) => x.id),
+                  { onError: (err) => toast.error(err.message) },
+                )
+              }
+            >
+              ×
+            </button>
+          ) : null}
+        </span>
+      ))}
+      {canEdit ? (
+        <button
+          type="button"
+          className={`${PILL} text-muted-foreground hover:text-foreground`}
+          onClick={() => setEditing(true)}
+        >
+          + Add resource
+        </button>
+      ) : null}
+      {editing ? (
+        <AllocationResourcesDialog
+          allocation={allocation}
+          granted={resources}
+          onOpenChange={setEditing}
+        />
+      ) : null}
+    </div>
+  );
+}
 
 export function AllocationsList({
   rows,
@@ -80,7 +145,10 @@ export function AllocationsList({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  canEditResources,
+  headerCta,
 }: AllocationsListProps) {
+  const router = useRouter();
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -99,79 +167,53 @@ export function AllocationsList({
       header: "Allocation",
       sortable: true,
       sortValue: (row) => row.name,
-      width: "14rem",
       cell: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <Link
-            href={`/allocations/${row.id}`}
-            className="font-medium text-foreground hover:underline"
-          >
+        <span className="-ml-7 inline-flex items-center gap-3 whitespace-nowrap">
+          <StatusIcon
+            icon={Server}
+            active={row.status === "ACTIVE"}
+            label={statusLabelFor(row.status)}
+          />
+          <Link href={`/allocations/${row.id}`} className="font-medium text-foreground">
             {row.name}
           </Link>
-          <span className="hidden font-mono text-xs text-muted-foreground">{row.id}</span>
-        </div>
+        </span>
       ),
     },
     {
-      key: "project",
-      header: "Project",
-      sortable: true,
-      sortValue: (row) => row.project_id,
-      width: "12rem",
-      cell: (row) => (
-        <Link
-          href={`/projects/${row.project_id}`}
-          className="break-all text-sm text-muted-foreground hover:underline"
-        >
-          {row.project_id}
-        </Link>
-      ),
+      key: "resources",
+      header: "Resources",
+      width: "16rem",
+      cell: (row) => <ResourcePills allocation={row} canEdit={canEditResources} />,
     },
     {
-      key: "cluster",
-      header: "Cluster",
-      sortable: true,
-      sortValue: (row) => row.compute_cluster_id,
-      width: "12rem",
-      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
-    },
-    {
-      key: "initial",
-      header: "Initial SUs",
-      sortable: true,
-      sortValue: (row) => row.initial_su_amount,
-      cell: (row) => <span className="tabular-nums">{formatSU(row.initial_su_amount)}</span>,
+      key: "remaining",
+      header: "Remaining SUs",
+      width: "9rem",
+      cell: (row) => <RemainingSU allocation={row} />,
     },
     {
       key: "endDate",
       header: "End date",
+      width: "9rem",
       sortable: true,
       sortValue: (row) => new Date(row.end_time),
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDate(row.end_time)}</span>
       ),
     },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      sortValue: (row) => row.status,
-      cell: (row) => (
-        <StatusBadge
-          variant={statusBadgeVariantFromAllocationStatus(row.status)}
-          label={row.status}
-        />
-      ),
-    },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-[28px] font-bold leading-tight">Allocations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Compute resources granted to you across projects.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-[28px] font-bold leading-tight">Allocations</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Compute resources granted to you across projects.
+          </p>
+        </div>
+        {headerCta ? <div>{headerCta}</div> : null}
       </div>
 
       <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
@@ -185,7 +227,7 @@ export function AllocationsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as AllocationStatus | "all")}
+          onValueChange={(value) => value !== null && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
             <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
@@ -200,16 +242,36 @@ export function AllocationsList({
       </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} columns={6} />
+        <TableSkeleton rows={6} columns={5} />
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
       ) : filtered.length === 0 ? (
-        <EmptyState
-          heading="No allocations yet"
-          description="No allocations match the current filters."
+        <DataTable
+          columns={columns}
+          rows={[]}
+          rowKey={(row) => row.id}
+          empty="No allocations match the current filters."
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <div className="space-y-3">
+          {[...Map.groupBy(filtered, (row) => row.project_id)].map(([projectId, rows]) => (
+            <section
+              key={projectId}
+              className="overflow-hidden rounded-lg border border-foreground/20 bg-card"
+            >
+              <div className="border-b border-border bg-muted px-4 py-2.5">
+                <ProjectGroupHeader id={projectId} />
+              </div>
+              <DataTable
+                className="rounded-none border-0 [&_th]:py-1.5 [&_thead]:bg-muted/40 [&_td:first-child]:pl-11 [&_th:first-child]:pl-11 [&_td]:align-middle [&_td]:whitespace-nowrap"
+                columns={columns}
+                rows={rows}
+                rowKey={(row) => row.id}
+                onRowClick={(row) => router.push(`/allocations/${row.id}`)}
+              />
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );

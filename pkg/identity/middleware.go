@@ -30,7 +30,7 @@ import (
 // Middleware verifies the bearer token once, resolves the caller, and
 // attaches Caller + privilege set to the request context. Public paths
 // bypass verification entirely.
-func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
+func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
 	publicSet := make(map[string]struct{}, len(publicPaths))
 	for _, path := range publicPaths {
 		publicSet[path] = struct{}{}
@@ -55,8 +55,12 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked", "OIDC identity is not linked to a portal user")
 			return
 		}
+		if errors.Is(err, ErrUserDisabled) {
+			writeJSONError(w, http.StatusForbidden, "user_disabled", "User account is disabled")
+			return
+		}
 		if err != nil {
-			slog.Error("identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
+			slog.ErrorContext(req.Context(), "identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
@@ -99,6 +103,19 @@ func (r *Router) Public(pattern string, handler http.HandlerFunc) {
 // specific privilege. (e.g., caller looking up their own data).
 func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, handler)
+}
+
+// RequireScoped registers a route whose access depends on the specific
+// resource, not a site privilege. authorize runs first: it writes the response
+// and returns false to deny, or returns true to run handler. The policy is a
+// required argument, so a scoped route cannot be registered without one.
+func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
+		if !authorize(w, req) {
+			return
+		}
+		handler(w, req)
+	})
 }
 
 // PublicPaths returns the path components of every Public() registration,

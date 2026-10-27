@@ -29,20 +29,20 @@ import (
 
 const computeAllocationDiffColumns = "id, compute_allocation_id, diff_type, new_su_amount, status, timestamp, description"
 
-type mysqlComputeAllocationDiffStore struct {
+type pgComputeAllocationDiffStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationDiffStore returns a MySQL-backed
+// NewComputeAllocationDiffStore returns a PostgreSQL-backed
 // ComputeAllocationDiffStore.
 func NewComputeAllocationDiffStore(db *sqlx.DB) ComputeAllocationDiffStore {
-	return &mysqlComputeAllocationDiffStore{db: db}
+	return &pgComputeAllocationDiffStore{db: db}
 }
 
-func (s *mysqlComputeAllocationDiffStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationDiff, error) {
+func (s *pgComputeAllocationDiffStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationDiff, error) {
 	var d models.ComputeAllocationDiff
 	err := s.db.GetContext(ctx, &d,
-		`SELECT `+computeAllocationDiffColumns+` FROM compute_allocation_diffs WHERE id = ?`, id)
+		`SELECT `+computeAllocationDiffColumns+` FROM compute_allocation_diffs WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,12 +52,12 @@ func (s *mysqlComputeAllocationDiffStore) FindByID(ctx context.Context, id strin
 	return &d, nil
 }
 
-func (s *mysqlComputeAllocationDiffStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationDiff, error) {
+func (s *pgComputeAllocationDiffStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationDiff, error) {
 	var diffs []models.ComputeAllocationDiff
 	err := s.db.SelectContext(ctx, &diffs,
 		`SELECT `+computeAllocationDiffColumns+`
 		 FROM compute_allocation_diffs
-		 WHERE compute_allocation_id = ?
+		 WHERE compute_allocation_id = $1
 		 ORDER BY timestamp`, allocationID)
 	if err != nil {
 		return nil, err
@@ -65,12 +65,12 @@ func (s *mysqlComputeAllocationDiffStore) FindByAllocation(ctx context.Context, 
 	return diffs, nil
 }
 
-func (s *mysqlComputeAllocationDiffStore) FindLatestByAllocation(ctx context.Context, allocationID string) (*models.ComputeAllocationDiff, error) {
+func (s *pgComputeAllocationDiffStore) FindLatestByAllocation(ctx context.Context, allocationID string) (*models.ComputeAllocationDiff, error) {
 	var d models.ComputeAllocationDiff
 	err := s.db.GetContext(ctx, &d,
 		`SELECT `+computeAllocationDiffColumns+`
 		 FROM compute_allocation_diffs
-		 WHERE compute_allocation_id = ?
+		 WHERE compute_allocation_id = $1
 		 ORDER BY timestamp DESC
 		 LIMIT 1`, allocationID)
 	if err != nil {
@@ -82,16 +82,16 @@ func (s *mysqlComputeAllocationDiffStore) FindLatestByAllocation(ctx context.Con
 	return &d, nil
 }
 
-func (s *mysqlComputeAllocationDiffStore) Create(ctx context.Context, tx *sql.Tx, d *models.ComputeAllocationDiff) error {
+func (s *pgComputeAllocationDiffStore) Create(ctx context.Context, tx *sql.Tx, d *models.ComputeAllocationDiff) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_diffs
 		     (id, compute_allocation_id, diff_type, new_su_amount, status, timestamp, description)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		d.ID, d.ComputeAllocationID, d.DiffType, d.NewSUAmount, string(d.Status), d.Timestamp, d.Description)
 	return err
 }
 
-func (s *mysqlComputeAllocationDiffStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_diffs WHERE id = ?`, id)
+func (s *pgComputeAllocationDiffStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_diffs WHERE id = $1`, id)
 	return err
 }
