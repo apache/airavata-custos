@@ -18,30 +18,31 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // TestLoggingWrapsTracingProducesTraceIdHeader verifies the cmd/server stack
-// composition: LoggingMiddleware(tracing.Middleware(server.New(...))) lets the
+// composition: LoggingMiddleware(tracing.Middleware(identity.Middleware(server.New(...)))) lets the
 // access log see the trace_id and surfaces X-Trace-Id to the client.
 func TestLoggingWrapsTracingProducesTraceIdHeader(t *testing.T) {
-	prev := otel.GetTracerProvider()
 	sr := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+	prev := tracing.SetProvider(tp)
+	t.Cleanup(func() { tracing.SetProvider(prev) })
 
 	router := identity.NewRouter(http.NewServeMux())
-	handler := LoggingMiddleware(tracing.Middleware(New(nil, router)))
+	srv := New(nil, router)
+	handler := LoggingMiddleware(tracing.Middleware(identity.Middleware(stubAuth{}, stubAuth{}, router.PublicPaths(), srv)))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -55,11 +56,29 @@ func TestLoggingWrapsTracingProducesTraceIdHeader(t *testing.T) {
 		t.Fatalf("expected 32-char X-Trace-Id header, got %q", hdr)
 	}
 
+	// Authenticated route: the span takes the mux pattern, not the raw path.
+	req = httptest.NewRequest(http.MethodGet, "/users/abc", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
 	spans := sr.Ended()
-	if len(spans) != 1 {
-		t.Fatalf("expected exactly 1 span, got %d", len(spans))
+	if len(spans) != 2 {
+		t.Fatalf("expected exactly 2 spans, got %d", len(spans))
 	}
 	if got, want := spans[0].Name(), "http.GET /healthz"; got != want {
 		t.Fatalf("span name = %q, want %q", got, want)
 	}
+	if got, want := spans[1].Name(), "http.GET /users/{id}"; got != want {
+		t.Fatalf("span name = %q, want %q", got, want)
+	}
+}
+
+type stubAuth struct{}
+
+func (stubAuth) Verify(context.Context, string) (*identity.Claims, error) {
+	return &identity.Claims{}, nil
+}
+
+func (stubAuth) ResolveCaller(context.Context, *identity.Claims) (*identity.Caller, []models.PrivilegeKey, error) {
+	return &identity.Caller{}, nil, nil
 }

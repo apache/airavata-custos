@@ -31,6 +31,16 @@ test.describe("allocations list", () => {
     await expect(page).toHaveURL(/\/allocations\/alloc-/);
   });
 
+  // Make sure a user with no privileges can open their allocations.
+  test("a user with no privileges sees the allocations list", async ({ page }) => {
+    await signInAs(page, "researcher");
+    await page.goto("/allocations");
+    await expect(page.getByRole("heading", { name: /^Allocations$/ })).toBeVisible();
+    await expect(page.locator('a[href^="/allocations/alloc-"]').first()).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+
   test("status filter updates URL state", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/allocations");

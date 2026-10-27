@@ -17,14 +17,13 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getCluster, listClusterUsers, listClusters } from "./api";
+import { skipToken, useQuery } from "@tanstack/react-query";
+import { getCluster, listClusters } from "./api";
 
 export const clusterKeys = {
   all: ["clusters"] as const,
   list: () => [...clusterKeys.all, "list"] as const,
   detail: (id: string) => [...clusterKeys.all, "detail", id] as const,
-  users: (id: string) => [...clusterKeys.all, "users", id] as const,
 };
 
 const DEFAULTS = {
@@ -33,10 +32,11 @@ const DEFAULTS = {
   refetchOnWindowFocus: false,
 } as const;
 
-export function useClusters() {
+export function useClusters(enabled = true) {
   return useQuery({
     queryKey: clusterKeys.list(),
     queryFn: listClusters,
+    enabled,
     ...DEFAULTS,
   });
 }
@@ -44,17 +44,7 @@ export function useClusters() {
 export function useCluster(id: string | undefined) {
   return useQuery({
     queryKey: id ? clusterKeys.detail(id) : [...clusterKeys.all, "detail", "none"],
-    queryFn: () => getCluster(id as string),
-    enabled: Boolean(id),
-    ...DEFAULTS,
-  });
-}
-
-export function useClusterUsers(id: string | undefined) {
-  return useQuery({
-    queryKey: id ? clusterKeys.users(id) : [...clusterKeys.all, "users", "none"],
-    queryFn: () => listClusterUsers(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getCluster(id) : skipToken,
     ...DEFAULTS,
   });
 }

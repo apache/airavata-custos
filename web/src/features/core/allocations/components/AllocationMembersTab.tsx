@@ -17,34 +17,35 @@
 
 "use client";
 
-import * as React from "react";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { Button } from "@/shared/ui/button";
+import { useUpdateProjectMember } from "@/features/core/projects/queries";
+import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsDrawer";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { requires } from "@/shared/casl/permissions";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
-import {
-  useAddMember,
-  useAllocationMembers,
-  useRemoveMember,
-  useUpdateMember,
-} from "../queries";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import * as React from "react";
+import { toast } from "sonner";
+import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
 import type {
   AllocationMembership,
-  ComputeAllocation,
+  AllocationMembershipRole,
   CreateMembershipPayload,
 } from "../schemas";
-import { AddMemberDialog } from "./AddMemberDialog";
+import { AddMemberDialog, type Role } from "./AddMemberDialog";
 import { MemberEditDialog, type MemberEditPayload } from "./MemberEditDialog";
 
 export type AllocationMembersTabProps = {
   allocation: ComputeAllocation;
-  canManage: boolean;
+  canEditAccess: boolean;
+  canEditRoles: boolean;
+  canSearchUsers: boolean;
 };
 
-const ROLE_LABELS: Record<string, string> = {
+const ROLE_LABELS: Record<AllocationMembershipRole, string> = {
   PI: "PI",
   CO_PI: "Co-PI",
   ALLOCATION_MANAGER: "Allocation Manager",
@@ -57,47 +58,51 @@ function initialsFrom(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-export function AllocationMembersTab({ allocation, canManage }: AllocationMembersTabProps) {
+export function AllocationMembersTab({
+  allocation,
+  canEditAccess,
+  canEditRoles,
+  canSearchUsers,
+}: AllocationMembersTabProps) {
   const query = useAllocationMembers(allocation.id);
   const addMutation = useAddMember(allocation.id);
-  const updateMutation = useUpdateMember(allocation.id);
+  const roleMutation = useUpdateProjectMember(allocation.project_id);
   const removeMutation = useRemoveMember(allocation.id);
   const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
+  const [viewing, setViewing] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
+
+  function handleAdd(payload: CreateMembershipPayload, role: Role) {
+    addMutation.mutate(payload, {
+      onSuccess: () => {
+        setAdding(false);
+        if (role !== "MEMBER") {
+          roleMutation.mutate(
+            { userId: payload.user_id, payload: { role } },
+            { onError: (err) => toast.error(err.message) },
+          );
+        }
+      },
+      onError: (err) => toast.error(err.message),
+    });
+  }
 
   if (query.isLoading) return <TableSkeleton rows={4} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const members = query.data ?? [];
 
-  const headerCta = canManage ? (
-    <Button size="sm" onClick={() => setAdding(true)}>
+  const headerCta = (
+    <GuardedButton
+      size="sm"
+      allowed={canEditAccess && canSearchUsers}
+      reason={requires("allocationsWrite", "usersRead")}
+      onClick={() => setAdding(true)}
+    >
       + Add member
-    </Button>
-  ) : null;
-
-  if (members.length === 0) {
-    return (
-      <div className="space-y-3">
-        <div className="flex justify-end">{headerCta}</div>
-        <EmptyState
-          heading="No members yet"
-          description="Add a user to grant them access to this allocation."
-        />
-        <AddMemberDialog
-          open={adding}
-          onOpenChange={setAdding}
-          allocationId={allocation.id}
-          defaultEndTime={allocation.end_time}
-          onSubmit={(payload: CreateMembershipPayload) =>
-            addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-          }
-          isPending={addMutation.isPending}
-        />
-      </div>
-    );
-  }
+    </GuardedButton>
+  );
 
   const columns: Array<DataTableColumn<AllocationMembership>> = [
     {
@@ -125,13 +130,13 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     {
       key: "role",
       header: "Role",
-      cell: (row) => (
-        <span className="text-sm">{row.role ? ROLE_LABELS[row.role] : "—"}</span>
-      ),
+      width: "11rem",
+      cell: (row) => <span className="text-sm">{ROLE_LABELS[row.role]}</span>,
     },
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={
@@ -148,29 +153,36 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     {
       key: "actions",
       header: "",
+      width: "11rem",
       align: "right",
       interactive: true,
       // PI and CO_PI are upstream-owned; the portal never edits or removes them.
       cell: (row) =>
-        canManage && row.role !== "PI" && row.role !== "CO_PI" ? (
+        row.role !== "PI" && row.role !== "CO_PI" ? (
           <div className="flex justify-end gap-2">
-            <Button
+            <GuardedButton
               variant="ghost"
               size="sm"
+              allowed={canEditRoles}
+              reason={requires("projectsWrite")}
               onClick={() => setEditing(row)}
               aria-label={`Edit ${row.display_name ?? row.user_id}`}
             >
               Edit
-            </Button>
-            <Button
+            </GuardedButton>
+            <GuardedButton
               variant="destructive"
               size="sm"
-              onClick={() => removeMutation.mutate(row.id)}
+              allowed={canEditAccess}
+              reason={requires("allocationsWrite")}
+              onClick={() =>
+                removeMutation.mutate(row.id, { onError: (err) => toast.error(err.message) })
+              }
               aria-label={`Remove ${row.display_name ?? row.user_id}`}
               disabled={removeMutation.isPending}
             >
               Remove
-            </Button>
+            </GuardedButton>
           </div>
         ) : null,
     },
@@ -178,36 +190,40 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
 
   function handleEditSubmit(payload: MemberEditPayload) {
     if (!editing) return;
-    updateMutation.mutate(
-      { id: editing.id, patch: payload },
-      { onSuccess: () => setEditing(null) },
+    roleMutation.mutate(
+      { userId: editing.user_id, payload },
+      { onSuccess: () => setEditing(null), onError: (err) => toast.error(err.message) },
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {members.length} member{members.length === 1 ? "" : "s"}
-        </p>
+      <div className="flex items-center gap-3">
+        <h2 className="font-display text-lg font-semibold text-foreground">Memberships</h2>
         {headerCta}
       </div>
-      <DataTable columns={columns} rows={members} rowKey={(row) => row.id} />
+      <DataTable
+        columns={columns}
+        rows={members}
+        rowKey={(row) => row.id}
+        onRowClick={(row) => setViewing(row.user_id)}
+        empty="No members yet."
+      />
+      <UserDetailsDrawer userId={viewing} onClose={() => setViewing(null)} />
       <MemberEditDialog
         member={editing}
         onClose={() => setEditing(null)}
         onSubmit={handleEditSubmit}
-        isPending={updateMutation.isPending}
+        isPending={roleMutation.isPending}
       />
       <AddMemberDialog
         open={adding}
         onOpenChange={setAdding}
         allocationId={allocation.id}
         defaultEndTime={allocation.end_time}
-        onSubmit={(payload: CreateMembershipPayload) =>
-          addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-        }
+        onSubmit={handleAdd}
         isPending={addMutation.isPending}
+        canSetRole={canEditRoles}
       />
     </div>
   );

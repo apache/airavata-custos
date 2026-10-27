@@ -15,41 +15,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
+import { zPutUsersByIdBody, zUser } from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
 import { effectivePrivileges } from "./privileges";
 
-type RoleDetail = (typeof fixture.roleDetails)[keyof typeof fixture.roleDetails];
+const roleDetails = new Map(Object.entries(fixture.roleDetails));
 
 // Per-run mutable copy so PUT /users/{id} name edits are visible on the next
 // /me read within a session.
-let user = { ...fixture.user };
+let user = zUser.parse(fixture.user);
 
 export const identityHandlers = [
-  http.get("*/api/v1/me", () => HttpResponse.json({ user, privileges: effectivePrivileges() })),
-  http.get("*/api/v1/users/:id/user-identities", ({ params }) =>
+  http.get("*/api/v1/me", () =>
+    HttpResponse.json({ user, privileges: effectivePrivileges(), roles: [], cluster_accounts: [] }),
+  ),
+  http.get<{ id: string }>("*/api/v1/users/:id/user-identities", ({ params }) =>
     HttpResponse.json(String(params.id) === fixture.user.id ? fixture.identities : []),
   ),
-  http.get("*/api/v1/users/:id/roles", ({ params }) =>
+  http.get<{ id: string }>("*/api/v1/users/:id/roles", ({ params }) =>
     HttpResponse.json(String(params.id) === fixture.user.id ? fixture.roles : []),
   ),
-  http.get("*/api/v1/roles/:roleId", ({ params }) => {
-    const detail = (fixture.roleDetails as Record<string, RoleDetail | undefined>)[
-      String(params.roleId)
-    ];
+  http.get<{ roleId: string }>("*/api/v1/roles/:roleId", ({ params }) => {
+    const detail = roleDetails.get(String(params.roleId));
     if (!detail) return HttpResponse.json({ error: "not found" }, { status: 404 });
     return HttpResponse.json(detail);
   }),
-  http.get("*/api/v1/users/:id/privileges", ({ params }) =>
+  http.get<{ id: string }>("*/api/v1/users/:id/privileges", ({ params }) =>
     HttpResponse.json(String(params.id) === fixture.user.id ? fixture.direct : []),
   ),
   http.put("*/api/v1/users/:id", async ({ request }) => {
-    const body = (await request.json()) as {
-      first_name?: string;
-      middle_name?: string;
-      last_name?: string;
-    };
-    user = { ...user, ...body };
+    const body = zPutUsersByIdBody.parse(await request.json());
+    user = zUser.parse({ ...user, ...body });
     return HttpResponse.json(user);
   }),
 ];

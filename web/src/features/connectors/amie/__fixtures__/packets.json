@@ -66,9 +66,35 @@
       "decoded_at": "2026-06-08T14:21:32.412Z",
       "retries": 1,
       "last_error": "create account failed: cluster not reachable"
+    },
+    {
+      "id": "pkt-101",
+      "amie_id": "1234601",
+      "type": "request_account_create",
+      "status": "WAITING_APPROVAL",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_account_create\",\"body\":{\"GrantNumber\":\"BIO130001\",\"UserPersonID\":\"dana\"}}",
+      "decoded_payload": { "GrantNumber": "BIO130001", "UserPersonID": "dana" },
+      "received_at": "2026-06-08T15:02:10Z",
+      "updated_at": "2026-06-08T15:02:11Z",
+      "decoded_at": "2026-06-08T15:02:11Z",
+      "retries": 0
+    },
+    {
+      "id": "pkt-102",
+      "amie_id": "1234602",
+      "type": "request_account_create",
+      "status": "REFUSED",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_account_create\",\"body\":{\"GrantNumber\":\"BIO130001\",\"UserPersonID\":\"evan\"}}",
+      "decoded_payload": { "GrantNumber": "BIO130001", "UserPersonID": "evan" },
+      "received_at": "2026-06-08T15:10:40Z",
+      "updated_at": "2026-06-08T15:10:41Z",
+      "decoded_at": "2026-06-08T15:10:41Z",
+      "retries": 0
     }
   ],
-  "total": 5,
+  "total": 7,
   "limit": 100,
   "offset": 0
 }

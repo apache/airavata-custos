@@ -17,13 +17,12 @@
 
 "use client";
 
-import { TriangleAlertIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
+import { TriangleAlertIcon } from "lucide-react";
 import type { Packet } from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
@@ -218,20 +217,15 @@ export function FailedQueue({
       </div>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load queue"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : isLoading ? (
         <TableSkeleton />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          icon={<TriangleAlertIcon className="size-6" aria-hidden />}
-          heading="Nothing failed"
-          description="All packets have either processed cleanly or are still in-flight."
-        />
       ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          empty="Nothing failed."
           caption={`${total} failed packet${total === 1 ? "" : "s"}`}
         />
       )}

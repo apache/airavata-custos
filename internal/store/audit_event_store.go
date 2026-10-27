@@ -18,12 +18,16 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 
+	"github.com/apache/airavata-custos/internal/audit"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -90,6 +94,10 @@ func (s *pgAuditEventStore) ListAll(ctx context.Context) ([]*models.AuditEvent, 
 }
 
 func (s *pgAuditEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error {
+	if err := tracing.PopulateAuditIDs(ctx, &e.TraceID, &e.SpanID, &e.ParentSpanID); err != nil {
+		return fmt.Errorf("audit %s: %w", e.EventType, err)
+	}
+	e.Source = cmp.Or(e.Source, audit.SourceFromContext(ctx), "core")
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO audit_events (id, event_type, event_time, entity_id, entity_type, details, source, trace_id, span_id, parent_span_id)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,

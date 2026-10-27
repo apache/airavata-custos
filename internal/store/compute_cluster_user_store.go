@@ -21,11 +21,27 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// ComputeClusterUserWithUser is a cluster user joined with the fields the
+// review list shows.
+type ComputeClusterUserWithUser struct {
+	models.ComputeClusterUser
+	RequestedAt    time.Time `db:"created_at"`
+	FirstName      string    `db:"first_name"`
+	LastName       string    `db:"last_name"`
+	Email          string    `db:"user_email"`
+	ClusterName    string    `db:"cluster_name"`
+	ReviewerName   *string   `db:"reviewer_name"`
+	AllocationID   *string   `db:"allocation_id"`
+	AllocationName *string   `db:"allocation_name"`
+	ProjectID      *string   `db:"project_id"`
+}
 
 type pgComputeClusterUserStore struct {
 	db *sqlx.DB
@@ -36,7 +52,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &pgComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, provisioned_at`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note`
 
 func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -47,6 +63,19 @@ func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*m
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (s *pgComputeClusterUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeClusterUser, error) {
+	var c models.ComputeClusterUser
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
+		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -108,11 +137,73 @@ func (s *pgComputeClusterUserStore) FindByUser(ctx context.Context, userID strin
 	return users, nil
 }
 
+func (s *pgComputeClusterUserStore) FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error) {
+	var users []models.ComputeClusterUser
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).SelectContext(ctx, &users,
+		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE user_id = $1 ORDER BY compute_cluster_id FOR UPDATE`, userID)
+	return users, err
+}
+
 func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username)
-         VALUES ($1, $2, $3, $4)`,
-		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername)
+		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, access_level, approval_status, reviewed_at, reviewed_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy)
+	return err
+}
+
+// clusterAccountListFrom links each account to the user's newest allocation on
+// the same cluster.
+// TODO The request does not store its allocation, so this is inferred.
+const clusterAccountListFrom = `
+	  FROM compute_cluster_users cu
+	  JOIN users u            ON u.id = cu.user_id
+	  JOIN compute_clusters c ON c.id = cu.compute_cluster_id
+	  LEFT JOIN users r       ON r.id = cu.reviewed_by
+	  LEFT JOIN LATERAL (
+	       SELECT ca.id, ca.name, ca.project_id, p.title
+	         FROM compute_allocation_memberships m
+	         JOIN compute_allocations ca ON ca.id = m.compute_allocation_id
+	         JOIN projects p             ON p.id = ca.project_id
+	        WHERE m.user_id = cu.user_id AND ca.compute_cluster_id = cu.compute_cluster_id
+	        ORDER BY m.created_at DESC
+	        LIMIT 1) a ON true
+	 WHERE ($1 = '' OR cu.approval_status = $1)
+	   AND ($2 = '' OR CONCAT_WS(' ', u.first_name, u.last_name, u.email, cu.local_username, a.name, a.title) ILIKE '%' || $2 || '%')`
+
+func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
+	// Pending is worked one allocation at a time, so its rows come grouped.
+	order := `cu.created_at DESC, cu.id`
+	if status == models.ClusterAccountPending {
+		order = `a.id IS NULL, a.title, a.name, a.id, cu.created_at, cu.id`
+	}
+	var rows []ComputeClusterUserWithUser
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at,
+		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.created_at,
+		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name,
+		        NULLIF(TRIM(CONCAT_WS(' ', r.first_name, r.last_name)), '') AS reviewer_name,
+		        a.id AS allocation_id, a.name AS allocation_name, a.project_id`+
+			clusterAccountListFrom+`
+		  ORDER BY `+order+`
+		  LIMIT $3 OFFSET $4`,
+		status, query, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total int
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+clusterAccountListFrom, status, query); err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
+}
+
+func (s *pgComputeClusterUserStore) Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_cluster_users
+		    SET approval_status = $1, reviewed_by = $2, reviewed_at = $3, review_note = NULLIF($4, '')
+		  WHERE id = $5`,
+		status, reviewedBy, at, note, id)
 	return err
 }
 
@@ -127,9 +218,13 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
 	return err
 }
 
-func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET provisioned_at = NOW() WHERE id = $1`, id)
-	return err
+func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
+	res, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL`, at, id)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {

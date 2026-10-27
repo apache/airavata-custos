@@ -15,15 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { User } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ProfileCard } from "../ProfileCard";
-import type { UserProfile } from "../../schemas";
 
-const user: UserProfile = {
+const user: User = {
   id: "u1",
   email: "elena.vasquez@sample.example.edu",
   first_name: "Elena",

@@ -37,7 +37,7 @@ func allocateAndCreateClusterUser(ctx context.Context, svc *service.Service, clu
 	base, truncated, err := posix.BuildBase(user, posix.Prefix())
 	if err != nil {
 		_, _ = svc.CreateAuditEvent(ctx, &models.AuditEvent{
-			EventType:  "PosixUsernameUnbuildable",
+			EventType:  "PosixUsernameBuildFailed",
 			EntityID:   userID,
 			EntityType: "user",
 			Details:    err.Error(),

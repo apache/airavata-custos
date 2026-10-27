@@ -15,27 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import {
+  type Project,
+  type ProjectListResponse,
+  type ProjectResponse,
+  zGetProjectsResponse,
+  zPostProjectsResponse,
+  zProjectResponse,
+  zPutProjectsByIdStatusResponse,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   type AddProjectMemberPayload,
   type CreateProjectPayload,
-  type Project,
-  type ProjectListEnvelope,
   type ProjectMember,
   type UpdateProjectMemberPayload,
   type UpdateProjectStatusPayload,
   addProjectMemberPayloadSchema,
   createProjectPayloadSchema,
-  projectListEnvelopeSchema,
   projectMemberSchema,
   projectMembersResponseSchema,
-  projectSchema,
   updateProjectMemberPayloadSchema,
   updateProjectStatusPayloadSchema,
 } from "./schemas";
 import type { ProjectListParams } from "./types";
 
-export async function listProjects(params: ProjectListParams = {}): Promise<ProjectListEnvelope> {
+export async function listProjects(params: ProjectListParams = {}): Promise<ProjectListResponse> {
   const search = new URLSearchParams();
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
@@ -44,18 +49,22 @@ export async function listProjects(params: ProjectListParams = {}): Promise<Proj
   if (params.q) search.set("q", params.q);
   const qs = search.toString();
   const raw = await apiFetch(`/projects${qs ? `?${qs}` : ""}`);
-  return projectListEnvelopeSchema.parse(raw);
+  return zGetProjectsResponse.parse(raw);
 }
 
-export async function getProject(id: string): Promise<Project> {
+export async function getProject(id: string): Promise<ProjectResponse> {
   const raw = await apiFetch(`/projects/${id}`);
-  return projectSchema.parse(raw);
+  return zProjectResponse.parse(raw);
 }
 
 export async function createProject(payload: CreateProjectPayload): Promise<Project> {
   const validated = createProjectPayloadSchema.parse(payload);
   const raw = await apiFetch("/projects", { method: "POST", body: validated });
-  return projectSchema.parse(raw);
+  return zPostProjectsResponse.parse(raw);
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await apiFetch(`/projects/${id}`, { method: "DELETE" });
 }
 
 export async function updateProjectStatus(
@@ -64,7 +73,7 @@ export async function updateProjectStatus(
 ): Promise<Project> {
   const validated = updateProjectStatusPayloadSchema.parse(payload);
   const raw = await apiFetch(`/projects/${id}/status`, { method: "PUT", body: validated });
-  return projectSchema.parse(raw);
+  return zPutProjectsByIdStatusResponse.parse(raw);
 }
 
 export async function listProjectMembers(projectId: string): Promise<ProjectMember[]> {
@@ -84,19 +93,15 @@ export async function addProjectMember(
   return projectMemberSchema.parse(raw);
 }
 
+// The backend answers 204 with no body.
 export async function updateProjectMember(
   projectId: string,
-  memberId: string,
+  userId: string,
   payload: UpdateProjectMemberPayload,
-): Promise<ProjectMember> {
+): Promise<void> {
   const validated = updateProjectMemberPayloadSchema.parse(payload);
-  const raw = await apiFetch(`/projects/${projectId}/members/${memberId}`, {
+  await apiFetch(`/projects/${projectId}/members/${userId}`, {
     method: "PUT",
     body: validated,
   });
-  return projectMemberSchema.parse(raw);
-}
-
-export async function removeProjectMember(projectId: string, memberId: string): Promise<void> {
-  await apiFetch(`/projects/${projectId}/members/${memberId}`, { method: "DELETE" });
 }

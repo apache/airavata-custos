@@ -65,12 +65,13 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.Create(ctx, tx, project)
+		if err := s.projs.Create(ctx, tx, project); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectCreateEvent, project)
 	}); err != nil {
 		return nil, fmt.Errorf("create project: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ProjectCreateEvent, project)
 	return project, nil
 }
 
@@ -98,25 +99,6 @@ func (s *Service) GetProjectByOriginatedID(ctx context.Context, originatedID str
 	return p, nil
 }
 
-// ListProjectsByPI returns all projects whose PI matches the given user ID.
-func (s *Service) ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
-	projects, err := s.projs.FindByPI(ctx, piUserID)
-	if err != nil {
-		return nil, fmt.Errorf("list projects by PI: %w", err)
-	}
-	return projects, nil
-}
-
-// ListProjects returns a paginated, filterable slice of projects plus a total
-// count.
-func (s *Service) ListProjects(ctx context.Context, f store.ProjectListFilter) ([]models.Project, int, error) {
-	rows, total, err := s.projs.List(ctx, f)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list projects: %w", err)
-	}
-	return rows, total, nil
-}
-
 // GetProjectWithPI returns the project joined with its PI's display fields,
 // so handlers don't fan a separate GetUser per row.
 func (s *Service) GetProjectWithPI(ctx context.Context, id string) (*store.ProjectWithPI, error) {
@@ -130,8 +112,7 @@ func (s *Service) GetProjectWithPI(ctx context.Context, id string) (*store.Proje
 	return p, nil
 }
 
-// ListProjectsWithPI is ListProjects with the PI user joined in a single
-// query.
+// ListProjectsWithPI returns a filtered page of projects with their PI, plus the total count.
 func (s *Service) ListProjectsWithPI(ctx context.Context, f store.ProjectListFilter) ([]store.ProjectWithPI, int, error) {
 	rows, total, err := s.projs.ListWithPI(ctx, f)
 	if err != nil {
@@ -140,9 +121,8 @@ func (s *Service) ListProjectsWithPI(ctx context.Context, f store.ProjectListFil
 	return rows, total, nil
 }
 
-// ListProjectsForParticipant returns the projects where the user holds a
-// project membership or an active allocation membership, PI joined, newest
-// first.
+// ListProjectsForParticipant returns the projects the user has a role on, PI
+// joined, newest first.
 func (s *Service) ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error) {
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user id is required", ErrInvalidInput)
@@ -154,8 +134,7 @@ func (s *Service) ListProjectsForParticipant(ctx context.Context, userID string)
 	return rows, nil
 }
 
-// IsProjectParticipant reports whether the user participates in the project
-// through a project_memberships row or an active allocation membership.
+// IsProjectParticipant reports whether the user has any role on the project.
 func (s *Service) IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error) {
 	if projectID == "" || userID == "" {
 		return false, fmt.Errorf("%w: project id and user id are required", ErrInvalidInput)
@@ -192,6 +171,9 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 	if project.ProjectPIID == "" {
 		project.ProjectPIID = existing.ProjectPIID
 	}
+	if project.ProjectPIID != existing.ProjectPIID {
+		return fmt.Errorf("%w: project %q", ErrPIChange, project.ID)
+	}
 	if project.Status == "" {
 		project.Status = existing.Status
 	}
@@ -199,39 +181,49 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 		project.CreatedTime = existing.CreatedTime
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.Update(ctx, tx, project)
+		if err := s.projs.Update(ctx, tx, project); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, project)
 	}); err != nil {
 		return fmt.Errorf("update project: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ProjectUpdateEvent, project)
 	return nil
 }
 
 // UpdateProjectStatus sets the lifecycle status of the project identified by
 // id. Other fields are preserved.
-func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error) {
+func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (p *models.Project, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		p, err = s.UpdateProjectStatusTx(ctx, tx, id, status)
+		return
+	})
+	return
+}
+
+func (s *Service) UpdateProjectStatusTx(ctx context.Context, tx *sql.Tx, id string, status models.ProjectStatus) (*models.Project, error) {
 	if id == "" {
 		return nil, fmt.Errorf("%w: project id is required", ErrInvalidInput)
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
-	existing, err := s.projs.FindByID(ctx, id)
+	existing, err := s.projs.FindByIDTx(ctx, tx, id)
 	if err != nil {
 		return nil, fmt.Errorf("lookup project: %w", err)
 	}
 	if existing == nil {
 		return nil, ErrNotFound
 	}
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.UpdateStatus(ctx, tx, id, status)
-	}); err != nil {
+	existing.Status = status
+	if err := func() error {
+		if err := s.projs.UpdateStatus(ctx, tx, id, status); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, existing)
+	}(); err != nil {
 		return nil, fmt.Errorf("update project status: %w", err)
 	}
-	existing.Status = status
-
-	s.eventBus.Publish(ctx, events.ProjectUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -247,12 +239,18 @@ func (s *Service) DeleteProject(ctx context.Context, id string) error {
 	if project == nil {
 		return ErrNotFound
 	}
+	if allocs, err := s.allocs.FindByProject(ctx, id); err != nil {
+		return fmt.Errorf("lookup allocations: %w", err)
+	} else if len(allocs) > 0 {
+		return fmt.Errorf("%w: project %q still has allocations", ErrInUse, id)
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.Delete(ctx, tx, id)
+		if err := s.projs.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ProjectDeleteEvent, project)
 	}); err != nil {
 		return fmt.Errorf("delete project: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ProjectDeleteEvent, project)
 	return nil
 }

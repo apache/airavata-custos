@@ -15,30 +15,87 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
+import clusterAccountsFixture from "@/features/core/cluster-accounts/__fixtures__/cluster-accounts.json";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
-import type { ComputeCluster, ComputeClusterUser } from "@/features/core/clusters/schemas";
+import projects from "@/features/core/projects/__fixtures__/projects.json";
+import {
+  zClusterAccountResponse,
+  zComputeCluster,
+  zComputeClusterUser,
+  zDenyClusterAccountRequest,
+} from "@/generated/core/zod.gen";
+import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-const clusters = clustersFixture as ComputeCluster[];
-const clusterUsers = clusterUsersFixture as ComputeClusterUser[];
+const clusters = z.array(zComputeCluster).parse(clustersFixture);
+const clusterUsers = z.array(zComputeClusterUser).parse(clusterUsersFixture);
+const clusterAccounts = z.array(zClusterAccountResponse).parse(clusterAccountsFixture);
 
 export const clustersHandlers = [
   http.get("*/api/v1/compute-clusters", () => HttpResponse.json(clusters)),
 
-  http.get("*/api/v1/compute-clusters/:id", ({ params }) => {
+  http.get("*/api/v1/compute-cluster-users", ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get("approval_status");
+    const q = url.searchParams.get("q")?.toLowerCase() ?? "";
+    const rows = clusterAccounts.filter((a) => {
+      if (status && a.approval_status !== status) return false;
+      const title = projects.find((p) => p.id === a.project_id)?.title ?? "";
+      const hay = [a.display_name, a.email, a.local_username, a.allocation_name, title];
+      return hay.join(" ").toLowerCase().includes(q);
+    });
+    return HttpResponse.json({ items: rows, total: rows.length });
+  }),
+
+  http.post<{ id: string }>("*/api/v1/compute-cluster-users/:id/approve", ({ params }) => {
+    const found = clusterAccounts.find((a) => a.id === String(params.id));
+    if (!found) return HttpResponse.json({ error: "cluster user not found" }, { status: 404 });
+    if (found.approval_status === "APPROVED") {
+      return HttpResponse.json({ error: "already approved" }, { status: 409 });
+    }
+    found.approval_status = "APPROVED";
+    found.reviewed_at = new Date().toISOString();
+    found.reviewed_by = "user-admin";
+    found.reviewer_name = "Pat Admin";
+    found.review_note = undefined;
+    return HttpResponse.json(found);
+  }),
+
+  http.post<{ id: string }>(
+    "*/api/v1/compute-cluster-users/:id/deny",
+    async ({ params, request }) => {
+      const found = clusterAccounts.find((a) => a.id === String(params.id));
+      if (!found) return HttpResponse.json({ error: "cluster user not found" }, { status: 404 });
+      if (found.approval_status !== "PENDING") {
+        return HttpResponse.json({ error: "already reviewed" }, { status: 409 });
+      }
+      const body = zDenyClusterAccountRequest.parse(await request.json().catch(() => ({})));
+      if (!body.note?.trim()) {
+        return HttpResponse.json({ error: "a reason is required to deny" }, { status: 400 });
+      }
+      found.approval_status = "DENIED";
+      found.reviewed_at = new Date().toISOString();
+      found.reviewed_by = "user-admin";
+      found.reviewer_name = "Pat Admin";
+      found.review_note = body.note.trim();
+      return HttpResponse.json(found);
+    },
+  ),
+
+  http.get<{ id: string }>("*/api/v1/compute-clusters/:id", ({ params }) => {
     const id = String(params.id);
     const found = clusters.find((c) => c.id === id);
     if (!found) return HttpResponse.json({ error: "cluster not found" }, { status: 404 });
     return HttpResponse.json(found);
   }),
 
-  http.get("*/api/v1/compute-clusters/:id/users", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/compute-clusters/:id/users", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(clusterUsers.filter((u) => u.compute_cluster_id === id));
   }),
 
-  http.get("*/api/v1/users/:id/compute-cluster-users", ({ params }) => {
+  http.get<{ id: string }>("*/api/v1/users/:id/compute-cluster-users", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(clusterUsers.filter((u) => u.user_id === id));
   }),

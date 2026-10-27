@@ -31,6 +31,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 )
 
 type pollerPacketStore interface {
@@ -98,25 +99,33 @@ func (p *Poller) Run(ctx context.Context) {
 }
 
 func (p *Poller) pollForPackets(ctx context.Context) {
-	slog.Info("Polling for new AMIE packets...")
-	packets, err := p.client.FetchInProgressPackets(ctx)
-	if err != nil {
-		slog.Error("failed to fetch AMIE packets", "error", err)
-		return
-	}
-	if len(packets) == 0 {
-		slog.Debug("no new AMIE packets found")
-		return
-	}
-	slog.Info("fetched AMIE packets", "count", len(packets))
-	p.metrics.RecordPollerFetch(len(packets))
-
-	for _, packetNode := range packets {
+	for _, packetNode := range p.fetchPackets(ctx) {
 		p.processIndividualPacket(ctx, packetNode)
 	}
 }
 
+// fetchPackets runs in its own span, so each packet below starts a trace of its own.
+func (p *Poller) fetchPackets(ctx context.Context) []map[string]any {
+	ctx, span := tracing.Start(ctx, "amie.poll")
+	defer span.End()
+	slog.InfoContext(ctx, "Polling for new AMIE packets...")
+	packets, err := p.client.FetchInProgressPackets(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to fetch AMIE packets", "error", err)
+		return nil
+	}
+	if len(packets) == 0 {
+		slog.DebugContext(ctx, "no new AMIE packets found")
+		return nil
+	}
+	slog.InfoContext(ctx, "fetched AMIE packets", "count", len(packets))
+	p.metrics.RecordPollerFetch(len(packets))
+	return packets
+}
+
 func (p *Poller) processIndividualPacket(ctx context.Context, packetNode map[string]any) {
+	ctx, span := tracing.Start(ctx, "amie.ingest")
+	defer span.End()
 	// Extract amie_id from header.packet_rec_id.
 	amiePacketRecID := int64(-1)
 	if header, ok := packetNode["header"].(map[string]any); ok {
@@ -135,7 +144,7 @@ func (p *Poller) processIndividualPacket(ctx context.Context, packetNode map[str
 	}
 
 	if amiePacketRecID < 0 || packetType == "" {
-		slog.Warn("skipping packet with missing header fields", "raw", packetNode)
+		slog.WarnContext(ctx, "skipping packet with missing header fields", "raw", packetNode)
 		return
 	}
 
@@ -144,11 +153,11 @@ func (p *Poller) processIndividualPacket(ctx context.Context, packetNode map[str
 	// Deduplication check.
 	existing, err := p.packetStore.FindByAmieID(ctx, amiePacketRecID)
 	if err != nil {
-		logger.Error("failed to check for existing packet", "error", err)
+		logger.ErrorContext(ctx, "failed to check for existing packet", "error", err)
 		return
 	}
 	if existing != nil {
-		logger.Debug("packet already exists, skipping")
+		logger.DebugContext(ctx, "packet already exists, skipping")
 		return
 	}
 
@@ -170,24 +179,29 @@ func (p *Poller) processIndividualPacket(ctx context.Context, packetNode map[str
 		}
 
 		// Create processing event.
-		eventID := uuid.NewString()
+		traceID, spanID, err := tracing.IDsFromContext(ctx)
+		if err != nil {
+			return err
+		}
 		event := &model.ProcessingEvent{
-			ID:        eventID,
+			ID:        uuid.NewString(),
 			PacketID:  newPacket.ID,
 			Type:      model.EventTypeDecodePacket,
 			Status:    model.ProcessingStatusNew,
 			CreatedAt: now,
+			TraceID:   traceID,
+			SpanID:    spanID,
 		}
 		if err := p.eventStore.Save(ctx, tx, event); err != nil {
 			return fmt.Errorf("save processing event: %w", err)
 		}
 
-		logger.Info("persisted new AMIE packet", "packetId", newPacket.ID)
+		logger.InfoContext(ctx, "persisted new AMIE packet", "packetId", newPacket.ID)
 		return nil
 	})
 
 	if err != nil {
-		logger.Error("failed to persist packet", "error", err)
+		logger.ErrorContext(ctx, "failed to persist packet", "error", err)
 		return
 	}
 

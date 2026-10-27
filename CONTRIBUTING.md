@@ -25,7 +25,7 @@ For instructions on running Custos locally against a database, see [INSTALL.md](
 
 ## Prerequisites
 
-- Go **1.24+**
+- Go **1.27+**
 - `git`
 
 ## Repository layout
@@ -69,6 +69,7 @@ Every SQL file must carry the Apache 2.0 license header (see existing files for 
 - Database work happens inside `s.inTx(ctx, func(*sql.Tx) error { … })`. Do not nest transactions.
 - HTTP routing uses the Go 1.22 `ServeMux` with `r.PathValue` for path parameters.
 - Publish domain events through `pkg/events.Bus` from the service layer; never from handlers or stores.
+- An audit event that records a failure must have `Failed`, `Error` or `Rejected` in its event type (for example `ComanageProvisioningFailed`, `PosixUsernameBuildFailed`). The trace view reads a step's outcome from its name, so a failure named otherwise shows as ok.
 
 ## Tests
 

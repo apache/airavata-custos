@@ -15,32 +15,46 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { apiFetch } from "@/shared/api/client";
 import {
-  grantRoleResponseSchema,
+  type UserPrivilege,
   roleDetailResponseSchema,
   rolesResponseSchema,
   userIdentitiesResponseSchema,
-  userListResponseSchema,
   userPrivilegesResponseSchema,
   userRolesResponseSchema,
-} from "./schemas";
-import type {
-  Role,
-  RoleDetail,
-  UserIdentity,
-  UserListResponse,
-  UserPrivilege,
-  UserRole,
-} from "./schemas";
+} from "@/features/core/identity/schemas";
+import type { PostUsersByIdRolesData } from "@/generated/core/types.gen";
+import {
+  type Role,
+  type User,
+  type UserIdentity,
+  type UserListResponse,
+  type UserRole,
+  zGetUsersByIdResponse,
+  zGetUsersResponse,
+  zUser,
+  zUserRole,
+} from "@/generated/core/zod.gen";
+import { apiFetch } from "@/shared/api/client";
+import { type CreateUserPayload, type RoleDetail, createUserPayloadSchema } from "./schemas";
 import type { UserListParams } from "./types";
+
+export async function createUser(payload: CreateUserPayload): Promise<User> {
+  const body = createUserPayloadSchema.parse(payload);
+  return zUser.parse(await apiFetch("/users", { method: "POST", body }));
+}
 
 export async function listUsers(params: UserListParams = {}): Promise<UserListResponse> {
   const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   const query = search.toString();
-  return userListResponseSchema.parse(await apiFetch(`/users${query ? `?${query}` : ""}`));
+  return zGetUsersResponse.parse(await apiFetch(`/users${query ? `?${query}` : ""}`));
+}
+
+export async function getUser(id: string): Promise<User> {
+  return zGetUsersByIdResponse.parse(await apiFetch(`/users/${id}`));
 }
 
 export async function listRolesCatalog(): Promise<Role[]> {
@@ -68,9 +82,12 @@ export async function assignUserRole(
   roleId: string,
   reason?: string,
 ): Promise<UserRole> {
-  const body: Record<string, string> = { role_id: roleId };
-  if (reason?.trim()) body.reason = reason.trim();
-  return grantRoleResponseSchema.parse(
+  const trimmed = reason?.trim();
+  const body: PostUsersByIdRolesData["body"] = {
+    role_id: roleId,
+    ...(trimmed ? { reason: trimmed } : {}),
+  };
+  return zUserRole.parse(
     await apiFetch(`/users/${userId}/roles`, {
       method: "POST",
       body,

@@ -23,6 +23,7 @@ import {
   FolderKanban,
   HardDrive,
   type LucideIcon,
+  Send,
   Server,
   UserCog,
 } from "lucide-react";
@@ -76,6 +77,13 @@ export const portalNav: NavItem[] = [
     href: "/admin/traces",
     label: "Tracing",
     icon: Activity,
+    group: "admin",
+    ability: { action: "read", subject: "Trace" },
+  },
+  {
+    href: "/admin/events",
+    label: "Events",
+    icon: Send,
     group: "admin",
     ability: { action: "read", subject: "Trace" },
   },

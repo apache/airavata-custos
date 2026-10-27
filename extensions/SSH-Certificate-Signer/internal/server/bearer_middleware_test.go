@@ -22,7 +22,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 
 	"github.com/apache/airavata-custos/signer/internal/auth"
 	"github.com/apache/airavata-custos/signer/internal/config"

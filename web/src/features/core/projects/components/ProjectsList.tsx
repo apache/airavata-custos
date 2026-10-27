@@ -17,20 +17,18 @@
 
 "use client";
 
-import Link from "next/link";
-import * as React from "react";
-import { Button } from "@/shared/ui/button";
+import type { ProjectResponse, ProjectStatus } from "@/generated/core/zod.gen";
+import { requires } from "@/shared/casl/permissions";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import {
-  StatusBadge,
-  statusBadgeVariantFromAllocationStatus,
-} from "@/shared/ui/StatusBadge";
-import type { Project, ProjectStatus } from "../schemas";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { ProjectStatusIcon } from "./ProjectStatusIcon";
 
 function statusLabelFor(value: string): string {
   switch (value) {
@@ -46,7 +44,7 @@ function statusLabelFor(value: string): string {
 }
 
 export type ProjectsListProps = {
-  rows: Project[];
+  rows: ProjectResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
@@ -68,33 +66,34 @@ export function ProjectsList({
   onStatusFilterChange,
   headerCta,
 }: ProjectsListProps) {
+  const router = useRouter();
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
       if (needle) {
-        const hay = `${row.title} ${row.originated_id}`.toLowerCase();
+        const hay = `${row.title} ${row.ref}`.toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;
     });
   }, [rows, search, statusFilter]);
 
-  const columns: Array<DataTableColumn<Project>> = [
+  const columns: Array<DataTableColumn<ProjectResponse>> = [
     {
       key: "title",
       header: "Project",
       sortable: true,
       sortValue: (row) => row.title,
       cell: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <Link
-            href={`/projects/${row.id}`}
-            className="font-medium text-foreground hover:underline"
-          >
-            {row.title}
-          </Link>
-          <span className="font-mono text-xs text-muted-foreground">{row.originated_id}</span>
+        <div className="flex items-center gap-2">
+          <ProjectStatusIcon status={row.status} />
+          <div className="flex flex-col items-start gap-0.5">
+            <Link href={`/projects/${row.id}`} className="font-medium text-foreground">
+              {row.title}
+            </Link>
+            <span className="text-xs text-muted-foreground">{row.ref}</span>
+          </div>
         </div>
       ),
     },
@@ -104,29 +103,23 @@ export function ProjectsList({
       sortable: true,
       sortValue: (row) => row.project_pi_display_name ?? row.project_pi_id,
       cell: (row) => (
-        <span className="text-sm text-muted-foreground">
-          {row.project_pi_display_name ?? row.project_pi_id}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm text-muted-foreground">
+            {row.project_pi_display_name ?? row.project_pi_id}
+          </span>
+          {row.project_pi_email ? (
+            <span className="text-xs text-muted-foreground">{row.project_pi_email}</span>
+          ) : null}
+        </div>
       ),
     },
     {
       key: "origination",
       header: "Origination",
+      width: "8rem",
       sortable: true,
       sortValue: (row) => row.origination,
       cell: (row) => <span className="text-sm">{row.origination}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      sortValue: (row) => row.status,
-      cell: (row) => (
-        <StatusBadge
-          variant={statusBadgeVariantFromAllocationStatus(row.status)}
-          label={row.status}
-        />
-      ),
     },
   ];
 
@@ -153,7 +146,7 @@ export function ProjectsList({
         />
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusFilterChange(value as ProjectStatus | "all")}
+          onValueChange={(value) => value !== null && onStatusFilterChange(value)}
         >
           <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
             <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
@@ -171,23 +164,23 @@ export function ProjectsList({
         <TableSkeleton rows={6} columns={4} />
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          heading="No projects yet"
-          description="No projects match the current filters."
-        />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => router.push(`/projects/${row.id}`)}
+          empty="No projects match the current filters."
+        />
       )}
     </div>
   );
 }
 
-export function NewProjectCta({ canCreate = true }: { canCreate?: boolean }) {
-  if (!canCreate) return null;
+export function NewProjectCta({ canCreate, onClick }: { canCreate: boolean; onClick: () => void }) {
   return (
-    <Button render={<Link href="/projects?new=1" aria-label="New project" />}>
+    <GuardedButton allowed={canCreate} reason={requires("projectsWrite")} onClick={onClick}>
       + New project
-    </Button>
+    </GuardedButton>
   );
 }

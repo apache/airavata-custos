@@ -61,7 +61,7 @@ ORDER BY ae.event_time ASC, ae.span_id ASC
 func (s *pgPacketAuditStore) ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error) {
 	type row struct {
 		SpanID       string    `db:"span_id"`
-		ParentSpanID string    `db:"parent_span_id"`
+		ParentSpanID *string   `db:"parent_span_id"`
 		Source       string    `db:"source"`
 		EventType    string    `db:"event_type"`
 		EntityType   string    `db:"entity_type"`

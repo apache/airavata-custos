@@ -31,9 +31,9 @@ CREATE INDEX IF NOT EXISTS idx_projects_originated_id ON projects (originated_id
 CREATE INDEX IF NOT EXISTS idx_projects_pi ON projects (project_pi_id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects (status);
 
--- Project-level governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER
--- status is derived from compute_allocation_memberships, so it is not stored
--- here. One row per (project, user).
+-- Project-level governance roles (CO_PI / ALLOCATION_MANAGER); the PI is
+-- projects.project_pi_id. MEMBER status is derived from
+-- compute_allocation_memberships, so it is not stored here. One row per (project, user).
 CREATE TABLE IF NOT EXISTS project_memberships
 (
     project_id VARCHAR(255) NOT NULL,
@@ -43,6 +43,6 @@ CREATE TABLE IF NOT EXISTS project_memberships
     PRIMARY KEY (project_id, user_id),
     CONSTRAINT fk_project_memberships_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
     CONSTRAINT fk_project_memberships_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT chk_project_memberships_role CHECK (role IN ('PI', 'CO_PI', 'ALLOCATION_MANAGER'))
+    CONSTRAINT chk_project_memberships_role CHECK (role IN ('CO_PI', 'ALLOCATION_MANAGER'))
 );
 CREATE INDEX IF NOT EXISTS idx_project_memberships_role ON project_memberships (role);

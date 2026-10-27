@@ -29,6 +29,9 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Type is the connector type in the config file.
+const Type = "temp-account"
+
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	handlers := internal.NewHandlers(coreService)
 	handlers.RegisterRoutes(router)

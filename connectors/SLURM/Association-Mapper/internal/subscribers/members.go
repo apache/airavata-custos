@@ -37,7 +37,7 @@ const (
 	reconcileSweepTimeout = 5 * time.Minute
 )
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(ctx context.Context, membership models.ComputeAllocationMembership) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_create")
 	defer span.End()
@@ -46,7 +46,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		attribute.String("slurm.user_id", membership.UserID),
 	)
 
-	slog.Info("Received compute allocation membership creation event", "membership", membership)
+	slog.InfoContext(ctx, "Received compute allocation membership creation event", "membership", membership)
 
 	// The short timeout bounds the core fetches only; the provisioning
 	// wait below runs on its own deadline.
@@ -55,59 +55,59 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 
 	allocation, err := a.coreService.GetComputeAllocation(fetchCtx, membership.ComputeAllocationID)
 	if err != nil {
-		slog.Error("Failed to get compute allocation", "error", err)
+		slog.ErrorContext(ctx, "Failed to get compute allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute allocation. Error: "+err.Error())
-		return
+		return err
 	}
 
 	cluster, err := a.coreService.GetComputeCluster(fetchCtx, allocation.ComputeClusterID)
 	if err != nil {
-		slog.Error("Failed to get compute cluster", "error", err)
+		slog.ErrorContext(ctx, "Failed to get compute cluster", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute cluster. Error: "+err.Error())
-		return
+		return err
 	}
 	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
 
-	// One writer for every path so the association record stays identical
-	// for a given (cluster, account, user, partition) key.
+	// Every path writes through the same function, so a member's record is always built the same way.
 	if err := a.upsertAssociationsForMembership(fetchCtx, membership); err != nil {
 		if errors.Is(err, errNotProvisioned) {
 			// Expected on a first-time account: provisioning is still in
 			// flight. The reconciler writes it once the account lands.
-			slog.Info("Cluster account not provisioned yet, leaving the association to the reconciler",
+			slog.InfoContext(ctx, "Cluster account not provisioned yet, leaving the association to the reconciler",
 				"membership_id", membership.ID, "user_id", membership.UserID)
-			return
+			return nil
 		}
-		slog.Error("Failed to upsert association for membership", "error", err)
+		slog.ErrorContext(ctx, "Failed to upsert association for membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())
-		return
+		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationSucceeded", "compute_allocation_membership", membership.ID, "Successfully upserted association.")
+	return nil
 }
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx context.Context, override models.ComputeAllocationMembershipResourceOverride) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx context.Context, override models.ComputeAllocationMembershipResourceOverride) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_resource_override_create")
 	defer span.End()
 
-	slog.Info("Received compute allocation membership resource override creation event", "override", override)
+	slog.InfoContext(ctx, "Received compute allocation membership resource override creation event", "override", override)
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	// TODO: read per-resource override via
 	membership, err := a.coreService.GetComputeAllocationMembership(ctx, override.ComputeAllocationMembershipID)
 	if err != nil {
-		slog.Error("Failed to get compute allocation membership for resource override creation", "error", err)
+		slog.ErrorContext(ctx, "Failed to get compute allocation membership for resource override creation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation membership. Error: "+err.Error())
-		return
+		return err
 	}
 	span.SetAttributes(
 		attribute.String("slurm.allocation_id", membership.ComputeAllocationID),
@@ -119,23 +119,24 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	// than only this override's slice.
 	if err := a.upsertAssociationsForMembership(ctx, *membership); err != nil {
 		if errors.Is(err, errNotProvisioned) {
-			slog.Info("Cluster account not provisioned yet, leaving the association to the reconciler",
+			slog.InfoContext(ctx, "Cluster account not provisioned yet, leaving the association to the reconciler",
 				"membership_id", membership.ID, "override_id", override.ID)
-			return
+			return nil
 		}
-		slog.Error("Failed to upsert association for membership resource override", "error", err)
+		slog.ErrorContext(ctx, "Failed to upsert association for membership resource override", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to upsert association. Error: "+err.Error())
-		return
+		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationSucceeded", "compute_allocation_membership_resource_override", override.ID, "Successfully upserted association.")
+	return nil
 }
 
 // SubscribeToComputeAllocationMembershipUpdate reacts to a membership-changing
 // state. Anything other than ACTIVE means the member should no longer be able
 // to submit, so the associations go; going back to ACTIVE re-grants them.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx context.Context, membership models.ComputeAllocationMembership) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_update")
 	defer span.End()
@@ -150,31 +151,33 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx
 	if membership.MembershipStatus == models.ACTIVE {
 		if err := a.upsertAssociationsForMembership(fetchCtx, membership); err != nil {
 			if errors.Is(err, errNotProvisioned) {
-				slog.Info("Cluster account not provisioned yet, leaving the association to the reconciler",
+				slog.InfoContext(ctx, "Cluster account not provisioned yet, leaving the association to the reconciler",
 					"membership_id", membership.ID)
-				return
+				return nil
 			}
-			slog.Error("Failed to upsert association for reactivated membership", "error", err)
+			slog.ErrorContext(ctx, "Failed to upsert association for reactivated membership", "error", err)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())
+			return err
 		}
-		return
+		return nil
 	}
 
 	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
-		slog.Error("Failed to remove associations for deactivated membership", "error", err)
+		slog.ErrorContext(ctx, "Failed to remove associations for deactivated membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to remove associations. Error: "+err.Error())
-		return
+		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeprovisioned", "compute_allocation_membership", membership.ID, "Removed cluster associations for the deactivated membership.")
+	return nil
 }
 
 // SubscribeToComputeAllocationMembershipDeletion removes the member's access
 // when the membership row itself goes away.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(ctx context.Context, membership models.ComputeAllocationMembership) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_delete")
 	defer span.End()
@@ -187,11 +190,12 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(c
 	defer cancel()
 
 	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
-		slog.Error("Failed to remove associations for deleted membership", "error", err)
+		slog.ErrorContext(ctx, "Failed to remove associations for deleted membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeletionFailed", "compute_allocation_membership", membership.ID, "Failed to remove associations. Error: "+err.Error())
-		return
+		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeprovisioned", "compute_allocation_membership", membership.ID, "Removed cluster associations for the deleted membership.")
+	return nil
 }

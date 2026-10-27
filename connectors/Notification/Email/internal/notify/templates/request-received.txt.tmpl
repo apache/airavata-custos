@@ -1,0 +1,38 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}}
+{{define "subject"}}We received a request for your {{.SiteName}} account{{end}}
+{{define "text"}}Hi{{if .FirstName}} {{.FirstName}}{{end}},
+
+We received a request to create an account for you on {{.SiteName}}.
+An administrator is reviewing it, and we will email you again when your
+account is ready.
+
+Request details
+{{if .Source}}Requested through: {{.Source}}
+{{end}}{{if .ProjectNumber}}Project: {{.ProjectNumber}}
+{{end}}Proposed username: {{.Username}}
+
+You don't need to do anything right now.
+
+Questions? Write to {{.SupportEmail}}.
+
+--
+You are receiving this because an account on {{.SiteName}} was requested
+for you{{if .Source}} through {{.Source}}{{end}}. This is an automated message.
+{{end}}

@@ -25,26 +25,32 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
 	"github.com/apache/airavata-custos/connectors/Analytics/pkg/analytics"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
+	"github.com/apache/airavata-custos/connectors/Notification/Email/pkg/email"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
+	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/pkg/vast"
 	"github.com/apache/airavata-custos/connectors/TempAccount/pkg/tempaccount"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
 
 func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router) error {
 	slog.Info("loading connectors from config")
+	router.RequirePrivilege("GET /connectors", models.ClustersRead, listStatus(cfg.Connectors, eventBus))
 
 	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *identity.Router, *config.ConnectorConfig) error{
-		"slurm-association-mapper":      smapper.LoadConnector,
-		"amie-processor":                amie.LoadConnector,
-		"comanage-identity-provisioner": comanage.LoadConnector,
-		"slurm-usage-monitor":           monitor.LoadConnector,
-		"temp-account":                  tempaccount.LoadConnector,
-		"analytics":                     analytics.LoadConnector,
+		smapper.Type:     smapper.LoadConnector,
+		amie.Type:        amie.LoadConnector,
+		comanage.Type:    comanage.LoadConnector,
+		monitor.Type:     monitor.LoadConnector,
+		tempaccount.Type: tempaccount.LoadConnector,
+		analytics.Type:   analytics.LoadConnector,
+		vast.Type:        vast.LoadConnector,
+		email.Type:       email.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {
@@ -55,6 +61,10 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 
 		if !connectorCfg.Enabled {
 			slog.Info("connector is disabled", "name", connectorName, "type", connectorCfg.Type)
+			// Disabled on purpose, so stop keeping events for it.
+			if err := eventBus.Unsubscribe(ctx, connectorCfg.Type); err != nil {
+				return err
+			}
 			continue
 		}
 

@@ -78,7 +78,6 @@ type ProjectService interface {
 	CreateProject(ctx context.Context, project *models.Project) (*models.Project, error)
 	GetProject(ctx context.Context, id string) (*models.Project, error)
 	GetProjectByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
-	ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
 	IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	UpdateProject(ctx context.Context, project *models.Project) error
@@ -116,6 +115,7 @@ type ComputeAllocationService interface {
 	ListComputeAllocationsByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	ListComputeAllocationsByCluster(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error)
 	ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
+	AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 	UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error
 	DeleteComputeAllocation(ctx context.Context, id string) error
 }
@@ -182,8 +182,6 @@ type ComputeAllocationChangeRequestEventService interface {
 // ProjectMembershipService exposes project-level governance roles.
 type ProjectMembershipService interface {
 	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
-	ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
-	ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error)
 }
 
 // ComputeAllocationMembershipService exposes allocation memberships.
@@ -191,9 +189,8 @@ type ComputeAllocationMembershipService interface {
 	CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	GetComputeAllocationMembership(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
 	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
-	ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
+	ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
-	IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error)
 	UpdateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error)
 	DeleteComputeAllocationMembership(ctx context.Context, id string) error
@@ -218,8 +215,9 @@ type ComputeAllocationUsageService interface {
 	GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
 	ListUsagesForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 	ListUsagesByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
-	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error)
-	GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (float64, error)
+	GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error)
+	LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error)
 	DeleteComputeAllocationUsage(ctx context.Context, id string) error
 }
 

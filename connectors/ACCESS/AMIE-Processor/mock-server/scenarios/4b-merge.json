@@ -1,0 +1,5 @@
+{
+  "merges": [
+    { "keep": "person1", "retire": "person1-alt" }
+  ]
+}

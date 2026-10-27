@@ -21,6 +21,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { Spinner } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -30,8 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { Spinner } from "@/shared/ui/Loading";
 
 export type EnableToggleResource = {
   kind: "cluster" | "resource";
@@ -117,9 +117,7 @@ export function EnableToggle({
         }}
         className={cn(
           "inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-medium transition-colors",
-          enabled
-            ? "bg-brand-tint text-foreground"
-            : "bg-muted text-muted-foreground",
+          enabled ? "bg-brand-tint text-foreground" : "bg-muted text-muted-foreground",
           disabled && "cursor-not-allowed opacity-60",
         )}
         data-state={enabled ? "enabled" : "disabled"}
@@ -128,9 +126,7 @@ export function EnableToggle({
           aria-hidden="true"
           className={cn(
             "inline-block h-2 w-2 rounded-full",
-            enabled
-              ? "bg-[color:var(--custos-green-500)]"
-              : "bg-muted-foreground/60",
+            enabled ? "bg-[color:var(--custos-green-500)]" : "bg-muted-foreground/60",
           )}
         />
         {stateLabel}
@@ -184,7 +180,10 @@ export function EnableToggle({
           ) : null}
 
           {error ? (
-            <ErrorState heading={`Could not ${actionLabelWithKind.toLowerCase()}`} message={error} />
+            <ErrorState
+              heading={`Could not ${actionLabelWithKind.toLowerCase()}`}
+              message={error}
+            />
           ) : null}
 
           {submitting ? (
@@ -212,4 +211,3 @@ export function EnableToggle({
     </>
   );
 }
-

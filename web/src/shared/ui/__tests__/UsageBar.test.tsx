@@ -19,10 +19,10 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { UsageBar } from "../UsageBar";
 
-function inner(progressBar: HTMLElement): HTMLElement {
+function inner(progressBar: HTMLElement): Element {
   const fill = progressBar.firstElementChild;
   if (!fill) throw new Error("UsageBar has no fill");
-  return fill as HTMLElement;
+  return fill;
 }
 
 describe("UsageBar thresholds", () => {

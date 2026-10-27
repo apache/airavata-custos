@@ -6,7 +6,7 @@ definitions:
       id:
         type: string
       initial_su_amount:
-        type: integer
+        type: number
       name:
         type: string
       start_time:
@@ -116,7 +116,7 @@ definitions:
           $ref: '#/definitions/UsageDailyBucket'
         type: array
       total:
-        type: integer
+        type: number
       used:
         type: number
     type: object

@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -37,7 +38,9 @@ func tryBootstrap(ctx context.Context, svc *service.Service) {
 	if email == "" {
 		return
 	}
+	ctx, span := tracing.Start(ctx, "bootstrap.super_admin")
+	defer span.End()
 	if err := svc.BootstrapSuperAdmin(ctx, email, "env:"+bootstrapAdminEmailEnv); err != nil {
-		slog.Warn("bootstrap super_admin failed", "email", email, "error", err)
+		slog.WarnContext(ctx, "bootstrap super_admin failed", "email", email, "error", err)
 	}
 }

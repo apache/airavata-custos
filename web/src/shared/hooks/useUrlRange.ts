@@ -39,7 +39,7 @@ const PRESET_DAYS: Record<Exclude<RangePreset, "custom">, number> = {
 };
 
 function isRangePreset(value: string | null): value is RangePreset {
-  return value !== null && (RANGE_PRESETS as readonly string[]).includes(value);
+  return RANGE_PRESETS.some((preset) => preset === value);
 }
 
 function parseIso(input: string | null): Date | null {
@@ -49,7 +49,10 @@ function parseIso(input: string | null): Date | null {
   return new Date(ms);
 }
 
-export function rangeFromPreset(preset: Exclude<RangePreset, "custom">, now = Date.now()): AnalyticsRange {
+export function rangeFromPreset(
+  preset: Exclude<RangePreset, "custom">,
+  now = Date.now(),
+): AnalyticsRange {
   return { from: new Date(now - PRESET_DAYS[preset] * DAY_MS), to: new Date(now), preset };
 }
 

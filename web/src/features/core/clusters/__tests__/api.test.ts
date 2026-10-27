@@ -16,10 +16,10 @@
 // under the License.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getCluster, listClusterUsers, listClusters } from "../api";
+import { getCluster, listClusters } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body: unknown): Response {
   const text = typeof body === "string" ? body : JSON.stringify(body);
@@ -31,12 +31,6 @@ afterEach(() => {
 });
 
 const cluster = { id: "cluster-a", name: "ClusterA" };
-const clusterUser = {
-  id: "ccu-1",
-  compute_cluster_id: "cluster-a",
-  user_id: "user-ada-lovelace",
-  local_username: "alovelace",
-};
 
 describe("listClusters", () => {
   it("parses a bare array of clusters", async () => {
@@ -52,25 +46,10 @@ describe("listClusters", () => {
   });
 });
 
-describe("listClusterUsers null body", () => {
-  it("returns an empty array when the backend sends null", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(200, "null"));
-    await expect(listClusterUsers("cluster-a")).resolves.toEqual([]);
-  });
-});
-
 describe("getCluster", () => {
   it("parses a single cluster", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, cluster));
     const out = await getCluster("cluster-a");
     expect(out.id).toBe("cluster-a");
-  });
-});
-
-describe("listClusterUsers", () => {
-  it("parses a bare array of cluster users", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(200, [clusterUser]));
-    const out = await listClusterUsers("cluster-a");
-    expect(out[0]?.local_username).toBe("alovelace");
   });
 });

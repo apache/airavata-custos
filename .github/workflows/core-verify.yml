@@ -56,12 +56,12 @@ jobs:
           --health-retries=10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       - name: Check formatting
@@ -83,8 +83,9 @@ jobs:
         run: go test ./...
 
       # The AMIE integration suite has its own workflow and compose stack;
-      # this covers the core suite only.
+      # this covers the core suite only. The packages share one database and
+      # truncate tables, so they must not run in parallel.
       - name: Core integration tests
         env:
           CORE_TEST_DATABASE_DSN: "postgres://admin:admin@127.0.0.1:5432/custos?sslmode=disable"
-        run: go test -tags integration ./internal/...
+        run: go test -tags integration -p 1 ./internal/...

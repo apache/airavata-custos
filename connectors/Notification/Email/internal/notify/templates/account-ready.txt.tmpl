@@ -1,0 +1,41 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}}
+{{define "subject"}}Your {{.SiteName}} account is ready{{end}}
+{{define "text"}}Hi{{if .FirstName}} {{.FirstName}}{{end}},
+
+Your {{.SiteName}} account is ready. Sign in to the portal first, then
+you can connect to the cluster.
+
+Username: {{.Username}}
+Login host: {{.ClusterHost}}
+Connect with SSH: ssh {{.Username}}@{{.ClusterHost}}
+
+What to do first
+1. Sign in to the portal first, with your institution's login. This
+   activates your cluster login, so do it before connecting:
+   {{.PortalURL}}
+2. Open a terminal and run the SSH command above. When asked, finish
+   signing in with your institution's login.
+
+Questions? Write to {{.SupportEmail}}.
+
+--
+You are receiving this because an account on {{.SiteName}} was created
+for you. This is an automated message.
+{{end}}

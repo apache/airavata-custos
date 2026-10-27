@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -37,7 +38,7 @@ func NewComputeAllocationStore(db *sqlx.DB) ComputeAllocationStore {
 	return &pgComputeAllocationStore{db: db}
 }
 
-const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time`
+const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time, posix_group, group_provisioned_at`
 
 func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error) {
 	var a models.ComputeAllocation
@@ -50,6 +51,19 @@ func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*mo
 		return nil, err
 	}
 	return &a, nil
+}
+
+func (s *pgComputeAllocationStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocation, error) {
+	var r models.ComputeAllocation
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
 }
 
 func (s *pgComputeAllocationStore) FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error) {
@@ -75,8 +89,8 @@ func (s *pgComputeAllocationStore) FindByCluster(ctx context.Context, clusterID 
 func (s *pgComputeAllocationStore) Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocations (`+computeAllocationColumns+`)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime, a.PosixGroup, a.GroupProvisionedAt)
 	return err
 }
 
@@ -96,28 +110,46 @@ func (s *pgComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id st
 	return err
 }
 
+func (s *pgComputeAllocationStore) MarkGroupProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
+	res, err := tx.ExecContext(ctx, `UPDATE compute_allocations SET group_provisioned_at = $1 WHERE id = $2 AND group_provisioned_at IS NULL`, at, id)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
 // FindByParticipant returns the allocations where the user holds an active
 // membership, or a governance role on the parent project. Ordered like List
 // (start_time descending).
 func (s *pgComputeAllocationStore) FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
 	var rows []models.ComputeAllocation
-	query, args, err := sqlx.In(
+	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationColumns+` FROM compute_allocations a
-		  WHERE EXISTS (SELECT 1 FROM compute_allocation_memberships cam
-		                 WHERE cam.compute_allocation_id = a.id AND cam.user_id = ?
-		                   AND cam.membership_status = 'ACTIVE')
-		     OR EXISTS (SELECT 1 FROM project_memberships pm
-		                 WHERE pm.project_id = a.project_id AND pm.user_id = ?
-		                   AND pm.role IN (?))
-		  ORDER BY start_time DESC`, userID, userID, models.GovernanceRoles)
-	if err != nil {
-		return nil, err
-	}
-	err = s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...)
+		  WHERE EXISTS (SELECT 1 FROM project_roles r
+		                 WHERE r.user_id = $1 AND r.project_id = a.project_id
+		                   AND (r.compute_allocation_id IS NULL OR r.compute_allocation_id = a.id))
+		  ORDER BY start_time DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
+}
+
+// RoleForUser returns the user's role on the allocation, a project-wide role
+// before MEMBER, or "" for none.
+func (s *pgComputeAllocationStore) RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error) {
+	var role models.ProjectRole
+	err := s.db.GetContext(ctx, &role,
+		`SELECT r.role FROM compute_allocations a
+		   JOIN project_roles r ON r.project_id = a.project_id AND r.user_id = $2
+		                       AND (r.compute_allocation_id IS NULL OR r.compute_allocation_id = a.id)
+		  WHERE a.id = $1
+		  ORDER BY r.compute_allocation_id NULLS FIRST LIMIT 1`, allocationID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return role, err
 }
 
 func (s *pgComputeAllocationStore) List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error) {
@@ -143,20 +175,9 @@ func (s *pgComputeAllocationStore) List(ctx context.Context, f AllocationListFil
 	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM compute_allocations`+clause), args...); err != nil {
 		return nil, 0, err
 	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	offset := f.Offset
-	if offset < 0 {
-		offset = 0
-	}
 	query := `SELECT ` + computeAllocationColumns + ` FROM compute_allocations` + clause +
 		` ORDER BY start_time DESC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
+	args = append(args, f.Limit, f.Offset)
 	var rows []models.ComputeAllocation
 	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
 		return nil, 0, err

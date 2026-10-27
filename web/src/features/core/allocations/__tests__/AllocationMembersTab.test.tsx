@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ComputeAllocation } from "../schemas";
 
 const members = [
   {
@@ -50,20 +50,41 @@ const members = [
 ];
 
 const mutation = { mutate: vi.fn(), isPending: false };
+vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({
+  UserDetailsDrawer: () => null,
+}));
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,
-  useUpdateMember: () => mutation,
   useRemoveMember: () => mutation,
+}));
+vi.mock("@/features/core/projects/queries", () => ({
+  useUpdateProjectMember: () => mutation,
+}));
+vi.mock("@/features/core/users/queries", () => ({
+  useUserEmailSearch: () => ({ suggestions: [], match: undefined, emptyMessage: "" }),
 }));
 
 import { AllocationMembersTab } from "../components/AllocationMembersTab";
 
-const allocation = { id: "alloc-001", name: "Test Allocation" } as ComputeAllocation;
+const allocation: ComputeAllocation = {
+  id: "alloc-001",
+  project_id: "project-001",
+  name: "Test Allocation",
+  status: "ACTIVE",
+  compute_cluster_id: "cluster-001",
+  initial_su_amount: 100000,
+  start_time: "2026-04-01T00:00:00Z",
+  end_time: "2027-03-31T00:00:00Z",
+  posix_group: null,
+  group_provisioned_at: null,
+};
 
 describe("<AllocationMembersTab />", () => {
   it("offers no Edit or Remove for PI or Co-PI members", () => {
-    render(<AllocationMembersTab allocation={allocation} canManage={true} />);
+    render(
+      <AllocationMembersTab allocation={allocation} canEditAccess canEditRoles canSearchUsers />,
+    );
     for (const name of ["Paula Ivey", "Carl Osei"]) {
       expect(screen.queryByRole("button", { name: `Edit ${name}` })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: `Remove ${name}` })).not.toBeInTheDocument();
@@ -72,9 +93,17 @@ describe("<AllocationMembersTab />", () => {
     expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeInTheDocument();
   });
 
-  it("offers no actions without manage permission", () => {
-    render(<AllocationMembersTab allocation={allocation} canManage={false} />);
-    expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Edit / })).not.toBeInTheDocument();
+  it("disables each action whose privilege is missing", () => {
+    render(
+      <AllocationMembersTab
+        allocation={allocation}
+        canEditAccess={false}
+        canEditRoles
+        canSearchUsers
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Edit Mina Frey" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "+ Add member" })).toBeDisabled();
   });
 });

@@ -16,7 +16,7 @@
 // under the License.
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
 import { StatusBadge, type StatusBadgeVariant } from "../StatusBadge";
 
 const ALL_VARIANTS: StatusBadgeVariant[] = [
@@ -54,11 +54,13 @@ describe("StatusBadge", () => {
 
   it("uses bg-muted for inactive/expired and drops the ring", () => {
     const { container, rerender } = render(<StatusBadge variant="inactive" />);
-    const span = container.firstElementChild as HTMLElement;
+    const span = container.firstElementChild;
+    assert(span);
     expect(span.className).toContain("bg-muted");
     expect(span.className).not.toContain("ring-1");
     rerender(<StatusBadge variant="expired" />);
-    const expired = container.firstElementChild as HTMLElement;
+    const expired = container.firstElementChild;
+    assert(expired);
     expect(expired.className).toContain("bg-muted");
   });
 

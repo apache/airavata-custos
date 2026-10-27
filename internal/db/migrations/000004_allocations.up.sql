@@ -22,12 +22,15 @@ CREATE TABLE IF NOT EXISTS compute_allocations
     name               VARCHAR(255) NOT NULL,
     status             VARCHAR(64)  NOT NULL,
     compute_cluster_id VARCHAR(255) NOT NULL,
-    initial_su_amount  BIGINT       NOT NULL DEFAULT 0,
+    initial_su_amount  DOUBLE PRECISION NOT NULL DEFAULT 0,
     start_time         TIMESTAMPTZ(6) NOT NULL,
     end_time           TIMESTAMPTZ(6) NOT NULL,
+    posix_group        VARCHAR(32)  NULL,
+    group_provisioned_at TIMESTAMPTZ(6) NULL,
     created_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
+    CONSTRAINT uq_compute_allocations_cluster_posix_group UNIQUE (compute_cluster_id, posix_group),
     CONSTRAINT fk_compute_allocations_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE RESTRICT,
     CONSTRAINT fk_compute_allocations_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE RESTRICT
 );
@@ -90,7 +93,7 @@ CREATE TABLE IF NOT EXISTS compute_allocation_diffs
     id                    VARCHAR(255) NOT NULL,
     compute_allocation_id VARCHAR(255) NOT NULL,
     diff_type             VARCHAR(64)  NOT NULL,
-    new_su_amount         BIGINT       NOT NULL DEFAULT 0,
+    new_su_amount         DOUBLE PRECISION NOT NULL DEFAULT 0,
     status                VARCHAR(64)  NOT NULL,
     timestamp             TIMESTAMPTZ(6) NOT NULL,
     description           TEXT         NOT NULL,
@@ -106,7 +109,7 @@ CREATE TABLE IF NOT EXISTS compute_allocation_change_requests
 (
     id                    VARCHAR(255) NOT NULL,
     compute_allocation_id VARCHAR(255) NOT NULL,
-    requested_su_amount   BIGINT       NOT NULL DEFAULT 0,
+    requested_su_amount   DOUBLE PRECISION NOT NULL DEFAULT 0,
     requested_status      VARCHAR(64)  NOT NULL,
     reason                TEXT         NOT NULL,
     change_status         VARCHAR(64)  NOT NULL,
@@ -147,7 +150,8 @@ CREATE TABLE IF NOT EXISTS compute_allocation_memberships
     PRIMARY KEY (id),
     CONSTRAINT uq_compute_allocation_memberships_allocation_user UNIQUE (compute_allocation_id, user_id),
     CONSTRAINT fk_compute_allocation_memberships_allocation FOREIGN KEY (compute_allocation_id)
-        REFERENCES compute_allocations (id) ON DELETE CASCADE
+        REFERENCES compute_allocations (id) ON DELETE CASCADE,
+    CONSTRAINT fk_compute_allocation_memberships_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_compute_allocation_memberships_user ON compute_allocation_memberships (user_id);
 CREATE INDEX IF NOT EXISTS idx_compute_allocation_memberships_status ON compute_allocation_memberships (membership_status);
@@ -203,3 +207,18 @@ CREATE OR REPLACE TRIGGER trg_compute_allocation_resource_rates_updated_at
 CREATE OR REPLACE TRIGGER trg_compute_allocation_membership_resource_overrides_updated_at
     BEFORE UPDATE ON compute_allocation_membership_resource_overrides
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- One row per role: the PI and tags are project-wide (compute_allocation_id
+-- NULL, covering every allocation of the project); active members hold MEMBER on
+-- their own allocation.
+CREATE OR REPLACE VIEW project_roles AS
+SELECT id AS project_id, project_pi_id AS user_id, 'PI' AS role, NULL AS compute_allocation_id, created_time AS added_time
+  FROM projects
+UNION ALL
+SELECT project_id, user_id, role, NULL, added_time
+  FROM project_memberships
+UNION ALL
+SELECT ca.project_id, cam.user_id, 'MEMBER', cam.compute_allocation_id, cam.start_time
+  FROM compute_allocation_memberships cam
+  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
+ WHERE cam.membership_status = 'ACTIVE';

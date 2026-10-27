@@ -74,7 +74,7 @@ func (h *RequestProjectInactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		return fmt.Errorf("request_project_inactivate: lookup project: %w", err)
 	}
 
-	if _, err := h.svc.UpdateProjectStatus(ctx, project.ID, models.ProjectInactive); err != nil {
+	if _, err := h.svc.UpdateProjectStatusTx(ctx, tx, project.ID, models.ProjectInactive); err != nil {
 		return fmt.Errorf("request_project_inactivate: update project status: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateProject, "project", project.ID, ""); err != nil {
@@ -98,10 +98,10 @@ func (h *RequestProjectInactivateHandler) deactivateAllocations(ctx context.Cont
 	}
 	for _, a := range allocations {
 		a.Status = models.INACTIVE
-		if err := h.svc.UpdateComputeAllocation(ctx, &a); err != nil {
+		if err := h.svc.UpdateComputeAllocationTx(ctx, tx, &a); err != nil {
 			return fmt.Errorf("inactivate allocation %s: %w", a.ID, err)
 		}
-		if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+		if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 			ComputeAllocationID: a.ID,
 			DiffType:            "ALLOCATION_STATUS_CHANGE",
 			Status:              models.INACTIVE,
@@ -114,7 +114,7 @@ func (h *RequestProjectInactivateHandler) deactivateAllocations(ctx context.Cont
 			return fmt.Errorf("list memberships for allocation %s: %w", a.ID, err)
 		}
 		for _, m := range members {
-			if _, err := h.svc.UpdateMembershipStatus(ctx, m.ID, models.INACTIVE); err != nil {
+			if _, err := h.svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.INACTIVE); err != nil {
 				return fmt.Errorf("inactivate membership %s: %w", m.ID, err)
 			}
 			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "compute_allocation_membership", m.ID,

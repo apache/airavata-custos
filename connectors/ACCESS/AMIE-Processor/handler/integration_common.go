@@ -38,6 +38,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/internal/db"
 	corestore "github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
@@ -106,6 +107,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 	tables := []string{
 		"amie_audit_extras",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
@@ -147,7 +151,11 @@ func seedDefaultCluster(t *testing.T, database *sqlx.DB) {
 }
 
 func newTestCoreService(database *sqlx.DB) *coreservice.Service {
-	return coreservice.New(database, events.New())
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		panic("event bus: " + err.Error())
+	}
+	return coreservice.New(database, bus)
 }
 
 func newTestAuditService(database *sqlx.DB) *amieservice.AuditService {
@@ -197,6 +205,39 @@ func (f *fakeAmieClient) lastReplyType() string {
 	last := f.Replies[len(f.Replies)-1]
 	t, _ := last.Body["type"].(string)
 	return t
+}
+
+// heldReply returns the type and body of the reply a handler kept on the packet.
+func heldReply(t *testing.T, pkt *model.Packet) (string, map[string]any) {
+	t.Helper()
+	if pkt.Status != model.PacketStatusWaitingApproval || pkt.HeldReply == nil {
+		t.Fatalf("expected the packet to hold its reply, got status %s", pkt.Status)
+	}
+	var reply map[string]any
+	if err := json.Unmarshal([]byte(*pkt.HeldReply), &reply); err != nil {
+		t.Fatalf("decode held reply: %v", err)
+	}
+	typ, _ := reply["type"].(string)
+	body, _ := reply["body"].(map[string]any)
+	return typ, body
+}
+
+// approvePendingAccounts approves every pending cluster account, as an admin would.
+func approvePendingAccounts(t *testing.T, database *sqlx.DB, svc *coreservice.Service) {
+	t.Helper()
+	var ids []string
+	if err := database.Select(&ids, "SELECT id FROM compute_cluster_users WHERE approval_status = 'PENDING'"); err != nil {
+		t.Fatalf("list pending cluster accounts: %v", err)
+	}
+	var reviewer string
+	if err := database.Get(&reviewer, "SELECT id FROM users LIMIT 1"); err != nil {
+		t.Fatalf("pick a reviewer: %v", err)
+	}
+	for _, id := range ids {
+		if _, err := svc.ApproveComputeClusterUser(tracingtest.Context(), id, reviewer); err != nil {
+			t.Fatalf("approve %s: %v", id, err)
+		}
+	}
 }
 
 func insertPacket(t *testing.T, database *sqlx.DB, packetType string, body map[string]any) *model.Packet {

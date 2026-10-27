@@ -17,25 +17,19 @@
 
 "use client";
 
+import { requires } from "@/shared/casl/permissions";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "@/shared/ui/button";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
-import {
-  useApproveChangeRequest,
-  useChangeRequests,
-  useRejectChangeRequest,
-} from "../queries";
+import { useApproveChangeRequest, useChangeRequests, useRejectChangeRequest } from "../queries";
 import type { ChangeRequest, ChangeRequestStatus } from "../schemas";
 
 export type ChangeRequestApproverQueueProps = {
@@ -70,9 +64,7 @@ export function ChangeRequestApproverQueue({
   const [search, setSearch] = React.useState("");
   const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set());
 
-  const query = useChangeRequests(
-    statusFilter === "all" ? {} : { status: statusFilter },
-  );
+  const query = useChangeRequests(statusFilter === "all" ? {} : { status: statusFilter });
   const approveMutation = useApproveChangeRequest();
   const rejectMutation = useRejectChangeRequest();
 
@@ -91,7 +83,7 @@ export function ChangeRequestApproverQueue({
       await approveMutation.mutateAsync({ id: row.id, approverId });
       toast.success(`Approved ${row.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       markPending(row.id, false);
     }
@@ -103,7 +95,7 @@ export function ChangeRequestApproverQueue({
       await rejectMutation.mutateAsync({ id: row.id, approverId });
       toast.success(`Rejected ${row.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       markPending(row.id, false);
     }
@@ -124,6 +116,7 @@ export function ChangeRequestApproverQueue({
     {
       key: "submitted",
       header: "Submitted",
+      width: "9rem",
       sortable: true,
       sortValue: (row) => new Date(row.timestamp),
       cell: (row) => (
@@ -150,16 +143,20 @@ export function ChangeRequestApproverQueue({
     {
       key: "amount",
       header: "Requested SUs",
+      width: "10rem",
       align: "right",
       sortable: true,
       sortValue: (row) => row.requested_su_amount,
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.requested_su_amount)}
+        </span>
       ),
     },
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromChangeRequest(row.change_status)}
@@ -170,36 +167,46 @@ export function ChangeRequestApproverQueue({
     {
       key: "actions",
       header: "",
+      width: "11rem",
       align: "right",
       interactive: true,
       cell: (row) => {
         const pending = pendingIds.has(row.id);
-        if (row.change_status !== "PENDING" || !canApprove) {
+        if (row.change_status !== "PENDING") {
           return (
-            <Button variant="ghost" size="sm" render={<Link href={`/change-requests/${row.id}`} />}>
+            <Button
+              variant="ghost"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/change-requests/${row.id}`} />}
+            >
               View
             </Button>
           );
         }
         return (
           <div className="flex justify-end gap-1.5">
-            <Button
+            <GuardedButton
               variant="outline"
               size="sm"
+              allowed={canApprove}
+              reason={requires("allocationsWrite")}
               disabled={pending}
               onClick={() => handleReject(row)}
               aria-label={`Reject ${row.id}`}
             >
               Reject
-            </Button>
-            <Button
+            </GuardedButton>
+            <GuardedButton
               size="sm"
+              allowed={canApprove}
+              reason={requires("allocationsWrite")}
               disabled={pending}
               onClick={() => handleApprove(row)}
               aria-label={`Approve ${row.id}`}
             >
               Approve
-            </Button>
+            </GuardedButton>
           </div>
         );
       },
@@ -221,7 +228,11 @@ export function ChangeRequestApproverQueue({
           <select
             id="cr-status-filter"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | ChangeRequestStatus)}
+            onChange={(e) =>
+              setStatusFilter(
+                STATUS_OPTIONS.find((opt) => opt.value === e.target.value)?.value ?? statusFilter,
+              )
+            }
             className="h-9 rounded-md border bg-background px-3 text-sm"
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -247,17 +258,14 @@ export function ChangeRequestApproverQueue({
       {query.isLoading ? (
         <TableSkeleton rows={5} columns={6} />
       ) : query.error ? (
-        <ErrorState
-          message={(query.error as Error).message}
-          onRetry={() => query.refetch()}
-        />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="No change requests"
-          description="No requests match the current filters."
-        />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(row) => row.id}
+          empty="No change requests match the current filters."
+        />
       )}
     </div>
   );

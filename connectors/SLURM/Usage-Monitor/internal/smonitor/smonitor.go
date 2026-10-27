@@ -21,9 +21,11 @@ import (
 	"context"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -39,6 +41,13 @@ const monitorInterval = 30 * time.Second
 // and a repeat of the same job id replaces its earlier row. Its right value
 // depends on the cluster's slurmdbd commit lag, so it is configurable.
 const defaultPollOverlap = 15 * time.Minute
+
+// maxPollStep is the value of the next poll step keeping the gap not too wide.
+const maxPollStep = 24 * time.Hour
+
+// startupCatchUp is the value how far back the poller scans for jobs when no
+// usage has been recorded for the cluster yet.
+const startupCatchUp = 24 * time.Hour
 
 type jobLister interface {
 	ListJobs(filter client.JobFilter) ([]client.JobInfo, error)
@@ -63,83 +72,94 @@ func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreServi
 		coreService:     coreService,
 		clusterId:       clusterId,
 		pollOverlap:     pollOverlap,
-		lastMonitorTime: 1, // initialize to 1 to avoid issues with zero value
+		lastMonitorTime: time.Now().Add(-startupCatchUp).Unix(),
+	}
+}
+
+// resumeFromLastUsage starts polling from the end of the last recorded job.
+func (m *SlurmMonitor) resumeFromLastUsage(ctx context.Context) {
+	last, err := m.coreService.LatestUsageTimeForCluster(ctx, m.clusterId)
+	if err != nil {
+		slog.Warn("could not read the last recorded usage, starting from the default", "error", err)
+		return
+	}
+	if last != nil {
+		m.lastMonitorTime = last.Unix()
 	}
 }
 
 func (m *SlurmMonitor) StartMonitor(ctx context.Context) {
+	m.resumeFromLastUsage(ctx)
 	ticker := time.NewTicker(monitorInterval)
 	defer ticker.Stop()
 
-	slog.Info("Starting SLURM usage monitor", "interval", monitorInterval)
+	slog.Info("Starting SLURM usage monitor", "interval", monitorInterval, "first_poll_from", time.Unix(m.lastMonitorTime, 0).UTC())
 	for {
 		select {
 		case <-ctx.Done():
 			slog.Info("Stopping SLURM usage monitor", "reason", ctx.Err())
 			return
 		case <-ticker.C:
-			m.poll()
+			m.poll(ctx)
 		}
 	}
 }
 
-func (m *SlurmMonitor) poll() {
+func (m *SlurmMonitor) poll(ctx context.Context) {
 	slog.Debug("polling SLURM usage")
-	context, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, span := tracing.Start(ctx, "slurm.usage_poll")
+	defer span.End()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	cluster, err := m.coreService.GetComputeCluster(context, m.clusterId)
+	cluster, err := m.coreService.GetComputeCluster(ctx, m.clusterId)
 	if err != nil {
-		slog.Error("failed to get compute cluster", "error", err)
+		slog.ErrorContext(ctx, "failed to get compute cluster", "error", err)
 		return
 	}
 
-	allocations, err := m.coreService.ListComputeAllocationsByCluster(context, cluster.ID)
+	allocations, err := m.coreService.ListComputeAllocationsByCluster(ctx, cluster.ID)
 	if err != nil {
-		slog.Error("failed to list compute allocations", "error", err)
+		slog.ErrorContext(ctx, "failed to list compute allocations", "error", err)
 		return
 	}
 
-	windowStart := m.lastMonitorTime - int64(m.pollOverlap.Seconds())
-	if windowStart < 1 {
-		windowStart = 1
-	}
 	jobFilter := client.JobFilter{
-		StartTime: windowStart,
-		EndTime:   time.Now().Unix(),
+		StartTime: m.lastMonitorTime - int64(m.pollOverlap.Seconds()),
+		EndTime:   min(time.Now().Unix(), m.lastMonitorTime+int64(maxPollStep.Seconds())),
 	}
 
 	jobs, err := m.slurmClient.ListJobs(jobFilter)
 	if err != nil {
-		slog.Error("failed to list SLURM jobs", "error", err)
+		slog.ErrorContext(ctx, "failed to list SLURM jobs", "error", err)
 		return
 	}
 	m.lastMonitorTime = jobFilter.EndTime
 
 	for _, job := range jobs {
-		m.recordJob(context, job, cluster, allocations)
+		m.recordJob(ctx, job, cluster, allocations)
 	}
 
-	slog.Info("successfully polled SLURM usage", "num_allocations", len(allocations), "num_jobs", len(jobs))
+	slog.InfoContext(ctx, "successfully polled SLURM usage", "num_allocations", len(allocations), "num_jobs", len(jobs))
 
 }
 
 // recordJob writes one usage row for a matched job; returning skips only this
 // job so one bad lookup cannot abort the rest of the poll cycle.
 func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluster *models.ComputeCluster, allocations []models.ComputeAllocation) {
-	slog.Info("Job object", "job", job)
-	targetAccount := job.Account
+	slog.InfoContext(ctx, "Job object", "job", job)
+	// Accounts are created in lowercase
 	for _, alloc := range allocations {
-		if alloc.Name != targetAccount {
+		if !strings.EqualFold(alloc.Name, job.Account) {
 			continue
 		}
-		slog.Info("found matching compute allocation for SLURM job", "job_id", job.JobID, "allocation_id", alloc.ID)
+		slog.InfoContext(ctx, "found matching compute allocation for SLURM job", "job_id", job.JobID, "allocation_id", alloc.ID)
 
 		user, err := m.coreService.GetComputeClusterUserByClusterAndLocalUsername(ctx, cluster.ID, job.User)
 		if err != nil {
 			if err == service.ErrNotFound {
-				slog.Warn("compute cluster user not found for SLURM job, skipping usage recording", "local_username", job.User, "cluster_id", cluster.ID)
+				slog.WarnContext(ctx, "compute cluster user not found for SLURM job, skipping usage recording", "local_username", job.User, "cluster_id", cluster.ID)
 			} else {
-				slog.Error("failed to get compute cluster user", "error", err)
+				slog.ErrorContext(ctx, "failed to get compute cluster user", "error", err)
 			}
 			return
 		}
@@ -147,9 +167,9 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 		resource, err := m.coreService.GetComputeAllocationResourceByNameAndCluster(ctx, job.Partition, cluster.ID)
 		if err != nil {
 			if err == service.ErrNotFound {
-				slog.Warn("compute allocation resource not found for SLURM job, skipping usage recording", "resource_name", job.Partition, "cluster_id", cluster.ID)
+				slog.WarnContext(ctx, "compute allocation resource not found for SLURM job, skipping usage recording", "resource_name", job.Partition, "cluster_id", cluster.ID)
 			} else {
-				slog.Error("failed to get compute allocation resource", "error", err)
+				slog.ErrorContext(ctx, "failed to get compute allocation resource", "error", err)
 			}
 			return
 		}
@@ -157,13 +177,13 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 		jobId := strconv.FormatInt(job.JobID, 10)
 		existing, err := m.coreService.GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx, alloc.ID, jobId)
 		if err != nil && err != service.ErrNotFound {
-			slog.Error("failed to check for existing compute allocation usage", "error", err)
+			slog.ErrorContext(ctx, "failed to check for existing compute allocation usage", "error", err)
 			return
 		}
 
 		jobDurationSec := job.Time.End - job.Time.Start
 		if jobDurationSec <= 0 {
-			slog.Warn("SLURM job has non-positive duration, skipping usage recording", "job_id", job.JobID, "duration_seconds", jobDurationSec)
+			slog.WarnContext(ctx, "SLURM job has non-positive duration, skipping usage recording", "job_id", job.JobID, "duration_seconds", jobDurationSec)
 			return
 		}
 
@@ -176,7 +196,7 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 			}
 		}
 		if billingAmount <= 0 {
-			slog.Warn("SLURM job has no billing charge, skipping usage recording", "job_id", job.JobID, "billing", billingAmount)
+			slog.WarnContext(ctx, "SLURM job has no billing charge, skipping usage recording", "job_id", job.JobID, "billing", billingAmount)
 			return
 		}
 
@@ -186,9 +206,9 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 		rate, err := m.coreService.GetEffectiveRateForResource(ctx, resource.ID, time.Unix(job.Time.End, 0))
 		if err != nil {
 			if err == service.ErrNotFound {
-				slog.Warn("no rate covers the job end time, skipping usage recording", "job_id", job.JobID, "resource_id", resource.ID)
+				slog.WarnContext(ctx, "no rate covers the job end time, skipping usage recording", "job_id", job.JobID, "resource_id", resource.ID)
 			} else {
-				slog.Error("failed to get effective rate for resource", "error", err, "job_id", job.JobID, "resource_id", resource.ID)
+				slog.ErrorContext(ctx, "failed to get effective rate for resource", "error", err, "job_id", job.JobID, "resource_id", resource.ID)
 			}
 			return
 		}
@@ -197,7 +217,7 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 			ComputeAllocationID:         alloc.ID,
 			UsedRawAmount:               calculatedRawAmount,
 			UsedSUAmount:                calculatedRawAmount * rate.Rate,
-			CalculatedTime:              time.Now(),
+			CalculatedTime:              time.Unix(job.Time.End, 0),
 			UserID:                      user.UserID,
 			JobID:                       jobId,
 			ComputeAllocationResourceID: resource.ID,
@@ -205,7 +225,7 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 
 		if existing != nil {
 			m.coreService.DeleteComputeAllocationUsage(ctx, existing.ID)
-			slog.Info("deleted existing compute allocation usage for SLURM job", "job_id", job.JobID, "existing_usage_id", existing.ID)
+			slog.InfoContext(ctx, "deleted existing compute allocation usage for SLURM job", "job_id", job.JobID, "existing_usage_id", existing.ID)
 		}
 		m.coreService.CreateComputeAllocationUsage(ctx, usageModel)
 		return

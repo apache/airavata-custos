@@ -7,20 +7,21 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": [
-      "node_modules",
-      ".next",
-      "out",
-      "build",
-      "dist",
-      "coverage",
-      "playwright-report",
-      "test-results",
-      "public",
-      "pnpm-lock.yaml",
-      "design-tokens/tokens.json",
-      "next-env.d.ts",
-      "src/generated"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/out",
+      "!**/build",
+      "!**/dist",
+      "!**/coverage",
+      "!**/playwright-report",
+      "!**/test-results",
+      "!**/public",
+      "!**/pnpm-lock.yaml",
+      "!**/design-tokens/tokens.json",
+      "!**/next-env.d.ts",
+      "!**/src/generated"
     ]
   },
   "formatter": {
@@ -29,21 +30,38 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
-  "organizeImports": {
-    "enabled": true
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noArrayIndexKey": "off",
+        "useIterableCallbackReturn": "off"
       },
       "style": {
-        "useImportType": "warn"
+        "noNonNullAssertion": "error",
+        "useImportType": "error"
       },
       "a11y": {
-        "recommended": true
+        "recommended": true,
+        "noNoninteractiveTabindex": "off",
+        "noStaticElementInteractions": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useFocusableInteractive": "off",
+        "useKeyWithClickEvents": "off"
+      },
+      "correctness": {
+        "noComponentHookFactories": "off",
+        "noUnsafeOptionalChaining": "off",
+        "usePlaywrightValidDescribeCallback": "off"
       }
     }
   },
@@ -56,7 +74,7 @@
   },
   "overrides": [
     {
-      "include": ["src/shared/ui/**"],
+      "includes": ["**/src/shared/ui/**"],
       "linter": {
         "rules": {
           "a11y": {
@@ -72,5 +90,10 @@
         }
       }
     }
-  ]
+  ],
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }

@@ -20,6 +20,7 @@
 package posix
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -31,7 +32,15 @@ import (
 
 const MaxCollisionSuffix = 999
 
+// MaxLoginLen is the POSIX login name cap.
+const MaxLoginLen = 32
+
 var ErrUnbuildableUsername = errors.New("posix: cannot build username from empty first and last name")
+
+// ProjectRef names a project by its source and id, e.g., ACCESS + TG-CIS230001 -> access-tgcis230001.
+func ProjectRef(p models.Project) string {
+	return strings.ToLower(p.Origination) + "-" + Normalize(cmp.Or(p.OriginatedID, p.ID[:min(8, len(p.ID))]))
+}
 
 // BuildBase returns the unsuffixed username. 'truncated' is set when the name
 // portion was shortened to fit the 32-char POSIX login cap.
@@ -51,8 +60,8 @@ func BuildBase(u *models.User, prefix string) (string, bool, error) {
 		return "", false, fmt.Errorf("%w: user %q (first=%q last=%q)", ErrUnbuildableUsername, u.ID, u.FirstName, u.LastName)
 	}
 
-	// 32 = POSIX login cap; -1 separator, -3 reserved for collision suffix (up to "999").
-	maxLocal := 32 - len(prefix) - 1 - 3
+	// -1 separator, -3 reserved for collision suffix (up to "999").
+	maxLocal := MaxLoginLen - len(prefix) - 1 - 3
 	truncated := false
 	if len(local) > maxLocal {
 		local = local[:maxLocal]

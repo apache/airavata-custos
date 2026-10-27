@@ -15,16 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ProjectResponse } from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectsList } from "../components/ProjectsList";
-import type { Project } from "../schemas";
 
-const project: Project = {
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
+const project: ProjectResponse = {
   id: "project-001",
   originated_id: "BIO130000",
   title: "Genomic Sequencing Pipeline",
   origination: "ACCESS",
+  ref: "ACCESS-BIO130000",
   project_pi_id: "user-pi-001",
   status: "ACTIVE",
   created_time: "2026-04-01T00:00:00.000Z",
@@ -53,11 +56,11 @@ describe("<ProjectsList />", () => {
 
   it("shows the empty state when no rows match the filters", () => {
     renderList({ rows: [] });
-    expect(screen.getByRole("heading", { name: /no projects yet/i })).toBeInTheDocument();
+    expect(screen.getByText("No projects match the current filters.")).toBeInTheDocument();
   });
 
   it("filters by status", () => {
-    const inactive: Project = {
+    const inactive: ProjectResponse = {
       ...project,
       id: "project-002",
       title: "Archived Project",

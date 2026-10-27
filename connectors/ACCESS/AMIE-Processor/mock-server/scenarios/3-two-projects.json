@@ -1,0 +1,18 @@
+{
+  "projects": [
+    {
+      "grant": "E2E-301",
+      "title": "First of two allocations",
+      "su": 20000,
+      "pi": "person1",
+      "users": { "person2": "CO_PI", "person3": "MEMBER", "person5": "MEMBER" }
+    },
+    {
+      "grant": "E2E-302",
+      "title": "Second of two allocations",
+      "su": 30000,
+      "pi": "person2",
+      "users": { "person1": "MEMBER", "person4": "ALLOCATION_MANAGER" }
+    }
+  ]
+}

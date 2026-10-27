@@ -22,11 +22,25 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+// Paged reads a page from q: a limit of 1..200 (50 when unset or invalid) and a non-negative offset.
+func Paged(q url.Values) (limit, offset int) {
+	limit, _ = strconv.Atoi(q.Get("limit"))
+	offset, _ = strconv.Atoi(q.Get("offset"))
+	if limit <= 0 {
+		limit = 50
+	}
+	return min(limit, 200), max(offset, 0)
+}
 
 func DecodeJSON(r *http.Request, dst any) error {
 	dec := json.NewDecoder(r.Body)
@@ -52,13 +66,18 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 }
 
 func WriteServiceError(w http.ResponseWriter, err error) {
+	var pgErr *pgconn.PgError
 	switch {
 	case errors.Is(err, service.ErrNotFound):
 		WriteError(w, http.StatusNotFound, err)
-	case errors.Is(err, service.ErrAlreadyExists):
+	case errors.Is(err, service.ErrAlreadyExists), errors.Is(err, service.ErrPIChange), errors.Is(err, service.ErrInUse):
 		WriteError(w, http.StatusConflict, err)
 	case errors.Is(err, service.ErrInvalidInput):
 		WriteError(w, http.StatusBadRequest, err)
+	case errors.As(err, &pgErr) && pgErr.Code == "23505":
+		WriteError(w, http.StatusConflict, service.ErrAlreadyExists)
+	case errors.As(err, &pgErr) && (pgErr.Code == "23503" || pgErr.Code == "22001"):
+		WriteError(w, http.StatusBadRequest, service.ErrInvalidInput)
 	default:
 		// Avoid leaking driver messages to clients; log the full error.
 		slog.Error("internal server error", "error", err.Error())

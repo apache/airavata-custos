@@ -52,23 +52,29 @@ func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, er
 	return &u, nil
 }
 
-func (s *pgUserStore) List(ctx context.Context, limit, offset int) ([]models.User, int, error) {
+func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error) {
+	var r models.User
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
+		`SELECT `+userColumns+` FROM users WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+func (s *pgUserStore) List(ctx context.Context, query string, limit, offset int) ([]models.User, int, error) {
+	const from = ` FROM users WHERE email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1`
+	pattern := "%" + query + "%"
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+from, pattern); err != nil {
 		return nil, 0, err
-	}
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	if offset < 0 {
-		offset = 0
 	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT $1 OFFSET $2`, limit, offset); err != nil {
+		`SELECT `+userColumns+from+` ORDER BY email LIMIT $2 OFFSET $3`, pattern, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

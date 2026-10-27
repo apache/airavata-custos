@@ -71,12 +71,13 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 		ResourceTime:                resourceTime,
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resourceMappings.Create(ctx, tx, mapping)
+		if err := s.resourceMappings.Create(ctx, tx, mapping); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	}); err != nil {
 		return nil, fmt.Errorf("attach resource to allocation: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	return mapping, nil
 }
 
@@ -104,12 +105,13 @@ func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocatio
 	existing.ResourceAmount = resourceAmount
 	existing.ResourceTime = resourceTime
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resourceMappings.Update(ctx, tx, existing)
+		if err := s.resourceMappings.Update(ctx, tx, existing); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update allocation resource mapping: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -130,12 +132,13 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID)
+		if err := s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("detach resource from allocation: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	return nil
 }
 
@@ -150,6 +153,44 @@ func (s *Service) ListResourcesForAllocation(ctx context.Context, allocationID s
 		return nil, fmt.Errorf("list resources for allocation: %w", err)
 	}
 	return resources, nil
+}
+
+// SetAllocationResources makes resourceIDs the allocation's only resources,
+// attaching and detaching the difference. Usage on any of them is charged to
+// the allocation's SUs at the resource's rate.
+func (s *Service) SetAllocationResources(ctx context.Context, allocationID string, resourceIDs []string) error {
+	alloc, err := s.GetComputeAllocation(ctx, allocationID)
+	if err != nil {
+		return err
+	}
+	want := make(map[string]bool, len(resourceIDs))
+	for _, id := range resourceIDs {
+		res, err := s.GetComputeAllocationResource(ctx, id)
+		if err != nil {
+			return err
+		}
+		if res.ComputeClusterID != alloc.ComputeClusterID {
+			return fmt.Errorf("%w: resource %q is not on the allocation's cluster", ErrInvalidInput, id)
+		}
+		want[id] = true
+	}
+	current, err := s.ListResourcesForAllocation(ctx, allocationID)
+	if err != nil {
+		return err
+	}
+	for _, res := range current {
+		if want[res.ID] {
+			delete(want, res.ID)
+		} else if err := s.DetachResourceFromAllocation(ctx, allocationID, res.ID); err != nil {
+			return err
+		}
+	}
+	for id := range want {
+		if _, err := s.AttachResourceToAllocation(ctx, allocationID, id, 0, 0); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ListAllocationsForResource returns every compute allocation that has the

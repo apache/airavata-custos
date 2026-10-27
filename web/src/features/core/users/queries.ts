@@ -17,11 +17,21 @@
 
 "use client";
 
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { identityKeys } from "@/features/core/identity/queries";
+import type { Role, User, UserRole } from "@/generated/core/zod.gen";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import {
+  skipToken,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   assignUserRole,
+  createUser,
   getRoleDetail,
+  getUser,
   listDirectPrivileges,
   listRolesCatalog,
   listRolesForUser,
@@ -29,7 +39,7 @@ import {
   listUsers,
   removeUserRole,
 } from "./api";
-import type { Role, User, UserRole } from "./schemas";
+import type { CreateUserPayload } from "./schemas";
 import type {
   RoleWithPrivileges,
   UpdateUserRolesInput,
@@ -40,6 +50,7 @@ import type {
 export const userKeys = {
   all: ["users"] as const,
   list: (params: UserListParams = {}) => [...userKeys.all, "list", params] as const,
+  detail: (userId: string) => [...userKeys.all, "detail", userId] as const,
   rolesCatalog: () => [...userKeys.all, "roles-catalog"] as const,
   roles: (userId: string) => [...userKeys.all, "roles", userId] as const,
   identities: (userId: string) => [...userKeys.all, "identities", userId] as const,
@@ -118,6 +129,14 @@ export async function applyUserRoleChanges(
   }
 }
 
+export function useCreateUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateUserPayload) => createUser(payload),
+    onSuccess: () => client.invalidateQueries({ queryKey: userKeys.all }),
+  });
+}
+
 export function useUsers(params: UserListParams = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: userKeys.list(params),
@@ -139,8 +158,8 @@ export function useRolesCatalog(enabled: boolean) {
 export function useUserRoles(userId: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: userId ? userKeys.roles(userId) : [...userKeys.all, "roles", "none"],
-    queryFn: () => listRolesForUser(userId as string),
-    enabled: Boolean(userId) && enabled,
+    queryFn: userId ? () => listRolesForUser(userId) : skipToken,
+    enabled,
     ...DEFAULTS,
   });
 }
@@ -148,8 +167,8 @@ export function useUserRoles(userId: string | undefined, enabled: boolean) {
 export function useUserIdentities(userId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: userId ? userKeys.identities(userId) : [...userKeys.all, "identities", "none"],
-    queryFn: () => listUserIdentities(userId as string),
-    enabled: Boolean(userId) && enabled,
+    queryFn: userId ? () => listUserIdentities(userId) : skipToken,
+    enabled,
     ...DEFAULTS,
   });
 }
@@ -159,8 +178,8 @@ export function useDirectPrivileges(userId: string | undefined, enabled: boolean
     queryKey: userId
       ? userKeys.directPrivileges(userId)
       : [...userKeys.all, "direct-privileges", "none"],
-    queryFn: () => listDirectPrivileges(userId as string),
-    enabled: Boolean(userId) && enabled,
+    queryFn: userId ? () => listDirectPrivileges(userId) : skipToken,
+    enabled,
     ...DEFAULTS,
   });
 }
@@ -180,7 +199,7 @@ export function useRoleDetails(
   });
 
   const roles = results.flatMap((result) => {
-    if (!result.data?.role) return [];
+    if (!result.data) return [];
     return [{ ...result.data.role, privileges: result.data.privileges }];
   });
   return {
@@ -195,16 +214,15 @@ export function useUserPageDetails(
   rolesCatalog: Role[],
   canManageRoles: boolean,
 ): UserManagementRow[] {
-  const usersWithIds = users.filter((user): user is User & { id: string } => Boolean(user.id));
   const identityResults = useQueries({
-    queries: usersWithIds.map((user) => ({
+    queries: users.map((user) => ({
       queryKey: userKeys.identities(user.id),
       queryFn: () => listUserIdentities(user.id),
       ...DEFAULTS,
     })),
   });
   const roleResults = useQueries({
-    queries: usersWithIds.map((user) => ({
+    queries: users.map((user) => ({
       queryKey: userKeys.roles(user.id),
       queryFn: () => listRolesForUser(user.id),
       enabled: canManageRoles,
@@ -212,12 +230,10 @@ export function useUserPageDetails(
     })),
   });
   const roleById = new Map(rolesCatalog.map((role) => [role.id, role]));
-  const indexById = new Map(usersWithIds.map((user, index) => [user.id, index]));
 
-  return users.map((user) => {
-    const index = indexById.get(user.id);
-    const identitiesQuery = index === undefined ? undefined : identityResults[index];
-    const rolesQuery = index === undefined ? undefined : roleResults[index];
+  return users.map((user, index) => {
+    const identitiesQuery = identityResults[index];
+    const rolesQuery = roleResults[index];
     const roles = canManageRoles
       ? (rolesQuery?.data ?? []).flatMap((grant) => {
           const role = roleById.get(grant.role_id);
@@ -247,6 +263,9 @@ export function useUpdateUserRoles() {
             currentGrants.find((grant) => grant.role_id === roleId) ?? {
               user_id: userId,
               role_id: roleId,
+              granted_at: new Date().toISOString(),
+              granted_by: null,
+              reason: null,
             },
         ),
       );
@@ -257,5 +276,41 @@ export function useUpdateUserRoles() {
         client.invalidateQueries({ queryKey: identityKeys.privileges() }),
         client.invalidateQueries({ queryKey: identityKeys.access(variables.userId) }),
       ]).then(() => undefined),
+  });
+}
+
+// Debounced server search behind an email field; `match` is the user whose email equals the typed text.
+export function useUserEmailSearch(email: string, enabled: boolean) {
+  const typed = email.trim();
+  const query = useDebounce(typed, 200);
+  const users = useUsers({ q: query, limit: 8 }, { enabled: enabled && query.length > 0 });
+  const found = query === typed ? (users.data?.items ?? []) : [];
+  return {
+    suggestions: found.map((u) => ({
+      value: u.email,
+      detail: [u.first_name, u.last_name].filter(Boolean).join(" "),
+    })),
+    match: found.find((u) => u.email.toLowerCase() === typed.toLowerCase()),
+    emptyMessage: !typed
+      ? "Type to search"
+      : query === typed && !users.isFetching
+        ? "No user with this email."
+        : "Searching…",
+  };
+}
+
+export function useUsersById(ids: string[], enabled: boolean) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: userKeys.detail(id),
+      queryFn: () => getUser(id),
+      enabled,
+      ...DEFAULTS,
+    })),
+    combine: (results) => ({
+      users: results.flatMap((r) => (r.data ? [r.data] : [])),
+      isLoading: results.some((r) => r.isLoading),
+      error: results.find((r) => r.error)?.error ?? null,
+    }),
   });
 }

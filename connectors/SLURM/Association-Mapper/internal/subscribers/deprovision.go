@@ -25,18 +25,18 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // removeAssociationsForMembership revokes one member's access to one
 // allocation, for when their membership is deactivated or deleted. Their
 // access to other allocations, and everyone else's access to this one, is
 // untouched.
-//
-// A member holds one association per partition on the allocation. The filter
-// names the cluster, account, and user but leaves the partition empty, which
-// matches every partition, so one call removes the member's whole set.
 func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
+	if errors.Is(err, service.ErrNotFound) {
+		return leftToCleanup(membership, "allocation")
+	}
 	if err != nil {
 		return fmt.Errorf("get compute allocation: %w", err)
 	}
@@ -45,20 +45,32 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 		return fmt.Errorf("get compute cluster: %w", err)
 	}
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
+	if errors.Is(err, service.ErrNotFound) {
+		return leftToCleanup(membership, "cluster account")
+	}
 	if err != nil {
 		return fmt.Errorf("get compute cluster user: %w", err)
 	}
 
 	filter := client.AssocFilter{
 		Cluster: cluster.Name,
-		Account: allocation.Name,
+		Account: slurmAccount(allocation.Name),
 		User:    csu.LocalUsername,
 	}
 	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
 		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
 	}
-	slog.Info("Removed associations for membership",
+	slog.InfoContext(ctx, "Removed associations for membership",
 		"user", csu.LocalUsername, "account", allocation.Name, "cluster", cluster.Name)
+	return nil
+}
+
+// leftToCleanup ends a membership revoke whose allocation or cluster account is
+// already gone. Retrying cannot bring it back; the allocation delete or the
+// reconciler removes whatever associations remain.
+func leftToCleanup(membership models.ComputeAllocationMembership, missing string) error {
+	slog.Info("Nothing to revoke for membership, its "+missing+" is gone",
+		"membership_id", membership.ID, "user_id", membership.UserID)
 	return nil
 }
 
@@ -71,12 +83,12 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 	}
 	filter := client.AssocFilter{
 		Cluster: cluster.Name,
-		Account: allocation.Name,
+		Account: slurmAccount(allocation.Name),
 	}
 	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
 		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
 	}
-	slog.Info("Removed associations for allocation",
+	slog.InfoContext(ctx, "Removed associations for allocation",
 		"account", allocation.Name, "cluster", cluster.Name)
 	return nil
 }
@@ -105,13 +117,13 @@ func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Con
 				continue
 			}
 			failed++
-			slog.Error("Failed to restore association for member",
+			slog.ErrorContext(ctx, "Failed to restore association for member",
 				"membership_id", member.ID, "allocation_id", allocation.ID, "error", err)
 		}
 	}
 	if failed > 0 {
 		return fmt.Errorf("%d of %d members could not be restored", failed, len(members))
 	}
-	slog.Info("Restored associations for allocation", "account", allocation.Name, "members", len(members))
+	slog.InfoContext(ctx, "Restored associations for allocation", "account", allocation.Name, "members", len(members))
 	return nil
 }

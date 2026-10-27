@@ -23,6 +23,10 @@ import "time"
 // and roles:manage. Created on first server start.
 const SystemRoleSuperAdmin = "super_admin"
 
+// SystemRoleAdmin carries every registered privilege except privileges:grant
+// and roles:manage, so only super admins can change grants and roles.
+const SystemRoleAdmin = "admin"
+
 // Role is a named bundle of privileges. Mutating the bundle propagates to
 // every holder.
 type Role struct {

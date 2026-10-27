@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Privilege } from "@/features/core/identity/types";
 import { defineAbilitiesFor } from "@/shared/casl/abilities";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "../Sidebar";
 
 let currentPrivileges: Privilege[] = [];
@@ -33,10 +33,7 @@ vi.mock("next/navigation", () => ({
 
 const NEW_ADMIN_LABELS = ["Organizations", "Resources"];
 
-const FULL_PRIVILEGES: Privilege[] = [
-  "core:organizations:read",
-  "core:clusters:read",
-];
+const FULL_PRIVILEGES: Privilege[] = ["core:organizations:read", "core:clusters:read"];
 
 beforeEach(() => {
   currentPrivileges = [];

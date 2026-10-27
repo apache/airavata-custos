@@ -1,6 +1,10 @@
+import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createClient } from "@hey-api/openapi-ts";
+import { parse } from "yaml";
+import { emit } from "./emit-zod.mts";
+import { GoIndex, applyPresence, isNode } from "./go-presence.mts";
+import { settle, supplement } from "./spec-supplement.mts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(here, "..");
@@ -30,23 +34,24 @@ const modules: ModuleSpec[] = [
     ),
     output: path.join(webRoot, "src", "generated", "amie"),
   },
+  {
+    name: "analytics",
+    input: path.join(repoRoot, "connectors", "Analytics", "api", "analytics.openapi.yaml"),
+    output: path.join(webRoot, "src", "generated", "analytics"),
+  },
 ];
 
 async function main() {
+  const go = new GoIndex(repoRoot);
   for (const mod of modules) {
-    await createClient({
-      input: mod.input,
-      output: { path: mod.output, postProcess: [] },
-      plugins: [
-        { name: "@hey-api/client-fetch" },
-        { name: "@hey-api/typescript" },
-        { name: "@hey-api/sdk" },
-        {
-          name: "zod",
-          definitions: { types: { infer: true } },
-        },
-      ],
-    });
+    const spec: unknown = parse(readFileSync(mod.input, "utf8"));
+    if (!isNode(spec)) throw new Error(`gen-api: ${mod.input} is not an OpenAPI document`);
+    supplement(mod.name, spec, go, repoRoot);
+    const report = applyPresence(spec, go);
+    settle(mod.name, spec);
+    console.log(`gen-api: ${mod.name} presence ${JSON.stringify(report)}`);
+    rmSync(mod.output, { recursive: true, force: true });
+    emit(spec, mod.output);
     console.log(`gen-api: emitted ${mod.name} → ${path.relative(webRoot, mod.output)}`);
   }
 }

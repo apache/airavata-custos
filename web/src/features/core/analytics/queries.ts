@@ -17,9 +17,9 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getAllocationJobs, getAnalyticsContexts, getUsageSummary, type JobsParams } from "./api";
+import { type JobsParams, getAllocationJobs, getAnalyticsContexts, getUsageSummary } from "./api";
 
 export const analyticsKeys = {
   all: ["analytics"] as const,
@@ -50,8 +50,7 @@ export function useUsageSummary(allocationId: string | undefined) {
     queryKey: allocationId
       ? analyticsKeys.summary(allocationId)
       : [...analyticsKeys.all, "summary", "none"],
-    queryFn: () => getUsageSummary(allocationId as string),
-    enabled: Boolean(allocationId),
+    queryFn: allocationId ? () => getUsageSummary(allocationId) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -61,8 +60,7 @@ export function useAllocationJobs(allocationId: string | undefined, params: Jobs
     queryKey: allocationId
       ? analyticsKeys.jobs(allocationId, params)
       : [...analyticsKeys.all, "jobs", "none"],
-    queryFn: () => getAllocationJobs(allocationId as string, params),
-    enabled: Boolean(allocationId),
+    queryFn: allocationId ? () => getAllocationJobs(allocationId, params) : skipToken,
     ...DEFAULTS,
   });
 }

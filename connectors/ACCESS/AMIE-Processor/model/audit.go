@@ -22,6 +22,7 @@ type AuditAction string
 
 const (
 	AuditPacketReceived       AuditAction = "PACKET_RECEIVED"
+	AuditPacketFailed         AuditAction = "PACKET_FAILED"
 	AuditCreatePerson         AuditAction = "CREATE_PERSON"
 	AuditUpdatePerson         AuditAction = "UPDATE_PERSON"
 	AuditDeletePerson         AuditAction = "DELETE_PERSON"
@@ -37,6 +38,7 @@ const (
 	AuditReactivateMembership AuditAction = "REACTIVATE_MEMBERSHIP"
 	AuditPersistDNs           AuditAction = "PERSIST_DNS"
 	AuditReplySent            AuditAction = "REPLY_SENT"
+	AuditReplyHeld            AuditAction = "REPLY_HELD"
 	AuditTransactionComplete  AuditAction = "TRANSACTION_COMPLETE"
 )
 

@@ -19,6 +19,7 @@ package server
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
@@ -66,6 +67,22 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	common.WriteJSON(w, http.StatusOK, a)
+}
+
+// @Summary	Delete a compute allocation
+// @Description	Removes the allocation with its memberships, resources and usage.
+// @Tags	Compute Allocations
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id} [delete]
+func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocation(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // @Summary	Create a compute allocation diff
@@ -160,7 +177,7 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 }
 
 // @Summary	List compute allocations (filtered + paginated)
-// @Description	Callers without the allocations read privilege get only allocations where they hold a membership or a governance role on the parent project; filters and pagination apply to privileged callers only.
+// @Description	Callers without the allocations read privilege get only allocations where they hold a membership or a governance role on the parent project; for them only project_id applies, and other filters and pagination apply to privileged callers only.
 // @Tags	Compute Allocations
 // @Security	BearerAuth
 // @Produce	json
@@ -183,6 +200,9 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 			common.WriteServiceError(w, err)
 			return
 		}
+		if projectID := r.URL.Query().Get("project_id"); projectID != "" {
+			rows = slices.DeleteFunc(rows, func(a models.ComputeAllocation) bool { return a.ProjectID != projectID })
+		}
 		if rows == nil {
 			rows = []models.ComputeAllocation{}
 		}
@@ -190,12 +210,13 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	q := r.URL.Query()
+	limit, offset := common.Paged(q)
 	f := store.AllocationListFilter{
 		ProjectID: q.Get("project_id"),
 		Status:    q.Get("status"),
 		Query:     q.Get("q"),
-		Limit:     atoiOr(q.Get("limit"), 50),
-		Offset:    atoiOr(q.Get("offset"), 0),
+		Limit:     limit,
+		Offset:    offset,
 	}
 	rows, total, err := s.svc.ListComputeAllocations(r.Context(), f)
 	if err != nil {

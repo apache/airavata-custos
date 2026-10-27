@@ -20,8 +20,10 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -246,5 +248,110 @@ func TestBootstrapSuperAdmin_CreatesPendingUserWhenMissing(t *testing.T) {
 	}
 	if has, err := svc.HasPrivilege(ctx(), userID, models.PrivilegesGrant); err != nil || !has {
 		t.Errorf("super_admin grant after bootstrap: has=%v err=%v", has, err)
+	}
+}
+
+// A user provisioned before their first sign-in has no sub in the registry.
+// The sub arrives at first user sign-in, when the user is matched by email, and the
+// registry gets it through this event.
+func TestResolveCaller_EmailFallback_PublishesIdentityCreated(t *testing.T) {
+	database := setupTestDB(t)
+	bus := newTestBus(database)
+	svc := New(database, bus)
+	user := seedPendingUserWithEmail(t, database, "provision-first@example.edu")
+
+	got := make(chan models.UserIdentity, 1)
+	bus.SubscribeUserIdentityCreated("test-subscriber", func(_ context.Context, identity models.UserIdentity) error {
+		got <- identity
+		return nil
+	})
+
+	if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{
+		Sub:           "sub-provision-first",
+		Email:         "provision-first@example.edu",
+		EmailVerified: true,
+	}); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	// The event is stored, so the worker has to run for the subscriber to get it.
+	workerCtx, stopWorker := context.WithCancel(context.Background())
+	defer stopWorker()
+	go bus.Run(workerCtx)
+
+	select {
+	case identity := <-got:
+		if identity.UserID != user {
+			t.Errorf("user_id: got %s, want %s", identity.UserID, user)
+		}
+		if identity.Source != "oidc" {
+			t.Errorf("source: got %s, want oidc", identity.Source)
+		}
+		if identity.OIDCSub != "sub-provision-first" {
+			t.Errorf("oidc_sub: got %s, want sub-provision-first", identity.OIDCSub)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no UserIdentityCreateEvent published on identity link")
+	}
+}
+
+func TestResolveCaller_DropsTheCachedCallerOnIdentityChange(t *testing.T) {
+	cases := map[string]func(svc *Service, user, other, identityID string) error{
+		"identity deleted": func(svc *Service, _, _, id string) error { return svc.DeleteUserIdentity(ctx(), id) },
+		"identity rebound": func(svc *Service, _, _, id string) error {
+			return svc.UpdateUserIdentity(ctx(), &models.UserIdentity{ID: id, OIDCSub: "sub-other"})
+		},
+		"user deleted": func(svc *Service, user, _, _ string) error { return svc.DeleteUser(ctx(), user) },
+		"user merged": func(svc *Service, user, other, _ string) error {
+			_, err := svc.MergeUsers(ctx(), other, user)
+			return err
+		},
+	}
+	for name, change := range cases {
+		t.Run(name, func(t *testing.T) {
+			database := setupTestDB(t)
+			svc := newTestService(database)
+			user := seedUser(t, database, "cached@example.edu")
+			seedOIDCIdentity(t, database, user, "sub-cached", "cached@example.edu")
+			var identityID string
+			if err := database.Get(&identityID, "SELECT id FROM user_identities WHERE user_id = $1", user); err != nil {
+				t.Fatalf("read identity: %v", err)
+			}
+			claims := &identity.Claims{Sub: "sub-cached", Email: "cached@example.edu", EmailVerified: true}
+			if _, _, err := svc.ResolveCaller(ctx(), claims); err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if err := change(svc, user, seedUser(t, database, "survivor@example.edu"), identityID); err != nil {
+				t.Fatalf("change: %v", err)
+			}
+			if caller, _, err := svc.ResolveCaller(ctx(), claims); err == nil && caller.UserID == user {
+				t.Fatal("cached caller survived the change")
+			}
+		})
+	}
+}
+
+func TestResolveCaller_RefusesDisabledUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	bound := seedUser(t, database, "bound@example.edu")
+	seedOIDCIdentity(t, database, bound, "sub-bound", "bound@example.edu")
+	if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-bound"}); err != nil {
+		t.Fatalf("resolve active: %v", err)
+	}
+	unbound := seedPendingUserWithEmail(t, database, "unbound@example.edu")
+
+	for _, status := range []models.UserStatus{models.UserSuspended, models.UserInactive, models.UserMerged} {
+		for _, id := range []string{bound, unbound} {
+			if _, err := svc.UpdateUserStatus(ctx(), id, status); err != nil {
+				t.Fatalf("set %s: %v", status, err)
+			}
+		}
+		if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-bound"}); !errors.Is(err, identity.ErrUserDisabled) {
+			t.Errorf("bound %s: got %v, want ErrUserDisabled", status, err)
+		}
+		if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-unbound", Email: "unbound@example.edu", EmailVerified: true}); !errors.Is(err, identity.ErrUserDisabled) {
+			t.Errorf("email fallback %s: got %v, want ErrUserDisabled", status, err)
+		}
 	}
 }

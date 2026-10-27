@@ -1,36 +1,38 @@
-// Licensed to the Apache Software Foundation (ASF) under one
-// or more contributor license agreements.  See the NOTICE file
-// distributed with this work for additional information
-// regarding copyright ownership.  The ASF licenses this file
-// to you under the Apache License, Version 2.0 (the
-// "License"); you may not use this file except in compliance
-// with the License.  You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 "use client";
 
+import { Button } from "@/shared/ui/button";
 import { Check, Copy } from "lucide-react";
 import * as React from "react";
-import { Button } from "@/shared/ui/button";
-import type { Span, Trace } from "../types";
+import type { TraceDetail } from "../types";
 
 export type TraceRawTabProps = {
-  trace: Trace;
-  spans: Span[];
+  detail: TraceDetail;
+  stepCount: number;
 };
 
 type Highlighted = React.ReactNode[];
 
 // Lex the stringified JSON once and tag tokens with their semantic colors so
-// indent and punctuation render verbatim alongside coloured keys/values.
+// indent and punctuation render verbatim alongside colored keys and values.
 function highlightJson(obj: unknown): { text: string; nodes: Highlighted } {
   const text = JSON.stringify(obj, null, 2);
   const parts: Highlighted = [];
@@ -65,7 +67,7 @@ function highlightJson(obj: unknown): { text: string; nodes: Highlighted } {
   return { text, nodes: parts };
 }
 
-export function TraceRawTab({ trace, spans }: TraceRawTabProps) {
+export function TraceRawTab({ detail, stepCount }: TraceRawTabProps) {
   const [copied, setCopied] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -75,37 +77,14 @@ export function TraceRawTab({ trace, spans }: TraceRawTabProps) {
     };
   }, []);
 
-  const json = React.useMemo(
-    () => ({
-      trace_id: trace.trace_id,
-      source: trace.source,
-      status: trace.status,
-      root_action: trace.root_name,
-      span_count: trace.span_count,
-      spans: spans.map((s) => ({
-        span_id: s.span_id,
-        parent_span_id: s.parent_span_id ?? null,
-        action: s.name,
-        source: trace.source,
-        status: s.status,
-        started_at: s.start_time,
-        ended_at: s.end_time ?? null,
-        ...(s.status_message ? { status_message: s.status_message } : {}),
-        summary: "",
-        attributes: (s.attributes ?? {}) as Record<string, unknown>,
-      })),
-    }),
-    [trace, spans],
-  );
-
-  const { text, nodes } = React.useMemo(() => highlightJson(json), [json]);
+  const { text, nodes } = React.useMemo(() => highlightJson(detail), [detail]);
 
   const onCopy = () => {
     void (async () => {
       try {
         await navigator.clipboard.writeText(text);
       } catch {
-        // Best-effort copy; still surface the check.
+        // Best-effort copy; still show the check.
       }
       setCopied(true);
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -119,7 +98,8 @@ export function TraceRawTab({ trace, spans }: TraceRawTabProps) {
         <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
           TRACE JSON{" "}
           <span className="font-medium normal-case tracking-normal">
-            · {spans.length} spans
+            · {stepCount} {stepCount === 1 ? "row" : "rows"}, {detail.deliveries.length}{" "}
+            {detail.deliveries.length === 1 ? "delivery" : "deliveries"}
           </span>
         </div>
         <Button

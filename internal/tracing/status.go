@@ -17,10 +17,7 @@
 
 package tracing
 
-import (
-	"strings"
-	"sync"
-)
+import "strings"
 
 const (
 	StatusOk         = "ok"
@@ -30,6 +27,9 @@ const (
 
 var errorMarkers = []string{"failed", "error", "rejected"}
 
+// EventStatus reads a step's outcome from its name, since a step records no
+// status. The trace's status is decided in the audit trace store from its
+// steps and its deliveries.
 func EventStatus(eventType string) string {
 	lower := strings.ToLower(eventType)
 	for _, marker := range errorMarkers {
@@ -38,70 +38,4 @@ func EventStatus(eventType string) string {
 		}
 	}
 	return StatusOk
-}
-
-var (
-	terminalMarkersMu sync.RWMutex
-	terminalMarkers   = map[string][]string{}
-)
-
-// RegisterTerminalMarkers declares the event names that close out a trace for
-// the given source. Connectors call this at boot so the core stays unaware of
-// connector-specific event names.
-func RegisterTerminalMarkers(source string, markers ...string) {
-	terminalMarkersMu.Lock()
-	defer terminalMarkersMu.Unlock()
-	terminalMarkers[source] = append(terminalMarkers[source], markers...)
-}
-
-type TraceEventStatus struct {
-	Source    string
-	EventType string
-}
-
-func setTerminalMarkersForTest(t interface{ Cleanup(func()) }, source string, markers []string) {
-	terminalMarkersMu.Lock()
-	prev, hadPrev := terminalMarkers[source]
-	terminalMarkers[source] = markers
-	terminalMarkersMu.Unlock()
-	t.Cleanup(func() {
-		terminalMarkersMu.Lock()
-		defer terminalMarkersMu.Unlock()
-		if hadPrev {
-			terminalMarkers[source] = prev
-		} else {
-			delete(terminalMarkers, source)
-		}
-	})
-}
-
-// TraceStatus is "error" if any event errored, "ok" if a registered terminal
-// marker is present, else "in_progress".
-func TraceStatus(events []TraceEventStatus) string {
-	terminalMarkersMu.RLock()
-	snapshot := make(map[string][]string, len(terminalMarkers))
-	for k, v := range terminalMarkers {
-		snapshot[k] = v
-	}
-	terminalMarkersMu.RUnlock()
-
-	hasError := false
-	hasTerminal := false
-	for _, e := range events {
-		if EventStatus(e.EventType) == StatusError {
-			hasError = true
-		}
-		for _, m := range snapshot[e.Source] {
-			if e.EventType == m {
-				hasTerminal = true
-			}
-		}
-	}
-	if hasError {
-		return StatusError
-	}
-	if hasTerminal {
-		return StatusOk
-	}
-	return StatusInProgress
 }

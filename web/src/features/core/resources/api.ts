@@ -15,41 +15,81 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { z } from "zod";
+import type {
+  PostComputeAllocationResourceRatesData,
+  PostComputeAllocationResourcesData,
+} from "@/generated/core/types.gen";
+import {
+  type ComputeAllocationResource,
+  type ComputeAllocationResourceRate,
+  type ComputeAllocationResourceSummary,
+  zGetComputeAllocationResourcesByIdRatesEffectiveResponse,
+  zGetComputeAllocationResourcesByIdRatesResponse,
+  zGetComputeAllocationResourcesSummaryResponse,
+  zPostComputeAllocationResourceRatesResponse,
+  zPostComputeAllocationResourcesResponse,
+  zPutComputeAllocationResourcesByIdResponse,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
-import { type Rate, type ResourceSummary, rateSchema, resourceSummarySchema } from "./schemas";
 
-// The backend serializes empty lists as JSON null (Go nil slice).
-const summaryListSchema = z.array(resourceSummarySchema).nullable();
-const rateListSchema = z.array(rateSchema).nullable();
-
-export async function listResourceSummaries(): Promise<ResourceSummary[]> {
+export async function listResourceSummaries(): Promise<ComputeAllocationResourceSummary[]> {
   const raw = await apiFetch("/compute-allocation-resources/summary");
-  return summaryListSchema.parse(raw) ?? [];
+  return zGetComputeAllocationResourcesSummaryResponse.parse(raw) ?? [];
 }
 
-export async function listResourceRates(id: string): Promise<Rate[]> {
+export async function listResourceRates(id: string): Promise<ComputeAllocationResourceRate[]> {
   const raw = await apiFetch(`/compute-allocation-resources/${id}/rates`);
-  return rateListSchema.parse(raw) ?? [];
+  return zGetComputeAllocationResourcesByIdRatesResponse.parse(raw) ?? [];
 }
 
-export async function getEffectiveRate(id: string, at?: string): Promise<Rate> {
+export async function getEffectiveRate(
+  id: string,
+  at?: string,
+): Promise<ComputeAllocationResourceRate> {
   const qs = at ? `?at=${encodeURIComponent(at)}` : "";
   const raw = await apiFetch(`/compute-allocation-resources/${id}/rates/effective${qs}`);
-  return rateSchema.parse(raw);
+  return zGetComputeAllocationResourcesByIdRatesEffectiveResponse.parse(raw);
 }
 
-export type CreateResourceRatePayload = {
-  compute_allocation_resource_id: string;
-  rate: number;
-  start_time: string;
-  end_time: string;
-};
+export type CreateResourceRatePayload = Required<
+  Pick<
+    PostComputeAllocationResourceRatesData["body"],
+    "compute_allocation_resource_id" | "rate" | "start_time" | "end_time"
+  >
+>;
 
-export async function createResourceRate(payload: CreateResourceRatePayload): Promise<Rate> {
+export async function createResourceRate(
+  payload: CreateResourceRatePayload,
+): Promise<ComputeAllocationResourceRate> {
   const raw = await apiFetch("/compute-allocation-resource-rates", {
     method: "POST",
     body: payload,
   });
-  return rateSchema.parse(raw);
+  return zPostComputeAllocationResourceRatesResponse.parse(raw);
+}
+
+export type CreateResourcePayload = Required<
+  Pick<PostComputeAllocationResourcesData["body"], "name" | "resource_type" | "compute_cluster_id">
+>;
+
+export async function createResource(
+  payload: CreateResourcePayload,
+): Promise<ComputeAllocationResource> {
+  const raw = await apiFetch("/compute-allocation-resources", { method: "POST", body: payload });
+  return zPostComputeAllocationResourcesResponse.parse(raw);
+}
+
+export async function updateResource(
+  id: string,
+  payload: CreateResourcePayload,
+): Promise<ComputeAllocationResource> {
+  const raw = await apiFetch(`/compute-allocation-resources/${id}`, {
+    method: "PUT",
+    body: payload,
+  });
+  return zPutComputeAllocationResourcesByIdResponse.parse(raw);
+}
+
+export async function deleteResource(id: string): Promise<void> {
+  await apiFetch(`/compute-allocation-resources/${id}`, { method: "DELETE" });
 }

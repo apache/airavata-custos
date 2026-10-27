@@ -1,0 +1,11 @@
+{
+  "projects": [
+    {
+      "grant": "E2E-201",
+      "title": "One allocation, four people",
+      "su": 20000,
+      "pi": "person1",
+      "users": { "person2": "MEMBER", "person3": "MEMBER", "person5": "MEMBER" }
+    }
+  ]
+}

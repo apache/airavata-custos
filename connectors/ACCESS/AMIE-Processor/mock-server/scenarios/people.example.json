@@ -1,0 +1,23 @@
+{
+  "resource": "baseline-cluster.example.edu",
+  "org": "Example University",
+  "org_code": "EXAMPLE",
+  "people": {
+    "person1": {
+      "first": "Jane", "last": "Doe", "email": "jdoe@example.edu",
+      "global_id": "147",
+      "nsf_status": "CN",
+      "phone": "555-010-0001",
+      "address": "1 University Way", "address2": "", "city": "Springfield", "zip": "00001", "country": "9US",
+      "degree": { "field": "Bachelor's Degree", "degree": "bachelors" },
+      "dn_list": ["/C=US/O=Example University/CN=Jane Doe"],
+      "requested_logins": ["jdoe", "janedoe"],
+      "site_person_ids": [{ "site": "EXAMPLE", "person_id": "1001" }]
+    },
+    "person1-alt": { "first": "Jane", "last": "Doe", "email": "jane.doe@example.edu" },
+    "person2": { "first": "Sam", "last": "Lee", "email": "slee@example.edu" },
+    "person3": { "first": "Riley", "last": "Park", "email": "rpark@example.edu" },
+    "person4": { "first": "Morgan", "last": "Reed", "email": "mreed@example.edu" },
+    "person5": { "first": "Casey", "last": "Young", "email": "cyoung@example.edu" }
+  }
+}

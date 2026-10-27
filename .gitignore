@@ -72,5 +72,8 @@ bin/
 venv/
 .venv/
 
+# Real people for the AMIE mock-server configurations
+connectors/ACCESS/AMIE-Processor/mock-server/scenarios/people.json
+
 # Local working drafts
 docs/drafts/

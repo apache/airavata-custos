@@ -22,13 +22,12 @@ import {
   getProject,
   listProjectMembers,
   listProjects,
-  removeProjectMember,
   updateProjectMember,
   updateProjectStatus,
 } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body: unknown): Response {
   const text = typeof body === "string" ? body : JSON.stringify(body);
@@ -44,6 +43,7 @@ const validProject = {
   originated_id: "BIO130000",
   title: "Test Project",
   origination: "ACCESS",
+  ref: "ACCESS-BIO130000",
   project_pi_id: "user-pi-001",
   status: "ACTIVE" as const,
   created_time: "2026-04-01T00:00:00.000Z",
@@ -58,6 +58,7 @@ const validMember = {
   role: "MEMBER" as const,
   status: "ACTIVE" as const,
   added_time: "2026-04-05T00:00:00.000Z",
+  allocations: [],
 };
 
 describe("listProjects", () => {
@@ -72,7 +73,7 @@ describe("listProjects", () => {
     });
     expect(result.total).toBe(1);
     expect(result.items).toHaveLength(1);
-    const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+    const calledUrl = String(fetchMock.mock.calls[0]?.[0]);
     expect(calledUrl).toContain("limit=20");
     expect(calledUrl).toContain("pi_id=user-pi-001");
     expect(calledUrl).toContain("status=ACTIVE");
@@ -144,17 +145,9 @@ describe("addProjectMember", () => {
 
 describe("updateProjectMember", () => {
   it("PUTs the patch", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(200, { ...validMember, role: "CO_PI" }));
-    const out = await updateProjectMember("project-001", "pm-001", { role: "CO_PI" });
-    expect(out.role).toBe("CO_PI");
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("/projects/project-001/members/pm-001");
-  });
-});
-
-describe("removeProjectMember", () => {
-  it("DELETEs the member", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await removeProjectMember("project-001", "pm-001");
-    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
+    await updateProjectMember("project-001", "u-001", { role: "CO_PI" });
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/projects/project-001/members/u-001");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PUT");
   });
 });

@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/connectors/health"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -75,12 +77,14 @@ func (a *AssociationSubscriber) StartReconciler(ctx context.Context) {
 // access, but a lost deactivation leaves a member able to submit indefinitely
 // with nothing reporting it.
 func (a *AssociationSubscriber) reconcile(ctx context.Context) {
+	ctx, span := tracing.Start(ctx, "slurm.reconcile")
+	defer span.End()
 	sweepCtx, cancel := context.WithTimeout(ctx, reconcileSweepTimeout)
 	defer cancel()
 
 	clusters, err := a.coreService.ListComputeClusters(sweepCtx)
 	if err != nil {
-		slog.Error("Association reconciler: failed to list compute clusters", "error", err)
+		slog.ErrorContext(ctx, "Association reconciler: failed to list compute clusters", "error", err)
 		return
 	}
 
@@ -92,15 +96,16 @@ func (a *AssociationSubscriber) reconcile(ctx context.Context) {
 func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster models.ComputeCluster) {
 	clusterUsers, err := a.coreService.ListComputeClusterUsersByCluster(ctx, cluster.ID)
 	if err != nil {
-		slog.Error("Association reconciler: failed to list cluster users", "cluster_id", cluster.ID, "error", err)
+		slog.ErrorContext(ctx, "Association reconciler: failed to list cluster users", "cluster_id", cluster.ID, "error", err)
 		return
 	}
 
 	// One read per cluster. On failure fall back to writing every
 	// association, which costs extra calls but still converges.
 	existing, err := a.existingAssociations(ctx, cluster.Name)
+	health.Record(a.name, cluster.ID, err)
 	if err != nil {
-		slog.Warn("Association reconciler: could not read current associations, writing unconditionally",
+		slog.WarnContext(ctx, "Association reconciler: could not read current associations, writing unconditionally",
 			"cluster", cluster.Name, "error", err)
 		existing = nil
 	}
@@ -113,7 +118,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 		}
 		memberships, err := a.coreService.ListAllocationsForUser(ctx, csu.UserID)
 		if err != nil {
-			slog.Error("Association reconciler: failed to list memberships", "user_id", csu.UserID, "error", err)
+			slog.ErrorContext(ctx, "Association reconciler: failed to list memberships", "user_id", csu.UserID, "error", err)
 			// Without this user's memberships the desired set is incomplete,
 			// so pruning could revoke access that is actually valid.
 			return
@@ -122,36 +127,37 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			if membership.MembershipStatus != models.ACTIVE {
 				continue
 			}
-			records, err := a.desiredAssociationsForMembership(ctx, membership)
+			record, err := a.desiredAssociationForMembership(ctx, membership)
 			if err != nil {
-				slog.Error("Association reconciler: failed to resolve desired associations",
+				slog.ErrorContext(ctx, "Association reconciler: failed to resolve desired association",
 					"membership_id", membership.ID, "error", err)
 				return
 			}
-			for _, record := range records {
-				desired[keyOf(record)] = struct{}{}
+			if record == nil {
+				continue
 			}
+			desired[keyOf(*record)] = struct{}{}
 			// The grace only holds back the write. The association is still
 			// desired, so a member provisioned moments ago is never pruned.
 			if !a.readyForAssociation(csu) {
 				continue
 			}
-			for _, record := range records {
-				if got, ok := existing[keyOf(record)]; ok && sameLimits(record, got) {
-					continue
-				}
-				if err := a.slurmClient.UpsertAssociation(record); err != nil {
-					slog.Error("Association reconciler: failed to upsert association",
-						"membership_id", membership.ID, "error", err)
-					continue
-				}
-				written++
+			// A user without the no-allocation association predates it, so the write also moves their default.
+			_, hasDefault := existing[assocKey{account: noAllocation, user: record.User}]
+			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault {
+				continue
 			}
+			if err := a.writeAssociation(*record); err != nil {
+				slog.ErrorContext(ctx, "Association reconciler: failed to upsert association",
+					"membership_id", membership.ID, "error", err)
+				continue
+			}
+			written++
 		}
 	}
 
 	removed := a.pruneStaleAssociations(ctx, cluster, existing, desired)
-	slog.Debug("Association reconciler pass complete",
+	slog.DebugContext(ctx, "Association reconciler pass complete",
 		"cluster", cluster.Name, "written", written, "removed", removed)
 }
 
@@ -167,14 +173,14 @@ func (a *AssociationSubscriber) pruneStaleAssociations(ctx context.Context, clus
 	// nobody being entitled to anything, and acting on it would revoke the
 	// whole cluster. Refuse.
 	if len(desired) == 0 {
-		slog.Warn("Association reconciler: nothing is desired on this cluster, skipping removal",
+		slog.WarnContext(ctx, "Association reconciler: nothing is desired on this cluster, skipping removal",
 			"cluster", cluster.Name, "existing", len(existing))
 		return 0
 	}
 
 	managed, err := a.managedAccounts(ctx, cluster.ID)
 	if err != nil {
-		slog.Error("Association reconciler: could not list allocations, skipping removal",
+		slog.ErrorContext(ctx, "Association reconciler: could not list allocations, skipping removal",
 			"cluster", cluster.Name, "error", err)
 		return 0
 	}
@@ -197,11 +203,11 @@ func (a *AssociationSubscriber) pruneStaleAssociations(ctx context.Context, clus
 			Partition: assoc.Partition,
 		}
 		if err := a.slurmClient.DeleteAssociation(filter); err != nil {
-			slog.Error("Association reconciler: failed to remove stale association",
+			slog.ErrorContext(ctx, "Association reconciler: failed to remove stale association",
 				"account", assoc.Account, "user", assoc.User, "partition", assoc.Partition, "error", err)
 			continue
 		}
-		slog.Info("Removed stale association",
+		slog.InfoContext(ctx, "Removed stale association",
 			"account", assoc.Account, "user", assoc.User, "partition", assoc.Partition)
 		removed++
 	}
@@ -216,7 +222,7 @@ func (a *AssociationSubscriber) managedAccounts(ctx context.Context, clusterID s
 	}
 	names := make(map[string]struct{}, len(allocations))
 	for _, allocation := range allocations {
-		names[allocation.Name] = struct{}{}
+		names[slurmAccount(allocation.Name)] = struct{}{}
 	}
 	return names, nil
 }

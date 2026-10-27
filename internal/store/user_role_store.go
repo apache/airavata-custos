@@ -46,20 +46,6 @@ func NewUserRoleStore(db *sqlx.DB) UserRoleStore {
 	return &pgUserRoleStore{db: db}
 }
 
-func (s *pgUserRoleStore) Find(ctx context.Context, userID, roleID string) (*models.UserRole, error) {
-	var r models.UserRole
-	err := s.db.GetContext(ctx, &r,
-		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = $1 AND role_id = $2`,
-		userID, roleID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &r, nil
-}
-
 func (s *pgUserRoleStore) FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error) {
 	row := tx.QueryRowContext(ctx,
 		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = $1 AND role_id = $2 FOR UPDATE`,
@@ -94,17 +80,6 @@ func (s *pgUserRoleStore) ListByRole(ctx context.Context, roleID string) ([]mode
 		return nil, err
 	}
 	return rows, nil
-}
-
-func (s *pgUserRoleStore) ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error) {
-	var ids []string
-	err := s.db.SelectContext(ctx, &ids,
-		`SELECT user_id FROM user_roles WHERE role_id = $1`,
-		roleID)
-	if err != nil {
-		return nil, err
-	}
-	return ids, nil
 }
 
 func (s *pgUserRoleStore) Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error {
@@ -174,19 +149,4 @@ func (s *pgUserRoleStore) PrivilegesForUser(ctx context.Context, userID string) 
 		return nil, err
 	}
 	return keys, nil
-}
-
-// UsersHoldingPrivilege returns user IDs that get this privilege via any
-// role.
-func (s *pgUserRoleStore) UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error) {
-	var ids []string
-	err := s.db.SelectContext(ctx, &ids,
-		`SELECT DISTINCT ur.user_id
-		 FROM user_roles ur
-		 JOIN role_privileges rp ON rp.role_id = ur.role_id
-		 WHERE rp.privilege = $1`, privilege)
-	if err != nil {
-		return nil, err
-	}
-	return ids, nil
 }

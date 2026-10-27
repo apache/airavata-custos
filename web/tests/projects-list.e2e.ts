@@ -42,9 +42,7 @@ test.describe("projects list", () => {
     await signInAs(page, "admin");
     await page.goto("/projects");
     await expect(page.getByRole("heading", { name: /^Projects$/ })).toBeVisible();
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     const blocking = results.violations.filter(
       (v) => v.impact === "serious" || v.impact === "critical",
     );
