@@ -19,7 +19,6 @@
 
 import { relativeTime } from "@/features/core/events/utils";
 import type { SetupStep } from "@/generated/core/zod.gen";
-import { clientEnv } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -182,7 +181,7 @@ export function SetupProgress() {
   const username = profile.data?.onboarding?.username ?? "";
   const groups = groupSteps(steps ?? []);
   const ready = steps !== undefined && groups.every(isDone);
-  const host = clientEnv.NEXT_PUBLIC_CLUSTER_LOGIN_HOST;
+  const host = process.env.NEXT_PUBLIC_CLUSTER_LOGIN_HOST;
 
   const chosen = username ? (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-xs">

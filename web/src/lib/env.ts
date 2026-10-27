@@ -32,7 +32,6 @@ export const serverSchema = z.object({
 const clientSchema = z.object({
   NEXT_PUBLIC_PORTAL_USE_MSW: z.enum(["true", "false"]).default("false"),
   NEXT_PUBLIC_PORTAL_BUILD_SHA: z.string().min(1).default("dev"),
-  NEXT_PUBLIC_CLUSTER_LOGIN_HOST: z.string().optional(),
 });
 
 function parseServer() {
@@ -48,7 +47,6 @@ function parseClient() {
   const parsed = clientSchema.safeParse({
     NEXT_PUBLIC_PORTAL_USE_MSW: process.env.NEXT_PUBLIC_PORTAL_USE_MSW,
     NEXT_PUBLIC_PORTAL_BUILD_SHA: process.env.NEXT_PUBLIC_PORTAL_BUILD_SHA,
-    NEXT_PUBLIC_CLUSTER_LOGIN_HOST: process.env.NEXT_PUBLIC_CLUSTER_LOGIN_HOST,
   });
   if (!parsed.success) {
     console.error("Invalid client env:", parsed.error.flatten().fieldErrors);
