@@ -125,11 +125,19 @@ export function useUsernameCheck(username: string, enabled: boolean) {
 }
 
 export function useCompleteOnboarding() {
-  return useMutation({ mutationFn: completeOnboarding });
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: completeOnboarding,
+    onSuccess: () => client.invalidateQueries({ queryKey: agreementKeys.all }),
+  });
 }
 
 export function useAcceptAgreement() {
-  return useMutation({ mutationFn: acceptAgreement });
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: acceptAgreement,
+    onSuccess: () => client.invalidateQueries({ queryKey: agreementKeys.all }),
+  });
 }
 
 // Only the list is refreshed; refetching the deleted detail would 404 before the page leaves.
