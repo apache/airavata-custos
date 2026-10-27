@@ -16,14 +16,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# /openbao/file is owned by the openbao user in the image, so a named
+# volume mounted there works on Linux hosts without ownership fixes.
 storage "raft" {
-  path = "./vault/data"
+  path    = "/openbao/file"
   node_id = "node1"
 }
 
 listener "tcp" {
-  address = "0.0.0.0:8200"
+  address     = "0.0.0.0:8200"
   tls_disable = 1
 }
 
+cluster_addr = "http://127.0.0.1:8201"
+api_addr     = "http://127.0.0.1:8200"
+disable_mlock = true
 ui = true
