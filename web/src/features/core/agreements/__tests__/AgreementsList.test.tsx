@@ -25,6 +25,13 @@ const row = (version_label: string, status: AgreementListItem["status"]): Agreem
   title: "Acceptable Use Policy",
   version_label,
   status,
+  summary: "",
+  body_md: "",
+  body_hash: "hash-1",
+  change_note: "",
+  created_at: "2026-03-02T09:00:00Z",
+  created_by: "user-admin",
+  updated_at: "2026-03-02T09:00:00Z",
   accepted_count: 4,
   pending_count: 2,
 });

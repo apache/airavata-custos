@@ -28,7 +28,11 @@ import {
 } from "@/generated/core/zod.gen";
 import { z } from "zod";
 
-export type AgreementDraft = Required<z.infer<typeof zUserAgreementRequest>>;
+export type AgreementDraft = {
+  [K in keyof z.infer<typeof zUserAgreementRequest>]-?: NonNullable<
+    z.infer<typeof zUserAgreementRequest>[K]
+  >;
+};
 
 const actorSchema = zActorView.required();
 export type Actor = z.infer<typeof actorSchema>;
@@ -74,12 +78,16 @@ export type AcceptanceReport = z.infer<typeof acceptanceReportSchema>;
 
 export type AcceptanceStatus = "accepted" | "pending";
 
-export const pendingAgreementSchema = zUserAgreement.required({
-  id: true,
-  title: true,
-  version_label: true,
-  body_md: true,
-});
+export const pendingAgreementSchema = zUserAgreement
+  .pick({
+    id: true,
+    title: true,
+    version_label: true,
+    body_md: true,
+    change_note: true,
+    published_at: true,
+  })
+  .partial({ change_note: true });
 export type PendingAgreement = z.infer<typeof pendingAgreementSchema>;
 
 export const gateProfileSchema = z.object({

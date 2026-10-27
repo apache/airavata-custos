@@ -28,7 +28,7 @@ import type { AcceptanceStatus, Actor, AgreementDetail } from "../schemas";
 
 const PAGE_SIZE = 50;
 
-type Row = { user: Actor; at?: string | null };
+type Row = { user: Actor; at?: string | null | undefined };
 
 export function AgreementAcceptances({ agreement }: { agreement: AgreementDetail }) {
   const [status, setStatus] = React.useState<AcceptanceStatus>("accepted");
@@ -95,11 +95,7 @@ export function AgreementAcceptances({ agreement }: { agreement: AgreementDetail
           rows={rows}
           rowKey={(row) => row.user.id}
           empty={
-            <span className="text-sm text-muted-foreground">
-              {status === "accepted"
-                ? "No one has accepted this version yet."
-                : "No pending users."}
-            </span>
+            status === "accepted" ? "No one has accepted this version yet." : "No pending users."
           }
           pagination={{
             page,

@@ -23,6 +23,7 @@ declare namespace NodeJS {
     NEXT_PUBLIC_PORTAL_NAME?: string;
     NEXT_PUBLIC_PORTAL_LOGO?: string;
     NEXT_PUBLIC_PORTAL_FAVICON?: string;
+    NEXT_PUBLIC_CLUSTER_LOGIN_HOST?: string;
     NEXTAUTH_SECRET?: string;
     PORT?: string;
     CI?: string;

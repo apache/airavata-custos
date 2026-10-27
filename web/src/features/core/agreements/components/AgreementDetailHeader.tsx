@@ -30,7 +30,15 @@ export type AgreementDetailHeaderProps = {
   onAction: (action: AgreementAction) => void;
 };
 
-function ActorLine({ label, actor, at }: { label: string; actor?: Actor | null; at?: string }) {
+function ActorLine({
+  label,
+  actor,
+  at,
+}: {
+  label: string;
+  actor?: Actor | null | undefined;
+  at?: string | undefined;
+}) {
   if (!at) return null;
   const who = actor ? [actor.name || actor.id, actor.email].filter(Boolean) : ["Unknown user"];
   return (

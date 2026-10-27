@@ -16,6 +16,7 @@
 // under the License.
 
 import { z } from "zod";
+import { type SetupStep, zSetupStatusResponse } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   type AcceptanceReport,
@@ -78,12 +79,16 @@ export async function deleteAgreement(id: string): Promise<void> {
 
 export async function getGateProfile() {
   const { consent, onboarding } = gateProfileSchema.parse(await apiFetch("/me"));
-  return { pending: consent?.pending?.[0] ?? null, onboarding: onboarding ?? {} };
+  return { pending: consent?.pending?.[0] ?? null, onboarding: onboarding ?? null };
 }
 
 export async function checkUsername(username: string): Promise<UsernameCheck> {
   const raw = await apiFetch(`/me/onboarding/username?u=${encodeURIComponent(username)}`);
   return usernameCheckSchema.parse(raw);
+}
+
+export async function getSetupSteps(): Promise<SetupStep[]> {
+  return zSetupStatusResponse.parse(await apiFetch("/me/onboarding/status")).steps ?? [];
 }
 
 export async function completeOnboarding(body: { username: string; accepted: string[] }) {

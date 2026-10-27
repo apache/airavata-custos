@@ -52,7 +52,7 @@ function IdentityCard() {
 }
 
 // Runs a gate action, then re-reads the session so the server layout lets the user through.
-export function useGateSubmit() {
+export function useGateSubmit(next?: string) {
   const router = useRouter();
   const { update } = useSession();
   const [error, setError] = React.useState<string | null>(null);
@@ -63,7 +63,8 @@ export function useGateSubmit() {
       await action();
       // Without an argument update() only re-reads the cookie and the flags stay stale.
       await update({});
-      router.refresh();
+      if (next) router.replace(next);
+      else router.refresh();
     } catch (err) {
       if (!handled?.(err)) setError(err instanceof Error ? err.message : "Request failed");
     }

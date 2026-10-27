@@ -66,9 +66,9 @@ function UsernameStatus({
   username: string;
   checking: boolean;
   failed: boolean;
-  valid?: boolean;
-  available?: boolean;
-  suggestion?: string;
+  valid?: boolean | undefined;
+  available?: boolean | undefined;
+  suggestion?: string | undefined;
   onUse: (name: string) => void;
 }) {
   let status: React.ReactNode = null;
@@ -115,7 +115,7 @@ function OnboardingForm({
   agreement: PendingAgreement | null;
 }) {
   const submit = useCompleteOnboarding();
-  const { error, run } = useGateSubmit();
+  const { error, run } = useGateSubmit("/setup");
   const [username, setUsername] = React.useState(initialUsername);
   const [agreed, setAgreed] = React.useState(false);
   const debounced = useDebounce(username, 300);
@@ -219,8 +219,8 @@ export function OnboardingGate() {
         <ErrorState message={profile.error.message} onRetry={() => profile.refetch()} />
       ) : profile.data ? (
         <OnboardingForm
-          initialUsername={profile.data.onboarding.username ?? ""}
-          editable={profile.data.onboarding.username_editable !== false}
+          initialUsername={profile.data.onboarding?.username ?? ""}
+          editable={profile.data.onboarding?.username_editable !== false}
           agreement={profile.data.pending}
         />
       ) : null}

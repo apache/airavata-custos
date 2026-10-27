@@ -25,7 +25,8 @@ import type {
 const admin = { id: "user-admin", name: "Priya Nair", email: "priya.nair@example.edu" };
 const user = (id: string, name: string) => ({ id, name, email: `${id.slice(2)}@example.edu` });
 
-const BODY = "## Acceptable use\n\nUse the compute, storage and credentials only for your approved research.\n\nDo not share your account.";
+const BODY =
+  "## Acceptable use\n\nUse the compute, storage and credentials only for your approved research.\n\nDo not share your account.";
 
 const agreements: AgreementDetail[] = [
   {
@@ -36,7 +37,9 @@ const agreements: AgreementDetail[] = [
     summary: "Rules for using Custos compute, storage and credentials.",
     body_md: `${BODY}\n\nReport suspected misuse within 24 hours.`,
     change_note: "Adds a reporting rule for suspected misuse.",
+    body_hash: "mock-hash-2",
     created_at: "2026-10-10T14:00:00Z",
+    updated_at: "2026-10-10T14:00:00Z",
     created_by: admin,
     accepted_count: 0,
     pending_count: 0,
@@ -49,7 +52,9 @@ const agreements: AgreementDetail[] = [
     summary: "Rules for using Custos compute, storage and credentials.",
     body_md: BODY,
     change_note: "",
+    body_hash: "mock-hash-1",
     created_at: "2026-03-02T09:00:00Z",
+    updated_at: "2026-03-12T09:00:00Z",
     created_by: admin,
     published_at: "2026-03-12T09:00:00Z",
     published_by: admin,
@@ -64,7 +69,9 @@ const agreements: AgreementDetail[] = [
     summary: "First draft of the rules.",
     body_md: BODY,
     change_note: "",
+    body_hash: "mock-hash-0",
     created_at: "2025-08-20T09:00:00Z",
+    updated_at: "2026-03-12T09:00:00Z",
     created_by: admin,
     published_at: "2025-09-04T09:00:00Z",
     published_by: admin,
@@ -100,7 +107,8 @@ const find = (id: unknown) => agreements.find((a) => a.id === id);
 const notFound = () => HttpResponse.json({ error: "agreement not found" }, { status: 404 });
 const versionTaken = (label: string, exceptId?: string) =>
   agreements.some((a) => a.version_label === label && a.id !== exceptId);
-const conflict = () => HttpResponse.json({ error: "version label already exists" }, { status: 409 });
+const conflict = () =>
+  HttpResponse.json({ error: "version label already exists" }, { status: 409 });
 
 // Test seam: the non-httpOnly custos.test-gate cookie ("onboarding" or "consent")
 // makes /me report that gate with the published version pending.
@@ -139,22 +147,35 @@ export const agreementsHandlers = [
 
   http.post("*/api/v1/me/onboarding", async ({ request }) => {
     const { username } = (await request.json()) as { username: string };
-    if (username === "taken-user") return HttpResponse.json({ error: "username taken" }, { status: 409 });
+    if (username === "taken-user")
+      return HttpResponse.json({ error: "username taken" }, { status: 409 });
     return HttpResponse.json({ id: "user-jdoe", username });
   }),
 
+  http.get("*/api/v1/me/onboarding/status", () =>
+    HttpResponse.json({
+      steps: [
+        { key: "registry", done_at: new Date(Date.now() - 9_000).toISOString() },
+        {
+          key: "cluster_account",
+          name: "hpc",
+          done_at: new Date(Date.now() - 8_000).toISOString(),
+        },
+        { key: "project_group", name: "CIS250123" },
+      ],
+    }),
+  ),
+
   http.post("*/api/v1/me/agreements/:id/accept", ({ params }) =>
-    HttpResponse.json({ agreement_id: params.id, accepted_at: new Date().toISOString() }),
+    HttpResponse.json({ agreement_id: params["id"], accepted_at: new Date().toISOString() }),
   ),
 
   http.get("*/api/v1/agreements", () =>
-    HttpResponse.json(
-      agreements.map(({ created_by, published_by, removed_by, ...rest }) => rest),
-    ),
+    HttpResponse.json(agreements.map(({ created_by, published_by, removed_by, ...rest }) => rest)),
   ),
 
   http.get("*/api/v1/agreements/:id", ({ params }) => {
-    const found = find(params.id);
+    const found = find(params["id"]);
     return found ? HttpResponse.json(found) : notFound();
   }),
 
@@ -163,7 +184,7 @@ export const agreementsHandlers = [
     const status = url.searchParams.get("status") ?? "accepted";
     const limit = Number(url.searchParams.get("limit") ?? 50);
     const offset = Number(url.searchParams.get("offset") ?? 0);
-    const report = reports[String(params.id)] ?? { accepted: [], pending: [] };
+    const report = reports[String(params["id"])] ?? { accepted: [], pending: [] };
     return HttpResponse.json({
       status,
       accepted: status === "accepted" ? report.accepted.slice(offset, offset + limit) : [],
@@ -178,7 +199,9 @@ export const agreementsHandlers = [
       ...body,
       id: `agr-${Date.now()}`,
       status: "DRAFT",
+      body_hash: `mock-hash-${Date.now()}`,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       created_by: admin,
       accepted_count: 0,
       pending_count: 0,
@@ -188,7 +211,7 @@ export const agreementsHandlers = [
   }),
 
   http.put("*/api/v1/agreements/:id", async ({ params, request }) => {
-    const found = find(params.id);
+    const found = find(params["id"]);
     if (!found) return notFound();
     const body = (await request.json()) as AgreementDraft;
     if (versionTaken(body.version_label, found.id)) return conflict();
@@ -197,7 +220,7 @@ export const agreementsHandlers = [
   }),
 
   http.post("*/api/v1/agreements/:id/publish", ({ params }) => {
-    const found = find(params.id);
+    const found = find(params["id"]);
     if (!found) return notFound();
     Object.assign(found, {
       status: "PUBLISHED",
@@ -208,7 +231,7 @@ export const agreementsHandlers = [
   }),
 
   http.post("*/api/v1/agreements/:id/remove", ({ params }) => {
-    const found = find(params.id);
+    const found = find(params["id"]);
     if (!found) return notFound();
     Object.assign(found, {
       status: "REMOVED",
@@ -219,7 +242,7 @@ export const agreementsHandlers = [
   }),
 
   http.delete("*/api/v1/agreements/:id", ({ params }) => {
-    const found = find(params.id);
+    const found = find(params["id"]);
     if (!found) return notFound();
     agreements.splice(agreements.indexOf(found), 1);
     return new HttpResponse(null, { status: 204 });

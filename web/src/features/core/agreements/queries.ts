@@ -27,6 +27,7 @@ import {
   deleteAgreement,
   getAgreement,
   getGateProfile,
+  getSetupSteps,
   listAcceptances,
   listAgreements,
   publishAgreement,
@@ -98,6 +99,15 @@ export function useRemoveAgreement() {
   return useMutation({
     mutationFn: removeAgreement,
     onSuccess: () => client.invalidateQueries({ queryKey: agreementKeys.all }),
+  });
+}
+
+// Polls every 3s until every step is done.
+export function useSetupSteps() {
+  return useQuery({
+    queryKey: [...agreementKeys.all, "setup"],
+    queryFn: getSetupSteps,
+    refetchInterval: (query) => (query.state.data?.every((s) => s.done_at) ? false : 3000),
   });
 }
 
