@@ -3,6 +3,7 @@ module github.com/apache/airavata-custos/signer
 go 1.27.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/golang-migrate/migrate/v4 v4.20.1
