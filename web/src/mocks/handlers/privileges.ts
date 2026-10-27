@@ -40,6 +40,8 @@ const ALL_PRIVILEGES: Privilege[] = [
   "amie:replies:write",
   "amie:unmapped:read",
   "amie:unmapped:write",
+  "signer:certificates:read",
+  "signer:certificates:write",
 ];
 
 // Test seam: e2e scopes privileges per persona via a non-httpOnly cookie.

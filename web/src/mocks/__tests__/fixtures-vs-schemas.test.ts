@@ -35,6 +35,8 @@ import projectsFixture from "@/features/core/projects/__fixtures__/projects.json
 import { projectMemberSchema } from "@/features/core/projects/schemas";
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
+import signerCertificatesFixture from "@/features/core/signer/__fixtures__/certificates.json";
+import { certificateSchema } from "@/features/core/signer/schemas";
 import { zJob, zUsageSummary } from "@/generated/analytics/zod.gen";
 import {
   zAllocationStatus,
@@ -183,5 +185,9 @@ describe("MSW fixtures pass current Zod schemas", () => {
       const result = z.array(zJob).safeParse(entry.jobs);
       expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
     }
+  });
+    it("signer certificate fixtures validate against certificateSchema", () => {
+    const result = z.array(certificateSchema).safeParse(signerCertificatesFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 });

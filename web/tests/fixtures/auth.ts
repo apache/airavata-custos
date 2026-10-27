@@ -25,7 +25,7 @@ import { encode } from "next-auth/jwt";
 // readOnlyAdmin - reads users, organizations, clusters and allocations
 // manager - reads and writes allocations and projects, reads the rest and AMIE
 // admin - reads and writes everything, manages roles and privileges
-export type Persona = "researcher" | "readOnlyAdmin" | "manager" | "admin";
+export type Persona =   | "researcher" | "readOnlyAdmin" | "manager" | "signer-reader" | "admin";
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
 // gates resolve per persona. The MSW /user/privileges handler reads the
@@ -70,7 +70,10 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "amie:replies:write",
     "amie:unmapped:read",
     "amie:unmapped:write",
+    "signer:certificates:read",
+    "signer:certificates:write",
   ],
+  "signer-reader": ["signer:certificates:read"],
 };
 
 const NAMES: Record<Persona, string> = {
@@ -78,6 +81,7 @@ const NAMES: Record<Persona, string> = {
   readOnlyAdmin: "Test Read-only Admin",
   manager: "Test Manager",
   admin: "Test Admin",
+  "signer-reader": "Test Signer Reader",
 };
 
 export async function signInAs(page: Page, persona: Persona = "admin") {
