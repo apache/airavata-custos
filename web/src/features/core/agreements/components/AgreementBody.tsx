@@ -15,11 +15,34 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Plain text until a markdown renderer is chosen. Swap it here.
+import Markdown, { type Components } from "react-markdown";
+
+const components: Components = {
+  h1: ({ children }) => <h2 className="mt-6 mb-2 text-lg font-semibold first:mt-0">{children}</h2>,
+  h2: ({ children }) => (
+    <h3 className="mt-5 mb-2 text-base font-semibold first:mt-0">{children}</h3>
+  ),
+  h3: ({ children }) => <h4 className="mt-4 mb-1.5 font-semibold first:mt-0">{children}</h4>,
+  p: ({ children }) => <p className="my-2.5">{children}</p>,
+  ol: ({ children }) => <ol className="my-2.5 list-decimal space-y-2 pl-6">{children}</ol>,
+  ul: ({ children }) => <ul className="my-2.5 list-disc space-y-1.5 pl-6">{children}</ul>,
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="text-[color:var(--brand)] underline underline-offset-2"
+    >
+      {children}
+    </a>
+  ),
+};
+
+// Headings start at h2 so the agreement title stays the page's only h1.
 export function AgreementBody({ markdown }: { markdown: string }) {
   return (
-    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-      {markdown}
-    </pre>
+    <div className="text-sm leading-relaxed text-foreground">
+      <Markdown components={components}>{markdown}</Markdown>
+    </div>
   );
 }
