@@ -180,7 +180,7 @@ func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -199,7 +199,7 @@ func TestMembershipCreationDefaultsToNoAllocation(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -213,7 +213,7 @@ func TestMembershipCreationLowercasesTheAccount(t *testing.T) {
 	core := coreMock(mockOpts{allocationName: "Q2-2026-Climate", provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -232,7 +232,7 @@ func TestMembershipCreationReturnsCoreError(t *testing.T) {
 	}
 
 	err := NewAssociationSubscriber(&fakeSlurmClient{}, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 	if !errors.Is(err, lookupErr) {
 		t.Fatalf("expected the core lookup error, got %v", err)
 	}
@@ -245,7 +245,7 @@ func TestMembershipCreationDefersWhenNotProvisioned(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: nil})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error for an unprovisioned account, got %v", err)
 	}
@@ -263,7 +263,7 @@ func TestMembershipCreationDefersWhenAccountMissing(t *testing.T) {
 	}
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error for a missing account, got %v", err)
 	}
@@ -284,7 +284,7 @@ func TestMembershipCreationKeepsOverrideLimits(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 
 	got := slurm.all()
 	if len(got) != 1 {
@@ -313,7 +313,7 @@ func TestMembershipCreationSplitsGpuTres(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 
 	got := slurm.all()
 	if len(got) != 1 {
@@ -335,7 +335,7 @@ func TestMembershipCreationWritesAssociationWithoutResources(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 
 	if n := len(slurm.all()); n != 1 {
 		t.Fatalf("expected one association, got %d", n)
@@ -358,7 +358,7 @@ func TestMembershipCreationAddsUpOverridesOfOneType(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
 
 	got := slurm.all()
 	if len(got) != 1 {
