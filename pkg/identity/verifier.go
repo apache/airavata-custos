@@ -29,9 +29,14 @@ type JWTVerifier struct{ inner *oidc.IDTokenVerifier }
 
 // Claims are the subset the middleware needs after verification.
 type Claims struct {
+	Issuer        string `json:"iss"`
 	Sub           string `json:"sub"`
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
+	SessionID     string `json:"sid"`
+	AuthTime      int64  `json:"auth_time"`
+	TokenID       string `json:"jti"`
+	IssuedAt      int64  `json:"iat"`
 }
 
 // NewJWTVerifier resolves the provider's discovery doc and builds a verifier
@@ -53,6 +58,12 @@ func (j *JWTVerifier) Verify(ctx context.Context, rawToken string) (*Claims, err
 	var claims Claims
 	if err := token.Claims(&claims); err != nil {
 		return nil, err
+	}
+	if claims.Issuer == "" {
+		claims.Issuer = token.Issuer
+	}
+	if claims.IssuedAt == 0 && !token.IssuedAt.IsZero() {
+		claims.IssuedAt = token.IssuedAt.Unix()
 	}
 	return &claims, nil
 }

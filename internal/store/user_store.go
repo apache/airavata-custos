@@ -37,7 +37,7 @@ func NewUserStore(db *sqlx.DB) UserStore {
 	return &pgUserStore{db: db}
 }
 
-const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type`
+const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type, timezone`
 
 func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
