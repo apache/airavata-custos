@@ -31,8 +31,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
-	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	custosdb "github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 )
@@ -327,11 +327,7 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			}
 			// An invalid packet never succeeds, so end its transaction at ACCESS. Other failures wait for an admin to fix and retry.
 			if errors.Is(cause, model.ErrInvalidPacket) {
-				failure := map[string]any{
-					"type": "inform_transaction_complete",
-					"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": errMsg},
-				}
-				if err := p.amie.ReplyToPacket(ctx, packet.AmieID, failure); err != nil {
+				if err := p.amie.ReplyToPacket(ctx, packet.AmieID, model.TransactionFailureReply(errMsg)); err != nil {
 					slog.ErrorContext(ctx, "failure reply not sent", "packetId", packet.ID, "error", err)
 				}
 			}

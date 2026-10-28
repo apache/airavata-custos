@@ -97,7 +97,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_PERSON: %w", err)
 	}
 
-	piClusterUser, err := h.ensurePIClusterUser(ctx, pi.ID)
+	piClusterUser, err := ensureClusterUser(ctx, h.svc, h.clusterID, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure PI cluster user: %w", err)
 	}
@@ -154,13 +154,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	// project ID, and holding it would block the whole project there. ACCESS gets
 	// the PI's login early, but the account is only created after admin approval.
 	reply := map[string]any{"type": "notify_project_create", "body": replyBody}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_project_create: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_project_create: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_project_create", reply)
 }
 
 func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
@@ -193,19 +187,6 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 		return nil, fmt.Errorf("create PI user identity: %w", err)
 	}
 	return user, nil
-}
-
-func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, userID string) (*models.ComputeClusterUser, error) {
-	existing, err := h.svc.ListComputeClusterUsersByUser(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list compute cluster users: %w", err)
-	}
-	for _, a := range existing {
-		if a.ComputeClusterID == h.clusterID {
-			return &a, nil
-		}
-	}
-	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
 func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, tx *sql.Tx, originatedID, title, piID string) (*models.Project, error) {

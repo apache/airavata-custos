@@ -162,19 +162,5 @@ func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, pack
 }
 
 func (h *RequestPersonMergeHandler) replyAndAudit(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string) error {
-	reply := map[string]any{
-		"type": "inform_transaction_complete",
-		"body": map[string]any{
-			"StatusCode": "Success",
-			"DetailCode": float64(1),
-			"Message":    "Person merge completed.",
-		},
-	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_person_merge: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_person_merge: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_person_merge", transactionSuccessReply("Person merge completed."))
 }
