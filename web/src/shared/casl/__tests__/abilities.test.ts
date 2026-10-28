@@ -64,6 +64,21 @@ const cases: Array<[Privilege, Array<[string, string, boolean]>]> = [
     [
       ["read", "Cluster", true],
       ["manage", "Cluster", true],
+      ["delete", "ComputeClusterUser", false],
+    ],
+  ],
+  [
+    "core:clusters:delete",
+    [
+      ["delete", "ComputeClusterUser", true],
+      ["manage", "Cluster", false],
+    ],
+  ],
+  [
+    "core:allocations:delete",
+    [
+      ["delete", "ComputeAllocation", true],
+      ["manage", "Allocation", false],
     ],
   ],
   [
@@ -78,6 +93,7 @@ const cases: Array<[Privilege, Array<[string, string, boolean]>]> = [
     [
       ["read", "Allocation", true],
       ["manage", "Allocation", true],
+      ["delete", "ComputeAllocation", false],
     ],
   ],
   [

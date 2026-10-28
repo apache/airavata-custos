@@ -28,8 +28,12 @@ import {
 import { http, HttpResponse } from "msw";
 
 const PRIVILEGES: PrivilegeKey[] = [
+  "core:allocations:deactivate",
+  "core:allocations:delete",
   "core:allocations:read",
   "core:allocations:write",
+  "core:clusters:deactivate",
+  "core:clusters:delete",
   "core:clusters:read",
   "core:clusters:write",
   "core:organizations:read",
@@ -39,6 +43,8 @@ const PRIVILEGES: PrivilegeKey[] = [
   "core:projects:write",
   "core:roles:manage",
   "core:traces:read",
+  "core:users:deactivate",
+  "core:users:delete",
   "core:users:read",
   "core:users:write",
 ];

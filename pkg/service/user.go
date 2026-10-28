@@ -225,7 +225,41 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	return existing, nil
 }
 
-// DeleteUser removes a user by ID.
+// DeactivateUser makes an active, pending or suspended user INACTIVE along with their approved, active cluster
+// accounts; an inactive or merged user is left as is.
+func (s *Service) DeactivateUser(ctx context.Context, id string) error {
+	existing, err := s.GetUser(ctx, id)
+	if err != nil || existing.Status == models.UserInactive || existing.Status == models.UserMerged {
+		return err
+	}
+	existing.Status = models.UserInactive
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.users.UpdateStatus(ctx, tx, id, existing.Status); err != nil {
+			return err
+		}
+		if err := s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing); err != nil {
+			return err
+		}
+		accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		for _, cu := range accounts {
+			if cu.Status == models.ACTIVE && cu.ApprovalStatus == models.ClusterAccountApproved {
+				if err := s.deactivateComputeClusterUserTx(ctx, tx, &cu); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("deactivate user: %w", err)
+	}
+	s.InvalidateAllIdentities()
+	return nil
+}
+
+// DeleteUser removes a user by ID once they are inactive or merged and hold no cluster accounts.
 func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: user id is required", ErrInvalidInput)
@@ -236,6 +270,24 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	}
 	if existing == nil {
 		return ErrNotFound
+	}
+	if existing.Status != models.UserInactive && existing.Status != models.UserMerged {
+		return fmt.Errorf("%w: user %q is %s, deactivate them first", ErrInUse, id, existing.Status)
+	}
+	// Connectors clean up a cluster account by looking up its user, so the accounts go first.
+	accounts, err := s.clusterUsers.FindByUser(ctx, id)
+	if err != nil {
+		return fmt.Errorf("list cluster accounts: %w", err)
+	}
+	if len(accounts) > 0 {
+		return fmt.Errorf("%w: user %q still has cluster accounts, delete them first", ErrInUse, id)
+	}
+	pending, err := s.clusterUsers.HasPendingEvents(ctx, id)
+	if err != nil {
+		return fmt.Errorf("check pending events: %w", err)
+	}
+	if pending {
+		return fmt.Errorf("%w: connectors are still processing user %q's changes", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.users.Delete(ctx, tx, id); err != nil {

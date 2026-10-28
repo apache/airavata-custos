@@ -142,6 +142,39 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, u)
 }
 
+// @Summary	Deactivate a user
+// @Description	Makes an active, pending or suspended user and their approved, active cluster accounts INACTIVE.
+// @Tags	Users
+// @Security	BearerAuth
+// @Param	id	path	string	true	"User ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/deactivate [post]
+func (s *Server) deactivateUser(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeactivateUser(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary	Delete an inactive user
+// @Description	Refuses a user who is not INACTIVE or MERGED, or still holds cluster accounts.
+// @Tags	Users
+// @Security	BearerAuth
+// @Param	id	path	string	true	"User ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/users/{id} [delete]
+func (s *Server) deleteUser(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteUser(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type userNameUpdateRequest struct {
 	FirstName  string `json:"first_name"`
 	MiddleName string `json:"middle_name"`

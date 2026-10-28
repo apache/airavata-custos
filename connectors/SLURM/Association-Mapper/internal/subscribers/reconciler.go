@@ -19,6 +19,7 @@ package subscribers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -111,8 +112,10 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 	}
 
 	desired := make(map[assocKey]struct{})
+	clusterAccounts := make(map[string]bool, len(clusterUsers))
 	written := 0
 	for _, csu := range clusterUsers {
+		clusterAccounts[csu.LocalUsername] = true
 		if csu.ProvisionedAt == nil {
 			continue
 		}
@@ -124,17 +127,15 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			return
 		}
 		for _, membership := range memberships {
-			if membership.MembershipStatus != models.ACTIVE {
+			record, err := a.desiredAssociationForMembership(ctx, membership)
+			// The user has no account on that membership's cluster.
+			if errors.Is(err, errNotProvisioned) {
 				continue
 			}
-			record, err := a.desiredAssociationForMembership(ctx, membership)
 			if err != nil {
 				slog.ErrorContext(ctx, "Association reconciler: failed to resolve desired association",
 					"membership_id", membership.ID, "error", err)
 				return
-			}
-			if record == nil {
-				continue
 			}
 			desired[keyOf(*record)] = struct{}{}
 			// The grace only holds back the write. The association is still
@@ -144,7 +145,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			}
 			// A user without the no-allocation association predates it, so the write also moves their default.
 			_, hasDefault := existing[assocKey{account: noAllocation, user: record.User}]
-			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault {
+			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault || !ok && blocked(*record) {
 				continue
 			}
 			if err := a.writeAssociation(*record); err != nil {
@@ -157,6 +158,17 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 	}
 
 	removed := a.pruneStaleAssociations(ctx, cluster, existing, desired)
+	// A user left holding noAllocation without a cluster account is one Custos no longer has. An empty list, like an
+	// empty desired set, proves nothing.
+	if len(clusterAccounts) > 0 {
+		for key := range existing {
+			if key.account == noAllocation && key.user != "" && !clusterAccounts[key.user] {
+				if err := a.removeUserFromCluster(ctx, cluster.Name, key.user); err != nil {
+					slog.ErrorContext(ctx, "Association reconciler: failed to remove Slurm user", "user", key.user, "error", err)
+				}
+			}
+		}
+	}
 	slog.DebugContext(ctx, "Association reconciler pass complete",
 		"cluster", cluster.Name, "written", written, "removed", removed)
 }

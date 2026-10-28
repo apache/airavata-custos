@@ -65,7 +65,7 @@ type Cluster struct {
 // Registry records the folders ensure makes and marks a deleted owner's for an admin to review.
 type Registry interface {
 	Record(ctx context.Context, clusterID, path, ownerKind, ownerName, unixOwner string, a *models.ComputeAllocation) (int64, error)
-	MarkPending(ctx context.Context, clusterID, ownerKind, ownerName string) error
+	MarkPending(ctx context.Context, clusterID, ownerKind, ownerName, allocationID string) error
 }
 
 type StorageSubscriber struct {
@@ -85,24 +85,41 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
 	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeClusterUserUpdated(subscriber, s.syncUser)
+	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.syncAllocation)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.markUser)
 	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.markAllocation)
 }
 
+// syncUser marks an inactive account's folders. A reopened account is provisioned again, which records and unmarks them.
+func (s *StorageSubscriber) syncUser(ctx context.Context, cu models.ComputeClusterUser) error {
+	if cu.Status != models.INACTIVE {
+		return nil
+	}
+	return s.markUser(ctx, cu)
+}
+
+func (s *StorageSubscriber) syncAllocation(ctx context.Context, a models.ComputeAllocation) error {
+	if a.Status == models.INACTIVE {
+		return s.markAllocation(ctx, a)
+	}
+	return s.ensureAllocation(ctx, a)
+}
+
 func (s *StorageSubscriber) markUser(ctx context.Context, cu models.ComputeClusterUser) error {
-	return s.mark(ctx, cu.ComputeClusterID, "cluster_user", cu.LocalUsername)
+	return s.mark(ctx, cu.ComputeClusterID, "cluster_user", cu.LocalUsername, "")
 }
 
 func (s *StorageSubscriber) markAllocation(ctx context.Context, a models.ComputeAllocation) error {
 	if a.PosixGroup == nil {
 		return nil
 	}
-	return s.mark(ctx, a.ComputeClusterID, "allocation", *a.PosixGroup)
+	return s.mark(ctx, a.ComputeClusterID, "allocation", *a.PosixGroup, "")
 }
 
-func (s *StorageSubscriber) mark(ctx context.Context, clusterID, ownerKind, ownerName string) error {
+func (s *StorageSubscriber) mark(ctx context.Context, clusterID, ownerKind, ownerName, allocationID string) error {
 	if c, ok := s.clusters[clusterID]; ok {
-		return c.Folders.MarkPending(ctx, clusterID, ownerKind, ownerName)
+		return c.Folders.MarkPending(ctx, clusterID, ownerKind, ownerName, allocationID)
 	}
 	return nil
 }
@@ -139,12 +156,9 @@ func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClu
 	return nil
 }
 
-// ensureMember creates the member's mount in the allocation. A member without a
+// ensureMember creates the member's mount in the allocation, or marks it for an inactive member. A member without a
 // provisioned account is skipped, its provision event creates the mount later.
 func (s *StorageSubscriber) ensureMember(ctx context.Context, m models.ComputeAllocationMembership) error {
-	if m.MembershipStatus != models.ACTIVE {
-		return nil
-	}
 	a, c, err := s.activeAllocation(ctx, m.ComputeAllocationID)
 	if err != nil || a == nil {
 		return err
@@ -155,6 +169,12 @@ func (s *StorageSubscriber) ensureMember(ctx context.Context, m models.ComputeAl
 	}
 	for _, mw := range members {
 		if mw.UserID == m.UserID && mw.ProvisionedAt != nil {
+			if m.MembershipStatus != models.ACTIVE {
+				return s.mark(ctx, a.ComputeClusterID, "cluster_user", mw.LocalUsername, a.ID)
+			}
+			if mw.AccountStatus == models.INACTIVE {
+				return nil
+			}
 			return s.ensureMemberMounts(ctx, c, mw.LocalUsername, a)
 		}
 	}
@@ -206,7 +226,7 @@ func (s *StorageSubscriber) ensureAllocation(ctx context.Context, a models.Compu
 	}
 	var errs []error
 	for _, m := range members {
-		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
+		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil || m.AccountStatus == models.INACTIVE {
 			continue
 		}
 		errs = append(errs, s.ensure(ctx, c, m.LocalUsername, &a))
@@ -271,7 +291,7 @@ func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster)
 	users, err := s.core.ListComputeClusterUsersByCluster(ctx, id)
 	errs := []error{err}
 	for _, cu := range users {
-		if cu.ProvisionedAt != nil {
+		if cu.ProvisionedAt != nil && cu.Status != models.INACTIVE {
 			errs = append(errs, s.ensure(ctx, c, cu.LocalUsername, nil))
 		}
 	}

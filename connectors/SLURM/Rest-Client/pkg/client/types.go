@@ -54,6 +54,8 @@ type AssocLimits struct {
 	GrpTRES     []TRES `json:"grp_tres,omitempty"`
 	GrpTRESMins []TRES `json:"grp_tres_mins,omitempty"`
 	MaxWallPM   *int64 `json:"max_wall_pj,omitempty"`
+
+	GrpSubmitJobs *int64 `json:"grp_submit_jobs,omitempty"`
 }
 
 type Association struct {
@@ -109,6 +111,7 @@ type assocMaxJobs struct {
 
 type assocMaxJobsPer struct {
 	Count     *SlurmNumber `json:"count,omitempty"`      // GrpJobs
+	Submitted *SlurmNumber `json:"submitted,omitempty"`  // GrpSubmitJobs
 	WallClock *SlurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
 }
 
@@ -147,19 +150,12 @@ func (a Association) MarshalJSON() ([]byte, error) {
 		ID:            a.ID,
 		QoS:           a.QoS,
 	}
-	m := &assocMax{}
-	touched := false
-	if a.Limits.GrpJobs != nil || a.Limits.MaxWallPM != nil {
-		per := &assocMaxJobsPer{}
-		if a.Limits.GrpJobs != nil {
-			per.Count = numPtr(a.Limits.GrpJobs)
-		}
-		if a.Limits.MaxWallPM != nil {
-			per.WallClock = numPtr(a.Limits.MaxWallPM)
-		}
-		m.Jobs = &assocMaxJobs{Per: per}
-		touched = true
+	// An unset GrpSubmitJobs is sent as unlimited, which lifts the block of a reactivated association.
+	per := &assocMaxJobsPer{Count: numPtr(a.Limits.GrpJobs), WallClock: numPtr(a.Limits.MaxWallPM), Submitted: &SlurmNumber{Infinite: true}}
+	if a.Limits.GrpSubmitJobs != nil {
+		per.Submitted = numPtr(a.Limits.GrpSubmitJobs)
 	}
+	m := &assocMax{Jobs: &assocMaxJobs{Per: per}}
 	if len(a.Limits.GrpTRES) > 0 || len(a.Limits.GrpTRESMins) > 0 {
 		t := &assocMaxTRES{}
 		if len(a.Limits.GrpTRES) > 0 {
@@ -169,11 +165,8 @@ func (a Association) MarshalJSON() ([]byte, error) {
 			t.Group = &assocMaxTRESGp{Minutes: a.Limits.GrpTRESMins}
 		}
 		m.TRES = t
-		touched = true
 	}
-	if touched {
-		w.Max = m
-	}
+	w.Max = m
 	return json.Marshal(w)
 }
 
@@ -195,6 +188,7 @@ func (a *Association) UnmarshalJSON(data []byte) error {
 		if w.Max.Jobs != nil && w.Max.Jobs.Per != nil {
 			a.Limits.GrpJobs = ptrNum(w.Max.Jobs.Per.Count)
 			a.Limits.MaxWallPM = ptrNum(w.Max.Jobs.Per.WallClock)
+			a.Limits.GrpSubmitJobs = ptrNum(w.Max.Jobs.Per.Submitted)
 		}
 		if w.Max.TRES != nil {
 			a.Limits.GrpTRES = w.Max.TRES.Total

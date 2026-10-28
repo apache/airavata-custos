@@ -62,6 +62,7 @@ type ComputeClusterUser struct {
 	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
 	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
+	Status           AllocationStatus       `json:"status"             db:"status"` // ACTIVE, or INACTIVE once deactivated until an admin deletes it.
 }
 
 type ComputeAllocation struct {

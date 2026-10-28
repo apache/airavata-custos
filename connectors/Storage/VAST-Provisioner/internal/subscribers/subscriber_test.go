@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,7 +48,8 @@ var (
 )
 
 // allocationWithMembers serves one active allocation on cluster c1 with two
-// provisioned members, jdoe (u1) and asmith (u2), and one member whose account is not provisioned yet (u3).
+// provisioned members, jdoe (u1) and asmith (u2), one member whose account is not provisioned yet (u3), and one
+// whose account is inactive (u4).
 func allocationWithMembers() *service.CoreServiceMock {
 	group, provisioned := "proj-a", time.Now()
 	member := func(userID, username string, at *time.Time) store.MembershipWithUser {
@@ -56,6 +58,8 @@ func allocationWithMembers() *service.CoreServiceMock {
 			LocalUsername:               username, ProvisionedAt: at,
 		}
 	}
+	inactive := member("u4", "custos-gone", &provisioned)
+	inactive.AccountStatus = models.INACTIVE
 	return &service.CoreServiceMock{
 		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) {
 			return []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE}}, nil
@@ -64,7 +68,7 @@ func allocationWithMembers() *service.CoreServiceMock {
 			return &models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group, GroupProvisionedAt: &provisioned}, nil
 		},
 		ListMembersForAllocationFunc: func(context.Context, string) ([]store.MembershipWithUser, error) {
-			return []store.MembershipWithUser{member("u1", "custos-jdoe", &provisioned), member("u2", "custos-asmith", &provisioned), member("u3", "custos-pending", nil)}, nil
+			return []store.MembershipWithUser{member("u1", "custos-jdoe", &provisioned), member("u2", "custos-asmith", &provisioned), member("u3", "custos-pending", nil), inactive}, nil
 		},
 	}
 }
@@ -180,8 +184,8 @@ func (r *registry) Record(_ context.Context, _, path, kind, name, unixOwner stri
 	return 0, nil
 }
 
-func (r *registry) MarkPending(_ context.Context, _, kind, name string) error {
-	*r = append(*r, "mark "+kind+" "+name)
+func (r *registry) MarkPending(_ context.Context, _, kind, name, allocationID string) error {
+	*r = append(*r, strings.TrimSpace("mark "+kind+" "+name+" "+allocationID))
 	return nil
 }
 
@@ -204,6 +208,23 @@ func TestRegistry(t *testing.T) {
 		{name: "allocation deleted", run: func(s *StorageSubscriber) error {
 			return s.markAllocation(context.Background(), models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", PosixGroup: &group})
 		}, want: []string{"mark allocation proj-a"}},
+		{name: "account inactive", run: func(s *StorageSubscriber) error {
+			inactive := jdoe
+			inactive.Status = models.INACTIVE
+			return s.syncUser(context.Background(), inactive)
+		}, want: []string{"mark cluster_user custos-jdoe"}},
+		{name: "allocation inactive", run: func(s *StorageSubscriber) error {
+			return s.syncAllocation(context.Background(), models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", PosixGroup: &group, Status: models.INACTIVE})
+		}, want: []string{"mark allocation proj-a"}},
+		{name: "allocation marked deleted", run: func(s *StorageSubscriber) error {
+			return s.syncAllocation(context.Background(), models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", PosixGroup: &group, Status: models.DELETED})
+		}},
+		{name: "member active again with an inactive account", run: func(s *StorageSubscriber) error {
+			return s.ensureMember(context.Background(), models.ComputeAllocationMembership{ComputeAllocationID: "a1", UserID: "u4", MembershipStatus: models.ACTIVE})
+		}},
+		{name: "member inactive", run: func(s *StorageSubscriber) error {
+			return s.ensureMember(context.Background(), models.ComputeAllocationMembership{ComputeAllocationID: "a1", UserID: "u1", MembershipStatus: models.INACTIVE})
+		}, want: []string{"mark cluster_user custos-jdoe a1"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -23,6 +23,12 @@ import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  type ComputeAllocation,
+  type ComputeClusterUser,
+  zComputeAllocation,
+  zComputeClusterUser,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
@@ -82,9 +88,10 @@ function useDeleteColumn<T>(
   variant: "destructive" | "outline",
   label: string,
   target: (row: T) => { path: string; done: string } | false,
+  [action, subject] = ["manage", "Cluster"],
 ): DataTableColumn<T> {
   const client = useQueryClient();
-  const canManage = useAbility().can("manage", "Cluster");
+  const canManage = useAbility().can(action, subject);
   const del = useMutation({
     mutationFn: ({ path }: { path: string; done: string }) => apiFetch(path, { method: "DELETE" }),
     onSuccess: (_, { done }) => {
@@ -354,4 +361,122 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
       {editing ? <QuotaDialog folder={editing} onClose={() => setEditing(null)} /> : null}
     </>
   );
+}
+
+// A row's status icon: toned while active, faded once deactivated.
+const statusIcon = (Icon: typeof User, active: boolean, text: React.ReactNode) => (
+  <span className="flex items-center gap-2" title={active ? "Active" : "Inactive"}>
+    <Icon
+      aria-hidden
+      className={`size-3.5 shrink-0 ${active ? "text-[color:var(--tone-ok-fg)]" : "text-muted-foreground/40"}`}
+    />
+    {text}
+  </span>
+);
+
+const inactiveFirst = <T extends { status: string }>(rows: T[], name: (row: T) => string) =>
+  rows.sort(
+    (a, b) => +(a.status === "ACTIVE") - +(b.status === "ACTIVE") || name(a).localeCompare(name(b)),
+  );
+
+// A cluster's accounts. A deactivated one stays, its access blocked and its username held, until an admin deletes it here.
+export function UsersTab({ clusterId }: { clusterId: string | undefined }) {
+  const del = useDeleteColumn<ComputeClusterUser>(
+    "cluster-users",
+    "destructive",
+    "Delete",
+    (row) =>
+      (row.status !== "ACTIVE" || row.approval_status !== "APPROVED") && {
+        path: `/compute-cluster-users/${row.id}`,
+        done: `${row.local_username} deleted`,
+      },
+    ["delete", "ComputeClusterUser"],
+  );
+  const columns: Array<DataTableColumn<ComputeClusterUser>> = [
+    {
+      key: "username",
+      header: "Username",
+      cell: (row) => statusIcon(User, row.status === "ACTIVE", mono(row.local_username)),
+    },
+    { key: "access", header: "Access", cell: (row) => row.access_level },
+    { key: "approval", header: "Approval", cell: (row) => row.approval_status },
+    {
+      key: "provisioned",
+      header: "Provisioned",
+      cell: (row) => (row.provisioned_at ? day(row.provisioned_at) : "—"),
+    },
+    del,
+  ];
+  return clusterId ? (
+    <Listing
+      list="cluster-users"
+      path={`/compute-clusters/${clusterId}/users`}
+      parse={(data) =>
+        inactiveFirst(z.array(zComputeClusterUser).parse(data ?? []), (row) => row.local_username)
+      }
+      columns={columns}
+      rowKey={(row) => row.id}
+      rowClassName={(row) => (row.status === "ACTIVE" ? undefined : DISPOSABLE)}
+      empty="No accounts on this cluster."
+    />
+  ) : null;
+}
+
+// A cluster's allocations. A deactivated one stays with its memberships until an admin deletes it here.
+export function AllocationsTab({ clusterId }: { clusterId: string | undefined }) {
+  const del = useDeleteColumn<ComputeAllocation>(
+    "cluster-allocations",
+    "destructive",
+    "Delete",
+    (row) =>
+      row.status !== "ACTIVE" && {
+        path: `/compute-allocations/${row.id}`,
+        done: `${row.name} deleted`,
+      },
+    ["delete", "ComputeAllocation"],
+  );
+  const columns: Array<DataTableColumn<ComputeAllocation>> = [
+    {
+      key: "name",
+      header: "Allocation",
+      interactive: true,
+      cell: (row) =>
+        statusIcon(
+          Server,
+          row.status === "ACTIVE",
+          <Link href={`/allocations/${row.id}`} className="hover:underline">
+            {row.name}
+          </Link>,
+        ),
+    },
+    {
+      key: "group",
+      header: "Group",
+      cell: (row) => (row.posix_group ? mono(row.posix_group) : "—"),
+    },
+    {
+      key: "validity",
+      header: "Validity",
+      width: "13rem",
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          {day(row.start_time)} – {day(row.end_time)}
+        </span>
+      ),
+    },
+    del,
+  ];
+  return clusterId ? (
+    <Listing
+      list="cluster-allocations"
+      path={`/compute-clusters/${clusterId}/allocations`}
+      parse={(data) =>
+        inactiveFirst(z.array(zComputeAllocation).parse(data ?? []), (row) => row.name)
+      }
+      columns={columns}
+      rowKey={(row) => row.id}
+      rowClassName={(row) => (row.status === "ACTIVE" ? undefined : DISPOSABLE)}
+      empty="No allocations on this cluster."
+    />
+  ) : null;
 }

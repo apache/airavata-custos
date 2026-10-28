@@ -61,3 +61,25 @@ func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) 
 		t.Fatalf("removal audits %v, want one per deleted row", removed)
 	}
 }
+
+// An inactive member keeps their row but is not added back once it is gone.
+func TestEnsureAllocationGroup_KeepsInactiveMember(t *testing.T) {
+	name := "proj-grant"
+	alloc := &models.ComputeAllocation{ID: "alloc-1", Status: models.INACTIVE, PosixGroup: &name}
+	for _, rows := range [][]client.CoGroupMemberListOne{{{Id: 9, CoGroupId: 55, Person: client.IdentifierParent{Type: "CO", Id: 42}, Member: true}}, nil} {
+		reg := mockRegistry{members: rows}
+		srv := mockComanageServer(t, &reg)
+		core := adminCore()
+		provisioned := time.Now()
+		core.members = []store.MembershipWithUser{
+			{ComputeAllocationMembership: models.ComputeAllocationMembership{UserID: "user-1", MembershipStatus: models.INACTIVE}, ProvisionedAt: &provisioned},
+		}
+		if err := newOrchestratorForTest(t, srv, core, "").EnsureAllocationGroup(context.Background(), alloc); err != nil {
+			t.Fatalf("sync: %v", err)
+		}
+		srv.Close()
+		if len(reg.deleted) != 0 || len(reg.posted) != 0 {
+			t.Fatalf("rows %v: deleted %v, posted %v; want nothing changed", rows, reg.deleted, reg.posted)
+		}
+	}
+}

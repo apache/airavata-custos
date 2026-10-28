@@ -73,7 +73,7 @@ cannot overwrite the block when Custos is the source of truth.
 Each active allocation with a `posix_group` gets a CoGroup of that name, set up
 as in steps 5-7 with gid 3000000 plus the CoGroup id. Allocation, membership and
 account events keep it holding exactly the allocation's provisioned, active
-members; deleting the allocation deletes the group.
+members, and an inactive member stays until the membership is deleted; deleting the allocation deletes the group.
 
 ## Audit events
 

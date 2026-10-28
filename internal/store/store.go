@@ -114,6 +114,12 @@ type ComputeClusterUserStore interface {
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a mapping by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// HasPendingEvents reports whether a connector has yet to handle an event about one of the user's mappings.
+	HasPendingEvents(ctx context.Context, userID string) (bool, error)
+	// SetStatus sets a mapping's status within the provided transaction.
+	SetStatus(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) error
+	// Reopen makes an INACTIVE mapping a new request again with c's access and review, keeping its username.
+	Reopen(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 }
 
 // UserIdentityStore defines persistence operations for the bindings between
