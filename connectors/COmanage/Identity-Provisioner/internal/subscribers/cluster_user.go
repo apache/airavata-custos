@@ -69,10 +69,10 @@ func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
 }
 
-// handleClusterUserDeleted removes the account from the registry.
-// An account that was never approved was never sent there, so it is skipped.
+// handleClusterUserDeleted removes the account from the registry. A pending row may be a reopened account that was
+// provisioned before, so every deletion is sent; removing what was never created is a no-op.
 func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
-	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
+	if cu.ComputeClusterID != s.custosClusterID {
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")

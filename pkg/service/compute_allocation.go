@@ -198,7 +198,33 @@ func (s *Service) MarkComputeAllocationGroupProvisioned(ctx context.Context, id 
 	return nil
 }
 
-// DeleteComputeAllocation removes a compute allocation by ID.
+// DeactivateComputeAllocation makes an active allocation INACTIVE along with its memberships; any other is left as is.
+func (s *Service) DeactivateComputeAllocation(ctx context.Context, id string) error {
+	alloc, err := s.GetComputeAllocation(ctx, id)
+	if err != nil || alloc.Status != models.ACTIVE {
+		return err
+	}
+	members, err := s.memberships.FindByAllocationWithUser(ctx, id)
+	if err != nil {
+		return fmt.Errorf("list memberships: %w", err)
+	}
+	alloc.Status = models.INACTIVE
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
+			return err
+		}
+		for _, m := range members {
+			if m.MembershipStatus == models.ACTIVE {
+				if _, err := s.UpdateMembershipStatusTx(ctx, tx, m.ID, models.INACTIVE); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+// DeleteComputeAllocation removes a compute allocation by ID once it is no longer active.
 func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
@@ -209,6 +235,9 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 	}
 	if alloc == nil {
 		return ErrNotFound
+	}
+	if alloc.Status == models.ACTIVE {
+		return fmt.Errorf("%w: compute allocation %q is active, deactivate it first", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.allocs.Delete(ctx, tx, id); err != nil {

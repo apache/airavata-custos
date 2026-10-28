@@ -173,15 +173,34 @@ func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request
 	common.WriteJSON(w, http.StatusOK, &cu)
 }
 
-// @Summary	Delete a compute cluster user
+// @Summary	Delete an inactive compute cluster user
+// @Description	Removes an inactive account, or a pending or denied request.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
 // @Param	id	path	string	true	"Compute cluster user ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/compute-cluster-users/{id} [delete]
 func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary	Deactivate a compute cluster user
+// @Description	Makes an approved, active account and the user's memberships on its cluster INACTIVE.
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-cluster-users/{id}/deactivate [post]
+func (s *Server) deactivateComputeClusterUser(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeactivateComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
@@ -334,4 +353,20 @@ func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Re
 		return
 	}
 	common.WriteJSON(w, http.StatusOK, users)
+}
+
+// @Summary	List a cluster's allocations
+// @Tags	Compute Clusters
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Success	200	{array}	models.ComputeAllocation
+// @Router	/compute-clusters/{id}/allocations [get]
+func (s *Server) listComputeAllocationsByCluster(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListComputeAllocationsByCluster(r.Context(), r.PathValue("id"))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, rows)
 }

@@ -301,7 +301,12 @@ func TestResolveCaller_DropsTheCachedCallerOnIdentityChange(t *testing.T) {
 		"identity rebound": func(svc *Service, _, _, id string) error {
 			return svc.UpdateUserIdentity(ctx(), &models.UserIdentity{ID: id, OIDCSub: "sub-other"})
 		},
-		"user deleted": func(svc *Service, user, _, _ string) error { return svc.DeleteUser(ctx(), user) },
+		"user deleted": func(svc *Service, user, _, _ string) error {
+			if err := svc.DeactivateUser(ctx(), user); err != nil {
+				return err
+			}
+			return svc.DeleteUser(ctx(), user)
+		},
 		"user merged": func(svc *Service, user, other, _ string) error {
 			_, err := svc.MergeUsers(ctx(), other, user)
 			return err

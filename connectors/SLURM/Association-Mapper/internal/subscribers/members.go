@@ -135,7 +135,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 
 // SubscribeToComputeAllocationMembershipUpdate reacts to a membership-changing
 // state. Anything other than ACTIVE means the member should no longer be able
-// to submit, so the associations go; going back to ACTIVE re-grants them.
+// to submit, so the associations stay but refuse new jobs; going back to ACTIVE re-grants them.
 func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_update")
@@ -164,14 +164,39 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx
 		return nil
 	}
 
-	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
-		slog.ErrorContext(ctx, "Failed to remove associations for deactivated membership", "error", err)
+	if err := a.revokeAssociationsForMembership(fetchCtx, membership, a.blockAssociations); err != nil {
+		slog.ErrorContext(ctx, "Failed to block associations for deactivated membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to remove associations. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to block associations. Error: "+err.Error())
 		return err
 	}
-	a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeprovisioned", "compute_allocation_membership", membership.ID, "Removed cluster associations for the deactivated membership.")
+	a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeprovisioned", "compute_allocation_membership", membership.ID, "Blocked cluster associations for the deactivated membership.")
+	return nil
+}
+
+// SubscribeToComputeClusterUserDeletion removes the Slurm user of a deleted cluster account.
+func (a *AssociationSubscriber) SubscribeToComputeClusterUserDeletion(ctx context.Context, csu models.ComputeClusterUser) error {
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_cluster_user_delete")
+	defer span.End()
+	span.SetAttributes(attribute.String("slurm.user_id", csu.UserID))
+
+	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
+	defer cancel()
+
+	cluster, err := a.coreService.GetComputeCluster(fetchCtx, csu.ComputeClusterID)
+	if err == nil {
+		err = a.removeUserFromCluster(fetchCtx, cluster.Name, csu.LocalUsername)
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to remove Slurm user for deleted cluster account", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeClusterUserDeletionFailed", "compute_cluster_user", csu.ID, "Failed to remove Slurm user. Error: "+err.Error())
+		return err
+	}
+	a.recordAuditEvent(ctx, "ComputeClusterUserDeprovisioned", "compute_cluster_user", csu.ID, "Removed the Slurm user for the deleted cluster account.")
 	return nil
 }
 
@@ -189,7 +214,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(c
 	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
 	defer cancel()
 
-	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
+	if err := a.revokeAssociationsForMembership(fetchCtx, membership, a.slurmClient.DeleteAssociation); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove associations for deleted membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

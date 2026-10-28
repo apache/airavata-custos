@@ -206,7 +206,17 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 	return existing, nil
 }
 
-// DeleteComputeAllocationMembership removes a membership by ID.
+// DeactivateComputeAllocationMembership makes an active membership INACTIVE; any other is left as is.
+func (s *Service) DeactivateComputeAllocationMembership(ctx context.Context, id string) error {
+	m, err := s.GetComputeAllocationMembership(ctx, id)
+	if err != nil || m.MembershipStatus != models.ACTIVE {
+		return err
+	}
+	_, err = s.UpdateMembershipStatus(ctx, id, models.INACTIVE)
+	return err
+}
+
+// DeleteComputeAllocationMembership removes a membership by ID once it is no longer active.
 func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
@@ -217,6 +227,9 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 	}
 	if existing == nil {
 		return ErrNotFound
+	}
+	if existing.MembershipStatus == models.ACTIVE {
+		return fmt.Errorf("%w: compute allocation membership %q is active, deactivate it first", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {

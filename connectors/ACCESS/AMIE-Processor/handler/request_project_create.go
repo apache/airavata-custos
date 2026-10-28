@@ -201,7 +201,7 @@ func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, u
 		return nil, fmt.Errorf("list compute cluster users: %w", err)
 	}
 	for _, a := range existing {
-		if a.ComputeClusterID == h.clusterID {
+		if a.ComputeClusterID == h.clusterID && a.Status != models.INACTIVE {
 			return &a, nil
 		}
 	}

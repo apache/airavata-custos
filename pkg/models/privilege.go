@@ -43,6 +43,16 @@ const (
 	EventsManage       PrivilegeKey = "core:events:manage"
 )
 
+// Deactivating a record and deleting an inactive one are each granted on their own.
+const (
+	ClustersDeactivate    PrivilegeKey = "core:clusters:deactivate"
+	ClustersDelete        PrivilegeKey = "core:clusters:delete"
+	AllocationsDeactivate PrivilegeKey = "core:allocations:deactivate"
+	AllocationsDelete     PrivilegeKey = "core:allocations:delete"
+	UsersDeactivate       PrivilegeKey = "core:users:deactivate"
+	UsersDelete           PrivilegeKey = "core:users:delete"
+)
+
 var (
 	registryMu sync.RWMutex
 	registry   = map[PrivilegeKey]struct{}{}
@@ -52,12 +62,18 @@ func init() {
 	Register(
 		ClustersRead,
 		ClustersWrite,
+		ClustersDeactivate,
+		ClustersDelete,
 		AllocationsRead,
 		AllocationsWrite,
+		AllocationsDeactivate,
+		AllocationsDelete,
 		ProjectsRead,
 		ProjectsWrite,
 		UsersRead,
 		UsersWrite,
+		UsersDeactivate,
+		UsersDelete,
 		OrganizationsRead,
 		OrganizationsWrite,
 		TracesRead,

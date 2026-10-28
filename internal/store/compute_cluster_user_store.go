@@ -52,7 +52,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &pgComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note, status`
 
 func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -145,6 +145,7 @@ func (s *pgComputeClusterUserStore) FindByUserTx(ctx context.Context, tx *sql.Tx
 }
 
 func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
+	c.Status = models.ACTIVE
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, access_level, approval_status, reviewed_at, reviewed_by)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
@@ -180,7 +181,7 @@ func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, st
 	var rows []ComputeClusterUserWithUser
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at,
-		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.created_at,
+		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.status, cu.created_at,
 		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name,
 		        NULLIF(TRIM(CONCAT_WS(' ', r.first_name, r.last_name)), '') AS reviewer_name,
 		        a.id AS allocation_id, a.name AS allocation_name, a.project_id`+
@@ -215,6 +216,29 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
                 local_username     = $3
           WHERE id = $4`,
 		c.ComputeClusterID, c.UserID, c.LocalUsername, c.ID)
+	return err
+}
+
+func (s *pgComputeClusterUserStore) HasPendingEvents(ctx context.Context, userID string) (bool, error) {
+	var pending bool
+	err := s.db.GetContext(ctx, &pending,
+		`SELECT EXISTS (SELECT 1 FROM event_deliveries d JOIN events e ON e.id = d.event_id
+		  WHERE d.status = 'PENDING' AND e.event_type LIKE 'compute_cluster_user::%' AND e.payload->>'user_id' = $1)`, userID)
+	return pending, err
+}
+
+func (s *pgComputeClusterUserStore) SetStatus(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) error {
+	_, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET status = $1 WHERE id = $2`, status, id)
+	return err
+}
+
+func (s *pgComputeClusterUserStore) Reopen(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_cluster_users
+            SET status = 'ACTIVE', access_level = $2, approval_status = $3, reviewed_at = $4, reviewed_by = $5,
+                review_note = NULL, provisioned_at = NULL
+          WHERE id = $1`,
+		c.ID, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy)
 	return err
 }
 

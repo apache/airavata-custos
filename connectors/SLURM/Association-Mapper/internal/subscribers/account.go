@@ -112,7 +112,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context
 	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+	if err := a.revokeAssociationsForAllocation(fetchCtx, computeAllocation, a.slurmClient.DeleteAssociation); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove associations for deleted allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -124,8 +124,8 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context
 }
 
 // SubscribeToComputeAllocationUpdate keeps cluster access in sync with the
-// allocation. An allocation that stops being active loses every association,
-// and one that becomes active again has them restored.
+// allocation. An allocation that stops being active has every association block new jobs,
+// and one that becomes active again has its active members' restored.
 func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
@@ -147,14 +147,14 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.C
 		return nil
 	}
 
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-		slog.ErrorContext(ctx, "Failed to remove associations for deactivated allocation", "error", err)
+	if err := a.revokeAssociationsForAllocation(fetchCtx, computeAllocation, a.blockAssociations); err != nil {
+		slog.ErrorContext(ctx, "Failed to block associations for deactivated allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to block associations. Error: "+err.Error())
 		return err
 	}
-	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deactivated allocation.")
+	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Blocked cluster associations for the deactivated allocation.")
 	return nil
 }
 

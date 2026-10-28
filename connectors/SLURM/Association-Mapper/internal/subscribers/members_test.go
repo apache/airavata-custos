@@ -37,6 +37,9 @@ type fakeSlurmClient struct {
 	defaults []string
 	deletes  []client.AssocFilter
 	existing []client.Association
+
+	deleteErr    error
+	deletedUsers []string
 }
 
 func (f *fakeSlurmClient) DeleteAssociation(filter client.AssocFilter) error {
@@ -44,6 +47,13 @@ func (f *fakeSlurmClient) DeleteAssociation(filter client.AssocFilter) error {
 	defer f.mu.Unlock()
 	f.deletes = append(f.deletes, filter)
 	return nil
+}
+
+func (f *fakeSlurmClient) DeleteUser(name string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.deletedUsers = append(f.deletedUsers, name)
+	return f.deleteErr
 }
 
 func (f *fakeSlurmClient) allDeletes() []client.AssocFilter {
