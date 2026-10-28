@@ -173,7 +173,7 @@ func TestRemove(t *testing.T) {
 	}))
 	defer srv.Close()
 	want := []string{"/api/views/1/", "/api/views/2/", "/api/quotas/1/", "/api/quotas/2/", "/api/folders/delete_folder/"}
-	if err := New(srv.URL, "u", "p", 1).Remove(context.Background(), "/project/proj-a"); err != nil || !slices.Equal(deleted, want) {
+	if err := New(srv.URL, "u", "p", 1).DeleteFolder(context.Background(), "/project/proj-a"); err != nil || !slices.Equal(deleted, want) {
 		t.Fatalf("err=%v deleted=%v, want %v", err, deleted, want)
 	}
 }

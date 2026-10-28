@@ -180,7 +180,7 @@ func (r *registry) Record(_ context.Context, _, path, kind, name, unixOwner stri
 	return 0, nil
 }
 
-func (r *registry) MarkPending(_ context.Context, _, kind, name string) error {
+func (r *registry) MarkFoldersForDeletion(_ context.Context, _, kind, name string) error {
 	*r = append(*r, "mark "+kind+" "+name)
 	return nil
 }
