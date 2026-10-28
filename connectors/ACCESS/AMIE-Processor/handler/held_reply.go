@@ -26,9 +26,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	custosdb "github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -85,10 +85,7 @@ func (h *HeldReplies) denied(ctx context.Context, cu models.ComputeClusterUser) 
 	if cu.ReviewNote != nil {
 		reason = *cu.ReviewNote
 	}
-	return h.answer(ctx, cu.ID, model.PacketStatusRefused, map[string]any{
-		"type": "inform_transaction_complete",
-		"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": reason},
-	})
+	return h.answer(ctx, cu.ID, model.PacketStatusRefused, transactionFailureReply(reason))
 }
 
 // answer sends each packet its held reply, or the failure when one is given.

@@ -96,10 +96,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectID, err)
 	}
 	if user.ID == project.ProjectPIID {
-		if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, map[string]any{
-			"type": "inform_transaction_complete",
-			"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": "user is already the project PI"},
-		}); err != nil {
+		if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, transactionFailureReply("user is already the project PI")); err != nil {
 			return fmt.Errorf("request_account_create: sending failure reply: %w", err)
 		}
 		packet.Status = model.PacketStatusRefused
@@ -115,7 +112,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 	allocation := allocations[0]
 
-	account, err := h.ensureComputeClusterUser(ctx, user.ID)
+	account, err := ensureClusterUser(ctx, h.svc, h.clusterID, user.ID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure compute cluster user: %w", err)
 	}
@@ -123,7 +120,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: audit CREATE_ACCOUNT: %w", err)
 	}
 
-	role := normalizeAMIERole(normalizeRole(getString(body, "UserRole")))
+	role := amieRoleToProjectRole(parseAMIERole(getString(body, "UserRole")))
 	membership, err := h.ensureMembership(ctx, tx, &allocation, user.ID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure membership: %w", err)
@@ -141,7 +138,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		"GrantNumber":         getString(body, "GrantNumber"),
 		"UserPersonID":        user.ID,
 		"UserRemoteSiteLogin": account.LocalUsername,
-		"ResourceList":        getResourceList(body),
+		"ResourceList":        getStringList(body, "ResourceList"),
 	}
 	if v := getString(body, "UserOrgCode"); v != "" {
 		replyBody["UserOrgCode"] = v
@@ -186,21 +183,6 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 	return user, nil
 }
 
-// ensureComputeClusterUser returns the user's existing cluster mapping or
-// provisions a new one via the POSIX allocator.
-func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Context, userID string) (*models.ComputeClusterUser, error) {
-	existing, err := h.svc.ListComputeClusterUsersByUser(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list compute cluster users: %w", err)
-	}
-	for _, a := range existing {
-		if a.ComputeClusterID == h.clusterID {
-			return &a, nil
-		}
-	}
-	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
-}
-
 // ensureMembership reactivates a known member only while the allocation is active.
 // On an inactive project the member stays inactive, as the spec says.
 func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, userID string) (*models.ComputeAllocationMembership, error) {
@@ -213,7 +195,7 @@ func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, tx *
 			if allocation.Status != models.ACTIVE {
 				return &m.ComputeAllocationMembership, nil
 			}
-			return reactivate(ctx, tx, h.svc, m.ComputeAllocationMembership)
+			return reactivateMembership(ctx, tx, h.svc, m.ComputeAllocationMembership)
 		}
 	}
 	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
@@ -224,10 +206,10 @@ func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, tx *
 	})
 }
 
-// normalizeAMIERole maps the AMIE role enum to the persisted project role
+// amieRoleToProjectRole maps the AMIE role enum to the persisted project role
 // vocabulary. Unrecognized values collapse to MEMBER (which the project
 // membership service interprets as "derived membership only").
-func normalizeAMIERole(amieRole string) string {
+func amieRoleToProjectRole(amieRole string) string {
 	switch amieRole {
 	case "PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER":
 		return amieRole

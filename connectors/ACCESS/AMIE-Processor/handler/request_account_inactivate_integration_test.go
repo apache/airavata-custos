@@ -226,7 +226,7 @@ func TestRequestAccountInactivate_HappyPath(t *testing.T) {
 // behavior. The protocol only mandates the inactivation action and the reply; it does
 // not mandate that the handler to error when the (PersonID, ProjectID) pair is
 // unknown. The handler is expected to send the reply and make no mutations.
-// This matches `flipUserMemberships` returning an empty slice for unknown
+// This matches `setUserMembershipStatus` returning an empty slice for unknown
 // project.
 func TestRequestAccountInactivate_UnknownProjectOrUser(t *testing.T) {
 	database := setupTestDB(t)

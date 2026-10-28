@@ -107,21 +107,8 @@ func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		return fmt.Errorf("unsupported ActionType: %s", actionType)
 	}
 
-	reply := map[string]any{
-		"type": "inform_transaction_complete",
-		"body": map[string]any{
-			"StatusCode": "Success",
-			"DetailCode": float64(1),
-			"Message":    "Transaction completed successfully",
-		},
-	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_user_modify: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_user_modify: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	reply := transactionSuccessReply("Transaction completed successfully")
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_user_modify", reply)
 }
 
 // applyReplace updates the User row (basic profile), the UserIdentity row
@@ -194,7 +181,7 @@ func (h *RequestUserModifyHandler) updateUserIdentity(ctx context.Context, body 
 }
 
 func (h *RequestUserModifyHandler) deleteDNs(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string, body map[string]any, userID string) error {
-	dns := getDNList(body)
+	dns := getStringList(body, "DnList")
 	if len(dns) == 0 {
 		return nil
 	}
@@ -242,7 +229,7 @@ func unhandledModifyTags(body map[string]any) []string {
 // DNs are added, DNs missing from the packet are removed. AMIE's
 // request_user_modify with ActionType=replace is the authoritative source.
 func (h *RequestUserModifyHandler) syncDNs(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string, body map[string]any, userID string) error {
-	incoming := getDNList(body)
+	incoming := getStringList(body, "DnList")
 	if incoming == nil {
 		return nil
 	}

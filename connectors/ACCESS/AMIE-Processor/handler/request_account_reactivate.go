@@ -65,7 +65,7 @@ func (h *RequestAccountReactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		return err
 	}
 
-	flipped, err := flipUserMemberships(ctx, tx, h.svc, projectID, personID, models.ACTIVE)
+	flipped, err := setUserMembershipStatus(ctx, tx, h.svc, projectID, personID, models.ACTIVE)
 	if err != nil {
 		return fmt.Errorf("request_account_reactivate: flip memberships: %w", err)
 	}
@@ -80,11 +80,5 @@ func (h *RequestAccountReactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		"type": "notify_account_reactivate",
 		"body": map[string]any{"ProjectID": projectID, "PersonID": personID},
 	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_account_reactivate: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_account_reactivate: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_account_reactivate", reply)
 }

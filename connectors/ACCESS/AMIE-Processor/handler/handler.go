@@ -80,7 +80,7 @@ func getBody(packetJSON map[string]any) (map[string]any, error) {
 
 var roleNormalizer = strings.NewReplacer(" ", "", "-", "", "_", "")
 
-func normalizeRole(raw string) string {
+func parseAMIERole(raw string) string {
 	switch strings.ToUpper(roleNormalizer.Replace(raw)) {
 	case "PI":
 		return "PI"
@@ -93,8 +93,8 @@ func normalizeRole(raw string) string {
 	}
 }
 
-func getResourceList(body map[string]any) []string {
-	v, ok := body["ResourceList"]
+func getStringList(body map[string]any, key string) []string {
+	v, ok := body[key]
 	if !ok {
 		return nil
 	}
@@ -135,21 +135,21 @@ func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globa
 	return nil
 }
 
-// reactivate sets an existing membership back to active. The spec says a
-// create packet for a known account also reactivates it.
-func reactivate(ctx context.Context, tx *sql.Tx, svc *service.Service, m models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
+// reactivateMembership sets an existing membership back to active. The spec
+// says a create packet for a known account also reactivates it.
+func reactivateMembership(ctx context.Context, tx *sql.Tx, svc *service.Service, m models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
 	if m.MembershipStatus == models.ACTIVE {
 		return &m, nil
 	}
 	return svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.ACTIVE)
 }
 
-// flipUserMemberships flips every ComputeAllocationMembership the user holds
+// setUserMembershipStatus sets every ComputeAllocationMembership the user holds
 // under any allocation belonging to the given project (Custos project.id) to
 // the given status. Returns the rows that were updated. Silently returns an
 // empty slice when the project or user is unknown, the reply still goes back
 // to AMIE but no state changes.
-func flipUserMemberships(ctx context.Context, tx *sql.Tx, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
+func setUserMembershipStatus(ctx context.Context, tx *sql.Tx, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
 	project, err := svc.GetProject(ctx, projectID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
@@ -179,6 +179,49 @@ func flipUserMemberships(ctx context.Context, tx *sql.Tx, svc *service.Service, 
 		}
 	}
 	return updated, nil
+}
+
+func sendReply(ctx context.Context, tx *sql.Tx, client AmieClient, auditSvc AuditService, packet *model.Packet, eventID, errPrefix string, reply map[string]any) error {
+	if err := client.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
+		return fmt.Errorf("%s: sending reply: %w", errPrefix, err)
+	}
+	if err := auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
+		return fmt.Errorf("%s: audit REPLY_SENT: %w", errPrefix, err)
+	}
+	return nil
+}
+
+func transactionSuccessReply(message string) map[string]any {
+	return map[string]any{
+		"type": "inform_transaction_complete",
+		"body": map[string]any{
+			"StatusCode": "Success",
+			"DetailCode": float64(1),
+			"Message":    message,
+		},
+	}
+}
+
+func transactionFailureReply(message string) map[string]any {
+	return map[string]any{
+		"type": "inform_transaction_complete",
+		"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": message},
+	}
+}
+
+// ensureClusterUser returns the user's existing mapping on the cluster or
+// provisions a new one via the POSIX allocator.
+func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
+	existing, err := svc.ListComputeClusterUsersByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute cluster users: %w", err)
+	}
+	for _, a := range existing {
+		if a.ComputeClusterID == clusterID {
+			return &a, nil
+		}
+	}
+	return allocateAndCreateClusterUser(ctx, svc, clusterID, userID)
 }
 
 // ensureOrganization looks up an Organization by its originated_id (the
@@ -232,22 +275,4 @@ func getDate(body map[string]any, key string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("'%s' is not a YYYY-MM-DD date: %w", key, err)
 	}
 	return t, nil
-}
-
-func getDNList(body map[string]any) []string {
-	v, ok := body["DnList"]
-	if !ok {
-		return nil
-	}
-	arr, ok := v.([]any)
-	if !ok {
-		return nil
-	}
-	var out []string
-	for _, item := range arr {
-		if s, ok := item.(string); ok {
-			out = append(out, s)
-		}
-	}
-	return out
 }
