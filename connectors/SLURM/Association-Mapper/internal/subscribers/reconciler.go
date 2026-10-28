@@ -202,7 +202,7 @@ func (a *AssociationSubscriber) pruneStaleAssociations(ctx context.Context, clus
 			User:      assoc.User,
 			Partition: assoc.Partition,
 		}
-		if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+		if err := a.slurmClient.DeleteAssociations(filter); err != nil {
 			slog.ErrorContext(ctx, "Association reconciler: failed to remove stale association",
 				"account", assoc.Account, "user", assoc.User, "partition", assoc.Partition, "error", err)
 			continue

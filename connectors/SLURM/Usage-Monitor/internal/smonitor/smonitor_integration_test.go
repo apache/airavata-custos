@@ -66,7 +66,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 		User:    user1,
 	})
 
-	defer rootClient.DeleteAssociation(operations.AssocFilter{
+	defer rootClient.DeleteAssociations(operations.AssocFilter{
 		Account: accountName,
 		Cluster: clusterName,
 		User:    user1,
@@ -78,7 +78,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 		User:    user2,
 	})
 
-	defer rootClient.DeleteAssociation(operations.AssocFilter{
+	defer rootClient.DeleteAssociations(operations.AssocFilter{
 		Account: accountName,
 		Cluster: clusterName,
 		User:    user2,
@@ -90,7 +90,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 		User:    user3,
 	})
 
-	defer rootClient.DeleteAssociation(operations.AssocFilter{
+	defer rootClient.DeleteAssociations(operations.AssocFilter{
 		Account: accountName,
 		Cluster: clusterName,
 		User:    user3,

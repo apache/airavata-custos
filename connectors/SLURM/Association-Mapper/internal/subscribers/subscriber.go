@@ -39,7 +39,7 @@ type SlurmClient interface {
 	UpsertAssociation(a client.Association) error
 	SetDefaultAccount(cluster, user, account string) error
 	ListAssociations(f client.AssocFilter) ([]client.Association, error)
-	DeleteAssociation(f client.AssocFilter) error
+	DeleteAssociations(f client.AssocFilter) error
 }
 
 type AssociationSubscriber struct {
@@ -64,14 +64,14 @@ func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, cor
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (a *AssociationSubscriber) RegisterSubscribers(subscriber string) {
 	a.name = subscriber
-	a.eventBus.SubscribeComputeAllocationCreated(subscriber, a.SubscribeToComputeAllocationCreation)
-	a.eventBus.SubscribeComputeAllocationDeleted(subscriber, a.SubscribeToComputeAllocationDeletion)
-	a.eventBus.SubscribeComputeAllocationUpdated(subscriber, a.SubscribeToComputeAllocationUpdate)
-	a.eventBus.SubscribeComputeAllocationMembershipCreated(subscriber, a.SubscribeToComputeAllocationMembershipCreation)
-	a.eventBus.SubscribeComputeAllocationMembershipUpdated(subscriber, a.SubscribeToComputeAllocationMembershipUpdate)
-	a.eventBus.SubscribeComputeAllocationMembershipDeleted(subscriber, a.SubscribeToComputeAllocationMembershipDeletion)
-	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber, a.SubscribeToComputeAllocationMembershipResourceOverrideCreation)
-	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(subscriber, a.SubscribeToComputeAllocationResourceMappingCreation)
+	a.eventBus.SubscribeComputeAllocationCreated(subscriber, a.handleComputeAllocationCreated)
+	a.eventBus.SubscribeComputeAllocationDeleted(subscriber, a.handleComputeAllocationDeleted)
+	a.eventBus.SubscribeComputeAllocationUpdated(subscriber, a.handleComputeAllocationUpdated)
+	a.eventBus.SubscribeComputeAllocationMembershipCreated(subscriber, a.handleComputeAllocationMembershipCreated)
+	a.eventBus.SubscribeComputeAllocationMembershipUpdated(subscriber, a.handleComputeAllocationMembershipUpdated)
+	a.eventBus.SubscribeComputeAllocationMembershipDeleted(subscriber, a.handleComputeAllocationMembershipDeleted)
+	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber, a.handleComputeAllocationMembershipResourceOverrideCreated)
+	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(subscriber, a.handleComputeAllocationResourceMappingCreated)
 }
 
 func (a *AssociationSubscriber) recordAuditEvent(ctx context.Context, eventType, entityType, entityId, message string) {

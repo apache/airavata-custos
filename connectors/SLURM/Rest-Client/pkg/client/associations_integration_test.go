@@ -64,7 +64,7 @@ func TestCreateValidAssociation_Integration(t *testing.T) {
 
 	client := New(apiUrl, user, token, apiVersion)
 
-	CrearteAndValidateAccount(t, client)
+	CreateAndValidateAccount(t, client)
 
 	association := Association{
 		Account:   "test_account",
@@ -110,7 +110,7 @@ func TestDeleteAssociation_Integration(t *testing.T) {
 
 	client := New(apiUrl, user, token, apiVersion)
 
-	CrearteAndValidateAccount(t, client)
+	CreateAndValidateAccount(t, client)
 	defer client.DeleteAccount("test_account") // clean up after test
 
 	association := Association{
@@ -131,7 +131,7 @@ func TestDeleteAssociation_Integration(t *testing.T) {
 		Cluster:   "artisan",
 		Partition: "compute",
 	}
-	err = client.DeleteAssociation(filter)
+	err = client.DeleteAssociations(filter)
 	if err != nil {
 		t.Fatalf("Failed to delete association: %v", err)
 	}

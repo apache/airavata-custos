@@ -70,7 +70,7 @@ func TestSubscribeToComputeAllocationCreation(t *testing.T) {
 		ComputeClusterID: "test_cluster_id",
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAccount)
+	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -133,7 +133,7 @@ func TestSubscribeToComputeAllocationCreationWrongCluster(t *testing.T) {
 		ComputeClusterID: "test_cluster_id",
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAccount)
+	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -166,7 +166,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ComputeClusterID: clusterID,
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAllocation)
+	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAllocation)
 
 	allAuditEvents, err := mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -196,7 +196,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ResourceTime:                100,
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationResourceMappingCreation(context.Background(), resourceMapping)
+	associationSubscriber.handleComputeAllocationResourceMappingCreated(context.Background(), resourceMapping)
 
 	allAuditEvents, err = mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -241,8 +241,8 @@ func TestSubscribeToComputeAllocationResourceMappingCreation(t *testing.T) {
 	allocationResourceId := "allocation-resource-001"
 	allocationMappingId := "allocation-mapping-001"
 
-	defer client.DeleteAccount(computeAllocationName)                                      // clean up after test
-	defer client.DeleteAssociation(operations.AssocFilter{Account: computeAllocationName}) // clean up after test
+	defer client.DeleteAccount(computeAllocationName)                                       // clean up after test
+	defer client.DeleteAssociations(operations.AssocFilter{Account: computeAllocationName}) // clean up after test
 
 	auditEvents := make([]*models.AuditEvent, 0)
 
@@ -311,8 +311,8 @@ func TestSubscribeToComputeAllocationResourceMappingWrongClusterCreation(t *test
 	allocationResourceId := "allocation-resource-001"
 	allocationMappingId := "allocation-mapping-001"
 
-	defer client.DeleteAccount(computeAllocationName)                                      // clean up after test
-	defer client.DeleteAssociation(operations.AssocFilter{Account: computeAllocationName}) // clean up after test
+	defer client.DeleteAccount(computeAllocationName)                                       // clean up after test
+	defer client.DeleteAssociations(operations.AssocFilter{Account: computeAllocationName}) // clean up after test
 
 	auditEvents := make([]*models.AuditEvent, 0)
 
@@ -385,8 +385,8 @@ func TestSubscribeToComputeAllocationResourceMappingWrongResourceTypeCreation(t 
 	allocationResourceId := "allocation-resource-001"
 	allocationMappingId := "allocation-mapping-001"
 
-	defer client.DeleteAccount(computeAllocationName)                                      // clean up after test
-	defer client.DeleteAssociation(operations.AssocFilter{Account: computeAllocationName}) // clean up after test
+	defer client.DeleteAccount(computeAllocationName)                                       // clean up after test
+	defer client.DeleteAssociations(operations.AssocFilter{Account: computeAllocationName}) // clean up after test
 
 	auditEvents := make([]*models.AuditEvent, 0)
 

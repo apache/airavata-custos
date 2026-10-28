@@ -122,7 +122,7 @@ func TestSubscribeToComputeAllocationMembershipCreation(t *testing.T) {
 		ComputeAllocationID: computeAllocationID,
 	}
 	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
-	associationSubscriber.SubscribeToComputeAllocationMembershipCreation(context.Background(), *membership)
+	associationSubscriber.handleComputeAllocationMembershipCreated(context.Background(), *membership)
 
 	if len(auditEvents) != 1 {
 		t.Fatalf("Expected 1 audit event, but got %d", len(auditEvents))
@@ -250,7 +250,7 @@ func TestSubscribeToComputeAllocationMembershipResourceOverrideCreation(t *testi
 
 	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
 
-	associationSubscriber.SubscribeToComputeAllocationMembershipResourceOverrideCreation(context.Background(), *override)
+	associationSubscriber.handleComputeAllocationMembershipResourceOverrideCreated(context.Background(), *override)
 
 	if len(auditEvents) != 1 {
 		t.Fatalf("Expected 1 audit event, but got %d", len(auditEvents))
