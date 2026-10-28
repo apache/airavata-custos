@@ -57,7 +57,7 @@ func (o *Orchestrator) EnsureClusterAdminMembership(ctx context.Context, cu *mod
 		return fail("cluster_admin_group_missing", fmt.Errorf("cluster admin group %q is not in the registry", name))
 	}
 
-	// Set by EnsurePOSIXAccount, which runs first.
+	// Set by EnsureClusterAccount, which runs first.
 	personID, err := o.findStoredPersonID(ctx, cu.UserID)
 	if err != nil {
 		return fail("cluster_admin_find_person", err)
@@ -79,6 +79,6 @@ func (o *Orchestrator) EnsureClusterAdminMembership(ctx context.Context, cu *mod
 		return err
 	}
 	span.SetAttributes(attribute.Int("comanage.co_group_id", groupID))
-	o.audit(ctx, cu, "ComanageClusterAdminGroupJoined", fmt.Sprintf("group=%s co_group_id=%d comanage_id=%s", name, groupID, personID))
+	o.auditClusterAccount(ctx, cu, "ComanageClusterAdminGroupJoined", fmt.Sprintf("group=%s co_group_id=%d comanage_id=%s", name, groupID, personID))
 	return nil
 }

@@ -30,8 +30,6 @@ import (
 	_ "github.com/apache/airavata-custos/pkg/service"
 )
 
-var ErrNotFoundShim = client.ErrNotFound
-
 const comanageIdentitySource = "comanage"
 
 func (o *Orchestrator) findStoredPersonID(ctx context.Context, userID string) (string, error) {
@@ -79,17 +77,17 @@ func (o *Orchestrator) storePersonID(ctx context.Context, userID, personID strin
 	return err
 }
 
-// findByEmailExact searches by email and returns the first match in the
+// findCoPersonIDByEmail searches by email and returns the first match in the
 // configured CO, or 0 if none. COmanage's search.mail is a LIKE match: callers
 // trading off precision for one round-trip should be aware that very similar
 // emails could collide.
-func (o *Orchestrator) findByEmailExact(email string) (int, error) {
+func (o *Orchestrator) findCoPersonIDByEmail(email string) (int, error) {
 	if email == "" {
 		return 0, nil
 	}
 	candidates, err := o.c.FindCoPersonByEmail(email)
 	if err != nil {
-		if errors.Is(err, ErrNotFoundShim) {
+		if errors.Is(err, client.ErrNotFound) {
 			return 0, nil
 		}
 		return 0, err

@@ -57,7 +57,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		}
 	}
 	httpClient := client.New(cfg)
-	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
+	subscribers.NewSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
 	slog.Info("comanage provisioner: subscriber registered",
 		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.CustosClusterID)
 	// Custos is the source of truth: CoPerson and UnixClusterAccount records

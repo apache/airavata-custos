@@ -34,8 +34,8 @@ func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
 	core := adminCore()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, core, adminGroupName).RemovePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemovePOSIXAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 1 || strings.Contains(string(reg.put[0]), "jdoe") {
@@ -57,8 +57,8 @@ func TestRemovePOSIXAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", AccessLevel: models.ClusterAccessAdmin}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemovePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemovePOSIXAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
 	}
 
 	if !slices.Contains(reg.deleted, "/co_group_members/9.json") {
@@ -73,8 +73,8 @@ func TestRemovePOSIXAccount_SecondRunChangesNothing(t *testing.T) {
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemovePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemovePOSIXAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 0 || len(reg.deleted) != 0 {

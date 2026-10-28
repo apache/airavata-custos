@@ -81,8 +81,8 @@ func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 	defer root.End()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	if err := orch.EnsureClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	wantSpans := []string{
@@ -134,8 +134,8 @@ func TestEnsurePOSIXAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	wantTrace := root.SpanContext().TraceID()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx", ApprovalStatus: models.ClusterAccountApproved}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err == nil {
-		t.Fatalf("expected EnsurePOSIXAccount to fail under 500")
+	if err := orch.EnsureClusterAccount(ctx, cu); err == nil {
+		t.Fatalf("expected EnsureClusterAccount to fail under 500")
 	}
 
 	if len(core.auditEvents) == 0 {
@@ -217,8 +217,8 @@ func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	defer root.End()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest", ApprovalStatus: models.ClusterAccountApproved}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	if err := orch.EnsureClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	if !strings.Contains(peoplePutBody, `"identifier":"cluster-e2etest"`) {
@@ -281,8 +281,8 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 	defer root.End()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	if err := orch.EnsureClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	if oidcPutBody == "" {
@@ -310,8 +310,8 @@ func TestEnsurePOSIXAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
 	orch := newOrchestratorForTest(t, srv, core, "")
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountPending}
-	if err := orch.EnsurePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	if err := orch.EnsureClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	if calls != 0 {
