@@ -169,7 +169,7 @@ func (s *Server) deleteProject(w http.ResponseWriter, r *http.Request) {
 // @Failure	401	{object}	object{error=string}
 // @Router	/projects [get]
 func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}

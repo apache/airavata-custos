@@ -50,7 +50,7 @@ func (s *Server) listEventDeliveries(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, fmt.Errorf("unknown status %q", status))
 		return
 	}
-	limit := atoiOr(r.URL.Query().Get("limit"), defaultDeliveryLimit)
+	limit := common.AtoiOr(r.URL.Query().Get("limit"), defaultDeliveryLimit)
 	if limit < 1 || limit > maxDeliveryLimit {
 		common.WriteError(w, http.StatusBadRequest, fmt.Errorf("limit must be between 1 and %d", maxDeliveryLimit))
 		return
@@ -95,7 +95,7 @@ func (s *Server) getEventDelivery(w http.ResponseWriter, r *http.Request) {
 // @Failure	409	{object}	object{error=string}	"Delivery has not failed"
 // @Router	/events/deliveries/{id}/retry [post]
 func (s *Server) retryEventDelivery(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
