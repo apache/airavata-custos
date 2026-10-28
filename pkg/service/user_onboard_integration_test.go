@@ -27,22 +27,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/posix"
 )
-
-func seedRolesManage(t *testing.T, database *sqlx.DB, userID string) {
-	t.Helper()
-	if _, err := database.Exec(
-		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES ($1, $2, $3, NOW(), 'seed')`,
-		uuid.NewString(), userID, string(models.RolesManage),
-	); err != nil {
-		t.Fatalf("seed roles:manage for %s: %v", userID, err)
-	}
-}
 
 func onboardInput(email string) OnboardUserInput {
 	return OnboardUserInput{
@@ -195,7 +183,7 @@ func TestOnboardUser_PortalOnlyAdmin(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	onboarder := seedUser(t, database, fmt.Sprintf("superadmin-%s@example.edu", uuid.NewString()))
-	seedRolesManage(t, database, onboarder)
+	seedPrivilege(t, database, onboarder, models.RolesManage)
 
 	in := onboardInput(fmt.Sprintf("padmin-%s@example.edu", uuid.NewString()))
 	in.PortalAdmin = true
@@ -240,7 +228,7 @@ func TestOnboardUser_PortalAndClusterAdmin(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	onboarder := seedUser(t, database, fmt.Sprintf("superadmin-%s@example.edu", uuid.NewString()))
-	seedRolesManage(t, database, onboarder)
+	seedPrivilege(t, database, onboarder, models.RolesManage)
 
 	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "onb-" + uuid.NewString()[:8]})
 	if err != nil {

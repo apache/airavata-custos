@@ -35,7 +35,7 @@ func TestGrantPrivilege_HappyPath(t *testing.T) {
 
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 
 	grant, err := svc.GrantPrivilege(ctx(), target, models.ClustersRead, granter, "ops view")
 	if err != nil {
@@ -82,7 +82,7 @@ func TestGrantPrivilege_DuplicateActiveReturnsAlreadyExists(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 
 	if _, err := svc.GrantPrivilege(ctx(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("first grant: %v", err)
@@ -98,7 +98,7 @@ func TestRevokePrivilege_HappyPath(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	if _, err := svc.GrantPrivilege(ctx(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestRevokePrivilege_RejectsSelfRevokeOfMeta(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	caller := seedUser(t, database, "caller@example.edu")
-	seedPrivilegesGrant(t, database, caller)
+	seedPrivilege(t, database, caller, models.PrivilegesGrant)
 
 	err := svc.RevokePrivilege(ctx(), caller, models.PrivilegesGrant, caller, "self")
 	if !errors.Is(err, ErrInvalidInput) {
@@ -130,7 +130,7 @@ func TestRevokePrivilege_NoActiveGrant_ReturnsNotFound(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	err := svc.RevokePrivilege(ctx(), target, models.ClustersRead, granter, "")
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("revoke with no active grant: got err=%v, want ErrNotFound", err)
@@ -155,7 +155,7 @@ func TestListUserPrivileges_ReturnsActiveOnly(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	if _, err := svc.GrantPrivilege(ctx(), target, models.ClustersWrite, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestListPrivilegeHolders(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	a := seedUser(t, database, "a@example.edu")
 	b := seedUser(t, database, "b@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	if _, err := svc.GrantPrivilege(ctx(), a, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant a: %v", err)
 	}

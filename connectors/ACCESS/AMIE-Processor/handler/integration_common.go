@@ -23,8 +23,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"os"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -32,122 +30,24 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amietest"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	amieservice "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
-const testClusterID = "00000000-0000-0000-0000-000000000001"
+const testClusterID = amietest.ClusterID
 
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
-)
-
-func isLocalAMIEConfigAvailable() bool {
-	for _, key := range []string{
-		"DATABASE_DSN",
-		"AMIE_BASE_URL",
-		"AMIE_SITE_CODE",
-		"AMIE_API_KEY",
-		"AMIE_CLUSTER_ID",
-	} {
-		if os.Getenv(key) == "" {
-			return false
-		}
-	}
-	return true
-}
-
-// setupTestDB opens the DB once per process; subsequent calls re-truncate
-// and re-seed but reuse the same connection.
 func setupTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
-	if !isLocalAMIEConfigAvailable() {
-		t.Skip("integration env not set; run via scripts/run-amie-integration-tests.sh")
-	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          os.Getenv("DATABASE_DSN"),
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateConnectorFS(database, amiedb.MigrationFS(), "migrations", "amie"); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
-	truncateAll(t, sharedDB)
-	seedDefaultCluster(t, sharedDB)
-	return sharedDB
-}
-
-// truncateAll disables FK checks so we don't have to order the table list.
-func truncateAll(t *testing.T, database *sqlx.DB) {
-	t.Helper()
-	tables := []string{
-		"amie_audit_extras",
-		"audit_events",
-		"event_deliveries",
-		"events",
-		"event_subscriptions",
-		"amie_processing_errors",
-		"amie_processing_events",
-		"amie_packets",
-		"amie_user_dns",
-		"compute_allocation_membership_resource_overrides",
-		"compute_allocation_usages",
-		"project_memberships",
-		"compute_allocation_memberships",
-		"compute_allocation_change_request_events",
-		"compute_allocation_change_requests",
-		"compute_allocation_diffs",
-		"compute_allocation_resource_rates",
-		"compute_allocation_resource_mappings",
-		"compute_allocation_resources",
-		"compute_allocations",
-		"compute_cluster_users",
-		"compute_clusters",
-		"projects",
-		"user_identities",
-		"users",
-		"organizations",
-	}
-	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
-		t.Fatalf("truncate: %v", err)
-	}
-}
-
-// seedDefaultCluster inserts the row AMIE_CLUSTER_ID points at. Handlers
-// refuse to run without it, and FKs on compute_allocations /
-// compute_cluster_users require it.
-func seedDefaultCluster(t *testing.T, database *sqlx.DB) {
-	t.Helper()
-	if _, err := database.Exec(
-		"INSERT INTO compute_clusters (id, name) VALUES ($1, $2)",
-		testClusterID, "default-cluster",
-	); err != nil {
-		t.Fatalf("seed cluster: %v", err)
-	}
+	database := amietest.OpenDB(t, amietest.Tables...)
+	amietest.SeedCluster(t, database)
+	return database
 }
 
 func newTestCoreService(database *sqlx.DB) *coreservice.Service {
@@ -282,14 +182,7 @@ func runHandlerInTx(t *testing.T, database *sqlx.DB, fn func(ctx context.Context
 	return tx.Commit()
 }
 
-func countRows(t *testing.T, database *sqlx.DB, table string) int {
-	t.Helper()
-	var n int
-	if err := database.Get(&n, "SELECT COUNT(*) FROM "+table); err != nil {
-		t.Fatalf("count %s: %v", table, err)
-	}
-	return n
-}
+var countRows = dbtest.CountRows
 
 func countAuditActions(t *testing.T, database *sqlx.DB, packetID string, action model.AuditAction) int {
 	t.Helper()

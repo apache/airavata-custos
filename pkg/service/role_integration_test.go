@@ -23,9 +23,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
-
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -180,17 +177,5 @@ func TestDeleteRole_RefusesSystemRole(t *testing.T) {
 	err := svc.DeleteRole(ctx(), superAdmin.ID, bootstrap)
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Errorf("expected ErrInvalidInput (system role), got %v", err)
-	}
-}
-
-// seedPrivilege directly inserts an active grant for any privilege key.
-func seedPrivilege(t *testing.T, database *sqlx.DB, userID string, p models.PrivilegeKey) {
-	t.Helper()
-	if _, err := database.Exec(
-		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES ($1, $2, $3, NOW(), 'seed')`,
-		uuid.NewString(), userID, string(p),
-	); err != nil {
-		t.Fatalf("seed privilege %s for %s: %v", p, userID, err)
 	}
 }

@@ -21,7 +21,6 @@ package notify
 
 import (
 	"context"
-	"os"
 	"slices"
 	"sync"
 	"testing"
@@ -29,7 +28,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -57,20 +56,8 @@ func (r *syncRelay) count() int {
 
 // Make sure for each account event: pending, ready, and denied an email is sent only once.
 func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
-	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
-	if dsn == "" {
-		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN required")
-	}
-	database, err := db.Open(db.Config{DSN: dsn, MaxOpenConns: 5, MaxIdleConns: 2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.MigrateEmbedded(database); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := database.Exec("TRUNCATE TABLE audit_events, event_deliveries, events, event_subscriptions, compute_cluster_users, compute_clusters, users, organizations CASCADE"); err != nil {
-		t.Fatal(err)
-	}
+	database := dbtest.Open(t, dbtest.CoreDSN(t))
+	dbtest.Truncate(t, database, "audit_events", "event_deliveries", "events", "event_subscriptions", "compute_cluster_users", "compute_clusters", "users", "organizations")
 	ctx := tracingtest.Context()
 	bus, err := events.New(ctx, database)
 	if err != nil {

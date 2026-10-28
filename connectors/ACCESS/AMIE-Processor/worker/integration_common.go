@@ -21,85 +21,26 @@ package worker
 
 import (
 	"context"
-	"os"
-	"strings"
 	"sync"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
 
-	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amietest"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 )
-
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
-)
-
-func isLocalAMIEConfigAvailable() bool {
-	for _, key := range []string{
-		"DATABASE_DSN",
-		"AMIE_BASE_URL",
-		"AMIE_SITE_CODE",
-		"AMIE_API_KEY",
-		"AMIE_CLUSTER_ID",
-	} {
-		if os.Getenv(key) == "" {
-			return false
-		}
-	}
-	return true
-}
 
 func setupTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
-	if !isLocalAMIEConfigAvailable() {
-		t.Skip("integration env not set; run via scripts/run-amie-integration-tests.sh")
-	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          os.Getenv("DATABASE_DSN"),
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateConnectorFS(database, amiedb.MigrationFS(), "migrations", "amie"); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
-	truncateAMIETables(t, sharedDB)
-	return sharedDB
-}
-
-// truncateAMIETables wipes connector tables only; worker tests don't touch
-// core domain tables.
-func truncateAMIETables(t *testing.T, database *sqlx.DB) {
-	t.Helper()
-	tables := []string{
+	// Worker tests touch connector tables only.
+	return amietest.OpenDB(t,
 		"amie_audit_extras",
 		"audit_events",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
 		"amie_user_dns",
-	}
-	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
-		t.Fatalf("truncate: %v", err)
-	}
+	)
 }
 
 // stubAmieClient returns canned responses/errors per call so tests can drive
@@ -173,11 +114,4 @@ func (m *stubMetrics) StartProcessingTimer() func(string) {
 	}
 }
 
-func countRows(t *testing.T, database *sqlx.DB, table string) int {
-	t.Helper()
-	var n int
-	if err := database.Get(&n, "SELECT COUNT(*) FROM "+table); err != nil {
-		t.Fatalf("count %s: %v", table, err)
-	}
-	return n
-}
+var countRows = dbtest.CountRows

@@ -99,7 +99,7 @@ func TestGetCallerProfile_ReturnsUserAndPrivileges(t *testing.T) {
 	user := seedUser(t, database, "user@example.edu")
 	// /me computes the effective set fresh from the DB, not from the request
 	// context, so the grant must exist as a row.
-	seedPrivilegesGrant(t, database, user)
+	seedPrivilege(t, database, user, models.PrivilegesGrant)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)
 	req = withTestCaller(req, user, models.PrivilegesGrant)
@@ -188,7 +188,7 @@ func TestRequirePrivilege_NoGrants_403(t *testing.T) {
 func TestRequirePrivilege_WithGrant_200(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "user@example.edu")
-	seedPrivilegesGrant(t, database, user)
+	seedPrivilege(t, database, user, models.PrivilegesGrant)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/privileges/catalog", nil)
 	req = withTestCaller(req, user, models.PrivilegesGrant)
@@ -209,7 +209,7 @@ func TestGrantPrivilegeEndpoint_HappyPath(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 
 	body, _ := json.Marshal(map[string]any{"privilege": "core:clusters:read", "reason": "ops view"})
 	rr := httptest.NewRecorder()
@@ -249,7 +249,7 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	if _, err := svc.GrantPrivilege(tracingtest.Context(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("seed grant: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 func TestRevokePrivilegeEndpoint_SelfRevokeMeta_400(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "user@example.edu")
-	seedPrivilegesGrant(t, database, user)
+	seedPrivilege(t, database, user, models.PrivilegesGrant)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+user+"/privileges/core:privileges:grant", nil)
 	req = withTestCaller(req, user, models.PrivilegesGrant)
@@ -283,7 +283,7 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	if _, err := svc.GrantPrivilege(tracingtest.Context(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
@@ -307,7 +307,7 @@ func TestListPrivilegeHoldersEndpoint(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegesGrant(t, database, granter)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 	if _, err := svc.GrantPrivilege(tracingtest.Context(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
@@ -331,8 +331,8 @@ func TestRevokePropagatesCacheInvalidation(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	a := seedUser(t, database, "a@example.edu")
 	b := seedUser(t, database, "b@example.edu")
-	seedPrivilegesGrant(t, database, a)
-	seedPrivilegesGrant(t, database, b)
+	seedPrivilege(t, database, a, models.PrivilegesGrant)
+	seedPrivilege(t, database, b, models.PrivilegesGrant)
 
 	// Drive the revoke and confirm a subsequent service lookup reflects it.
 	rr := httptest.NewRecorder()
