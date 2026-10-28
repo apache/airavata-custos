@@ -180,12 +180,12 @@ func (r *registry) Record(_ context.Context, _, path, kind, name, unixOwner stri
 	return 0, nil
 }
 
-func (r *registry) MarkPending(_ context.Context, _, kind, name string) error {
+func (r *registry) MarkFoldersForDeletion(_ context.Context, _, kind, name string) error {
 	*r = append(*r, "mark "+kind+" "+name)
 	return nil
 }
 
-// Make sure ensure records each folder with its owner, and a deletion only marks its owner's folders.
+// Make sure ensureMounts records each folder with its owner, and a deletion only marks its owner's folders.
 func TestRegistry(t *testing.T) {
 	group, now := "proj-a", time.Now()
 	jdoe := models.ComputeClusterUser{ComputeClusterID: "c1", UserID: "u1", LocalUsername: "custos-jdoe", ProvisionedAt: &now}
