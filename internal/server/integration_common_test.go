@@ -22,68 +22,20 @@ package server
 import (
 	"context"
 	"net/http"
-	"os"
-	"strings"
-	"sync"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
-	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
-)
-
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
 )
 
 func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 	t.Helper()
-	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
-	if dsn == "" {
-		dsn = os.Getenv("DATABASE_DSN")
-	}
-	if dsn == "" {
-		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN or DATABASE_DSN required")
-	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          dsn,
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
-	truncateAll(t, sharedDB)
-	bus, err := events.New(context.Background(), sharedDB)
-	if err != nil {
-		t.Fatalf("event bus: %v", err)
-	}
-	svc := service.New(sharedDB, bus)
-	router := identity.NewRouter(http.NewServeMux())
-	return sharedDB, svc, New(svc, router)
-}
-
-func truncateAll(t *testing.T, database *sqlx.DB) {
-	t.Helper()
-	tables := []string{
+	database := dbtest.Open(t, dbtest.CoreDSN(t))
+	dbtest.Truncate(t, database,
 		"user_roles",
 		"role_privileges",
 		"roles",
@@ -104,41 +56,17 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"user_identities",
 		"users",
 		"organizations",
+	)
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
 	}
-	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
-		t.Fatalf("truncate: %v", err)
-	}
+	svc := service.New(database, bus)
+	router := identity.NewRouter(http.NewServeMux())
+	return database, svc, New(svc, router)
 }
 
-func seedUser(t *testing.T, database *sqlx.DB, email string) string {
-	t.Helper()
-	orgID := uuid.NewString()
-	if _, err := database.Exec(
-		"INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
-		orgID, "TEST-ORG-"+orgID[:8], "Test Org",
-	); err != nil {
-		t.Fatalf("seed org: %v", err)
-	}
-	userID := uuid.NewString()
-	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-		userID, orgID, "Test", "User", "", email, string(models.UserActive),
-	); err != nil {
-		t.Fatalf("seed user %s: %v", email, err)
-	}
-	return userID
-}
-
-// seedPrivilegesGrant directly inserts an active privileges:grant for userID.
-// Bypasses the service guards so tests can stand up a granter without a
-// chicken-and-egg dependency.
-func seedPrivilegesGrant(t *testing.T, database *sqlx.DB, userID string) {
-	t.Helper()
-	if _, err := database.Exec(
-		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES ($1, $2, $3, NOW(), 'seed')`,
-		uuid.NewString(), userID, string(models.PrivilegesGrant),
-	); err != nil {
-		t.Fatalf("seed privileges:grant for %s: %v", userID, err)
-	}
-}
+var (
+	seedUser      = dbtest.SeedUser
+	seedPrivilege = dbtest.SeedPrivilege
+)

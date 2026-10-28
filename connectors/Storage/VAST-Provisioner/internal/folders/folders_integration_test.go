@@ -22,14 +22,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -56,20 +55,8 @@ func (f *fakeVMS) CreateAuditEvent(_ context.Context, e *models.AuditEvent) (*mo
 // Make sure a deletion marks the folder and everything under it, a returning owner unmarks its folder, and deleting
 // it removes it from VAST with everything under it once all of it is pending.
 func TestReview(t *testing.T) {
-	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
-	if dsn == "" {
-		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN required")
-	}
-	database, err := db.Open(db.Config{DSN: dsn, MaxOpenConns: 2, MaxIdleConns: 1})
-	if err == nil {
-		err = db.MigrateConnectorFS(database, Migrations, "migrations", "vast")
-	}
-	if err == nil {
-		_, err = database.Exec("TRUNCATE vast_folders")
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	database := dbtest.Open(t, dbtest.CoreDSN(t), dbtest.Migrations{FS: Migrations, Dir: "migrations", Name: "vast"})
+	dbtest.Truncate(t, database, "vast_folders")
 	vast := &fakeVMS{quotas: map[string]client.Quota{"/home/jdoe": {HardLimit: 100, Used: 40}}}
 	ctx, s := context.Background(), New(database, func(string) (VMS, error) { return vast, nil }, vast)
 	for _, f := range [][3]string{{"/home/jdoe", "cluster_user", "jdoe"}, {"/project/a", "allocation", "a"},
