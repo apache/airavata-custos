@@ -34,18 +34,18 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// ClusterUserSubscriber drives the orchestrator from three events,
-// ComputeClusterUserApproveEvent, ComputeClusterUserDeleteEvent, and UserIdentityCreateEvent.
-// Both are ignored if the user doesn't have a cluster account on `CustosClusterID`.
-type ClusterUserSubscriber struct {
+// Subscriber drives the orchestrator from cluster account, user identity,
+// allocation and allocation membership events. Events for a cluster other than
+// `CustosClusterID` are ignored.
+type Subscriber struct {
 	ops             *operations.Orchestrator
 	bus             *events.Bus
 	core            *service.Service
 	custosClusterID string
 }
 
-func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.Service, custosClusterID string) *ClusterUserSubscriber {
-	return &ClusterUserSubscriber{
+func NewSubscriber(c *client.Client, bus *events.Bus, core *service.Service, custosClusterID string) *Subscriber {
+	return &Subscriber{
 		ops:             operations.New(c, core),
 		bus:             bus,
 		core:            core,
@@ -54,7 +54,7 @@ func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.S
 }
 
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
-func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
+func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	// Accounts are created on the cluster only after an admin approves them,
 	// so the `approve event` is what starts provisioning, not the `create event`.
 	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
@@ -71,14 +71,14 @@ func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
 
 // handleClusterUserDeleted removes the account from the registry.
 // An account that was never approved was never sent there, so it is skipped.
-func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
 	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_deleted")
 	defer span.End()
-	if err := s.ops.RemovePOSIXAccount(ctx, &cu); err != nil {
+	if err := s.ops.RemoveClusterAccount(ctx, &cu); err != nil {
 		slog.ErrorContext(ctx, "comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
@@ -88,7 +88,7 @@ func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu
 // handleUserIdentityCreate re-runs provisioning once the `User` has a `sub`.
 // A user provisioned before their first sign-in has none in the registry, so
 // the cluster cannot match the person to their ssh login.
-func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, identity models.UserIdentity) error {
+func (s *Subscriber) handleUserIdentityCreate(ctx context.Context, identity models.UserIdentity) error {
 	// Provisioning stores a COmanage identity of its own, which comes back with
 	// the `identity`. The event is fired for every `UserIdentity` source, and only the `oidc` one
 	// carries the sub that needs to be updated in the COmanage registry.
@@ -111,7 +111,7 @@ func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, id
 		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", identity.UserID, "err", err)
 		return err
 	}
-	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
+	if err := s.ops.EnsureClusterAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed after identity link", "compute_cluster_user_id", cu.ID, "user_id", identity.UserID, "err", err)
@@ -120,7 +120,7 @@ func (s *ClusterUserSubscriber) handleUserIdentityCreate(ctx context.Context, id
 	return s.syncUserAllocations(ctx, cu.UserID)
 }
 
-func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_approved")
 	defer span.End()
@@ -141,7 +141,7 @@ func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c
 	})
 	// TODO: move to a transactional scope. In-process delivery loses events
 	// if the process crashes between the core commit and subscriber pickup.
-	if err := s.ops.EnsurePOSIXAccount(ctx, &cu); err != nil {
+	if err := s.ops.EnsureClusterAccount(ctx, &cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)

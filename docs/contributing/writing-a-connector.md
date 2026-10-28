@@ -382,7 +382,7 @@ return nil
 }
 ```
 
-The COmanage `ClusterUserSubscriber` is the smallest working example.
+The COmanage `Subscriber` is the smallest working example.
 
 Rules for a handler:
 

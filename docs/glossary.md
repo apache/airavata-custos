@@ -28,7 +28,10 @@ not duplicated here — refer to the relevant upstream docs.
 Concepts that belong to the Custos core.
 
 - **HPC** — High-Performance Computing. The cluster-computing domain Custos serves (e.g. ACCESS-CI sites, university research clusters).
+- **Compute cluster** — An HPC cluster Custos manages (`ComputeCluster`, `compute_clusters`). Prose and the UI say "cluster"; write "compute cluster" where a Slurm cluster name or a COmanage UnixCluster is also in play.
 - **Allocation** — A grant of compute time on a cluster, attached to a project. Has a start/end date, a resource (cluster), and rates.
+- **Cluster account** — A user's login on one compute cluster (`ComputeClusterUser`, `compute_cluster_users`).
+- **Allocation group** — An allocation's POSIX group (`ComputeAllocation.PosixGroup`), whose members are the allocation's provisioned members.
 - **Allocation membership** — A user's tie to an allocation (PI, CO_PI, ALLOCATION_MANAGER, or plain member).
 - **PI / CO_PI / ALLOCATION_MANAGER** — Project-level governance roles. PI = Principal Investigator (the responsible researcher). CO_PI = Co-Principal Investigator. ALLOCATION_MANAGER = delegated allocation administrator.
 
@@ -38,6 +41,7 @@ Federated identity stack Custos integrates with.
 
 - **CILogon** — Federated identity service used by US research-computing communities. Issues OIDC tokens and hosts COmanage.
 - **COmanage** — Identity registry software from Internet2 used to provision POSIX cluster accounts. Custos talks to a hosted instance via CILogon.
+- **Primary CoGroup** — The CoGroup named after a cluster account's username that the account's UnixClusterAccount names as its primary group; its gid equals the account's uid. Distinct from the CoGroup that carries an allocation group.
 - **DN** — Distinguished Name. LDAP identifier for a person (e.g. an X.509 subject DN).
 
 ## ACCESS-CI / AMIE connector

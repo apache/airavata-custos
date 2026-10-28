@@ -35,7 +35,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
+func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
 	log := slog.With("correlation_id", cu.ID, "custos_user_id", cu.UserID, "unix_cluster_id", o.c.Config().UnixClusterID)
 
 	user, err := o.core.GetUser(ctx, cu.UserID)
@@ -57,7 +57,7 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 	log = log.With("comanage_person_id", personID)
 	log.InfoContext(ctx, "comanage: CoPerson resolved", "created", created)
 	if created {
-		o.audit(ctx, cu, "ComanageCoPersonCreated", fmt.Sprintf("comanage_id=%s email=%s", personID, user.Email))
+		o.auditClusterAccount(ctx, cu, "ComanageCoPersonCreated", fmt.Sprintf("comanage_id=%s email=%s", personID, user.Email))
 	}
 
 	if err := o.storePersonID(ctx, cu.UserID, personID); err != nil {
@@ -98,7 +98,7 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return err
 	}
 
-	coGroupID, err := o.findOrCreateCoGroup(ctx, cu.LocalUsername)
+	coGroupID, err := o.findOrCreatePrimaryCoGroup(ctx, cu.LocalUsername)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return err
 	}
 	log.InfoContext(ctx, "comanage: UnixClusterAccount attached", "username", cu.LocalUsername, "uid", uidInt, "co_group_id", coGroupID)
-	o.audit(ctx, cu, "ComanageClusterAccountAttached", fmt.Sprintf("comanage_id=%s username=%s uid=%d", personID, cu.LocalUsername, uidInt))
+	o.auditClusterAccount(ctx, cu, "ComanageClusterAccountAttached", fmt.Sprintf("comanage_id=%s username=%s uid=%d", personID, cu.LocalUsername, uidInt))
 	if err := o.core.MarkComputeClusterUserProvisioned(ctx, cu.ID); err != nil {
 		log.WarnContext(ctx, "comanage: failed to mark cluster user provisioned", "err", err)
 	}
@@ -166,7 +166,7 @@ func (o *Orchestrator) getPersonComposite(ctx context.Context, personID string) 
 	return composite, nil
 }
 
-func (o *Orchestrator) findOrCreateCoGroup(ctx context.Context, name string) (int, error) {
+func (o *Orchestrator) findOrCreatePrimaryCoGroup(ctx context.Context, name string) (int, error) {
 	_, span := tracing.Start(ctx, "comanage.find_or_create_co_group")
 	defer span.End()
 	id, err := o.c.FindCoGroupByName(name)
@@ -212,7 +212,7 @@ func (o *Orchestrator) ensureOIDCLinkage(ctx context.Context, cu *models.Compute
 		o.dlq(ctx, cu, "attach_oidcsub", err)
 		return err
 	}
-	o.audit(ctx, cu, "ComanageOIDCLinkageCreated", fmt.Sprintf("comanage_person_id=%s", personID))
+	o.auditClusterAccount(ctx, cu, "ComanageOIDCLinkageCreated", fmt.Sprintf("comanage_person_id=%s", personID))
 	return nil
 }
 
@@ -353,7 +353,7 @@ func (o *Orchestrator) findCoPerson(ctx context.Context, user *models.User) (str
 	if user.Email == "" {
 		return "", nil, nil
 	}
-	coPersonID, err := o.findByEmailExact(user.Email)
+	coPersonID, err := o.findCoPersonIDByEmail(user.Email)
 	if err != nil && !errors.Is(err, client.ErrNotFound) {
 		return "", nil, fmt.Errorf("email search: %w", err)
 	}
@@ -437,14 +437,14 @@ func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.
 	return "", nil, false, fmt.Errorf("POST /people returned no %s identifier: %+v", personIDType, resp)
 }
 
-// waitForCreatedPersonID polls findByEmailExact then the Identifiers list a
+// waitForCreatedPersonID polls findCoPersonIDByEmail then the Identifiers list a
 // few times, since COmanage's identifier-assignment plugin runs asynchronously
 // after POST /people. Returns the assigned person_id once present.
 func (o *Orchestrator) waitForCreatedPersonID(email, personIDType string) (string, json.RawMessage, bool) {
 	delays := []time.Duration{300 * time.Millisecond, 700 * time.Millisecond, 1500 * time.Millisecond, 3 * time.Second}
 	for _, d := range delays {
 		time.Sleep(d)
-		coPersonID, err := o.findByEmailExact(email)
+		coPersonID, err := o.findCoPersonIDByEmail(email)
 		if err != nil || coPersonID == 0 {
 			continue
 		}
@@ -495,7 +495,7 @@ func buildCreatePersonBody(coID int, user *models.User, sub string) ([]byte, err
 	return json.Marshal(body)
 }
 
-func (o *Orchestrator) audit(ctx context.Context, cu *models.ComputeClusterUser, eventType, details string) {
+func (o *Orchestrator) auditClusterAccount(ctx context.Context, cu *models.ComputeClusterUser, eventType, details string) {
 	_, _ = o.core.CreateAuditEvent(ctx, &models.AuditEvent{
 		EventType:  eventType,
 		EntityID:   cu.ID,
