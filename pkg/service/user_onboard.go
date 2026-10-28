@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -90,10 +89,7 @@ func usernameBase(firstName, lastName, email, prefix string) (string, error) {
 // firstFreeUsername tries base, base2, base3 and so on. It returns "" when every suffix is taken.
 func firstFreeUsername(base string, free func(string) (bool, error)) (string, error) {
 	for n := range posix.MaxCollisionSuffix {
-		name := base
-		if n > 0 {
-			name = base + strconv.Itoa(n+1)
-		}
+		name := posix.Candidate(base, n)
 		ok, err := free(name)
 		if err != nil {
 			return "", err
