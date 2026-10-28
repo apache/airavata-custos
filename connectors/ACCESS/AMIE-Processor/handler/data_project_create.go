@@ -80,7 +80,7 @@ func (h *DataProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		if err := ensureUserIdentity(ctx, h.svc, user.ID, piGlobalID); err != nil {
 			return fmt.Errorf("data_project_create: ensure user identity: %w", err)
 		}
-		dns := getDNList(body)
+		dns := getStringList(body, "DnList")
 		if len(dns) > 0 {
 			for _, dn := range dns {
 				if err := h.userDNStore.Add(ctx, tx, &model.UserDN{UserID: user.ID, DN: dn}); err != nil {
@@ -93,19 +93,6 @@ func (h *DataProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		}
 	}
 
-	reply := map[string]any{
-		"type": "inform_transaction_complete",
-		"body": map[string]any{
-			"StatusCode": "Success",
-			"DetailCode": float64(1),
-			"Message":    "Transaction completed successfully by handler.",
-		},
-	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("data_project_create: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("data_project_create: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	reply := transactionSuccessReply("Transaction completed successfully by handler.")
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "data_project_create", reply)
 }
