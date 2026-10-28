@@ -27,7 +27,7 @@ func IsLocalSlurmConfigAvailable() bool {
 	return true
 }
 
-func CrearteAndValidateAccount(t *testing.T, client *Client) {
+func CreateAndValidateAccount(t *testing.T, client *Client) {
 
 	err := client.CreateAccount(Account{
 		Name:         "test_account",

@@ -37,7 +37,7 @@ func TestAccountCreatiion_Integration(t *testing.T) {
 
 	client.DeleteAccount("test_account")       // clean up before test in case it was left over from a previous failed test run
 	defer client.DeleteAccount("test_account") // clean up after test
-	CrearteAndValidateAccount(t, client)
+	CreateAndValidateAccount(t, client)
 }
 
 func TestAccountDeletion_Integration(t *testing.T) {
@@ -53,7 +53,7 @@ func TestAccountDeletion_Integration(t *testing.T) {
 
 	client := New(apiUrl, user, token, apiVersion)
 
-	CrearteAndValidateAccount(t, client)
+	CreateAndValidateAccount(t, client)
 
 	err := client.DeleteAccount("test_account")
 	if err != nil {
@@ -89,7 +89,7 @@ func TestGetAccount_Integration(t *testing.T) {
 
 	client.DeleteAccount("test_account")       // clean up before test in case it was left over from a previous failed test run
 	defer client.DeleteAccount("test_account") // clean up after test
-	CrearteAndValidateAccount(t, client)
+	CreateAndValidateAccount(t, client)
 
 	account, err := client.GetAccount("test_account")
 	if err != nil {

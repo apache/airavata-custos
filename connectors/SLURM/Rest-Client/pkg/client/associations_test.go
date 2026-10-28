@@ -101,7 +101,7 @@ func TestDeleteAssociation(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := New(srv.URL, "root", "t", "41")
-	if err := c.DeleteAssociation(AssocFilter{Account: "eng"}); err != nil {
+	if err := c.DeleteAssociations(AssocFilter{Account: "eng"}); err != nil {
 		t.Fatal(err)
 	}
 }

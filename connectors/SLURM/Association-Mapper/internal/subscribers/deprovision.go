@@ -57,7 +57,7 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 		Account: slurmAccount(allocation.Name),
 		User:    csu.LocalUsername,
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+	if err := a.slurmClient.DeleteAssociations(filter); err != nil {
 		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
 	}
 	slog.InfoContext(ctx, "Removed associations for membership",
@@ -85,7 +85,7 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 		Cluster: cluster.Name,
 		Account: slurmAccount(allocation.Name),
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
+	if err := a.slurmClient.DeleteAssociations(filter); err != nil {
 		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
 	}
 	slog.InfoContext(ctx, "Removed associations for allocation",
@@ -112,7 +112,7 @@ func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Con
 		if member.MembershipStatus != models.ACTIVE {
 			continue
 		}
-		if err := a.upsertAssociationsForMembership(ctx, member.ComputeAllocationMembership); err != nil {
+		if err := a.upsertAssociationForMembership(ctx, member.ComputeAllocationMembership); err != nil {
 			if errors.Is(err, errNotProvisioned) {
 				continue
 			}

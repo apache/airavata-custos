@@ -137,8 +137,8 @@ func tresSliceEqualUnordered(a, b []TRES) bool {
 	return true
 }
 
-// DeleteAssociation deletes the user associations matching f one at a time, as slurmrestd requires.
-func (c *Client) DeleteAssociation(f AssocFilter) error {
+// DeleteAssociations deletes the user associations matching f one at a time, as slurmrestd requires.
+func (c *Client) DeleteAssociations(f AssocFilter) error {
 	matched, err := c.ListAssociations(f)
 	if err != nil {
 		return err
