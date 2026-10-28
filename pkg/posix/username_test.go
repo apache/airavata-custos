@@ -120,6 +120,17 @@ func TestBuildBase_UnbuildableReturnsError(t *testing.T) {
 	}
 }
 
+func TestCandidate(t *testing.T) {
+	for n, want := range []string{"custos-jdoe", "custos-jdoe2", "custos-jdoe3"} {
+		if got := Candidate("custos-jdoe", n); got != want {
+			t.Errorf("Candidate(%d) = %q, want %q", n, got, want)
+		}
+	}
+	if got := Candidate("b", MaxCollisionSuffix-1); got != "b999" {
+		t.Errorf("last candidate = %q, want %q", got, "b999")
+	}
+}
+
 func TestNormalize(t *testing.T) {
 	tests := []struct {
 		in   string

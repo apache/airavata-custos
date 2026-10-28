@@ -22,7 +22,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/apache/airavata-custos/pkg/events"
@@ -45,7 +44,7 @@ type OnboardUserInput struct {
 	OnboardedBy      string
 }
 
-// generateClusterUsername builds a base name with the same rule ingestion uses.
+// generateClusterUsername returns the first free local username on the cluster, by the rule ingestion uses.
 func (s *Service) generateClusterUsername(ctx context.Context, clusterID, firstName, lastName, email string) (string, error) {
 	u := &models.User{FirstName: firstName, LastName: lastName}
 	if posix.Normalize(firstName) == "" && posix.Normalize(lastName) == "" {
@@ -56,10 +55,7 @@ func (s *Service) generateClusterUsername(ctx context.Context, clusterID, firstN
 		return "", fmt.Errorf("%w: %v", ErrInvalidInput, err)
 	}
 	for n := 0; n < posix.MaxCollisionSuffix; n++ {
-		candidate := base
-		if n > 0 {
-			candidate = base + strconv.Itoa(n+1)
-		}
+		candidate := posix.Candidate(base, n)
 		existing, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, clusterID, candidate)
 		if err != nil {
 			return "", fmt.Errorf("check username: %w", err)
