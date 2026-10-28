@@ -65,7 +65,12 @@ func keyOf(a client.Association) assocKey {
 // Only the limits are compared: the key fields match by construction.
 func sameLimits(want, got client.Association) bool {
 	return sameTRES(want.Limits.GrpTRES, got.Limits.GrpTRES) &&
-		sameTRES(want.Limits.GrpTRESMins, got.Limits.GrpTRESMins)
+		sameTRES(want.Limits.GrpTRESMins, got.Limits.GrpTRESMins) &&
+		blocked(want) == blocked(got)
+}
+
+func blocked(a client.Association) bool {
+	return a.Limits.GrpSubmitJobs != nil && *a.Limits.GrpSubmitJobs == 0
 }
 
 func sameTRES(want, got []client.TRES) bool {
@@ -101,6 +106,18 @@ func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error
 	return a.slurmClient.UpsertAssociation(assoc)
 }
 
+func (a *AssociationSubscriber) blockAssociations(f client.AssocFilter) error {
+	left, err := a.slurmClient.ListAssociations(f)
+	var errs []error
+	for _, assoc := range left {
+		if assoc.User != "" && !blocked(assoc) {
+			assoc.Limits.GrpSubmitJobs = new(int64)
+			errs = append(errs, a.slurmClient.UpsertAssociation(assoc))
+		}
+	}
+	return errors.Join(append(errs, err)...)
+}
+
 // The event handlers use this. An event means something changed, so the
 // record is written without checking the cluster first.
 func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
@@ -113,12 +130,12 @@ func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Cont
 // record on each write. With no existing map it writes every time.
 func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership, existing map[assocKey]client.Association) error {
 	association, err := a.desiredAssociationForMembership(ctx, membership)
-	if err != nil || association == nil {
+	if err != nil {
 		return err
 	}
 
-	// Nothing changed on the cluster, so skip the write.
-	if got, ok := existing[keyOf(*association)]; ok && sameLimits(*association, got) {
+	// Nothing changed on the cluster, so skip the write; a blocked record only replaces one that exists.
+	if got, ok := existing[keyOf(*association)]; ok && sameLimits(*association, got) || !ok && blocked(*association) {
 		return nil
 	}
 	if err := a.writeAssociation(*association); err != nil {
@@ -130,14 +147,11 @@ func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Contex
 
 // Builds the member's association without writing it. It has no partition,
 // so the cluster's own partition settings decide where the member can run.
-// Returns nil when the allocation is not active.
+// An inactive membership, allocation or account keeps its association, blocked.
 func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Context, membership models.ComputeAllocationMembership) (*client.Association, error) {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
 		return nil, fmt.Errorf("get compute allocation: %w", err)
-	}
-	if !activeAllocation(*allocation) {
-		return nil, nil
 	}
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
@@ -161,6 +175,9 @@ func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Cont
 	limits, err := a.limitsFor(ctx, overrides)
 	if err != nil {
 		return nil, err
+	}
+	if membership.MembershipStatus != models.ACTIVE || !activeAllocation(*allocation) || csu.Status == models.INACTIVE {
+		limits.GrpSubmitJobs = new(int64)
 	}
 	return &client.Association{
 		Account: slurmAccount(allocation.Name),

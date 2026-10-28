@@ -70,9 +70,10 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 	if err != nil {
 		return err
 	}
+	// want maps each member's CoPerson to whether it is added when missing.
 	want := map[int]bool{}
 	for _, m := range members {
-		if m.MembershipStatus != models.ACTIVE || m.ProvisionedAt == nil {
+		if m.ProvisionedAt == nil {
 			continue
 		}
 		_, composite, err := o.findCoPerson(ctx, &models.User{ID: m.UserID, Email: m.Email})
@@ -80,7 +81,7 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 			return err
 		}
 		if id, _ := extractCoPersonID(composite); id != 0 {
-			want[id] = true
+			want[id] = want[id] || m.MembershipStatus == models.ACTIVE
 		}
 	}
 	held := len(want)
@@ -89,7 +90,7 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		return err
 	}
 	for _, row := range rows {
-		if row.Member && want[row.Person.Id] {
+		if _, ok := want[row.Person.Id]; row.Member && ok {
 			delete(want, row.Person.Id)
 			continue
 		}
@@ -98,7 +99,11 @@ func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.Comp
 		}
 		o.auditAllocation(ctx, a, "ComanageAllocationGroupMemberRemoved", fmt.Sprintf("group=%s co_person_id=%d", *a.PosixGroup, row.Person.Id))
 	}
-	for id := range want {
+	for id, add := range want {
+		if !add {
+			held--
+			continue
+		}
 		if _, err := o.c.CreateCoGroupMember(id, groupID); err != nil {
 			return err
 		}

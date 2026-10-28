@@ -48,10 +48,13 @@ func (f *fakeOps) RemoveAllocationGroup(context.Context, *models.ComputeAllocati
 	return nil
 }
 
-func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.AuditEvent) {
+func approveWith(t *testing.T, oidc *models.UserIdentity, status models.AllocationStatus) (*fakeOps, []models.AuditEvent) {
 	t.Helper()
 	var audits []models.AuditEvent
 	core := &service.CoreServiceMock{
+		GetComputeClusterUserByPairFunc: func(context.Context, string, string) (*models.ComputeClusterUser, error) {
+			return &models.ComputeClusterUser{ID: "cu1", Status: status}, nil
+		},
 		GetOIDCIdentityFunc: func(context.Context, string) (*models.UserIdentity, error) { return oidc, nil },
 		CreateAuditEventFunc: func(_ context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
 			audits = append(audits, *e)
@@ -69,7 +72,7 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 }
 
 func TestClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
-	ops, audits := approveWith(t, nil)
+	ops, audits := approveWith(t, nil, models.ACTIVE)
 	if len(ops.provisioned) != 0 {
 		t.Fatalf("provisioned before first sign-in: %v", ops.provisioned)
 	}
@@ -85,9 +88,32 @@ func TestClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
 }
 
 func TestClusterUserApproved_RunsWithOIDCIdentity(t *testing.T) {
-	ops, _ := approveWith(t, &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"})
+	ops, _ := approveWith(t, &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"}, models.ACTIVE)
 	if len(ops.provisioned) != 1 || ops.provisioned[0] != "cu1" {
 		t.Fatalf("provisioned = %v, want [cu1]", ops.provisioned)
+	}
+}
+
+func TestClusterUserApproved_SkipsAnAccountDeactivatedSince(t *testing.T) {
+	ops, _ := approveWith(t, &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"}, models.INACTIVE)
+	if len(ops.provisioned) != 0 {
+		t.Fatalf("provisioned an inactive account: %v", ops.provisioned)
+	}
+}
+
+func TestUserOnboarded_SkipsAnInactiveAccount(t *testing.T) {
+	core := &service.CoreServiceMock{
+		GetComputeClusterUserByPairFunc: func(context.Context, string, string) (*models.ComputeClusterUser, error) {
+			return &models.ComputeClusterUser{ID: "cu1", Status: models.INACTIVE, ApprovalStatus: models.ClusterAccountApproved}, nil
+		},
+	}
+	ops := &fakeOps{}
+	s := &ClusterUserSubscriber{ops: ops, core: core, custosClusterID: "c1"}
+	if err := s.handleUserOnboarded(context.Background(), models.User{ID: "u1", Status: models.UserActive}); err != nil {
+		t.Fatal(err)
+	}
+	if len(ops.provisioned) != 0 {
+		t.Fatalf("provisioned an inactive account: %v", ops.provisioned)
 	}
 }
 

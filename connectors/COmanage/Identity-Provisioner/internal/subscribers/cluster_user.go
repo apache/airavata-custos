@@ -78,10 +78,10 @@ func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
 }
 
-// handleClusterUserDeleted removes the account from the registry.
-// An account that was never approved was never sent there, so it is skipped.
+// handleClusterUserDeleted removes the account from the registry. A pending row may be a reopened account that was
+// provisioned before, so every deletion is sent; removing what was never created is a no-op.
 func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
-	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
+	if cu.ComputeClusterID != s.custosClusterID {
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")
@@ -113,6 +113,9 @@ func (s *ClusterUserSubscriber) handleUserOnboarded(ctx context.Context, user mo
 		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", user.ID, "err", err)
 		return err
 	}
+	if cu.Status == models.INACTIVE {
+		return nil
+	}
 	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -141,6 +144,12 @@ func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c
 		attribute.String("comanage.cluster_user_id", cu.ID),
 		attribute.String("comanage.user_id", cu.UserID),
 	)
+	// A retried event carries the status from approval.
+	if current, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, cu.UserID); errors.Is(err, service.ErrNotFound) || err == nil && current.Status == models.INACTIVE {
+		return nil
+	} else if err != nil {
+		return err
+	}
 	oidc, err := s.core.GetOIDCIdentity(ctx, cu.UserID)
 	if err != nil {
 		return err

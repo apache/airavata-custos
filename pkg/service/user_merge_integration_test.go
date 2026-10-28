@@ -144,6 +144,9 @@ func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	if _, err := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: allocID, UserID: member, MembershipStatus: models.ACTIVE}); err != nil {
 		t.Fatalf("seed membership: %v", err)
 	}
+	if err := svc.DeactivateUser(ctx(), member); err != nil {
+		t.Fatalf("deactivate user: %v", err)
+	}
 	if err := svc.DeleteUser(ctx(), member); err != nil {
 		t.Fatalf("delete user: %v", err)
 	}

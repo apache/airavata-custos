@@ -21,7 +21,7 @@
 
 Creates directories, views and quotas on each configured cluster's VAST through the VMS REST API, once the COmanage
 Identity-Provisioner has provisioned the account or the allocation's group. Nothing is changed once it exists, except a quota with
-other limits, which is recreated. Deleting either marks its folders for review at `GET /connectors/vast/folders`, with each
+other limits, which is recreated. Deleting or deactivating either marks its folders for review at `GET /connectors/vast/folders`, with each
 one's quota and use; `DELETE .../{id}` removes a folder's views and quotas and moves it to VAST's trash once everything under it is pending.
 `PUT .../{id}/quota` sets a temporary hard limit, audited under `<cluster>:<path>`, that reconciles restore after its `until`.
 
@@ -38,7 +38,9 @@ fields on a view. The policy is looked up once at startup, and Custos does not s
 |---|---|
 | `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
 | `compute_allocation::group_provision` | The project's directories and each provisioned member's, once the group's first member puts it on the cluster |
-| `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
+| `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned; an inactive member's is marked |
+| `compute_cluster_user::update` | An inactive account's directories are marked; its provision event once reopened records them again, which unmarks them |
+| `compute_allocation::update` | An inactive project's directories are marked; an active one's are recorded again |
 | `compute_cluster_user::delete` | Marks the account's directories, including its directory in each project |
 | `compute_allocation::delete` | Marks the project's directories and its members' directories inside them |
 | Startup, then every 24 hours | Everything, for every account and allocation on each cluster |

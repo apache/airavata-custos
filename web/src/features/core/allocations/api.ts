@@ -126,7 +126,12 @@ export async function addMember(
 }
 
 export async function removeMember(id: string): Promise<void> {
-  await apiFetch(`/compute-allocation-memberships/${id}`, { method: "DELETE" });
+  await apiFetch(`/compute-allocation-memberships/${id}/deactivate`, { method: "POST" });
+}
+
+export async function reactivateMember(id: string): Promise<void> {
+  const body = { membership_status: "ACTIVE" };
+  await apiFetch(`/compute-allocation-memberships/${id}/status`, { method: "PUT", body });
 }
 
 export async function listChangeRequests(

@@ -42,6 +42,8 @@ type MembershipWithUser struct {
 	// The member's account on the allocation's cluster; empty and nil without one.
 	LocalUsername string     `db:"local_username"`
 	ProvisionedAt *time.Time `db:"provisioned_at"`
+
+	AccountStatus models.AllocationStatus `db:"account_status"`
 }
 
 // displayNameSQL is the user's full name, or their email when the name is empty.
@@ -164,7 +166,7 @@ func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx contex
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time, m.membership_status,
 		        COALESCE(r.role, 'MEMBER') AS role, `+displayNameSQL+`, u.email,
-		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at
+		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at, COALESCE(cu.status, '') AS account_status
 		   FROM compute_allocation_memberships m
 		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
 		   JOIN users u ON u.id = m.user_id

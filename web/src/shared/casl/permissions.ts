@@ -28,6 +28,16 @@ const PERMISSIONS = {
     subject: "Allocation",
     privilege: "core:allocations:write",
   },
+  allocationsDeactivate: {
+    action: "deactivate",
+    subject: "ComputeAllocation",
+    privilege: "core:allocations:deactivate",
+  },
+  allocationsDelete: {
+    action: "delete",
+    subject: "ComputeAllocation",
+    privilege: "core:allocations:delete",
+  },
   usersRead: { action: "read", subject: "User", privilege: "core:users:read" },
   clustersRead: { action: "read", subject: "Cluster", privilege: "core:clusters:read" },
 } as const;
@@ -40,6 +50,8 @@ export function usePermissions(): Record<Permission, boolean> {
   return {
     projectsWrite: can("projectsWrite"),
     allocationsWrite: can("allocationsWrite"),
+    allocationsDeactivate: can("allocationsDeactivate"),
+    allocationsDelete: can("allocationsDelete"),
     usersRead: can("usersRead"),
     clustersRead: can("clustersRead"),
   };

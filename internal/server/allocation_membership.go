@@ -117,15 +117,31 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 	common.WriteJSON(w, http.StatusOK, updated)
 }
 
-// @Summary	Delete a compute allocation membership
+// @Summary	Delete an inactive compute allocation membership
 // @Tags	Compute Allocation Memberships
 // @Security	BearerAuth
 // @Param	id	path	string	true	"Membership ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/compute-allocation-memberships/{id} [delete]
 func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationMembership(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary	Deactivate a compute allocation membership
+// @Tags	Compute Allocation Memberships
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Membership ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-memberships/{id}/deactivate [post]
+func (s *Server) deactivateComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.svc.UpdateMembershipStatus(r.Context(), r.PathValue("id"), models.INACTIVE); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}

@@ -83,7 +83,13 @@ const allocation: ComputeAllocation = {
 describe("<AllocationMembersTab />", () => {
   it("offers no Edit or Remove for PI or Co-PI members", () => {
     render(
-      <AllocationMembersTab allocation={allocation} canEditAccess canEditRoles canSearchUsers />,
+      <AllocationMembersTab
+        allocation={allocation}
+        canEditAccess
+        canEditRoles
+        canRemove
+        canSearchUsers
+      />,
     );
     for (const name of ["Paula Ivey", "Carl Osei"]) {
       expect(screen.queryByRole("button", { name: `Edit ${name}` })).not.toBeInTheDocument();
@@ -99,6 +105,7 @@ describe("<AllocationMembersTab />", () => {
         allocation={allocation}
         canEditAccess={false}
         canEditRoles
+        canRemove={false}
         canSearchUsers
       />,
     );

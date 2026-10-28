@@ -20,7 +20,10 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -217,12 +220,41 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}
+		if status == models.UserInactive {
+			if err := s.deactivateClusterAccountsTx(ctx, tx, id); err != nil {
+				return err
+			}
+		}
 		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
 	s.InvalidateAllIdentities()
 	return existing, nil
+}
+
+func (s *Service) deactivateClusterAccountsTx(ctx context.Context, tx *sql.Tx, userID string) error {
+	accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, userID)
+	if err != nil {
+		return err
+	}
+	for _, cu := range accounts {
+		if cu.Status == models.ACTIVE && cu.ApprovalStatus == models.ClusterAccountApproved {
+			if err := s.deactivateComputeClusterUserTx(ctx, tx, &cu); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Service) DeactivateUser(ctx context.Context, id string) error {
+	existing, err := s.GetUser(ctx, id)
+	if err != nil || existing.Status == models.UserMerged {
+		return err
+	}
+	_, err = s.UpdateUserStatus(ctx, id, models.UserInactive)
+	return err
 }
 
 // DeleteUser removes a user by ID.
@@ -237,12 +269,33 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	if existing == nil {
 		return ErrNotFound
 	}
+	if existing.Status != models.UserInactive && existing.Status != models.UserMerged {
+		return fmt.Errorf("%w: user %q is %s, deactivate them first", ErrInUse, id, existing.Status)
+	}
+	// Connectors clean up a cluster account by looking up its user, so the accounts go first.
+	accounts, err := s.clusterUsers.FindByUser(ctx, id)
+	if err != nil {
+		return fmt.Errorf("list cluster accounts: %w", err)
+	}
+	if len(accounts) > 0 {
+		return fmt.Errorf("%w: user %q still has cluster accounts, delete them first", ErrInUse, id)
+	}
+	pending, err := s.clusterUsers.HasPendingEvents(ctx, id)
+	if err != nil {
+		return fmt.Errorf("check pending events: %w", err)
+	}
+	if pending {
+		return fmt.Errorf("%w: connectors are still processing user %q's changes", ErrInUse, id)
+	}
+	var pgErr *pgconn.PgError
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.users.Delete(ctx, tx, id); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.UserDeleteEvent, existing)
-	}); err != nil {
+	}); errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		return fmt.Errorf("%w: user %q is referenced by records that must stay, such as agreement acceptances", ErrInUse, id)
+	} else if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
 	s.InvalidateAllIdentities()

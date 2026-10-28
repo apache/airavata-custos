@@ -22,17 +22,18 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// removeAssociationsForMembership revokes one member's access to one
+// revokeAssociationsForMembership revokes one member's access to one
 // allocation, for when their membership is deactivated or deleted. Their
 // access to other allocations, and everyone else's access to this one, is
 // untouched.
-func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) revokeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership, revoke func(client.AssocFilter) error) error {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if errors.Is(err, service.ErrNotFound) {
 		return leftToCleanup(membership, "allocation")
@@ -57,10 +58,10 @@ func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Cont
 		Account: slurmAccount(allocation.Name),
 		User:    csu.LocalUsername,
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
-		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
+	if err := revoke(filter); err != nil {
+		return fmt.Errorf("revoke associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
 	}
-	slog.InfoContext(ctx, "Removed associations for membership",
+	slog.InfoContext(ctx, "Revoked associations for membership",
 		"user", csu.LocalUsername, "account", allocation.Name, "cluster", cluster.Name)
 	return nil
 }
@@ -74,9 +75,9 @@ func leftToCleanup(membership models.ComputeAllocationMembership, missing string
 	return nil
 }
 
-// removeAssociationsForAllocation drops every member's access to an allocation
+// revokeAssociationsForAllocation drops every member's access to an allocation
 // at once, for when the allocation itself stops being usable.
-func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
+func (a *AssociationSubscriber) revokeAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation, revoke func(client.AssocFilter) error) error {
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
 		return fmt.Errorf("get compute cluster: %w", err)
@@ -85,12 +86,35 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 		Cluster: cluster.Name,
 		Account: slurmAccount(allocation.Name),
 	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
-		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
+	if err := revoke(filter); err != nil {
+		return fmt.Errorf("revoke associations for allocation %s: %w", allocation.Name, err)
 	}
-	slog.InfoContext(ctx, "Removed associations for allocation",
+	slog.InfoContext(ctx, "Revoked associations for allocation",
 		"account", allocation.Name, "cluster", cluster.Name)
 	return nil
+}
+
+// removeUserFromCluster deletes a cluster account's Slurm user. A user still on another cluster loses only this
+// cluster's associations.
+func (a *AssociationSubscriber) removeUserFromCluster(cluster, user string) error {
+	assocs, err := a.slurmClient.ListAssociations(client.AssocFilter{User: user})
+	if err != nil || len(assocs) == 0 {
+		return err
+	}
+	if !slices.ContainsFunc(assocs, func(x client.Association) bool { return x.Cluster != cluster }) {
+		return a.slurmClient.DeleteUser(user)
+	}
+	var errs []error
+	for _, x := range assocs {
+		if x.Cluster == cluster && x.Account != noAllocation {
+			errs = append(errs, a.slurmClient.DeleteAssociation(client.AssocFilter{Cluster: cluster, Account: x.Account, User: user}))
+		}
+	}
+	// The default account goes last, since Slurm refuses it while the user holds others on the cluster.
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+	return a.slurmClient.DeleteAssociation(client.AssocFilter{Cluster: cluster, Account: noAllocation, User: user})
 }
 
 // activeAllocation reports whether an allocation should still grant access.

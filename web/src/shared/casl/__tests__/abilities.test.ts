@@ -64,6 +64,14 @@ const cases: Array<[Privilege, Array<[string, string, boolean]>]> = [
     [
       ["read", "Cluster", true],
       ["manage", "Cluster", true],
+      ["delete", "ComputeClusterUser", false],
+    ],
+  ],
+  [
+    "core:clusters:delete",
+    [
+      ["delete", "ComputeClusterUser", true],
+      ["manage", "Cluster", false],
     ],
   ],
   [

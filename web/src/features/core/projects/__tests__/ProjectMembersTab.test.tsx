@@ -42,7 +42,12 @@ const allocations = [
   { id: "a-1", name: "Alpha", end_time: "2027-01-01T00:00:00Z" },
   { id: "a-2", name: "Beta", end_time: "2027-01-01T00:00:00Z" },
 ];
-const ciraInAlpha = { id: "m-1", compute_allocation_id: "a-1", user_id: "u-3" };
+const ciraInAlpha = {
+  id: "m-1",
+  compute_allocation_id: "a-1",
+  user_id: "u-3",
+  membership_status: "ACTIVE",
+};
 
 const roleMutation = { mutateAsync: vi.fn(async () => undefined), isPending: false };
 const toggle = { mutateAsync: vi.fn(async () => undefined), isPending: false };

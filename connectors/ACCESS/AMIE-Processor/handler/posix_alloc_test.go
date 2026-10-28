@@ -28,6 +28,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/posix"
 )
@@ -96,5 +97,36 @@ func TestAllocateAndCreateClusterUser_CollisionRetry(t *testing.T) {
 	}
 	if len(seen) != n {
 		t.Errorf("distinct usernames: got %d, want %d", len(seen), n)
+	}
+}
+
+// Make sure a returning user's inactive account is reopened as a new request rather than reused as it is.
+func TestEnsureComputeClusterUser_ReopensAnInactiveAccount(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestCoreService(database)
+	ctx := context.Background()
+	org, err := svc.CreateOrganization(ctx, &models.Organization{OriginatedID: uuid.NewString(), Name: "reopen-test-org"})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	u, err := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, FirstName: "Re", LastName: "Turning", Email: fmt.Sprintf("re-%s@example.invalid", uuid.NewString())})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	h := &RequestAccountCreateHandler{svc: svc, clusterID: testClusterID}
+	old, err := h.ensureComputeClusterUser(ctx, u.ID)
+	if err != nil {
+		t.Fatalf("create cluster account: %v", err)
+	}
+	if _, err := svc.ApproveComputeClusterUser(tracingtest.Context(), old.ID, u.ID); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := svc.DeactivateComputeClusterUser(ctx, old.ID); err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+
+	back, err := h.ensureComputeClusterUser(ctx, u.ID)
+	if err != nil || back.ID != old.ID || back.Status != models.ACTIVE || back.ApprovalStatus != models.ClusterAccountPending {
+		t.Fatalf("got %+v (err %v), want row %s reopened as a pending request", back, err, old.ID)
 	}
 }

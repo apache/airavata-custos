@@ -103,11 +103,13 @@ func (s *Registry) Record(ctx context.Context, clusterID, path, ownerKind, owner
 }
 
 // MarkPending marks the owner's active folders and those under them, such as members' folders in a project.
-func (s *Registry) MarkPending(ctx context.Context, clusterID, ownerKind, ownerName string) error {
+// A non-empty allocationID limits it to the owner's folders in that allocation, as when a member leaves.
+func (s *Registry) MarkPending(ctx context.Context, clusterID, ownerKind, ownerName, allocationID string) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE vast_folders f SET status = 'pending_deletion'
 		WHERE f.compute_cluster_id = $1 AND f.status = 'active' AND EXISTS (SELECT 1 FROM vast_folders p
 			WHERE p.compute_cluster_id = $1 AND p.owner_kind = $2 AND p.owner_name = $3
-			AND (f.path = p.path OR starts_with(f.path, p.path || '/')))`, clusterID, ownerKind, ownerName)
+			AND ($4 = '' OR p.allocation_id = $4) AND (f.path = p.path OR starts_with(f.path, p.path || '/')))`,
+		clusterID, ownerKind, ownerName, allocationID)
 	return err
 }
 
