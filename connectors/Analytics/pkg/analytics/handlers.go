@@ -20,7 +20,6 @@ package analytics
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -55,7 +54,7 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/connectors/analytics/contexts [get]
 func (h *Handlers) getCallerAnalyticsContexts(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -84,7 +83,7 @@ func (h *Handlers) getAllocationUsageSummary(w http.ResponseWriter, r *http.Requ
 		common.WriteError(w, http.StatusBadRequest, errors.New("allocation id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -134,7 +133,7 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("allocation id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -157,7 +156,7 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 	// Members may only see their own records; managers default to everyone and
 	// opt into their own with mine=true.
 	mineOnly := !canManage || q.Get("mine") == "true"
-	page, err := h.svc.AllocationJobsPage(r.Context(), id, caller.UserID, mineOnly, atoiOr(q.Get("limit"), 20), atoiOr(q.Get("offset"), 0))
+	page, err := h.svc.AllocationJobsPage(r.Context(), id, caller.UserID, mineOnly, common.AtoiOr(q.Get("limit"), 20), common.AtoiOr(q.Get("offset"), 0))
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -173,24 +172,4 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) allocationAccess(r *http.Request, alloc *models.ComputeAllocation, userID string) (canManage, hasAccess bool, err error) {
 	role, err := h.svc.AllocationRoleForUser(r.Context(), alloc.ID, userID)
 	return models.IsGovernanceRole(role), role != "", err
-}
-
-func requireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
-	c := identity.CallerFromContext(r.Context())
-	if c == nil {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing authenticated caller"))
-		return nil
-	}
-	return c
-}
-
-func atoiOr(s string, def int) int {
-	if s == "" {
-		return def
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return n
 }

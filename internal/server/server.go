@@ -19,10 +19,8 @@
 package server
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/apache/airavata-custos/internal/httputil"
@@ -50,17 +48,6 @@ func New(svc *service.Service, router *identity.Router) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 	tracing.SetRoute(r)
-}
-
-// requireCaller pulls the verified caller off the request context. Returns
-// nil and writes a 401 when the middleware did not attach one.
-func requireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
-	c := identity.CallerFromContext(r.Context())
-	if c == nil {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing authenticated caller"))
-		return nil
-	}
-	return c
 }
 
 func (s *Server) routes() {
@@ -199,7 +186,7 @@ func (s *Server) routes() {
 
 	s.router.RequirePrivilege("GET /audit/traces", models.TracesRead, s.handleListTraces)
 	s.router.RequirePrivilege("GET /audit/traces/{trace_id}", models.TracesRead, s.handleGetTrace)
-	s.router.RequirePrivilege("GET /audit/events", models.TracesRead, s.handleListEvents)
+	s.router.RequirePrivilege("GET /audit/events", models.TracesRead, s.handleListAuditEvents)
 	s.router.RequirePrivilege("GET /audit/sources", models.TracesRead, s.handleListSources)
 
 	s.router.RequirePrivilege("GET /events/deliveries", models.TracesRead, s.listEventDeliveries)
@@ -232,15 +219,4 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			"trace_id", rw.Header().Get("X-Trace-Id"),
 		)
 	})
-}
-
-func atoiOr(s string, def int) int {
-	if s == "" {
-		return def
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return n
 }

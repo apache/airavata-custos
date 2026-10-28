@@ -102,7 +102,7 @@ func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -237,7 +237,7 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 // @Failure	409	{object}	object{error=string}	"Already approved"
 // @Router	/compute-cluster-users/{id}/approve [post]
 func (s *Server) approveClusterAccount(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -267,7 +267,7 @@ type denyClusterAccountRequest struct {
 // @Failure	409	{object}	object{error=string}	"Already approved or denied"
 // @Router	/compute-cluster-users/{id}/deny [post]
 func (s *Server) denyClusterAccount(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
