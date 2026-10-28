@@ -218,7 +218,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return fmt.Errorf("grant admin role: %w", err)
 			}
 
-			if err := s.writeRoleAuditTx(ctx, tx, userRoleAuditGranted, created.ID, map[string]any{
+			if err := s.writeAuditTx(ctx, tx, "role", userRoleAuditGranted, created.ID, map[string]any{
 				"actor_id":  in.OnboardedBy,
 				"role_id":   role.ID,
 				"role_name": role.Name,
@@ -233,7 +233,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return fmt.Errorf("create cluster user: %w", err)
 			}
 			if in.ClusterAdmin {
-				if err := s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditAdminGranted, clusterUser.ID, map[string]any{
+				if err := s.writeAuditTx(ctx, tx, "compute_cluster_user", clusterUserAuditAdminGranted, clusterUser.ID, map[string]any{
 					"actor_id":       in.OnboardedBy,
 					"user_id":        created.ID,
 					"cluster_id":     clusterUser.ComputeClusterID,

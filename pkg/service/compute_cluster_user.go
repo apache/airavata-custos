@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -34,21 +33,6 @@ const (
 	clusterUserAuditApproved     = "CLUSTER_ACCOUNT_APPROVED"
 	clusterUserAuditDenied       = "CLUSTER_ACCOUNT_DENIED"
 )
-
-func (s *Service) writeClusterUserAuditTx(ctx context.Context, tx *sql.Tx, eventType, entityID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  eventType,
-		EventTime:  nowUTC(),
-		EntityID:   entityID,
-		EntityType: "compute_cluster_user",
-		Details:    string(payload),
-	})
-}
 
 // CreateComputeClusterUser persists a new compute-cluster user mapping. If
 // the ID is empty, a UUID is generated. The (possibly populated) record is
@@ -127,7 +111,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		return nil
 	}); err != nil {
 		switch {
-		case isLocalUsernameDuplicate(err):
+		case isLocalUsernameTaken(err):
 			return nil, fmt.Errorf("%w: %s", ErrAlreadyExists, cu.LocalUsername)
 		case isPairDuplicate(err):
 			return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
@@ -172,7 +156,7 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountApproved, reviewerID, "", now); err != nil {
 			return err
 		}
-		if err := s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditApproved, id, map[string]any{
+		if err := s.writeAuditTx(ctx, tx, "compute_cluster_user", clusterUserAuditApproved, id, map[string]any{
 			"actor_id":       reviewerID,
 			"user_id":        cu.UserID,
 			"cluster_id":     cu.ComputeClusterID,
@@ -214,7 +198,7 @@ func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, no
 		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountDenied, reviewerID, note, now); err != nil {
 			return err
 		}
-		if err := s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditDenied, id, map[string]any{
+		if err := s.writeAuditTx(ctx, tx, "compute_cluster_user", clusterUserAuditDenied, id, map[string]any{
 			"actor_id":       reviewerID,
 			"user_id":        cu.UserID,
 			"cluster_id":     cu.ComputeClusterID,
@@ -247,7 +231,7 @@ func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, revi
 	return cu, nil
 }
 
-func isLocalUsernameDuplicate(err error) bool {
+func isLocalUsernameTaken(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_local_username")
 }
 

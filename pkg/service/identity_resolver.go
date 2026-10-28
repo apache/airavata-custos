@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -198,7 +197,7 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		if err := s.users.UpdateStatus(ctx, tx, user.ID, models.UserActive); err != nil {
 			return fmt.Errorf("activate user: %w", err)
 		}
-		if err := s.writeIdentityAuditTx(ctx, tx, user.ID, map[string]any{
+		if err := s.writeAuditTx(ctx, tx, "user", identityAuditLinked, user.ID, map[string]any{
 			"oidc_sub": claims.Sub,
 			"email":    claims.Email,
 			"source":   "oidc_email_fallback",
@@ -214,19 +213,4 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 
 	user.Status = models.UserActive
 	return user, nil
-}
-
-func (s *Service) writeIdentityAuditTx(ctx context.Context, tx *sql.Tx, userID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  identityAuditLinked,
-		EventTime:  nowUTC(),
-		EntityID:   userID,
-		EntityType: "user",
-		Details:    string(payload),
-	})
 }
