@@ -34,10 +34,10 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// ClusterUserSubscriber drives the orchestrator from three events,
+// Subscriber drives the orchestrator from three events,
 // ComputeClusterUserApproveEvent, ComputeClusterUserDeleteEvent, and UserOnboardedEvent.
 // Both are ignored if the user doesn't have a cluster account on `CustosClusterID`.
-type ClusterUserSubscriber struct {
+type Subscriber struct {
 	ops             provisioner
 	bus             *events.Bus
 	core            service.CoreService
@@ -46,15 +46,15 @@ type ClusterUserSubscriber struct {
 
 // provisioner is what the subscriber needs from the orchestrator.
 type provisioner interface {
-	EnsurePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) error
-	RemovePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) error
+	EnsureClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
+	RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
 	EnsureClusterAdminMembership(ctx context.Context, cu *models.ComputeClusterUser) error
 	EnsureAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
 	RemoveAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
 }
 
-func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.Service, custosClusterID string) *ClusterUserSubscriber {
-	return &ClusterUserSubscriber{
+func NewSubscriber(c *client.Client, bus *events.Bus, core *service.Service, custosClusterID string) *Subscriber {
+	return &Subscriber{
 		ops:             operations.New(c, core),
 		bus:             bus,
 		core:            core,
@@ -63,7 +63,7 @@ func NewClusterUserSubscriber(c *client.Client, bus *events.Bus, core *service.S
 }
 
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
-func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
+func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	// Provisioning needs an approved account and an onboarded user approving the user agreement.
 	// Whichever of the `approve event` and the `onboarded event` comes second starts it.
 	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
@@ -80,14 +80,14 @@ func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
 
 // handleClusterUserDeleted removes the account from the registry.
 // An account that was never approved was never sent there, so it is skipped.
-func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
 	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_deleted")
 	defer span.End()
-	if err := s.ops.RemovePOSIXAccount(ctx, &cu); err != nil {
+	if err := s.ops.RemoveClusterAccount(ctx, &cu); err != nil {
 		slog.ErrorContext(ctx, "comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
@@ -97,7 +97,7 @@ func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu
 // handleUserOnboarded re-runs provisioning once the `User` has a `sub`.
 // A user provisioned before their first sign-in has none in the registry, so
 // the cluster cannot match the person to their ssh login.
-func (s *ClusterUserSubscriber) handleUserOnboarded(ctx context.Context, user models.User) error {
+func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.user_onboarded")
 	defer span.End()
@@ -113,7 +113,7 @@ func (s *ClusterUserSubscriber) handleUserOnboarded(ctx context.Context, user mo
 		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", user.ID, "err", err)
 		return err
 	}
-	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
+	if err := s.ops.EnsureClusterAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
@@ -129,7 +129,7 @@ func (s *ClusterUserSubscriber) handleUserOnboarded(ctx context.Context, user mo
 	return s.syncUserAllocations(ctx, cu.UserID)
 }
 
-func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_approved")
 	defer span.End()
@@ -165,7 +165,7 @@ func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c
 	})
 	// TODO: move to a transactional scope. In-process delivery loses events
 	// if the process crashes between the core commit and subscriber pickup.
-	if err := s.ops.EnsurePOSIXAccount(ctx, &cu); err != nil {
+	if err := s.ops.EnsureClusterAccount(ctx, &cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
