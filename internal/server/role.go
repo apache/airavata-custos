@@ -90,7 +90,7 @@ type createRoleRequest struct {
 // @Failure	409	{object}	object{error=string}	"Role name collides"
 // @Router	/roles [post]
 func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -130,7 +130,7 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -163,7 +163,7 @@ func (s *Server) deleteRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -197,7 +197,7 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -232,7 +232,7 @@ func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id and privilege key are required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -311,7 +311,7 @@ func (s *Server) grantRoleToUser(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -353,7 +353,7 @@ func (s *Server) revokeRoleFromUser(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id and role id are required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}

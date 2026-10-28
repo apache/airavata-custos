@@ -143,7 +143,7 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 // @Failure	400	{object}	object{error=string}	"Malformed trace_id or span_id"
 // @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
 // @Router	/audit/events [get]
-func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListAuditEvents(w http.ResponseWriter, r *http.Request) {
 	ts, ok := s.requireAuditStore(w)
 	if !ok {
 		return
