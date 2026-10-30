@@ -48,7 +48,7 @@ func TestMiddleware_ConsentGate(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}
 	router := NewRouter(http.NewServeMux())
-	router.RequireAuthUserAgreementPending("GET /me", ok)
+	router.RequireAuthWithoutUserConsent("GET /me", ok)
 	router.RequireAuth("GET /projects", ok)
 
 	tests := []struct {
@@ -66,7 +66,7 @@ func TestMiddleware_ConsentGate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			handler := Middleware(fakeVerifier{}, fakeResolver{caller: tc.caller}, nil, router.UserAgreementPendingRoutes(), router)
+			handler := Middleware(fakeVerifier{}, fakeResolver{caller: tc.caller}, nil, router.WithoutUserConsentRoutes(), router)
 			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
 			req.Header.Set("Authorization", "Bearer token")
 			rec := httptest.NewRecorder()

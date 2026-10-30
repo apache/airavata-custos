@@ -30,8 +30,8 @@ import (
 // Middleware verifies the bearer token once, resolves the caller, and
 // attaches Caller + privilege set to the request context. Public paths
 // bypass verification entirely. Callers who need onboarding or consent only
-// reach routes userAgreementPending matches; nil matches none.
-func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, userAgreementPending func(*http.Request) bool, next http.Handler) http.Handler {
+// reach routes withoutUserConsent matches; nil matches none.
+func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, withoutUserConsent func(*http.Request) bool, next http.Handler) http.Handler {
 	publicSet := make(map[string]struct{}, len(publicPaths))
 	for _, path := range publicPaths {
 		publicSet[path] = struct{}{}
@@ -65,12 +65,14 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []str
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
-		pendingRoute := userAgreementPending != nil && userAgreementPending(req)
-		if caller.NeedsOnboarding && !pendingRoute {
+
+		// Determine that this endpoint requires no user consent
+		allowedWithoutUserConsent := withoutUserConsent != nil && withoutUserConsent(req)
+		if caller.NeedsOnboarding && !allowedWithoutUserConsent {
 			writeJSONError(w, http.StatusForbidden, "onboarding_required", "Accept the user agreement to continue")
 			return
 		}
-		if caller.ConsentPending && !pendingRoute {
+		if caller.ConsentPending && !allowedWithoutUserConsent {
 			writeJSONError(w, http.StatusForbidden, "consent_required", "Accept the updated user agreement to continue")
 			return
 		}
@@ -83,16 +85,16 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []str
 
 // Router is the only path that lets HTTP routes hit the mux. The mux
 // field is unexported on purpose: callers must go through RequirePrivilege,
-// RequireAuth, RequireAuthUserAgreementPending, RequireScoped, or Public.
+// RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, or Public.
 type Router struct {
-	mux                     *http.ServeMux
-	userAgreementPendingMux *http.ServeMux
-	publicPaths             []string
+	mux                   *http.ServeMux
+	withoutUserConsentMux *http.ServeMux
+	publicPaths           []string
 }
 
 // NewRouter wraps mux.
 func NewRouter(mux *http.ServeMux) *Router {
-	return &Router{mux: mux, userAgreementPendingMux: http.NewServeMux()}
+	return &Router{mux: mux, withoutUserConsentMux: http.NewServeMux()}
 }
 
 // RequirePrivilege registers an authenticated handler. The wrapper checks privilege
@@ -133,18 +135,18 @@ func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWrite
 	})
 }
 
-// RequireAuthUserAgreementPending registers a handler that signed-in callers
+// RequireAuthWithoutUserConsent registers a handler that signed-in callers
 // can reach before accepting the user agreement. Handlers read ClaimsFromContext.
-func (r *Router) RequireAuthUserAgreementPending(pattern string, handler http.HandlerFunc) {
+func (r *Router) RequireAuthWithoutUserConsent(pattern string, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, handler)
-	r.userAgreementPendingMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
+	r.withoutUserConsentMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
 }
 
-// UserAgreementPendingRoutes reports whether a request targets a
-// RequireAuthUserAgreementPending route, with the same pattern rules as the real mux.
-func (r *Router) UserAgreementPendingRoutes() func(*http.Request) bool {
+// WithoutUserConsentRoutes reports whether a request targets a
+// RequireAuthWithoutUserConsent route, with the same pattern rules as the real mux.
+func (r *Router) WithoutUserConsentRoutes() func(*http.Request) bool {
 	return func(req *http.Request) bool {
-		_, pattern := r.userAgreementPendingMux.Handler(req)
+		_, pattern := r.withoutUserConsentMux.Handler(req)
 		return pattern != ""
 	}
 }
