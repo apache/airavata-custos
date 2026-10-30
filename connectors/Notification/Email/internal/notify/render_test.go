@@ -38,6 +38,28 @@ func TestRender_LeavesOutMissingProject(t *testing.T) {
 	}
 }
 
+func TestRender_RequestApproved(t *testing.T) {
+	d := Data{Site: Site{SiteName: "Example HPC", PortalURL: "https://portal.example.org"}, Username: "jdoe"}
+	m, err := Render(RequestApproved, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(m.Subject, "approved") {
+		t.Errorf("subject lacks approved: %q", m.Subject)
+	}
+	if !strings.Contains(m.HTML, "Your account is approved") {
+		t.Errorf("heading lacks approved: %q", m.HTML)
+	}
+	for _, body := range []string{m.Text, m.HTML} {
+		if !strings.Contains(body, "https://portal.example.org") || !strings.Contains(body, "jdoe") {
+			t.Errorf("body misses the portal URL or username: %q", body)
+		}
+		if strings.Contains(strings.ToLower(body), "ssh") {
+			t.Errorf("body mentions ssh: %q", body)
+		}
+	}
+}
+
 // Make sure the admin's free-text reason cannot inject markup into the email.
 func TestRender_EscapesTheReason(t *testing.T) {
 	m, err := Render(RequestDenied, Data{Site: Site{SiteName: "Example HPC"}, Reason: `<a href="https://example.com">click</a>`})

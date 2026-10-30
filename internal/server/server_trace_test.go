@@ -42,7 +42,7 @@ func TestLoggingWrapsTracingProducesTraceIdHeader(t *testing.T) {
 
 	router := identity.NewRouter(http.NewServeMux())
 	srv := New(nil, router)
-	handler := LoggingMiddleware(tracing.Middleware(identity.Middleware(stubAuth{}, stubAuth{}, router.PublicPaths(), srv)))
+	handler := LoggingMiddleware(tracing.Middleware(identity.Middleware(stubAuth{}, stubAuth{}, router.PublicRoutes(), router.WithoutUserConsentRoutes(), srv)))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

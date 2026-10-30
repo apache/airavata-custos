@@ -55,7 +55,7 @@ func (r *syncRelay) count() int {
 	return len(r.sent)
 }
 
-// Make sure for each account event: pending, ready, and denied an email is sent only once.
+// Make sure for each account event: pending, approved, ready, and denied an email is sent only once.
 func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
 	if dsn == "" {
@@ -120,17 +120,18 @@ func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 	runCtx, stop := context.WithCancel(ctx)
 	go bus.Run(runCtx)
 	deadline := time.Now().Add(5 * time.Second)
-	for relay.count() < 4 && time.Now().Before(deadline) {
-		time.Sleep(50 * time.Millisecond)
-	}
-	stop()
-
 	want := []string{
+		"amydoe@example.edu | Your Example HPC account is approved",
 		"amydoe@example.edu | Your Example HPC account is ready",
 		"jdoe@example.edu | We received a request for your Example HPC account",
 		"johndoe@example.edu | We received a request for your Example HPC account",
 		"johndoe@example.edu | Your Example HPC account request was not approved",
 	}
+	for relay.count() < len(want) && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+	}
+	stop()
+
 	slices.Sort(relay.sent)
 	if !slices.Equal(relay.sent, want) {
 		t.Fatalf("emails sent:\n%v\nwant:\n%v", relay.sent, want)

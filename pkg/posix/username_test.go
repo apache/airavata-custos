@@ -144,6 +144,19 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+func TestValidChosen(t *testing.T) {
+	for _, s := range []string{"john", "j-doe_2"} {
+		if !ValidChosen(s) {
+			t.Errorf("ValidChosen(%q) = false, want true", s)
+		}
+	}
+	for _, s := range []string{"", "1abc", "John", "john.doe", strings.Repeat("a", 33), "jo hn"} {
+		if ValidChosen(s) {
+			t.Errorf("ValidChosen(%q) = true, want false", s)
+		}
+	}
+}
+
 func TestPrefix(t *testing.T) {
 	t.Setenv("POSIX_USERNAME_PREFIX", "")
 	if got := Prefix(); got != "custos" {

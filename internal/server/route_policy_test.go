@@ -26,16 +26,19 @@ import (
 
 // A RequireAuth route with a path id would ship without any per-resource
 // check: RequireAuth verifies the caller only. Id-scoped reads must register
-// through RequireScoped (or RequirePrivilege when admin-only).
+// through RequireScoped (or RequirePrivilege when admin-only). The same holds
+// for RequireAuthWithoutUserConsent. Routes under /me/ are scoped to the caller.
 func TestNoRequireAuthOnIdScopedRoutes(t *testing.T) {
 	src, err := os.ReadFile("server.go")
 	if err != nil {
 		t.Fatalf("read server.go: %v", err)
 	}
-	re := regexp.MustCompile(`RequireAuth\("[A-Z]+ [^"]*\{[^"]*"`)
+	re := regexp.MustCompile(`RequireAuth(WithoutUserConsent)?\("[A-Z]+ ([^"]*\{[^"]*)"`)
 	for _, line := range strings.Split(string(src), "\n") {
-		if re.MatchString(line) {
-			t.Errorf("id-scoped route registered with RequireAuth (needs RequireScoped or RequirePrivilege): %s", strings.TrimSpace(line))
+		m := re.FindStringSubmatch(line)
+		if m == nil || (m[1] == "WithoutUserConsent" && strings.HasPrefix(m[2], "/me/")) {
+			continue
 		}
+		t.Errorf("id-scoped route registered with RequireAuth (needs RequireScoped or RequirePrivilege): %s", strings.TrimSpace(line))
 	}
 }

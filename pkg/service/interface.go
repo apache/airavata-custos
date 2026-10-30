@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -60,6 +61,7 @@ type UserService interface {
 	UpdateUserStatus(ctx context.Context, id string, status models.UserStatus) (*models.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	MergeUsers(ctx context.Context, survivingID, retiringID string) (*models.User, error)
+	ValidateUsername(name string) error
 }
 
 // UserIdentityService exposes external-identity linking.
@@ -69,6 +71,7 @@ type UserIdentityService interface {
 	GetUserIdentityBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.UserIdentity, error)
 	GetUserIdentityByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error)
 	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	GetOIDCIdentity(ctx context.Context, userID string) (*models.UserIdentity, error)
 	UpdateUserIdentity(ctx context.Context, e *models.UserIdentity) error
 	DeleteUserIdentity(ctx context.Context, id string) error
 }
@@ -266,6 +269,30 @@ type UserRoleService interface {
 	BootstrapSuperAdmin(ctx context.Context, email, source string) error
 }
 
+// UserAgreementService manages the draft, publish, and remove lifecycle of
+// versioned user agreements. Writes require agreements:manage.
+type UserAgreementService interface {
+	ListUserAgreements(ctx context.Context) ([]models.UserAgreement, error)
+	GetUserAgreement(ctx context.Context, id string) (*models.UserAgreement, error)
+	CreateUserAgreementDraft(ctx context.Context, in UserAgreementInput, actorID string) (*models.UserAgreement, error)
+	UpdateUserAgreementDraft(ctx context.Context, id string, in UserAgreementInput, actorID string) (*models.UserAgreement, error)
+	DeleteUserAgreementDraft(ctx context.Context, id, actorID string) error
+	PublishUserAgreement(ctx context.Context, id, actorID string) (*models.UserAgreement, error)
+	RemoveUserAgreement(ctx context.Context, id, actorID string) (*models.UserAgreement, error)
+	UserAgreementCounts(ctx context.Context, id string) (accepted, pending int, err error)
+	ListUserAgreementAcceptances(ctx context.Context, id string, limit, offset int) ([]models.UserAgreementAcceptance, error)
+	ListUserAgreementPendingUsers(ctx context.Context, id string, limit, offset int) ([]models.User, error)
+}
+
+// UserConsentService covers what a user does before using the portal.
+// Accept the current user agreement and, at first sign-in, choose a username and link their sub.
+type UserConsentService interface {
+	PendingUserAgreements(ctx context.Context, userID string) ([]models.UserAgreement, error)
+	AcceptUserAgreement(ctx context.Context, userID, agreementID string) (*models.UserAgreementAcceptance, error)
+	CheckOnboardingUsername(ctx context.Context, userID, candidate string) (*UsernameCheck, error)
+	CompleteOnboarding(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error)
+}
+
 // CoreService is the aggregate of every domain interface this package exposes.
 // Most callers should depend on this, or — when they need only a slice of
 // the API — on the narrower per-domain interfaces above.
@@ -291,6 +318,8 @@ type CoreService interface {
 	UserPrivilegeService
 	RoleService
 	UserRoleService
+	UserAgreementService
+	UserConsentService
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

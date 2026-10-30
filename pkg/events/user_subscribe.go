@@ -44,3 +44,9 @@ func (b *Bus) SubscribeUserUpdated(subscriber string, handler UserHandler) {
 func (b *Bus) SubscribeUserDeleted(subscriber string, handler UserHandler) {
 	subscribeTyped(b, subscriber, UserDeleteEvent, handler)
 }
+
+// SubscribeUserOnboarded registers a typed handler invoked whenever a
+// user::onboarded event is published.
+func (b *Bus) SubscribeUserOnboarded(subscriber string, handler UserHandler) {
+	subscribeTyped(b, subscriber, UserOnboardedEvent, handler)
+}

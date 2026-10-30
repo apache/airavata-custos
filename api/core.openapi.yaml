@@ -108,6 +108,10 @@ definitions:
         items:
           $ref: '#/definitions/CallerClusterAccount'
         type: array
+      consent:
+        $ref: '#/definitions/consentView'
+      onboarding:
+        $ref: '#/definitions/onboardingView'
       privileges:
         items:
           $ref: '#/definitions/PrivilegeKey'
@@ -651,6 +655,8 @@ definitions:
     - core:privileges:grant
     - core:roles:manage
     - core:events:manage
+    - core:agreements:read
+    - core:agreements:manage
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -667,6 +673,8 @@ definitions:
     - PrivilegesGrant
     - RolesManage
     - EventsManage
+    - AgreementsRead
+    - AgreementsManage
   Project:
     properties:
       created_time:
@@ -775,6 +783,22 @@ definitions:
         type: string
       is_system:
         type: boolean
+      name:
+        type: string
+    type: object
+  SetupStatusResponse:
+    properties:
+      steps:
+        items:
+          $ref: '#/definitions/SetupStep'
+        type: array
+    type: object
+  SetupStep:
+    properties:
+      done_at:
+        type: string
+      key:
+        type: string
       name:
         type: string
     type: object
@@ -896,6 +920,62 @@ definitions:
       type:
         $ref: '#/definitions/UserType'
     type: object
+  UserAgreement:
+    properties:
+      body_hash:
+        type: string
+      body_md:
+        type: string
+      change_note:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      published_by:
+        type: string
+      removed_at:
+        type: string
+      removed_by:
+        type: string
+      status:
+        $ref: '#/definitions/UserAgreementStatus'
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version_label:
+        type: string
+    type: object
+  UserAgreementAcceptance:
+    properties:
+      accepted_at:
+        type: string
+      agreement_id:
+        type: string
+      body_hash:
+        type: string
+      id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  UserAgreementStatus:
+    enum:
+    - DRAFT
+    - PUBLISHED
+    - REMOVED
+    type: string
+    x-enum-varnames:
+    - UserAgreementDraft
+    - UserAgreementPublished
+    - UserAgreementRemoved
   UserAllocationSUTotalResponse:
     properties:
       compute_allocation_id:
@@ -990,6 +1070,44 @@ definitions:
     - UserTypeClusterLocal
     - UserTypeVirtual
     - UserTypeSystem
+  UsernameCheck:
+    properties:
+      available:
+        type: boolean
+      suggestion:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  acceptanceReport:
+    properties:
+      accepted:
+        items:
+          $ref: '#/definitions/acceptanceRow'
+        type: array
+      pending:
+        items:
+          $ref: '#/definitions/pendingRow'
+        type: array
+      status:
+        type: string
+    type: object
+  acceptanceRow:
+    properties:
+      accepted_at:
+        type: string
+      user:
+        $ref: '#/definitions/actorView'
+    type: object
+  actorView:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -998,6 +1116,13 @@ definitions:
         type: integer
       resource_time:
         type: integer
+    type: object
+  consentView:
+    properties:
+      pending:
+        items:
+          $ref: '#/definitions/UserAgreement'
+        type: array
     type: object
   createComputeClusterUserRequest:
     properties:
@@ -1062,6 +1187,31 @@ definitions:
       surviving_user_id:
         type: string
     type: object
+  onboardingRequest:
+    properties:
+      accepted:
+        items:
+          type: string
+        type: array
+      username:
+        type: string
+    type: object
+  onboardingView:
+    properties:
+      required:
+        type: boolean
+      username:
+        type: string
+      username_editable:
+        type: boolean
+    type: object
+  pendingRow:
+    properties:
+      first_sign_in_at:
+        type: string
+      user:
+        $ref: '#/definitions/actorView'
+    type: object
   revokePrivilegeRequest:
     properties:
       reason:
@@ -1105,6 +1255,93 @@ definitions:
       name:
         type: string
     type: object
+  userAgreementDetail:
+    properties:
+      accepted_count:
+        type: integer
+      body_hash:
+        type: string
+      body_md:
+        type: string
+      change_note:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/actorView'
+      id:
+        type: string
+      pending_count:
+        type: integer
+      published_at:
+        type: string
+      published_by:
+        $ref: '#/definitions/actorView'
+      removed_at:
+        type: string
+      removed_by:
+        $ref: '#/definitions/actorView'
+      status:
+        $ref: '#/definitions/UserAgreementStatus'
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version_label:
+        type: string
+    type: object
+  userAgreementListItem:
+    properties:
+      accepted_count:
+        type: integer
+      body_hash:
+        type: string
+      body_md:
+        type: string
+      change_note:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      pending_count:
+        type: integer
+      published_at:
+        type: string
+      published_by:
+        type: string
+      removed_at:
+        type: string
+      removed_by:
+        type: string
+      status:
+        $ref: '#/definitions/UserAgreementStatus'
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version_label:
+        type: string
+    type: object
+  userAgreementRequest:
+    properties:
+      body_md:
+        type: string
+      change_note:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+      version_label:
+        type: string
+    type: object
   userNameUpdateRequest:
     properties:
       first_name:
@@ -1123,6 +1360,393 @@ info:
   title: Apache Custos Core API
   version: 0.2.0
 paths:
+  /agreements:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/userAgreementListItem'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List user agreements with acceptance counts
+      tags:
+      - Agreements
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Agreement draft
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userAgreementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That version already exists
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a draft user agreement
+      tags:
+      - Agreements
+  /agreements/{id}:
+    delete:
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Not a draft
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a draft user agreement
+      tags:
+      - Agreements
+    get:
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a user agreement with counts and actor names
+      tags:
+      - Agreements
+    put:
+      consumes:
+      - application/json
+      description: Only drafts can be edited.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Agreement draft
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userAgreementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Not a draft or invalid content
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That version already exists
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a draft user agreement
+      tags:
+      - Agreements
+  /agreements/{id}/acceptances:
+    get:
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: accepted (default) or pending
+        in: query
+        name: status
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Rows to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/acceptanceReport'
+        "400":
+          description: Unknown status
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Report who accepted or has not yet accepted an agreement
+      tags:
+      - Agreements
+  /agreements/{id}/publish:
+    post:
+      description: It becomes the current version. Every user must accept it at their
+        next request.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Not a draft
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Publish a draft user agreement
+      tags:
+      - Agreements
+  /agreements/{id}/remove:
+    post:
+      description: If it was the current version, the previous published version becomes
+        current again.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Not published
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a published user agreement
+      tags:
+      - Agreements
   /audit/events:
     get:
       parameters:
@@ -3537,6 +4161,171 @@ paths:
         accounts
       tags:
       - Caller
+  /me/agreements/{id}/accept:
+    post:
+      description: A first sign-in accepts through POST /me/onboarding instead.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/UserAgreementAcceptance'
+        "400":
+          description: Caller still has to onboard, or the agreement is not published
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Unknown agreement
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Accept a published agreement as the caller
+      tags:
+      - Consent
+  /me/agreements/pending:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserAgreement'
+            type: array
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the current agreement if the caller has not accepted it
+      tags:
+      - Consent
+  /me/onboarding:
+    post:
+      consumes:
+      - application/json
+      description: Binds the caller's IdP subject to their pending user once the current
+        agreement is accepted. Nothing is written unless all of it succeeds.
+      parameters:
+      - description: Chosen username and accepted agreement IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/onboardingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Caller is not onboarding, an agreement is missing, or the username
+            is invalid
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Username is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Finish a first sign-in
+      tags:
+      - Onboarding
+  /me/onboarding/status:
+    get:
+      description: 'One entry per step, with done_at once it is done. registry: the
+        user is in the identity registry. cluster_account: the account on the named
+        cluster is created. project_group: the named allocation''s group is on the
+        cluster.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/SetupStatusResponse'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Report provisioning progress after onboarding
+      tags:
+      - Onboarding
+  /me/onboarding/username:
+    get:
+      description: Reports whether the candidate is valid and free on every cluster
+        the caller has an account on, and suggests a free name.
+      parameters:
+      - description: Candidate login name
+        in: query
+        name: u
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UsernameCheck'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check a login name for onboarding
+      tags:
+      - Onboarding
   /organizations:
     get:
       parameters:
@@ -3636,6 +4425,8 @@ paths:
         - core:privileges:grant
         - core:roles:manage
         - core:events:manage
+        - core:agreements:read
+        - core:agreements:manage
         in: path
         name: key
         required: true
@@ -4292,6 +5083,8 @@ paths:
         - core:privileges:grant
         - core:roles:manage
         - core:events:manage
+        - core:agreements:read
+        - core:agreements:manage
         in: path
         name: key
         required: true
@@ -4901,6 +5694,8 @@ paths:
         - core:privileges:grant
         - core:roles:manage
         - core:events:manage
+        - core:agreements:read
+        - core:agreements:manage
         in: path
         name: key
         required: true

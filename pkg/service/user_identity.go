@@ -127,6 +127,11 @@ func (s *Service) ListUserIdentitiesForUser(ctx context.Context, userID string) 
 	return out, nil
 }
 
+// GetOIDCIdentity returns the user's sign-in identity, or nil when the user has not signed in yet.
+func (s *Service) GetOIDCIdentity(ctx context.Context, userID string) (*models.UserIdentity, error) {
+	return s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceOIDC)
+}
+
 // UpdateUserIdentity persists changes to an existing user identity. Fields
 // left blank/zero on the supplied record fall back to the stored value.
 func (s *Service) UpdateUserIdentity(ctx context.Context, e *models.UserIdentity) error {

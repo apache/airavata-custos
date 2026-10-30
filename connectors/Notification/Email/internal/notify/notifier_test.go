@@ -105,6 +105,31 @@ func TestRequestReceived_OnlyForPendingAccounts(t *testing.T) {
 	}
 }
 
+// Make sure the approval email goes only to a user who has not signed in yet.
+// A user who already signed in gets the ready email instead.
+func TestRequestApproved_OnlyBeforeFirstSignIn(t *testing.T) {
+	relay := &mockRelay{}
+	core := mockCore("jdoe@example.edu")
+	oidc := &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"}
+	core.GetOIDCIdentityFunc = func(context.Context, string) (*models.UserIdentity, error) { return oidc, nil }
+	n := testNotifier(core, relay)
+
+	if err := n.requestApproved(context.Background(), pendingAccount()); err != nil {
+		t.Fatal(err)
+	}
+	if len(relay.sent) != 0 {
+		t.Fatalf("a signed-in user got %d approval emails", len(relay.sent))
+	}
+
+	oidc = nil
+	if err := n.requestApproved(context.Background(), pendingAccount()); err != nil {
+		t.Fatal(err)
+	}
+	if len(relay.sent) != 1 {
+		t.Fatalf("expected one approval email, got %d", len(relay.sent))
+	}
+}
+
 // Make sure the email indicates the project of the allocation on the account's cluster.
 func TestRequestReceived_NamesTheProjectOnTheSameCluster(t *testing.T) {
 	relay := &mockRelay{}
