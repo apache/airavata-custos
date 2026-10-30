@@ -6,7 +6,7 @@
 -- OPTIONAL sample data: ~20 research projects with allocations, members,
 -- usage history, and change requests, for portal demos and manual testing.
 -- Not required for a working deployment. Apply after migrations and
--- default_cluster.sql. Idempotent via ON CONFLICT DO NOTHING + deterministic IDs.
+-- init.sql. Idempotent via ON CONFLICT DO NOTHING + deterministic IDs.
 
 
 SET TIME ZONE 'UTC';

@@ -18,7 +18,8 @@
 "use client";
 
 import { ApiError } from "@/shared/api/client";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { useSignOut } from "./useSignOut";
 
@@ -29,6 +30,8 @@ function readCode(body: unknown): string | null {
 
 export function useAuthErrorHandler() {
   const { signOut: endSession } = useSignOut();
+  const { update } = useSession();
+  const router = useRouter();
   return useCallback(
     (error: unknown) => {
       if (!(error instanceof ApiError)) return;
@@ -48,9 +51,15 @@ export function useAuthErrorHandler() {
         endSession({ callbackUrl: `/sign-in?error=${code}` });
         return;
       }
+      // An agreement published mid-session gates the API. Reload the session
+      // flags; update() needs an argument or it only re-reads the cookie.
+      if (error.status === 403 && (code === "onboarding_required" || code === "consent_required")) {
+        void update({}).then(() => router.refresh());
+        return;
+      }
       // 403 insufficient_privilege and other codes fall through to the
       // query's local ErrorState — no global takeover.
     },
-    [endSession],
+    [endSession, update, router],
   );
 }

@@ -16,6 +16,7 @@
 // under the License.
 
 import type { RequestHandler } from "msw";
+import { agreementsHandlers } from "./handlers/agreements";
 import { allocationsHandlers } from "./handlers/allocations";
 import { amieHandlers } from "./handlers/amie";
 import { analyticsHandlers } from "./handlers/analytics";
@@ -46,4 +47,5 @@ export const handlers: RequestHandler[] = [
   ...amieHandlers,
   ...clustersHandlers,
   ...resourcesHandlers,
+  ...agreementsHandlers,
 ];
