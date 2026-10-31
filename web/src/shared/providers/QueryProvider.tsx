@@ -19,15 +19,19 @@
 
 import { useAuthErrorHandler } from "@/shared/auth/useAuthErrorHandler";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 export function QueryProvider({ children }: { children: ReactNode }) {
+  // The client is built once, so read the handler through a ref. The first
+  // render's handler holds a session update that does nothing yet.
   const handleAuthError = useAuthErrorHandler();
+  const onError = useRef(handleAuthError);
+  onError.current = handleAuthError;
   const [client] = useState(
     () =>
       new QueryClient({
-        queryCache: new QueryCache({ onError: handleAuthError }),
-        mutationCache: new MutationCache({ onError: handleAuthError }),
+        queryCache: new QueryCache({ onError: (e) => onError.current(e) }),
+        mutationCache: new MutationCache({ onError: (e) => onError.current(e) }),
         defaultOptions: {
           queries: {
             staleTime: 30_000,

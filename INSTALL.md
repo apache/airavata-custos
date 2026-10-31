@@ -107,17 +107,32 @@ event bus + service layer, and listens on the port from `config/custos.yaml`
 
 Leave it running.
 
-## 4. Apply the cluster seed
+## 4. Apply the init seed
 
-The migrations create the schema; the cluster seed inserts the default
-`compute_clusters` row that connectors and portal features reference by ID.
+The migrations create the schema. The init seed adds the default cluster, its
+resources (`debug` and `gpu`) and their rates. Connectors find the cluster by ID,
+and match resources by name: ACCESS resource aliases and SLURM job partitions both
+name a resource, and a job is only charged when a rate covers its end time.
+
 Apply it once, in a second terminal, after the server has come up:
 
 ```bash
-docker exec -i custos_db psql -U admin -d custos < dev-ops/compose/seeds/default_cluster.sql
+docker exec -i custos_db psql -U admin -d custos < dev-ops/compose/seeds/init.sql
 ```
 
-The seed uses `INSERT IGNORE`, so re-running is safe.
+The seed uses `ON CONFLICT DO NOTHING`, so re-running it is safe.
+
+If you run the ACCESS connector, point it at the seeded cluster and map the
+resource name ACCESS sends to the seeded resources, in `config/custos.yaml`:
+
+```yaml
+connectors:
+  amie-processor:
+    cluster:
+      id: "00000000-0000-0000-0000-000000000001"
+    resource_aliases:
+      my-cluster.site.access-ci.org: [debug, gpu]
+```
 
 ## 5. (Bundled Keycloak only) Seed dev users
 

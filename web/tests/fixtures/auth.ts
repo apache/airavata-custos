@@ -64,6 +64,8 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "core:events:manage",
     "core:privileges:grant",
     "core:roles:manage",
+    "core:agreements:read",
+    "core:agreements:manage",
     "amie:packets:read",
     "amie:packets:write",
     "amie:replies:read",
@@ -80,7 +82,11 @@ const NAMES: Record<Persona, string> = {
   admin: "Test Admin",
 };
 
-export async function signInAs(page: Page, persona: Persona = "admin") {
+export async function signInAs(
+  page: Page,
+  persona: Persona = "admin",
+  gate?: "onboarding" | "consent",
+) {
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) {
     throw new Error("NEXTAUTH_SECRET must be set for the cookie-injection fixture");
@@ -96,6 +102,8 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
       email: `${persona}@custos.local`,
       privileges: PRIVILEGES[persona],
       accessToken: "test-mock-bearer",
+      needsOnboarding: gate === "onboarding",
+      consentPending: gate === "consent",
     },
   });
 
@@ -120,5 +128,9 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
       secure: false,
       sameSite: "Lax",
     },
+    // Read by the MSW /me handler to return the pending agreement for the gate.
+    ...(gate
+      ? [{ name: "custos.test-gate", value: gate, url, httpOnly: false, secure: false, sameSite: "Lax" as const }]
+      : []),
   ]);
 }

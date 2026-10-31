@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { OnboardingGate } from "@/features/core/agreements/components/OnboardingGate";
+import { PolicyUpdateGate } from "@/features/core/agreements/components/PolicyUpdateGate";
 import { auth } from "@/shared/auth/auth";
 import { NoAccessNotice } from "@/shared/layout/NoAccessNotice";
 import { PortalLayout } from "@/shared/layout/PortalLayout";
@@ -23,6 +25,8 @@ import { redirect } from "next/navigation";
 export default async function PortalRoutesLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
+  if (session.needsOnboarding) return <OnboardingGate />;
+  if (session.consentPending) return <PolicyUpdateGate />;
   // A user with no privileges gets in, since their pages are limited by membership.
   // A sign-in with no Custos user sees the notice here, as a redirect would loop.
   const hasAccess = Boolean(session.custosUserId);

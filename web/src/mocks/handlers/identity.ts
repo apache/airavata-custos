@@ -18,6 +18,7 @@
 import fixture from "@/features/core/identity/__fixtures__/settings.json";
 import { zPutUsersByIdBody, zUser } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
+import { gateProfile } from "./agreements";
 import { effectivePrivileges } from "./privileges";
 
 const roleDetails = new Map(Object.entries(fixture.roleDetails));
@@ -28,9 +29,16 @@ let user = zUser.parse(fixture.user);
 
 export const identityHandlers = [
   http.get("*/api/v1/me", () =>
-    HttpResponse.json({ user, privileges: effectivePrivileges(), roles: [], cluster_accounts: [] }),
+    HttpResponse.json({
+      user,
+      privileges: effectivePrivileges(),
+      roles: [],
+      cluster_accounts: [],
+      ...gateProfile(),
+    }),
   ),
   http.get<{ id: string }>("*/api/v1/users/:id/user-identities", ({ params }) =>
+
     HttpResponse.json(String(params.id) === fixture.user.id ? fixture.identities : []),
   ),
   http.get<{ id: string }>("*/api/v1/users/:id/roles", ({ params }) =>
