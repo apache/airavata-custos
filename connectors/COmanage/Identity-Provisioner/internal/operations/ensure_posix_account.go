@@ -35,7 +35,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
+func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
 	log := slog.With("correlation_id", cu.ID, "custos_user_id", cu.UserID, "unix_cluster_id", o.c.Config().UnixClusterID)
 
 	user, err := o.core.GetUser(ctx, cu.UserID)
