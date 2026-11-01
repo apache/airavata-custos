@@ -30,7 +30,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context.Context, computeAllocation models.ComputeAllocation) error {
+func (a *AssociationSubscriber) handleComputeAllocationCreated(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_create")
 	defer span.End()
@@ -100,10 +100,10 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 	return nil
 }
 
-// SubscribeToComputeAllocationDeletion revokes every member's access when the
+// handleComputeAllocationDeleted revokes every member's access when the
 // allocation is deleted. The Slurm account is left in place so its job history
 // stays attributable.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context.Context, computeAllocation models.ComputeAllocation) error {
+func (a *AssociationSubscriber) handleComputeAllocationDeleted(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_delete")
 	defer span.End()
@@ -123,10 +123,10 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context
 	return nil
 }
 
-// SubscribeToComputeAllocationUpdate keeps cluster access in sync with the
+// handleComputeAllocationUpdated keeps cluster access in sync with the
 // allocation. An allocation that stops being active loses every association,
 // and one that becomes active again has them restored.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.Context, computeAllocation models.ComputeAllocation) error {
+func (a *AssociationSubscriber) handleComputeAllocationUpdated(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
 	defer span.End()
@@ -158,7 +158,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.C
 	return nil
 }
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreation(ctx context.Context, mapping models.ComputeAllocationResourceMapping) error {
+func (a *AssociationSubscriber) handleComputeAllocationResourceMappingCreated(ctx context.Context, mapping models.ComputeAllocationResourceMapping) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_resource_mapping_create")
 	defer span.End()

@@ -37,7 +37,7 @@ const (
 	reconcileSweepTimeout = 5 * time.Minute
 )
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) handleComputeAllocationMembershipCreated(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_create")
 	defer span.End()
@@ -91,7 +91,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 	return nil
 }
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx context.Context, override models.ComputeAllocationMembershipResourceOverride) error {
+func (a *AssociationSubscriber) handleComputeAllocationMembershipResourceOverrideCreated(ctx context.Context, override models.ComputeAllocationMembershipResourceOverride) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_resource_override_create")
 	defer span.End()
@@ -133,10 +133,10 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	return nil
 }
 
-// SubscribeToComputeAllocationMembershipUpdate reacts to a membership-changing
+// handleComputeAllocationMembershipUpdated reacts to a membership-changing
 // state. Anything other than ACTIVE means the member should no longer be able
 // to submit, so the associations go; going back to ACTIVE re-grants them.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) handleComputeAllocationMembershipUpdated(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_update")
 	defer span.End()
@@ -175,9 +175,9 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx
 	return nil
 }
 
-// SubscribeToComputeAllocationMembershipDeletion removes the member's access
+// handleComputeAllocationMembershipDeleted removes the member's access
 // when the membership row itself goes away.
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) handleComputeAllocationMembershipDeleted(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_delete")
 	defer span.End()
