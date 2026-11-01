@@ -143,6 +143,18 @@ export const allocationsHandlers = [
     return HttpResponse.json(member, { status: 201 });
   }),
 
+  http.post<{ id: string }>(
+    "*/api/v1/compute-allocation-memberships/:id/deactivate",
+    ({ params }) => {
+      const member = Object.values(membersByAlloc)
+        .flat()
+        .find((m) => m.id === String(params.id));
+      if (!member) return HttpResponse.json({ error: "membership not found" }, { status: 404 });
+      member.membership_status = "INACTIVE";
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
+
   http.delete<{ id: string }>("*/api/v1/compute-allocation-memberships/:id", ({ params }) => {
     const id = String(params.id);
     for (const bucket of Object.values(membersByAlloc)) {

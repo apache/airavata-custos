@@ -99,9 +99,14 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	if err != nil {
 		return nil, fmt.Errorf("list surviving cluster users: %w", err)
 	}
-	survivorClusters := make(map[string]bool, len(survivorAccounts))
+	survivorClusters := make(map[string]models.AllocationStatus, len(survivorAccounts))
 	for _, cu := range survivorAccounts {
-		survivorClusters[cu.ComputeClusterID] = true
+		survivorClusters[cu.ComputeClusterID] = cu.Status
+	}
+	for _, cu := range retiringAccounts {
+		if cu.Status == models.ACTIVE && survivorClusters[cu.ComputeClusterID] == models.INACTIVE {
+			return nil, fmt.Errorf("%w: delete the survivor's inactive account on cluster %q first", ErrInUse, cu.ComputeClusterID)
+		}
 	}
 
 	if err := func() error {
@@ -112,7 +117,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 			return fmt.Errorf("reassign compute cluster users: %w", err)
 		}
 		for _, cu := range retiringAccounts {
-			if !survivorClusters[cu.ComputeClusterID] {
+			if _, ok := survivorClusters[cu.ComputeClusterID]; !ok {
 				continue
 			}
 			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {

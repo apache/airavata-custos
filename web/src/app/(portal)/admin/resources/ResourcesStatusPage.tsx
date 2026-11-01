@@ -28,7 +28,7 @@ import { TabsRouter } from "@/shared/ui/TabsRouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import * as React from "react";
-import { StorageFoldersTab } from "./RetentionTabs";
+import { AllocationsTab, StorageFoldersTab, UsersTab } from "./RetentionTabs";
 
 type Tone = "ok" | "warn" | "error" | "off";
 
@@ -169,6 +169,16 @@ export function ResourcesStatusPage() {
             value: "storage",
             label: "Storage",
             content: <StorageFoldersTab clusterId={clusterId} />,
+          },
+          {
+            value: "users",
+            label: "Users",
+            content: <UsersTab clusterId={clusterId} />,
+          },
+          {
+            value: "allocations",
+            label: "Allocations",
+            content: <AllocationsTab clusterId={clusterId} />,
           },
         ]}
       />

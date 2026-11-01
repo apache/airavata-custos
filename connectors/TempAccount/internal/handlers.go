@@ -87,7 +87,9 @@ func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.coreService.DeleteUser(r.Context(), userID)
+	if err = h.coreService.DeactivateUser(r.Context(), userID); err == nil {
+		err = h.coreService.DeleteUser(r.Context(), userID)
+	}
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

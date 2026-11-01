@@ -23,6 +23,12 @@ import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  type ComputeAllocation,
+  type ComputeClusterUser,
+  zComputeAllocation,
+  zComputeClusterUser,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
@@ -76,17 +82,20 @@ const bytes = (n: number) => {
   return `${(n / 1024 ** i).toFixed(i ? 1 : 0)} ${["B", "KiB", "MiB", "GiB", "TiB", "PiB"][i]}`;
 };
 
-// An admin's row button that deletes target's path, toasts the outcome and refreshes the list.
+type Target = { path: string; done: string; method?: "POST" | "DELETE" };
+
+// An admin's row button that deletes target's path, or posts to it, toasts the outcome and refreshes the list.
 function useDeleteColumn<T>(
   list: string,
   variant: "destructive" | "outline",
   label: string,
-  target: (row: T) => { path: string; done: string } | false,
+  target: (row: T) => Target | false,
+  [action, subject] = ["manage", "Cluster"],
 ): DataTableColumn<T> {
   const client = useQueryClient();
-  const canManage = useAbility().can("manage", "Cluster");
+  const canManage = useAbility().can(action, subject);
   const del = useMutation({
-    mutationFn: ({ path }: { path: string; done: string }) => apiFetch(path, { method: "DELETE" }),
+    mutationFn: ({ path, method = "DELETE" }: Target) => apiFetch(path, { method }),
     onSuccess: (_, { done }) => {
       toast.success(done);
       return client.invalidateQueries({ queryKey: [list] });
@@ -94,7 +103,7 @@ function useDeleteColumn<T>(
     onError: (err) => toast.error(err.message),
   });
   return {
-    key: "actions",
+    key: `actions-${label}`,
     header: "",
     width: "6rem",
     align: "right",
@@ -108,6 +117,36 @@ function useDeleteColumn<T>(
       ) : null;
     },
   };
+}
+
+function useRetireColumns<T extends { id: string }>(
+  list: string,
+  subject: string,
+  base: string,
+  live: (row: T) => boolean,
+  name: (row: T) => string,
+) {
+  return [
+    useDeleteColumn<T>(
+      list,
+      "outline",
+      "Deactivate",
+      (row) =>
+        live(row) && {
+          path: `${base}/${row.id}/deactivate`,
+          done: `${name(row)} deactivated`,
+          method: "POST",
+        },
+      ["deactivate", subject],
+    ),
+    useDeleteColumn<T>(
+      list,
+      "destructive",
+      "Delete",
+      (row) => !live(row) && { path: `${base}/${row.id}`, done: `${name(row)} deleted` },
+      ["delete", subject],
+    ),
+  ];
 }
 
 function Listing<T>({
@@ -354,4 +393,103 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
       {editing ? <QuotaDialog folder={editing} onClose={() => setEditing(null)} /> : null}
     </>
   );
+}
+
+const statusIcon = (Icon: typeof User, active: boolean, text: React.ReactNode) => (
+  <span className="flex items-center gap-2" title={active ? "Active" : "Inactive"}>
+    <Icon
+      aria-hidden
+      className={`size-3.5 shrink-0 ${active ? "text-[color:var(--tone-ok-fg)]" : "text-muted-foreground/40"}`}
+    />
+    {text}
+  </span>
+);
+
+// A cluster's accounts. A deactivated one stays, its access blocked and its username held, until an admin deletes it here.
+export function UsersTab({ clusterId }: { clusterId: string | undefined }) {
+  const retire = useRetireColumns<ComputeClusterUser>(
+    "cluster-users",
+    "ComputeClusterUser",
+    "/compute-cluster-users",
+    (row) => row.status === "ACTIVE" && row.approval_status === "APPROVED",
+    (row) => row.local_username,
+  );
+  const columns: Array<DataTableColumn<ComputeClusterUser>> = [
+    {
+      key: "username",
+      header: "Username",
+      cell: (row) => statusIcon(User, row.status === "ACTIVE", mono(row.local_username)),
+    },
+    { key: "access", header: "Access", cell: (row) => row.access_level },
+    { key: "approval", header: "Approval", cell: (row) => row.approval_status },
+    {
+      key: "provisioned",
+      header: "Provisioned",
+      cell: (row) => (row.provisioned_at ? day(row.provisioned_at) : "—"),
+    },
+    ...retire,
+  ];
+  return clusterId ? (
+    <Listing
+      list="cluster-users"
+      path={`/compute-clusters/${clusterId}/users`}
+      parse={(data) => z.array(zComputeClusterUser).parse(data ?? [])}
+      columns={columns}
+      rowKey={(row) => row.id}
+      rowClassName={(row) => (row.status === "ACTIVE" ? undefined : DISPOSABLE)}
+      empty="No accounts on this cluster."
+    />
+  ) : null;
+}
+
+export function AllocationsTab({ clusterId }: { clusterId: string | undefined }) {
+  const retire = useRetireColumns<ComputeAllocation>(
+    "cluster-allocations",
+    "ComputeAllocation",
+    "/compute-allocations",
+    (row) => row.status === "ACTIVE",
+    (row) => row.name,
+  );
+  const columns: Array<DataTableColumn<ComputeAllocation>> = [
+    {
+      key: "name",
+      header: "Allocation",
+      interactive: true,
+      cell: (row) =>
+        statusIcon(
+          Server,
+          row.status === "ACTIVE",
+          <Link href={`/allocations/${row.id}`} className="hover:underline">
+            {row.name}
+          </Link>,
+        ),
+    },
+    {
+      key: "group",
+      header: "Group",
+      cell: (row) => (row.posix_group ? mono(row.posix_group) : "—"),
+    },
+    {
+      key: "validity",
+      header: "Validity",
+      width: "13rem",
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          {day(row.start_time)} – {day(row.end_time)}
+        </span>
+      ),
+    },
+    ...retire,
+  ];
+  return clusterId ? (
+    <Listing
+      list="cluster-allocations"
+      path={`/compute-clusters/${clusterId}/allocations`}
+      parse={(data) => z.array(zComputeAllocation).parse(data ?? [])}
+      columns={columns}
+      rowKey={(row) => row.id}
+      rowClassName={(row) => (row.status === "ACTIVE" ? undefined : DISPOSABLE)}
+      empty="No allocations on this cluster."
+    />
+  ) : null;
 }

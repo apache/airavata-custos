@@ -99,6 +99,8 @@ definitions:
       reviewed_by:
         description: The admin who approved or denied the cluster account.
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       user_id:
         type: string
     type: object
@@ -202,6 +204,8 @@ definitions:
         type: string
       reviewer_name:
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       user_id:
         type: string
     type: object
@@ -493,6 +497,8 @@ definitions:
       reviewed_by:
         description: The admin who approved or denied the cluster account.
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       user_id:
         type: string
     type: object
@@ -657,6 +663,12 @@ definitions:
     - core:events:manage
     - core:agreements:read
     - core:agreements:manage
+    - core:clusters:deactivate
+    - core:clusters:delete
+    - core:allocations:deactivate
+    - core:allocations:delete
+    - core:users:deactivate
+    - core:users:delete
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -675,6 +687,12 @@ definitions:
     - EventsManage
     - AgreementsRead
     - AgreementsManage
+    - ClustersDeactivate
+    - ClustersDelete
+    - AllocationsDeactivate
+    - AllocationsDelete
+    - UsersDeactivate
+    - UsersDelete
   Project:
     properties:
       created_time:
@@ -2459,9 +2477,16 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
-      summary: Delete a compute allocation membership
+      summary: Delete an inactive compute allocation membership
       tags:
       - Compute Allocation Memberships
     get:
@@ -2529,6 +2554,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a compute allocation membership
+      tags:
+      - Compute Allocation Memberships
+  /compute-allocation-memberships/{id}/deactivate:
+    post:
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute allocation membership
       tags:
       - Compute Allocation Memberships
   /compute-allocation-memberships/{id}/resource-overrides:
@@ -3148,9 +3196,16 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
-      summary: Delete a compute allocation
+      summary: Delete an inactive compute allocation
       tags:
       - Compute Allocations
     get:
@@ -3217,6 +3272,30 @@ paths:
       summary: List change requests for a compute allocation
       tags:
       - Compute Allocation Change Requests
+  /compute-allocations/{id}/deactivate:
+    post:
+      description: Makes an active allocation and its memberships INACTIVE.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute allocation
+      tags:
+      - Compute Allocations
   /compute-allocations/{id}/diffs:
     get:
       parameters:
@@ -3683,6 +3762,7 @@ paths:
       - Compute Cluster Users
   /compute-cluster-users/{id}:
     delete:
+      description: Removes an inactive account, or a pending or denied request.
       parameters:
       - description: Compute cluster user ID
         in: path
@@ -3694,6 +3774,13 @@ paths:
           description: No Content
         "404":
           description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             properties:
               error:
@@ -3805,6 +3892,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Approve a cluster account
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/deactivate:
+    post:
+      description: Makes an approved, active account and the user's memberships on
+        its cluster INACTIVE.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute cluster user
       tags:
       - Compute Cluster Users
   /compute-cluster-users/{id}/deny:
@@ -3936,6 +4055,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a compute cluster by ID
+      tags:
+      - Compute Clusters
+  /compute-clusters/{id}/allocations:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeAllocation'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List a cluster's allocations
       tags:
       - Compute Clusters
   /compute-clusters/{id}/users:
@@ -4427,6 +4568,12 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:clusters:deactivate
+        - core:clusters:delete
+        - core:allocations:deactivate
+        - core:allocations:delete
+        - core:users:deactivate
+        - core:users:delete
         in: path
         name: key
         required: true
@@ -5085,6 +5232,12 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:clusters:deactivate
+        - core:clusters:delete
+        - core:allocations:deactivate
+        - core:allocations:delete
+        - core:users:deactivate
+        - core:users:delete
         in: path
         name: key
         required: true
@@ -5390,6 +5543,37 @@ paths:
       tags:
       - Users
   /users/{id}:
+    delete:
+      description: Refuses a user who is not INACTIVE or MERGED, still holds cluster
+        accounts, or accepted a user agreement.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete an inactive user
+      tags:
+      - Users
     get:
       parameters:
       - description: User ID
@@ -5573,6 +5757,31 @@ paths:
       summary: List compute cluster users for a user
       tags:
       - Compute Cluster Users
+  /users/{id}/deactivate:
+    post:
+      description: Makes an active, pending or suspended user and their approved,
+        active cluster accounts INACTIVE.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a user
+      tags:
+      - Users
   /users/{id}/privileges:
     get:
       description: Returns DIRECT grants only (not role-derived). Combine with `GET
@@ -5696,6 +5905,12 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:clusters:deactivate
+        - core:clusters:delete
+        - core:allocations:deactivate
+        - core:allocations:delete
+        - core:users:deactivate
+        - core:users:delete
         in: path
         name: key
         required: true

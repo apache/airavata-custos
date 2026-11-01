@@ -178,7 +178,7 @@ function describe(change: Change, changes: Change[]): string {
     }`;
   }
   if (change.kind === "role") return `${change.row.name}: role → ${ROLE_LABELS[change.to]}`;
-  return `${change.row.name}: ${change.membership ? "remove from" : "add to"} ${change.allocation.name}`;
+  return `${change.row.name}: ${change.membership?.membership_status === "ACTIVE" ? "remove from" : "add to"} ${change.allocation.name}`;
 }
 
 export function ProjectMembersTab({
@@ -240,10 +240,12 @@ export function ProjectMembersTab({
   ];
   const membershipOf = (allocationId: string, userId: string) =>
     memberships.byAllocation[allocationId]?.find((m) => m.user_id === userId);
+  const isActive = (allocationId: string, userId: string) =>
+    membershipOf(allocationId, userId)?.membership_status === "ACTIVE";
   const accessKey = (allocationId: string, userId: string) => `${allocationId}:${userId}`;
   const roleOf = (row: GridRow) => draft.roles[row.userId] ?? row.role;
   const hasAccess = (allocationId: string, userId: string) =>
-    draft.access[accessKey(allocationId, userId)] ?? Boolean(membershipOf(allocationId, userId));
+    draft.access[accessKey(allocationId, userId)] ?? isActive(allocationId, userId);
 
   const isNew = (row: GridRow) => draft.added.some((a) => a.userId === row.userId);
   const changes: Change[] = rows.flatMap((row) => [
@@ -252,7 +254,7 @@ export function ProjectMembersTab({
       : []),
     ...allocations.flatMap((allocation) => {
       const membership = membershipOf(allocation.id, row.userId);
-      return hasAccess(allocation.id, row.userId) !== Boolean(membership)
+      return hasAccess(allocation.id, row.userId) !== isActive(allocation.id, row.userId)
         ? [{ kind: "access" as const, row, allocation, membership }]
         : [];
     }),

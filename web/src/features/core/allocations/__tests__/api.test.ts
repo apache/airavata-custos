@@ -178,10 +178,10 @@ describe("addMember", () => {
 });
 
 describe("removeMember", () => {
-  it("DELETEs the membership", async () => {
+  it("deactivates the membership", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await removeMember("mem-001");
-    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
   });
 });
 

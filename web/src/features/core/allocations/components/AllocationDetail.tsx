@@ -68,8 +68,8 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
           name={allocation.name}
           mutation={remove}
           redirectTo="/allocations"
-          allowed={can.allocationsWrite}
-          reason={requires("allocationsWrite")}
+          allowed={can.allocationsDelete && allocation.status !== "ACTIVE"}
+          reason={can.allocationsDelete ? "Deactivate it first" : requires("allocationsDelete")}
         >
           Its members, resources and usage records are deleted with it. This cannot be undone.
         </DeleteButton>
@@ -87,6 +87,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
                   allocation={allocation}
                   canEditAccess={can.allocationsWrite}
                   canEditRoles={can.projectsWrite}
+                  canRemove={can.allocationsDeactivate}
                   canSearchUsers={can.usersRead}
                 />
               </div>

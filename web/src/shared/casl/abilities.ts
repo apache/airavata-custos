@@ -28,12 +28,18 @@ export type PrivilegeRule = { action: string; subject: string };
 export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "core:clusters:read": [{ action: "read", subject: "Cluster" }],
   "core:clusters:write": [{ action: "manage", subject: "Cluster" }],
+  "core:clusters:deactivate": [{ action: "deactivate", subject: "ComputeClusterUser" }],
+  "core:clusters:delete": [{ action: "delete", subject: "ComputeClusterUser" }],
   "core:allocations:read": [{ action: "read", subject: "Allocation" }],
   "core:allocations:write": [{ action: "manage", subject: "Allocation" }],
+  "core:allocations:deactivate": [{ action: "deactivate", subject: "ComputeAllocation" }],
+  "core:allocations:delete": [{ action: "delete", subject: "ComputeAllocation" }],
   "core:projects:read": [{ action: "read", subject: "Project" }],
   "core:projects:write": [{ action: "manage", subject: "Project" }],
   "core:users:read": [{ action: "read", subject: "User" }],
   "core:users:write": [{ action: "manage", subject: "User" }],
+  "core:users:deactivate": [{ action: "deactivate", subject: "User" }],
+  "core:users:delete": [{ action: "delete", subject: "User" }],
   "core:organizations:read": [{ action: "read", subject: "Organization" }],
   "core:organizations:write": [{ action: "manage", subject: "Organization" }],
   "core:traces:read": [

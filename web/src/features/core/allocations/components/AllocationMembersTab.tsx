@@ -42,6 +42,7 @@ export type AllocationMembersTabProps = {
   allocation: ComputeAllocation;
   canEditAccess: boolean;
   canEditRoles: boolean;
+  canRemove: boolean;
   canSearchUsers: boolean;
 };
 
@@ -62,6 +63,7 @@ export function AllocationMembersTab({
   allocation,
   canEditAccess,
   canEditRoles,
+  canRemove,
   canSearchUsers,
 }: AllocationMembersTabProps) {
   const query = useAllocationMembers(allocation.id);
@@ -173,8 +175,8 @@ export function AllocationMembersTab({
             <GuardedButton
               variant="destructive"
               size="sm"
-              allowed={canEditAccess}
-              reason={requires("allocationsWrite")}
+              allowed={canRemove && row.membership_status === "ACTIVE"}
+              reason={requires("allocationsDeactivate")}
               onClick={() =>
                 removeMutation.mutate(row.id, { onError: (err) => toast.error(err.message) })
               }

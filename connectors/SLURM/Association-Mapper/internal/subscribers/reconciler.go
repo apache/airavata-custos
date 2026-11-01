@@ -19,6 +19,7 @@ package subscribers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -124,17 +125,15 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			return
 		}
 		for _, membership := range memberships {
-			if membership.MembershipStatus != models.ACTIVE {
+			record, err := a.desiredAssociationForMembership(ctx, membership)
+			// The user has no account on that membership's cluster.
+			if errors.Is(err, errNotProvisioned) {
 				continue
 			}
-			record, err := a.desiredAssociationForMembership(ctx, membership)
 			if err != nil {
 				slog.ErrorContext(ctx, "Association reconciler: failed to resolve desired association",
 					"membership_id", membership.ID, "error", err)
 				return
-			}
-			if record == nil {
-				continue
 			}
 			desired[keyOf(*record)] = struct{}{}
 			// The grace only holds back the write. The association is still
@@ -144,7 +143,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			}
 			// A user without the no-allocation association predates it, so the write also moves their default.
 			_, hasDefault := existing[assocKey{account: noAllocation, user: record.User}]
-			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault {
+			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault || !ok && blocked(*record) {
 				continue
 			}
 			if err := a.writeAssociation(*record); err != nil {
