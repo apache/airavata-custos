@@ -67,7 +67,7 @@ func (s *Service) acceptTx(ctx context.Context, tx *sql.Tx, userID string, a *mo
 	if !created {
 		return s.acceptances.FindTx(ctx, tx, userID, a.ID)
 	}
-	if err := s.writePrivilegeAuditTx(ctx, tx, userAgreementAuditAccepted, userID, map[string]any{
+	if err := s.writeAuditTx(ctx, tx, "user", userAgreementAuditAccepted, userID, map[string]any{
 		"agreement_id":  a.ID,
 		"version_label": a.VersionLabel,
 		"body_hash":     a.BodyHash,

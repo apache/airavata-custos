@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -75,7 +74,7 @@ func (s *Service) GrantRoleToUser(ctx context.Context, userID, roleID, granterID
 		if err := s.userRoles.Create(ctx, tx, assignment); err != nil {
 			return fmt.Errorf("insert role assignment: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, userRoleAuditGranted, userID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", userRoleAuditGranted, userID, map[string]any{
 			"actor_id":  granterID,
 			"role_id":   roleID,
 			"role_name": role.Name,
@@ -123,7 +122,7 @@ func (s *Service) RevokeRoleFromUser(ctx context.Context, userID, roleID, revoke
 		if err := s.userRoles.Delete(ctx, tx, userID, roleID); err != nil {
 			return fmt.Errorf("delete role assignment: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, userRoleAuditRevoked, userID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", userRoleAuditRevoked, userID, map[string]any{
 			"actor_id":  revokerID,
 			"role_id":   roleID,
 			"role_name": role.Name,
@@ -202,7 +201,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		if err := s.userRoles.Create(ctx, tx, assignment); err != nil {
 			return fmt.Errorf("insert bootstrap assignment: %w", err)
 		}
-		if err := s.writeRoleAuditTx(ctx, tx, userRoleAuditBootstrap, user.ID, map[string]any{
+		if err := s.writeAuditTx(ctx, tx, "role", userRoleAuditBootstrap, user.ID, map[string]any{
 			"role_id":   role.ID,
 			"role_name": role.Name,
 			"source":    source,
@@ -233,7 +232,7 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 		if err := s.users.Create(ctx, tx, created); err != nil {
 			return fmt.Errorf("insert bootstrap user: %w", err)
 		}
-		return s.writeUserBootstrappedAuditTx(ctx, tx, created.ID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user", userAuditBootstrapped, created.ID, map[string]any{
 			"email":  email,
 			"source": source,
 		})
@@ -243,21 +242,6 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 	}
 	slog.InfoContext(ctx, "bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
 	return created, nil
-}
-
-func (s *Service) writeUserBootstrappedAuditTx(ctx context.Context, tx *sql.Tx, userID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  userAuditBootstrapped,
-		EventTime:  nowUTC(),
-		EntityID:   userID,
-		EntityType: "user",
-		Details:    string(payload),
-	})
 }
 
 // ensureSuperAdminRoleTx creates the super_admin role with the meta
