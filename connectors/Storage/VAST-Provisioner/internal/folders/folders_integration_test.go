@@ -39,7 +39,7 @@ type fakeVMS struct {
 	quotas           map[string]client.Quota
 }
 
-func (f *fakeVMS) Remove(_ context.Context, path string) error {
+func (f *fakeVMS) DeleteFolder(_ context.Context, path string) error {
 	f.removed = append(f.removed, path)
 	return nil
 }
@@ -103,7 +103,7 @@ func TestReview(t *testing.T) {
 	if limit, _ := s.Record(ctx, "c1", "/home/jdoe", "cluster_user", "jdoe", "jdoe:jdoe", nil); code != http.StatusNoContent || limit != 500 || !slices.Equal(vast.audited, []string{"c1:/home/jdoe"}) {
 		t.Fatalf("quota edit: %d limit %d audited %v", code, limit, vast.audited)
 	}
-	_ = s.MarkPending(ctx, "c1", "allocation", "a")
+	_ = s.MarkFoldersForDeletion(ctx, "c1", "allocation", "a")
 	if got := folders(); got["/project/a/jdoe"].Status != "pending_deletion" || got["/project/ab"].Status != "active" {
 		t.Fatalf("after marking: %v", got)
 	}
@@ -117,7 +117,7 @@ func TestReview(t *testing.T) {
 	if code := call(s.deleteFolder, "/project/a", ""); code != http.StatusNotFound {
 		t.Fatalf("delete over an active folder: %d", code)
 	}
-	_ = s.MarkPending(ctx, "c1", "allocation", "a")
+	_ = s.MarkFoldersForDeletion(ctx, "c1", "allocation", "a")
 	if code := call(s.deleteFolder, "/project/a", ""); code != http.StatusNoContent || !slices.Equal(vast.removed, []string{"/project/a"}) || len(folders()) != 2 {
 		t.Fatalf("delete: %d removed %v left %v", code, vast.removed, folders())
 	}

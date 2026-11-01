@@ -60,7 +60,7 @@ type Folder struct {
 
 // VMS is what the review needs from a cluster's VAST.
 type VMS interface {
-	Remove(ctx context.Context, path string) error
+	DeleteFolder(ctx context.Context, path string) error
 	Quotas(ctx context.Context) (map[string]client.Quota, error)
 	CreateQuota(ctx context.Context, path string, hardLimit, hardLimitInodes int64) error
 }
@@ -102,8 +102,8 @@ func (s *Registry) Record(ctx context.Context, clusterID, path, ownerKind, owner
 	return override, err
 }
 
-// MarkPending marks the owner's active folders and those under them, such as members' folders in a project.
-func (s *Registry) MarkPending(ctx context.Context, clusterID, ownerKind, ownerName string) error {
+// MarkFoldersForDeletion marks the owner's active folders and those under them, such as members' folders in a project.
+func (s *Registry) MarkFoldersForDeletion(ctx context.Context, clusterID, ownerKind, ownerName string) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE vast_folders f SET status = 'pending_deletion'
 		WHERE f.compute_cluster_id = $1 AND f.status = 'active' AND EXISTS (SELECT 1 FROM vast_folders p
 			WHERE p.compute_cluster_id = $1 AND p.owner_kind = $2 AND p.owner_name = $3
@@ -212,7 +212,7 @@ func (s *Registry) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		var vms VMS
 		if vms, err = s.vms(f.ClusterID); err == nil {
-			err = vms.Remove(r.Context(), f.Path)
+			err = vms.DeleteFolder(r.Context(), f.Path)
 		}
 		if err != nil {
 			common.WriteError(w, http.StatusBadGateway, err)
