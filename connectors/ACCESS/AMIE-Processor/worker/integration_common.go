@@ -29,13 +29,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
-	"github.com/apache/airavata-custos/internal/db"
-)
-
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 )
 
 func isLocalAMIEConfigAvailable() bool {
@@ -58,29 +52,8 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 	if !isLocalAMIEConfigAvailable() {
 		t.Skip("integration env not set; run via scripts/run-amie-integration-tests.sh")
 	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          os.Getenv("DATABASE_DSN"),
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateConnectorFS(database, amiedb.MigrationFS(), "migrations", "amie"); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
+	sharedDB := dbtest.Open(t, os.Getenv("DATABASE_DSN"),
+		dbtest.Migrations{FS: amiedb.MigrationFS(), Dir: "migrations", Name: "amie"})
 	truncateAMIETables(t, sharedDB)
 	return sharedDB
 }

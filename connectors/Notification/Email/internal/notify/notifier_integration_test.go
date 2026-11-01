@@ -29,7 +29,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -61,13 +61,7 @@ func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 	if dsn == "" {
 		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN required")
 	}
-	database, err := db.Open(db.Config{DSN: dsn, MaxOpenConns: 5, MaxIdleConns: 2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.MigrateEmbedded(database); err != nil {
-		t.Fatal(err)
-	}
+	database := dbtest.Open(t, dsn)
 	if _, err := database.Exec("TRUNCATE TABLE audit_events, event_deliveries, events, event_subscriptions, compute_cluster_users, compute_clusters, users, organizations CASCADE"); err != nil {
 		t.Fatal(err)
 	}
