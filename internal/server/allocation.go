@@ -190,7 +190,7 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 // @Failure	401	{object}	object{error=string}
 // @Router	/compute-allocations [get]
 func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}

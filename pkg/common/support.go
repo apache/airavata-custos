@@ -29,8 +29,17 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+func AtoiOr(s string, def int) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+	return n
+}
 
 // Paged reads a page from q: a limit of 1..200 (50 when unset or invalid) and a non-negative offset.
 func Paged(q url.Values) (limit, offset int) {
@@ -40,6 +49,17 @@ func Paged(q url.Values) (limit, offset int) {
 		limit = 50
 	}
 	return min(limit, 200), max(offset, 0)
+}
+
+// RequireCaller pulls the verified caller off the request context. Returns
+// nil and writes a 401 when the middleware did not attach one.
+func RequireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
+	c := identity.CallerFromContext(r.Context())
+	if c == nil {
+		WriteError(w, http.StatusUnauthorized, errors.New("missing authenticated caller"))
+		return nil
+	}
+	return c
 }
 
 func DecodeJSON(r *http.Request, dst any) error {

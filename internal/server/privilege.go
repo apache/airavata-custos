@@ -36,7 +36,7 @@ import (
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/user/privileges [get]
 func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
-	if requireCaller(w, r) == nil {
+	if common.RequireCaller(w, r) == nil {
 		return
 	}
 	keys := identity.PrivilegesFromContext(r.Context())
@@ -90,7 +90,7 @@ type CallerClusterAccount struct {
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/me [get]
 func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -243,7 +243,7 @@ func (s *Server) grantPrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -286,7 +286,7 @@ func (s *Server) revokePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id and privilege key are required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
