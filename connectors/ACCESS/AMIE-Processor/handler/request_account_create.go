@@ -96,10 +96,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectID, err)
 	}
 	if user.ID == project.ProjectPIID {
-		if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, map[string]any{
-			"type": "inform_transaction_complete",
-			"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": "user is already the project PI"},
-		}); err != nil {
+		if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, model.TransactionFailureReply("user is already the project PI")); err != nil {
 			return fmt.Errorf("request_account_create: sending failure reply: %w", err)
 		}
 		packet.Status = model.PacketStatusRefused
@@ -115,7 +112,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 	allocation := allocations[0]
 
-	account, err := h.ensureComputeClusterUser(ctx, user.ID)
+	account, err := ensureClusterUser(ctx, h.svc, h.clusterID, user.ID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure compute cluster user: %w", err)
 	}
@@ -184,21 +181,6 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 		return nil, fmt.Errorf("create user identity: %w", err)
 	}
 	return user, nil
-}
-
-// ensureComputeClusterUser returns the user's existing cluster mapping or
-// provisions a new one via the POSIX allocator.
-func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Context, userID string) (*models.ComputeClusterUser, error) {
-	existing, err := h.svc.ListComputeClusterUsersByUser(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list compute cluster users: %w", err)
-	}
-	for _, a := range existing {
-		if a.ComputeClusterID == h.clusterID {
-			return &a, nil
-		}
-	}
-	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
 // ensureMembership reactivates a known member only while the allocation is active.

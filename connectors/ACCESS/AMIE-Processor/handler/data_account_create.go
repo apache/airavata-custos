@@ -93,19 +93,5 @@ func (h *DataAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		}
 	}
 
-	reply := map[string]any{
-		"type": "inform_transaction_complete",
-		"body": map[string]any{
-			"StatusCode": "Success",
-			"DetailCode": float64(1),
-			"Message":    "Transaction completed successfully by handler.",
-		},
-	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("data_account_create: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("data_account_create: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "data_account_create", transactionSuccessReply("Transaction completed successfully by handler."))
 }

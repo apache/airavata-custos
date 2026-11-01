@@ -80,11 +80,5 @@ func (h *RequestAccountInactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		"type": "notify_account_inactivate",
 		"body": map[string]any{"ProjectID": projectID, "PersonID": personID},
 	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_account_inactivate: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_account_inactivate: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_account_inactivate", reply)
 }
