@@ -53,7 +53,7 @@ Connectors register HTTP routes onto the shared router under `/connectors/<name>
 
 ## Component diagram
 
-![Apache Airavata Custos architecture](assets/architecture.svg)
+![Apache Airavata Custos architecture](assets/architecture.png)
 
 Custos runs as a single Go binary; connectors share the process, database, event bus, and HTTP router.
 
