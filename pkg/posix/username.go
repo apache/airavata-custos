@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -68,6 +69,13 @@ func BuildBase(u *models.User, prefix string) (string, bool, error) {
 		truncated = true
 	}
 	return prefix + "-" + local, truncated, nil
+}
+
+func Candidate(base string, n int) string {
+	if n == 0 {
+		return base
+	}
+	return base + strconv.Itoa(n+1)
 }
 
 func Normalize(s string) string {

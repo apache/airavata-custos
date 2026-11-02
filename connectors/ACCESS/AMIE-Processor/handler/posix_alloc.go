@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/posix"
@@ -54,10 +53,7 @@ func allocateAndCreateClusterUser(ctx context.Context, svc *service.Service, clu
 	}
 
 	for n := 0; n < posix.MaxCollisionSuffix; n++ {
-		candidate := base
-		if n > 0 {
-			candidate = base + strconv.Itoa(n+1)
-		}
+		candidate := posix.Candidate(base, n)
 		ccu, err := svc.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{
 			ComputeClusterID: clusterID,
 			UserID:           userID,
