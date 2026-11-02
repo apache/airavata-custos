@@ -29,6 +29,7 @@ Concepts that belong to the Custos core.
 
 - **HPC** — High-Performance Computing. The cluster-computing domain Custos serves (e.g. ACCESS-CI sites, university research clusters).
 - **Allocation** — A grant of compute time on a cluster, attached to a project. Has a start/end date, a resource (cluster), and rates.
+- **Cluster account** — A user's login on one compute cluster (`ComputeClusterUser`, `compute_cluster_users`).
 - **Allocation membership** — A user's tie to an allocation (PI, CO_PI, ALLOCATION_MANAGER, or plain member).
 - **PI / CO_PI / ALLOCATION_MANAGER** — Project-level governance roles. PI = Principal Investigator (the responsible researcher). CO_PI = Co-Principal Investigator. ALLOCATION_MANAGER = delegated allocation administrator.
 

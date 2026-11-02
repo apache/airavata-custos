@@ -27,21 +27,21 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func (s *ClusterUserSubscriber) handleComputeAllocationChanged(ctx context.Context, a models.ComputeAllocation) error {
+func (s *Subscriber) handleComputeAllocationChanged(ctx context.Context, a models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_changed")
 	defer span.End()
 	return s.syncAllocation(ctx, a.ID)
 }
 
-func (s *ClusterUserSubscriber) handleMembershipChanged(ctx context.Context, m models.ComputeAllocationMembership) error {
+func (s *Subscriber) handleMembershipChanged(ctx context.Context, m models.ComputeAllocationMembership) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.membership_changed")
 	defer span.End()
 	return s.syncAllocation(ctx, m.ComputeAllocationID)
 }
 
-func (s *ClusterUserSubscriber) handleComputeAllocationDeleted(ctx context.Context, a models.ComputeAllocation) error {
+func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_deleted")
 	defer span.End()
@@ -53,7 +53,7 @@ func (s *ClusterUserSubscriber) handleComputeAllocationDeleted(ctx context.Conte
 
 // syncAllocation reloads the allocation, since a stale payload could undo a
 // newer change, and ensures its group.
-func (s *ClusterUserSubscriber) syncAllocation(ctx context.Context, allocationID string) error {
+func (s *Subscriber) syncAllocation(ctx context.Context, allocationID string) error {
 	a, err := s.core.GetComputeAllocation(ctx, allocationID)
 	if errors.Is(err, service.ErrNotFound) {
 		return nil
@@ -64,7 +64,7 @@ func (s *ClusterUserSubscriber) syncAllocation(ctx context.Context, allocationID
 	return s.ops.EnsureAllocationGroup(ctx, a)
 }
 
-func (s *ClusterUserSubscriber) syncUserAllocations(ctx context.Context, userID string) error {
+func (s *Subscriber) syncUserAllocations(ctx context.Context, userID string) error {
 	memberships, err := s.core.ListAllocationsForUser(ctx, userID)
 	if err != nil {
 		return err

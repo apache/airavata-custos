@@ -42,7 +42,7 @@ AMIE. On startup:
 Identifier Types screen that the connector uses to look up and tag a CoPerson.
 Set it to whatever string your COmanage instance uses for the per-person ID.
 3. If all six are present it constructs an HTTP client and a
-   `ClusterUserSubscriber`, then registers it against the shared event bus.
+   `Subscriber`, then registers it against the shared event bus.
    The subscriber filters by `CustosClusterID` so a deployment that services
    multiple clusters can run multiple connector instances side by side.
 

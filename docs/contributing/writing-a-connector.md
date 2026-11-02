@@ -367,22 +367,22 @@ decode the payload for you.
 The bus saves the subscription under that name, so it has to be the same on every start.
 
 ```go
-type ClusterUserSubscriber struct {
+type Subscriber struct {
 bus  *events.Bus
 core *service.Service
 }
 
-func (s *ClusterUserSubscriber) RegisterSubscribers() {
+func (s *Subscriber) RegisterSubscribers() {
 s.bus.SubscribeComputeClusterUserApproved(comanage.Type, s.handleApproved)
 }
 
-func (s *ClusterUserSubscriber) handleApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleApproved(ctx context.Context, cu models.ComputeClusterUser) error {
 // ...react...
 return nil
 }
 ```
 
-The COmanage `ClusterUserSubscriber` is the smallest working example.
+The COmanage `Subscriber` is the smallest working example.
 
 Rules for a handler:
 

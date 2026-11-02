@@ -32,11 +32,11 @@ type fakeOps struct {
 	admins      []string
 }
 
-func (f *fakeOps) EnsurePOSIXAccount(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.provisioned = append(f.provisioned, cu.ID)
 	return nil
 }
-func (f *fakeOps) RemovePOSIXAccount(context.Context, *models.ComputeClusterUser) error { return nil }
+func (f *fakeOps) RemoveClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
 func (f *fakeOps) EnsureClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.admins = append(f.admins, cu.ID)
 	return nil
@@ -60,7 +60,7 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
 	}
 	ops := &fakeOps{}
-	s := &ClusterUserSubscriber{ops: ops, core: core, custosClusterID: "c1"}
+	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
 	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
 	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 			ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
 		}
 		ops := &fakeOps{}
-		s := &ClusterUserSubscriber{ops: ops, core: core, custosClusterID: "c1"}
+		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
 		if err := s.handleUserOnboarded(context.Background(), models.User{ID: "u1", Status: models.UserActive}); err != nil {
 			t.Fatal(err)
 		}

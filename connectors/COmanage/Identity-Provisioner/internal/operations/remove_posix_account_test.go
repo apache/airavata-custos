@@ -27,15 +27,15 @@ import (
 )
 
 // Make sure removing an account takes it off the person and deletes its primary group, binding first.
-func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
+func TestRemoveClusterAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", userGroup: 55}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := adminCore()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, core, adminGroupName).RemovePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemovePOSIXAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 1 || strings.Contains(string(reg.put[0]), "jdoe") {
@@ -51,14 +51,14 @@ func TestRemovePOSIXAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
 }
 
 // Make sure removing an admin's account also takes the person out of the admin group.
-func TestRemovePOSIXAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
+func TestRemoveClusterAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", adminGroup: adminGroupID, adminMember: true}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", AccessLevel: models.ClusterAccessAdmin}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemovePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemovePOSIXAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
 	}
 
 	if !slices.Contains(reg.deleted, "/co_group_members/9.json") {
@@ -67,14 +67,14 @@ func TestRemovePOSIXAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
 }
 
 // Make sure a second run, with nothing left in the registry, writes nothing and does not fail.
-func TestRemovePOSIXAccount_SecondRunChangesNothing(t *testing.T) {
+func TestRemoveClusterAccount_SecondRunChangesNothing(t *testing.T) {
 	reg := &mockRegistry{}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemovePOSIXAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemovePOSIXAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 0 || len(reg.deleted) != 0 {

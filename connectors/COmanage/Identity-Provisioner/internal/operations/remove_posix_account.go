@@ -30,11 +30,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// RemovePOSIXAccount removes what provisioning created for a cluster account:
+// RemoveClusterAccount removes what provisioning created for a cluster account:
 // the account and login name on the person, the admin group membership, and
 // the account's primary group. The person stays in the registry. It is safe
 // to run again, anything already removed is skipped.
-func (o *Orchestrator) RemovePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
+func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
 	ctx, span := tracing.Start(ctx, "comanage.remove_posix_account")
 	defer span.End()
 	span.SetAttributes(attribute.String("comanage.cluster_user_id", cu.ID))
