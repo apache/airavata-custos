@@ -117,6 +117,23 @@ series = {PEARC '22}
 }
 ```
 
+```
+@inproceedings{10.1145/3785462.3815896,
+author = {Jayathilake, Lahiru and Jayawardana, Yasith and Wannipurage, Dimuthu and Marru, Suresh},
+title = {Federated HPC Account Provisioning Using CILogon, COmanage, and PAM-Based OAuth2 Device Flow},
+year = {2026},
+isbn = {9798400723773},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3785462.3815896},
+doi = {10.1145/3785462.3815896},
+booktitle = {Practice and Experience in Advanced Research Computing 2026: Resilient Roots + Empowered Communities},
+articleno = {67},
+numpages = {5},
+series = {PEARC '26}
+}
+```
+
 ## Acknowledgment
 
 This project is funded by the National Science Foundation (NSF).
