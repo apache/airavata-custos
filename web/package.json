@@ -17,6 +17,7 @@
     "test": "pnpm gen:api && vitest run --passWithNoTests",
     "test:watch": "pnpm gen:api && vitest",
     "test:e2e": "playwright test",
+    "test:e2e:signer": "playwright test --config=playwright.signer.config.ts --project=chromium --workers=1",
     "clean": "rm -rf .next dist coverage",
     "gen:api": "node scripts/gen-api.mts",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"

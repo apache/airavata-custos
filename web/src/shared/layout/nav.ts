@@ -22,6 +22,7 @@ import {
   ClipboardList,
   FolderKanban,
   HardDrive,
+  KeyRound,
   type LucideIcon,
   ScrollText,
   Send,
@@ -73,6 +74,13 @@ export const portalNav: NavItem[] = [
     icon: UserCog,
     group: "admin",
     ability: { action: "read", subject: "User" },
+  },
+  {
+    href: "/admin/signer/certificates",
+    label: "SSH Certificates",
+    icon: KeyRound,
+    group: "admin",
+    ability: { action: "read", subject: "Signer" },
   },
   {
     href: "/admin/traces",
