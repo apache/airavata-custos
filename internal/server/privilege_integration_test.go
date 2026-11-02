@@ -37,7 +37,7 @@ func TestGetCallerPrivileges_NoCaller_401(t *testing.T) {
 	rr := httptest.NewRecorder()
 	srv.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/user/privileges", nil))
 	// Route is router.RequireAuth, no privilege check. Without a caller on
-	// ctx, the handler's requireCaller returns 401.
+	// ctx, the handler's common.RequireCaller returns 401.
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("status: got %d, want 401", rr.Code)
 	}

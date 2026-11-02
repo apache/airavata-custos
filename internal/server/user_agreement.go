@@ -187,7 +187,7 @@ func (s *Server) writeAgreementDetail(w http.ResponseWriter, r *http.Request, st
 // @Failure	409	{object}	object{error=string}	"That version already exists"
 // @Router	/agreements [post]
 func (s *Server) createUserAgreement(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -220,7 +220,7 @@ func (s *Server) createUserAgreement(w http.ResponseWriter, r *http.Request) {
 // @Failure	409	{object}	object{error=string}	"That version already exists"
 // @Router	/agreements/{id} [put]
 func (s *Server) updateUserAgreement(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -248,7 +248,7 @@ func (s *Server) updateUserAgreement(w http.ResponseWriter, r *http.Request) {
 // @Failure	404	{object}	object{error=string}
 // @Router	/agreements/{id} [delete]
 func (s *Server) deleteUserAgreement(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -272,7 +272,7 @@ func (s *Server) deleteUserAgreement(w http.ResponseWriter, r *http.Request) {
 // @Failure	404	{object}	object{error=string}
 // @Router	/agreements/{id}/publish [post]
 func (s *Server) publishUserAgreement(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -298,7 +298,7 @@ func (s *Server) publishUserAgreement(w http.ResponseWriter, r *http.Request) {
 // @Failure	404	{object}	object{error=string}
 // @Router	/agreements/{id}/remove [post]
 func (s *Server) removeUserAgreement(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}

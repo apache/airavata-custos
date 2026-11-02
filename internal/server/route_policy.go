@@ -31,7 +31,7 @@ import (
 // parent project, or an active membership on the allocation. Everyone else
 // gets the same 404 as a missing id, so ids cannot be probed.
 func (s *Server) canReadAllocation(w http.ResponseWriter, r *http.Request) bool {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return false
 	}
@@ -55,7 +55,7 @@ func (s *Server) canReadAllocation(w http.ResponseWriter, r *http.Request) bool 
 // governance role or an active allocation membership). Everyone else gets the
 // same 404 as a missing id.
 func (s *Server) canReadProject(w http.ResponseWriter, r *http.Request) bool {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return false
 	}

@@ -27,7 +27,7 @@ import (
 )
 
 func callerAndClaims(w http.ResponseWriter, r *http.Request) (*identity.Caller, *identity.Claims) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return nil, nil
 	}
@@ -47,7 +47,7 @@ func callerAndClaims(w http.ResponseWriter, r *http.Request) (*identity.Caller, 
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/me/agreements/pending [get]
 func (s *Server) listCallerPendingAgreements(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}

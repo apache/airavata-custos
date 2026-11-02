@@ -35,7 +35,7 @@ import (
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/me/onboarding/username [get]
 func (s *Server) checkOnboardingUsername(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -101,7 +101,7 @@ type SetupStatusResponse struct {
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/me/onboarding/status [get]
 func (s *Server) getSetupStatus(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
