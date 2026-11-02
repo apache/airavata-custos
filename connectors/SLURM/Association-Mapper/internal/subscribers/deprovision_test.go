@@ -37,7 +37,7 @@ func TestMembershipDeactivationRemovesAssociations(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipUpdate(context.Background(), deactivatedMembership())
+		handleComputeAllocationMembershipUpdated(context.Background(), deactivatedMembership())
 
 	got := slurm.allDeletes()
 	if len(got) != 1 {
@@ -60,7 +60,7 @@ func TestMembershipReactivationRestoresAssociations(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipUpdate(context.Background(), testMembership())
+		handleComputeAllocationMembershipUpdated(context.Background(), testMembership())
 
 	if n := len(slurm.allDeletes()); n != 0 {
 		t.Fatalf("an active membership must not be deprovisioned, got %d deletes", n)
@@ -74,7 +74,7 @@ func TestMembershipDeletionRemovesAssociations(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationMembershipDeletion(context.Background(), testMembership())
+		handleComputeAllocationMembershipDeleted(context.Background(), testMembership())
 
 	got := slurm.allDeletes()
 	if len(got) != 1 || got[0].User != "testuser" || got[0].Account != "test-alloc" {
@@ -103,7 +103,7 @@ func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
 			gone(core)
 			slurm := &fakeSlurmClient{}
 			err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-				SubscribeToComputeAllocationMembershipDeletion(context.Background(), testMembership())
+				handleComputeAllocationMembershipDeleted(context.Background(), testMembership())
 			if err != nil {
 				t.Fatalf("expected success, got %v", err)
 			}
@@ -121,7 +121,7 @@ func TestAllocationDeactivationRemovesAllAssociations(t *testing.T) {
 		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.INACTIVE,
 	}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationUpdate(context.Background(), alloc)
+		handleComputeAllocationUpdated(context.Background(), alloc)
 
 	got := slurm.allDeletes()
 	if len(got) != 1 {
@@ -145,7 +145,7 @@ func TestAllocationReactivationRestoresMemberAssociations(t *testing.T) {
 		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.ACTIVE,
 	}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationUpdate(context.Background(), alloc)
+		handleComputeAllocationUpdated(context.Background(), alloc)
 
 	if n := len(slurm.allDeletes()); n != 0 {
 		t.Fatalf("an active allocation must not be deprovisioned, got %d deletes", n)
@@ -166,7 +166,7 @@ func TestAllocationReactivationSkipsUnprovisionedMembers(t *testing.T) {
 		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.ACTIVE,
 	}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationUpdate(context.Background(), alloc)
+		handleComputeAllocationUpdated(context.Background(), alloc)
 
 	if n := len(slurm.all()); n != 0 {
 		t.Fatalf("expected no association for an unprovisioned account, got %d", n)
@@ -180,7 +180,7 @@ func TestAllocationDeletionRemovesAllAssociations(t *testing.T) {
 		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.ACTIVE,
 	}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		SubscribeToComputeAllocationDeletion(context.Background(), alloc)
+		handleComputeAllocationDeleted(context.Background(), alloc)
 
 	got := slurm.allDeletes()
 	if len(got) != 1 || got[0].Account != "test-alloc" || got[0].User != "" {

@@ -104,22 +104,9 @@ func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error
 // The event handlers use this. An event means something changed, so the
 // record is written without checking the cluster first.
 func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
-	return a.syncAssociationsForMembership(ctx, membership, nil)
-}
-
-// Writes the association of one member of one allocation. Every caller comes
-// through here. It builds the full record, overrides included, and compares
-// it with the existing one before writing, since Slurm overwrites the whole
-// record on each write. With no existing map it writes every time.
-func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership, existing map[assocKey]client.Association) error {
 	association, err := a.desiredAssociationForMembership(ctx, membership)
 	if err != nil || association == nil {
 		return err
-	}
-
-	// Nothing changed on the cluster, so skip the write.
-	if got, ok := existing[keyOf(*association)]; ok && sameLimits(*association, got) {
-		return nil
 	}
 	if err := a.writeAssociation(*association); err != nil {
 		return fmt.Errorf("upsert association: %w", err)
