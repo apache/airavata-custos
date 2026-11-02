@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -60,14 +60,8 @@ func TestReview(t *testing.T) {
 	if dsn == "" {
 		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN required")
 	}
-	database, err := db.Open(db.Config{DSN: dsn, MaxOpenConns: 2, MaxIdleConns: 1})
-	if err == nil {
-		err = db.MigrateConnectorFS(database, Migrations, "migrations", "vast")
-	}
-	if err == nil {
-		_, err = database.Exec("TRUNCATE vast_folders")
-	}
-	if err != nil {
+	database := dbtest.Open(t, dsn, dbtest.Migrations{FS: Migrations, Dir: "migrations", Name: "vast"})
+	if _, err := database.Exec("TRUNCATE vast_folders"); err != nil {
 		t.Fatal(err)
 	}
 	vast := &fakeVMS{quotas: map[string]client.Quota{"/home/jdoe": {HardLimit: 100, Used: 40}}}

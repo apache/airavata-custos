@@ -36,7 +36,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	amieservice "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -44,12 +44,6 @@ import (
 )
 
 const testClusterID = "00000000-0000-0000-0000-000000000001"
-
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
-)
 
 func isLocalAMIEConfigAvailable() bool {
 	for _, key := range []string{
@@ -73,29 +67,8 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 	if !isLocalAMIEConfigAvailable() {
 		t.Skip("integration env not set; run via scripts/run-amie-integration-tests.sh")
 	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          os.Getenv("DATABASE_DSN"),
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateConnectorFS(database, amiedb.MigrationFS(), "migrations", "amie"); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
+	sharedDB := dbtest.Open(t, os.Getenv("DATABASE_DSN"),
+		dbtest.Migrations{FS: amiedb.MigrationFS(), Dir: "migrations", Name: "amie"})
 	truncateAll(t, sharedDB)
 	seedDefaultCluster(t, sharedDB)
 	return sharedDB
