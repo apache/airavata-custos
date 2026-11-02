@@ -138,11 +138,24 @@ func (h *Handlers) updateAllocationToTempAccount(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if m.UserID == "" || m.ComputeAllocationID == "" {
-		common.WriteError(w, http.StatusBadRequest, errors.New("UserID and ComputeAllocationID must be provided"))
+	existing, err := h.coreService.GetComputeAllocationMembership(r.Context(), m.ID)
+	if err != nil {
+		common.WriteServiceError(w, err)
 		return
 	}
 
+	user, err := h.coreService.GetUser(r.Context(), existing.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+
+	if user.Type != models.UserTypeVirtual {
+		common.WriteError(w, http.StatusBadRequest, errors.New("User type must be VIRTUAL"))
+		return
+	}
+
+	m.UserID = existing.UserID
 	updated, err := h.coreService.UpdateComputeAllocationMembership(r.Context(), &m)
 
 	if err != nil {
