@@ -22,7 +22,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -104,7 +103,7 @@ func (s *Service) CreateUserAgreementDraft(ctx context.Context, in UserAgreement
 		if err := s.agreements.Create(ctx, tx, a); err != nil {
 			return agreementWriteErr("insert user agreement", err)
 		}
-		return s.writeUserAgreementAuditTx(ctx, tx, userAgreementAuditCreated, a.ID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditCreated, a.ID, map[string]any{
 			"actor_id":      actorID,
 			"version_label": a.VersionLabel,
 		})
@@ -132,7 +131,7 @@ func (s *Service) UpdateUserAgreementDraft(ctx context.Context, id string, in Us
 		if err := s.agreements.Update(ctx, tx, a); err != nil {
 			return agreementWriteErr("update user agreement", err)
 		}
-		return s.writeUserAgreementAuditTx(ctx, tx, userAgreementAuditUpdated, id, map[string]any{"actor_id": actorID})
+		return s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditUpdated, id, map[string]any{"actor_id": actorID})
 	}); err != nil {
 		return nil, err
 	}
@@ -152,7 +151,7 @@ func (s *Service) DeleteUserAgreementDraft(ctx context.Context, id, actorID stri
 		if err := s.agreements.Delete(ctx, tx, id); err != nil {
 			return fmt.Errorf("delete user agreement: %w", err)
 		}
-		return s.writeUserAgreementAuditTx(ctx, tx, userAgreementAuditDeleted, id, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditDeleted, id, map[string]any{
 			"actor_id":      actorID,
 			"version_label": a.VersionLabel,
 		})
@@ -174,7 +173,7 @@ func (s *Service) PublishUserAgreement(ctx context.Context, id, actorID string) 
 		if err := s.agreements.Update(ctx, tx, a); err != nil {
 			return fmt.Errorf("publish user agreement: %w", err)
 		}
-		if err := s.writeUserAgreementAuditTx(ctx, tx, userAgreementAuditPublished, id, map[string]any{
+		if err := s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditPublished, id, map[string]any{
 			"actor_id":      actorID,
 			"version_label": a.VersionLabel,
 		}); err != nil {
@@ -208,7 +207,7 @@ func (s *Service) RemoveUserAgreement(ctx context.Context, id, actorID string) (
 		if err := s.agreements.Update(ctx, tx, a); err != nil {
 			return fmt.Errorf("remove user agreement: %w", err)
 		}
-		if err := s.writeUserAgreementAuditTx(ctx, tx, userAgreementAuditRemoved, id, map[string]any{"actor_id": actorID}); err != nil {
+		if err := s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditRemoved, id, map[string]any{"actor_id": actorID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.UserAgreementRemoveEvent, a)
@@ -265,19 +264,4 @@ func (s *Service) draftTx(ctx context.Context, tx *sql.Tx, id string) (*models.U
 		return nil, fmt.Errorf("%w: user agreement %q is not a draft", ErrInvalidInput, id)
 	}
 	return a, nil
-}
-
-func (s *Service) writeUserAgreementAuditTx(ctx context.Context, tx *sql.Tx, eventType string, entityID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  eventType,
-		EventTime:  nowUTC(),
-		EntityID:   entityID,
-		EntityType: "user_agreement",
-		Details:    string(payload),
-	})
 }

@@ -20,6 +20,8 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +30,7 @@ import (
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // Service is a high-level façade over the underlying stores. It wraps each
@@ -175,6 +178,21 @@ func (s *Service) SetAuditTraces(ts store.AuditTraceStore) {
 // inTx runs fn inside a database transaction managed by the Service.
 func (s *Service) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 	return db.TxFn(ctx, s.db, fn)
+}
+
+func (s *Service) writeAuditTx(ctx context.Context, tx *sql.Tx, entityType, eventType, entityID string, details map[string]any) error {
+	payload, err := json.Marshal(details)
+	if err != nil {
+		return fmt.Errorf("marshal audit details: %w", err)
+	}
+	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
+		ID:         newID(),
+		EventType:  eventType,
+		EventTime:  nowUTC(),
+		EntityID:   entityID,
+		EntityType: entityType,
+		Details:    string(payload),
+	})
 }
 
 // newID returns a new identifier for a freshly created entity.

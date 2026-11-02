@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -219,7 +218,7 @@ func (s *Service) bindSubTx(ctx context.Context, tx *sql.Tx, user *models.User, 
 	if err := s.users.UpdateStatus(ctx, tx, user.ID, models.UserActive); err != nil {
 		return fmt.Errorf("activate user: %w", err)
 	}
-	if err := s.writeIdentityAuditTx(ctx, tx, user.ID, map[string]any{
+	if err := s.writeAuditTx(ctx, tx, "user", identityAuditLinked, user.ID, map[string]any{
 		"oidc_sub": claims.Sub,
 		"email":    claims.Email,
 		"source":   "first_sign_in",
@@ -228,19 +227,4 @@ func (s *Service) bindSubTx(ctx context.Context, tx *sql.Tx, user *models.User, 
 	}
 	slog.InfoContext(ctx, "identity linked on first sign-in", "user_id", user.ID, "email", claims.Email)
 	return s.eventBus.Publish(ctx, tx, events.UserIdentityCreateEvent, binding)
-}
-
-func (s *Service) writeIdentityAuditTx(ctx context.Context, tx *sql.Tx, userID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  identityAuditLinked,
-		EventTime:  nowUTC(),
-		EntityID:   userID,
-		EntityType: "user",
-		Details:    string(payload),
-	})
 }

@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -67,7 +66,7 @@ func (s *Service) GrantPrivilege(ctx context.Context, userID string, privilege m
 		if err := s.privileges.Create(ctx, tx, grant); err != nil {
 			return fmt.Errorf("insert privilege grant: %w", err)
 		}
-		return s.writePrivilegeAuditTx(ctx, tx, privilegeAuditGrant, userID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user", privilegeAuditGrant, userID, map[string]any{
 			"privilege": privilege,
 			"actor_id":  granterID,
 			"reason":    reason,
@@ -119,7 +118,7 @@ func (s *Service) RevokePrivilege(ctx context.Context, userID string, privilege 
 		if err := s.privileges.Delete(ctx, tx, userID, privilege); err != nil {
 			return fmt.Errorf("delete grant: %w", err)
 		}
-		return s.writePrivilegeAuditTx(ctx, tx, privilegeAuditRevoke, userID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user", privilegeAuditRevoke, userID, map[string]any{
 			"privilege": privilege,
 			"actor_id":  revokerID,
 			"reason":    reason,
@@ -218,22 +217,6 @@ func (s *Service) PrivilegeCatalog() []models.PrivilegeKey {
 // inside the supplied tx so concurrent grant + revoke serialize.
 func (s *Service) assertGranterTx(ctx context.Context, tx *sql.Tx, actorID string) error {
 	return s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegesGrant)
-}
-
-// writePrivilegeAuditTx records a privilege lifecycle event in audit_events.
-func (s *Service) writePrivilegeAuditTx(ctx context.Context, tx *sql.Tx, eventType string, entityID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  eventType,
-		EventTime:  nowUTC(),
-		EntityID:   entityID,
-		EntityType: "user",
-		Details:    string(payload),
-	})
 }
 
 // stringPtrOrNil returns a pointer to s, or nil when s is empty. Used for
