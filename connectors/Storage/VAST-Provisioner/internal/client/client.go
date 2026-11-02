@@ -143,8 +143,8 @@ func (c *Client) Quotas(ctx context.Context) (map[string]Quota, error) {
 	return byPath, nil
 }
 
-// Remove deletes the views and quotas on path and under it, then moves path to VAST's trash.
-func (c *Client) Remove(ctx context.Context, path string) error {
+// DeleteFolder deletes the views and quotas on path and under it, then moves path to VAST's trash.
+func (c *Client) DeleteFolder(ctx context.Context, path string) error {
 	token, err := c.login(ctx)
 	if err != nil {
 		return err
