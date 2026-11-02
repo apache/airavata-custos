@@ -181,6 +181,42 @@ func flipUserMemberships(ctx context.Context, tx *sql.Tx, svc *service.Service, 
 	return updated, nil
 }
 
+func sendReply(ctx context.Context, tx *sql.Tx, client AmieClient, auditSvc AuditService, packet *model.Packet, eventID, errPrefix string, reply map[string]any) error {
+	if err := client.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
+		return fmt.Errorf("%s: sending reply: %w", errPrefix, err)
+	}
+	if err := auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
+		return fmt.Errorf("%s: audit REPLY_SENT: %w", errPrefix, err)
+	}
+	return nil
+}
+
+func transactionSuccessReply(message string) map[string]any {
+	return map[string]any{
+		"type": "inform_transaction_complete",
+		"body": map[string]any{
+			"StatusCode": "Success",
+			"DetailCode": float64(1),
+			"Message":    message,
+		},
+	}
+}
+
+// ensureClusterUser returns the user's existing cluster mapping or
+// provisions a new one via the POSIX allocator.
+func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
+	existing, err := svc.ListComputeClusterUsersByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute cluster users: %w", err)
+	}
+	for _, a := range existing {
+		if a.ComputeClusterID == clusterID {
+			return &a, nil
+		}
+	}
+	return allocateAndCreateClusterUser(ctx, svc, clusterID, userID)
+}
+
 // ensureOrganization looks up an Organization by its originated_id (the
 // AMIE-side org code such as "TEST123"); creates one if missing, using the
 // human-readable organization name from the packet.

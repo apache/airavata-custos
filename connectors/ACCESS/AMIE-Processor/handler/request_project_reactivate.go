@@ -141,11 +141,5 @@ func (h *RequestProjectReactivateHandler) reply(ctx context.Context, tx *sql.Tx,
 		"type": "notify_project_reactivate",
 		"body": map[string]any{"ProjectID": projectID},
 	}
-	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-		return fmt.Errorf("request_project_reactivate: sending reply: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
-		return fmt.Errorf("request_project_reactivate: audit REPLY_SENT: %w", err)
-	}
-	return nil
+	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_project_reactivate", reply)
 }

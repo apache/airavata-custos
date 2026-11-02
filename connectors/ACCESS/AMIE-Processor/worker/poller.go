@@ -29,8 +29,8 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
-	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	custosdb "github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/tracing"
 )
 

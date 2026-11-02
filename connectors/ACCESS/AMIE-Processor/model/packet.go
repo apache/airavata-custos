@@ -57,3 +57,10 @@ type Packet struct {
 	// HeldFor names what HeldReply waits on, for example, a compute cluster user.
 	HeldFor *string `db:"held_for" json:"held_for,omitempty"`
 }
+
+func TransactionFailureReply(message string) map[string]any {
+	return map[string]any{
+		"type": "inform_transaction_complete",
+		"body": map[string]any{"StatusCode": "Failure", "DetailCode": 2, "Message": message},
+	}
+}
