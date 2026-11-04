@@ -17,6 +17,11 @@
 
 package main
 
+// graph shapes the JSON that GET /events/graph serves.
+// Each Event is a bus topic. Its Entry list names what publishes it first:
+// API, timer, startup or a connector type. Subs counts connector subscribers.
+// An Edge links two events. A Term ends a flow.
+
 import (
 	"cmp"
 	"regexp"
@@ -37,8 +42,9 @@ type Event struct {
 	Subs  int     `json:"subs"`
 }
 
-// Edge is a transition: a core function publishes To after From (core), or a
-// connector handler subscribed to From emits To as a primary emission (conn).
+// Edge is a transition from one event to the next.
+// Kind core: a core function publishes To after From.
+// Kind conn: a connector handler on From publishes To directly, not through another of its topics.
 type Edge struct {
 	From  string   `json:"from"`
 	To    string   `json:"to"`
@@ -52,7 +58,7 @@ type Edge struct {
 	Order bool `json:"order,omitempty"`
 }
 
-// Term is a handler subscribed to From that emits no event.
+// Term is a connector handler on From that publishes no event.
 type Term struct {
 	From    string   `json:"from"`
 	Conn    string   `json:"conn"`
@@ -122,7 +128,7 @@ func (st *state) entryKind(r rootT) string {
 
 func (st *state) connName(dir string) string { return cmp.Or(st.connType[dir], dir) }
 
-// graph reduces the analysis to events, transitions and end steps, sorted.
+// graph reduces the analysis to a sorted Graph.
 func (st *state) graph() Graph {
 	events, edges, terms := map[string]*Event{}, map[[3]string]*Edge{}, map[[2]string]*Term{}
 	node := func(t string) *Event {

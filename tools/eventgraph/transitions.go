@@ -23,7 +23,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-// Transition is topic B published after topic A on one core code path.
+// Transition is To published after From on one core code path.
 type Transition struct {
 	From        string
 	To          string
@@ -65,6 +65,8 @@ func laterInstrs(s ssa.Instruction) []ssa.Instruction {
 
 var baseReach = map[*ssa.Function]map[*ssa.Function]pathEl{}
 
+// coreTransitions climbs from each core publish through its callers.
+// In each caller it records the publishes reachable after the call.
 func (st *state) coreTransitions() []Transition {
 	type key struct{ from, to, sf, stt string }
 	best := map[key]Transition{}
@@ -75,12 +77,12 @@ func (st *state) coreTransitions() []Transition {
 		}
 		best[k] = t
 	}
-	// Origin entry instruction per function: the site in F that leads to the publish.
+	// byEntry keys each origin by the call in its own function that leads to Publish.
 	byEntry := map[ssa.Instruction][]origin{}
 	for _, o := range st.origins {
 		byEntry[o.sites[0]] = append(byEntry[o.sites[0]], o)
 	}
-	// Callers on the pruned core graph; callbacks point at the passing site, not the runner.
+	// callers inverts succs over core code. A callback's caller is the function that passes it.
 	callers := map[*ssa.Function][]step{}
 	for _, h := range st.modFns {
 		if inConnectors(h) {
@@ -92,7 +94,7 @@ func (st *state) coreTransitions() []Transition {
 			}
 		}
 	}
-	// scan applies the "later in G" rule after instruction at; prefix is the chain from F up to G.
+	// scan records each publish reachable after at in G. prefix is the chain from a.fn up to G.
 	scan := func(a origin, G *ssa.Function, at ssa.Instruction, prefix []string) {
 		for _, in := range laterInstrs(at) {
 			for _, b := range byEntry[in] {
@@ -168,8 +170,8 @@ func (st *state) coreTransitions() []Transition {
 	return out
 }
 
-// handlerPrimary lists, per handler, emitted topics that no transition from
-// another of its emitted topics explains, using transitions inside its reach.
+// handlerPrimary lists the topics a handler publishes directly.
+// A topic is indirect when a transition in the handler's reach leads to it from another of its topics.
 func (st *state) handlerPrimary(trans []Transition, handler string, fn *ssa.Function) []string {
 	emitted := map[string]bool{}
 	for _, e := range st.emits {

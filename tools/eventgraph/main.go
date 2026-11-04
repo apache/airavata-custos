@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Command eventgraph maps the Custos event bus of one revision into the event
-// graph served at GET /events/graph. It builds SSA and a VTA call graph over ./...,
-// resolves every bus Publish and Subscribe call back to its constant topic, and
-// follows each handler, loop and HTTP root to the topics it publishes.
-// Callbacks passed as arguments count as called at the passing site; the bus internals
-// are not followed. Any argument it cannot resolve fails the run, so the graph never
-// silently drops an event. It runs from go generate, never at request time.
+// Command eventgraph writes the event graph that GET /events/graph serves.
+// It runs from go generate, never at request time.
+// It builds SSA and a VTA call graph over every package in the module.
+// It resolves each bus Publish and Subscribe call to a constant topic.
+// It walks from each root to the topics it publishes: a handler, HTTP route, goroutine or loop.
+// A callback counts as called where it is passed. The bus internals are not walked.
+// An unresolved argument fails the run, so no event drops silently.
 package main
 
 import (
@@ -54,7 +54,6 @@ func main() {
 	flag.Parse()
 	repoRoot, _ = filepath.Abs(repoRoot)
 	st := analyse()
-	// A load error or an unresolved bus call would drop events from the graph silently.
 	if len(st.loadErrs)+len(st.unresolved) > 0 {
 		fmt.Fprintln(os.Stderr, strings.Join(st.loadErrs, "\n"))
 		for _, u := range st.unresolved {
@@ -140,7 +139,7 @@ func boundTarget(f *ssa.Function) *ssa.Function {
 					return s
 				}
 				if c.Common().IsInvoke() {
-					// Interface method value; keep the wrapper.
+					// An interface method value keeps the wrapper.
 					return f
 				}
 			}
@@ -227,7 +226,7 @@ type hop struct {
 
 type tuple struct {
 	Vals []leaf
-	Hops []hop // from the sink's caller outward
+	Hops []hop // from the bus call's caller outward
 }
 
 type aval struct {
@@ -315,7 +314,7 @@ func fixUnres(combo []opt, why string, hops []hop) tuple {
 
 func exitBlock(b *ssa.BasicBlock) bool { return len(b.Succs) == 0 }
 
-// postdominates reports whether every path from F's entry to an exit passes b.
+// postdominates reports whether every path from the entry of b's function to an exit passes b.
 func postdominates(b *ssa.BasicBlock) bool {
 	F := b.Parent()
 	entry := F.Blocks[0]
@@ -341,7 +340,7 @@ func postdominates(b *ssa.BasicBlock) bool {
 	return true
 }
 
-// condOf reports whether any site does not post-dominate its function's entry.
+// condOf reports whether any site runs on only some paths through its function.
 func condOf(sites []ssa.Instruction) bool {
 	for _, s := range sites {
 		if s != nil && s.Block() != nil && !postdominates(s.Block()) {
@@ -441,7 +440,8 @@ type pathEl struct {
 // inConnectors reports whether f is declared under connectors/.
 func inConnectors(f *ssa.Function) bool { return strings.HasPrefix(pos(f.Pos()), "connectors/") }
 
-// bfs walks the pruned graph from r; base keeps the walk out of connector code.
+// bfs walks succs from r and records each function's parent step.
+// With base set, it skips connector code.
 func bfs(r *ssa.Function, base bool) map[*ssa.Function]pathEl {
 	par := map[*ssa.Function]pathEl{r: {}}
 	q := []*ssa.Function{r}
@@ -461,7 +461,8 @@ func bfs(r *ssa.Function, base bool) map[*ssa.Function]pathEl {
 	return par
 }
 
-// pathTo returns the chain r..f, each non-static call tagged with its kind, and its call sites.
+// pathTo returns the call chain from r to f and its call sites.
+// Each non-static call carries its kind in brackets.
 func pathTo(par map[*ssa.Function]pathEl, r, f *ssa.Function) ([]string, []ssa.Instruction) {
 	var names []string
 	var sites []ssa.Instruction
@@ -500,8 +501,8 @@ func stored(a *ssa.Alloc, depth int) []opt {
 	return r
 }
 
-// paramDerived reports whether a called func value comes from the caller's
-// parameters or captures; those calls are modelled at the passing site.
+// paramDerived reports whether a called func value comes from the caller's parameters or captures.
+// Such calls are modelled at the passing site.
 func paramDerived(v ssa.Value) bool {
 	switch x := v.(type) {
 	case *ssa.Parameter, *ssa.FreeVar:
@@ -557,8 +558,7 @@ func callInvokesArg(call ssa.CallInstruction, j int) bool {
 
 var invokeMemo = map[[2]any]bool{}
 
-// invokesParam reports whether g calls its parameter p, directly or by passing
-// it to a callee that does.
+// invokesParam reports whether g calls its parameter p, directly or through a callee.
 // Outside the module every func is assumed to run its func arguments.
 func invokesParam(g *ssa.Function, p int, seen map[*ssa.Function]bool) bool {
 	if !inModule(g) && g.Synthetic == "" {

@@ -17,6 +17,12 @@
 
 package main
 
+// analyse loads ./... and collects the facts that graph reduces.
+// An origin is a function that publishes a constant topic, with its call chain to Publish.
+// A root is where a flow starts: a subscribed handler, an HTTP route, a goroutine or a loop-named func.
+// An emit is a topic a root reaches, by its shortest chain.
+// Connector roots walk anywhere. Core roots never enter connectors/.
+
 import (
 	"go/constant"
 	"go/types"
@@ -63,7 +69,9 @@ type rootT struct {
 	key   string
 }
 
-// connectorOf maps a file to connectors/<A>/<B> or its top two path elements.
+// connectorOf names the component that owns a file.
+// Under connectors/ it is connectors/<name> or connectors/<group>/<name>.
+// Elsewhere it is the top two path elements.
 func connectorOf(file string) string {
 	parts := strings.Split(file, "/")
 	if len(parts) >= 3 && parts[0] == "connectors" {

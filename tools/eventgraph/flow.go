@@ -29,7 +29,7 @@ import (
 // Sink is a function that leaves the process or writes the database.
 type Sink struct {
 	Name  string
-	Class string // external or db write
+	Class string // external transport, external API method or db write
 	Scope string // core or connector dir
 }
 

@@ -147,7 +147,7 @@ const eventGraphFile = "eventgraph/graph.json"
 func (s *Server) getEventGraph(w http.ResponseWriter, _ *http.Request) {
 	graph, err := eventGraph.ReadFile(eventGraphFile)
 	if err != nil {
-		common.WriteError(w, http.StatusNotFound, errors.New("event graph not generated; run go generate ./cmd/server/"))
+		common.WriteError(w, http.StatusNotFound, errors.New("event graph not generated: run go generate ./cmd/server/"))
 		return
 	}
 	common.WriteJSON(w, http.StatusOK, json.RawMessage(graph))

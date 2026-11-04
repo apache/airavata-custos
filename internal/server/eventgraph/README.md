@@ -19,7 +19,8 @@ under the License.
 
 # Event graph
 
-`tools/eventgraph` maps the event bus into `graph.json` in this directory: every core event, the core and connector transitions between them, and the handlers that end a flow.
+`tools/eventgraph` writes `graph.json` to this directory.
+It lists every bus event, the transitions between them and the connector handlers that end a flow.
 The server embeds this directory and serves the graph at `GET /events/graph`.
 
 ## Generating
