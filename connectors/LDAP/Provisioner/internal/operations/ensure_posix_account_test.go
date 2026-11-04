@@ -491,11 +491,45 @@ func TestDeactivatePOSIXAccount_DeletesEntryAndKeepsNumber(t *testing.T) {
 	}
 }
 
+const groupDN = "cn=alovelace,ou=groups,dc=test"
+
+func existingGroup(gidNumber string) map[string]*ldap.SearchResult {
+	return map[string]*ldap.SearchResult{"(&(objectClass=posixGroup)(cn=alovelace))": {Entries: []*ldap.Entry{
+		ldap.NewEntry(groupDN, map[string][]string{"cn": {"alovelace"}, "gidNumber": {gidNumber}}),
+	}}}
+}
+
+func TestEnsurePOSIXAccount_GroupWithOtherGID_IsConflict(t *testing.T) {
+	// A group from before Custos must not be adopted as the primary group.
+	core, conn := &fakeCore{user: sampleUser()}, &fakeConn{perFilterResults: existingGroup("1200")}
+
+	err := newOrchWithGroups(core, conn, newAccounts()).EnsurePOSIXAccount(context.Background(), sampleCU())
+	if !errors.Is(err, errConflict) || !errors.Is(err, events.ErrPermanent) {
+		t.Fatalf("expected a permanent conflict, got %v", err)
+	}
+	if len(conn.addCalls) != 0 || len(core.provisioned) != 0 {
+		t.Errorf("nothing may be written or marked provisioned; got %d Adds", len(conn.addCalls))
+	}
+	assertFailedStep(t, core, "claim_username")
+}
+
+func TestEnsurePOSIXAccount_StoredAccount_GroupWithOtherGID_IsConflict(t *testing.T) {
+	// A group added between runs is still caught before it is used.
+	core := &fakeCore{user: sampleUser()}
+	conn := &fakeConn{perFilterResults: existingGroup("1200")}
+
+	err := newOrchWithGroups(core, conn, newAccounts(storedAccount())).EnsurePOSIXAccount(context.Background(), sampleCU())
+	if !errors.Is(err, errConflict) || !errors.Is(err, events.ErrPermanent) {
+		t.Fatalf("expected a permanent conflict, got %v", err)
+	}
+	if len(core.provisioned) != 0 {
+		t.Error("the account must not be marked provisioned")
+	}
+	assertFailedStep(t, core, "ensure_primary_group")
+}
+
 func TestDeactivatePOSIXAccount_DeletesPrimaryGroup(t *testing.T) {
-	const groupDN = "cn=alovelace,ou=groups,dc=test"
-	conn := &fakeConn{perFilterResults: map[string]*ldap.SearchResult{
-		"(&(objectClass=posixGroup)(cn=alovelace))": {Entries: []*ldap.Entry{ldap.NewEntry(groupDN, nil)}},
-	}}
+	conn := &fakeConn{perFilterResults: existingGroup("50123")}
 	core := &fakeCore{}
 
 	if err := newOrchWithGroups(core, conn, newAccounts(storedAccount())).DeactivatePOSIXAccount(context.Background(), sampleCU()); err != nil {
@@ -506,6 +540,21 @@ func TestDeactivatePOSIXAccount_DeletesPrimaryGroup(t *testing.T) {
 	}
 	if !contains(auditEventTypes(core.auditEvents), "LDAPGroupDeleted") {
 		t.Errorf("expected LDAPGroupDeleted audit; got %v", auditEventTypes(core.auditEvents))
+	}
+}
+
+func TestDeactivatePOSIXAccount_LeavesGroupWithOtherGID(t *testing.T) {
+	conn := &fakeConn{perFilterResults: existingGroup("1200")}
+	core, accounts := &fakeCore{}, newAccounts(storedAccount())
+
+	if err := newOrchWithGroups(core, conn, accounts).DeactivatePOSIXAccount(context.Background(), sampleCU()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(conn.delCalls) != 1 || conn.delCalls[0].DN != accountDN {
+		t.Fatalf("only the account may be deleted; got %+v", conn.delCalls)
+	}
+	if accounts.rows["csu-1"].Status != store.StatusInactive || contains(auditEventTypes(core.auditEvents), "LDAPGroupDeleted") {
+		t.Error("the account must still be deactivated, without deleting the group")
 	}
 }
 

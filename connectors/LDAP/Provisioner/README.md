@@ -57,15 +57,15 @@ For each approved cluster account whose `ComputeClusterID` matches
 |---|------|--------------|
 | 1 | Validate `local_username` | Not POSIX-safe → `LDAPProvisioningFailed` audit, return. |
 | 2 | Resolve `models.User` | `core.GetUser(user_id)` — needed for cn / sn / mail. |
-| 3 | **Stored attributes** | Look up the `ldap_posix_accounts` row by `compute_cluster_users.id`. When there is none, the username must be free, both in the table and in the directory; otherwise the run fails with `step=claim_username`. Adopting an existing account has to be an explicit import. A free username gets a new row and uidNumber. |
+| 3 | **Stored attributes** | Look up the `ldap_posix_accounts` row by `compute_cluster_users.id`. When there is none, the username must be free, both in the table and in the directory (as an account, and as a group when `group_base_dn` is set); otherwise the run fails with `step=claim_username`. Adopting an existing account has to be an explicit import. A free username gets a new row and uidNumber. |
 | 4 | **Add or Modify** | The entry is read at the stored `entry_dn`. No entry → `client.AddPosixAccount(...)`, emit `LDAPAccountCreated`. On `constraintViolation` (out-of-band writer took the uidNumber), the row is renumbered and the add retried up to 3 times. An existing entry must carry the stored uidNumber; it is then refreshed with `client.ModifyPosixAccount` (cn / sn / givenName / homeDirectory / loginShell / mail), emit `LDAPAccountUpdated`. |
-| 5 | **Primary posixGroup** | When `group_base_dn` is set, ensure `cn=<local_username>,<GroupBaseDN>` exists with `gidNumber=<uidNumber>`. `FindPosixGroup` first, `AddPosixGroup` if absent. Concurrent creation is tolerated (`EntryAlreadyExists` is treated as success). Skipped entirely when `GroupBaseDN` is empty (auto-private-groups on the client side). Emit `LDAPGroupCreated` when a new group is written. |
+| 5 | **Primary posixGroup** | When `group_base_dn` is set, ensure `cn=<local_username>,<GroupBaseDN>` exists with `gidNumber=<uidNumber>`. `FindPosixGroup` first, `AddPosixGroup` if absent. An existing group with another gidNumber is a conflict, like an existing account. Concurrent creation is tolerated (`EntryAlreadyExists` is treated as success). Skipped entirely when `GroupBaseDN` is empty (auto-private-groups on the client side). Emit `LDAPGroupCreated` when a new group is written. |
 | 6 | **Mark provisioned** | `core.MarkComputeClusterUserProvisioned`, which starts the downstream connectors. |
 
 When a cluster account is deleted, the posixAccount entry is removed and
 the row is marked `INACTIVE`, emitting `LDAPAccountDeactivated`. When
 `group_base_dn` is set, the primary posixGroup is deleted too, emitting
-`LDAPGroupDeleted`. An approval for an `INACTIVE` row is ignored.
+`LDAPGroupDeleted`; a group with another gidNumber is left alone. An approval for an `INACTIVE` row is ignored.
 
 ## UID / GID allocation — design
 
@@ -111,7 +111,7 @@ require `getgrgid()` to resolve the primary group must set
 
 ## What gets written
 
-Entry at `uid=<LocalUsername>,<LDAP_BASE_DN>` with object classes
+Entry at `uid=<LocalUsername>,<directory.base_dn>` with object classes
 `top, person, organizationalPerson, inetOrgPerson, posixAccount` and:
 
 | LDAP attribute | Source |

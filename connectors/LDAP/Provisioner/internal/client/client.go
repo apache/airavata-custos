@@ -186,17 +186,18 @@ func (c *Client) AllocateNextUID(minUID int64) (int64, error) {
 	return c.allocateNextUIDLocked(minUID)
 }
 
-// FindPosixGroup returns the group's DN, or "" when there is none.
-func (c *Client) FindPosixGroup(cn string) (string, error) {
+// FindPosixGroup returns the group's DN and gidNumber, or "" when there is
+// none. The gidNumber is 0 when it is missing or not a number.
+func (c *Client) FindPosixGroup(cn string) (string, int64, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.cfg.GroupBaseDN == "" {
-		return "", errors.New("FindPosixGroup: GroupBaseDN not configured")
+		return "", 0, errors.New("FindPosixGroup: GroupBaseDN not configured")
 	}
 
 	conn, err := c.ensureConn()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	filter := fmt.Sprintf("(&(objectClass=posixGroup)(cn=%s))", ldap.EscapeFilter(cn))
 	req := ldap.NewSearchRequest(
@@ -210,15 +211,17 @@ func (c *Client) FindPosixGroup(cn string) (string, error) {
 	result, err := conn.Search(req)
 	if err != nil {
 		c.closeConn()
-		return "", fmt.Errorf("search posixGroup cn=%s: %w", cn, err)
+		return "", 0, fmt.Errorf("search posixGroup cn=%s: %w", cn, err)
 	}
 	if len(result.Entries) == 0 {
-		return "", nil
+		return "", 0, nil
 	}
 	if len(result.Entries) > 1 {
-		return "", fmt.Errorf("search posixGroup cn=%s returned %d entries", cn, len(result.Entries))
+		return "", 0, fmt.Errorf("search posixGroup cn=%s returned %d entries", cn, len(result.Entries))
 	}
-	return result.Entries[0].DN, nil
+	entry := result.Entries[0]
+	gid, _ := strconv.ParseInt(entry.GetAttributeValue("gidNumber"), 10, 64)
+	return entry.DN, gid, nil
 }
 
 func (c *Client) AddPosixGroup(cn string, gidNumber int64) (string, error) {
@@ -230,8 +233,12 @@ func (c *Client) AddPosixGroup(cn string, gidNumber int64) (string, error) {
 	if cn == "" {
 		return "", errors.New("AddPosixGroup: cn is required")
 	}
-	if gidNumber <= 0 {
-		return "", errors.New("AddPosixGroup: gidNumber must be a positive integer")
+	minUID := c.cfg.MinUID
+	if minUID <= 0 {
+		minUID = DefaultMinUID
+	}
+	if gidNumber < minUID {
+		return "", fmt.Errorf("AddPosixGroup: gidNumber %d is below min_uid %d", gidNumber, minUID)
 	}
 
 	conn, err := c.ensureConn()

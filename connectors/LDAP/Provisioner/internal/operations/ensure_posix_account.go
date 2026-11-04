@@ -136,8 +136,20 @@ func (o *Orchestrator) createAccount(ctx context.Context, cu *models.ComputeClus
 		o.auditFailure(ctx, cu, "claim_username", err)
 		return nil, err
 	}
-
 	cfg := o.c.Config()
+	if cfg.GroupBaseDN != "" {
+		groupDN, _, err := o.c.FindPosixGroup(cu.LocalUsername)
+		if err != nil {
+			o.auditFailure(ctx, cu, "find_posix_group", err)
+			return nil, err
+		}
+		if groupDN != "" {
+			err := fmt.Errorf("%w: %s already exists and was not created by Custos", errConflict, groupDN)
+			o.auditFailure(ctx, cu, "claim_username", err)
+			return nil, err
+		}
+	}
+
 	acct, err := o.accounts.Create(ctx, store.Account{
 		ComputeClusterUserID: cu.ID,
 		Username:             cu.LocalUsername,
@@ -156,8 +168,8 @@ func (o *Orchestrator) createAccount(ctx context.Context, cu *models.ComputeClus
 	return acct, nil
 }
 
-// ensureEntry adds the posixAccount at the stored DN, or updates it when it
-// exists and carries the stored uidNumber.
+// ensureEntry updates the posixAccount at the stored DN when it carries the
+// stored uidNumber, or adds it when there is none.
 func (o *Orchestrator) ensureEntry(ctx context.Context, cu *models.ComputeClusterUser, user *models.User, acct *store.Account, log *slog.Logger) error {
 	dn := acct.EntryDN
 	attrs, err := o.c.GetPosixAccount(dn)
@@ -204,16 +216,20 @@ func (o *Orchestrator) ensureEntry(ctx context.Context, cu *models.ComputeCluste
 
 // ensurePrimaryGroup adds the cn=<username> posixGroup under GroupBaseDN, if
 // configured. Without it the hosts are expected to use automatic private
-// groups. A concurrent add is treated as success.
+// groups. An existing group with another gidNumber is a conflict, like an
+// existing account. A concurrent add is treated as success.
 func (o *Orchestrator) ensurePrimaryGroup(ctx context.Context, cu *models.ComputeClusterUser, acct *store.Account, log *slog.Logger) error {
 	if o.c.Config().GroupBaseDN == "" {
 		return nil
 	}
-	existing, err := o.c.FindPosixGroup(acct.Username)
+	existing, gid, err := o.c.FindPosixGroup(acct.Username)
 	if err != nil {
 		return fmt.Errorf("find posixGroup %s: %w", acct.Username, err)
 	}
 	if existing != "" {
+		if gid != acct.GIDNumber {
+			return fmt.Errorf("%w: %s has gidNumber %d, Custos assigned %d", errConflict, existing, gid, acct.GIDNumber)
+		}
 		log.InfoContext(ctx, "ldap provisioner: primary posixGroup already present", "dn", existing)
 		return nil
 	}

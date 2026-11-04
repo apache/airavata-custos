@@ -27,8 +27,9 @@ import (
 )
 
 // deactivatePOSIXAccountImpl removes the posixAccount, and the user's primary
-// posixGroup when GroupBaseDN is set, from the directory. The row stays,
-// marked INACTIVE, so its numbers are never given to someone else.
+// posixGroup when GroupBaseDN is set, from the directory. A group with
+// another gidNumber was not created by Custos, so it is left alone. The row
+// stays, marked INACTIVE, so its numbers are never given to someone else.
 func (o *Orchestrator) deactivatePOSIXAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
 	log := slog.With("correlation_id", cu.ID, "custos_user_id", cu.UserID, "local_username", cu.LocalUsername)
 
@@ -45,7 +46,11 @@ func (o *Orchestrator) deactivatePOSIXAccountImpl(ctx context.Context, cu *model
 		return err
 	}
 	if o.c.Config().GroupBaseDN != "" {
-		groupDN, err := o.c.FindPosixGroup(acct.Username)
+		groupDN, gid, err := o.c.FindPosixGroup(acct.Username)
+		if groupDN != "" && gid != acct.GIDNumber {
+			log.WarnContext(ctx, "ldap provisioner: posixGroup has another gidNumber; leaving it", "dn", groupDN, "gid", gid)
+			groupDN = ""
+		}
 		if err == nil && groupDN != "" {
 			err = o.c.DeleteEntry(groupDN)
 		}

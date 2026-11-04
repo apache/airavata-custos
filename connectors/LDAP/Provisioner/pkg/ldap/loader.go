@@ -117,8 +117,13 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		if v, ok := directory["group_base_dn"].(string); ok {
 			groupBaseDN = v
 		}
-		if v, ok := directory["verify_ssl"].(bool); ok {
-			verifySSL = v
+		if v, ok := directory["verify_ssl"]; ok {
+			if b, ok := v.(bool); ok {
+				verifySSL = b
+			} else {
+				slog.Warn("ldap provisioner: directory.verify_ssl is not a boolean; using the default",
+					"value", v, "default", verifySSL)
+			}
 		}
 	}
 
@@ -140,8 +145,13 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 					"value", v, "default", timeout, "err", err)
 			}
 		}
-		if n := asInt64(provisioning["min_uid"]); n > 0 {
-			minUID = n
+		if v, ok := provisioning["min_uid"]; ok {
+			if n := asInt64(v); n > 0 {
+				minUID = n
+			} else {
+				slog.Warn("ldap provisioner: provisioning.min_uid is not a positive integer; using the default",
+					"value", v, "default", minUID)
+			}
 		}
 	}
 

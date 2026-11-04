@@ -352,23 +352,23 @@ func groupConfig() Config {
 
 func TestFindPosixGroup_ErrorsWhenGroupBaseDNMissing(t *testing.T) {
 	c := NewWithDialer(sampleConfig(), &fakeDialer{conn: &fakeConn{}})
-	if _, err := c.FindPosixGroup("alovelace"); err == nil {
+	if _, _, err := c.FindPosixGroup("alovelace"); err == nil {
 		t.Fatal("expected error when GroupBaseDN not configured")
 	}
 }
 
 func TestFindPosixGroup_ReturnsEmptyWhenAbsent(t *testing.T) {
 	c := NewWithDialer(groupConfig(), &fakeDialer{conn: &fakeConn{}})
-	dn, err := c.FindPosixGroup("alovelace")
+	dn, gid, err := c.FindPosixGroup("alovelace")
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if dn != "" {
-		t.Errorf("expected empty, got %s", dn)
+	if dn != "" || gid != 0 {
+		t.Errorf("expected empty, got %s gid=%d", dn, gid)
 	}
 }
 
-func TestFindPosixGroup_ReturnsDNWhenPresent(t *testing.T) {
+func TestFindPosixGroup_ReturnsDNAndGIDWhenPresent(t *testing.T) {
 	entry := ldap.NewEntry("cn=alovelace,ou=groups,dc=test", map[string][]string{
 		"cn": {"alovelace"}, "gidNumber": {"50123"},
 	})
@@ -377,12 +377,12 @@ func TestFindPosixGroup_ReturnsDNWhenPresent(t *testing.T) {
 	}}
 	c := NewWithDialer(groupConfig(), &fakeDialer{conn: conn})
 
-	dn, err := c.FindPosixGroup("alovelace")
+	dn, gid, err := c.FindPosixGroup("alovelace")
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if dn != "cn=alovelace,ou=groups,dc=test" {
-		t.Errorf("got %s", dn)
+	if dn != "cn=alovelace,ou=groups,dc=test" || gid != 50123 {
+		t.Errorf("got %s gid=%d", dn, gid)
 	}
 }
 
@@ -419,10 +419,16 @@ func TestAddPosixGroup_WritesRequiredAttrs(t *testing.T) {
 	}
 }
 
-func TestAddPosixGroup_RejectsZeroGID(t *testing.T) {
-	c := NewWithDialer(groupConfig(), &fakeDialer{conn: &fakeConn{}})
-	if _, err := c.AddPosixGroup("alovelace", 0); err == nil {
-		t.Fatal("expected error for zero gidNumber")
+func TestAddPosixGroup_RejectsGIDBelowMinUID(t *testing.T) {
+	conn := &fakeConn{}
+	c := NewWithDialer(groupConfig(), &fakeDialer{conn: conn})
+	for _, gid := range []int64{0, DefaultMinUID - 1} {
+		if _, err := c.AddPosixGroup("alovelace", gid); err == nil {
+			t.Errorf("expected error for gidNumber %d", gid)
+		}
+	}
+	if len(conn.addCalls) != 0 {
+		t.Error("nothing may be written below min_uid")
 	}
 }
 
