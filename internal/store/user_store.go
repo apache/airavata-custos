@@ -55,7 +55,7 @@ func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, er
 func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error) {
 	var r models.User
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
-		`SELECT `+userColumns+` FROM users WHERE id = $1 FOR UPDATE`, id)
+		`SELECT `+userColumns+` FROM users WHERE id = $1 FOR NO KEY UPDATE`, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

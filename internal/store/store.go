@@ -29,7 +29,8 @@ import (
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.User, error)
-	// FindByIDTx returns the user locked FOR UPDATE in tx, or nil if not found.
+	// FindByIDTx returns the user locked FOR NO KEY UPDATE in tx, or nil if not found.
+	// That still lets other transactions insert rows that reference the user.
 	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)

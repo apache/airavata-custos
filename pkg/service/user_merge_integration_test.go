@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -133,6 +134,48 @@ func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {
 		if err != nil || got != want {
 			t.Errorf("project %s tags: %q (%v), want %q", p, got, err, want)
 		}
+	}
+}
+
+// Make sure a merge waiting on a cluster account another transaction holds
+// does not block that transaction from inserting a row that references the user.
+func TestMergeUsers_LetsALockHolderReferenceTheUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	survivor := seedUser(t, database, fmt.Sprintf("survivor-%s@example.edu", uuid.NewString()))
+	cu := newClusterUser(t, svc, database)
+
+	hold, err := database.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = hold.Rollback() }()
+	if _, err := hold.Exec("SELECT id FROM compute_cluster_users WHERE id = $1 FOR UPDATE", cu.ID); err != nil {
+		t.Fatal(err)
+	}
+	merged := make(chan error, 1)
+	go func() {
+		_, err := svc.MergeUsers(ctx(), survivor, cu.UserID)
+		merged <- err
+	}()
+	for n, deadline := 0, time.Now().Add(5*time.Second); n < 1; time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("merge never blocked on the cluster account lock")
+		}
+		if err := database.Get(&n, "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock'"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if _, err := hold.Exec("INSERT INTO user_identities (id, user_id, source, external_id) VALUES ($1, $2, 'test', $3)",
+		uuid.NewString(), cu.UserID, uuid.NewString()); err != nil {
+		t.Fatalf("insert identity while the merge waits: %v", err)
+	}
+	if err := hold.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-merged; err != nil {
+		t.Fatalf("merge: %v", err)
 	}
 }
 
