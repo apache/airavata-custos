@@ -28,6 +28,7 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { RefreshCwIcon, UnplugIcon } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 import { DELIVERY_PAGE_SIZE } from "../api";
@@ -128,7 +129,14 @@ export function EventsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Events</h1>
         <p className="text-sm text-muted-foreground">
           Each event is sent to every connector that listens for it. A failed delivery is retried up
-          to 10 times, then waits here for an admin.
+          to 10 times, then waits here for an admin.{" "}
+          <Link
+            href="/admin/events/graph"
+            className="text-brand underline-offset-4 hover:underline"
+          >
+            See which events lead to which
+          </Link>
+          .
         </p>
       </header>
 

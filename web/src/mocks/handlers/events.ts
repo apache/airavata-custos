@@ -19,6 +19,7 @@ import {
   deliveryFixtures,
   subscriptionFixtures,
 } from "@/features/core/events/__fixtures__/deliveries";
+import graphFixture from "@/features/core/events/__fixtures__/graph.json";
 import type { DeliveryDetail } from "@/features/core/events/types";
 import { http, HttpResponse } from "msw";
 
@@ -26,6 +27,8 @@ import { http, HttpResponse } from "msw";
 const deliveries: DeliveryDetail[] = structuredClone(deliveryFixtures);
 
 export const eventsHandlers = [
+  http.get("/api/v1/events/graph", () => HttpResponse.json(graphFixture)),
+
   http.get("/api/v1/events/deliveries", ({ request }) => {
     const status = new URL(request.url).searchParams.get("status");
     const items = deliveries

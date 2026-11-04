@@ -20,10 +20,11 @@ import { apiFetch } from "@/shared/api/client";
 import {
   deliveryDetailSchema,
   deliveryListSchema,
+  eventGraphSchema,
   subscriptionListSchema,
   userNameSchema,
 } from "./schemas";
-import type { Delivery, DeliveryDetail, Subscription } from "./types";
+import type { Delivery, DeliveryDetail, EventGraph, Subscription } from "./types";
 
 // The backend caps one page at 200 rows and has no paging yet.
 export const DELIVERY_PAGE_SIZE = 200;
@@ -59,4 +60,8 @@ export async function getUserName(id: string): Promise<string> {
 export async function listSubscriptions(): Promise<Subscription[]> {
   const raw = await apiFetch("/events/subscriptions");
   return subscriptionListSchema.parse(raw).items;
+}
+
+export async function getEventGraph(): Promise<EventGraph> {
+  return eventGraphSchema.parse(await apiFetch("/events/graph"));
 }

@@ -19,7 +19,14 @@
 
 import type { EventDeliveryStatus } from "@/generated/core/zod.gen";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDelivery, getUserName, listDeliveries, listSubscriptions, retryDelivery } from "./api";
+import {
+  getDelivery,
+  getEventGraph,
+  getUserName,
+  listDeliveries,
+  listSubscriptions,
+  retryDelivery,
+} from "./api";
 
 export const eventKeys = {
   all: ["events"] as const,
@@ -27,6 +34,7 @@ export const eventKeys = {
     [...eventKeys.all, "deliveries", status ?? "ALL"] as const,
   delivery: (id: string) => [...eventKeys.all, "delivery", id] as const,
   subscriptions: () => [...eventKeys.all, "subscriptions"] as const,
+  graph: () => [...eventKeys.all, "graph"] as const,
   userName: (id: string) => [...eventKeys.all, "user-name", id] as const,
 };
 
@@ -68,5 +76,13 @@ export function useRetryDelivery() {
   return useMutation({
     mutationFn: retryDelivery,
     onSuccess: () => client.invalidateQueries({ queryKey: eventKeys.all }),
+  });
+}
+
+export function useEventGraph() {
+  return useQuery({
+    queryKey: eventKeys.graph(),
+    queryFn: getEventGraph,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }

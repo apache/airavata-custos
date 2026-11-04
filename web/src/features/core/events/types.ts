@@ -19,6 +19,7 @@ import type { z } from "zod";
 import type {
   deliveryDetailSchema,
   deliverySchema,
+  eventGraphSchema,
   historyEntrySchema,
   subscriptionListSchema,
 } from "./schemas";
@@ -30,3 +31,8 @@ export type Subscription = z.infer<typeof subscriptionListSchema>["items"][numbe
 
 // The list view a tab shows. "waiting" is every delivery not finished yet.
 export type DeliveryView = "all" | "waiting" | "failed";
+
+export type EventGraph = z.infer<typeof eventGraphSchema>;
+export type GraphEvent = EventGraph["events"][number];
+export type GraphEdge = EventGraph["edges"][number];
+export type GraphTerm = EventGraph["terms"][number];

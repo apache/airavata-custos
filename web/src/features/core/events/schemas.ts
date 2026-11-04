@@ -59,3 +59,39 @@ export const deliveryDetailSchema = zGetEventsDeliveriesByIdResponse.extend({
 export const subscriptionListSchema = zGetEventsSubscriptionsResponse.extend({
   items: z.array(zSubscription.pick({ subscriber: true, event_type: true, loaded: true })),
 });
+
+// Go marshals a nil slice as null.
+const list = <T extends z.ZodType>(item: T) =>
+  z
+    .array(item)
+    .nullable()
+    .transform((xs) => xs ?? []);
+
+const graphEntrySchema = z.object({ kind: z.string(), label: z.string() });
+
+export const eventGraphSchema = z.object({
+  events: z.array(z.object({ id: z.string(), entry: list(graphEntrySchema), subs: z.number() })),
+  edges: z.array(
+    z.object({
+      from: z.string(),
+      to: z.string(),
+      kind: z.enum(["core", "conn"]),
+      conn: z.string(),
+      actor: z.string(),
+      sites: list(z.string()),
+      chain: list(z.string()),
+      cond: z.boolean(),
+      order: z.boolean().optional(),
+    }),
+  ),
+  terms: z.array(
+    z.object({
+      from: z.string(),
+      conn: z.string(),
+      actor: z.string(),
+      site: z.string(),
+      effects: list(z.string()),
+      cond: z.boolean(),
+    }),
+  ),
+});

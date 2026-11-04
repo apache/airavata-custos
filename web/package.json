@@ -29,6 +29,7 @@
     "@tanstack/react-query": "^5.100.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "elkjs": "0.10.0",
     "lucide-react": "^1.16.0",
     "next": "16.4.2",
     "next-auth": "5.0.0-beta.32",
