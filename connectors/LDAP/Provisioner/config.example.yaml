@@ -18,12 +18,10 @@
 # LDAP Provisioner connector
 #
 # Loaded via internal/connectors/loader.go. Enable this in the top-level
-# connectors: map with type: ldap-identity-provisioner. Config may be
-# supplied as YAML below or as environment variables — YAML wins when
-# both are set.
+# connectors: map with type: ldap-identity-provisioner. Use ${VAR} to
+# take a value from the environment.
 #
-# YAML example — drop into the top-level config file under the
-# "connectors:" map. All env-var equivalents are listed in the comments.
+# Drop into the top-level config file under the "connectors:" map.
 
 # connectors:
 #   ldap-identity-provisioner:
@@ -31,31 +29,16 @@
 #     enabled: true
 #
 #     directory:
-#       url: ldaps://directory.example.edu:636        # LDAP_URL
-#       bind_dn: cn=custos-writer,ou=svc,dc=example,dc=edu   # LDAP_BIND_DN
-#       bind_password: ${LDAP_BIND_PASSWORD}          # LDAP_BIND_PASSWORD (best from secret store)
-#       base_dn: ou=people,dc=example,dc=edu          # LDAP_BASE_DN
-#       group_base_dn: ou=groups,dc=example,dc=edu    # LDAP_GROUP_BASE_DN — optional; enables posixGroup provisioning
-#       verify_ssl: true                              # LDAP_VERIFY_SSL — false for dev only
+#       url: ldaps://directory.example.edu:636
+#       bind_dn: cn=custos-writer,ou=svc,dc=example,dc=edu
+#       bind_password: ${LDAP_BIND_PASSWORD}          # best from a secret store
+#       base_dn: ou=people,dc=example,dc=edu
+#       group_base_dn: ou=groups,dc=example,dc=edu    # optional; enables posixGroup provisioning
+#       verify_ssl: true                              # false for dev only
 #
 #     provisioning:
-#       custos_cluster_id: 00000000-0000-0000-0000-000000000000  # CUSTOS_CLUSTER_ID
-#       default_shell: /bin/bash                       # LDAP_DEFAULT_SHELL
-#       homedir_prefix: /home/                         # LDAP_HOMEDIR_PREFIX
-#       http_timeout: 30s                              # LDAP_TIMEOUT
-#       min_uid: 50000                                 # LDAP_MIN_UID — allocator floor
-
-# REQUIRED env vars ------------------------------------------------------
-# LDAP_URL=ldaps://directory.example.edu:636
-# LDAP_BIND_DN=cn=custos-writer,ou=svc,dc=example,dc=edu
-# LDAP_BIND_PASSWORD=<from secret store>
-# LDAP_BASE_DN=ou=people,dc=example,dc=edu
-# CUSTOS_CLUSTER_ID=<UUID of the compute_clusters row this connector serves>
-
-# OPTIONAL env vars ------------------------------------------------------
-# LDAP_GROUP_BASE_DN=ou=groups,dc=example,dc=edu   # enables posixGroup provisioning; skip on auto-private-group systems
-# LDAP_VERIFY_SSL=true          # default true; set false for dev
-# LDAP_DEFAULT_SHELL=/bin/bash  # default /bin/bash
-# LDAP_HOMEDIR_PREFIX=/home/    # default /home/
-# LDAP_TIMEOUT=30s              # default 30s; go time.Duration string
-# LDAP_MIN_UID=50000            # default 50000; UID allocator floor
+#       custos_cluster_id: 00000000-0000-0000-0000-000000000000
+#       default_shell: /bin/bash
+#       homedir_prefix: /home/
+#       timeout: 30s                                   # connect and search timeout
+#       min_uid: 50000                                 # lowest uidNumber and gidNumber assigned

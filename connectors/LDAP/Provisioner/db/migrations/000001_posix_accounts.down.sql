@@ -15,16 +15,4 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
--- Persistent monotonic UID allocator per cluster. The row for a given
--- cluster_id holds the NEXT uidNumber to hand out; allocation is a
--- single UPDATE that InnoDB serialises via row locking, so concurrent
--- allocators (in-process or cross-process) cannot pick the same value.
---
--- Rows are never deleted — decommissioning a cluster is handled at a
--- higher level. Never-decrementing counter is what guarantees no UID
--- reuse after an LDAP entry is deleted.
-CREATE TABLE ldap_uid_sequence (
-    cluster_id VARCHAR(64) NOT NULL PRIMARY KEY,
-    next_uid   BIGINT      NOT NULL,
-    updated_at TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+DROP TABLE IF EXISTS ldap_posix_accounts;

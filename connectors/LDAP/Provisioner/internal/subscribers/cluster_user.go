@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package subscribers wires ComputeClusterUserCreateEvent to the LDAP
+// Package subscribers wires cluster account events to the LDAP
 // orchestrator. Parallels the COmanage connector's subscriber; a
 // deployment picks one or the other depending on whether it fronts LDAP
 // with COmanage.
@@ -37,10 +37,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// ClusterUserSubscriber listens for ComputeClusterUserCreateEvent and
-// drives the orchestrator. Events whose ComputeClusterID does not match
-// CustosClusterID are dropped — a deployment servicing multiple clusters
-// runs one subscriber instance per cluster.
+// ClusterUserSubscriber provisions approved cluster accounts and
+// deactivates deleted ones. Events for other clusters are dropped.
 type ClusterUserSubscriber struct {
 	ops             *operations.Orchestrator
 	bus             *events.Bus
@@ -48,36 +46,29 @@ type ClusterUserSubscriber struct {
 	custosClusterID string
 }
 
-func NewClusterUserSubscriber(c *client.Client, uids operations.UIDAllocator, bus *events.Bus, core *service.Service, custosClusterID string) *ClusterUserSubscriber {
+func NewClusterUserSubscriber(c *client.Client, accounts operations.Accounts, floor int64, bus *events.Bus, core *service.Service, custosClusterID string) *ClusterUserSubscriber {
 	return &ClusterUserSubscriber{
-		ops:             operations.New(c, core, uids),
+		ops:             operations.New(c, core, accounts, floor),
 		bus:             bus,
 		core:            core,
 		custosClusterID: custosClusterID,
 	}
 }
 
-func (s *ClusterUserSubscriber) RegisterSubscribers() {
-	s.bus.Subscribe(events.ComputeClusterUserCreateEvent, s.handleClusterUserCreate)
+func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
+	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
+	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
 }
 
-// handleClusterUserCreate is the async handler wired to the bus. Errors
-// are logged rather than returned because the bus delivers in its own
-// goroutine and the publisher does not receive a value.
-func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ events.Event, payload interface{}) {
+// Errors are returned so the bus retries the delivery.
+func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c models.ComputeClusterUser) error {
+	if c.ComputeClusterID != s.custosClusterID {
+		return nil
+	}
+	cu := &c
 	ctx = audit.WithSource(ctx, "ldap")
-	ctx, span := tracing.Start(ctx, "ldap.cluster_user_create")
+	ctx, span := tracing.Start(ctx, "ldap.cluster_user_approved")
 	defer span.End()
-
-	cu, ok := payload.(*models.ComputeClusterUser)
-	if !ok {
-		slog.Error("ldap subscriber: payload is not *ComputeClusterUser", "type", payload)
-		span.SetStatus(codes.Error, "payload type mismatch")
-		return
-	}
-	if cu.ComputeClusterID != s.custosClusterID {
-		return
-	}
 	span.SetAttributes(
 		attribute.String("ldap.cluster_user_id", cu.ID),
 		attribute.String("ldap.user_id", cu.UserID),
@@ -89,13 +80,30 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ e
 		EntityType: "compute_cluster_user",
 		Details:    "cluster_user_id=" + cu.ID + " user_id=" + cu.UserID,
 	})
-	// TODO: move to a transactional scope. In-process delivery loses
-	// events if the process crashes between the core commit and the
-	// subscriber pickup.
 	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		slog.Error("ldap subscriber: EnsurePOSIXAccount failed",
-			"compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		slog.ErrorContext(ctx, "ldap subscriber: EnsurePOSIXAccount failed",
+			"correlation_id", cu.ID, "user_id", cu.UserID, "err", err)
+		return err
 	}
+	return nil
+}
+
+func (s *ClusterUserSubscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
+	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
+		return nil
+	}
+	ctx = audit.WithSource(ctx, "ldap")
+	ctx, span := tracing.Start(ctx, "ldap.cluster_user_deleted")
+	defer span.End()
+	span.SetAttributes(attribute.String("ldap.cluster_user_id", cu.ID))
+	if err := s.ops.DeactivatePOSIXAccount(ctx, &cu); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		slog.ErrorContext(ctx, "ldap subscriber: DeactivatePOSIXAccount failed",
+			"correlation_id", cu.ID, "user_id", cu.UserID, "err", err)
+		return err
+	}
+	return nil
 }

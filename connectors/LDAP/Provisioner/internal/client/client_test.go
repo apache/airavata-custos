@@ -27,8 +27,8 @@ import (
 )
 
 type fakeConn struct {
-	bindErr, addErr, modifyErr, searchErr error
-	searchResult                          *ldap.SearchResult
+	bindErr, addErr, modifyErr, delErr, searchErr error
+	searchResult                                  *ldap.SearchResult
 	// per-base-DN responses so a single fake can back both
 	// posixAccount searches (BaseDN) and posixGroup searches
 	// (GroupBaseDN).
@@ -42,6 +42,7 @@ type fakeConn struct {
 	addCalls    []*ldap.AddRequest
 	modifyCalls []*ldap.ModifyRequest
 	searchCalls []*ldap.SearchRequest
+	delCalls    []*ldap.DelRequest
 }
 
 func (f *fakeConn) Bind(_, _ string) error { f.bindCalls++; return f.bindErr }
@@ -70,6 +71,10 @@ func (f *fakeConn) Search(r *ldap.SearchRequest) (*ldap.SearchResult, error) {
 		return f.searchResult, nil
 	}
 	return &ldap.SearchResult{}, nil
+}
+func (f *fakeConn) Del(r *ldap.DelRequest) error {
+	f.delCalls = append(f.delCalls, r)
+	return f.delErr
 }
 func (f *fakeConn) Close() error { return nil }
 
@@ -202,6 +207,8 @@ func TestAddPosixAccount_RejectsMissingRequired(t *testing.T) {
 	}{
 		{"empty UID", func(a *PosixAccount) { a.UID = "" }},
 		{"zero UIDNumber", func(a *PosixAccount) { a.UIDNumber = 0 }},
+		{"UIDNumber below min_uid", func(a *PosixAccount) { a.UIDNumber = DefaultMinUID - 1 }},
+		{"GIDNumber below min_uid", func(a *PosixAccount) { a.GIDNumber = DefaultMinUID - 1 }},
 		{"zero GIDNumber", func(a *PosixAccount) { a.GIDNumber = 0 }},
 		{"empty HomeDirectory", func(a *PosixAccount) { a.HomeDirectory = "" }},
 		{"empty Surname", func(a *PosixAccount) { a.Surname = "" }},
@@ -510,3 +517,28 @@ func contains(ss []string, want string) bool {
 
 // silence unused-strconv warning
 var _ = strconv.Itoa
+
+func TestDeleteEntry(t *testing.T) {
+	cases := []struct {
+		name    string
+		delErr  error
+		wantErr bool
+	}{
+		{"deletes", nil, false},
+		{"already gone", &ldap.Error{ResultCode: ldap.LDAPResultNoSuchObject}, false},
+		{"other error", &ldap.Error{ResultCode: ldap.LDAPResultInsufficientAccessRights}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			conn := &fakeConn{delErr: tc.delErr}
+			c := NewWithDialer(sampleConfig(), &fakeDialer{conn: conn})
+			err := c.DeleteEntry("uid=alovelace,ou=people,dc=test")
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tc.wantErr)
+			}
+			if len(conn.delCalls) != 1 || conn.delCalls[0].DN != "uid=alovelace,ou=people,dc=test" {
+				t.Errorf("unexpected delete calls: %+v", conn.delCalls)
+			}
+		})
+	}
+}

@@ -28,50 +28,41 @@ import (
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/apache/airavata-custos/connectors/LDAP/Provisioner/internal/client"
+	"github.com/apache/airavata-custos/connectors/LDAP/Provisioner/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // CoreService is the subset of pkg/service.Service the orchestrator needs.
-// Declared here so tests can substitute a fake without standing up a real DB.
 type CoreService interface {
 	GetUser(ctx context.Context, id string) (*models.User, error)
-	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
-	CreateUserIdentity(ctx context.Context, ui *models.UserIdentity) (*models.UserIdentity, error)
 	CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
+	MarkComputeClusterUserProvisioned(ctx context.Context, id string) error
 }
 
-// UIDAllocator hands out fresh uidNumbers from a persistent, monotonic
-// counter. Never regresses — deleting an LDAP entry does not free the
-// number for reuse, which is what closes the "new user inherits deleted
-// user's files" hole. Backed by internal/store.UIDSequence in
-// production; interfaced here so tests can substitute an in-memory
-// counter.
-type UIDAllocator interface {
-	Allocate(ctx context.Context, clusterID string) (int64, error)
+// Accounts is the connector's own table of assigned POSIX attributes.
+type Accounts interface {
+	Get(ctx context.Context, computeClusterUserID string) (*store.Account, error)
+	GetByUsername(ctx context.Context, username string) (*store.Account, error)
+	Create(ctx context.Context, a store.Account, floor int64) (*store.Account, error)
+	Renumber(ctx context.Context, computeClusterUserID string, floor int64) (*store.Account, error)
+	Reclaim(ctx context.Context, fromID, toID string) (*store.Account, error)
+	SetStatus(ctx context.Context, computeClusterUserID, status string) error
 }
 
-// Orchestrator wraps the LDAP client, the core service, and the UID
-// allocator. Exposes a single EnsurePOSIXAccount call that the
-// subscriber invokes on every ComputeClusterUserCreateEvent it accepts.
 type Orchestrator struct {
-	c    *client.Client
-	core CoreService
-	uids UIDAllocator
+	c        *client.Client
+	core     CoreService
+	accounts Accounts
+	// floor is the lowest uidNumber to assign.
+	floor int64
 }
 
-// New builds an Orchestrator. Takes *service.Service directly so the
-// loader wiring stays symmetrical with the COmanage connector; the
-// exported CoreService interface is what the orchestrator's methods
-// actually depend on.
-func New(c *client.Client, core *service.Service, uids UIDAllocator) *Orchestrator {
-	return &Orchestrator{c: c, core: core, uids: uids}
+func New(c *client.Client, core *service.Service, accounts Accounts, floor int64) *Orchestrator {
+	return &Orchestrator{c: c, core: core, accounts: accounts, floor: floor}
 }
 
-// EnsurePOSIXAccount is the entry point invoked by the subscriber. It
-// wraps the real flow in a tracing span so failures surface with the
-// step name attached.
 func (o *Orchestrator) EnsurePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
 	ctx, span := tracing.Start(ctx, "ldap.ensure_posix_account")
 	defer span.End()
@@ -88,9 +79,18 @@ func (o *Orchestrator) EnsurePOSIXAccount(ctx context.Context, cu *models.Comput
 	return nil
 }
 
-// audit is the success-side helper: emits an event to the core audit log
-// tagged with the ComputeClusterUser row so downstream tooling can trace
-// the provisioning history for that user.
+func (o *Orchestrator) DeactivatePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+	ctx, span := tracing.Start(ctx, "ldap.deactivate_posix_account")
+	defer span.End()
+	span.SetAttributes(attribute.String("ldap.cluster_user_id", cu.ID))
+	if err := o.deactivatePOSIXAccountImpl(ctx, cu); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+	return nil
+}
+
 func (o *Orchestrator) audit(ctx context.Context, cu *models.ComputeClusterUser, eventType, details string) {
 	_, _ = o.core.CreateAuditEvent(ctx, &models.AuditEvent{
 		EventType:  eventType,
@@ -100,10 +100,8 @@ func (o *Orchestrator) audit(ctx context.Context, cu *models.ComputeClusterUser,
 	})
 }
 
-// dlq (dead-letter) is the failure-side helper: emits a ProvisioningFailed
-// event with the step name so operators can grep the audit table for
-// stuck users without correlating logs.
-func (o *Orchestrator) dlq(ctx context.Context, cu *models.ComputeClusterUser, step string, err error) {
+// auditFailure records an LDAPProvisioningFailed event naming the failed step.
+func (o *Orchestrator) auditFailure(ctx context.Context, cu *models.ComputeClusterUser, step string, err error) {
 	details := "step=" + step + " err="
 	if err != nil {
 		details += err.Error()

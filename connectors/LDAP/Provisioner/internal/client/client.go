@@ -74,6 +74,7 @@ type Connection interface {
 	Bind(username, password string) error
 	Add(req *ldap.AddRequest) error
 	Modify(req *ldap.ModifyRequest) error
+	Del(req *ldap.DelRequest) error
 	Search(req *ldap.SearchRequest) (*ldap.SearchResult, error)
 	Close() error
 }
@@ -153,10 +154,6 @@ func (c *Client) FindPosixAccount(uid string) (string, map[string][]string, erro
 }
 
 // AddPosixAccount creates a new posixAccount + inetOrgPerson entry.
-// Callers supply the uidNumber (typically from internal/store.UIDSequence,
-// which is the persistent monotonic allocator that guarantees no reuse
-// after entry deletion and serialises cross-process races via InnoDB
-// row locking).
 func (c *Client) AddPosixAccount(a PosixAccount) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -172,15 +169,9 @@ func (c *Client) ModifyPosixAccount(dn string, a PosixAccount) error {
 	return c.modifyPosixAccountLocked(dn, a)
 }
 
-// AllocateNextUID scans BaseDN for all posixAccount entries, reads their
-// uidNumber attribute, and returns max(uidNumber) + 1, floored at minUID.
-//
-// Used exclusively for one-time seeding of the persistent uid counter
-// at connector startup — the loader calls this so a fresh deployment
-// initialises above any entries already in LDAP from out-of-band
-// provisioning. Steady-state allocations go through internal/store's
-// UIDSequence, which is monotonic across restarts and never regresses
-// when LDAP entries are deleted.
+// AllocateNextUID returns max(uidNumber) + 1 across BaseDN, floored at
+// minUID. The loader calls it once at startup so assigned numbers start
+// above entries created outside Custos.
 func (c *Client) AllocateNextUID(minUID int64) (int64, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -271,6 +262,24 @@ func IsAlreadyExists(err error) bool {
 	return ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists)
 }
 
+// DeleteEntry removes dn. An entry that is already gone is not an error.
+func (c *Client) DeleteEntry(dn string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	conn, err := c.ensureConn()
+	if err != nil {
+		return err
+	}
+	if err := conn.Del(ldap.NewDelRequest(dn, nil)); err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			return nil
+		}
+		c.closeConn()
+		return fmt.Errorf("delete %s: %w", dn, err)
+	}
+	return nil
+}
+
 // ---- private locked helpers ------------------------------------------
 
 func (c *Client) findPosixAccountLocked(uid string) (string, map[string][]string, error) {
@@ -307,7 +316,7 @@ func (c *Client) findPosixAccountLocked(uid string) (string, map[string][]string
 }
 
 func (c *Client) addPosixAccountLocked(a PosixAccount) (string, error) {
-	if err := validate(a); err != nil {
+	if err := validate(a, c.cfg.MinUID); err != nil {
 		return "", err
 	}
 	conn, err := c.ensureConn()
@@ -445,15 +454,18 @@ func (c *Client) closeConn() {
 	}
 }
 
-func validate(a PosixAccount) error {
+func validate(a PosixAccount, minUID int64) error {
 	if a.UID == "" {
 		return errors.New("PosixAccount: UID is required")
 	}
-	if a.UIDNumber <= 0 {
-		return errors.New("PosixAccount: UIDNumber must be a positive integer")
+	if minUID <= 0 {
+		minUID = DefaultMinUID
 	}
-	if a.GIDNumber <= 0 {
-		return errors.New("PosixAccount: GIDNumber must be a positive integer")
+	if a.UIDNumber < minUID {
+		return fmt.Errorf("PosixAccount: UIDNumber %d is below min_uid %d", a.UIDNumber, minUID)
+	}
+	if a.GIDNumber < minUID {
+		return fmt.Errorf("PosixAccount: GIDNumber %d is below min_uid %d", a.GIDNumber, minUID)
 	}
 	if a.HomeDirectory == "" {
 		return errors.New("PosixAccount: HomeDirectory is required")
