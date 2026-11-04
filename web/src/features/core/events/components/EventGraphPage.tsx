@@ -17,6 +17,8 @@
 
 "use client";
 
+import { ArrowLeftRightIcon, ArrowRightIcon } from "lucide-react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/shared/api/client";
 import {
@@ -37,8 +39,6 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { ArrowLeftRightIcon, ArrowRightIcon } from "lucide-react";
-import * as React from "react";
 import {
   DEFAULT_GRAPH_OPTIONS,
   entityOf,
@@ -156,6 +156,12 @@ export function EventGraphPage() {
               className="h-full border-0"
               heading="No event graph"
               description="This server was built without one. Run `go generate ./cmd/server/` and rebuild."
+            />
+          ) : graph.error instanceof ApiError && graph.error.status === 403 ? (
+            <EmptyState
+              className="h-full border-0"
+              heading="No access"
+              description="The event graph needs the core:events:manage privilege."
             />
           ) : (
             <ErrorState message={graph.error.message} />
