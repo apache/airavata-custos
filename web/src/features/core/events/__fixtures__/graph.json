@@ -1,0 +1,360 @@
+{
+  "events": [
+    {
+      "id": "compute_allocation::create",
+      "entry": [
+        {
+          "kind": "API",
+          "label": "POST /compute-allocations"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "amie.LoadConnector$3"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.Run"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.processPendingEvents"
+        }
+      ],
+      "subs": 2
+    },
+    {
+      "id": "compute_allocation::delete",
+      "entry": [
+        {
+          "kind": "API",
+          "label": "DELETE /compute-allocations/{id}"
+        }
+      ],
+      "subs": 3
+    },
+    {
+      "id": "compute_allocation::group_provision",
+      "entry": [],
+      "subs": 1
+    },
+    {
+      "id": "compute_allocation::update",
+      "entry": [
+        {
+          "kind": "amie-processor",
+          "label": "amie.LoadConnector$3"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.Run"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.processPendingEvents"
+        }
+      ],
+      "subs": 2
+    },
+    {
+      "id": "compute_allocation_membership::create",
+      "entry": [
+        {
+          "kind": "API",
+          "label": "POST /compute-allocation-memberships"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "amie.LoadConnector$3"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.Run"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.processPendingEvents"
+        },
+        {
+          "kind": "temp-account",
+          "label": "POST /connectors/temp-account/assign-allocation"
+        }
+      ],
+      "subs": 3
+    },
+    {
+      "id": "compute_allocation_membership::delete",
+      "entry": [
+        {
+          "kind": "API",
+          "label": "DELETE /compute-allocation-memberships/{id}"
+        }
+      ],
+      "subs": 2
+    },
+    {
+      "id": "compute_allocation_membership::update",
+      "entry": [
+        {
+          "kind": "API",
+          "label": "PUT /compute-allocation-memberships/{id}"
+        },
+        {
+          "kind": "API",
+          "label": "PUT /compute-allocation-memberships/{id}/status"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "amie.LoadConnector$3"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.Run"
+        },
+        {
+          "kind": "amie-processor",
+          "label": "worker.Processor.processPendingEvents"
+        },
+        {
+          "kind": "temp-account",
+          "label": "POST /connectors/temp-account/update-allocation"
+        }
+      ],
+      "subs": 3
+    }
+  ],
+  "edges": [
+    {
+      "from": "compute_allocation::create",
+      "to": "compute_allocation::group_provision",
+      "kind": "conn",
+      "conn": "comanage-identity-provisioner",
+      "actor": "comanage-identity-provisioner.Subscriber.handleComputeAllocationChanged",
+      "sites": [
+        "connectors/COmanage/Identity-Provisioner/internal/subscribers/cluster_user.go:73 \u2192 pkg/service/compute_allocation.go:194"
+      ],
+      "chain": [
+        "subscribers.Subscriber.handleComputeAllocationChanged",
+        "subscribers.Subscriber.syncAllocation",
+        "operations.Orchestrator.EnsureAllocationGroup",
+        "service.Service.MarkComputeAllocationGroupProvisioned",
+        "service.Service.MarkComputeAllocationGroupProvisioned$1"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation::update",
+      "to": "compute_allocation::group_provision",
+      "kind": "conn",
+      "conn": "comanage-identity-provisioner",
+      "actor": "comanage-identity-provisioner.Subscriber.handleComputeAllocationChanged",
+      "sites": [
+        "connectors/COmanage/Identity-Provisioner/internal/subscribers/cluster_user.go:74 \u2192 pkg/service/compute_allocation.go:194"
+      ],
+      "chain": [
+        "subscribers.Subscriber.handleComputeAllocationChanged",
+        "subscribers.Subscriber.syncAllocation",
+        "operations.Orchestrator.EnsureAllocationGroup",
+        "service.Service.MarkComputeAllocationGroupProvisioned",
+        "service.Service.MarkComputeAllocationGroupProvisioned$1"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::create",
+      "to": "compute_allocation::group_provision",
+      "kind": "conn",
+      "conn": "comanage-identity-provisioner",
+      "actor": "comanage-identity-provisioner.Subscriber.handleMembershipChanged",
+      "sites": [
+        "connectors/COmanage/Identity-Provisioner/internal/subscribers/cluster_user.go:76 \u2192 pkg/service/compute_allocation.go:194"
+      ],
+      "chain": [
+        "subscribers.Subscriber.handleMembershipChanged",
+        "subscribers.Subscriber.syncAllocation",
+        "operations.Orchestrator.EnsureAllocationGroup",
+        "service.Service.MarkComputeAllocationGroupProvisioned",
+        "service.Service.MarkComputeAllocationGroupProvisioned$1"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::delete",
+      "to": "compute_allocation::group_provision",
+      "kind": "conn",
+      "conn": "comanage-identity-provisioner",
+      "actor": "comanage-identity-provisioner.Subscriber.handleMembershipChanged",
+      "sites": [
+        "connectors/COmanage/Identity-Provisioner/internal/subscribers/cluster_user.go:78 \u2192 pkg/service/compute_allocation.go:194"
+      ],
+      "chain": [
+        "subscribers.Subscriber.handleMembershipChanged",
+        "subscribers.Subscriber.syncAllocation",
+        "operations.Orchestrator.EnsureAllocationGroup",
+        "service.Service.MarkComputeAllocationGroupProvisioned",
+        "service.Service.MarkComputeAllocationGroupProvisioned$1"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::update",
+      "to": "compute_allocation::group_provision",
+      "kind": "conn",
+      "conn": "comanage-identity-provisioner",
+      "actor": "comanage-identity-provisioner.Subscriber.handleMembershipChanged",
+      "sites": [
+        "connectors/COmanage/Identity-Provisioner/internal/subscribers/cluster_user.go:77 \u2192 pkg/service/compute_allocation.go:194"
+      ],
+      "chain": [
+        "subscribers.Subscriber.handleMembershipChanged",
+        "subscribers.Subscriber.syncAllocation",
+        "operations.Orchestrator.EnsureAllocationGroup",
+        "service.Service.MarkComputeAllocationGroupProvisioned",
+        "service.Service.MarkComputeAllocationGroupProvisioned$1"
+      ],
+      "cond": true
+    }
+  ],
+  "terms": [
+    {
+      "from": "compute_allocation::create",
+      "conn": "slurm-association-mapper",
+      "actor": "slurm-association-mapper.AssociationSubscriber.handleComputeAllocationCreated",
+      "site": "connectors/SLURM/Association-Mapper/internal/subscribers/subscriber.go:67",
+      "effects": ["client.Client.CreateAccount", "client.Client.do"],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation::delete",
+      "conn": "comanage-identity-provisioner",
+      "actor": "comanage-identity-provisioner.Subscriber.handleComputeAllocationDeleted",
+      "site": "connectors/COmanage/Identity-Provisioner/internal/subscribers/cluster_user.go:75",
+      "effects": [
+        "client.Client.DeleteCoGroup",
+        "client.Client.DeleteUnixClusterGroup",
+        "client.Client.Do",
+        "client.Client.FindCoGroupByName",
+        "client.Client.FindUnixClusterGroup",
+        "client.Client.doOnce"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation::delete",
+      "conn": "slurm-association-mapper",
+      "actor": "slurm-association-mapper.AssociationSubscriber.handleComputeAllocationDeleted",
+      "site": "connectors/SLURM/Association-Mapper/internal/subscribers/subscriber.go:68",
+      "effects": [
+        "client.Client.DeleteAssociation",
+        "client.Client.ListAssociations",
+        "client.Client.do"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation::delete",
+      "conn": "vast-storage-provisioner",
+      "actor": "vast-storage-provisioner.StorageSubscriber.markAllocation",
+      "site": "connectors/Storage/VAST-Provisioner/internal/subscribers/subscriber.go:89",
+      "effects": ["folders.Registry.MarkFoldersForDeletion"],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation::group_provision",
+      "conn": "vast-storage-provisioner",
+      "actor": "vast-storage-provisioner.StorageSubscriber.ensureAllocation",
+      "site": "connectors/Storage/VAST-Provisioner/internal/subscribers/subscriber.go:85",
+      "effects": [
+        "client.Client.CreateFolder",
+        "client.Client.CreateQuota",
+        "client.Client.CreateView",
+        "client.Client.do",
+        "folders.Registry.Record"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation::update",
+      "conn": "slurm-association-mapper",
+      "actor": "slurm-association-mapper.AssociationSubscriber.handleComputeAllocationUpdated",
+      "site": "connectors/SLURM/Association-Mapper/internal/subscribers/subscriber.go:69",
+      "effects": [
+        "client.Client.CreateAccount",
+        "client.Client.DeleteAssociation",
+        "client.Client.ListAssociations",
+        "client.Client.SetDefaultAccount",
+        "client.Client.UpsertAssociation",
+        "client.Client.do"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::create",
+      "conn": "slurm-association-mapper",
+      "actor": "slurm-association-mapper.AssociationSubscriber.handleComputeAllocationMembershipCreated",
+      "site": "connectors/SLURM/Association-Mapper/internal/subscribers/subscriber.go:70",
+      "effects": [
+        "client.Client.CreateAccount",
+        "client.Client.ListAssociations",
+        "client.Client.SetDefaultAccount",
+        "client.Client.UpsertAssociation",
+        "client.Client.do"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::create",
+      "conn": "vast-storage-provisioner",
+      "actor": "vast-storage-provisioner.StorageSubscriber.ensureMember",
+      "site": "connectors/Storage/VAST-Provisioner/internal/subscribers/subscriber.go:86",
+      "effects": [
+        "client.Client.CreateFolder",
+        "client.Client.CreateQuota",
+        "client.Client.CreateView",
+        "client.Client.do",
+        "folders.Registry.Record"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::delete",
+      "conn": "slurm-association-mapper",
+      "actor": "slurm-association-mapper.AssociationSubscriber.handleComputeAllocationMembershipDeleted",
+      "site": "connectors/SLURM/Association-Mapper/internal/subscribers/subscriber.go:72",
+      "effects": [
+        "client.Client.DeleteAssociation",
+        "client.Client.ListAssociations",
+        "client.Client.do"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::update",
+      "conn": "slurm-association-mapper",
+      "actor": "slurm-association-mapper.AssociationSubscriber.handleComputeAllocationMembershipUpdated",
+      "site": "connectors/SLURM/Association-Mapper/internal/subscribers/subscriber.go:71",
+      "effects": [
+        "client.Client.CreateAccount",
+        "client.Client.DeleteAssociation",
+        "client.Client.ListAssociations",
+        "client.Client.SetDefaultAccount",
+        "client.Client.UpsertAssociation",
+        "client.Client.do"
+      ],
+      "cond": true
+    },
+    {
+      "from": "compute_allocation_membership::update",
+      "conn": "vast-storage-provisioner",
+      "actor": "vast-storage-provisioner.StorageSubscriber.ensureMember",
+      "site": "connectors/Storage/VAST-Provisioner/internal/subscribers/subscriber.go:87",
+      "effects": [
+        "client.Client.CreateFolder",
+        "client.Client.CreateQuota",
+        "client.Client.CreateView",
+        "client.Client.do",
+        "folders.Registry.Record"
+      ],
+      "cond": true
+    }
+  ]
+}
