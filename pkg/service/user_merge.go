@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -63,7 +64,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		return nil, fmt.Errorf("%w: cannot merge a user with itself", ErrInvalidInput)
 	}
 
-	survivor, err := s.users.FindByIDTx(ctx, tx, survivingID)
+	survivor, err := s.users.FindByIDTx(ctx, tx, survivingID, store.UpdateLock)
 	if err != nil {
 		return nil, fmt.Errorf("lookup surviving user: %w", err)
 	}
@@ -74,7 +75,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		return nil, fmt.Errorf("%w: surviving user %q must be ACTIVE or PENDING (got %s)",
 			ErrInvalidInput, survivingID, survivor.Status)
 	}
-	retiring, err := s.users.FindByIDTx(ctx, tx, retiringID)
+	retiring, err := s.users.FindByIDTx(ctx, tx, retiringID, store.UpdateLock)
 	if err != nil {
 		return nil, fmt.Errorf("lookup retiring user: %w", err)
 	}
@@ -122,6 +123,19 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		if err := s.projs.ReassignPI(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project PI: %w", err)
 		}
+		// The moved rows are readied again under the survivor's account.
+		retiringMemberships, err := s.memberships.FindTx(ctx, tx, store.MembershipFilter{UserID: retiringID})
+		if err != nil {
+			return err
+		}
+		for _, m := range retiringMemberships {
+			if m.ReadyAt == nil {
+				continue
+			}
+			if err := s.deactivateMembershipTx(ctx, tx, &m); err != nil {
+				return err
+			}
+		}
 		if err := s.memberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign memberships: %w", err)
 		}
@@ -131,11 +145,10 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		if err := s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged); err != nil {
 			return err
 		}
-		retiring.Status = models.UserMerged
-		if err := s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
+		if err := s.syncMembershipsTx(ctx, tx, store.MembershipFilter{UserID: survivingID}); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, survivor)
+		return s.requestMemberGroupsTx(ctx, tx, store.MembershipFilter{UserID: survivingID})
 	}(); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)
 	}

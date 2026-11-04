@@ -23,7 +23,6 @@ import (
 	"fmt"
 
 	"github.com/apache/airavata-custos/internal/store"
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -65,10 +64,7 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.projs.Create(ctx, tx, project); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ProjectCreateEvent, project)
+		return s.projs.Create(ctx, tx, project)
 	}); err != nil {
 		return nil, fmt.Errorf("create project: %w", err)
 	}
@@ -181,10 +177,7 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 		project.CreatedTime = existing.CreatedTime
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.projs.Update(ctx, tx, project); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, project)
+		return s.projs.Update(ctx, tx, project)
 	}); err != nil {
 		return fmt.Errorf("update project: %w", err)
 	}
@@ -216,12 +209,7 @@ func (s *Service) UpdateProjectStatusTx(ctx context.Context, tx *sql.Tx, id stri
 		return nil, ErrNotFound
 	}
 	existing.Status = status
-	if err := func() error {
-		if err := s.projs.UpdateStatus(ctx, tx, id, status); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ProjectUpdateEvent, existing)
-	}(); err != nil {
+	if err := s.projs.UpdateStatus(ctx, tx, id, status); err != nil {
 		return nil, fmt.Errorf("update project status: %w", err)
 	}
 	return existing, nil
@@ -245,10 +233,7 @@ func (s *Service) DeleteProject(ctx context.Context, id string) error {
 		return fmt.Errorf("%w: project %q still has allocations", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.projs.Delete(ctx, tx, id); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ProjectDeleteEvent, project)
+		return s.projs.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete project: %w", err)
 	}

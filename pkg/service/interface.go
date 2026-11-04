@@ -108,6 +108,7 @@ type ComputeClusterUserService interface {
 	ListComputeClusterUsersByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
 	UpdateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) error
 	MarkComputeClusterUserProvisioned(ctx context.Context, id string) error
+	MarkComputeClusterUserStorageProvisioned(ctx context.Context, id string) error
 	DeleteComputeClusterUser(ctx context.Context, id string) error
 }
 
@@ -120,6 +121,7 @@ type ComputeAllocationService interface {
 	ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
 	AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 	UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error
+	MarkComputeAllocationSchedulerProvisioned(ctx context.Context, id string) error
 	DeleteComputeAllocation(ctx context.Context, id string) error
 }
 

@@ -65,7 +65,7 @@ A typical mutating request follows the same path regardless of which connector o
 2. `identity.Middleware` extracts the token, verifies it against the configured OIDC issuer, resolves the caller from `user_identities` keyed by the token's `sub` claim, and attaches the caller plus their privilege set to the request context.
 3. The router dispatches to the handler. For privileged routes the `RequirePrivilege` wrapper checks the privilege set on context; missing privilege returns 403.
 4. The handler calls `coreService.CreateUser(ctx, user)`. The service mutates inside a transaction and stamps an audit row in the same transaction. The audit row inherits `trace_id` / `span_id` from the request context.
-5. In the same transaction, the service publishes a domain event (e.g. `events.UserCreateEvent`). The bus stores the event with one delivery row per subscriber, so the event is committed or rolled back together with the change.
+5. When a connector consumes the change, the service publishes a domain event in the same transaction (e.g. `events.ComputeClusterUserCreateEvent` for a cluster account; `CreateUser` publishes none). The bus stores the event with one delivery row per subscriber, so the event is committed or rolled back together with the change.
 6. A worker in the server delivers each row to its subscriber's handler. The COmanage subscriber, for example, reacts by talking to its external registry and writes its own audit row (joined to the same `trace_id`). A failed delivery is retried with backoff.
 7. The handler returns the response to the portal.
 
@@ -75,7 +75,30 @@ Failures stop at the layer that detected them: an invalid token returns 401 befo
 
 `pkg/events.Bus` is backed by three core tables: `event_subscriptions`, `events` and `event_deliveries`. There is no external broker. A subscriber is a connector, named by its `Type` constant. Subscriptions are saved, so an event published while a connector is not loaded gets a delivery row and waits for it. Turning a connector off with `enabled: false` removes its subscription.
 
-One worker goroutine polls due deliveries every 10 seconds and calls the handler with a 2 minute timeout. On failure it retries with backoff, 30 seconds at first and up to 1 hour, 10 attempts in all. A handler can wrap `events.ErrPermanent` to fail at once. Handlers must be safe to run more than once for the same event. Every attempt writes an `audit_events` row under the event's trace. Deliveries are listed and a failed one retried under `/events/deliveries`; `/events/subscriptions` shows which subscribers are loaded.
+One worker goroutine polls due deliveries every 10 seconds and calls the handler with a 2 minute timeout. On failure it retries with backoff, 30 seconds at first and up to 1 hour, 10 attempts in all. A handler can wrap `events.ErrPermanent` to fail at once. Handlers must be safe to run more than once for the same event. A delivery whose topic the loaded connector no longer handles fails at once. Every attempt writes an `audit_events` row under the event's trace. Deliveries are listed and a failed one retried under `/events/deliveries`; `/events/subscriptions` shows which subscribers are loaded.
+
+### Membership readiness
+
+A membership grants access while it and its allocation are `ACTIVE`, the scheduler has the allocation's account, and the member's account on the allocation's cluster is provisioned; core records it in `ready_at`.
+Any write that changes it publishes `compute_allocation_membership::ready` or `compute_allocation_membership::deactivate` in the same transaction: membership writes, allocation status, account provisioning, account removal and user merges.
+A membership create share-locks its user and allocation, and the resync after an allocation or account write locks them for update, so neither misses the other.
+A core sweep every 5 minutes repairs drift from writes that bypass the service, publishing each change it makes.
+
+### Connector requests
+
+Core decides when a connector has work and publishes a request in the transaction of the write that causes it.
+A connector handles one entity per request and reports completion through a core mark, which publishes the next event.
+A request nobody subscribes to is not awaited: core stamps its mark itself.
+The ready sweep settles requests against current subscriptions: core stamps those whose connector was disabled,
+and sends a connector new to a topic that topic's current state, once. Notifications are not resent.
+
+| Request | Published when | Done |
+|---|---|---|
+| `compute_cluster_user::identity_request` | an account is approved; its user onboards | `MarkComputeClusterUserProvisioned` |
+| `compute_allocation::group_request` | an allocation or membership is written; an account is provisioned, deleted or merged | `compute_allocation::group_provision` |
+| `compute_allocation::scheduler_request` | an allocation is created | `MarkComputeAllocationSchedulerProvisioned` readies its members |
+| `compute_cluster_user::storage_request` | an account is provisioned | `MarkComputeClusterUserStorageProvisioned`, then `compute_cluster_user::ready` |
+| `compute_allocation_membership::storage_request` | a member is ready and its allocation group is provisioned | the delivery succeeds |
 
 ## Identity and authentication
 

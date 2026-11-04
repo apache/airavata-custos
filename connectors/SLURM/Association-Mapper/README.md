@@ -21,6 +21,9 @@
 
 SLURM association creation logic lives in this plugin. It is triggered when the allocation manager has processed an allocation request and released it to downstream handlers. It talks to `slurmrestd` to manage accounts, associations, and TRES limits.
 
+It creates the allocation's account on core's `scheduler_request` and marks it done, so its members can become ready.
+It writes a member's association on core's membership `ready` and removes it on `deactivate`.
+
 This package is part of the root `github.com/apache/airavata-custos` module.
 
 ## Prerequisites

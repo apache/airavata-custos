@@ -147,6 +147,11 @@ func run() error {
 		defer connectorsWG.Done()
 		eventBus.Run(ctx)
 	}()
+	connectorsWG.Add(1)
+	go func() {
+		defer connectorsWG.Done()
+		svc.StartReadySweep(ctx)
+	}()
 
 	verifier, err := identity.NewJWTVerifier(ctx, cfg.Core.Auth.OIDC.Issuer, cfg.Core.Auth.OIDC.Audience)
 	if err != nil {

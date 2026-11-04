@@ -105,10 +105,10 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 			return err
 		}
 		// Approved at creation, so provisioning starts now.
-		if cu.ApprovalStatus == models.ClusterAccountApproved {
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+		if cu.ApprovalStatus != models.ClusterAccountApproved {
+			return nil
 		}
-		return nil
+		return s.approveTx(ctx, tx, cu)
 	}); err != nil {
 		switch {
 		case isLocalUsernameDuplicate(err):
@@ -164,7 +164,7 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 		}); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+		return s.approveTx(ctx, tx, cu)
 	}); err != nil {
 		return nil, fmt.Errorf("approve compute cluster user: %w", err)
 	}
@@ -342,7 +342,13 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 		if err := s.clusterUsers.Update(ctx, tx, cu); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu)
+		if cu.UserID == existing.UserID && cu.ComputeClusterID == existing.ComputeClusterID {
+			return nil
+		}
+		if err := s.syncMembershipsTx(ctx, tx, store.MembershipFilter{UserID: existing.UserID, ClusterID: existing.ComputeClusterID}); err != nil {
+			return err
+		}
+		return s.syncMembershipsTx(ctx, tx, store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID})
 	}); err != nil {
 		return fmt.Errorf("update compute cluster user: %w", err)
 	}
@@ -351,7 +357,7 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 
 // MarkComputeClusterUserProvisioned stamps provisioned_at on the mapping, signaling that the account exists in the registry.
 // It first runs once an admin approves the cluster account, and again on the user's first sign-in
-// and on retries, so provisioned_at is stamped and the provision event published only the first time.
+// and on retries, so provisioned_at is stamped and storage requested only the first time.
 func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
@@ -363,26 +369,44 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 	if cu == nil {
 		return ErrNotFound
 	}
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		now := nowUTC()
-		firstTime, err := s.clusterUsers.MarkProvisioned(ctx, tx, id, now)
-		if err != nil {
-			return err
-		}
-		if firstTime {
-			cu.ProvisionedAt = &now
-		}
-		if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu); err != nil {
-			return err
-		}
-		if firstTime {
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserProvisionEvent, cu)
-		}
-		return nil
-	}); err != nil {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.markProvisionedTx(ctx, tx, cu) }); err != nil {
 		return fmt.Errorf("mark compute cluster user provisioned: %w", err)
 	}
 	return nil
+}
+
+// markProvisionedTx stamps provisioned_at the first time, then requests storage, readies memberships and resyncs groups.
+func (s *Service) markProvisionedTx(ctx context.Context, tx *sql.Tx, cu *models.ComputeClusterUser) error {
+	now := nowUTC()
+	firstTime, err := s.clusterUsers.MarkProvisioned(ctx, tx, cu.ID, now)
+	if err != nil || !firstTime {
+		return err
+	}
+	cu.ProvisionedAt = &now
+	if err := s.requestAccountStorageTx(ctx, tx, cu); err != nil {
+		return err
+	}
+	f := store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID}
+	if err := s.syncMembershipsTx(ctx, tx, f); err != nil {
+		return err
+	}
+	return s.requestMemberGroupsTx(ctx, tx, f)
+}
+
+// MarkComputeClusterUserStorageProvisioned stamps storage_provisioned_at, signaling that the account's own directories exist.
+func (s *Service) MarkComputeClusterUserStorageProvisioned(ctx context.Context, id string) error {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.markStorageProvisionedTx(ctx, tx, id) }); err != nil {
+		return fmt.Errorf("mark compute cluster user storage provisioned: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) markStorageProvisionedTx(ctx context.Context, tx *sql.Tx, id string) error {
+	firstTime, err := s.clusterUsers.MarkStorageProvisioned(ctx, tx, id, nowUTC())
+	if err != nil || !firstTime {
+		return err
+	}
+	return s.readyAccountTx(ctx, tx, id)
 }
 
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.
@@ -401,7 +425,14 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu)
+		if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
+			return err
+		}
+		f := store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID}
+		if err := s.syncMembershipsTx(ctx, tx, f); err != nil {
+			return err
+		}
+		return s.requestMemberGroupsTx(ctx, tx, f)
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster user: %w", err)
 	}

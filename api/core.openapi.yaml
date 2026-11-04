@@ -92,12 +92,19 @@ definitions:
         description: When the account was provisioned into the registry; nil until
           then.
         type: string
+      ready_at:
+        description: When identity and storage were both done and ready was published;
+          nil until then.
+        type: string
       review_note:
         type: string
       reviewed_at:
         type: string
       reviewed_by:
         description: The admin who approved or denied the cluster account.
+        type: string
+      storage_provisioned_at:
+        description: When storage made the account's own directories; nil until then.
         type: string
       user_id:
         type: string
@@ -191,6 +198,10 @@ definitions:
         description: When the account was provisioned into the registry; nil until
           then.
         type: string
+      ready_at:
+        description: When identity and storage were both done and ready was published;
+          nil until then.
+        type: string
       requested_at:
         type: string
       review_note:
@@ -201,6 +212,9 @@ definitions:
         description: The admin who approved or denied the cluster account.
         type: string
       reviewer_name:
+        type: string
+      storage_provisioned_at:
+        description: When storage made the account's own directories; nil until then.
         type: string
       user_id:
         type: string
@@ -227,6 +241,10 @@ definitions:
         description: Fixed at creation; the group's name everywhere.
         type: string
       project_id:
+        type: string
+      scheduler_provisioned_at:
+        description: When the scheduler made the allocation's account; members are
+          not ready before.
         type: string
       start_time:
         type: string
@@ -486,12 +504,19 @@ definitions:
         description: When the account was provisioned into the registry; nil until
           then.
         type: string
+      ready_at:
+        description: When identity and storage were both done and ready was published;
+          nil until then.
+        type: string
       review_note:
         type: string
       reviewed_at:
         type: string
       reviewed_by:
         description: The admin who approved or denied the cluster account.
+        type: string
+      storage_provisioned_at:
+        description: When storage made the account's own directories; nil until then.
         type: string
       user_id:
         type: string

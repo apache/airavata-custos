@@ -37,7 +37,7 @@ func TestMembershipDeactivationRemovesAssociations(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipUpdated(context.Background(), deactivatedMembership())
+		handleComputeAllocationMembershipDeactivated(context.Background(), deactivatedMembership())
 
 	got := slurm.allDeletes()
 	if len(got) != 1 {
@@ -55,37 +55,9 @@ func TestMembershipDeactivationRemovesAssociations(t *testing.T) {
 	}
 }
 
-// Flipping back to ACTIVE re-grants access rather than leaving the member cut off.
-func TestMembershipReactivationRestoresAssociations(t *testing.T) {
-	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
-	slurm := &fakeSlurmClient{}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipUpdated(context.Background(), testMembership())
-
-	if n := len(slurm.allDeletes()); n != 0 {
-		t.Fatalf("an active membership must not be deprovisioned, got %d deletes", n)
-	}
-	if n := len(slurm.all()); n != 1 {
-		t.Fatalf("expected the association to be restored, got %d writes", n)
-	}
-}
-
-func TestMembershipDeletionRemovesAssociations(t *testing.T) {
-	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
-	slurm := &fakeSlurmClient{}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipDeleted(context.Background(), testMembership())
-
-	got := slurm.allDeletes()
-	if len(got) != 1 || got[0].User != "testuser" || got[0].Account != "test-alloc" {
-		t.Fatalf("expected the member's associations to be removed, got %+v", got)
-	}
-}
-
-// A membership deleted alongside its allocation or cluster account arrives after
-// they are gone; the delivery must succeed instead of retrying a lookup that
-// can never pass.
-func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
+// A deactivate that arrives after the allocation or cluster account is gone
+// must succeed instead of retrying a lookup that can never pass.
+func TestMembershipDeactivationWithMissingRecordsSucceeds(t *testing.T) {
 	for name, gone := range map[string]func(*service.CoreServiceMock){
 		"cluster account": func(c *service.CoreServiceMock) {
 			c.GetComputeClusterUserByPairFunc = func(context.Context, string, string) (*models.ComputeClusterUser, error) {
@@ -103,7 +75,7 @@ func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
 			gone(core)
 			slurm := &fakeSlurmClient{}
 			err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-				handleComputeAllocationMembershipDeleted(context.Background(), testMembership())
+				handleComputeAllocationMembershipDeactivated(context.Background(), testMembership())
 			if err != nil {
 				t.Fatalf("expected success, got %v", err)
 			}

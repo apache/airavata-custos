@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -37,6 +38,8 @@ import (
 var (
 	// ErrPermanent marks an error a retry cannot fix, so the delivery fails at once.
 	ErrPermanent = errors.New("permanent delivery failure")
+
+	errNoHandler = fmt.Errorf("%w: no handler for topic", ErrPermanent)
 
 	ErrDeliveryNotFound  = errors.New("event delivery not found")
 	ErrDeliveryNotFailed = errors.New("event delivery has not failed")
@@ -157,12 +160,10 @@ func (b *Bus) loadedSubscribers() []string {
 	return names
 }
 
-// deliver calls the handler for one row and records the outcome.
+// deliver calls the handler for one row and records the outcome. A row whose
+// topic the loaded subscriber no longer handles fails at once.
 func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 	handler, ok := b.handlerFor(row.Subscriber, row.Event.EventType)
-	if !ok {
-		return
-	}
 
 	// Build the handler's context. It carries the span and source of the
 	// request that published the event, so audit rows join that trace. It is
@@ -179,7 +180,10 @@ func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 	defer span.End()
 
 	event := Event{Type: EventType(row.Event.EventType), Payload: row.Event.Payload}
-	err := callHandler(handlerCtx, handler, event, row.Event.Payload)
+	err := errNoHandler
+	if ok {
+		err = callHandler(handlerCtx, handler, event, row.Event.Payload)
+	}
 	attempts := row.Attempts + 1
 	now := time.Now().UTC()
 

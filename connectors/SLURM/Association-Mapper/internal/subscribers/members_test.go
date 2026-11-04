@@ -172,15 +172,15 @@ func ago(d time.Duration) *time.Time {
 func testMembership() models.ComputeAllocationMembership {
 	return models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
-		MembershipStatus: models.ACTIVE,
+		MembershipStatus: models.ACTIVE, ReadyAt: ago(time.Minute),
 	}
 }
 
-func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
+func TestMembershipReadyWritesAssociationWhenProvisioned(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -195,11 +195,11 @@ func TestMembershipCreationWritesAssociationWhenProvisioned(t *testing.T) {
 }
 
 // Make sure the member's default account is the no-allocation one, so no allocation becomes it.
-func TestMembershipCreationDefaultsToNoAllocation(t *testing.T) {
+func TestMembershipReadyDefaultsToNoAllocation(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -209,11 +209,11 @@ func TestMembershipCreationDefaultsToNoAllocation(t *testing.T) {
 }
 
 // Make sure the Slurm account is the allocation name in lowercase, since the accounting database expects lowercase names.
-func TestMembershipCreationLowercasesTheAccount(t *testing.T) {
+func TestMembershipReadyLowercasesTheAccount(t *testing.T) {
 	core := coreMock(mockOpts{allocationName: "Q2-2026-Climate", provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -224,7 +224,7 @@ func TestMembershipCreationLowercasesTheAccount(t *testing.T) {
 
 // Make sure a failed core lookup is returned as the handler's error and not
 // only logged, so the bus can tell the delivery failed.
-func TestMembershipCreationReturnsCoreError(t *testing.T) {
+func TestMembershipReadyReturnsCoreError(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	lookupErr := errors.New("core unavailable")
 	core.GetComputeAllocationFunc = func(context.Context, string) (*models.ComputeAllocation, error) {
@@ -232,7 +232,7 @@ func TestMembershipCreationReturnsCoreError(t *testing.T) {
 	}
 
 	err := NewAssociationSubscriber(&fakeSlurmClient{}, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 	if !errors.Is(err, lookupErr) {
 		t.Fatalf("expected the core lookup error, got %v", err)
 	}
@@ -241,11 +241,11 @@ func TestMembershipCreationReturnsCoreError(t *testing.T) {
 // An unprovisioned account must NOT get an association: slurmctld would cache
 // the failed uid lookup and reject the user's jobs. The reconciler picks it up,
 // so the handler returns no error.
-func TestMembershipCreationDefersWhenNotProvisioned(t *testing.T) {
+func TestMembershipReadyDefersWhenNotProvisioned(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: nil})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error for an unprovisioned account, got %v", err)
 	}
@@ -256,14 +256,14 @@ func TestMembershipCreationDefersWhenNotProvisioned(t *testing.T) {
 }
 
 // A member with no cluster account yet is deferred the same way.
-func TestMembershipCreationDefersWhenAccountMissing(t *testing.T) {
+func TestMembershipReadyDefersWhenAccountMissing(t *testing.T) {
 	core := coreMock(mockOpts{})
 	core.GetComputeClusterUserByPairFunc = func(context.Context, string, string) (*models.ComputeClusterUser, error) {
 		return nil, service.ErrNotFound
 	}
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 	if err != nil {
 		t.Fatalf("expected no error for a missing account, got %v", err)
 	}
@@ -274,7 +274,7 @@ func TestMembershipCreationDefersWhenAccountMissing(t *testing.T) {
 
 // Regression: the membership path once wrote a record with no limits, and
 // Slurm's last-write-wins upsert erased limits a per-member override had set.
-func TestMembershipCreationKeepsOverrideLimits(t *testing.T) {
+func TestMembershipReadyKeepsOverrideLimits(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		overrides: []models.ComputeAllocationMembershipResourceOverride{{
@@ -284,7 +284,7 @@ func TestMembershipCreationKeepsOverrideLimits(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 
 	got := slurm.all()
 	if len(got) != 1 {
@@ -300,7 +300,7 @@ func TestMembershipCreationKeepsOverrideLimits(t *testing.T) {
 
 // A GPU resource is stored joined as "gres/gpu" but SLURM wants the TRES split
 // into type and name. Sending "gres/gpu" as the type yields an invalid limit.
-func TestMembershipCreationSplitsGpuTres(t *testing.T) {
+func TestMembershipReadySplitsGpuTres(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		resources: []models.ComputeAllocationResource{
@@ -313,7 +313,7 @@ func TestMembershipCreationSplitsGpuTres(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 
 	got := slurm.all()
 	if len(got) != 1 {
@@ -328,14 +328,14 @@ func TestMembershipCreationSplitsGpuTres(t *testing.T) {
 // Make sure a member gets access even when nothing is attached to the
 // allocation yet. A packet with an unknown resource name used to leave its
 // members unable to submit.
-func TestMembershipCreationWritesAssociationWithoutResources(t *testing.T) {
+func TestMembershipReadyWritesAssociationWithoutResources(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		resources:     []models.ComputeAllocationResource{},
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 
 	if n := len(slurm.all()); n != 1 {
 		t.Fatalf("expected one association, got %d", n)
@@ -344,7 +344,7 @@ func TestMembershipCreationWritesAssociationWithoutResources(t *testing.T) {
 
 // Make sure overrides on two resources of the same type, here two GPU
 // partitions, add up in the one association, since it covers every partition.
-func TestMembershipCreationAddsUpOverridesOfOneType(t *testing.T) {
+func TestMembershipReadyAddsUpOverridesOfOneType(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		resources: []models.ComputeAllocationResource{
@@ -358,7 +358,7 @@ func TestMembershipCreationAddsUpOverridesOfOneType(t *testing.T) {
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
+		handleComputeAllocationMembershipReady(context.Background(), testMembership())
 
 	got := slurm.all()
 	if len(got) != 1 {
@@ -406,7 +406,7 @@ func TestReconcilerSkipsUnprovisionedAndTooFreshAccounts(t *testing.T) {
 
 func TestReconcilerSkipsInactiveMemberships(t *testing.T) {
 	inactive := testMembership()
-	inactive.MembershipStatus = models.INACTIVE
+	inactive.MembershipStatus, inactive.ReadyAt = models.INACTIVE, nil
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		memberships:   []models.ComputeAllocationMembership{inactive},

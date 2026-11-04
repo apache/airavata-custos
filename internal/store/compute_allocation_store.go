@@ -38,7 +38,7 @@ func NewComputeAllocationStore(db *sqlx.DB) ComputeAllocationStore {
 	return &pgComputeAllocationStore{db: db}
 }
 
-const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time, posix_group, group_provisioned_at`
+const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time, posix_group, group_provisioned_at, scheduler_provisioned_at`
 
 func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error) {
 	var a models.ComputeAllocation
@@ -53,10 +53,10 @@ func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*mo
 	return &a, nil
 }
 
-func (s *pgComputeAllocationStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocation, error) {
+func (s *pgComputeAllocationStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.ComputeAllocation, error) {
 	var r models.ComputeAllocation
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
-		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = $1 FOR UPDATE`, id)
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = $1 `+string(lock), id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -89,8 +89,8 @@ func (s *pgComputeAllocationStore) FindByCluster(ctx context.Context, clusterID 
 func (s *pgComputeAllocationStore) Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocations (`+computeAllocationColumns+`)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime, a.PosixGroup, a.GroupProvisionedAt)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime, a.PosixGroup, a.GroupProvisionedAt, a.SchedulerProvisionedAt)
 	return err
 }
 
@@ -112,6 +112,15 @@ func (s *pgComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id st
 
 func (s *pgComputeAllocationStore) MarkGroupProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
 	res, err := tx.ExecContext(ctx, `UPDATE compute_allocations SET group_provisioned_at = $1 WHERE id = $2 AND group_provisioned_at IS NULL`, at, id)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+func (s *pgComputeAllocationStore) MarkSchedulerProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
+	res, err := tx.ExecContext(ctx, `UPDATE compute_allocations SET scheduler_provisioned_at = $1 WHERE id = $2 AND scheduler_provisioned_at IS NULL`, at, id)
 	if err != nil {
 		return false, err
 	}

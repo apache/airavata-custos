@@ -22,7 +22,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -48,10 +47,7 @@ func (s *Service) CreateOrganization(ctx context.Context, org *models.Organizati
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.orgs.Create(ctx, tx, org); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.OrganizationCreateEvent, org)
+		return s.orgs.Create(ctx, tx, org)
 	}); err != nil {
 		return nil, fmt.Errorf("create organization: %w", err)
 	}
@@ -98,10 +94,7 @@ func (s *Service) UpdateOrganization(ctx context.Context, org *models.Organizati
 		return fmt.Errorf("%w: organization id is required", ErrInvalidInput)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.orgs.Update(ctx, tx, org); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.OrganizationUpdateEvent, org)
+		return s.orgs.Update(ctx, tx, org)
 	}); err != nil {
 		return fmt.Errorf("update organization: %w", err)
 	}
@@ -121,10 +114,7 @@ func (s *Service) DeleteOrganization(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.orgs.Delete(ctx, tx, id); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.OrganizationDeleteEvent, org)
+		return s.orgs.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete organization: %w", err)
 	}

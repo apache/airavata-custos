@@ -397,8 +397,14 @@ var _ CoreService = &CoreServiceMock{}
 //			ListUsersByOrganizationFunc: func(ctx context.Context, organizationID string) ([]models.User, error) {
 //				panic("mock out the ListUsersByOrganization method")
 //			},
+//			MarkComputeAllocationSchedulerProvisionedFunc: func(ctx context.Context, id string) error {
+//				panic("mock out the MarkComputeAllocationSchedulerProvisioned method")
+//			},
 //			MarkComputeClusterUserProvisionedFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the MarkComputeClusterUserProvisioned method")
+//			},
+//			MarkComputeClusterUserStorageProvisionedFunc: func(ctx context.Context, id string) error {
+//				panic("mock out the MarkComputeClusterUserStorageProvisioned method")
 //			},
 //			MergeUsersFunc: func(ctx context.Context, survivingID string, retiringID string) (*models.User, error) {
 //				panic("mock out the MergeUsers method")
@@ -866,8 +872,14 @@ type CoreServiceMock struct {
 	// ListUsersByOrganizationFunc mocks the ListUsersByOrganization method.
 	ListUsersByOrganizationFunc func(ctx context.Context, organizationID string) ([]models.User, error)
 
+	// MarkComputeAllocationSchedulerProvisionedFunc mocks the MarkComputeAllocationSchedulerProvisioned method.
+	MarkComputeAllocationSchedulerProvisionedFunc func(ctx context.Context, id string) error
+
 	// MarkComputeClusterUserProvisionedFunc mocks the MarkComputeClusterUserProvisioned method.
 	MarkComputeClusterUserProvisionedFunc func(ctx context.Context, id string) error
+
+	// MarkComputeClusterUserStorageProvisionedFunc mocks the MarkComputeClusterUserStorageProvisioned method.
+	MarkComputeClusterUserStorageProvisionedFunc func(ctx context.Context, id string) error
 
 	// MergeUsersFunc mocks the MergeUsers method.
 	MergeUsersFunc func(ctx context.Context, survivingID string, retiringID string) (*models.User, error)
@@ -1898,8 +1910,22 @@ type CoreServiceMock struct {
 			// OrganizationID is the organizationID argument value.
 			OrganizationID string
 		}
+		// MarkComputeAllocationSchedulerProvisioned holds details about calls to the MarkComputeAllocationSchedulerProvisioned method.
+		MarkComputeAllocationSchedulerProvisioned []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
 		// MarkComputeClusterUserProvisioned holds details about calls to the MarkComputeClusterUserProvisioned method.
 		MarkComputeClusterUserProvisioned []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
+		// MarkComputeClusterUserStorageProvisioned holds details about calls to the MarkComputeClusterUserStorageProvisioned method.
+		MarkComputeClusterUserStorageProvisioned []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// ID is the id argument value.
@@ -2265,7 +2291,9 @@ type CoreServiceMock struct {
 	lockListUserPrivileges                                     sync.RWMutex
 	lockListUserRoles                                          sync.RWMutex
 	lockListUsersByOrganization                                sync.RWMutex
+	lockMarkComputeAllocationSchedulerProvisioned              sync.RWMutex
 	lockMarkComputeClusterUserProvisioned                      sync.RWMutex
+	lockMarkComputeClusterUserStorageProvisioned               sync.RWMutex
 	lockMergeUsers                                             sync.RWMutex
 	lockPendingUserAgreements                                  sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
@@ -6932,6 +6960,42 @@ func (mock *CoreServiceMock) ListUsersByOrganizationCalls() []struct {
 	return calls
 }
 
+// MarkComputeAllocationSchedulerProvisioned calls MarkComputeAllocationSchedulerProvisionedFunc.
+func (mock *CoreServiceMock) MarkComputeAllocationSchedulerProvisioned(ctx context.Context, id string) error {
+	if mock.MarkComputeAllocationSchedulerProvisionedFunc == nil {
+		panic("CoreServiceMock.MarkComputeAllocationSchedulerProvisionedFunc: method is nil but CoreService.MarkComputeAllocationSchedulerProvisioned was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockMarkComputeAllocationSchedulerProvisioned.Lock()
+	mock.calls.MarkComputeAllocationSchedulerProvisioned = append(mock.calls.MarkComputeAllocationSchedulerProvisioned, callInfo)
+	mock.lockMarkComputeAllocationSchedulerProvisioned.Unlock()
+	return mock.MarkComputeAllocationSchedulerProvisionedFunc(ctx, id)
+}
+
+// MarkComputeAllocationSchedulerProvisionedCalls gets all the calls that were made to MarkComputeAllocationSchedulerProvisioned.
+// Check the length with:
+//
+//	len(mockedCoreService.MarkComputeAllocationSchedulerProvisionedCalls())
+func (mock *CoreServiceMock) MarkComputeAllocationSchedulerProvisionedCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	mock.lockMarkComputeAllocationSchedulerProvisioned.RLock()
+	calls = mock.calls.MarkComputeAllocationSchedulerProvisioned
+	mock.lockMarkComputeAllocationSchedulerProvisioned.RUnlock()
+	return calls
+}
+
 // MarkComputeClusterUserProvisioned calls MarkComputeClusterUserProvisionedFunc.
 func (mock *CoreServiceMock) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
 	if mock.MarkComputeClusterUserProvisionedFunc == nil {
@@ -6965,6 +7029,42 @@ func (mock *CoreServiceMock) MarkComputeClusterUserProvisionedCalls() []struct {
 	mock.lockMarkComputeClusterUserProvisioned.RLock()
 	calls = mock.calls.MarkComputeClusterUserProvisioned
 	mock.lockMarkComputeClusterUserProvisioned.RUnlock()
+	return calls
+}
+
+// MarkComputeClusterUserStorageProvisioned calls MarkComputeClusterUserStorageProvisionedFunc.
+func (mock *CoreServiceMock) MarkComputeClusterUserStorageProvisioned(ctx context.Context, id string) error {
+	if mock.MarkComputeClusterUserStorageProvisionedFunc == nil {
+		panic("CoreServiceMock.MarkComputeClusterUserStorageProvisionedFunc: method is nil but CoreService.MarkComputeClusterUserStorageProvisioned was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockMarkComputeClusterUserStorageProvisioned.Lock()
+	mock.calls.MarkComputeClusterUserStorageProvisioned = append(mock.calls.MarkComputeClusterUserStorageProvisioned, callInfo)
+	mock.lockMarkComputeClusterUserStorageProvisioned.Unlock()
+	return mock.MarkComputeClusterUserStorageProvisionedFunc(ctx, id)
+}
+
+// MarkComputeClusterUserStorageProvisionedCalls gets all the calls that were made to MarkComputeClusterUserStorageProvisioned.
+// Check the length with:
+//
+//	len(mockedCoreService.MarkComputeClusterUserStorageProvisionedCalls())
+func (mock *CoreServiceMock) MarkComputeClusterUserStorageProvisionedCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	mock.lockMarkComputeClusterUserStorageProvisioned.RLock()
+	calls = mock.calls.MarkComputeClusterUserStorageProvisioned
+	mock.lockMarkComputeClusterUserStorageProvisioned.RUnlock()
 	return calls
 }
 

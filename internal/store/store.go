@@ -29,8 +29,8 @@ import (
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.User, error)
-	// FindByIDTx returns the user locked FOR UPDATE in tx, or nil if not found.
-	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error)
+	// FindByIDTx returns the user read in tx under lock, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	// List returns a page of users ordered by email, plus the total count.
@@ -91,6 +91,8 @@ type ComputeClusterUserStore interface {
 	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeClusterUser, error)
 	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
 	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
+	// FindByPairTx is FindByPair read in tx.
+	FindByPairTx(ctx context.Context, tx *sql.Tx, clusterID, userID string) (*models.ComputeClusterUser, error)
 	// FindByClusterAndLocalUsername returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
 	FindByClusterAndLocalUsername(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
 	// FindByCluster returns every user mapping for the given compute cluster.
@@ -109,6 +111,10 @@ type ComputeClusterUserStore interface {
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.
 	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
+	// MarkStorageProvisioned stamps storage_provisioned_at the first time and reports whether it did.
+	MarkStorageProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
+	// MarkReady stamps ready_at the first time identity and storage are both done and reports whether it did.
+	MarkReady(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
 	// dropping fromUserID's rows on clusters where toUserID already has one.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
@@ -182,8 +188,8 @@ type ProjectListFilter struct {
 type ComputeAllocationStore interface {
 	// FindByID returns the allocation with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error)
-	// FindByIDTx returns the allocation locked FOR UPDATE in tx, or nil if not found.
-	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocation, error)
+	// FindByIDTx returns the allocation read in tx under lock, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.ComputeAllocation, error)
 	// FindByProject returns all allocations attached to the given project.
 	FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	// FindByCluster returns all allocations attached to the given compute cluster.
@@ -194,6 +200,8 @@ type ComputeAllocationStore interface {
 	Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
 	// MarkGroupProvisioned stamps group_provisioned_at within the provided transaction and returns true only the first time.
 	MarkGroupProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
+	// MarkSchedulerProvisioned stamps scheduler_provisioned_at the first time and reports whether it did.
+	MarkSchedulerProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// Delete removes an allocation by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 	// List returns a paginated, filtered slice of allocations plus the total
@@ -205,6 +213,22 @@ type ComputeAllocationStore interface {
 	// RoleForUser returns the user's role on the allocation, a project-wide role
 	// before MEMBER, or "" for none.
 	RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
+}
+
+// RowLock is the lock a read in a transaction takes on the rows it returns.
+type RowLock string
+
+const (
+	NoLock     RowLock = ""
+	UpdateLock RowLock = "FOR UPDATE"
+	ShareLock  RowLock = "FOR SHARE"
+)
+
+// MembershipFilter selects memberships; an empty field matches all.
+type MembershipFilter struct {
+	AllocationID string
+	UserID       string
+	ClusterID    string // The allocation's cluster.
 }
 
 // AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
@@ -376,10 +400,18 @@ type ProjectMembershipStore interface {
 // per-user membership of a compute allocation, including the SU sub-allocation
 // granted to that user and the membership lifecycle.
 type ComputeAllocationMembershipStore interface {
+	// HasProvisionedMemberTx reports, without locking, whether the active allocation has an active member with a provisioned account.
+	HasProvisionedMemberTx(ctx context.Context, tx *sql.Tx, allocationID string) (bool, error)
 	// FindByID returns the membership with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
 	// FindByIDTx returns the membership locked FOR UPDATE in tx, or nil if not found.
 	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationMembership, error)
+	// FindTx returns the memberships matching f locked FOR UPDATE in tx, ordered by id.
+	FindTx(ctx context.Context, tx *sql.Tx, f MembershipFilter) ([]models.ComputeAllocationMembership, error)
+	// FindStaleReady returns the ids of memberships whose ready_at disagrees with their current eligibility.
+	FindStaleReady(ctx context.Context) ([]string, error)
+	// SetReady sets ready_at, or clears it when at is nil, within the provided transaction.
+	SetReady(ctx context.Context, tx *sql.Tx, id string, at *time.Time) error
 	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error)
 	// FindByUser returns every membership held by the given user, ordered by
@@ -451,6 +483,10 @@ type EventDeliveryStore interface {
 	ListSubscriptions(ctx context.Context) ([]models.EventSubscription, error)
 	// DeleteSubscriptions removes every subscription of the given subscriber.
 	DeleteSubscriptions(ctx context.Context, subscriber string) error
+	// ListUnsyncedSubscriptions returns the subscriptions not yet sent their topic's current state.
+	ListUnsyncedSubscriptions(ctx context.Context) ([]models.EventSubscription, error)
+	// MarkSubscriptionSynced records that the subscriber was sent the topic's current state.
+	MarkSubscriptionSynced(ctx context.Context, tx *sql.Tx, subscriber, eventType string) error
 	// DeleteSubscription removes one subscriber's subscription to one event type.
 	DeleteSubscription(ctx context.Context, subscriber, eventType string) error
 

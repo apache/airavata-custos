@@ -119,7 +119,7 @@ func TestPublishWritesNothingWithoutSubscription(t *testing.T) {
 	database := setupTestDB(t)
 	bus := newBus(t, database)
 
-	publish(t, tracingtest.Context(), bus, UserCreateEvent, &models.User{ID: "u-1"})
+	publish(t, tracingtest.Context(), bus, ComputeAllocationSchedulerRequestEvent, &models.ComputeAllocation{ID: "a-1"})
 	if n := countEvents(t, database); n != 0 {
 		t.Fatalf("expected no stored events, got %d", n)
 	}
@@ -261,6 +261,22 @@ func TestPermanentErrorFailsWithoutRetry(t *testing.T) {
 	publish(t, tracingtest.Context(), bus, ComputeClusterUserCreateEvent, clusterUser())
 	bus.deliverDue(context.Background())
 
+	if d := onlyDelivery(t, bus, models.EventDeliveryFailed); d.Attempts != 1 {
+		t.Fatalf("expected 1 attempt, got %d", d.Attempts)
+	}
+}
+
+// Make sure a pending delivery for a topic the loaded subscriber dropped fails at once instead of waiting forever.
+func TestDroppedTopicDeliveryFails(t *testing.T) {
+	database := setupTestDB(t)
+	noop := func(context.Context, models.ComputeClusterUser) error { return nil }
+	earlier := newBus(t, database)
+	earlier.SubscribeComputeClusterUserDeleted(subscriberTest, noop)
+	publish(t, tracingtest.Context(), earlier, ComputeClusterUserDeleteEvent, clusterUser())
+
+	bus := newBus(t, database)
+	bus.SubscribeComputeClusterUserCreated(subscriberTest, noop)
+	bus.deliverDue(context.Background())
 	if d := onlyDelivery(t, bus, models.EventDeliveryFailed); d.Attempts != 1 {
 		t.Fatalf("expected 1 attempt, got %d", d.Attempts)
 	}

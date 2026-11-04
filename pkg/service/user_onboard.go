@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -288,15 +289,12 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 			}
 		}
 
-		if err := s.eventBus.Publish(ctx, tx, events.UserCreateEvent, created); err != nil {
-			return err
-		}
 		if needsCluster {
 			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, clusterUser); err != nil {
 				return err
 			}
 			// Approved at creation, so provisioning starts now.
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, clusterUser)
+			return s.approveTx(ctx, tx, clusterUser)
 		}
 		return nil
 	}); err != nil {
@@ -398,7 +396,7 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		// Recheck under the row lock. A parallel submit may have onboarded this user already.
-		user, err := s.users.FindByIDTx(ctx, tx, matched.ID)
+		user, err := s.users.FindByIDTx(ctx, tx, matched.ID, store.UpdateLock)
 		if err != nil {
 			return fmt.Errorf("lock user: %w", err)
 		}
@@ -436,7 +434,12 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 			}
 		}
 		user.Status = models.UserActive
-		return s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user)
+		// An account deferred at approval waits for this sign-in.
+		accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
+		if err != nil {
+			return err
+		}
+		return s.requestIdentityTx(ctx, tx, accounts...)
 	}); err != nil {
 		return nil, err
 	}

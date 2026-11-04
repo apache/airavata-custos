@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -173,13 +172,10 @@ func (s *Service) PublishUserAgreement(ctx context.Context, id, actorID string) 
 		if err := s.agreements.Update(ctx, tx, a); err != nil {
 			return fmt.Errorf("publish user agreement: %w", err)
 		}
-		if err := s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditPublished, id, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditPublished, id, map[string]any{
 			"actor_id":      actorID,
 			"version_label": a.VersionLabel,
-		}); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.UserAgreementPublishEvent, a)
+		})
 	}); err != nil {
 		return nil, err
 	}
@@ -207,10 +203,7 @@ func (s *Service) RemoveUserAgreement(ctx context.Context, id, actorID string) (
 		if err := s.agreements.Update(ctx, tx, a); err != nil {
 			return fmt.Errorf("remove user agreement: %w", err)
 		}
-		if err := s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditRemoved, id, map[string]any{"actor_id": actorID}); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.UserAgreementRemoveEvent, a)
+		return s.writeAuditTx(ctx, tx, "user_agreement", userAgreementAuditRemoved, id, map[string]any{"actor_id": actorID})
 	}); err != nil {
 		return nil, err
 	}

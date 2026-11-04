@@ -27,18 +27,19 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func (s *Subscriber) handleComputeAllocationChanged(ctx context.Context, a models.ComputeAllocation) error {
+func (s *Subscriber) handleGroupRequested(ctx context.Context, req models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "comanage")
-	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_changed")
+	ctx, span := tracing.Start(ctx, "comanage.group_request")
 	defer span.End()
-	return s.syncAllocation(ctx, a.ID)
-}
-
-func (s *Subscriber) handleMembershipChanged(ctx context.Context, m models.ComputeAllocationMembership) error {
-	ctx = audit.WithSource(ctx, "comanage")
-	ctx, span := tracing.Start(ctx, "comanage.membership_changed")
-	defer span.End()
-	return s.syncAllocation(ctx, m.ComputeAllocationID)
+	// Reload, since a stale payload could undo a newer change.
+	a, err := s.core.GetComputeAllocation(ctx, req.ID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil || a.ComputeClusterID != s.custosClusterID {
+		return err
+	}
+	return s.ops.EnsureAllocationGroup(ctx, a)
 }
 
 func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a models.ComputeAllocation) error {
@@ -49,29 +50,4 @@ func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a model
 		return nil
 	}
 	return s.ops.RemoveAllocationGroup(ctx, &a)
-}
-
-// syncAllocation reloads the allocation, since a stale payload could undo a
-// newer change, and ensures its group.
-func (s *Subscriber) syncAllocation(ctx context.Context, allocationID string) error {
-	a, err := s.core.GetComputeAllocation(ctx, allocationID)
-	if errors.Is(err, service.ErrNotFound) {
-		return nil
-	}
-	if err != nil || a.ComputeClusterID != s.custosClusterID {
-		return err
-	}
-	return s.ops.EnsureAllocationGroup(ctx, a)
-}
-
-func (s *Subscriber) syncUserAllocations(ctx context.Context, userID string) error {
-	memberships, err := s.core.ListAllocationsForUser(ctx, userID)
-	if err != nil {
-		return err
-	}
-	var errs []error
-	for _, m := range memberships {
-		errs = append(errs, s.syncAllocation(ctx, m.ComputeAllocationID))
-	}
-	return errors.Join(errs...)
 }

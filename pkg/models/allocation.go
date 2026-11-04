@@ -62,6 +62,9 @@ type ComputeClusterUser struct {
 	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
 	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
+
+	StorageProvisionedAt *time.Time `json:"storage_provisioned_at" db:"storage_provisioned_at"` // When storage made the account's own directories; nil until then.
+	ReadyAt              *time.Time `json:"ready_at" db:"ready_at"`                             // When identity and storage were both done and ready was published; nil until then.
 }
 
 type ComputeAllocation struct {
@@ -76,6 +79,8 @@ type ComputeAllocation struct {
 
 	PosixGroup         *string    `json:"posix_group" db:"posix_group"`                   // Fixed at creation; the group's name everywhere.
 	GroupProvisionedAt *time.Time `json:"group_provisioned_at" db:"group_provisioned_at"` // When the group gained its first member and so reached the cluster; nil until then.
+
+	SchedulerProvisionedAt *time.Time `json:"scheduler_provisioned_at" db:"scheduler_provisioned_at"` // When the scheduler made the allocation's account; members are not ready before.
 }
 
 // Typically store the a paritition information
@@ -160,4 +165,5 @@ type ComputeAllocationMembership struct {
 	StartTime           time.Time        `json:"start_time"            db:"start_time"`
 	EndTime             time.Time        `json:"end_time"              db:"end_time"`
 	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"` // ACTIVE, INACTIVE, etc.
+	ReadyAt             *time.Time       `json:"-"                     db:"ready_at"`          // When core last published ready; nil after deactivate.
 }

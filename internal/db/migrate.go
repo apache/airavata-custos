@@ -34,26 +34,50 @@ import (
 // migrations/ directory against the supplied database.
 // Returns nil when there is nothing to apply.
 func MigrateEmbedded(database *sqlx.DB) error {
-	driver, err := pgxmigrate.WithInstance(database.DB, &pgxmigrate.Config{})
+	m, err := embeddedMigrator(database)
 	if err != nil {
-		return fmt.Errorf("create migration driver: %w", err)
+		return err
 	}
-
-	source, err := iofs.New(migrationFS, "migrations")
-	if err != nil {
-		return fmt.Errorf("create migration source: %w", err)
-	}
-
-	m, err := migrate.NewWithInstance("iofs", source, "pgx", driver)
-	if err != nil {
-		return fmt.Errorf("create migrator: %w", err)
-	}
-
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	slog.Info("database migrations applied successfully")
 	return nil
+}
+
+// MigrateEmbeddedTo migrates the core schema at dsn up or down to version on its own connection, for upgrade tests.
+func MigrateEmbeddedTo(dsn string, version uint) error {
+	database, err := Open(Config{DSN: dsn, MaxOpenConns: 1, MaxIdleConns: 1})
+	if err != nil {
+		return err
+	}
+	m, err := embeddedMigrator(database)
+	if err != nil {
+		database.Close()
+		return err
+	}
+	// Close also closes database.
+	defer m.Close()
+	if err := m.Migrate(version); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("migrate to %d: %w", version, err)
+	}
+	return nil
+}
+
+func embeddedMigrator(database *sqlx.DB) (*migrate.Migrate, error) {
+	driver, err := pgxmigrate.WithInstance(database.DB, &pgxmigrate.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("create migration driver: %w", err)
+	}
+	source, err := iofs.New(migrationFS, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("create migration source: %w", err)
+	}
+	m, err := migrate.NewWithInstance("iofs", source, "pgx", driver)
+	if err != nil {
+		return nil, fmt.Errorf("create migrator: %w", err)
+	}
+	return m, nil
 }
 
 // connectorNamePattern restricts connector names to a safe identifier shape so

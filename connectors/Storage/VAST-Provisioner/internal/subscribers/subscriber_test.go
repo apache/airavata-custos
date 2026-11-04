@@ -66,6 +66,7 @@ func allocationWithMembers() *service.CoreServiceMock {
 		ListMembersForAllocationFunc: func(context.Context, string) ([]store.MembershipWithUser, error) {
 			return []store.MembershipWithUser{member("u1", "custos-jdoe", &provisioned), member("u2", "custos-asmith", &provisioned), member("u3", "custos-pending", nil)}, nil
 		},
+		MarkComputeClusterUserStorageProvisionedFunc: func(context.Context, string) error { return nil },
 	}
 }
 
@@ -103,33 +104,34 @@ func join(parts ...[]string) []string {
 	return all
 }
 
-// Make sure a provision event creates the account's own directories and its
-// directory in each of its projects, and nothing for the other members.
+// Make sure a storage request creates only the account's own directories and marks them done, even on an unlisted cluster.
 func TestEnsureUser(t *testing.T) {
-	now := time.Now()
 	tests := []struct {
-		name          string
-		cluster       string
-		provisionedAt *time.Time
+		name, cluster string
 		want          []string
 	}{
-		{name: "own directories, then its project directory", cluster: "c1", provisionedAt: &now, want: join(jdoeOwn, groupMounts, jdoeMember)},
-		{name: "skips unprovisioned", cluster: "c1"},
-		{name: "skips unlisted cluster", cluster: "c2", provisionedAt: &now},
+		{name: "own directories only", cluster: "c1", want: jdoeOwn},
+		{name: "unlisted cluster", cluster: "c2"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, log := recordingVMS(t)
-			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
-			cu := models.ComputeClusterUser{ComputeClusterID: tt.cluster, UserID: "u1", LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
-			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(*log, tt.want) {
-				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
+			core := allocationWithMembers()
+			var marked []string
+			core.MarkComputeClusterUserStorageProvisionedFunc = func(_ context.Context, id string) error {
+				marked = append(marked, id)
+				return nil
+			}
+			s := NewStorageSubscriber(nil, core, map[string]Cluster{"c1": c})
+			cu := models.ComputeClusterUser{ID: "cu1", ComputeClusterID: tt.cluster, UserID: "u1", LocalUsername: "custos-jdoe"}
+			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(*log, tt.want) || !slices.Equal(marked, []string{"cu1"}) {
+				t.Fatalf("err=%v calls=%v marked=%v, want %v", err, *log, marked, tt.want)
 			}
 		})
 	}
 }
 
-// Make sure a membership event creates only that member's project directory and nothing until the member's account is provisioned.
+// Make sure a storage request creates only that member's project directory, and nothing for an unprovisioned account.
 func TestEnsureMember(t *testing.T) {
 	tests := []struct {
 		name, userID string
@@ -150,7 +152,8 @@ func TestEnsureMember(t *testing.T) {
 	}
 }
 
-// Make sure an allocation creates nothing until its group is on the cluster, then the project's and every provisioned member's directories.
+// Make sure an allocation creates nothing until its group is on the cluster, then only the project's directories,
+// while the reconciler also repairs every provisioned member's.
 func TestEnsureAllocation(t *testing.T) {
 	group, now := "proj-a", time.Now()
 	tests := []struct {
@@ -159,7 +162,7 @@ func TestEnsureAllocation(t *testing.T) {
 		want               []string
 	}{
 		{name: "nothing before the group is provisioned"},
-		{name: "project and members once provisioned", groupProvisionedAt: &now, want: join(groupMounts, jdoeMember, asmithMember)},
+		{name: "project once provisioned", groupProvisionedAt: &now, want: groupMounts},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -168,6 +171,14 @@ func TestEnsureAllocation(t *testing.T) {
 			a := models.ComputeAllocation{ID: "a1", ComputeClusterID: "c1", Status: models.ACTIVE, PosixGroup: &group, GroupProvisionedAt: tt.groupProvisionedAt}
 			if err := s.ensureAllocation(context.Background(), a); err != nil || !slices.Equal(*log, tt.want) {
 				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
+			}
+			*log = nil
+			var want []string
+			if tt.groupProvisionedAt != nil {
+				want = join(groupMounts, jdoeMember, asmithMember)
+			}
+			if err := s.reconcileAllocation(context.Background(), a); err != nil || !slices.Equal(*log, want) {
+				t.Fatalf("reconcile err=%v calls=%v, want %v", err, *log, want)
 			}
 		})
 	}
@@ -196,7 +207,10 @@ func TestRegistry(t *testing.T) {
 	}{
 		{name: "account provisioned", run: func(s *StorageSubscriber) error { return s.ensureUser(context.Background(), jdoe) }, want: []string{
 			"record /home/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe",
-			"record /scratch/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe",
+			"record /scratch/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe"}},
+		{name: "member storage requested", run: func(s *StorageSubscriber) error {
+			return s.ensureMember(context.Background(), models.ComputeAllocationMembership{ComputeAllocationID: "a1", UserID: "u1", MembershipStatus: models.ACTIVE})
+		}, want: []string{
 			"record /project/proj-a allocation proj-a 0:proj-a",
 			"record /project/proj-a/custos-jdoe cluster_user custos-jdoe custos-jdoe:custos-jdoe"}},
 		{name: "account deleted", run: func(s *StorageSubscriber) error { return s.markUser(context.Background(), jdoe) },
@@ -215,5 +229,30 @@ func TestRegistry(t *testing.T) {
 				t.Fatalf("err=%v registry=%v, want %v", err, reg, tt.want)
 			}
 		})
+	}
+}
+
+// Make sure the reconciler marks storage done for a provisioned account still waiting on it, and only that one.
+func TestReconcileMarksStorage(t *testing.T) {
+	c, _ := recordingVMS(t)
+	now := time.Now()
+	var marked []string
+	core := &service.CoreServiceMock{
+		ListComputeClusterUsersByClusterFunc: func(context.Context, string) ([]models.ComputeClusterUser, error) {
+			return []models.ComputeClusterUser{
+				{ID: "waiting", LocalUsername: "custos-jdoe", ProvisionedAt: &now},
+				{ID: "done", LocalUsername: "custos-asmith", ProvisionedAt: &now, StorageProvisionedAt: &now},
+				{ID: "unprovisioned", LocalUsername: "custos-pending"},
+			}, nil
+		},
+		ListComputeAllocationsByClusterFunc: func(context.Context, string) ([]models.ComputeAllocation, error) { return nil, nil },
+		MarkComputeClusterUserStorageProvisionedFunc: func(_ context.Context, id string) error {
+			marked = append(marked, id)
+			return nil
+		},
+	}
+	NewStorageSubscriber(nil, core, map[string]Cluster{"c1": c}).reconcile(context.Background(), "c1", c)
+	if !slices.Equal(marked, []string{"waiting"}) {
+		t.Fatalf("marked %v, want [waiting]", marked)
 	}
 }

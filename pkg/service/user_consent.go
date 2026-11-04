@@ -22,7 +22,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -74,5 +73,5 @@ func (s *Service) acceptTx(ctx context.Context, tx *sql.Tx, userID string, a *mo
 	}); err != nil {
 		return nil, err
 	}
-	return acc, s.eventBus.Publish(ctx, tx, events.UserAgreementAcceptanceCreateEvent, acc)
+	return acc, nil
 }

@@ -80,7 +80,7 @@ func TestSubscriberSpansOpenUnderParent(t *testing.T) {
 	sub.handleComputeAllocationResourceMappingCreated(ctx, models.ComputeAllocationResourceMapping{
 		ID: "mapping-1", ComputeAllocationID: "alloc-1",
 	})
-	sub.handleComputeAllocationMembershipCreated(ctx, models.ComputeAllocationMembership{
+	sub.handleComputeAllocationMembershipReady(ctx, models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
 	})
 	sub.handleComputeAllocationMembershipResourceOverrideCreated(ctx, models.ComputeAllocationMembershipResourceOverride{
@@ -91,7 +91,7 @@ func TestSubscriberSpansOpenUnderParent(t *testing.T) {
 	want := []string{
 		"slurm.compute_allocation_create",
 		"slurm.compute_allocation_resource_mapping_create",
-		"slurm.compute_allocation_membership_create",
+		"slurm.compute_allocation_membership_ready",
 		"slurm.compute_allocation_membership_resource_override_create",
 	}
 

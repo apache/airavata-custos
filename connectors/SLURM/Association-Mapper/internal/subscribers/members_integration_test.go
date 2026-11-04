@@ -122,7 +122,7 @@ func TestHandleComputeAllocationMembershipCreated(t *testing.T) {
 		ComputeAllocationID: computeAllocationID,
 	}
 	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService, 0, 0)
-	associationSubscriber.handleComputeAllocationMembershipCreated(context.Background(), *membership)
+	associationSubscriber.handleComputeAllocationMembershipReady(context.Background(), *membership)
 
 	if len(auditEvents) != 1 {
 		t.Fatalf("Expected 1 audit event, but got %d", len(auditEvents))

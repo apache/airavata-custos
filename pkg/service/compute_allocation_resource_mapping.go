@@ -105,10 +105,7 @@ func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocatio
 	existing.ResourceAmount = resourceAmount
 	existing.ResourceTime = resourceTime
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.resourceMappings.Update(ctx, tx, existing); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
+		return s.resourceMappings.Update(ctx, tx, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update allocation resource mapping: %w", err)
 	}
@@ -132,10 +129,7 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
+		return s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID)
 	}); err != nil {
 		return fmt.Errorf("detach resource from allocation: %w", err)
 	}

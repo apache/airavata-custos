@@ -22,7 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -52,7 +52,7 @@ func (s *Service) CreateComputeAllocationDiffTx(ctx context.Context, tx *sql.Tx,
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
 
-	if alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID); err != nil {
+	if alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID, store.UpdateLock); err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)
 	} else if alloc == nil {
 		return nil, fmt.Errorf("%w: compute allocation %q not found", ErrInvalidInput, diff.ComputeAllocationID)
@@ -65,12 +65,7 @@ func (s *Service) CreateComputeAllocationDiffTx(ctx context.Context, tx *sql.Tx,
 		diff.Timestamp = nowUTC()
 	}
 
-	if err := func() error {
-		if err := s.allocDiffs.Create(ctx, tx, diff); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDiffCreateEvent, diff)
-	}(); err != nil {
+	if err := s.allocDiffs.Create(ctx, tx, diff); err != nil {
 		return nil, fmt.Errorf("create compute allocation diff: %w", err)
 	}
 	return diff, nil
@@ -133,10 +128,7 @@ func (s *Service) DeleteComputeAllocationDiff(ctx context.Context, id string) er
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.allocDiffs.Delete(ctx, tx, id); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDiffDeleteEvent, diff)
+		return s.allocDiffs.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation diff: %w", err)
 	}

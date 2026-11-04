@@ -33,15 +33,3 @@ type ComputeAllocationResourceMappingHandler func(ctx context.Context, mapping m
 func (b *Bus) SubscribeComputeAllocationResourceMappingCreated(subscriber string, handler ComputeAllocationResourceMappingHandler) {
 	subscribeTyped(b, subscriber, ComputeAllocationResourceMappingCreateEvent, handler)
 }
-
-// SubscribeComputeAllocationResourceMappingUpdated registers a typed handler invoked whenever a
-// compute_allocation_resource_mapping::update event is published.
-func (b *Bus) SubscribeComputeAllocationResourceMappingUpdated(subscriber string, handler ComputeAllocationResourceMappingHandler) {
-	subscribeTyped(b, subscriber, ComputeAllocationResourceMappingUpdateEvent, handler)
-}
-
-// SubscribeComputeAllocationResourceMappingDeleted registers a typed handler invoked whenever a
-// compute_allocation_resource_mapping::delete event is published.
-func (b *Bus) SubscribeComputeAllocationResourceMappingDeleted(subscriber string, handler ComputeAllocationResourceMappingHandler) {
-	subscribeTyped(b, subscriber, ComputeAllocationResourceMappingDeleteEvent, handler)
-}

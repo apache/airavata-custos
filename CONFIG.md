@@ -185,6 +185,10 @@ connectors:
       read_timeout: "20s"
 ```
 
+## Upgrading
+
+Drain pending event deliveries before upgrading: connectors now take core's request topics, and a delivery whose topic a connector no longer handles fails at once.
+
 ## Environment Variable Substitution
 
 The configuration parser supports environment variable substitution using the `${VAR_NAME}` syntax. This allows you to:

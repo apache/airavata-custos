@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -226,5 +225,5 @@ func (s *Service) bindSubTx(ctx context.Context, tx *sql.Tx, user *models.User, 
 		return err
 	}
 	slog.InfoContext(ctx, "identity linked on first sign-in", "user_id", user.ID, "email", claims.Email)
-	return s.eventBus.Publish(ctx, tx, events.UserIdentityCreateEvent, binding)
+	return nil
 }

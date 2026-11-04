@@ -36,9 +36,9 @@ fields on a view. The policy is looked up once at startup, and Custos does not s
 
 | Trigger | Runs |
 |---|---|
-| `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
-| `compute_allocation::group_provision` | The project's directories and each provisioned member's, once the group's first member puts it on the cluster |
-| `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
+| `compute_cluster_user::storage_request` | The account's directories, then marks storage done, even on an unlisted cluster |
+| `compute_allocation::group_provision` | The project's directories, once the group's first member puts it on the cluster |
+| `compute_allocation_membership::storage_request` | That member's project directory, once the member is ready and the group provisioned |
 | `compute_cluster_user::delete` | Marks the account's directories, including its directory in each project |
 | `compute_allocation::delete` | Marks the project's directories and its members' directories inside them |
 | Startup, then every 24 hours | Everything, for every account and allocation on each cluster |

@@ -22,7 +22,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -46,10 +45,7 @@ func (s *Service) CreateComputeCluster(ctx context.Context, cluster *models.Comp
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.clusters.Create(ctx, tx, cluster); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterCreateEvent, cluster)
+		return s.clusters.Create(ctx, tx, cluster)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute cluster: %w", err)
 	}
@@ -99,10 +95,7 @@ func (s *Service) UpdateComputeCluster(ctx context.Context, cluster *models.Comp
 		return fmt.Errorf("%w: compute cluster name is required", ErrInvalidInput)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.clusters.Update(ctx, tx, cluster); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUpdateEvent, cluster)
+		return s.clusters.Update(ctx, tx, cluster)
 	}); err != nil {
 		return fmt.Errorf("update compute cluster: %w", err)
 	}
@@ -122,10 +115,7 @@ func (s *Service) DeleteComputeCluster(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.clusters.Delete(ctx, tx, id); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterDeleteEvent, cluster)
+		return s.clusters.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster: %w", err)
 	}

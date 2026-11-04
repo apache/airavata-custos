@@ -20,10 +20,11 @@
 # COmanage Identity-Provisioner
 
 Connector that bridges Custos to a COmanage Registry. When the core service
-emits `ComputeClusterUserCreateEvent` for a cluster this connector services,
+publishes `compute_cluster_user::identity_request` for a cluster this connector services,
 the orchestrator ensures the user has a fully provisioned POSIX identity in
 COmanage: a CoPerson, a per-user CoGroup, the matching Identifiers, and a
-`UnixClusterAccount` block on the target UnixCluster.
+`UnixClusterAccount` block on the target UnixCluster. On
+`compute_allocation::group_request` it resyncs the allocation's group to its active, provisioned members.
 
 ## How it loads
 

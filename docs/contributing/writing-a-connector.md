@@ -357,11 +357,13 @@ stores the event with one delivery row per subscriber, and a worker in the
 server calls each subscriber's handler until the delivery succeeds or gives up. 
 Nothing is lost when the server restarts or a handler fails.
 
-Event types are typed constants, one file per entity, in `pkg/events/`:
-`user_subscribe.go` (`UserCreateEvent`, `UserUpdateEvent`, `UserDeleteEvent`),
-`compute_cluster_user_subscribe.go`, and so on. Each file has typed
-`SubscribeXCreated`, `SubscribeXUpdated` and `SubscribeXDeleted` helpers that
+Event types are typed constants in `pkg/events/types.go`, published only where a
+connector subscribes. Each entity's `pkg/events/*_subscribe.go` file has typed
+`SubscribeX...` helpers, such as `SubscribeComputeClusterUserCreated`, that
 decode the payload for you.
+
+A connector handles one entity per event and never lists core state to find more work. Where core waits on the
+result, the connector reports it through a core mark such as `MarkComputeClusterUserProvisioned`.
 
 **Subscribing.** Register inside `LoadConnector`, under your connector's`Type` name. 
 The bus saves the subscription under that name, so it has to be the same on every start.
@@ -373,10 +375,10 @@ core *service.Service
 }
 
 func (s *Subscriber) RegisterSubscribers() {
-s.bus.SubscribeComputeClusterUserApproved(comanage.Type, s.handleApproved)
+s.bus.SubscribeComputeClusterUserIdentityRequested(comanage.Type, s.handleIdentityRequested)
 }
 
-func (s *Subscriber) handleApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleIdentityRequested(ctx context.Context, cu models.ComputeClusterUser) error {
 // ...react...
 return nil
 }

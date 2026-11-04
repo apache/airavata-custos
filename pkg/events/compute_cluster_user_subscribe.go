@@ -47,17 +47,26 @@ func (b *Bus) SubscribeComputeClusterUserDenied(subscriber string, handler Compu
 	subscribeTyped(b, subscriber, ComputeClusterUserDenyEvent, handler)
 }
 
-// SubscribeComputeClusterUserProvisioned registers a typed handler invoked
-// whenever a compute_cluster_user::provision event is published, which is
-// when the account first exists in the registry.
-func (b *Bus) SubscribeComputeClusterUserProvisioned(subscriber string, handler ComputeClusterUserHandler) {
-	subscribeTyped(b, subscriber, ComputeClusterUserProvisionEvent, handler)
+// SubscribeComputeClusterUserIdentityRequested registers a typed handler
+// invoked whenever a compute_cluster_user::identity_request event is
+// published, which is when an approved account needs its registry entry
+// created or linked to a new sign-in identity.
+func (b *Bus) SubscribeComputeClusterUserIdentityRequested(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserIdentityRequestEvent, handler)
 }
 
-// SubscribeComputeClusterUserUpdated registers a typed handler invoked
-// whenever a compute_cluster_user::update event is published.
-func (b *Bus) SubscribeComputeClusterUserUpdated(subscriber string, handler ComputeClusterUserHandler) {
-	subscribeTyped(b, subscriber, ComputeClusterUserUpdateEvent, handler)
+// SubscribeComputeClusterUserStorageRequested registers a typed handler
+// invoked whenever a compute_cluster_user::storage_request event is
+// published, which is when the account first exists in the registry.
+func (b *Bus) SubscribeComputeClusterUserStorageRequested(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserStorageRequestEvent, handler)
+}
+
+// SubscribeComputeClusterUserReady registers a typed handler invoked whenever
+// a compute_cluster_user::ready event is published, which is when the
+// account's identity and storage both exist.
+func (b *Bus) SubscribeComputeClusterUserReady(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserReadyEvent, handler)
 }
 
 // SubscribeComputeClusterUserDeleted registers a typed handler invoked

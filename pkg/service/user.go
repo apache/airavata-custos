@@ -22,7 +22,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -33,10 +32,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		return nil, err
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.users.Create(ctx, tx, user); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.UserCreateEvent, user)
+		return s.users.Create(ctx, tx, user)
 	}); err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -186,10 +182,7 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.users.Update(ctx, tx, user); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
+		return s.users.Update(ctx, tx, user)
 	}); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
@@ -214,10 +207,7 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	}
 	existing.Status = status
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
+		return s.users.UpdateStatus(ctx, tx, id, status)
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
@@ -238,10 +228,7 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.users.Delete(ctx, tx, id); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.UserDeleteEvent, existing)
+		return s.users.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}

@@ -91,11 +91,11 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 	}
 }
 
-// Make sure `provisioned_at` is stamped and the provision event published only the first time.
+// Make sure `provisioned_at` is stamped and storage requested only the first time.
 func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	svc.EventBus().SubscribeComputeClusterUserProvisioned("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	svc.EventBus().SubscribeComputeClusterUserStorageRequested("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
 	cu := newClusterUser(t, svc, database)
 
 	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
@@ -117,7 +117,7 @@ func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) 
 		t.Fatalf("provisioned_at moved from %v to %v", first.ProvisionedAt, again.ProvisionedAt)
 	}
 	if n := countDeliveries(t, svc); n != 1 {
-		t.Fatalf("expected one delivery of the provision event, got %d", n)
+		t.Fatalf("expected one storage request, got %d", n)
 	}
 }
 

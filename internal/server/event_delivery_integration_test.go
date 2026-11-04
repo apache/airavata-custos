@@ -29,13 +29,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
-	"github.com/apache/airavata-custos/pkg/service"
 )
 
-const subscriberTest = "test-subscriber"
+const (
+	subscriberTest = "test-subscriber"
+	testTopic      = events.EventType("test::publish")
+)
 
 // runWorkerUntil runs the worker until the test subscriber's delivery is in
 // the given status and returns it. Fails the test after 5 seconds.
@@ -61,30 +65,43 @@ func runWorkerUntil(t *testing.T, bus *events.Bus, status models.EventDeliverySt
 	return models.PendingDelivery{}
 }
 
+// publishOne publishes one test-topic event in its own transaction.
+func publishOne(t *testing.T, database *sqlx.DB, bus *events.Bus) {
+	t.Helper()
+	tx, err := database.Begin()
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	if err := bus.Publish(tracingtest.Context(), tx, testTopic, &models.User{ID: "u-1"}); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+}
+
 // failDelivery publishes one event and returns its delivery once it has failed.
 // The handler fails with ErrPermanent on the first call and succeeds
 // on every call after that, so a retry can be checked.
-func failDelivery(t *testing.T, svc *service.Service, bus *events.Bus) models.PendingDelivery {
+func failDelivery(t *testing.T, database *sqlx.DB, bus *events.Bus) models.PendingDelivery {
 	t.Helper()
 	calls := 0
-	bus.Subscribe(subscriberTest, events.OrganizationCreateEvent, func(context.Context, events.Event, any) error {
+	bus.Subscribe(subscriberTest, testTopic, func(context.Context, events.Event, any) error {
 		calls++
 		if calls == 1 {
 			return fmt.Errorf("%w: first attempt", events.ErrPermanent)
 		}
 		return nil
 	})
-	if _, err := svc.CreateOrganization(tracingtest.Context(), &models.Organization{OriginatedID: "org-retry", Name: "Retry Org"}); err != nil {
-		t.Fatalf("create organization: %v", err)
-	}
+	publishOne(t, database, bus)
 	return runWorkerUntil(t, bus, models.EventDeliveryFailed)
 }
 
 // Make sure a retried delivery is delivered again, with the attempt count starting over.
 func TestRetryFailedDeliveryDeliversItAgain(t *testing.T) {
-	_, svc, srv := setupTestStack(t)
+	database, svc, srv := setupTestStack(t)
 	bus := svc.EventBus()
-	failed := failDelivery(t, svc, bus)
+	failed := failDelivery(t, database, bus)
 
 	rr := httptest.NewRecorder()
 	req := withTestCaller(httptest.NewRequest(http.MethodPost, "/events/deliveries/"+failed.ID+"/retry", nil), "u-1", models.EventsManage)
@@ -108,9 +125,9 @@ func getDelivery(t *testing.T, srv http.Handler, id string) *httptest.ResponseRe
 
 // Make sure a delivery's history lists the failed attempt, the admin retry with who did it, and the next attempt, in that order.
 func TestDeliveryHistoryShowsAttemptsAndTheAdminRetryInOrder(t *testing.T) {
-	_, svc, srv := setupTestStack(t)
+	database, svc, srv := setupTestStack(t)
 	bus := svc.EventBus()
-	failed := failDelivery(t, svc, bus)
+	failed := failDelivery(t, database, bus)
 
 	rr := httptest.NewRecorder()
 	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodPost, "/events/deliveries/"+failed.ID+"/retry", nil), "u-1", models.EventsManage))
@@ -132,8 +149,8 @@ func TestDeliveryHistoryShowsAttemptsAndTheAdminRetryInOrder(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if body.Event.EventType != string(events.OrganizationCreateEvent) {
-		t.Errorf("event type: got %q, want %q", body.Event.EventType, events.OrganizationCreateEvent)
+	if body.Event.EventType != string(testTopic) {
+		t.Errorf("event type: got %q, want %q", body.Event.EventType, testTopic)
 	}
 	var order []string
 	for _, a := range body.History {
@@ -179,12 +196,10 @@ func TestListDeliveriesWithNoEventsIsEmptyArray(t *testing.T) {
 
 // Make sure only a failed delivery can be retried, and a refused retry leaves no audit row.
 func TestRetryRefusesDeliveryThatHasNotFailed(t *testing.T) {
-	_, svc, srv := setupTestStack(t)
+	database, svc, srv := setupTestStack(t)
 	bus := svc.EventBus()
-	bus.Subscribe(subscriberTest, events.OrganizationCreateEvent, func(context.Context, events.Event, any) error { return nil })
-	if _, err := svc.CreateOrganization(tracingtest.Context(), &models.Organization{OriginatedID: "org-ok", Name: "Ok Org"}); err != nil {
-		t.Fatalf("create organization: %v", err)
-	}
+	bus.Subscribe(subscriberTest, testTopic, func(context.Context, events.Event, any) error { return nil })
+	publishOne(t, database, bus)
 	done := runWorkerUntil(t, bus, models.EventDeliverySucceeded)
 
 	rr := httptest.NewRecorder()
@@ -218,12 +233,12 @@ func TestRetryDeliveryRequiresEventsManage(t *testing.T) {
 // Make sure the subscription list marks a subscriber that is not loaded, so a connector that did not start can be seen.
 func TestListSubscriptionsMarksSubscribersNotLoaded(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
-	svc.EventBus().Subscribe("loaded", events.OrganizationCreateEvent, func(context.Context, events.Event, any) error { return nil })
+	svc.EventBus().Subscribe("loaded", testTopic, func(context.Context, events.Event, any) error { return nil })
 	other, err := events.New(context.Background(), database)
 	if err != nil {
 		t.Fatalf("second bus: %v", err)
 	}
-	other.Subscribe("not-loaded", events.OrganizationCreateEvent, func(context.Context, events.Event, any) error { return nil })
+	other.Subscribe("not-loaded", testTopic, func(context.Context, events.Event, any) error { return nil })
 
 	rr := httptest.NewRecorder()
 	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/events/subscriptions", nil), "u-1", models.TracesRead)

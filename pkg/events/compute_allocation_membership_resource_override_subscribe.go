@@ -33,17 +33,3 @@ type ComputeAllocationMembershipResourceOverrideHandler func(ctx context.Context
 func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber string, handler ComputeAllocationMembershipResourceOverrideHandler) {
 	subscribeTyped(b, subscriber, ComputeAllocationMembershipResourceOverrideCreateEvent, handler)
 }
-
-// SubscribeComputeAllocationMembershipResourceOverrideUpdated registers a
-// typed handler invoked whenever a
-// compute_allocation_membership_resource_override::update event is published.
-func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideUpdated(subscriber string, handler ComputeAllocationMembershipResourceOverrideHandler) {
-	subscribeTyped(b, subscriber, ComputeAllocationMembershipResourceOverrideUpdateEvent, handler)
-}
-
-// SubscribeComputeAllocationMembershipResourceOverrideDeleted registers a
-// typed handler invoked whenever a
-// compute_allocation_membership_resource_override::delete event is published.
-func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideDeleted(subscriber string, handler ComputeAllocationMembershipResourceOverrideHandler) {
-	subscribeTyped(b, subscriber, ComputeAllocationMembershipResourceOverrideDeleteEvent, handler)
-}

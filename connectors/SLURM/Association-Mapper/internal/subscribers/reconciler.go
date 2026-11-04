@@ -124,7 +124,8 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			return
 		}
 		for _, membership := range memberships {
-			if membership.MembershipStatus != models.ACTIVE {
+			// Core's ready decides access, so the reconciler agrees with the ready and deactivate events.
+			if membership.ReadyAt == nil {
 				continue
 			}
 			record, err := a.desiredAssociationForMembership(ctx, membership)

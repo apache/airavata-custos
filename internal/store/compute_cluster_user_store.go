@@ -52,7 +52,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &pgComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, storage_provisioned_at, ready_at, approval_status, reviewed_at, reviewed_by, review_note`
 
 func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -72,6 +72,21 @@ func (s *pgComputeClusterUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, 
 	var c models.ComputeClusterUser
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
 		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (s *pgComputeClusterUserStore) FindByPairTx(ctx context.Context, tx *sql.Tx, clusterID, userID string) (*models.ComputeClusterUser, error) {
+	var c models.ComputeClusterUser
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
+		`SELECT `+computeClusterUserColumns+`
+		   FROM compute_cluster_users
+		  WHERE compute_cluster_id = $1 AND user_id = $2`, clusterID, userID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -179,7 +194,7 @@ func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, st
 	}
 	var rows []ComputeClusterUserWithUser
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at,
+		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at, cu.storage_provisioned_at, cu.ready_at,
 		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.created_at,
 		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name,
 		        NULLIF(TRIM(CONCAT_WS(' ', r.first_name, r.last_name)), '') AS reviewer_name,
@@ -220,6 +235,26 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
 
 func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
 	res, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL`, at, id)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+func (s *pgComputeClusterUserStore) MarkStorageProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
+	res, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET storage_provisioned_at = $1 WHERE id = $2 AND storage_provisioned_at IS NULL`, at, id)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+func (s *pgComputeClusterUserStore) MarkReady(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
+	res, err := tx.ExecContext(ctx,
+		`UPDATE compute_cluster_users SET ready_at = $1
+		 WHERE id = $2 AND ready_at IS NULL AND provisioned_at IS NOT NULL AND storage_provisioned_at IS NOT NULL`, at, id)
 	if err != nil {
 		return false, err
 	}

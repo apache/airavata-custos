@@ -138,7 +138,25 @@ func subscribeTyped[T any](b *Bus, subscriber string, topic EventType, handler f
 // transaction, so everything is committed or rolled back together.
 // Nothing is written when nobody subscribes.
 func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload any) error {
-	subscribers := b.subscribersOf(string(topic))
+	return b.publish(ctx, tx, topic, payload, b.subscribersOf(string(topic)))
+}
+
+// PublishTo stores the event with a delivery for one subscriber only.
+func (b *Bus) PublishTo(ctx context.Context, tx *sql.Tx, subscriber string, topic EventType, payload any) error {
+	return b.publish(ctx, tx, topic, payload, []string{subscriber})
+}
+
+// Unsynced returns the subscriptions whose subscriber has not been sent the topic's current state.
+func (b *Bus) Unsynced(ctx context.Context) ([]models.EventSubscription, error) {
+	return b.store.ListUnsyncedSubscriptions(ctx)
+}
+
+// MarkSynced records, in tx, that the subscriber was sent the topic's current state.
+func (b *Bus) MarkSynced(ctx context.Context, tx *sql.Tx, subscriber, topic string) error {
+	return b.store.MarkSubscriptionSynced(ctx, tx, subscriber, topic)
+}
+
+func (b *Bus) publish(ctx context.Context, tx *sql.Tx, topic EventType, payload any, subscribers []string) error {
 	if len(subscribers) == 0 {
 		return nil
 	}
@@ -187,6 +205,11 @@ func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload 
 	return nil
 }
 
+// Subscribed reports whether any connector, loaded or not, subscribes to topic, so core knows whether to await it.
+func (b *Bus) Subscribed(topic EventType) bool {
+	return len(b.subscribersOf(string(topic))) > 0
+}
+
 func (b *Bus) subscribersOf(topic string) []string {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -198,7 +221,7 @@ func (b *Bus) subscribersOf(topic string) []string {
 }
 
 // handlerFor returns the subscriber's handler for a topic, or false if the
-// subscriber is not loaded.
+// subscriber is not loaded or does not handle topic.
 func (b *Bus) handlerFor(subscriber, topic string) (EventSubscriberFunc, bool) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
