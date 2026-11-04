@@ -20,6 +20,7 @@ package main
 
 //go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../internal/connectors,../../pkg/models -o ../../api --outputTypes yaml --parseDependency --useStructName
 //go:generate mv ../../api/swagger.yaml ../../api/core.openapi.yaml
+//go:generate go run -C ../../tools/eventgraph . -root ../.. -o ../../internal/server/eventgraph/graph.json
 
 import (
 	"context"

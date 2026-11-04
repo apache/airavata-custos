@@ -4116,6 +4116,40 @@ paths:
       summary: Retry a failed event delivery
       tags:
       - Events
+  /events/graph:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              edges:
+                items:
+                  type: object
+                type: array
+              events:
+                items:
+                  type: object
+                type: array
+              terms:
+                items:
+                  type: object
+                type: array
+            type: object
+        "404":
+          description: Graph not generated
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the event graph
+      tags:
+      - Events
   /events/subscriptions:
     get:
       description: Every saved subscription and whether its subscriber is loaded in

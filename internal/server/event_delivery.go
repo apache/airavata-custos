@@ -18,6 +18,8 @@
 package server
 
 import (
+	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -126,4 +128,27 @@ func (s *Server) listEventSubscriptions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	common.WriteJSON(w, http.StatusOK, map[string]any{"items": rows})
+}
+
+// eventGraph holds graph.json once go generate has run tools/eventgraph.
+//
+//go:embed eventgraph
+var eventGraph embed.FS
+
+const eventGraphFile = "eventgraph/graph.json"
+
+// @Summary	Get the event graph
+// @Tags	Events
+// @Security	BearerAuth
+// @Produce	json
+// @Success	200	{object}	object{events=[]object,edges=[]object,terms=[]object}
+// @Failure	404	{object}	object{error=string}	"Graph not generated"
+// @Router	/events/graph [get]
+func (s *Server) getEventGraph(w http.ResponseWriter, _ *http.Request) {
+	graph, err := eventGraph.ReadFile(eventGraphFile)
+	if err != nil {
+		common.WriteError(w, http.StatusNotFound, errors.New("event graph not generated: run go generate ./cmd/server/"))
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, json.RawMessage(graph))
 }
