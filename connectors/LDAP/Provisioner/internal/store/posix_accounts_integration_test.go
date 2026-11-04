@@ -44,7 +44,6 @@ func openAccounts(t *testing.T) (*Accounts, *sqlx.DB) {
 func account(id, username string) Account {
 	return Account{
 		ComputeClusterUserID: id,
-		UserID:               "user-" + username,
 		Username:             username,
 		HomeDirectory:        "/home/" + username,
 		LoginShell:           "/bin/bash",
@@ -144,27 +143,5 @@ func TestAccounts_GetMissingReturnsNil(t *testing.T) {
 	got, err := s.Get(context.Background(), "nope")
 	if err != nil || got != nil {
 		t.Fatalf("got %+v, %v", got, err)
-	}
-}
-
-func TestAccounts_ReclaimMovesOnlyInactiveRows(t *testing.T) {
-	s, _ := openAccounts(t)
-	ctx := context.Background()
-	old, err := s.Create(ctx, account("cu-1", "ada"), 50000)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, err := s.Reclaim(ctx, "cu-1", "cu-2"); err != nil || got != nil {
-		t.Fatalf("an active row must not move; got %+v, %v", got, err)
-	}
-	if err := s.SetStatus(ctx, "cu-1", StatusInactive); err != nil {
-		t.Fatal(err)
-	}
-	got, err := s.Reclaim(ctx, "cu-1", "cu-2")
-	if err != nil || got == nil {
-		t.Fatalf("got %+v, %v", got, err)
-	}
-	if got.ComputeClusterUserID != "cu-2" || got.Status != StatusActive || got.UIDNumber != old.UIDNumber {
-		t.Errorf("expected cu-2, active, uid %d; got %+v", old.UIDNumber, got)
 	}
 }

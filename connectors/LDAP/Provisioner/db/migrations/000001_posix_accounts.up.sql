@@ -16,12 +16,10 @@
 -- under the License.
 
 -- POSIX attributes this connector assigned, one row per cluster account. A
--- deactivated account keeps its row so its uid_number is never reused, except
--- by the same Custos user (user_id) coming back.
+-- deactivated account keeps its row so its uid_number is never reused.
 CREATE TABLE IF NOT EXISTS ldap_posix_accounts
 (
     compute_cluster_user_id VARCHAR(255)   PRIMARY KEY,
-    user_id                 VARCHAR(255)   NOT NULL,
     uid_number              BIGINT         NOT NULL,
     gid_number              BIGINT         NOT NULL,
     username                VARCHAR(32)    NOT NULL,

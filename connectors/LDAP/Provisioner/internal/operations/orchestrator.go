@@ -15,10 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package operations provisions POSIX identity directly in LDAP for a
-// (User, UnixCluster) pair. Parallels the COmanage Identity-Provisioner's
-// operations package; direct-to-LDAP path for sites that don't run a
-// COmanage Registry.
+// Package operations provisions and removes POSIX accounts in LDAP for
+// cluster accounts.
 package operations
 
 import (
@@ -47,7 +45,6 @@ type Accounts interface {
 	GetByUsername(ctx context.Context, username string) (*store.Account, error)
 	Create(ctx context.Context, a store.Account, floor int64) (*store.Account, error)
 	Renumber(ctx context.Context, computeClusterUserID string, floor int64) (*store.Account, error)
-	Reclaim(ctx context.Context, fromID, toID string) (*store.Account, error)
 	SetStatus(ctx context.Context, computeClusterUserID, status string) error
 }
 

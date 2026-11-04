@@ -108,17 +108,6 @@ func (f *fakeAccounts) Renumber(_ context.Context, id string, floor int64) (*sto
 	c := *r
 	return &c, nil
 }
-func (f *fakeAccounts) Reclaim(_ context.Context, fromID, toID string) (*store.Account, error) {
-	r, ok := f.rows[fromID]
-	if !ok || r.Status != store.StatusInactive {
-		return nil, nil
-	}
-	delete(f.rows, fromID)
-	r.ComputeClusterUserID, r.Status = toID, store.StatusActive
-	f.rows[toID] = r
-	c := *r
-	return &c, nil
-}
 func (f *fakeAccounts) SetStatus(_ context.Context, id, status string) error {
 	f.rows[id].Status = status
 	return nil
@@ -198,7 +187,6 @@ func sampleUser() *models.User {
 func storedAccount() store.Account {
 	return store.Account{
 		ComputeClusterUserID: "csu-1",
-		UserID:               "user-1",
 		UIDNumber:            50123,
 		GIDNumber:            50123,
 		Username:             "alovelace",
@@ -373,7 +361,7 @@ func TestEnsurePOSIXAccount_ExistingEntryWithoutRow_IsConflict(t *testing.T) {
 
 func TestEnsurePOSIXAccount_UsernameHeldByAnotherRow_IsConflict(t *testing.T) {
 	held := storedAccount()
-	held.ComputeClusterUserID, held.UserID, held.Status = "csu-0", "user-0", store.StatusInactive
+	held.ComputeClusterUserID, held.Status = "csu-0", store.StatusInactive
 	core, conn := &fakeCore{user: sampleUser()}, &fakeConn{}
 
 	err := newOrch(core, conn, newAccounts(held)).EnsurePOSIXAccount(context.Background(), sampleCU())
@@ -384,22 +372,6 @@ func TestEnsurePOSIXAccount_UsernameHeldByAnotherRow_IsConflict(t *testing.T) {
 		t.Error("no entry may be written")
 	}
 	assertFailedStep(t, core, "claim_username")
-}
-
-func TestEnsurePOSIXAccount_ReaddedUserReclaimsOldNumbers(t *testing.T) {
-	old := storedAccount()
-	old.ComputeClusterUserID, old.Status = "csu-0", store.StatusInactive
-	conn, accounts := &fakeConn{}, newAccounts(old)
-
-	if err := newOrch(&fakeCore{user: sampleUser()}, conn, accounts).EnsurePOSIXAccount(context.Background(), sampleCU()); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(conn.addCalls) != 1 || indexAttrs(conn.addCalls[0].Attributes)["uidNumber"][0] != "50123" {
-		t.Fatalf("expected the entry re-added with the old uidNumber; got %+v", conn.addCalls)
-	}
-	if row := accounts.rows["csu-1"]; row == nil || row.Status != store.StatusActive || len(accounts.rows) != 1 {
-		t.Errorf("the old row must move to the new cluster account; got %+v", accounts.rows)
-	}
 }
 
 func TestEnsurePOSIXAccount_RenumbersOnConstraintViolation(t *testing.T) {

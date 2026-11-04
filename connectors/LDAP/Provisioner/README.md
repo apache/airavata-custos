@@ -57,7 +57,7 @@ For each approved cluster account whose `ComputeClusterID` matches
 |---|------|--------------|
 | 1 | Validate `local_username` | Not POSIX-safe → `LDAPProvisioningFailed` audit, return. |
 | 2 | Resolve `models.User` | `core.GetUser(user_id)` — needed for cn / sn / mail. |
-| 3 | **Stored attributes** | Look up the `ldap_posix_accounts` row by `compute_cluster_users.id`. When there is none and the same Custos user holds the username on an `INACTIVE` row (removed, then re-added), that row is reclaimed with its old uidNumber. Otherwise the username must be free, both in the table and in the directory; otherwise the run fails with `step=claim_username`. Adopting an existing account has to be an explicit import. A free username gets a new row and uidNumber. |
+| 3 | **Stored attributes** | Look up the `ldap_posix_accounts` row by `compute_cluster_users.id`. When there is none, the username must be free, both in the table and in the directory; otherwise the run fails with `step=claim_username`. Adopting an existing account has to be an explicit import. A free username gets a new row and uidNumber. |
 | 4 | **Add or Modify** | No entry → `client.AddPosixAccount(...)`, emit `LDAPAccountCreated`. On `constraintViolation` (out-of-band writer took the uidNumber), the row is renumbered and the add retried up to 3 times. An existing entry must carry the stored uidNumber; it is then refreshed with `client.ModifyPosixAccount` (cn / sn / givenName / homeDirectory / loginShell / mail), emit `LDAPAccountUpdated`. |
 | 5 | **Primary posixGroup** | When `group_base_dn` is set, ensure `cn=<local_username>,<GroupBaseDN>` exists with `gidNumber=<uidNumber>`. `FindPosixGroup` first, `AddPosixGroup` if absent. Concurrent creation is tolerated (`EntryAlreadyExists` is treated as success). Skipped entirely when `GroupBaseDN` is empty (auto-private-groups on the client side). Emit `LDAPGroupCreated` when a new group is written. |
 | 6 | **Mark provisioned** | `core.MarkComputeClusterUserProvisioned`, which starts the downstream connectors. |
@@ -74,10 +74,8 @@ The connector keeps the attributes it assigns in its own
 already unique per cluster and user), with `UNIQUE (uid_number)` and
 `UNIQUE (username)`. A new row gets one above the highest `uid_number` in
 the table, and at least the floor. Deactivated rows keep their number, so
-a different user cannot inherit a deleted user's uid and therefore cannot
-suddenly own files stamped with that numeric uid on the cluster. The
-row records the Custos `user_id`, so the same person re-added later gets
-their old uid back, and with it their files.
+a new user cannot inherit a deleted user's uid and therefore cannot
+suddenly own files stamped with that numeric uid on the cluster.
 
 `gidNumber = uidNumber` — the one-group-per-user pattern the COmanage
 connector uses on the CoGroup identifier ([`ensure_posix_account.go:98`](../../COmanage/Identity-Provisioner/internal/operations/ensure_posix_account.go#L98)).

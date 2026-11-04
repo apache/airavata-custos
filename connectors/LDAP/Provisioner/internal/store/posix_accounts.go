@@ -44,7 +44,6 @@ const numberLock = `SELECT pg_advisory_xact_lock(hashtext('ldap_posix_accounts.u
 
 type Account struct {
 	ComputeClusterUserID string    `db:"compute_cluster_user_id"`
-	UserID               string    `db:"user_id"`
 	UIDNumber            int64     `db:"uid_number"`
 	GIDNumber            int64     `db:"gid_number"`
 	Username             string    `db:"username"`
@@ -92,11 +91,11 @@ func (s *Accounts) Create(ctx context.Context, a Account, floor int64) (*Account
 	var created Account
 	err := s.withNumberLock(ctx, func(tx *sqlx.Tx) error {
 		return tx.GetContext(ctx, &created, `INSERT INTO ldap_posix_accounts
-			(compute_cluster_user_id, user_id, uid_number, gid_number, username, home_directory, login_shell, entry_dn)
-			SELECT $1, $2, n, n, $3, $4, $5, $6
-			FROM (SELECT GREATEST(COALESCE(MAX(uid_number) + 1, $7), $7) AS n FROM ldap_posix_accounts) next
+			(compute_cluster_user_id, uid_number, gid_number, username, home_directory, login_shell, entry_dn)
+			SELECT $1, n, n, $2, $3, $4, $5
+			FROM (SELECT GREATEST(COALESCE(MAX(uid_number) + 1, $6), $6) AS n FROM ldap_posix_accounts) next
 			RETURNING *`,
-			a.ComputeClusterUserID, a.UserID, a.Username, a.HomeDirectory, a.LoginShell, a.EntryDN, floor)
+			a.ComputeClusterUserID, a.Username, a.HomeDirectory, a.LoginShell, a.EntryDN, floor)
 	})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "uq_ldap_posix_accounts_username" {
@@ -124,24 +123,6 @@ func (s *Accounts) Renumber(ctx context.Context, computeClusterUserID string, fl
 		return nil, fmt.Errorf("renumber ldap_posix_accounts: %w", err)
 	}
 	return &updated, nil
-}
-
-// Reclaim moves an inactive row, numbers included, to a new cluster account
-// and reactivates it. It returns nil when the row is no longer inactive.
-func (s *Accounts) Reclaim(ctx context.Context, fromID, toID string) (*Account, error) {
-	var a Account
-	err := s.db.GetContext(ctx, &a, `UPDATE ldap_posix_accounts
-		SET compute_cluster_user_id = $2, status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP(6)
-		WHERE compute_cluster_user_id = $1 AND status = 'INACTIVE'
-		RETURNING *`,
-		fromID, toID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("reclaim ldap_posix_accounts: %w", err)
-	}
-	return &a, nil
 }
 
 func (s *Accounts) SetStatus(ctx context.Context, computeClusterUserID, status string) error {

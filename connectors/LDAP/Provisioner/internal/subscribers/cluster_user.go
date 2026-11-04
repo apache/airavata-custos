@@ -16,9 +16,7 @@
 // under the License.
 
 // Package subscribers wires cluster account events to the LDAP
-// orchestrator. Parallels the COmanage connector's subscriber; a
-// deployment picks one or the other depending on whether it fronts LDAP
-// with COmanage.
+// orchestrator.
 package subscribers
 
 import (

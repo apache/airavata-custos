@@ -15,10 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package ldap is the LDAP Provisioner entry point. Wired from
-// internal/connectors/loader.go alongside the COmanage connector — a site
-// runs one or the other depending on whether it uses COmanage as a
-// managed layer in front of the directory.
+// Package ldap is the LDAP Provisioner entry point. A site runs it or the
+// COmanage connector, not both.
 package ldap
 
 import (

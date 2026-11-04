@@ -113,26 +113,13 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 }
 
 // createAccount records the attributes for a cluster account seen for the
-// first time. A Custos user re-added after removal gets their old row back,
-// so they own their files again. Any other holder of the username, here or
-// in the directory, is a conflict: adopting an existing account has to be
-// an explicit import.
+// first time. A username already held, here or in the directory, is a
+// conflict: adopting an existing account has to be an explicit import.
 func (o *Orchestrator) createAccount(ctx context.Context, cu *models.ComputeClusterUser, log *slog.Logger) (*store.Account, error) {
 	held, err := o.accounts.GetByUsername(ctx, cu.LocalUsername)
 	if err != nil {
 		o.auditFailure(ctx, cu, "get_posix_account", err)
 		return nil, err
-	}
-	if held != nil && held.Status == store.StatusInactive && held.UserID == cu.UserID {
-		acct, err := o.accounts.Reclaim(ctx, held.ComputeClusterUserID, cu.ID)
-		if err != nil {
-			o.auditFailure(ctx, cu, "reclaim_posix_account", err)
-			return nil, err
-		}
-		if acct != nil {
-			log.InfoContext(ctx, "ldap provisioner: reclaimed deactivated account", "uid", acct.UIDNumber, "previous_correlation_id", held.ComputeClusterUserID)
-			return acct, nil
-		}
 	}
 	if held != nil {
 		err := fmt.Errorf("%w: username %q is held by compute_cluster_user %s", errConflict, cu.LocalUsername, held.ComputeClusterUserID)
@@ -153,7 +140,6 @@ func (o *Orchestrator) createAccount(ctx context.Context, cu *models.ComputeClus
 	cfg := o.c.Config()
 	acct, err := o.accounts.Create(ctx, store.Account{
 		ComputeClusterUserID: cu.ID,
-		UserID:               cu.UserID,
 		Username:             cu.LocalUsername,
 		HomeDirectory:        path.Join(cfg.HomedirPrefix, cu.LocalUsername),
 		LoginShell:           cfg.DefaultShell,
