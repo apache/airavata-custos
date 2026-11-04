@@ -129,14 +129,19 @@ export function EventsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Events</h1>
         <p className="text-sm text-muted-foreground">
           Each event is sent to every connector that listens for it. A failed delivery is retried up
-          to 10 times, then waits here for an admin.{" "}
-          <Link
-            href="/admin/events/graph"
-            className="text-brand underline-offset-4 hover:underline"
-          >
-            See which events lead to which
-          </Link>
-          .
+          to 10 times, then waits here for an admin.
+          {canRetry ? (
+            <>
+              {" "}
+              <Link
+                href="/admin/events/graph"
+                className="text-brand underline-offset-4 hover:underline"
+              >
+                See which events lead to which
+              </Link>
+              .
+            </>
+          ) : null}
         </p>
       </header>
 
