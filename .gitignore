@@ -42,6 +42,9 @@ dist/
 # Built server binary from `make build`.
 /custos
 
+# Event graph from `go generate ./cmd/server/`.
+/internal/server/eventgraph/graph.json
+
 database_data
 
 # local application properties

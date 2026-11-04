@@ -73,6 +73,9 @@ jobs:
             exit 1
           fi
 
+      - name: Generate
+        run: go generate ./cmd/server/
+
       - name: Build
         run: go build ./...
 
