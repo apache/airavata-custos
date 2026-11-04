@@ -66,9 +66,6 @@ func LoadConnector(_ context.Context, database *sqlx.DB, eventBus *events.Bus, c
 	subscribers.NewClusterUserSubscriber(ldapClient, store.NewAccounts(database), floor, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
 	slog.Info("ldap provisioner: subscriber registered",
 		"url", cfg.URL, "base_dn", cfg.BaseDN, "cluster_id", cfg.CustosClusterID, "uid_floor", floor)
-	// Custos is the source of truth for provisioning: entries created by this
-	// connector must not be edited directly in LDAP. There is no drift
-	// reconciliation; out-of-band edits will be invisible to Custos.
 	return nil
 }
 

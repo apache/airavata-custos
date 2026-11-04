@@ -58,7 +58,7 @@ func (s *ClusterUserSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
 }
 
-// Errors are returned so the bus retries the delivery.
+// handleClusterUserApproved returns errors so the bus retries the delivery.
 func (s *ClusterUserSubscriber) handleClusterUserApproved(ctx context.Context, c models.ComputeClusterUser) error {
 	if c.ComputeClusterID != s.custosClusterID {
 		return nil

@@ -16,8 +16,6 @@
 // under the License.
 
 // Package db holds the LDAP Provisioner connector's private schema.
-// Applied via internal/db.MigrateConnectorFS at loader time. Mirrors
-// the pattern used by the AMIE-Processor connector.
 package db
 
 import "embed"

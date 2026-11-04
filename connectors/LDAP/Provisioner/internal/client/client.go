@@ -288,8 +288,6 @@ func (c *Client) DeleteEntry(dn string) error {
 	return nil
 }
 
-// ---- private locked helpers ------------------------------------------
-
 func (c *Client) findPosixAccountLocked(uid string) (string, map[string][]string, error) {
 	conn, err := c.ensureConn()
 	if err != nil {

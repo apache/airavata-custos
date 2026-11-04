@@ -35,8 +35,6 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// ---- fakes ------------------------------------------------------------
-
 type fakeCore struct {
 	user        *models.User
 	userErr     error
@@ -159,8 +157,6 @@ func (d *fakeDialer) Dial(_ string, _ bool, _ time.Duration) (client.Connection,
 	return d.conn, nil
 }
 
-// ---- fixtures ---------------------------------------------------------
-
 const (
 	accountFilter = "(&(objectClass=posixAccount)(uid=alovelace))"
 	// entryFilter is the read of a stored DN.
@@ -229,8 +225,6 @@ func newOrchWithGroups(core *fakeCore, conn *fakeConn, accounts *fakeAccounts) *
 	cfg.GroupBaseDN = "ou=groups,dc=test"
 	return &Orchestrator{c: client.NewWithDialer(cfg, &fakeDialer{conn: conn}), core: core, accounts: accounts, floor: 50000}
 }
-
-// ---- tests ------------------------------------------------------------
 
 func TestEnsurePOSIXAccount_NewUser_StoresAndAdds(t *testing.T) {
 	core, conn, accounts := &fakeCore{user: sampleUser()}, &fakeConn{}, newAccounts()
@@ -624,8 +618,6 @@ func TestEnsurePOSIXAccount_LogLinesCarryCorrelationID(t *testing.T) {
 		}
 	}
 }
-
-// ---- helpers ----------------------------------------------------------
 
 func assertFailedStep(t *testing.T, core *fakeCore, step string) {
 	t.Helper()

@@ -19,7 +19,6 @@ package client
 
 import (
 	"errors"
-	"strconv"
 	"testing"
 	"time"
 
@@ -115,8 +114,6 @@ func sampleAccount() PosixAccount {
 		LoginShell:    "/bin/bash",
 	}
 }
-
-// ---- Config / basic Find/Add/Modify -----------------------------------
 
 func TestNew_ValidatesConfig(t *testing.T) {
 	cases := []struct {
@@ -277,8 +274,6 @@ func TestModifyPosixAccount_ReplacesMutableAttributes(t *testing.T) {
 	}
 }
 
-// ---- Allocation and atomicity ----------------------------------------
-
 func TestAllocateNextUID_ReturnsMinUIDWhenDirectoryEmpty(t *testing.T) {
 	c := NewWithDialer(sampleConfig(), &fakeDialer{conn: &fakeConn{}})
 	got, err := c.AllocateNextUID(50000)
@@ -341,8 +336,6 @@ func TestAllocateNextUID_DefaultsToDefaultMinUIDWhenZero(t *testing.T) {
 		t.Errorf("got %d, want DefaultMinUID (%d)", got, DefaultMinUID)
 	}
 }
-
-// ---- posixGroup ------------------------------------------------------
 
 func groupConfig() Config {
 	c := sampleConfig()
@@ -432,8 +425,6 @@ func TestAddPosixGroup_RejectsGIDBelowMinUID(t *testing.T) {
 	}
 }
 
-// ---- error helpers ---------------------------------------------------
-
 func TestIsConstraintViolation(t *testing.T) {
 	cases := []struct {
 		name string
@@ -464,13 +455,8 @@ func TestIsAlreadyExists(t *testing.T) {
 	}
 }
 
-// ---- connection reuse ------------------------------------------------
-
 func TestSearchTimeout_ClampsSubSecondToOne(t *testing.T) {
-	// go-ldap treats TimeLimit=0 as "no time limit" — the opposite of
-	// what a caller who configured 500ms wants. The client must clamp
-	// to at least 1s so a sub-second Timeout doesn't silently disable
-	// the server-side time limit.
+	// A TimeLimit of 0 would mean no limit at all.
 	cfg := sampleConfig()
 	cfg.Timeout = 500 * time.Millisecond
 	conn := &fakeConn{}
@@ -529,8 +515,6 @@ func TestClient_ReconnectsAfterError(t *testing.T) {
 	}
 }
 
-// ---- helpers ---------------------------------------------------------
-
 func indexAttrs(attrs []ldap.Attribute) map[string][]string {
 	m := make(map[string][]string, len(attrs))
 	for _, a := range attrs {
@@ -547,9 +531,6 @@ func contains(ss []string, want string) bool {
 	}
 	return false
 }
-
-// silence unused-strconv warning
-var _ = strconv.Itoa
 
 func TestDeleteEntry(t *testing.T) {
 	cases := []struct {
