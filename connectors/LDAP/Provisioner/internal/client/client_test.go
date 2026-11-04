@@ -166,6 +166,33 @@ func TestFindPosixAccount_ReturnsEntryWhenPresent(t *testing.T) {
 	}
 }
 
+func TestGetPosixAccount(t *testing.T) {
+	const dn = "uid=alovelace,ou=people,dc=test"
+	entry := ldap.NewEntry(dn, map[string][]string{"uidNumber": {"50123"}})
+	cases := []struct {
+		name      string
+		conn      *fakeConn
+		wantAttrs bool
+		wantErr   bool
+	}{
+		{"present", &fakeConn{perBase: map[string]*ldap.SearchResult{dn: {Entries: []*ldap.Entry{entry}}}}, true, false},
+		{"no such object", &fakeConn{searchErr: &ldap.Error{ResultCode: ldap.LDAPResultNoSuchObject}}, false, false},
+		{"other error", &fakeConn{searchErr: &ldap.Error{ResultCode: ldap.LDAPResultBusy}}, false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := NewWithDialer(sampleConfig(), &fakeDialer{conn: tc.conn})
+			attrs, err := c.GetPosixAccount(dn)
+			if (err != nil) != tc.wantErr || (attrs != nil) != tc.wantAttrs {
+				t.Fatalf("got attrs=%v err=%v", attrs, err)
+			}
+			if tc.wantAttrs && tc.conn.searchCalls[0].Scope != ldap.ScopeBaseObject {
+				t.Error("expected a base-object read of the stored DN")
+			}
+		})
+	}
+}
+
 func TestFindPosixAccount_ErrorsOnDuplicateHits(t *testing.T) {
 	e1 := ldap.NewEntry("uid=alovelace,ou=people,dc=test", map[string][]string{"uid": {"alovelace"}})
 	e2 := ldap.NewEntry("uid=alovelace,ou=other,dc=test", map[string][]string{"uid": {"alovelace"}})

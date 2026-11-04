@@ -163,7 +163,9 @@ func (d *fakeDialer) Dial(_ string, _ bool, _ time.Duration) (client.Connection,
 
 const (
 	accountFilter = "(&(objectClass=posixAccount)(uid=alovelace))"
-	accountDN     = "uid=alovelace,ou=people,dc=test"
+	// entryFilter is the read of a stored DN.
+	entryFilter = "(objectClass=posixAccount)"
+	accountDN   = "uid=alovelace,ou=people,dc=test"
 )
 
 func sampleCU() *models.ComputeClusterUser {
@@ -311,14 +313,20 @@ func TestEnsurePOSIXAccount_UserWithoutLastName(t *testing.T) {
 
 func TestEnsurePOSIXAccount_StoredAccount_ModifiesExisting(t *testing.T) {
 	core := &fakeCore{user: sampleUser()}
-	conn := &fakeConn{perFilterResults: map[string]*ldap.SearchResult{accountFilter: existingEntry("50123")}}
-	accounts := newAccounts(storedAccount())
+	conn := &fakeConn{perFilterResults: map[string]*ldap.SearchResult{entryFilter: existingEntry("50123")}}
+	// The entry is found at the stored DN, not by searching for the username.
+	stored := storedAccount()
+	stored.EntryDN = "uid=alovelace,ou=moved,dc=test"
+	accounts := newAccounts(stored)
 
 	if err := newOrch(core, conn, accounts).EnsurePOSIXAccount(context.Background(), sampleCU()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(conn.modifyCalls) != 1 || len(conn.addCalls) != 0 {
-		t.Errorf("expected 1 Modify and 0 Add; got %d and %d", len(conn.modifyCalls), len(conn.addCalls))
+		t.Fatalf("expected 1 Modify and 0 Add; got %d and %d", len(conn.modifyCalls), len(conn.addCalls))
+	}
+	if conn.modifyCalls[0].DN != stored.EntryDN {
+		t.Errorf("expected Modify at the stored DN %s; got %s", stored.EntryDN, conn.modifyCalls[0].DN)
 	}
 	if len(accounts.rows) != 1 {
 		t.Errorf("expected no new row; got %d", len(accounts.rows))
@@ -330,7 +338,7 @@ func TestEnsurePOSIXAccount_StoredAccount_ModifiesExisting(t *testing.T) {
 
 func TestEnsurePOSIXAccount_StoredAccount_ConflictsOnOtherUIDNumber(t *testing.T) {
 	core := &fakeCore{user: sampleUser()}
-	conn := &fakeConn{perFilterResults: map[string]*ldap.SearchResult{accountFilter: existingEntry("40000")}}
+	conn := &fakeConn{perFilterResults: map[string]*ldap.SearchResult{entryFilter: existingEntry("40000")}}
 
 	err := newOrch(core, conn, newAccounts(storedAccount())).EnsurePOSIXAccount(context.Background(), sampleCU())
 	if !errors.Is(err, errConflict) || !errors.Is(err, events.ErrPermanent) {

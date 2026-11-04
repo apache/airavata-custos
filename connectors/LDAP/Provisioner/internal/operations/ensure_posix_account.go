@@ -156,15 +156,16 @@ func (o *Orchestrator) createAccount(ctx context.Context, cu *models.ComputeClus
 	return acct, nil
 }
 
-// ensureEntry adds the posixAccount, or updates it when it exists and
-// carries the stored uidNumber.
+// ensureEntry adds the posixAccount at the stored DN, or updates it when it
+// exists and carries the stored uidNumber.
 func (o *Orchestrator) ensureEntry(ctx context.Context, cu *models.ComputeClusterUser, user *models.User, acct *store.Account, log *slog.Logger) error {
-	dn, attrs, err := o.c.FindPosixAccount(acct.Username)
+	dn := acct.EntryDN
+	attrs, err := o.c.GetPosixAccount(dn)
 	if err != nil {
-		o.auditFailure(ctx, cu, "find_posix_account", err)
+		o.auditFailure(ctx, cu, "read_posix_account", err)
 		return err
 	}
-	if dn != "" {
+	if attrs != nil {
 		if got := attrs["uidNumber"]; len(got) != 1 || got[0] != strconv.FormatInt(acct.UIDNumber, 10) {
 			err := fmt.Errorf("%w: %s has uidNumber %v, Custos assigned %d", errConflict, dn, got, acct.UIDNumber)
 			o.auditFailure(ctx, cu, "verify_posix_account", err)

@@ -128,6 +128,41 @@ func (c *Client) FindPosixAccount(uid string) (string, map[string][]string, erro
 	return c.findPosixAccountLocked(uid)
 }
 
+// GetPosixAccount returns the attributes of the posixAccount at dn, or nil
+// when there is none.
+func (c *Client) GetPosixAccount(dn string) (map[string][]string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	conn, err := c.ensureConn()
+	if err != nil {
+		return nil, err
+	}
+	req := ldap.NewSearchRequest(
+		dn,
+		ldap.ScopeBaseObject, ldap.NeverDerefAliases,
+		1, c.searchTimeoutSeconds(), false,
+		"(objectClass=posixAccount)",
+		[]string{"uid", "uidNumber", "gidNumber"},
+		nil,
+	)
+	result, err := conn.Search(req)
+	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+		return nil, nil
+	}
+	if err != nil {
+		c.closeConn()
+		return nil, fmt.Errorf("read posixAccount %s: %w", dn, err)
+	}
+	if len(result.Entries) == 0 {
+		return nil, nil
+	}
+	attrs := make(map[string][]string, len(result.Entries[0].Attributes))
+	for _, a := range result.Entries[0].Attributes {
+		attrs[a.Name] = a.Values
+	}
+	return attrs, nil
+}
+
 func (c *Client) AddPosixAccount(a PosixAccount) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
