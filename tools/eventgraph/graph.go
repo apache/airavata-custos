@@ -112,7 +112,7 @@ func rootLabel(key string) string {
 }
 
 // entryKind names what starts a root: a connector by its type, core by trigger.
-func (st *state) entryKind(r rootT) string {
+func (st *state) entryKind(r walkRoot) string {
 	switch {
 	case r.layer != "base":
 		return st.connName(r.layer)

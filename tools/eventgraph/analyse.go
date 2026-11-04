@@ -62,7 +62,8 @@ type origin struct {
 	pubPos string
 }
 
-type rootT struct {
+// walkRoot is a function the analysis walks from: an event handler, HTTP route, goroutine or loop.
+type walkRoot struct {
 	fn    *ssa.Function
 	kind  string
 	layer string // base or the connector dir
@@ -103,7 +104,7 @@ type state struct {
 	origins    []origin
 	originsBy  map[*ssa.Function][]origin
 	subs       []Subscription
-	roots      []rootT
+	roots      []walkRoot
 	reach      map[*ssa.Function]map[*ssa.Function]pathEl
 	emits      []Emit
 	routeOf    map[*ssa.Function]string
@@ -322,7 +323,7 @@ func (st *state) findRoots() {
 			return
 		}
 		seen[f] = true
-		r := rootT{fn: f, kind: kind, layer: layerOf(f)}
+		r := walkRoot{fn: f, kind: kind, layer: layerOf(f)}
 		r.key = fname(f)
 		if rt, ok := st.routeOf[f]; ok {
 			r.key = "route " + rt
