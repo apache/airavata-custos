@@ -17,22 +17,15 @@
     under the License.
 -->
 
-# OIDC Login PAM Module HOWTO
+# CILogon SSH PAM module HOWTO
 
 This is a HOWTO document describing how to use the OIDC device flow authenticator PAM module as refactored and augmented
-by the [IRIS](www.iris.ac.uk) team.  This work was funded by [STFC](https://www.ukri.org/councils/stfc/), a part of
+by the [IRIS](https://www.iris.ac.uk/) team.  This work was funded by [STFC](https://www.ukri.org/councils/stfc/), a part of
 [UK Research and Innovation (UKRI)](https://www.ukri.org/).
 
-## A Tale of Two (or Three) User Ids
+The [README](README.md) covers the flow, usernames and configuration.
 
-Users who authenticate with this module have two or three user ids.
-
- * A *remote* user id, picked from the userinfo record published by the IAM.
- * A *local* user id, requested by the user on the ssh command line (or similar login tool)
- * A possibly-suffixed local id, which is used to put a common suffix on all local accounts that users are allowed to
-   log into using this module.  See below.
-
-## How to configure sshd to use the module
+## Configure sshd to use the module
 
 Your PAM configuration needs to include this module.  A typical example is:
 
@@ -43,25 +36,24 @@ auth       required     pam_oauth2_device.so
 account    required     pam_nologin.so
 account    required     pam_oauth2_device.so
 ```
-(and it would then continue with session entries).  At the time of writing, the entry for this module in the account
-section does nothing (i.e., it always returns success), but this may change in future releases.
+(and it would then continue with session entries).  The account entry and `pam_sm_setcred` return success, or
+`PAM_IGNORE` for a bypassed user.
 
 This file typically needs to be stored in the directory `/etc/pam.d` with the name of the executable of the ssh daemon
 (e.g. `/etc/pam.d/sshd`).
 
-## How to combine this module with other authentication methods
+## Bypass
 
 The *bypass* feature allows some users to completely skip the authentication (and authorisation) steps of the module.
 Bypass is available in two flavours, one using an LDAP callout and the other using a local username lookup.
+A bypassed user gets `PAM_IGNORE`, and PAM moves to the next module.
 
 In order to use the bypass feature, there must be other authentication/authorisation modules in the PAM configuration.
 If not, login will fail.
 
-### Bypass configuration
-
 Currently there are two methods of bypassing the module.
 
-#### Local Users
+### Local users
 
 The `users` section of the configuration file can have a special entry called `*bypass*` where normally the remote
 username would be specified.  So the section would be
@@ -80,16 +72,16 @@ username would be specified.  So the section would be
 }
 ```
 
-This section of the confiuration would ask the PAM module to skip the OIDC authentication/authorisation for login as
+This section of the configuration would ask the PAM module to skip the OIDC authentication/authorisation for login as
 (local) user root and user fred.  There is no remote username in this case, because the OIDC authentication is skipped,
 and the username suffix (if defined) is thus ignored for this check.
 
-#### LDAP
+### LDAP
 
 If LDAP is configured, the attribute `preauth` can be defined (it is not clear why it is called "preauth" and not
 "bypass" but that is what it does).  It should contain an LDAP query in which the first occurrences of `%s` gets the
-local username substituted into the query.  The OIDC login is bypassed if and only if the LDAP query is successful
-(regardless of what it returns).
+local username substituted into the query.  The OIDC login is bypassed if the query returns one or more entries; an
+empty result or an LDAP error does not bypass it.
 
 ```
 "ldap": {
@@ -122,7 +114,7 @@ Once again,
  * The filter uses the **remote** id to look up a record
  * The preauth (bypass) feature uses the **local** id because there is no remote id prior to the module running
 
-### Configuration other authentication methods
+## Combine the module with other methods
 
 The bypass feature was designed to selectively let the module say "don't know" about a set of users, rather than "yes"
 (authentication successful) or "no" (authentication unsuccessful).
@@ -130,19 +122,33 @@ The bypass feature was designed to selectively let the module say "don't know" a
 However, this presumes there is a fallback option (if there isn't, authentication will fail.)  There are two
 possibilities: have sshd use another method, or configure another method in PAM.
 
-#### Configuring other authentication methods in PAM
+### In PAM
 
+Mark the module `sufficient` and add another method after it. Success ends the `auth` phase. Bypass or failure continues.
+The [node enrollment playbook](../../dev-ops/account-provisioning/README.md) writes this stack on RHEL.
+The listing omits its `password` and `session` lines and the config-path argument, which the module ignores.
 
+```
+#%PAM-1.0
+auth       required     pam_sepermit.so
+auth       sufficient   pam_oauth2_device.so
+auth       substack     password-auth
+auth       include      postlogin
+account    required     pam_sepermit.so
+account    required     pam_nologin.so
+account    include      password-auth
+```
 
-
-#### Configuring other authentication methods in sshd
+### In sshd
 
 Assuming the ssh daemon -- and the client -- come from the OpenSSH implementation, the client tries the following
 methods:
 
- - Host based authentication
- - Public key authentication
- - Challenge/response authentication
-   - This includes the PAM authentication
- - Password authentication
+1. GSSAPI authentication
+2. Host-based authentication
+3. Public key authentication
+4. Challenge-response (keyboard-interactive) authentication, which includes PAM
+5. Password authentication
 
+By default, a user whose SSH key is accepted never reaches the module.
+To require the device login, turn off the earlier methods or set `AuthenticationMethods` in `sshd_config`.

@@ -20,14 +20,12 @@
 # Local Installation
 
 End-to-end guide to running Apache Airavata Custos locally: database, OIDC, API server, and portal. For coding
-conventions and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
+conventions and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md). For configuration keys, see
+[CONFIG.md](CONFIG.md).
 
 ## Prerequisites
 
-- Go **1.27+**
-- Node **22+** and **pnpm** (for the portal)
-- Docker and Docker Compose
-- `git`
+See [CONTRIBUTING.md](CONTRIBUTING.md#prerequisites).
 
 ## Pick an OIDC provider
 
@@ -50,8 +48,8 @@ From `dev-ops/compose/`:
 docker compose up -d db
 ```
 
-This starts PostgreSQL on `localhost:5432` and runs `dbinit/init-db.sh`, which
-creates the `custos` database and the `admin` user (password `admin`).
+This starts PostgreSQL on `localhost:5432` with the `admin` user (password `admin`) and the `custos` database.
+`dev-ops/compose/dbinit/init-db.sh` also creates `custos_test`, `custos_signer` and `keycloak`.
 
 **Bundled Keycloak only:** also bring up Keycloak. On first start it imports
 the realm definition from
@@ -67,7 +65,7 @@ Skip this if you're using an external OIDC provider.
 Stop everything later with `docker compose down`, or `docker compose down -v`
 to also wipe the DB volume.
 
-## 2. Configure backend env
+## 2. Configure the server environment
 
 From the repo root:
 
@@ -88,6 +86,13 @@ Edit `.env`:
     - Set `CUSTOS_BOOTSTRAP_ADMIN_EMAIL=<your email>`. A PENDING super_admin
       user is created on first boot; your first sign-in links your OIDC
       `sub` to it via email fallback.
+- **ACCESS connector (optional):** imports ACCESS-CI projects and allocations through
+  [AMIE](docs/glossary.md#access-ci-and-the-amie-connector).
+    - `.env` points it at a mock AMIE server on `localhost:8180`.
+    - `AMIE_CLUSTER_ID` is the cluster that step 4 seeds, `00000000-0000-0000-0000-000000000001`.
+    - Start the mock as its [README](connectors/ACCESS/AMIE-Processor/mock-server/README.md) shows, with
+      `MOCK_AMIE_RESOURCE=debug`.
+    - Without the mock, the server logs failed polls. To stop them, set `enabled: false` on `amie-processor`.
 
 Source it: `set -a && . ./.env && set +a`.
 
@@ -102,7 +107,7 @@ go run ./cmd/server
 On startup, the server opens the DB, runs the embedded migrations
 (`internal/db/migrations/`), grants super_admin to
 `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` (creating a PENDING user if needed), wires the
-event bus + service layer, and listens on the port from `config/custos.yaml`
+event bus + service layer, loads the enabled connectors, and listens on the port from `config/custos.yaml`
 (`core.api.port`, default `8080`).
 
 Leave it running.
@@ -122,19 +127,7 @@ docker exec -i custos_db psql -U admin -d custos < dev-ops/compose/seeds/init.sq
 
 The seed uses `ON CONFLICT DO NOTHING`, so re-running it is safe.
 
-If you run the ACCESS connector, point it at the seeded cluster and map the
-resource name ACCESS sends to the seeded resources, in `config/custos.yaml`:
-
-```yaml
-connectors:
-  amie-processor:
-    cluster:
-      id: "00000000-0000-0000-0000-000000000001"
-    resource_aliases:
-      my-cluster.site.access-ci.org: [debug, gpu]
-```
-
-## 5. (Bundled Keycloak only) Seed dev users
+## 5. Seed dev users (bundled Keycloak only)
 
 For the bundled Keycloak path there is also a sample identity seed (org,
 users, roles, role assignments) matched to the users in the imported realm:
@@ -171,27 +164,35 @@ pnpm dev
 
 Open <http://localhost:3000> and sign in:
 
-- **Bundled Keycloak:** use one of the seeded users (e.g. `admin@custos.local`
-  / `admin`; see the realm import for the full list).
+- **Bundled Keycloak:** use a seeded user. Each password is the part of the email before `@`.
+
+  | Email | Password |
+  |---|---|
+  | `admin@custos.local` | `admin` |
+  | `operator@custos.local` | `operator` |
+  | `auditor@custos.local` | `auditor` |
+  | `pi@custos.local` | `pi` |
+  | `researcher@custos.local` | `researcher` |
+
 - **External OIDC:** sign in with your provider. On first sign-in your OIDC
   `sub` is linked to the PENDING super_admin user created in step 3, and the
   user is promoted to ACTIVE.
 
-## 8. (Optional) Load sample data
+## 8. Load sample data (optional)
 
 After first sign-in the sidebar renders but every screen is empty. That's the
 correct state on a fresh DB, no allocation or project data has been produced
 yet. To populate it:
 
 - **AMIE baseline scenario** ingests projects, allocations, users, cluster
-  accounts, and memberships. Follow the "Mock-server REST scenarios" section
-  of [`connectors/ACCESS/AMIE-Processor/README.md`](connectors/ACCESS/AMIE-Processor/README.md).
+  accounts, and memberships. Follow
+  [Run against the mock AMIE server](connectors/ACCESS/AMIE-Processor/README.md#run-against-the-mock-amie-server).
 - **Portal-only extras** (resources, rates, usage records, a pending change
   request, a membership override) live in
   [`dev-ops/compose/seeds/dev_portal_data.sql`](dev-ops/compose/seeds/dev_portal_data.sql).
   Apply after AMIE has run so the referenced allocation IDs exist.
 
-## 9. (Optional) Public landing page
+## 9. Replace the landing page (optional)
 
 The portal serves a landing page at `/` to signed-out users; signed-in
 users get the portal home instead. The page lives at

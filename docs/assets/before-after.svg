@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="580" viewBox="0 0 960 580" role="img" aria-labelledby="t d">
+  <title id="t">A new HPC account, without and with Custos</title>
+  <desc id="d">At an example site, seven tasks in five systems lie between an ACCESS allocation and a working login. With Custos, access starts either from an ACCESS AMIE packet, which an admin approves, or from an admin creating the account in the portal, which needs no approval. Custos notifies the user, the user signs in and accepts the terms of use, and Custos then creates the Unix account, adds it to the allocation's Unix group and adds the user to the allocation's scheduler account.</desc>
+  <style>
+    .bg{fill:#ffffff}.panel{fill:#f6f8fa;stroke:#d1d9e0}.card{fill:#ffffff;stroke:#d1d9e0}
+    .h{font:600 20px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .s{font:400 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}
+    .b{font:400 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .bb{font:600 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .m{font:400 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#1f2328}
+    .n{font:600 12px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}
+    .chip{fill:#eff2f5;stroke:#d1d9e0}.chipt{font:500 11.5px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}
+    .who{fill:#fff1e5;stroke:#f0883e}.whot{font:600 11.5px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#bc4c00}
+    .auto{fill:#dafbe1;stroke:#4ac26b}.autot{font:600 11.5px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1a7f37}
+    .big{font:700 30px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#bc4c00}
+    .line{stroke:#d1d9e0}
+    .skip{fill:none;stroke:#d1d9e0;stroke-dasharray:4 3}.skipt{font:400 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}
+    @media (prefers-color-scheme: dark){
+      .bg{fill:#0d1117}.panel{fill:#151b23;stroke:#3d444d}.card{fill:#0d1117;stroke:#3d444d}
+      .h,.b,.bb,.m{fill:#f0f6fc}.s,.n,.chipt{fill:#9198a1}
+      .chip{fill:#212830;stroke:#3d444d}
+      .who{fill:#2b1d12;stroke:#db6d28}.whot{fill:#f0883e}
+      .auto{fill:#12261e;stroke:#2ea043}.autot{fill:#3fb950}
+      .big{fill:#f0883e}.line{stroke:#3d444d}
+      .skip{stroke:#3d444d}.skipt{fill:#9198a1}
+    }
+    @keyframes a1{0%{opacity:.15}3%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a1{animation:a1 12s ease-out infinite}
+    @keyframes a2{0%,16%{opacity:.15}19%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a2{animation:a2 12s ease-out infinite}
+    @keyframes a3{0%,32%{opacity:.15}35%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a3{animation:a3 12s ease-out infinite}
+    @keyframes a4{0%,48%{opacity:.15}51%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a4{animation:a4 12s ease-out infinite}
+    @keyframes a5{0%,64%{opacity:.15}67%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a5{animation:a5 12s ease-out infinite}
+    @media (prefers-reduced-motion: reduce){.a1,.a2,.a3,.a4,.a5{animation:none}}
+  </style>
+  <rect class="bg" width="960" height="580" rx="12"/>
+
+  <!-- Without -->
+  <rect class="panel" x="16" y="16" width="456" height="548" rx="10"/>
+  <text class="h" x="36" y="50">Without Custos</text>
+  <text class="s" x="36" y="74">An example site: seven tasks in five systems per account.</text>
+  <g transform="translate(36,96)">
+    <g><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">1</text><text class="b" x="30" y="26">Read the allocation from ACCESS and reply</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">ACCESS</text></g>
+    <g transform="translate(0,48)"><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">2</text><text class="b" x="30" y="26">Choose a unique Unix username</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">Accounts</text></g>
+    <g transform="translate(0,96)"><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">3</text><text class="b" x="30" y="26">Register the person with a uid and gid</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">Accounts</text></g>
+    <g transform="translate(0,144)"><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">4</text><text class="b" x="30" y="26">Add the scheduler account and limits</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">Scheduler</text></g>
+    <g transform="translate(0,192)"><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">5</text><text class="b" x="30" y="26">Create folders and quotas</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">Storage</text></g>
+    <g transform="translate(0,240)"><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">6</text><text class="b" x="30" y="26">Add the user to the project group</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">Accounts</text></g>
+    <g transform="translate(0,288)"><rect class="card" width="416" height="42" rx="7"/><text class="n" x="12" y="26">7</text><text class="b" x="30" y="26">Email the user how to log in</text><rect class="chip" x="326" y="11" width="80" height="20" rx="10"/><text class="chipt" x="366" y="25" text-anchor="middle">Email</text></g>
+  </g>
+  <text class="s" x="36" y="540">When the allocation ends, each step is reversed.</text>
+
+  <!-- With -->
+  <rect class="panel" x="488" y="16" width="456" height="548" rx="10"/>
+  <text class="h" x="508" y="50">With Custos</text>
+  <text class="s" x="508" y="74">Access starts from ACCESS or from an admin.</text>
+  <g transform="translate(508,96)">
+    <g class="a1"><rect class="card" width="204" height="74" rx="7"/><rect class="chip" x="12" y="10" width="72" height="20" rx="10"/><text class="chipt" x="48" y="24" text-anchor="middle">External</text><text class="b" x="12" y="50">ACCESS sends an</text><text class="b" x="12" y="66">AMIE packet.</text></g>
+    <g class="a1" transform="translate(212,0)"><rect class="card" width="204" height="74" rx="7"/><rect class="chip" x="12" y="10" width="72" height="20" rx="10"/><text class="chipt" x="48" y="24" text-anchor="middle">Internal</text><text class="b" x="12" y="50">Admin creates the</text><text class="b" x="12" y="66">account in the portal.</text></g>
+    <g class="a2" transform="translate(0,82)"><rect class="card" width="204" height="74" rx="7"/><rect class="who" x="12" y="10" width="64" height="20" rx="10"/><text class="whot" x="44" y="24" text-anchor="middle">Admin</text><text class="b" x="12" y="50">Approves the</text><text class="b" x="12" y="66">request.</text></g>
+    <g class="a2" transform="translate(212,82)"><rect class="skip" x="0.5" y="0.5" width="203" height="73" rx="7"/><text class="skipt" x="12" y="34">Approval skipped:</text><text class="skipt" x="12" y="52">the admin created it.</text></g>
+    <g class="a3" transform="translate(0,164)"><rect class="card" width="416" height="58" rx="7"/><rect class="auto" x="12" y="10" width="72" height="20" rx="10"/><text class="autot" x="48" y="24" text-anchor="middle">Custos</text><text class="b" x="12" y="48">Notifies the user that access is approved.</text></g>
+    <g class="a4" transform="translate(0,230)"><rect class="card" width="416" height="58" rx="7"/><rect class="who" x="12" y="10" width="84" height="20" rx="10"/><text class="whot" x="54" y="24" text-anchor="middle">Researcher</text><text class="b" x="12" y="48">Signs in and accepts the terms of use.</text></g>
+    <g class="a5" transform="translate(0,296)"><rect class="card" width="416" height="122" rx="7"/><rect class="auto" x="12" y="10" width="72" height="20" rx="10"/><text class="autot" x="48" y="24" text-anchor="middle">Custos</text><text class="b" x="12" y="50">Creates the Unix account.</text><text class="b" x="12" y="72">Adds it to the allocation's Unix group.</text><text class="b" x="12" y="94">Adds the user to the allocation's scheduler account.</text><text class="m" x="12" y="114">ssh custos-jdoe@login.cluster.example.edu</text></g>
+  </g>
+  <text class="s" x="508" y="540">Every step after sign-in is automated.</text>
+
+</svg>

@@ -25,7 +25,7 @@ through what a connector looks like, how the runtime loads it, and what to
 write end-to-end.
 
 If you only need a glossary or the runtime model, jump to the
-[domain glossary](#domain-glossary) or the
+[domain glossary](../glossary.md) or the
 [architecture doc](../architecture.md).
 
 ---
@@ -39,12 +39,13 @@ process and no remote call between the connector and core.
 
 The common shapes are:
 
-| Shape                               | Example                                                                           | What it does                                                                                                                              |
-|-------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| HTTP-only                           | `connectors/TempAccount`                                                          | Mounts a few `/connectors/<name>/*` endpoints that call into `pkg/service`.                                                               |
-| Event-subscriber                    | `connectors/COmanage/Identity-Provisioner`, `connectors/SLURM/Association-Mapper` | Subscribes to core events on `pkg/events.Bus`. Reacts by talking to an external system. No HTTP routes, no goroutine of its own.          |
-| Background worker                   | `connectors/SLURM/Usage-Monitor`                                                  | Runs a long-lived goroutine that polls an external system on an interval and publishes domain events. No HTTP routes; does not subscribe. |
-| Mixed (HTTP + workers + own schema) | `connectors/ACCESS/AMIE-Processor`                                                | All of the above plus its own embedded migrations and an external API client.                                                             |
+| Shape | Examples | What it does |
+|---|---|---|
+| HTTP-only | `connectors/TempAccount`, `connectors/Analytics` | Mounts `/connectors/<name>/*` routes that call into `pkg/service`. |
+| Event subscriber | `connectors/COmanage/Identity-Provisioner`, `connectors/Notification/Email` | Subscribes to core events on `pkg/events.Bus` and reacts by talking to an external system. No routes, no goroutine. |
+| Subscriber with reconciler | `connectors/SLURM/Association-Mapper` | Subscribes to events and also runs a periodic sweep that repairs what events missed. |
+| Background worker | `connectors/SLURM/Usage-Monitor` | Runs a goroutine that polls an external system on an interval and records the results through the core service layer. No routes, no subscriptions. |
+| Mixed | `connectors/ACCESS/AMIE-Processor`, `connectors/Storage/VAST-Provisioner` | Routes, workers, its own embedded migrations and an external API client. |
 
 Pick the smallest shape that fits.
 
@@ -62,13 +63,13 @@ signature (see `internal/connectors/loader.go`).
 
 ```go
 func(
-ctx context.Context,
-database *sqlx.DB,
-eventBus *events.Bus,
-coreService *service.Service,
-wg *sync.WaitGroup,
-router *identity.Router,
-connectorConfig *config.ConnectorConfig,
+	ctx context.Context,
+	database *sqlx.DB,
+	eventBus *events.Bus,
+	coreService *service.Service,
+	wg *sync.WaitGroup,
+	router *identity.Router,
+	connectorConfig *config.ConnectorConfig,
 ) error
 ```
 
@@ -92,7 +93,7 @@ prefer logging and returning `nil` for "config missing, skip me silently"
 
 ---
 
-## Step-by-step: adding a new connector
+## Step by step: adding a connector
 
 For a connector named `lustre-sync`.
 
@@ -171,9 +172,9 @@ Import:
 Add an entry to the `connectorLoaders` map, keyed on the constant:
 
 ```go
-connectorLoaders := map[string]func (...){
-// ...existing entries...
-lustresync.Type: lustresync.LoadConnector,
+connectorLoaders := map[string]func(...){
+	// ...existing entries...
+	lustresync.Type: lustresync.LoadConnector,
 }
 ```
 
@@ -201,25 +202,22 @@ A disabled connector is skipped; an unknown `type:` is logged and skipped.
 
 ### 5. Read the config in your loader
 
-Existing connectors all read YAML the same way: call
-`connectorConfig.GetNestedConfig("group")`, check the error, then type-assert
-each leaf field. Example:
+Most connectors read a nested group with `GetNestedConfig` and type-assert each leaf:
 
 ```go
 if api, err := connectorConfig.GetNestedConfig("api"); err == nil {
-if url, ok := api["url"].(string); ok {
-cfg.URL = url
-}
-if token, ok := api["token"].(string); ok {
-cfg.Token = token
-}
+	if url, ok := api["url"].(string); ok {
+		cfg.URL = url
+	}
+	if token, ok := api["token"].(string); ok {
+		cfg.Token = token
+	}
 }
 ```
 
-There are also flat `GetStringField`, `GetIntField`, and `GetDurationField`
-helpers on `*config.ConnectorConfig`, but they only see top-level fields and
-no shipping connector currently uses them. Stick with `GetNestedConfig` plus
-type assertions.
+`GetStringField`, `GetIntField` and `GetDurationField` read top-level fields.
+`connectors/Notification/Email/pkg/email/loader.go` uses the first two. An unset `${VAR}` reads as the empty string
+([substitution](../../CONFIG.md#environment-variable-substitution)).
 
 Two patterns, pick one:
 
@@ -240,9 +238,9 @@ The router has three modes. Pick the right one per route.
 
 ```go
 // Public: no JWT required.
-router.Public("GET /healthz", h.health)
+router.Public("GET /connectors/lustre-sync/healthz", h.health)
 
-// RequireAuth: a verified caller must be on the context. No specific privilege.
+// RequireAuth: a verified caller who has onboarded and accepted the user agreement. No privilege.
 router.RequireAuth("GET /connectors/lustre-sync/me", h.getSelf)
 
 // RequirePrivilege: verified caller AND the named privilege key. 403 if absent.
@@ -250,19 +248,21 @@ router.RequirePrivilege("POST /connectors/lustre-sync/sync", SyncWrite, h.runSyn
 ```
 
 API surface in `pkg/identity/middleware.go`. Mount everything under
-`/connectors/<your-name>/...` to keep namespaces clean.
+`/connectors/<your-name>/...` to keep namespaces clean. `RequireScoped` and
+`RequireAuthWithoutUserConsent` are described in the
+[architecture doc](../architecture.md#identity-and-authentication).
 
 Privilege keys use the `<owner>:<scope>:<action>` shape and live in a runtime registry. Declare your connector's keys in
 a `privileges.go` inside your connector's server package and register them at startup:
 
 ```go
 const (
-SyncRead  models.PrivilegeKey = "lustre-sync:sync:read"
-SyncWrite models.PrivilegeKey = "lustre-sync:sync:write"
+	SyncRead  models.PrivilegeKey = "lustre-sync:sync:read"
+	SyncWrite models.PrivilegeKey = "lustre-sync:sync:write"
 )
 
 func init() {
-models.Register(SyncRead, SyncWrite)
+	models.Register(SyncRead, SyncWrite)
 }
 ```
 
@@ -302,21 +302,21 @@ spawn workers:
 
 ```go
 import (
-lustredb "github.com/apache/airavata-custos/connectors/Lustre/Sync/db"
-"github.com/apache/airavata-custos/internal/db"
+	lustredb "github.com/apache/airavata-custos/connectors/Lustre/Sync/db"
+	"github.com/apache/airavata-custos/internal/db"
 )
 
 func LoadConnector(ctx context.Context, database *sqlx.DB, ...) error {
-if err := db.MigrateConnectorFS(database, lustredb.MigrationFS(), "migrations", "lustre"); err != nil {
-return err
-}
-// ...rest of loader...
+	if err := db.MigrateConnectorFS(database, lustredb.MigrationFS(), "migrations", "lustre"); err != nil {
+		return err
+	}
+	// ...rest of loader...
 }
 ```
 
 The fourth argument (`"lustre"`) is the connector slug. It becomes the suffix
 of the per-connector version-tracking table: `schema_migrations_lustre`. Pick
-a short, stable identifier; you cannot change it later without orphaning
+a short, stable identifier matching `^[a-z][a-z0-9_]{0,30}$`; you cannot change it later without orphaning
 your migration history.
 
 Per-connector tracking means connectors version their schema independently of
@@ -330,23 +330,14 @@ If you have a poller, processor, or any other long-running goroutine:
 
 ```go
 wg.Add(1)
-go func () {
-defer wg.Done()
-poller.Run(ctx) // honour ctx.Done() inside Run
+go func() {
+	defer wg.Done()
+	poller.Run(ctx) // honour ctx.Done() inside Run
 }()
 ```
 
-Shutdown is a two-phase drain (see `cmd/server/main.go`):
-
-1. The HTTP server stops accepting new connections and has 15 seconds to
-   finish in-flight requests. Your handlers should be done by then.
-2. Then the server cancels `ctx` and waits up to 30 seconds for the
-   WaitGroup (i.e. your goroutines) to return.
-
-So a long-running worker has up to 30 seconds after `ctx` cancels to exit.
-If your worker can take longer to wind down safely, restructure it so the
-critical section completes inside that window, or persist enough state that
-the next boot can resume.
+A worker has 30 seconds after `ctx` is cancelled to exit (see [architecture](../architecture.md#the-loadconnector-contract)).
+Work that may take longer must persist state so the next start resumes.
 
 ### 9. Event bus (if you publish or subscribe)
 
@@ -357,32 +348,33 @@ stores the event with one delivery row per subscriber, and a worker in the
 server calls each subscriber's handler until the delivery succeeds or gives up. 
 Nothing is lost when the server restarts or a handler fails.
 
-Event types are typed constants, one file per entity, in `pkg/events/`:
-`user_subscribe.go` (`UserCreateEvent`, `UserUpdateEvent`, `UserDeleteEvent`),
-`compute_cluster_user_subscribe.go`, and so on. Each file has typed
-`SubscribeXCreated`, `SubscribeXUpdated` and `SubscribeXDeleted` helpers that
-decode the payload for you.
+Event types are typed constants in `pkg/events/types.go`, such as `UserCreateEvent` (`user::create`). Each entity
+has a file of typed subscribe helpers, for example `user_subscribe.go` and `compute_cluster_user_subscribe.go`.
+The helpers, such as `SubscribeUserCreated` and `SubscribeComputeClusterUserApproved`, decode the payload for you.
 
 **Subscribing.** Register inside `LoadConnector`, under your connector's`Type` name. 
 The bus saves the subscription under that name, so it has to be the same on every start.
 
 ```go
 type Subscriber struct {
-bus  *events.Bus
-core *service.Service
+	bus  *events.Bus
+	core *service.Service
 }
 
-func (s *Subscriber) RegisterSubscribers() {
-s.bus.SubscribeComputeClusterUserApproved(comanage.Type, s.handleApproved)
+func (s *Subscriber) RegisterSubscribers(subscriber string) {
+	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleApproved)
 }
 
 func (s *Subscriber) handleApproved(ctx context.Context, cu models.ComputeClusterUser) error {
-// ...react...
-return nil
+	// ...react...
+	return nil
 }
+
+// In LoadConnector:
+subscriber.RegisterSubscribers(Type)
 ```
 
-The COmanage `Subscriber` is the smallest working example.
+The COmanage `Subscriber` in `internal/subscribers/cluster_user.go` is a small working example.
 
 Rules for a handler:
 
@@ -422,7 +414,7 @@ inside the transaction that makes the change:
 
 ```go
 if err := eventBus.Publish(ctx, tx, events.SomeEvent, payload); err != nil {
-return err
+	return err
 }
 ```
 
@@ -430,28 +422,32 @@ Nothing is stored when the event has no subscriber. `PublishSync` calls the
 handlers in the caller's goroutine and stores nothing. Use it only when the
 caller has to wait for the result (rare).
 
-### 10. Audit rows (and `audit_extras` if you have your own references)
+### 10. Mark core when the work is done
 
-Every meaningful action should leave a row in the core `audit_events` table.
-Two paths to write one.
+A connector that creates accounts on the cluster must call
+`coreService.MarkComputeClusterUserProvisioned` once each account exists. For an allocation group it calls
+`MarkComputeAllocationGroupProvisioned`. The SLURM Association-Mapper, the VAST-Provisioner and
+the `account-ready` email act only on marked accounts. In this repository, only the COmanage connector sets the mark.
 
-**You called a `coreService` method that audits itself.** Nothing more to do.
-`coreService.CreateUser`, `CreateComputeAllocationMembership`, and similar
-service methods write an audit row inside their transaction and stamp it
-with `trace_id` / `span_id` from your request context. Just pass `r.Context()`
-through unmodified.
+### 11. Audit rows (and `audit_extras` if you have your own references)
 
-**You did something audit-worthy that wasn't a core service mutation.** Write
-the row yourself with `coreService.CreateAuditEvent`:
+Each action an operator may need to trace leaves a row in `audit_events`. Three cases:
+
+**A `coreService` method that audits itself**, such as `ApproveComputeClusterUser`. Nothing more to do. Pass
+`r.Context()` through unchanged so the row joins your trace.
+
+**A plain create, update or delete**, such as `CreateUser`. It writes no audit row. Write one yourself if the action
+must appear without a subscriber.
+
+**Anything else worth auditing.** Use `coreService.CreateAuditEvent`:
 
 ```go
 _, _ = svc.CreateAuditEvent(ctx, &models.AuditEvent{
-EventType:  "LustreQuotaSyncStarted",
-EntityType: "ComputeAllocation",
-EntityID:   alloc.ID,
-Source:     "lustre",
+	EventType:  "LustreQuotaSyncStarted",
+	EntityType: "ComputeAllocation",
+	EntityID:   alloc.ID,
+	Source:     "lustre",
 })
-
 ```
 
 `trace_id`, `span_id`, and `parent_span_id` are read from `ctx` and stamped
@@ -478,7 +474,7 @@ Write the extras row in the **same transaction** as the audit row so the two
 stay consistent. AMIE composes a connector-side audit service around the
 core audit store plus its own extras store. See
 `connectors/ACCESS/AMIE-Processor/store/audit_store.go` for the extras-store
-shape and `connectors/ACCESS/AMIE-Processor/service/audit.go` for the
+shape and `connectors/ACCESS/AMIE-Processor/service/audit_service.go` for the
 composition.
 
 For the full convention (what columns the core `audit_events` table carries,
@@ -487,16 +483,13 @@ why extras tables exist, how the unified trace view joins them), see the
 
 ---
 
-## OpenAPI / Swagger generation
-
-**Required for any connector that registers HTTP routes.** CI runs
-`make verify-no-drift`; an out-of-date spec blocks merges.
+## OpenAPI generation
 
 Custos generates per-connector OpenAPI specs from swag annotations in Go
 source. You annotate your handlers, declare a `//go:generate` directive, and
-`make gen-api` writes the spec.
+`make gen-api` writes the spec. AMIE and Analytics ship specs.
 
-### Annotate your loader and handlers
+### Annotate the loader and handlers
 
 At the top of your loader package (above `LoadConnector`), set the API
 metadata:
@@ -549,7 +542,8 @@ make gen-api          # runs `go generate ./...` over the whole repo
 make verify-no-drift  # fails if the committed spec is stale
 ```
 
-Commit the generated `.openapi.yaml` alongside your code change.
+Commit the generated `.openapi.yaml` alongside your code change. CI does not run `make verify-no-drift`, so run it
+yourself before you push.
 
 ---
 
@@ -569,12 +563,12 @@ example:
 
 ```go
 import (
-"github.com/apache/airavata-custos/pkg/identity"
-"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 ctx := identity.WithCaller(req.Context(), &identity.Caller{UserID: "u-1"})
-ctx = identity.WithPrivilegesForTest(ctx, []models.PrivilegeKey{models.PrivilegeHPCWrite})
+ctx = identity.WithPrivilegesForTest(ctx, []models.PrivilegeKey{SyncRead, SyncWrite})
 req = req.WithContext(ctx)
 srv.ServeHTTP(rr, req)
 ```
@@ -624,28 +618,36 @@ including the AMIE-specific isolated stack on `:5433`.
   ```
 - **Returning nil from an event handler that did not finish.** The delivery is marked succeeded and never retried.
   Return the error, or wrap `events.ErrPermanent` when a retry cannot help.
-- **Mounting routes outside `/connectors/<name>/...`.** Other connectors collide; nothing tells you until production.
+- **Mounting routes outside `/connectors/<name>/...`.** A conflicting pattern panics at startup; a more specific one
+  silently takes another connector's requests.
 - **Bypassing `coreService` for domain mutations.** Use `coreService.CreateUser`, `CreateComputeAllocationMembership`,
   etc., so transactions and audit rows stay consistent. Composing connector-side stores around `internal/store` types is
   fine when you are wrapping core (e.g. AMIE builds an audit service over `corestore.NewAuditEventStore`), but never
   call a core store to mutate users, projects, or allocations directly — go through `coreService`.
-- **Forgetting to regenerate the OpenAPI spec.** `make verify-no-drift` will fail CI.
-- **Skipping license headers** on new `.go` and `.sql` files. Same CI failure mode.
+- **Forgetting to regenerate the OpenAPI spec.** The committed spec drifts from the code; run `make gen-api`, then
+  `make verify-no-drift`.
+- **Unformatted Go code.** CI fails its `gofmt -l` check.
+- **Skipping license headers** on new `.go` and `.sql` files. The file does not meet ASF policy.
 
-## Domain glossary
-
-Domain terms (HPC, AMIE, COmanage, allocation, PI, DN, site code, etc.) live
-in their own document so connector READMEs and external readers can reference
-them: see [`docs/glossary.md`](../glossary.md).
+---|---|---|
+| Returning an error from `LoadConnector` when config is missing | The **whole server** fails to start, core and all other connectors included | Log a warning and `return nil`; the connector does nothing and the rest boots |
+| Starting a goroutine without `wg` | Shutdown does not wait for it; transactions, replies and audit rows are cut off | `wg.Add(1)` before `go`, `defer wg.Done()` inside, honour `ctx.Done()` |
+| Returning `nil` from an event handler that did not finish | The delivery is marked succeeded and never retried | Return the error, or wrap `events.ErrPermanent` when a retry cannot help |
+| Mounting routes outside `/connectors/<name>/...` | A conflicting pattern panics at startup. A more specific one silently takes another connector's requests | Keep all routes under your prefix |
+| Mutating domain rows without `coreService` | Transactions, events and audit rows drift apart | Call `coreService` methods. Never mutate users, projects or allocations through a store. Wrapping a core store to extend core is fine, as AMIE's audit service does |
+| Not regenerating the OpenAPI spec | The committed spec drifts from the code | `make gen-api`, then `make verify-no-drift` |
+| Unformatted Go code | CI fails its `gofmt -l` check | Run `gofmt -w` |
+| Missing license header on a new `.go` or `.sql` file | The file does not meet ASF policy | Copy the header from a neighbouring file |
 
 ---
 
 ## Where to look next
 
-- Smallest working sample: `connectors/TempAccount/` (~225 lines total).
+- Smallest working sample: `connectors/TempAccount/` (~270 lines total).
 - Event-subscriber sample: `connectors/COmanage/Identity-Provisioner/`.
 - Full-shape sample: `connectors/ACCESS/AMIE-Processor/` (HTTP + workers + DB + external client).
 - Router API: `pkg/identity/middleware.go`.
 - Central loader and the registration map: `internal/connectors/loader.go`.
 - Privilege catalog: `pkg/models/privilege.go`.
 - Architecture and audit conventions: [`docs/architecture.md`](../architecture.md).
+- Domain terms: [`docs/glossary.md`](../glossary.md).

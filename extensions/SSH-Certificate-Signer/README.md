@@ -19,11 +19,32 @@
 
 # Custos Signer
 
-A multi-tenant SSH certificate authority for science gateways and research computing. Custos Signer issues short-lived, identity-bound OpenSSH user certificates so researchers can access HPC resources without managing long-lived SSH keys.
+Custos Signer is an SSH certificate authority for science gateways.
+It issues short-lived OpenSSH user certificates bound to a user's OIDC identity.
+This README is for site operators and for developers of gateways that call it.
 
-It validates user identity through institutional OIDC providers (CILogon, Keycloak, etc.), enforces access policies (TTL limits, allowed key types, principal validation), signs certificates with per-tenant CAs stored in HashiCorp Vault, and records every transaction for audit. Certificates expire automatically -- no key distribution, no manual revocation, no cleanup.
+The signer is a separate Go module (`github.com/apache/airavata-custos/signer`) and its own service.
 
-Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a security middleware platform for science gateways.
+## How it works
+
+A gateway calls `POST /api/v1/sign` with four inputs: its client credentials, the user's OIDC access token, the user's
+SSH public key and the principal. The principal is the Unix username the certificate is valid for.
+
+1. The signer authenticates the client against its row in the client table, `client_ssh_configs`. The secret is stored as a bcrypt hash.
+2. It validates the user's token with the issuer's JWKS. The issuer must be in `allowed_issuers`, unless that list is
+   empty.
+3. It enforces the client's policy: maximum TTL, allowed key types and source address. It grants the standard
+   extensions, minus those denied.
+4. It validates the principal per `principal_source`, below.
+5. It signs with the client's CA key from Vault and logs the issuance in `certificate_issuance_logs`.
+
+| `principal_source` | Principal check |
+|---|---|
+| `noop` | Accepts the principal |
+| `ldap` | Finds the LDAP entry for the OIDC subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
+| `comanage` | Not implemented. Rejects every request with `COMANAGE_NOT_IMPLEMENTED`. |
+
+Each tenant and client pair has its own Ed25519 CA, generated in Vault by the first client route that reads it.
 
 ## Prerequisites
 
@@ -31,70 +52,18 @@ Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a securit
 - PostgreSQL 17+
 - Vault / OpenBao with KV v2 secrets engine enabled
 
----
+## Setup
 
-## Quick Start
-
-```bash
-cd signer
-go build -o custos-signer .
-cp config.example.yaml config.yaml          # edit with your settings
-./custos-signer migrate --config config.yaml # apply database schema
-./custos-signer serve --config config.yaml   # start on :8084
-```
-
-For development (auto-applies migrations on startup):
-
-```bash
-./custos-signer serve --config config.yaml --auto-migrate
-```
-
----
-
-## Configuration
-
-Copy and edit the example configuration:
-
-```bash
-cp config.example.yaml config.yaml
-```
-
-The service loads `config.yaml` by default. Override with `--config /path/to/config.yaml`.
-
-### Environment Variable Overrides
-
-Environment variables take precedence over YAML values.
-
-| Env Var | Config Path | Description |
-|---------|------------|-------------|
-| `DB_HOST` | `database.host` | Database hostname |
-| `DB_PORT` | `database.port` | Database port |
-| `DB_NAME` | `database.name` | Database name |
-| `DB_USERNAME` | `database.username` | Database user |
-| `DB_PASSWORD` | `database.password` | Database password |
-| `VAULT_ADDRESS` | `vault.address` | Vault API address |
-| `VAULT_TOKEN` | `vault.token` | Vault authentication token |
-| `DEV_MODE` | `dev_mode.enabled` | Enable dev mode (disables OIDC validation) |
-| `DEV_DEFAULT_EMAIL` | `dev_mode.default_email` | Default email in dev mode |
-| `ALLOWED_ISSUERS` | `signer.auth.allowed_issuers` | Comma-separated list of allowed OIDC issuers |
-| `CORE_API_BASE_URL` | `signer.core_api_base_url` | Custos Core URL used to resolve administrator privileges |
-| `LOG_LEVEL` | `logging.level` | Log level: debug, info, warn, error |
-
----
-
-## Database Setup
-
-### Create the database
+### Database
 
 ```sql
 CREATE DATABASE custos_signer;
 ```
 
-If using the project's Docker Compose, the `custos_signer` database is created automatically by `compose/dbinit/init-db.sh`.
+If using the project's Docker Compose, the `custos_signer` database is created automatically by `dev-ops/compose/dbinit/init-db.sh`.
 
-### Migrations
-
-Migrations are managed separately from the server. Apply them explicitly:
+Migrations are managed separately from the server. Migrations are read from `migrations/`, so run the signer from
+this directory. Apply them explicitly:
 
 ```bash
 ./custos-signer migrate --config config.yaml
@@ -113,7 +82,7 @@ The initial migration creates three tables:
 - `certificate_issuance_logs` — audit log for certificate issuances
 - `revocation_events` — audit log for certificate revocations
 
-### Insert a client configuration
+Register a client:
 
 ```sql
 INSERT INTO client_ssh_configs
@@ -130,25 +99,56 @@ Generate the bcrypt hash with:
 htpasswd -nbBC 10 "" "your-secret" | cut -d: -f2
 ```
 
----
+The table also holds `source_address_restriction`, `denied_extensions` and `principal_source` (default `noop`).
 
-## Vault Setup
-
-### Enable KV v2 secrets engine
+### Vault
 
 ```bash
 vault secrets enable -path=ssh-ca kv-v2
 ```
 
-The service auto-generates Ed25519 CA key pairs on first signing request for each tenant-client pair. No manual key setup is required.
+The path must match `vault.mount_path`. The signer creates CA keys on demand. No manual key setup is required.
 
 Ensure the configured token has read/write access to `ssh-ca/data/*`.
 
----
+For `principal_source = 'ldap'`, store each client's LDAP settings at `ssh-ca/<tenant_id>/<client_id>/validation`:
 
-## Running the Service
+| Key | Value |
+|---|---|
+| `type` | `ldap` |
+| `ldap_url`, `bind_dn`, `bind_password`, `base_dn` | LDAP connection and bind settings |
+| `search_filter` | Search filter. `%s` becomes the OIDC subject. |
+| `username_attribute` | Optional. Default `uid`. |
 
-### CLI Usage
+### Configuration
+
+```bash
+cd extensions/SSH-Certificate-Signer
+go build -o custos-signer .
+cp config.example.yaml config.yaml          # edit with your settings
+```
+
+The service loads `config.yaml` by default. Override with `--config /path/to/config.yaml`.
+In [`config.example.yaml`](config.example.yaml), `vault.token` and `allowed_issuers` are samples. The built-in defaults are empty.
+
+Environment variables take precedence over YAML values.
+
+| Env Var | Config Path | Description |
+|---------|------------|-------------|
+| `DB_HOST` | `database.host` | Database hostname |
+| `DB_PORT` | `database.port` | Database port |
+| `DB_NAME` | `database.name` | Database name |
+| `DB_USERNAME` | `database.username` | Database user |
+| `DB_PASSWORD` | `database.password` | Database password |
+| `VAULT_ADDRESS` | `vault.address` | Vault API address |
+| `VAULT_TOKEN` | `vault.token` | Vault authentication token |
+| `DEV_MODE` | `dev_mode.enabled` | Enable dev mode (disables OIDC validation) |
+| `DEV_DEFAULT_EMAIL` | `dev_mode.default_email` | Default email in dev mode |
+| `ALLOWED_ISSUERS` | `signer.auth.allowed_issuers` | Comma-separated list of allowed OIDC issuers |
+| `CORE_API_BASE_URL` | `signer.core_api_base_url` | Custos Core URL used to resolve administrator privileges |
+| `LOG_LEVEL` | `logging.level` | Log level: debug, info, warn, error |
+
+## Running the service
 
 ```
 custos-signer <command> [options]
@@ -164,13 +164,13 @@ Options:
 
 Running without a subcommand defaults to `serve`.
 
-### Development
+Development:
 
 ```bash
 ./custos-signer serve --config config.yaml --auto-migrate
 ```
 
-### Production
+Production:
 
 ```bash
 ./custos-signer migrate --config config.yaml   # apply pending migrations
@@ -179,81 +179,50 @@ Running without a subcommand defaults to `serve`.
 
 The service listens on the port specified in configuration (default: 8084).
 
-### Docker
-
-```bash
-docker build -t custos-signer .
-
-# Apply migrations first
-docker run --rm -v $(pwd)/config.yaml:/config/config.yaml \
-  custos-signer migrate --config /config/config.yaml
-
-# Then start the server
-docker run -p 8084:8084 \
-  -v $(pwd)/config.yaml:/config/config.yaml \
-  -e DB_PASSWORD=secret \
-  -e VAULT_TOKEN=hvs.xxx \
-  custos-signer
-```
-
-The Docker image uses a `scratch` base and runs as non-root user (UID 65534).
-
-### Shutdown Behavior
-
 The service handles SIGTERM and SIGINT for graceful shutdown:
 1. Stops accepting new connections.
 2. Drains in-flight requests (up to `shutdown_timeout_seconds`, default 30s).
 3. Closes database connection pool.
 4. Exits.
 
----
-
-## API Endpoints
+## API
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/v1/sign` | Client credentials + OIDC token | Sign an SSH public key |
-| `POST` | `/api/v1/revoke` | Client credentials | Revoke a certificate |
-| `GET` | `/api/v1/jwks` | Client credentials | Get CA public keys in JWK format |
+| `POST` | `/api/v1/sign` | Client credentials and the user's OIDC token | Sign an SSH public key |
+| `POST` | `/api/v1/revoke` | Client credentials | Revoke a certificate by `serial_number`, `key_id` or `ca_fingerprint` |
+| `GET` | `/api/v1/jwks` | Client credentials | CA public keys as JWKs |
+| `GET` | `/api/v1/ca-public-key` | Client credentials | CA public key |
+| `POST` | `/api/v1/admin/rotate-ca` | Client credentials | Rotate the CA keys |
+| `GET` | `/api/v1/certificates` | OIDC Bearer | Certificates of the signed-in user |
+| `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | One certificate |
+| `POST` | `/api/v1/certificates/{serial}/revoke` | OIDC Bearer | Revoke an owned active certificate, or any active certificate with `signer:certificates:write` |
+| `GET` | `/api/v1/userinfo` | OIDC Bearer | The signed-in user's profile |
+| `GET` | `/api/v1/admin/certificates` | OIDC Bearer and `signer:certificates:read` | All certificates |
+| `GET` | `/api/v1/admin/certificates/{serial}` | OIDC Bearer and `signer:certificates:read` | Any certificate |
 | `GET` | `/api/v1/health` | None | Health check |
-| `POST` | `/api/v1/admin/rotate-ca` | Client credentials | Rotate CA keys |
-| `GET` | `/api/v1/certificates` | OIDC Bearer | List certificates for authenticated user |
-| `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | Get certificate details |
-| `POST` | `/api/v1/certificates/{serial}/revoke` | OIDC Bearer | Revoke an owned active certificate, or any active certificate with signer write privilege |
-| `GET` | `/api/v1/userinfo` | OIDC Bearer | Get authenticated user profile |
-| `GET` | `/api/v1/admin/certificates` | OIDC Bearer + signer read privilege | List all certificates |
-| `GET` | `/api/v1/admin/certificates/{serial}` | OIDC Bearer + signer read privilege | Get any certificate |
-| `GET` | `/metrics` | None | Prometheus metrics |
+| `GET` | `/metrics` | None | Prometheus metrics, when `metrics.enabled` |
 
-Client credentials are passed via `X-Client-Id` (format: `{tenant_id}:{client_id}`) and `X-Client-Secret` headers. OIDC Bearer endpoints use `Authorization: Bearer <token>`.
+Client credentials go in the `X-Client-Id` (`{tenant_id}:{client_id}`) and `X-Client-Secret` headers. OIDC Bearer
+routes take `Authorization: Bearer <token>`.
 
-Custos Core loads extension-owned privileges from its configuration before
-connectors start. The `core:` namespace is reserved and cannot be configured as
-an extension privilege:
+The signer reads the caller's privileges from `GET /me` at `core_api_base_url`:
 
-```yaml
-privileges:
-  extensions:
-    - signer:certificates:read
-    - signer:certificates:write
-```
+| Action | Needs |
+|---|---|
+| Admin routes | `signer:certificates:read` |
+| Revoke another user's certificate | `signer:certificates:write` |
+| Revoke one's own certificate | No privilege |
 
-The deployment-wide list/detail routes ask Custos Core for the caller's current
-effective privileges. `signer:certificates:read` grants deployment-wide read
-access. The shared revoke route authorizes certificate owners locally; only a
-non-owner revoke asks Core for `signer:certificates:write`, so owner revocation
-continues to work if Core is temporarily unavailable.
+The Custos server does not register the `signer:` privileges ([docs/privileges.md](../../docs/privileges.md#other-connectors)).
+Calls that need one return 403.
 
-The deployment-wide list uses keyset pagination. Pass `limit` and the opaque
-`cursor` returned as `next_cursor`; unlike the owner-scoped list, this response
-does not include an exact total or offset.
+`GET /api/v1/admin/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
+It returns no total or offset.
 
-> **Revocation enforcement:** these endpoints create authoritative signer
-> revocation state and audit history. OpenSSH KRL generation and distribution
-> are not implemented yet, so a revocation does not by itself make login nodes
-> reject the certificate.
+> **Revocation.** The signer records revocations. It does not generate or distribute OpenSSH KRLs, so login nodes still accept a revoked certificate.
 
-### API Examples
+### Examples
 
 **Health Check**
 
@@ -304,21 +273,19 @@ curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
   -H "X-Client-Secret: your-secret" | jq .
 ```
 
----
-
 ## Troubleshooting
 
 | Error | Cause | Fix |
 |-------|-------|-----|
 | "failed to connect to database" | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
 | "failed to create vault client" | Vault unreachable or bad token | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled |
+| Migrations not found | The working directory is not this one | Run the signer from `extensions/SSH-Certificate-Signer` |
 | HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is `tenant_id:client_id` format, check bcrypt hash matches |
 | HTTP 403 "Client is disabled" | Client row has `enabled=false` | Set `enabled=true` in `client_ssh_configs` |
 | HTTP 401 "Issuer not allowed" | OIDC issuer not in allowed list | Add issuer to `allowed_issuers`, or set to empty list to accept all |
+| HTTP 403 on admin routes | The caller lacks `signer:certificates:read` in the Custos server | See the privilege note under [API](#api) |
 | HTTP 503 "CA key storage unavailable" | Vault down during signing | Check Vault status and network connectivity |
 | Token validation errors in dev | No OIDC provider configured | Set `DEV_MODE=true` for development (returns default identity) |
-
----
 
 ## License
 
