@@ -120,6 +120,18 @@ func (s *pgComputeAllocationMembershipStore) HasProvisionedMemberTx(ctx context.
 	return ok, err
 }
 
+func (s *pgComputeAllocationMembershipStore) FindStaleReady(ctx context.Context) ([]string, error) {
+	var ids []string
+	err := s.db.SelectContext(ctx, &ids,
+		`SELECT m.id FROM compute_allocation_memberships m
+		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
+		   LEFT JOIN compute_cluster_users cu ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
+		  WHERE (m.ready_at IS NOT NULL) <>
+		        (m.membership_status = 'ACTIVE' AND a.status = 'ACTIVE' AND a.scheduler_provisioned_at IS NOT NULL AND cu.provisioned_at IS NOT NULL)
+		  ORDER BY m.id`)
+	return ids, err
+}
+
 func (s *pgComputeAllocationMembershipStore) SetReady(ctx context.Context, tx *sql.Tx, id string, at *time.Time) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_memberships SET ready_at = $1 WHERE id = $2`, at, id)

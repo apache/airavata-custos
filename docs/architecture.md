@@ -126,6 +126,7 @@ configuration.
 A membership grants access while it and its allocation are `ACTIVE`, the scheduler has the allocation's account, and the member's account on the allocation's cluster is provisioned; core records it in `ready_at`.
 Any write that changes it publishes `compute_allocation_membership::ready` or `compute_allocation_membership::deactivate` in the same transaction: membership writes, allocation status, account provisioning, account removal and user merges.
 A membership create share-locks its user and allocation, and the resync after an allocation or account write locks them for update, so neither misses the other.
+The settle pass also repairs drift from writes that bypass the service, publishing each change it makes.
 
 ### Connector requests
 

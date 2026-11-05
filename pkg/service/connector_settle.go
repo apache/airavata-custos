@@ -37,13 +37,13 @@ import (
 
 const settleInterval = 5 * time.Minute
 
-// StartSettle settles connector requests, at once and then every interval, until ctx ends.
+// StartSettle settles connector requests and corrects every stale ready_at, at once and then every interval, until ctx ends.
 func (s *Service) StartSettle(ctx context.Context) {
 	ticker := time.NewTicker(settleInterval)
 	defer ticker.Stop()
 	for {
 		passCtx, span := tracing.Start(ctx, "core.settle")
-		if err := s.settleConnectors(passCtx); err != nil {
+		if err := errors.Join(s.settleConnectors(passCtx), s.syncStaleMemberships(passCtx)); err != nil {
 			slog.ErrorContext(passCtx, "core.settle", "error", err)
 		}
 		span.End()

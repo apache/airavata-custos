@@ -411,6 +411,8 @@ type ComputeAllocationMembershipStore interface {
 	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationMembership, error)
 	// FindTx returns the memberships matching f locked FOR UPDATE in tx, ordered by id, with their allocations locked first.
 	FindTx(ctx context.Context, tx *sql.Tx, f MembershipFilter) ([]models.ComputeAllocationMembership, error)
+	// FindStaleReady returns the ids of memberships whose ready_at disagrees with their current eligibility.
+	FindStaleReady(ctx context.Context) ([]string, error)
 	// SetReady sets ready_at, or clears it when at is nil, within the provided transaction.
 	SetReady(ctx context.Context, tx *sql.Tx, id string, at *time.Time) error
 	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
