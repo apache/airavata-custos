@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -93,6 +94,38 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 	if after.UserID != survivor {
 		t.Errorf("moved account belongs to %s, want the survivor %s", after.UserID, survivor)
+	}
+}
+
+// Make sure a merge deactivates the retiring user's ready memberships and readies them for the survivor.
+func TestMergeUsers_ReReadiesMovedMemberships(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	subscribeAll(svc, events.ComputeAllocationMembershipReadyEvent, events.ComputeAllocationMembershipDeactivateEvent)
+	f := newReadyFixture(t, svc, database, 1)
+	retiring := f.users[0].UserID
+	survivor := seedUser(t, database, fmt.Sprintf("survivor-%s@example.edu", uuid.NewString()))
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: f.alloc.ComputeClusterID, UserID: survivor, LocalUsername: "merge-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create compute cluster user: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	users := func(topic events.EventType) (ids []string) {
+		for _, m := range published[models.ComputeAllocationMembership](t, svc, topic) {
+			ids = append(ids, m.UserID)
+		}
+		return ids
+	}
+	if got := users(events.ComputeAllocationMembershipDeactivateEvent); !slices.Equal(got, []string{retiring}) {
+		t.Fatalf("deactivated for %v, want [%s]", got, retiring)
+	}
+	if got := users(events.ComputeAllocationMembershipReadyEvent); !slices.Contains(got, survivor) {
+		t.Fatalf("ready for %v, want the survivor %s", got, survivor)
 	}
 }
 
