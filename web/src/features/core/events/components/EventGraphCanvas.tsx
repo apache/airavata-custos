@@ -33,7 +33,6 @@ import {
 import type { GraphTerm } from "../types";
 
 export const COLOR = {
-  core: "var(--tone-accent-fg)",
   conn: "var(--tone-warn-fg)",
   entry: "var(--tone-info-fg)",
   end: "var(--tone-warn-fg)",
@@ -172,7 +171,7 @@ export function EventGraphCanvas({
     >
       <defs>
         <style>{"@keyframes eg-flow { to { stroke-dashoffset: var(--eg-period); } }"}</style>
-        {(["core", "conn", "entry"] as const).map((k) => (
+        {(["conn", "entry"] as const).map((k) => (
           <marker
             key={k}
             id={`eg-${k}`}
@@ -272,7 +271,7 @@ function EdgeView({
   onClick: (e: React.MouseEvent) => void;
 }) {
   const d = pathOf(edge);
-  const cond = (edge.kind === "core" || edge.kind === "conn") && edge.transition.cond;
+  const cond = edge.kind === "conn" && edge.transition.cond;
   // The line itself flows source to target: its dashes march; a solid arrow dashes only while flowing.
   const [dash, period] =
     edge.kind === "entry" ? ["4 3", 7] : cond ? ["2 3", 5] : flowing ? ["9 3", 12] : [undefined, 0];

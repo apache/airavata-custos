@@ -18,7 +18,7 @@
 // Event state machine from GET /events/graph, laid out by ELK layered.
 // Events are grouped in one block per entity (the part before `::`); each external trigger
 // (API, a connector loop) is one box whose arrows carry the routes that start an event.
-// Arrows are core transitions (core function) or connector transitions (Connector.handler);
+// Arrows are connector transitions (Connector.handler);
 // an end card lists handlers that take an event and emit nothing.
 // A trace keeps only what lies on a path from one node to another, so it lays out small and legible.
 // All text is monospace, so a box is sized from its text length alone.
@@ -27,10 +27,9 @@
 import ELK, { type ElkExtendedEdge, type ElkNode } from "elkjs/lib/elk.bundled.js";
 import type { EventGraph, GraphEdge, GraphEvent, GraphTerm } from "./types";
 
-export type GraphOptions = { core: boolean; connector: boolean; ends: boolean; entries: boolean };
+export type GraphOptions = { connector: boolean; ends: boolean; entries: boolean };
 
 export const DEFAULT_GRAPH_OPTIONS: GraphOptions = {
-  core: true,
   connector: true,
   ends: true,
   entries: true,
@@ -49,8 +48,7 @@ const endId = (event: string) => `end:${event}`;
 export function selectGraph(graph: EventGraph, o: GraphOptions): Selected {
   const byId = new Map(graph.events.map((e) => [e.id, e]));
   const terms = o.ends ? graph.terms : [];
-  // Order-only: A was published in a helper and B later in its caller; sequence, not cause.
-  let edges = graph.edges.filter((e) => (e.kind === "core" ? o.core : o.connector) && !e.order);
+  let edges = o.connector ? graph.edges : [];
   // Drop transitions into events nobody handles and that lead nowhere, until none remain.
   for (let n = -1; n !== edges.length; ) {
     n = edges.length;
@@ -164,7 +162,7 @@ export type LaidEdge = {
   points: Point[];
   label: (Point & { lines: string[]; width: number; height: number }) | null;
 } & (
-  | { kind: "core" | "conn"; transition: Transition }
+  | { kind: "conn"; transition: Transition }
   | { kind: "entry"; routes: string[] }
   | { kind: "end" }
 );

@@ -153,7 +153,7 @@ function TermDetails({ from, term }: { from: string; term: GraphTerm }) {
 }
 
 function EdgeDetails({ edge }: { edge: LaidEdge | undefined }) {
-  if (!edge || (edge.kind !== "core" && edge.kind !== "conn")) return null;
+  if (edge?.kind !== "conn") return null;
   const t = edge.transition;
   return (
     <>
@@ -161,7 +161,7 @@ function EdgeDetails({ edge }: { edge: LaidEdge | undefined }) {
         {t.from} → {t.to}
       </h2>
       <div className="text-xs text-muted-foreground">
-        {t.kind === "core" ? "core transition (automatic)" : `connector transition · ${t.conn}`}
+        connector transition · {t.conn}
         {t.cond ? " · conditional" : ""}
       </div>
       <Key>Performed by</Key>
@@ -245,7 +245,7 @@ function NodeDetails({
   if (node.kind !== "event") return null;
   const { event } = node;
   const transitions = (edges: LaidEdge[], side: "from" | "to") => {
-    const ts = edges.flatMap((e) => (e.kind === "core" || e.kind === "conn" ? [e.transition] : []));
+    const ts = edges.flatMap((e) => (e.kind === "conn" ? [e.transition] : []));
     return ts.length ? (
       <ul className="list-disc pl-5">
         {ts.map((t) => (

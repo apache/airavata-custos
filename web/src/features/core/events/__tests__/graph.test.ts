@@ -50,14 +50,10 @@ const edge = (
 const ev = (id: string, subs = 1) => ({ id, entry: [], subs });
 
 describe("selectGraph", () => {
-  it("drops order-only arrows and arrows into dead ends", () => {
+  it("drops arrows into dead ends", () => {
     const graph: EventGraph = {
       events: [ev("a::x"), ev("a::y"), ev("a::dead", 0), ev("a::z")],
-      edges: [
-        edge("a::x", "a::y", "c.H.f"),
-        edge("a::x", "a::dead", "c.H.g"),
-        edge("a::y", "a::z", "core.f", { kind: "core", order: true }),
-      ],
+      edges: [edge("a::x", "a::y", "c.H.f"), edge("a::x", "a::dead", "c.H.g")],
       terms: [],
     };
     const sel = selectGraph(graph, DEFAULT_GRAPH_OPTIONS);

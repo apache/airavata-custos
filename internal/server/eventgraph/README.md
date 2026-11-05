@@ -23,6 +23,18 @@ under the License.
 It lists every bus event, the transitions between them and the connector handlers that end a flow.
 The server embeds this directory and serves the graph at `GET /events/graph`.
 
+## Rules
+
+| Element | Meaning |
+|---|---|
+| Entry | A route, timer or connector loop publishes the event. |
+| Edge | A connector handler on `from` calls a core mark that publishes `to`. |
+| Term | A connector handler on `from` publishes nothing. |
+
+Events one write publishes together are siblings; no edge links them.
+An event no connector subscribes to is a leaf; no edge leaves it.
+Each edge is a step a disabled connector skips, a down connector delays and a late connector catches up on.
+
 ## Generating
 
 `graph.json` is gitignored. Generate it before building:

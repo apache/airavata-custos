@@ -65,7 +65,6 @@ const SHOW: {
   label: string;
   swatch: React.ReactNode;
 }[] = [
-  { key: "core", label: "Core", swatch: <Line color={COLOR.core} /> },
   { key: "connector", label: "Connector", swatch: <Line color={COLOR.conn} /> },
   { key: "ends", label: "End steps", swatch: <span style={{ color: COLOR.end }}>⊣</span> },
   { key: "entries", label: "Triggers", swatch: <Line color={COLOR.entry} dashed /> },
@@ -359,7 +358,7 @@ function highlight(layout: Layout, pick: Pick | undefined, query: string): Lit {
             e.from,
             e.to,
             ...(e.kind === "entry" ? e.routes : []),
-            ...(e.kind === "core" || e.kind === "conn" ? [e.transition.actor] : []),
+            ...(e.kind === "conn" ? [e.transition.actor] : []),
           ].some(hit),
         )
         .map((e) => e.id),
