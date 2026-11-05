@@ -42,10 +42,4 @@ Here `trustanchors.pem` can be a file (as in this example) with multiple trust a
 authority) certificates concatenated together, or it can be a directory as used by OpenSSL.  If it is a
 directory,  the connection will work only if curl uses OpenSSL.
 
-## Options
-
 The utility understands no options whatsoever.  Debug is what you get and debug is all you get.
-
-## TODO
-
-The next obvious step is to add client credentials as the third command line parameter.

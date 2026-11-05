@@ -31,8 +31,9 @@ One spec per code-ownership unit:
 | Connector | `connectors/<NAME>/api/<name>.openapi.yaml` | A connector's endpoints under `/connectors/<name>/`. |
 
 Connector specs ship alongside the connector code; the core spec never
-declares connector endpoints. The reference connector today is AMIE at
-`connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml`.
+declares connector endpoints. The connectors with specs today are AMIE at
+`connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml` and Analytics at
+`connectors/Analytics/api/analytics.openapi.yaml`.
 
 ## Generating
 
@@ -44,12 +45,20 @@ any annotation:
 make gen-api
 ```
 
-CI enforces freshness via `make verify-no-drift`: modifying a handler
-annotation without committing the regenerated spec fails the build. The
-`swag` version is pinned in `go.sum`; `go generate` invokes it through
+The `swag` version is pinned as a `tool` in `go.mod`; `go generate` invokes it through
 `go run`, so contributors do not need to install the binary separately.
+
+To check that the committed specs are current, run:
+
+```
+make verify-no-drift
+```
+
+It regenerates the specs and fails if any committed `*.openapi.yaml` file changed. No CI workflow runs it. Run it
+before pushing.
 
 ## Consuming
 
-Both files are standard OpenAPI documents and load into any
-OpenAPI-aware client, viewer, or codegen tool.
+These files are standard OpenAPI documents and load into any
+OpenAPI-aware client, viewer, or codegen tool. The portal generates its TypeScript types and Zod schemas from them
+with `pnpm gen:api` (`web/scripts/gen-api.mts`).

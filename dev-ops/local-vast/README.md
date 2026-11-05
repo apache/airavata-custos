@@ -19,14 +19,14 @@
 
 # local-vast
 
-A stand-in for the VAST VMS REST API, run on a test cluster's file server so the VAST-Provisioner can be
+A stand-in for the VAST VMS REST API, run on a test cluster's file server so the [VAST-Provisioner](../../connectors/Storage/VAST-Provisioner/README.md) can be
 tested end to end: Custos → COmanage → LDAP → directories users see on the cluster.
 
 | VMS call | Stand-in |
 |---|---|
 | `POST /api/token/` | A token for `VAST_USER` / `VAST_PASSWORD`; anything else is `403` |
 | `POST /api/folders/create_folder/` | Creates the directory, owner and group resolved through NSS, mode applied exactly, setgid included (VMS drops it); `503` if it exists or an owner is unknown |
-| `POST /api/folders/stat_path/` | 200 if the path exists, else `503` |
+| `POST /api/folders/stat_path/` | Owner, group and type if the path exists, else `503` |
 | `DELETE /api/folders/delete_folder/` | Moves the directory into `.trash` beside it, as VAST's trash does |
 | `POST`, `GET /api/quotas/`, `DELETE /api/quotas/{id}/` | Recorded in memory, not enforced; `used_capacity` is the size of the files under the path |
 | `POST /api/views/` | `exportfs -o $EXPORT_OPTIONS $EXPORT_TO:<path>` |
@@ -38,7 +38,7 @@ tested end to end: Custos → COmanage → LDAP → directories users see on the
 
 ```sh
 GOOS=linux GOARCH=amd64 go build -o local-vast ./dev-ops/local-vast
-scp local-vast local-vast.service <host>:
+scp local-vast dev-ops/local-vast/local-vast.service <host>:
 ssh <host> sudo install -m 755 local-vast /usr/local/bin/
 ssh <host> sudo install -m 644 local-vast.service /etc/systemd/system/
 # /etc/local-vast.env, mode 600: VAST_USER=..., VAST_PASSWORD=..., LISTEN=<private ip>:8080
@@ -89,7 +89,7 @@ With an ssh route, the first command opens a SOCKS tunnel that later commands re
 
 `vms help` lists them. `RESOURCE` is a path under `/api/`, such as `views/42`, documented at `$VMS/docs`. `get`
 arguments become the query string; the other methods send a JSON body of `key=value` strings and `key:=json` values,
-or stdin with `-`. Deletes ask first at a terminal; any failure exits 1.
+or stdin with `-`. `rmview`, `rmquota` and `purge` ask first at a terminal; `delete` does not. Any failure exits 1.
 
 ```sh
 vms info /project/foo

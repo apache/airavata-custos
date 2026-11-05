@@ -22,14 +22,10 @@
 Isolated Docker stack for AMIE connector integration tests. Runs on offset
 ports so it coexists with the main dev stack in `dev-ops/compose/`.
 
-## Services
-
 | Service     | Container               | Host port |
 |-------------|-------------------------|-----------|
 | PostgreSQL  | `custos_amie_test_db`   | `5433`    |
 | mock-amie   | `custos_amie_test_mock` | `8181`    |
-
-## Usage
 
 ```bash
 make up      # build + start, blocks until both are healthy
@@ -39,4 +35,5 @@ make ps      # status
 ```
 
 The integration test runner at `scripts/run-amie-integration-tests.sh`
-handles up/down for you.
+handles up/down for you, as does `make integration-test-amie` from the repo root.
+The [AMIE Processor README](../../connectors/ACCESS/AMIE-Processor/README.md#tests) describes the suite.

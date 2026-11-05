@@ -19,151 +19,155 @@
 
 # COmanage Identity-Provisioner
 
-Connector that bridges Custos to a COmanage Registry. When the core service
-emits `ComputeClusterUserCreateEvent` for a cluster this connector services,
-the orchestrator ensures the user has a fully provisioned POSIX identity in
-COmanage: a CoPerson, a per-user CoGroup, the matching Identifiers, and a
-`UnixClusterAccount` block on the target UnixCluster.
+The COmanage Identity-Provisioner gives each approved cluster account a POSIX identity in a COmanage Registry. Login
+nodes and storage resolve users and groups from the registry's LDAP export. Enable it when a COmanage Registry is the
+site's source of Unix accounts.
 
-## How it loads
+Custos owns the records the connector writes. Do not edit them in COmanage. The connector does not read changes back.
 
-The loader is wired from `internal/connectors/loader.go` alongside SLURM and
-AMIE. On startup:
+## How it works
 
-1. `comanage.LoadConnector` reads seven required env vars:
-   `COMANAGE_REGISTRY_URL`, `COMANAGE_CO_ID`, `COMANAGE_API_USER`,
-   `COMANAGE_API_KEY`, `COMANAGE_PERSON_ID_TYPE`,
-   `COMANAGE_UNIX_CLUSTER_ID`, `CUSTOS_CLUSTER_ID`.
-2. If any are missing it logs `comanage provisioner: required env vars not set; skipping`
-   and returns `nil`. This is the documented way to disable the connector in a
-   deployment without code changes.
+The connector subscribes to core events for one cluster, `provisioning.custos_cluster_id`, and ignores the rest.
 
-`COMANAGE_PERSON_ID_TYPE` is the Identifier Type configured in the registry's
-Identifier Types screen that the connector uses to look up and tag a CoPerson.
-Set it to whatever string your COmanage instance uses for the per-person ID.
-3. If all six are present it constructs an HTTP client and a
-   `Subscriber`, then registers it against the shared event bus.
-   The subscriber filters by `CustosClusterID` so a deployment that services
-   multiple clusters can run multiple connector instances side by side.
+| Event | Action |
+|---|---|
+| `compute_cluster_user::approve` | Provision the account, join the admin group for an `ADMIN` account, then sync the user's allocation groups |
+| `user::onboarded` | Provision again once the user has signed in, so the registry gets their OIDC `sub` |
+| `compute_cluster_user::delete` | Remove an approved account from the registry, then sync the user's allocation groups |
+| `compute_allocation::create` and `::update`; `compute_allocation_membership::create`, `::update` and `::delete` | Sync the allocation's group |
+| `compute_allocation::delete` | Delete the allocation's group |
 
-See `config.example.yaml` for the full env var reference (required + optional).
+The registry matches a person to their SSH login by the OIDC `sub`. An account approved before the first sign-in has
+none. The connector then writes `ComanageProvisioningDeferred` and runs again on `user::onboarded`.
 
-## What the orchestrator does
+The [event bus](../../../docs/architecture.md#event-bus) retries a failed delivery with backoff. Each step finds an
+existing record before it creates one, so a retry is safe.
 
-For each event, the orchestrator runs the following calls in order. Steps that
-find an existing record are short-circuited; steps that create something
-tolerate "already exists" responses so re-runs after a partial failure are
-idempotent.
+### Provisioning an account
+
+The connector calls two registry APIs. *Core* is the Core API (`/api/co/<co_id>/core/v1`), which reads and writes a
+person as one composite document. *REST* is the v1 REST API, which edits one record at a time.
 
 | # | Step | What it does | Endpoint |
 |---|------|--------------|----------|
-| 1 | Lookup CoPerson | Look up `comanage_id` stored in `user_identities(source="comanage")`, fall back to REST email search, otherwise POST a new CoPerson. | Core `GET /people/<comanage_id>`, REST `co_people.json`, Core `POST /people` |
-| 2 | Store `comanage_id` | Persist the COmanage identifier in `user_identities` so step 1 finds it next time. | Core service `CreateUserIdentity` |
-| 3 | Read composite | Pull the full Core composite to read `uidnumber` and `CoPerson.meta.id`. | Core `GET /people/<comanage_id>` |
-| 4 | Per-user CoGroup | Find or create a CoGroup named after the user's local username (`GroupType:"CL"`, `Auto:false`). | REST `co_groups.json` |
-| 5 | UnixClusterGroup | Attach the CoGroup to the configured UnixCluster. A 4xx here is treated as "already attached". | REST `unix_cluster_groups.json` |
-| 6 | groupname Identifier | Attach a `type:"uid"` Identifier (the local username string) to the CoGroup. | REST `identifiers.json` |
-| 7 | gidnumber Identifier | Attach a `type:"gidnumber"` Identifier (numeric, mirrors `uidnumber`) to the CoGroup. | REST `identifiers.json` |
-| 8 | CoGroupMember | Join the CoPerson to the CoGroup as member + owner. | REST `co_group_members.json` |
-| 9 | UnixClusterAccount | Re-GET a fresh composite, merge a `UnixClusterAccount` block, then full-composite PUT. The merge round-trips unmodeled fields as `json.RawMessage` so `deleteOmitted` cannot drop attributes the connector does not understand. | Core `GET /people/<comanage_id>` then `PUT /people/<comanage_id>` |
+| 1 | Find or create the CoPerson | Look up `comanage_id` in `user_identities` (`source="comanage"`), else search by email, else POST a new CoPerson. | Core `GET /people/<comanage_id>`, REST `co_people.json`, Core `POST /people` |
+| 2 | Store `comanage_id` | Save the identifier in `user_identities` so step 1 finds it next time. | Core service `CreateUserIdentity` |
+| 3 | Read the composite | Read `uidnumber` and `CoPerson.meta.id` from the full Core composite. | Core `GET /people/<comanage_id>` |
+| 4 | Link the OIDC `sub` | Add the user's `sub` to the person as an `oidcsub` identifier, if it is missing. | Core `PUT /people/<comanage_id>` |
+| 5 | Personal CoGroup | Find or create a CoGroup named after the local username (`GroupType:"CL"`, `Auto:false`). | REST `co_groups.json` |
+| 6 | UnixClusterGroup | Bind the CoGroup to the configured UnixCluster. Bind first, because the registry publishes a group on identifier and member writes. | REST `unix_cluster_groups.json` |
+| 7 | Group name | Attach a `type:"uid"` Identifier holding the local username to the CoGroup. | REST `identifiers.json` |
+| 8 | gidnumber | Attach a `type:"gidnumber"` Identifier equal to the person's `uidnumber`. | REST `identifiers.json` |
+| 9 | CoGroupMember | Add the CoPerson to the CoGroup as a member, never an owner. | REST `co_group_members.json` |
+| 10 | UnixClusterAccount | Read a fresh composite, merge a `UnixClusterAccount` block and the login identifier, then PUT the full composite. Fields Custos does not model go back unchanged, so the registry keeps them. | Core `GET` then `PUT /people/<comanage_id>` |
 
-Step 9 uses `sync_mode:"M"` (Manual) so a downstream provisioning plugin
-cannot overwrite the block when Custos is the source of truth.
+Step 10 sets `sync_mode:"M"` (Manual), so no downstream plugin overwrites the block. The home directory is
+`homedir_prefix` plus the username, and the shell is `default_shell`. The connector then marks the cluster account
+provisioned, which other connectors such as the VAST-Provisioner wait for.
 
-Each active allocation with a `posix_group` gets a CoGroup of that name, set up
-as in steps 5-7 with gid 3000000 plus the CoGroup id. Allocation, membership and
-account events keep it holding exactly the allocation's provisioned, active
-members; deleting the allocation deletes the group.
+An `ADMIN` account also joins the CoGroup `unix_cluster.admin_group`, which grants sudo. An operator creates that group.
+Without it, the join writes `ComanageProvisioningFailed` and the bus retries it. The account works meanwhile, without
+sudo.
 
-## Audit events
+Removing an account takes the `UnixClusterAccount`, the login identifier and the admin group membership off the person,
+then deletes the personal CoGroup. The CoPerson stays.
 
-The connector emits the following `audit_events.event_type` values via the
-core service. `audit_events.entity_id` is the `compute_cluster_users.id`, or the
-`compute_allocations.id` for the `ComanageAllocationGroup*` events.
+### Allocation groups
+
+Each active allocation with a `posix_group` gets a CoGroup of that name, bound and identified as in steps 6 to 8. Its
+gid is 3000000 plus the CoGroup id. It holds exactly the allocation's active members with a provisioned cluster account.
+Deleting the allocation deletes the group.
+
+### Usernames
+
+The username comes from core onboarding or the [AMIE Processor](../../ACCESS/AMIE-Processor/README.md#usernames).
+
+## Configuration
+
+The connector reads the `connectors.comanage-provisioner` block of [`config/custos.yaml`](../../../config/custos.yaml).
+An incomplete block is ignored whole, and every setting is read from the variables. A variable never fills a single
+missing key. If neither is complete, the connector skips loading and the rest of Custos runs. It logs
+`comanage provisioner: required config not set; skipping` and reports the gap on `GET /connectors`.
+
+| YAML key | Variable | Required | Purpose |
+|---|---|---|---|
+| `registry.url` | `COMANAGE_REGISTRY_URL` | yes | Registry base URL, such as `https://<host>/registry` |
+| `registry.co_id` | `COMANAGE_CO_ID` | yes | Numeric CO id |
+| `registry.api_user` | `COMANAGE_API_USER` | yes | API user for that CO |
+| `registry.api_key` | `COMANAGE_API_KEY` | yes | API key for that user |
+| `unix_cluster.id` | `COMANAGE_UNIX_CLUSTER_ID` | yes | Numeric UnixCluster id |
+| `unix_cluster.person_id_type` | `COMANAGE_PERSON_ID_TYPE` | yes | The CoPerson Identifier Type, as named on the registry's Identifier Types screen |
+| `unix_cluster.admin_group` | `COMANAGE_CLUSTER_ADMIN_GROUP` | for `ADMIN` accounts | CoGroup that grants sudo |
+| `provisioning.custos_cluster_id` | `CUSTOS_CLUSTER_ID` | yes | ID of the `compute_clusters` row this connector serves |
+| `provisioning.default_shell` | `COMANAGE_DEFAULT_SHELL` | no | Login shell, default `/bin/bash` |
+| `provisioning.homedir_prefix` | `COMANAGE_HOMEDIR_PREFIX` | no | Home directory prefix, default `/home/` |
+| `provisioning.http_timeout` | `COMANAGE_HTTP_TIMEOUT` | no | HTTP timeout, default `30s` |
+
+[`config.example.yaml`](config.example.yaml) lists the variables with example values.
+
+## Operations
+
+Each audit row the connector writes goes to the core `audit_events` table with `source=comanage`. `entity_id` is the
+`compute_cluster_users.id`, or the `compute_allocations.id` for the `ComanageAllocationGroup*` events.
 
 | Event type | When |
 |------------|------|
-| `ComanageCoPersonCreated` | A new CoPerson was POSTed in step 1. Lookups that resolved to an existing CoPerson do not fire this. |
-| `ComanageClusterAccountAttached` | The sequence completed and the user has a UnixClusterAccount block on the configured UnixCluster. |
+| `ComanageProvisioningDeferred` | The user has not signed in. Provisioning waits for `user::onboarded`. |
+| `ComanageProvisioningStarted` | Provisioning of an approved account began. |
+| `ComanageCoPersonCreated` | Step 1 created a new CoPerson. A lookup that found one does not write this. |
+| `ComanageOIDCLinkageCreated` | Step 4 added the `oidcsub` identifier. |
+| `ComanageClusterAccountAttached` | Step 10 finished. `details` is `comanage_id=<id> username=<local> uid=<n>`. |
+| `ComanageClusterAdminGroupJoined` | An `ADMIN` account joined the admin group. |
+| `ComanageClusterAccountRemoved` | A deleted account was removed from the registry. |
 | `ComanageAllocationGroupCreated` | An active allocation's CoGroup was created. |
-| `ComanageAllocationGroupMemberAdded` | A provisioned, active member was added to the allocation's CoGroup. |
-| `ComanageAllocationGroupMemberRemoved` | A membership row the allocation no longer calls for was removed from its CoGroup. |
+| `ComanageAllocationGroupMemberAdded` | A provisioned, active member was added to an allocation's CoGroup. |
+| `ComanageAllocationGroupMemberRemoved` | A member the allocation no longer calls for was removed from its CoGroup. |
 | `ComanageAllocationGroupDeleted` | A deleted allocation's CoGroup was unbound and deleted. |
-| `ComanageProvisioningFailed` | Any step returned an error. The `details` field carries `step=<name> err=<message>` so the dead-letter is tractable from the audit log alone. |
+| `ComanageProvisioningFailed` | A step failed. `details` is `step=<name> err=<message>`. |
 
-The AMIE-Processor side of this flow also emits:
+A new user's trace reads, in order:
 
-| Event type | When |
-|------------|------|
-| `PosixUsernameTruncated` | The base username derived from the user's name was longer than the POSIX cap and got truncated. |
-| `PosixUsernameUnbuildable` | First and last name both normalized to empty so no candidate could be built. |
-| `PosixUsernameAllocatorExhausted` | All collision suffixes were exhausted. The cluster-user row is not created. |
+1. `ComanageProvisioningStarted`
+2. `ComanageCoPersonCreated`, if the person is new
+3. `ComanageOIDCLinkageCreated`, if the `sub` was missing
+4. `ComanageClusterAccountAttached`
 
-## End-to-end audit walkthrough
+A failure writes `ComanageProvisioningFailed` in place of the last event.
 
-A successful provisioning of a new user produces this sequence for a single
-`compute_cluster_users.id`:
+## Troubleshooting
 
-1. AMIE side: `PosixUsernameTruncated` may fire if the user's given and family
-   name exceeded the POSIX cap.
-2. AMIE side: the cluster-user row is committed and the event bus delivers
-   `ComputeClusterUserCreateEvent`.
-3. COmanage side: `ComanageCoPersonCreated` fires if step 1 went through the
-   POST path. Idempotent re-runs against an existing CoPerson skip this event.
-4. COmanage side: `ComanageClusterAccountAttached` fires after step 9, with
-   `details` of the form `comanage_id=<id> username=<local> uid=<n>`.
+| Symptom | Cause | Fix |
+|---|---|---|
+| `ComanageProvisioningDeferred` with `reason=no_oidc_identity` | The user has not signed in to Custos | None. Provisioning runs after the first sign-in |
+| `ComanageProvisioningFailed` with `step=missing_uidnumber` | The registry has not assigned a `uidnumber` | Check the registry's identifier assignment for `uidnumber` |
+| `ComanageProvisioningFailed` with `step=cluster_admin_group_unset` or `cluster_admin_group_missing` | No `admin_group` configured, or no CoGroup by that name | Set `unix_cluster.admin_group` and create the group in the registry |
+| No audit rows at all | The connector skipped loading | Check the log for `required config not set` and `GET /connectors` |
+| A user cannot log in after a registry edit | The record was changed in COmanage | Revert it. Custos does not read registry changes back |
 
-A failure produces `ComanageProvisioningFailed` with
-`details=step=<n> err=<msg>` in place of the success event.
+## Development
 
-## Username allocation
-
-Local POSIX usernames are allocated by `pkg/posix`:
-
-1. `BuildBase` derives a candidate from `Prefix() + first-initial + last-name`,
-   normalised to lowercase ASCII, capped at the POSIX length limit. Truncation
-   fires a `PosixUsernameTruncated` audit event. If both names normalize to
-   empty, the allocator emits `PosixUsernameUnbuildable` and returns an error.
-2. The AMIE handler attempts `CreateComputeClusterUser` with the base. If the
-   composite UNIQUE on `(compute_cluster_id, local_username)` rejects it, the
-   handler retries with `base + "2"`, `base + "3"`, and so on up to
-   `MaxCollisionSuffix`.
-3. If suffixes are exhausted a `PosixUsernameAllocatorExhausted` event is
-   emitted and the handler returns an error.
-
-## Local development
-
-The connector reads config from env vars. To run it against a test registry:
+Export the variables and start the server. [INSTALL.md](../../../INSTALL.md) covers the rest.
 
 ```bash
-export COMANAGE_REGISTRY_URL=https://<your-registry>/registry
+export COMANAGE_REGISTRY_URL=https://<registry-host>/registry
 export COMANAGE_CO_ID=<numeric CO id>
 export COMANAGE_API_USER=<api user for that CO>
 export COMANAGE_API_KEY=<api key for that user>
-export COMANAGE_PERSON_ID_TYPE=<CoPerson Identifier Type, per your registry>
+export COMANAGE_PERSON_ID_TYPE=<CoPerson Identifier Type, as named in the registry>
 export COMANAGE_UNIX_CLUSTER_ID=<numeric UnixCluster id>
 export CUSTOS_CLUSTER_ID=<UUID from the compute_clusters table>
 go run ./cmd/server
 ```
 
-Without those vars set the connector skips registration silently, so the rest
-of Custos runs unaffected.
-
-## Test surface
+The unit tests need no registry:
 
 ```bash
-# unit
 go test ./connectors/COmanage/Identity-Provisioner/...
-
-# integration (requires a real registry; skipped by default)
-go test -tags integration ./connectors/COmanage/Identity-Provisioner/...
 ```
 
-The unit tests cover:
+They cover:
 
-- HTTP client transport: 5xx retry with exponential backoff, error
-  classification (`ErrNotFound`, `ErrAuth401`, `HTTPError`).
-- Core API and REST wrappers via `httptest.NewServer`.
-- The `compose.go` merge layer: a fixture composite is merged with a
-  `UnixClusterAccount` block, then asserted to preserve every key from the
-  original.
+- the HTTP client: 5xx retry with backoff, and the `ErrNotFound`, `ErrAuth401` and `HTTPError` classes
+- the Core and REST wrappers, against `httptest.NewServer`
+- the composite merge in `compose.go`
+- the subscribers and orchestrator, against fakes

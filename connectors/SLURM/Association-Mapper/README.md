@@ -19,63 +19,106 @@
 
 # SLURM Association-Mapper
 
-SLURM association creation logic lives in this plugin. It is triggered when the allocation manager has processed an allocation request and released it to downstream handlers. It talks to `slurmrestd` to manage accounts, associations, and TRES limits.
+The SLURM Association-Mapper turns Custos allocations into SLURM accounts and associations through `slurmrestd`. Each
+allocation becomes an account, and each active member gets an association on it to charge jobs. Removed or inactive
+members lose theirs. Enable it on a SLURM cluster whose accounts Custos manages.
 
-This package is part of the root `github.com/apache/airavata-custos` module.
+## How it works
 
-## Prerequisites
+Events apply each change as it happens. A periodic sweep applies any change an event missed or applied too early.
 
-- Go **1.27+**
-- A reachable `slurmrestd` endpoint (for integration runs) plus a SLURM user name and JWT token
+| Event | Action |
+|---|---|
+| `compute_allocation::create` | Create the SLURM account, named after the allocation in lowercase, under its organization |
+| `compute_allocation::update` | Remove all members' associations when the allocation leaves `ACTIVE`, restore them when it returns |
+| `compute_allocation::delete` | Remove all members' associations. The account stays, so its job history remains attributable. |
+| `compute_allocation_resource_mapping::create` | Set the account's `GrpTRES` and `GrpTRESMins` from the mapped resource amount and time |
+| `compute_allocation_membership::create` | Write the member's association |
+| `compute_allocation_membership::update` | Remove the association when the membership leaves `ACTIVE`, write it again when it returns |
+| `compute_allocation_membership::delete` | Remove the member's association on that allocation only |
+| `compute_allocation_membership_resource_override::create` | Rewrite the member's association with limits from all of their overrides |
 
-## Layout
+An association uses QoS `normal` and no partition, so the cluster's partition settings decide where jobs run. Overrides
+on two GPU resources become one GPU limit, their sum. CPU and GPU limits stay separate.
 
-```
-.
-├── internal/subscribers/   # event subscribers wiring core events to slurmrestd
-└── pkg/smapper/            # connector loader
-```
+Before writing an association, the connector makes `none` the user's default account. `none` runs no jobs, so each job
+must name the allocation it charges.
 
-The slurmrestd client lives in the sibling Rest-Client module at `connectors/SLURM/Rest-Client/pkg/client`.
+An association needs the member's cluster account on the cluster. The membership event writes it only if the account is
+already provisioned, such as by the COmanage Identity-Provisioner. Otherwise the sweep writes it. An account never
+marked provisioned gets no association.
 
-Import path: `github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client`.
+The sweep waits `association_provision_grace` after provisioning, until the account reaches the directory and the name
+cache. An association written earlier makes `slurmctld` cache a failed uid lookup and reject the user's jobs.
+
+The sweep runs at startup, then every `association_reconcile_interval`. Per cluster, it compares SLURM's associations
+with those the allocations call for. It writes what is missing or drifted and removes stale member associations. It
+skips associations on accounts Custos does not manage and the account-level records that carry an allocation's limits.
+An empty desired set usually means a failed lookup, so the sweep removes nothing and logs a warning.
 
 ## Configuration
 
-The connector reads its `slurmrestd` connection details from the following environment variables:
+Settings are in the `connectors.slurm-mapper` block of [`config/custos.yaml`](../../../config/custos.yaml).
 
-| Variable      | Description                                                                 |
-|---------------|-----------------------------------------------------------------------------|
-| `SLURM_API`   | Base URL of the `slurmrestd` endpoint, e.g. `https://slurm.example.org:6820` |
-| `SLURM_USER`  | SLURM user name to authenticate as (sent in the `X-SLURM-USER-NAME` header)  |
-| `SLURM_TOKEN` | JWT token for that user (sent in the `X-SLURM-USER-TOKEN` header)            |
-| `SLURM_API_VERSION` | API version of `slurmrestd`. You can check it from `slurmrestd -d list` | 
+| YAML key | Variable | Purpose |
+|---|---|---|
+| `slurm_api.url` | `SLURM_API` | `slurmrestd` base URL, such as `https://slurm.example.org:6820` |
+| `slurm_api.username` | `SLURM_USER` | SLURM user, sent as `X-SLURM-USER-NAME` |
+| `slurm_api.token` | `SLURM_TOKEN` | JWT for that user, sent as `X-SLURM-USER-TOKEN` |
+| `slurm_api.version` | `SLURM_API_VERSION` | Minor version only, such as `40` for `v0.0.40`. `slurmrestd -d list` shows supported versions. |
+| `association_reconcile_interval` | | Sweep interval, default `5m`. It bounds the wait after a lost event. |
+| `association_provision_grace` | | How long the sweep holds back a just-provisioned account, default `30s` |
 
-Example:
+A missing or empty YAML value falls back to the variable in the second column. If any `slurm_api` setting is still
+empty, the connector skips loading. It logs
+`SLURM API credentials not fully provided, skipping SLURM Association Mapper connector` and reports the gap on
+`GET /connectors`.
+
+Check the endpoint and token with a ping:
 
 ```bash
 export SLURM_API='https://slurm.example.org:6820'
 export SLURM_USER='slurm'
 export SLURM_TOKEN="$(scontrol token lifespan=3600 | awk -F= '{print $2}')"
 export SLURM_API_VERSION='40'
-```
 
-All three are required for any live `slurmrestd` interaction. Tests do not need them.
-
-You can check the functionality of the SLURM REST API through 
-```bash
 curl -sS \
   -H "X-SLURM-USER-NAME: $SLURM_USER" \
   -H "X-SLURM-USER-TOKEN: $SLURM_TOKEN" \
   "$SLURM_API/slurm/v0.0.$SLURM_API_VERSION/ping" | jq
 ```
 
-## Test
+## Operations
+
+The event handlers write audit rows with `source=slurm`. The sweep writes none.
+
+| Entity | Event types |
+|---|---|
+| `compute_allocation` | `ComputeAllocationCreationSucceeded`, `ComputeAllocationCreationFailed`, `ComputeAllocationProvisioned`, `ComputeAllocationDeprovisioned`, `ComputeAllocationUpdateFailed`, `ComputeAllocationDeletionFailed` |
+| `compute_allocation_resource_mapping` | `ComputeAllocationResourceMappingCreationSucceeded`, `ComputeAllocationResourceMappingCreationFailed` |
+| `compute_allocation_membership` | `ComputeAllocationMembershipCreationSucceeded`, `ComputeAllocationMembershipCreationFailed`, `ComputeAllocationMembershipDeprovisioned`, `ComputeAllocationMembershipUpdateFailed`, `ComputeAllocationMembershipDeletionFailed` |
+| `compute_allocation_membership_resource_override` | `ComputeAllocationMembershipResourceOverrideCreationSucceeded`, `ComputeAllocationMembershipResourceOverrideCreationFailed` |
+
+The [event bus](../../../docs/architecture.md#event-bus) retries failed handlers. A resource with an empty
+`resource_type` fails at once, because a retry cannot fix it.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| A new member gets `Invalid account` right after being added | The association was written before the cluster could resolve the user | Raise `association_provision_grace` |
+| A member waits minutes for access | The event came before provisioning, so the sweep writes the association | Expected. Lower `association_reconcile_interval` to shorten the wait |
+| All calls return 401 | The JWT expired | Issue a new token with `scontrol token` |
+
+## Development
+
+The `slurmrestd` client is `connectors/SLURM/Rest-Client/pkg/client`. [`dev-ops/local-slurm`](../../../dev-ops/local-slurm/README.md)
+runs a local SLURM 24.05 cluster.
+
+The tests use `httptest` and need no `slurmrestd`:
 
 ```bash
-# from the repository root
+# From the repository root
 go test ./connectors/SLURM/Association-Mapper/...
 go vet ./connectors/SLURM/Association-Mapper/...
 ```
-
-Tests are hermetic and use `httptest` — no live `slurmrestd` required.

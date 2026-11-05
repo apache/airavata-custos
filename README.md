@@ -22,117 +22,104 @@
 [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat)](https://apache.org/licenses/LICENSE-2.0)
 [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/apache/airavata-custos)](https://github.com/apache/airavata-custos/pulls?q=is%3Apr+is%3Aclosed)
 
-Custos is a security middleware for science gateways and HPC research computing, developed under the [Apache Airavata](https://airavata.apache.org/) umbrella. It provides identity and access management, credential storage, federated authentication, and resource allocation services through a language-independent API.
-
-The project is currently being rebuilt around an HPC allocation management focus.
+Custos is account-lifecycle middleware for HPC resource providers.
+It keeps one record per user, allocation, membership and cluster account.
+Connectors apply each record change to the site's accounts, scheduler, storage and email.
+Allocations arrive from ACCESS or from staff in the portal.
+Users sign in through an OpenID Connect provider.
 
 **[Project website](https://airavata.apache.org/custos/)**
 
-## Repository Layout
+![Left: seven manual tasks across five systems for one new account. Right: with Custos, access starts from an ACCESS AMIE packet that an admin approves, or from an admin creating the account, which skips approval. Custos notifies the user, the user signs in and accepts the terms of use, and Custos creates the Unix account, adds it to the allocation's Unix group and to its scheduler account.](docs/assets/before-after.svg)
 
-Custos is composed of pluggable pieces a deployment site mixes and matches.
+## Who it helps
 
-```
-airavata-custos/
-├── core/          # Shared contracts and domain models
-├── connectors/    # Adapters to external allocation systems (ACCESS-CI, SLURM, ...)
-├── extensions/    # Node-side components a site may opt into (PAM, SSH cert signer)
-└── dev-ops/       # Local compose stack, Terraform, Ansible
-```
+| Role | What changes |
+|---|---|
+| Account staff | One approval per account replaces seven manual tasks in five systems. Removal takes one account delete and one approval per marked top-level storage folder. |
+| Researcher | Signs in, picks a username, and sees each setup step and the login command in the portal. |
+| PI | Sees credits used and left, by resource and by member. With the `core:allocations:write` privilege, requests allocation changes in the portal. |
+| Security staff | Each approval or denial has an audit row with the reviewer, user, cluster and username. |
+| Gateway operator | Gets short-lived SSH certificates per user. Creates temporary accounts through the API. |
 
-| Area | Purpose | Examples |
-|------|---------|----------|
-| `core/` | Go interfaces and shared domain types that connectors and extensions depend on | `accountprovisioning.Provisioner` |
-| `connectors/` | Protocol adapters that bring external state into Custos | `ACCESS/AMIE-Processor`, `SLURM/Association-Mapper` |
-| `extensions/` | Independent services that run alongside Custos to extend HPC node behavior | `CILogon-SSH-PAM`, `SSH-Certificate-Signer` |
-| `dev-ops/` | Local dev stack and deployment automation | `compose/`, `terraform/`, `account-provisioning/` |
+## Problems it addresses
 
-For runtime topology and the audit conventions every component follows, see [docs/architecture.md](docs/architecture.md). New connector authors should start with [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md).
+| Problem at a site | What Custos does |
+|---|---|
+| One account lives in several systems, and they drift apart | Custos holds the single record, and connectors push each change out. Edit accounts in Custos, not in the account registry. Registry edits are not read back. |
+| A downstream system is down when an account is approved | The change and its events are saved in one transaction, so an outage loses no event. Each delivery makes up to 10 attempts, backing off from 30 seconds to 1 hour. An admin can retry a failed one. |
+| Scheduler access drifts from what allocations grant | A sweep runs every 5 minutes by default. It writes missing or changed associations and removes those of departed members. It removes associations only on scheduler accounts named after Custos allocations. |
+| Two people get the same username or group | The database allows one `local_username` and one `posix_group` per cluster. |
+| SSH keys to issue, rotate and revoke | Users log in with their institutional identity through the OAuth2 device flow. Gateways get short-lived SSH certificates. |
+| A departed member keeps access | Ending a membership removes the scheduler association and the group membership. Deleting the cluster account removes it from the account registry. The next device-flow SSH login then fails. Key logins fail once the login node's SSSD cache expires, 90 minutes by default. |
+| Storage is deleted by mistake | Removing an account or allocation only marks its storage directories for deletion. An admin approves each deletion, and the folders go to the storage trash. |
 
-## Prerequisites
+## Account lifecycle
 
-* Go 1.27+
-* Docker and Docker Compose
+With every connector enabled, an admin's approval is the only staff task for a new account.
+A removal needs two staff steps: delete the cluster account through the API (`DELETE /compute-cluster-users/{id}`) or the allocation in the portal, then approve each marked top-level storage folder in the portal.
+Folders under a top-level folder go with it.
 
-## Quick Start
+| Step | Operation on the site's system | Done by |
+|---|---|---|
+| Allocation arrives | Apply the AMIE packet, create each member's pending cluster account, reply to ACCESS for the project. Account replies wait for approval | Allocation connector ([AMIE Processor](connectors/ACCESS/AMIE-Processor/README.md)), or staff entry in the portal |
+| Sign-in | Researcher signs in over OIDC, picks a username, accepts the user agreement, before or after approval | Portal |
+| Approval | Admin approves the cluster account, alone or per allocation | Portal |
+| Accounts | Create the person, POSIX uid, gid and groups in the account registry | Accounts connector ([COmanage](connectors/COmanage/Identity-Provisioner)) |
+| Scheduler | Create the scheduler account and one association per active member, with limits | Scheduler connector ([SLURM](connectors/SLURM/Association-Mapper)) |
+| Storage | Create user and project directories, quotas and views | Storage connector ([VAST](connectors/Storage/VAST-Provisioner/README.md)) |
+| Notice | Email on request, decision and account ready | Notification connector ([Email](connectors/Notification/Email/README.md)) |
+| Removal | Remove associations and group membership. Mark storage directories for deletion, which an admin approves | Scheduler, accounts and storage connectors |
 
-```sh
-git clone https://github.com/apache/airavata-custos.git
-cd airavata-custos
-```
+Removal, step by step:
 
-See [INSTALL.md](INSTALL.md) to bring up the dev stack and run the server. See each connector's and extension's README for run and configuration details.
+![When a member leaves: the scheduler connector removes the association, the accounts connector removes the group membership, an admin deleting the account has Custos mark its storage folders for deletion, the PAM module refuses that account's next device-flow login, and an admin approves each deletion.](docs/assets/offboarding.svg)
+
+Every connector is optional and enabled by a block in `config/custos.yaml`.
+To support another system, [write a connector](docs/contributing/writing-a-connector.md).
+[docs/architecture.md](docs/architecture.md) covers the core, the event bus and the connector contract.
+
+## SSH sign-in
+
+| Extension | What it does |
+|---|---|
+| [CILogon PAM module](extensions/CILogon-SSH-PAM/README.md) | `pam_oauth2_device` authenticates SSH logins with the OAuth2 device flow against the site's OIDC provider. The [node enrollment playbook](dev-ops/account-provisioning/README.md) keeps SSH key logins, and password logins for accounts with a local password, unless the site disables them. |
+| [SSH Certificate Signer](extensions/SSH-Certificate-Signer/README.md) | An SSH CA for science gateways. Issues short-lived OpenSSH user certificates bound to the user's OIDC identity. |
+
+## Portal
+
+A researcher picks a username and accepts the agreement:
+
+![Jane Doe sees custos-jdoe available, accepts the user agreement, four setup steps complete, and the portal shows the command ssh custos-jdoe@login.cluster.example.edu.](docs/assets/portal-researcher-setup.gif)
+
+The setup steps finish once an admin approves the request.
+Approval can come before or after the researcher signs in.
+Admins approve requests grouped by allocation:
+
+![On Account Approvals, an admin approves Jane Doe's request for the Genomic Sequencing allocation on ClusterA as custos-jdoe, and the request leaves the queue.](docs/assets/portal-admin-approval.gif)
+
+Admins approve each marked storage folder of a deleted account:
+
+![On the admin Resources page, the Storage tab lists storage folders. Three of custos-jdoe's folders are marked for deletion. The admin deletes /home/custos-jdoe, a notice reports it deleted, and the row leaves the list.](docs/assets/portal-storage-deletion.gif)
+
+PIs track usage:
+
+![The Analytics page for a PI, showing credits left, credits used, days remaining and daily usage by resource.](docs/assets/portal-pi-usage.png)
 
 ## Documentation
 
-- [INSTALL.md](INSTALL.md): run the server locally against the dev compose stack
-- [CONTRIBUTING.md](CONTRIBUTING.md): coding conventions, build, and test workflow
-- [docs/architecture.md](docs/architecture.md): runtime topology and audit conventions
-- [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md): authoring guide for new connectors
-- [docs/glossary.md](docs/glossary.md): domain terms (HPC, AMIE, COmanage, PI, DN, site code, etc.)
-- [docs/API-Docs.md](docs/API-Docs.md): REST API reference
-- [docs/Allocation-Data-Models.md](docs/Allocation-Data-Models.md): domain model overview
-- [docs/ACCESS-HPC-Reference.md](docs/ACCESS-HPC-Reference.md): ACCESS-CI integration reference
+| Doc | Covers |
+|---|---|
+| [INSTALL.md](INSTALL.md) | Run Custos locally |
+| [CONFIG.md](CONFIG.md) | Server configuration, with links to each connector's keys |
+| [docs/architecture.md](docs/architecture.md) | How core and connectors work |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Build, test and conventions |
+| [docs/publications.md](docs/publications.md) | Papers |
 
 ## Questions or Need Help?
 
 * Open a [GitHub issue](https://github.com/apache/airavata-custos/issues)
 * Join the [Airavata dev mailing list](https://airavata.apache.org/mailing-list.html)
-
-## Publications
-
-```
-@inproceedings{10.1145/3311790.3396635,
-author = {Ranawaka, Isuru and Marru, Suresh and Graham, Juleen and Bisht, Aarushi and Basney, Jim and Fleury, Terry and Gaynor, Jeff and Wannipurage, Dimuthu and Christie, Marcus and Mahmoud, Alexandru and Afgan, Enis and Pierce, Marlon},
-title = {Custos: Security Middleware for Science Gateways},
-year = {2020},
-isbn = {9781450366892},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3311790.3396635},
-doi = {10.1145/3311790.3396635},
-booktitle = {Practice and Experience in Advanced Research Computing},
-pages = {278–284},
-numpages = {7},
-location = {Portland, OR, USA},
-series = {PEARC '20}
-}
-```
-
-```
-@inproceedings{10.1145/3491418.3535177,
-author = {Ranawaka, Isuru and Goonasekara, Nuwan and Afgan, Enis and Basney, Jim and Marru, Suresh and Pierce, Marlon},
-title = {Custos Secrets: A Service for Managing User-Provided Resource Credential Secrets for Science Gateways},
-year = {2022},
-isbn = {9781450391610},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3491418.3535177},
-doi = {10.1145/3491418.3535177},
-booktitle = {Practice and Experience in Advanced Research Computing},
-articleno = {40},
-numpages = {4},
-location = {Boston, MA, USA},
-series = {PEARC '22}
-}
-```
-
-```
-@inproceedings{10.1145/3785462.3815896,
-author = {Jayathilake, Lahiru and Jayawardana, Yasith and Wannipurage, Dimuthu and Marru, Suresh},
-title = {Federated HPC Account Provisioning Using CILogon, COmanage, and PAM-Based OAuth2 Device Flow},
-year = {2026},
-isbn = {9798400723773},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3785462.3815896},
-doi = {10.1145/3785462.3815896},
-booktitle = {Practice and Experience in Advanced Research Computing 2026: Resilient Roots + Empowered Communities},
-articleno = {67},
-numpages = {5},
-series = {PEARC '26}
-}
-```
 
 ## Acknowledgment
 

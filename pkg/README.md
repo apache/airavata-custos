@@ -30,22 +30,17 @@ Module root: `github.com/apache/airavata-custos` (root `go.mod`).
 
 | Package | Import path | Purpose |
 |---------|-------------|---------|
-| `models` | `github.com/apache/airavata-custos/pkg/models` | Shared domain types (`User`, `Organization`, `Project`, allocations) |
+| `models` | `github.com/apache/airavata-custos/pkg/models` | Shared domain types (`User`, `Organization`, `Project`, allocations, roles, audit and traces) |
 | `service` | `github.com/apache/airavata-custos/pkg/service` | **High-level API** for creating, reading, updating, and deleting entities |
+| `events` | `github.com/apache/airavata-custos/pkg/events` | The event bus that carries domain events from the service to the connectors through the database |
+| `identity` | `github.com/apache/airavata-custos/pkg/identity` | The verified caller, the OIDC token verifier and the router that applies route policies |
+| `posix` | `github.com/apache/airavata-custos/pkg/posix` | Builds and validates POSIX usernames for cluster accounts |
+| `common` | `github.com/apache/airavata-custos/pkg/common` | HTTP helpers for handlers: JSON responses, paging and service error mapping |
 
 The supporting `internal/db` and `internal/store` packages are private to this
 module and are not importable from outside the repository.
 
----
-
-## Requirements
-
-- Go 1.27+
-- PostgreSQL 17+
-
----
-
-## Quick Start
+## Using the service
 
 Every service method takes a [`context.Context`](https://pkg.go.dev/context)
 as its first argument. The context carries cancellation, deadlines, and
@@ -55,23 +50,28 @@ from one of:
 
 - `context.Background()` — root context for `main`, init, tests, scripts.
 - `r.Context()` — inside an HTTP handler; cancelled when the client disconnects.
-- The `ctx` argument of a gRPC handler.
 - `context.WithTimeout(parent, d)` — adds a deadline; **always `defer cancel()`**.
 - `signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)` — cancelled on Ctrl-C / SIGTERM.
 
 Never pass `nil`; use `context.Background()` (or `context.TODO()`) if you have
 nothing better.
 
+Create the bus first, then the service on the same database. `bus.Run(ctx)` delivers events to subscribers, as
+[the event bus](../docs/architecture.md#event-bus) describes.
+
 ```go
 import (
     "context"
     "time"
 
+    "github.com/apache/airavata-custos/pkg/events"
     "github.com/apache/airavata-custos/pkg/models"
     "github.com/apache/airavata-custos/pkg/service"
 )
 
-svc := service.New(database) // *sqlx.DB
+// database is a *sqlx.DB with the core migrations applied.
+bus, err := events.New(context.Background(), database)
+svc := service.New(database, bus)
 
 // Derive a context with a 10s budget for this call chain.
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -101,7 +101,7 @@ project, err := svc.CreateProject(ctx, &models.Project{
 - If `CreatedTime` on a project is zero, the service sets it to `time.Now().UTC()`.
 - The populated entity is returned.
 
-## Read / Update / Delete
+Reads, updates and deletes follow the same pattern:
 
 ```go
 org,  err := svc.GetOrganization(ctx, orgID)
@@ -109,7 +109,7 @@ user, err := svc.GetUserByEmail(ctx, "ada@example.edu")
 proj, err := svc.GetProject(ctx, projID)
 
 users, err    := svc.ListUsersByOrganization(ctx, orgID)
-projects, err := svc.ListProjectsByPI(ctx, userID)
+projects, err := svc.ListProjectsForParticipant(ctx, userID)
 
 err = svc.UpdateUser(ctx, user)
 err = svc.DeleteProject(ctx, projID)
@@ -117,25 +117,23 @@ err = svc.DeleteProject(ctx, projID)
 
 ## Errors
 
-| Sentinel | Returned when |
-|----------|---------------|
-| `service.ErrNotFound` | A `GetX` call finds no matching record |
-| `service.ErrAlreadyExists` | Duplicate email or duplicate `originated_id` |
-| `service.ErrInvalidInput` | Missing required field, or unknown FK reference |
+The service wraps one of these sentinels, so check with `errors.Is(err, service.ErrNotFound)`.
+`common.WriteServiceError` maps them to HTTP status codes.
 
-Use `errors.Is(err, service.ErrNotFound)` to check.
+| Sentinel | Returned when | HTTP |
+|---|---|---|
+| `service.ErrInvalidInput` | a required field is missing, or a reference points at a missing record | 400 |
+| `service.ErrNotFound` | a get finds no record | 404 |
+| `service.ErrAlreadyExists` | a record with the same email or `originated_id` exists | 409 |
+| `service.ErrInUse` | a record cannot be removed while others depend on it | 409 |
+| `service.ErrPIChange` | an update would change a project's PI | 409 |
+
+`common.WriteServiceError` also maps a PostgreSQL unique violation to 409, a foreign-key or length violation to 400,
+and any other error to 500.
 
 ## Schema
 
-Tables created by the embedded migrations in `/internal/db/migrations/`:
-
-```
-organizations
-users          (FK → organizations.id)
-projects       (FK → users.id  via project_pi_id)
-```
-
-The DSN is a PostgreSQL URL, e.g.
+The tables come from [`internal/db/migrations/`](../internal/db/migrations/). The DSN is a PostgreSQL URL, such as
 `postgres://user:pass@localhost:5432/custos?sslmode=disable`.
 
 ## Testing with a mock service

@@ -17,22 +17,26 @@
     under the License.
 -->
 
-# AMIE scenario fixtures: expected DB state after each mock scenario
+# AMIE scenario fixtures
 
 Per-scenario test fixtures. Each YAML in this directory describes one mock-server scenario: what gets fired, what should end up in which table, and what the audit log should contain.
 
-## How it's used
+## How it is used
 
 The Go integration test at `connectors/ACCESS/AMIE-Processor/pipeline/baseline_integration_test.go` consumes `baseline.yaml`:
 
 1. Stand up the test stack (`make integration-test-amie` does this).
 2. POST to the scenario endpoint on the mock server.
-3. Wait for `amie_packets` to settle (no `NEW` or in-flight `RUNNING` events).
-4. Assert table counts + audit-action breakdown match the YAML's `expectations:` block.
+3. It approves each new cluster account, so held `request_account_create` replies go out.
+4. It waits for the 12 packets to drain.
+5. It asserts the table counts.
 
+The test copies its counts into Go from the `expectations:` block and does not parse the YAML. Change both together.
 For ad-hoc inspection, the `verification_queries:` block in each YAML gives copy-pasteable SQL you can run against the test DB.
 
-## File format (overview)
+## File format
+
+No runner reads this format yet. It specifies the format for one.
 
 ```yaml
 scenario:
@@ -44,32 +48,30 @@ trigger:
   endpoint: POST /test/{site}/scenarios?type=<name>
   preconditions:
     env:
-      - VAR_NAME                       # required env vars
+      - name: VAR_NAME                 # required env vars
     seed:
-      - "table: row spec"              # rows that must exist before firing
+      - table: <table>                 # rows that must exist before firing
+        row: { <column>: <value> }
 
 expectations:
   packets:                             # amie_packets table
-    - {type: <packet type>, status: DECODED, count: <N>}
-    # ...
-  
+    total_count: <N>
+    by_type_status:
+      - {type: <packet type>, status: PROCESSED, count: <N>}
+
   tables:                              # domain tables
     <table_name>:
       total_count: <N>                 # or {min, max} for non-deterministic
-      rows:                            # ordered or set; see `match:` hint
-        - <column>: <value>            # exact value, or pattern object below
-          ...
-  
+      rows:
+        - <column>: <value>            # exact value, or a pattern object below
+
   audit_log:
     by_action:
-      CREATE_PERSON: <count>
       CREATE_PROJECT: <count>
       # ...
-  
+
   not_expected:                        # tables that should remain empty
-    - user_dns
-    - user_merges
-    # ...
+    - amie_processing_errors
 
 verification_queries:                  # manual SQL for ad-hoc checks
   - name: <human label>
@@ -81,13 +83,13 @@ verification_queries:                  # manual SQL for ad-hoc checks
 
 | Form | Meaning | Example |
 |---|---|---|
-| literal | exact string / int / bool / null match | `email: hwan@uccs.edu` |
+| literal | exact string / int / bool / null match | `email: pi@example.edu` |
 | `${ENV_VAR}` | substituted at test time from process env | `email: ${DEV_EMAIL}` |
 | `{regex: "..."}` | column value must match the RE2 regex | `email: {regex: '^user[0-9]+@example\.edu$'}` |
 | `{not_null: true}` | column must be non-NULL (any value) | `id: {not_null: true}` |
 | `{from: "<table>.<col> where <pred>"}` | runner resolves to that scalar; assertion uses it | `project_pi_id: {from: "users.id where email=${DEV_EMAIL}"}` |
 
-#### Grammar for `${ENV_VAR}`
+### `${ENV_VAR}` rules
 
 - **Name**: matches `[A-Z][A-Z0-9_]*`. Anything else is a literal `$`.
 - **Substitution context**: runner expands inside YAML scalar values only, NOT inside table or column names.
@@ -95,7 +97,7 @@ verification_queries:                  # manual SQL for ad-hoc checks
 - **Escaping a literal `$`**: prefix with backslash (`\$NOT_AN_ENV_VAR`).
 - **Shell-special characters in the value** (spaces, quotes, semicolons): the runner inserts the value as a SQL parameter (not via string concat), so injection is not a concern. The value flows through bound parameters in the eventual Go assertion.
 
-#### Grammar for `{from: "<table>.<col> where <pred>"}`
+### `{from: ...}` rules
 
 - **Form**: `{from: "<table_name>.<column_name> where <predicate>"}`. Single quoted YAML string.
 - **Predicate**: SQL-safe `WHERE` fragment. May reference other columns and `${ENV_VAR}` substitutions. Single equality only; joins or sub-selects are not supported.
@@ -119,31 +121,28 @@ verification_queries:                  # manual SQL for ad-hoc checks
 
 | Scenario | YAML | Determinism | Notes |
 |---|---|---|---|
-| `baseline` | [`baseline.yaml`](baseline.yaml) | Full | **Canonical integration-test fixture.** Hardcoded values covering every handler the mock can drive without needing the Custos-assigned project UUID. |
+| `baseline` | [`baseline.yaml`](baseline.yaml) | Full | The integration-test fixture. 12 hardcoded packets covering the handlers the mock can drive. |
 
-## What is NOT covered (and why)
+`baseline` covers account creation, cluster accounts and memberships. The mock holds its `request_account_create`
+packets until the Custos project ID exists ([mock server](../../mock-server/README.md#mock-server)).
 
-Five handlers need the **Custos-assigned project UUID** in the packet body, and the mock can't supply that today (it would need to capture the `notify_project_create` reply and feed the UUID into subsequent packets). These handlers are NOT exercised by `baseline`:
+## What `baseline` does not cover
 
-- `request_account_create`
+`baseline` skips four handlers. They need a project or account the mock cannot address by Custos ID:
+
 - `request_account_inactivate`
 - `request_account_reactivate`
 - `request_project_inactivate`
 - `request_project_reactivate`
 
-That leaves these tables empty in a mock-only test:
-- `compute_cluster_users`
-- `compute_allocation_memberships`
-
 And these status-flip code paths unexercised:
+
 - `projects.status`
 - `compute_allocations.status`
 - `compute_allocation_memberships.membership_status`
 - `compute_cluster_users.status`
 
-Closing the gap requires either reply-aware mock sequencing or a Go runner that captures replies between packet posts. Tracked as follow-up.
-
-### What this fixture also does NOT exercise (beyond the 5 untestable handlers)
+Other gaps:
 
 - **Email-uniqueness collision**: `baseline` never re-creates a user with a clashing email. The `UpdateUser` uniqueness guard is not exercised by this fixture.
 - **Intra-packet audit ordering**: the fixture asserts `by_action` counts only, not the temporal order of audits within a single packet. A regression that reordered, say, `CREATE_PROJECT` after `CREATE_ALLOCATION` would not fail this fixture.
@@ -151,7 +150,7 @@ Closing the gap requires either reply-aware mock sequencing or a Go runner that 
 - **Concurrent re-delivery**: the supplement (packet 3) arrives strictly after packet 1 finishes. Find-or-create TOCTOU races need concurrent fires from the load workload, not this fixture.
 - **Read-path race on `oidc_sub`**: packet 3's PI lookup re-uses the bl-pi-001 row created by packet 1, so this fixture covers the read path through `FindBySourceAndExternalID`, but only serially.
 
-## Other mock scenarios (not part of the deterministic fixture suite)
+## Other mock scenarios
 
 These exist in the mock for ad-hoc load testing but do not have YAML fixtures because their data is randomized per run:
 
@@ -162,11 +161,10 @@ These exist in the mock for ad-hoc load testing but do not have YAML fixtures be
 | `failures_only` | 8 deliberately malformed packets (random); validation-path testing |
 | `heavy` | 15 success + 10 failure (random) |
 | `all_handlers` | One of each handler type; pre-creates users for merge + DN handlers |
-| `dev_email` | Scripted dev-loop scenario binding `DEV_EMAIL`; partially fails because account_create packets hit the missing-UUID issue |
+| `dev_email` | Scripted dev-loop scenario binding `DEV_EMAIL` |
 
 Validate these scenarios via the k6 load workload + invariant-style checks, not exact-row assertions.
 
 ## Out of scope
 
-- Reply-aware mock sequencing would unblock the 5 untestable handlers but adds Python complexity. Tracked as a follow-up.
 - Cross-scenario expectations (chaining multiple scenarios in one test run) are explicitly NOT modeled; each scenario assumes a fresh DB.

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="452" viewBox="0 0 960 452" role="img" aria-labelledby="t d">
+  <title id="t">What happens when a member leaves</title>
+  <desc id="d">ACCESS or an admin ends a membership. Connectors remove the scheduler association and the group membership. An admin deletes the account or allocation, which marks its storage folders for deletion. The PAM module then refuses the account's next device-flow login. The admin approves each deletion.</desc>
+  <style>
+    .bg{fill:#ffffff}.panel{fill:#f6f8fa;stroke:#d1d9e0}.card{fill:#ffffff;stroke:#d1d9e0}
+    .h{font:600 20px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .s{font:400 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}
+    .b{font:400 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .m{font:400 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#59636e}
+    .who{fill:#fff1e5;stroke:#f0883e}.whot{font:600 11.5px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#bc4c00}
+    .auto{fill:#dafbe1;stroke:#4ac26b}.autot{font:600 11.5px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1a7f37}
+    @media (prefers-color-scheme: dark){
+      .bg{fill:#0d1117}.panel{fill:#151b23;stroke:#3d444d}.card{fill:#0d1117;stroke:#3d444d}
+      .h,.b{fill:#f0f6fc}.s,.m{fill:#9198a1}
+      .who{fill:#2b1d12;stroke:#db6d28}.whot{fill:#f0883e}
+      .auto{fill:#12261e;stroke:#2ea043}.autot{fill:#3fb950}
+    }
+    @keyframes a1{0%{opacity:.15}3%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a1{animation:a1 12s ease-out infinite}
+    @keyframes a2{0%,14%{opacity:.15}17%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a2{animation:a2 12s ease-out infinite}
+    @keyframes a3{0%,28%{opacity:.15}31%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a3{animation:a3 12s ease-out infinite}
+    @keyframes a4{0%,42%{opacity:.15}45%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a4{animation:a4 12s ease-out infinite}
+    @keyframes a5{0%,56%{opacity:.15}59%{opacity:1}92%{opacity:1}100%{opacity:.15}}
+    .a5{animation:a5 12s ease-out infinite}
+    @media (prefers-reduced-motion: reduce){.a1,.a2,.a3,.a4,.a5{animation:none}}
+  </style>
+  <rect class="bg" width="960" height="452" rx="12"/>
+  <rect class="panel" x="16" y="16" width="928" height="420" rx="10"/>
+  <text class="h" x="36" y="50">When a member leaves</text>
+  <text class="s" x="36" y="74">ACCESS sends request_account_inactivate, or an admin ends the membership. An admin deletes the account to end login and storage.</text>
+
+  <g transform="translate(36,96)">
+    <g class="a1"><rect class="card" width="888" height="56" rx="7"/><rect class="auto" x="12" y="18" width="100" height="20" rx="10"/><text class="autot" x="62" y="32" text-anchor="middle">Scheduler</text><text class="b" x="128" y="33">Removes the member's association on that allocation.</text><text class="m" x="876" y="33" text-anchor="end">on the event, or the next sweep</text></g>
+    <g class="a2" transform="translate(0,66)"><rect class="card" width="888" height="56" rx="7"/><rect class="auto" x="12" y="18" width="100" height="20" rx="10"/><text class="autot" x="62" y="32" text-anchor="middle">Accounts</text><text class="b" x="128" y="33">Removes the allocation group membership.</text><text class="m" x="876" y="33" text-anchor="end">on the event</text></g>
+    <g class="a3" transform="translate(0,132)"><rect class="card" width="888" height="56" rx="7"/><rect class="who" x="12" y="18" width="100" height="20" rx="10"/><text class="whot" x="62" y="32" text-anchor="middle">Admin</text><text class="b" x="128" y="33">Deletes the account (API) or allocation (portal). Custos marks its storage folders.</text><text class="m" x="876" y="33" text-anchor="end">staff step 1</text></g>
+    <g class="a4" transform="translate(0,198)"><rect class="card" width="888" height="56" rx="7"/><rect class="auto" x="12" y="18" width="100" height="20" rx="10"/><text class="autot" x="62" y="32" text-anchor="middle">PAM module</text><text class="b" x="128" y="33">Checks the directory at each device-flow login. A deleted account is refused.</text><text class="m" x="876" y="33" text-anchor="end">keys: after the SSSD cache, 90 min</text></g>
+    <g class="a5" transform="translate(0,264)"><rect class="card" width="888" height="56" rx="7"/><rect class="who" x="12" y="18" width="100" height="20" rx="10"/><text class="whot" x="62" y="32" text-anchor="middle">Admin</text><text class="b" x="128" y="33">Approves each deletion. The folders move to the storage trash.</text><text class="m" x="876" y="33" text-anchor="end">staff step 2, per top folder</text></g>
+  </g>
+</svg>

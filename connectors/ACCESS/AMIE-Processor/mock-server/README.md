@@ -17,52 +17,68 @@
     under the License.
 -->
 
-# AMIE Traffic Tools
+# AMIE traffic tools
 
 Two scripts you can use together or on their own:
 
 - **`mock-amie-server.py`** — a local AMIE server to generate different packet types (valid, invalid, or a mix).
 - **`amie-traffic.js`** — a k6 load test. Use this when you want continuous traffic at varying rates, either against the local server or with the AMIE test endpoint.
 
-## Mock server (different packet types)
+## Mock server
 
-Start it:
+The mock is a Flask app on port 8180. It has no authentication, so it listens on `127.0.0.1`. Set
+`MOCK_AMIE_HOST=0.0.0.0` for other hosts.
 
 ```bash
-python3 mock-amie-server.py
+python3 -m venv venv                          # first time only
+./venv/bin/pip install -r requirements.txt    # first time only
+./venv/bin/python mock-amie-server.py
 ```
 
+Point the connector at it with `AMIE_BASE_URL=http://localhost:8180`, `AMIE_SITE_CODE=TESTSITE` and `AMIE_API_KEY=dev`.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `MOCK_AMIE_HOST` | `127.0.0.1` | Listen address |
+| `MOCK_AMIE_RESOURCE` | `mock-cluster.example.edu` | Resource name in generated packets. The default matches no catalog resource, so allocations get none. |
+| `DEV_EMAIL` | | Email the `dev_email` scenario places in its projects |
+
+The mock holds back packets whose `ProjectID` is a `__GRANT__<grant number>` placeholder. After the connector replies
+with `notify_project_create`, it fills in the Custos project ID and serves them.
+
+### Endpoints
+
+| Route | Purpose |
+|---|---|
+| `GET /packets/<site>` | Serve the queued packets that are ready |
+| `POST /packets/<site>/<id>/reply` | Accept a reply |
+| `POST /test/<site>/scenarios?type=<name>` | Queue a scenario |
+| `POST /test/<site>/reset` | Clear packets, replies and counters |
+| `GET /stats` | Pending, replied and created counts |
+| `GET /` | Health check the connector reads |
+
+### Generated scenarios
+
+| `type` | What it queues |
+|---|---|
+| `baseline` | The 12-packet fixture of the pipeline test, see [`../testdata/scenarios/README.md`](../testdata/scenarios/README.md) |
+| `mixed` | 6 valid and 4 invalid packets |
+| `success_only` | 8 valid packets |
+| `failures_only` | 8 invalid packets |
+| `heavy` | 15 valid and 10 invalid packets |
+| `all_handlers` | One packet per handler type |
+| `dev_email` | `DEV_EMAIL` in several projects with different roles. Empty without `DEV_EMAIL` |
+
+An unknown `type` queues 3 valid and 2 invalid packets.
+
 ```bash
-# mix of success and failure packets
 curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=mixed'
 
-# only success packets
-curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=success_only'
-
-# only failure packets
-curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=failures_only'
-
-# heavy batch
-curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=heavy'
-
-# dev email across multiple projects with different roles (requires DEV_EMAIL)
+DEV_EMAIL=jdoe@example.org ./venv/bin/python mock-amie-server.py
 curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=dev_email'
 ```
 
-Point `access-amie` at it with `AMIE_BASE_URL=http://localhost:8180`.
-
-### `dev_email` scenario
-
-Run the `dev_email` scenario to generate AMIE packets placing DEV_EMAIL in multiple projects with different roles.
-
-```bash
-DEV_EMAIL=jdoe@etest.org python3 mock-amie-server.py
-curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=dev_email'
-```
-
-Today the access-amie handlers persist PI and USER memberships only; Co-PI and Allocation Manager positions require handler enhancement to read a role field from the AMIE packet.
-
-### Configurations with real people
+### Scenarios with real people
 
 Each file in `scenarios/` is one configuration. It lists projects, the people on them, and merges. Send one by its file name:
 
@@ -84,11 +100,14 @@ A person needs only `first`, `last` and `email`. The other keys (`global_id`, `n
 
 A project can set its own `resource` and `allocation_type` (`new`, `transfer`, `supplement`), to send what a real site sends, such as the whole cluster resource name instead of a partition.
 
-The mock has no auth, so it listens on `127.0.0.1`. Set `MOCK_AMIE_HOST=0.0.0.0` to reach it from another host.
-
-Set `MOCK_AMIE_RESOURCE` to a resource in the Custos cluster catalog so the allocations it creates get a partition; the default `mock-cluster.example.edu` is skipped.
-
 ## Load test (k6)
+
+The k6 script creates scenarios at a changing rate over about 20 minutes. The target sets the scenarios:
+
+| Target | Scenarios |
+|---|---|
+| a localhost URL | the mock's `mixed`, `success_only`, `failures_only` and `heavy` |
+| the AMIE test endpoint | reactivate, merge and modify |
 
 Install k6, then run it. If you're hitting the local server, start that one first:
 
@@ -103,8 +122,6 @@ AMIE_BASE_URL=http://localhost:8180 AMIE_API_KEY=dev AMIE_SITE=TESTSITE k6 run a
 AMIE_API_KEY=<your-key> AMIE_SITE=<your-site> k6 run amie-traffic.js
 ```
 
-## Traffic Profile (~20 minutes)
-
 ```
 VUs
  8 |                                              *
@@ -115,10 +132,8 @@ VUs
      warm  ramp    peak     cool  steady  quiet  spike  recovery
 ```
 
-## Environment Variables
-
 | Variable | Default                                  | Description |
 |----------|------------------------------------------|-------------|
 | `AMIE_API_KEY` | (required)                               | AMIE API authentication key |
 | `AMIE_BASE_URL` | `https://a3mdev.xsede.org/amie-api-test` | AMIE test API base URL |
-| `AMIE_SITE` | `TESTSITE`                               | Site code for AMIE |
+| `AMIE_SITE` | (required)                               | Site code for AMIE, sent as `XA-SITE` |

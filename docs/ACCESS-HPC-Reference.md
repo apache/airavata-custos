@@ -17,48 +17,55 @@
     under the License.
 -->
 
-### Reference architecture for an ACCESS Resource Provider
+# ACCESS Resource Provider Reference
 
-![ACCESS Reference](./access-reference.png)
+A reference architecture for an ACCESS-CI resource provider that runs Custos. It covers where allocations come from,
+what Custos does with them and how users sign in. Read it when you plan a Custos deployment for an ACCESS cluster.
+The [glossary](glossary.md) defines terms such as AMIE and site code.
 
-## Allocation Sources
+![ACCESS reference architecture](./access-reference.png)
+
+## Allocation sources
 
 Typical ACCESS clusters can have 2 main allocation feeding sources:
 
-1. **ACCESS Accounting Database (XACCT)**: ACCESS already has the proposal submission workflow. Once completed by the user and ACCESS admins, ACCESS sends resource allocation requests through AIME protocols.
+1. **ACCESS Accounting Database (XACCT)**: ACCESS already has the proposal submission workflow. Once completed by the user and ACCESS admins, ACCESS sends resource allocation requests through AMIE protocols.
 
 2. **Resource Provider Discretion**: A dedicated eXtensible Resource Allocation Service (XRAS) is deployed for registering proposals, review, and submission to allocation management at the final stage.
 
-## Allocation Management and Actions
+## Allocation management
 
-Once approved, both sources feed into the Custos allocation manager, which registers events and takes necessary actions:
+The AMIE connector (`connectors/ACCESS/AMIE-Processor`) imports ACCESS allocations. It polls the AMIE API, applies
+each packet to core users, projects and allocations, and replies to ACCESS. Core then publishes events for other
+connectors. This reference uses these, each optional:
 
-1. **Provision a new user account** if that user is not available on the cluster
-2. **Update/create allocation entries** on SLURM allocation database
+| Action | Connector |
+|---|---|
+| Give each approved cluster account a POSIX identity in COmanage | `connectors/COmanage/Identity-Provisioner` |
+| Create or update SLURM accounts and associations | `connectors/SLURM/Association-Mapper` |
+| Create account and project directories with quotas on VAST | `connectors/Storage/VAST-Provisioner` |
 
-### Provisioning Reference Architecture
+### Account provisioning
 
 Provisioning requests are forwarded to CILogon Comanage to carry out the provisioning workflow. Comanage is responsible for populating preconfigured LDAP entries on the cluster's LDAP server, which tracks the cluster's Linux user accounts through NSS.
 
-### SLURM Database Updates
+### SLURM updates
 
-SLURM database updates are discussed in [GitHub Issue #462](https://github.com/apache/airavata-custos/issues/462).
+The Association-Mapper manages accounts, associations and TRES (trackable resource) limits through `slurmrestd`. Its configuration is in
+[`connectors/SLURM/Association-Mapper/README.md`](../connectors/SLURM/Association-Mapper/README.md). The design
+discussion is [GitHub issue #462](https://github.com/apache/airavata-custos/issues/462).
 
-## Cluster Authentication Mechanisms
+## Cluster sign-in
 
-Two mechanisms are proposed for authenticating into the HPC:
+Custos ships two sign-in extensions. A site deploys either or both, alongside or instead of SSH keys or passwords.
+This reference uses the [CILogon PAM module](../extensions/CILogon-SSH-PAM/README.md).
 
-### 1. CILogon PAM Extension
+### CILogon PAM module (`extensions/CILogon-SSH-PAM`)
 
-Users authenticate through the CILogon device authentication flow. Once authenticated, PAM validates the CILogon ID against LDAP to find the local account requested at the SSH prompt. If both match, the user is allowed to sign in. System admins can define additional filtering rules at the allocation management level to implement further access control.
+Users authenticate through the CILogon device authentication flow. Once authenticated, [PAM](../extensions/CILogon-SSH-PAM/README.md#how-it-works) validates the CILogon ID against LDAP to find the local account requested at the SSH prompt. If both match, the user is allowed to sign in.
 
-### 2. SSH Certificates
+### SSH certificates (`extensions/SSH-Certificate-Signer`)
 
-SSH certificates are temporary credentials derived by a trusted root certificate in the cluster. This involves:
-- An external signer service
-- CILogon authentication at the service level
-- Creation of delegated and scoped access credentials for the cluster
-
-Users can hand over SSH certificates to third-party services for restricted access.
-
-
+An SSH certificate is a short-lived credential signed by a CA the cluster trusts. A gateway, such as a science
+portal, sends the signer the user's OIDC token and SSH public key. The signer checks the token and returns a short-lived certificate for one principal.
+The gateway then reaches the cluster on the user's behalf.
