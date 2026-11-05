@@ -190,3 +190,27 @@ func (s *pgEventDeliveryStore) ResetDeliveryToPending(ctx context.Context, tx *s
 		models.EventDeliveryPending, nextRunAt, id)
 	return err
 }
+
+func (s *pgEventDeliveryStore) ListExhaustedRequests(ctx context.Context, eventTypes []string, before time.Time) ([]models.ExhaustedRequest, error) {
+	var rows []models.ExhaustedRequest
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT DISTINCT d.subscriber, e.event_type, e.payload->>'id' AS entity_id
+		 FROM event_deliveries d JOIN events e ON e.id = d.event_id
+		 WHERE d.status = $1 AND d.finished_at < $2 AND e.event_type = ANY($3)
+		   AND EXISTS (SELECT 1 FROM event_subscriptions s WHERE s.subscriber = d.subscriber AND s.event_type = e.event_type)
+		   AND NOT EXISTS (
+		     SELECT 1 FROM event_deliveries n JOIN events ne ON ne.id = n.event_id
+		     WHERE n.subscriber = d.subscriber AND ne.event_type = e.event_type
+		       AND ne.payload->>'id' = e.payload->>'id' AND n.created_at > d.created_at)`,
+		models.EventDeliveryFailed, before, eventTypes)
+	return rows, err
+}
+
+func (s *pgEventDeliveryStore) DeleteUnsubscribedPending(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM event_deliveries d USING events e
+		 WHERE e.id = d.event_id AND d.status = $1
+		   AND NOT EXISTS (SELECT 1 FROM event_subscriptions s WHERE s.subscriber = d.subscriber AND s.event_type = e.event_type)`,
+		models.EventDeliveryPending)
+	return err
+}

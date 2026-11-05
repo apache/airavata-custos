@@ -508,6 +508,10 @@ type EventDeliveryStore interface {
 	MarkDeliveryFailed(ctx context.Context, tx *sql.Tx, id string, attempts int, lastError string, finishedAt time.Time) error
 	// ResetDeliveryToPending makes a delivery due again with a fresh attempt count, within the provided transaction. The last error is kept.
 	ResetDeliveryToPending(ctx context.Context, tx *sql.Tx, id string, nextRunAt time.Time) error
+	// ListExhaustedRequests returns each subscribed entity on eventTypes whose latest delivery failed before cutoff.
+	ListExhaustedRequests(ctx context.Context, eventTypes []string, before time.Time) ([]models.ExhaustedRequest, error)
+	// DeleteUnsubscribedPending removes the pending deliveries whose subscriber no longer subscribes to their event type.
+	DeleteUnsubscribedPending(ctx context.Context) error
 }
 
 // RoleStore covers role definitions and the privilege bundle each carries.

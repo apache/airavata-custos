@@ -29,6 +29,13 @@ type EventSubscription struct {
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
 
+// ExhaustedRequest is an entity whose latest request to Subscriber ran out of retries.
+type ExhaustedRequest struct {
+	Subscriber string `db:"subscriber"`
+	EventType  string `db:"event_type"`
+	EntityID   string `db:"entity_id"`
+}
+
 // Event is one published event. It is stored only when it has a subscriber.
 type Event struct {
 	ID        string          `json:"id" db:"id"`

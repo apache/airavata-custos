@@ -138,7 +138,15 @@ func subscribeTyped[T any](b *Bus, subscriber string, topic EventType, handler f
 // transaction, so everything is committed or rolled back together.
 // Nothing is written when nobody subscribes.
 func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload any) error {
-	subscribers := b.subscribersOf(string(topic))
+	return b.publish(ctx, tx, topic, payload, b.subscribersOf(string(topic)))
+}
+
+// PublishTo stores the event with a delivery for one subscriber only.
+func (b *Bus) PublishTo(ctx context.Context, tx *sql.Tx, subscriber string, topic EventType, payload any) error {
+	return b.publish(ctx, tx, topic, payload, []string{subscriber})
+}
+
+func (b *Bus) publish(ctx context.Context, tx *sql.Tx, topic EventType, payload any, subscribers []string) error {
 	if len(subscribers) == 0 {
 		return nil
 	}
@@ -185,6 +193,20 @@ func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload 
 		}
 	}
 	return nil
+}
+
+// Exhausted returns each entity on topics whose latest delivery to a still subscribed connector failed before cutoff.
+func (b *Bus) Exhausted(ctx context.Context, topics []EventType, before time.Time) ([]models.ExhaustedRequest, error) {
+	names := make([]string, len(topics))
+	for i, t := range topics {
+		names[i] = string(t)
+	}
+	return b.store.ListExhaustedRequests(ctx, names, before)
+}
+
+// PurgeUnsubscribed deletes the pending deliveries of subscriptions that no longer exist.
+func (b *Bus) PurgeUnsubscribed(ctx context.Context) error {
+	return b.store.DeleteUnsubscribedPending(ctx)
 }
 
 // Subscribed reports whether any connector, loaded or not, subscribes to topic, so core knows whether to await it.

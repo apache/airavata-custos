@@ -132,6 +132,9 @@ A membership create share-locks its user and allocation, and the resync after an
 Core decides when a connector has work and publishes a request in the transaction of the write that causes it.
 A connector handles one entity per request and reports completion through a core mark, which publishes the next event.
 A request nobody subscribes to is not awaited: core stamps its mark itself.
+Every 5 minutes core settles requests against current subscriptions: it stamps those whose connector was disabled
+and drops pending deliveries no subscription holds. A request whose latest delivery ran out of retries an hour ago
+is sent again while its entity still applies. Notifications are not resent.
 
 The scheduler and storage connectors act on accounts the identity step provisioned. Any combination of the three
 is valid: with no identity connector, core marks approved accounts provisioned, and the cluster's accounts must
