@@ -486,6 +486,10 @@ type EventDeliveryStore interface {
 	ListSubscriptions(ctx context.Context) ([]models.EventSubscription, error)
 	// DeleteSubscriptions removes every subscription of the given subscriber.
 	DeleteSubscriptions(ctx context.Context, subscriber string) error
+	// ListUnsyncedSubscriptions returns the subscriptions not yet sent their topic's current state.
+	ListUnsyncedSubscriptions(ctx context.Context) ([]models.EventSubscription, error)
+	// MarkSubscriptionSynced records that the subscriber was sent the topic's current state.
+	MarkSubscriptionSynced(ctx context.Context, tx *sql.Tx, subscriber, eventType string) error
 	// DeleteSubscription removes one subscriber's subscription to one event type.
 	DeleteSubscription(ctx context.Context, subscriber, eventType string) error
 

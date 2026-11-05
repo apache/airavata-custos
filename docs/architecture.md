@@ -133,8 +133,9 @@ The settle pass also repairs drift from writes that bypass the service, publishi
 Core decides when a connector has work and publishes a request in the transaction of the write that causes it.
 A connector handles one entity per request and reports completion through a core mark, which publishes the next event.
 A request nobody subscribes to is not awaited: core stamps its mark itself.
-Every 5 minutes core settles requests against current subscriptions: it stamps those whose connector was disabled
-and drops pending deliveries no subscription holds. A request whose latest delivery ran out of retries an hour ago
+Every 5 minutes core settles requests against current subscriptions: it stamps those whose connector was disabled,
+drops pending deliveries no subscription holds, and sends a connector new to a topic that topic's current state,
+once. A request whose latest delivery ran out of retries an hour ago
 is sent again while its entity still applies. Notifications are not resent.
 
 The scheduler and storage connectors act on accounts the identity step provisioned. Any combination of the three

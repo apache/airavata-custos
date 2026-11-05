@@ -15,10 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Core keeps connector requests settled against the current subscriptions, so turning a connector off in config
-// never strands work. A request whose topic lost its subscribers is done by core, as if never sent, and its pending
-// deliveries are dropped. A request whose retries ran out is sent again, at most once per reissueAfter. Connectors
-// handle every request idempotently; notifications are never resent.
+// Core keeps connector requests settled against the current subscriptions, so turning a connector on or off in
+// config never strands work. A request whose topic lost its subscribers is done by core, as if never sent, and its
+// pending deliveries are dropped. A subscriber new to a topic is sent the topic's current state, addressed to it
+// alone, so a connector enabled late or given a new topic catches up. A request whose retries ran out is sent again,
+// at most once per reissueAfter. Connectors handle every request idempotently; notifications are never resent.
 
 package service
 
@@ -73,7 +74,7 @@ type clusterState struct {
 	allocs   []models.ComputeAllocation
 }
 
-// settleConnectors does the requests nobody subscribes to and resends exhausted ones.
+// settleConnectors does the requests nobody subscribes to, resends exhausted ones and syncs each new subscriber.
 func (s *Service) settleConnectors(ctx context.Context) error {
 	clusters, err := s.clusters.List(ctx)
 	if err != nil {
@@ -88,7 +89,23 @@ func (s *Service) settleConnectors(ctx context.Context) error {
 			return err
 		}
 	}
-	return errors.Join(s.eventBus.PurgeUnsubscribed(ctx), s.settleUnsubscribed(ctx, states), s.reissueExhausted(ctx, clusters, states))
+	errs := []error{s.eventBus.PurgeUnsubscribed(ctx), s.settleUnsubscribed(ctx, states), s.reissueExhausted(ctx, clusters, states)}
+	subs, err := s.eventBus.Unsynced(ctx)
+	errs = append(errs, err)
+	for _, sub := range subs {
+		errs = append(errs, s.inTx(ctx, func(tx *sql.Tx) error {
+			send := func(payload any) error {
+				return s.eventBus.PublishTo(ctx, tx, sub.Subscriber, events.EventType(sub.EventType), payload)
+			}
+			for i, c := range clusters {
+				if err := s.replayTx(ctx, tx, events.EventType(sub.EventType), c.ID, states[i], send); err != nil {
+					return err
+				}
+			}
+			return s.eventBus.MarkSynced(ctx, tx, sub.Subscriber, sub.EventType)
+		}))
+	}
+	return errors.Join(errs...)
 }
 
 // settleUnsubscribed runs the mark of every outstanding request whose topic nobody subscribes to.
@@ -160,7 +177,7 @@ func entityID(p any) string {
 	return ""
 }
 
-// replayTx sends the current requests of one cluster on topic; topics with no state to resend send nothing.
+// replayTx sends the current state of one cluster for topic; topics with no state to resend send nothing.
 func (s *Service) replayTx(ctx context.Context, tx *sql.Tx, topic events.EventType, clusterID string, st clusterState, send func(any) error) error {
 	var payloads []any
 	switch topic {
@@ -180,7 +197,13 @@ func (s *Service) replayTx(ctx context.Context, tx *sql.Tx, topic events.EventTy
 		for _, a := range st.allocs {
 			payloads = append(payloads, a)
 		}
-	case events.ComputeAllocationMembershipStorageRequestEvent:
+	case events.ComputeAllocationGroupProvisionEvent:
+		for _, a := range st.allocs {
+			if a.GroupProvisionedAt != nil {
+				payloads = append(payloads, a)
+			}
+		}
+	case events.ComputeAllocationMembershipReadyEvent, events.ComputeAllocationMembershipStorageRequestEvent:
 		grouped := map[string]bool{}
 		for _, a := range st.allocs {
 			grouped[a.ID] = a.GroupProvisionedAt != nil
@@ -190,7 +213,7 @@ func (s *Service) replayTx(ctx context.Context, tx *sql.Tx, topic events.EventTy
 			return err
 		}
 		for _, m := range ms {
-			if m.ReadyAt != nil && grouped[m.ComputeAllocationID] {
+			if m.ReadyAt != nil && (topic == events.ComputeAllocationMembershipReadyEvent || grouped[m.ComputeAllocationID]) {
 				payloads = append(payloads, m)
 			}
 		}

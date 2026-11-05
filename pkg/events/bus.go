@@ -146,6 +146,16 @@ func (b *Bus) PublishTo(ctx context.Context, tx *sql.Tx, subscriber string, topi
 	return b.publish(ctx, tx, topic, payload, []string{subscriber})
 }
 
+// Unsynced returns the subscriptions whose subscriber has not been sent the topic's current state.
+func (b *Bus) Unsynced(ctx context.Context) ([]models.EventSubscription, error) {
+	return b.store.ListUnsyncedSubscriptions(ctx)
+}
+
+// MarkSynced records, in tx, that the subscriber was sent the topic's current state.
+func (b *Bus) MarkSynced(ctx context.Context, tx *sql.Tx, subscriber, topic string) error {
+	return b.store.MarkSubscriptionSynced(ctx, tx, subscriber, topic)
+}
+
 func (b *Bus) publish(ctx context.Context, tx *sql.Tx, topic EventType, payload any, subscribers []string) error {
 	if len(subscribers) == 0 {
 		return nil

@@ -62,6 +62,19 @@ func (s *pgEventDeliveryStore) ListSubscriptions(ctx context.Context) ([]models.
 	return rows, nil
 }
 
+func (s *pgEventDeliveryStore) ListUnsyncedSubscriptions(ctx context.Context) ([]models.EventSubscription, error) {
+	var rows []models.EventSubscription
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT subscriber, event_type, created_at FROM event_subscriptions WHERE synced_at IS NULL ORDER BY subscriber, event_type`)
+	return rows, err
+}
+
+func (s *pgEventDeliveryStore) MarkSubscriptionSynced(ctx context.Context, tx *sql.Tx, subscriber, eventType string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE event_subscriptions SET synced_at = now() WHERE subscriber = $1 AND event_type = $2`, subscriber, eventType)
+	return err
+}
+
 func (s *pgEventDeliveryStore) DeleteSubscriptions(ctx context.Context, subscriber string) error {
 	_, err := s.db.ExecContext(ctx,
 		`DELETE FROM event_subscriptions WHERE subscriber = $1`, subscriber)
