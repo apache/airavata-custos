@@ -35,7 +35,7 @@ services:
     volumes:
       - ../compose/dbinit:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U admin -d custos" ]
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U admin -d custos" ]
       interval: 2s
       timeout: 5s
       retries: 30
