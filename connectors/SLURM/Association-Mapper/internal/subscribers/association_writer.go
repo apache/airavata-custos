@@ -104,9 +104,12 @@ func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error
 // The event handlers use this. An event means something changed, so the
 // record is written without checking the cluster first.
 func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
-	association, err := a.desiredAssociationForMembership(ctx, membership)
+	association, ready, err := a.desiredAssociationForMembership(ctx, membership)
 	if err != nil || association == nil {
 		return err
+	}
+	if !ready {
+		return errNotProvisioned
 	}
 	if err := a.writeAssociation(*association); err != nil {
 		return fmt.Errorf("upsert association: %w", err)
@@ -117,37 +120,37 @@ func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Cont
 
 // Builds the member's association without writing it. It has no partition,
 // so the cluster's own partition settings decide where the member can run.
-// Returns nil when the allocation is not active.
-func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Context, membership models.ComputeAllocationMembership) (*client.Association, error) {
+// Returns nil when the allocation is not active, and ready once the account is past the provision grace.
+func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Context, membership models.ComputeAllocationMembership) (*client.Association, bool, error) {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
-		return nil, fmt.Errorf("get compute allocation: %w", err)
+		return nil, false, fmt.Errorf("get compute allocation: %w", err)
 	}
 	if !activeAllocation(*allocation) {
-		return nil, nil
+		return nil, false, nil
 	}
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
-		return nil, fmt.Errorf("get compute cluster: %w", err)
+		return nil, false, fmt.Errorf("get compute cluster: %w", err)
 	}
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
 	if errors.Is(err, service.ErrNotFound) {
-		return nil, errNotProvisioned
+		return nil, false, errNotProvisioned
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get compute cluster user: %w", err)
+		return nil, false, fmt.Errorf("get compute cluster user: %w", err)
 	}
 	if csu.ProvisionedAt == nil {
-		return nil, errNotProvisioned
+		return nil, false, errNotProvisioned
 	}
 
 	overrides, err := a.coreService.ListOverridesForMembership(ctx, membership.ID)
 	if err != nil {
-		return nil, fmt.Errorf("list overrides for membership: %w", err)
+		return nil, false, fmt.Errorf("list overrides for membership: %w", err)
 	}
 	limits, err := a.limitsFor(ctx, overrides)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	return &client.Association{
 		Account: slurmAccount(allocation.Name),
@@ -155,7 +158,7 @@ func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Cont
 		User:    csu.LocalUsername,
 		QoS:     []string{"normal"},
 		Limits:  limits,
-	}, nil
+	}, a.readyForAssociation(*csu), nil
 }
 
 // Builds the member's limits from their overrides. The association covers

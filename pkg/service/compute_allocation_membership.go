@@ -18,12 +18,12 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
 
 	"github.com/apache/airavata-custos/internal/store"
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -31,7 +31,15 @@ import (
 // compute allocation. Both the referenced allocation and user must exist, and
 // the (allocation, user) pair must not already have a membership.
 // MembershipStatus defaults to ACTIVE when unset.
-func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
+func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (created *models.ComputeAllocationMembership, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) error {
+		created, err = s.CreateComputeAllocationMembershipTx(ctx, tx, m)
+		return err
+	})
+	return created, err
+}
+
+func (s *Service) CreateComputeAllocationMembershipTx(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
 	if m == nil {
 		return nil, fmt.Errorf("%w: compute allocation membership is nil", ErrInvalidInput)
 	}
@@ -66,12 +74,18 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 		m.MembershipStatus = models.ACTIVE
 	}
 
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	if err := func() error {
+		if err := s.lockMembershipPairTx(ctx, tx, m.UserID, m.ComputeAllocationID); err != nil {
+			return err
+		}
 		if err := s.memberships.Create(ctx, tx, m); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipCreateEvent, m)
-	}); err != nil {
+		if err := s.requestGroupsTx(ctx, tx, m.ComputeAllocationID); err != nil {
+			return err
+		}
+		return s.syncMembershipTx(ctx, tx, m.ID)
+	}(); err != nil {
 		return nil, fmt.Errorf("create compute allocation membership: %w", err)
 	}
 	return m, nil
@@ -160,10 +174,26 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.lockMembershipPairTx(ctx, tx, m.UserID, existing.ComputeAllocationID, m.ComputeAllocationID); err != nil {
+			return err
+		}
+		ms, err := s.memberships.FindTx(ctx, tx, store.MembershipFilter{ID: m.ID})
+		if err != nil || len(ms) == 0 {
+			return cmp.Or(err, ErrNotFound)
+		}
+		locked := &ms[0]
+		if locked.ReadyAt != nil && (m.ComputeAllocationID != locked.ComputeAllocationID || m.UserID != locked.UserID) {
+			if err := s.deactivateMembershipTx(ctx, tx, locked); err != nil {
+				return err
+			}
+		}
 		if err := s.memberships.Update(ctx, tx, m); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, m)
+		if err := s.requestGroupsTx(ctx, tx, locked.ComputeAllocationID, m.ComputeAllocationID); err != nil {
+			return err
+		}
+		return s.syncMembershipTx(ctx, tx, m.ID)
 	}); err != nil {
 		return nil, fmt.Errorf("update compute allocation membership: %w", err)
 	}
@@ -187,19 +217,23 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 	if status == "" {
 		return nil, fmt.Errorf("%w: membership_status is required", ErrInvalidInput)
 	}
-	existing, err := s.memberships.FindByIDTx(ctx, tx, id)
+	ms, err := s.memberships.FindTx(ctx, tx, store.MembershipFilter{ID: id})
 	if err != nil {
 		return nil, fmt.Errorf("lookup compute allocation membership: %w", err)
 	}
-	if existing == nil {
+	if len(ms) == 0 {
 		return nil, ErrNotFound
 	}
+	existing := &ms[0]
 	existing.MembershipStatus = status
 	if err := func() error {
 		if err := s.memberships.Update(ctx, tx, existing); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, existing)
+		if err := s.syncMembershipTx(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.requestGroupsTx(ctx, tx, existing.ComputeAllocationID)
 	}(); err != nil {
 		return nil, fmt.Errorf("update compute allocation membership status: %w", err)
 	}
@@ -211,18 +245,12 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
 	}
-	existing, err := s.memberships.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute allocation membership: %w", err)
-	}
-	if existing == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.memberships.Delete(ctx, tx, id); err != nil {
+		// Deactivating first revokes the member's access and resyncs the group before the row goes.
+		if _, err := s.UpdateMembershipStatusTx(ctx, tx, id, models.INACTIVE); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipDeleteEvent, existing)
+		return s.memberships.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation membership: %w", err)
 	}

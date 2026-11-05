@@ -18,9 +18,11 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/apache/airavata-custos/internal/store"
@@ -106,7 +108,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		}
 		// Approved at creation, so provisioning starts now.
 		if cu.ApprovalStatus == models.ClusterAccountApproved {
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+			return s.approveTx(ctx, tx, cu)
 		}
 		return nil
 	}); err != nil {
@@ -164,7 +166,7 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 		}); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+		return s.approveTx(ctx, tx, cu)
 	}); err != nil {
 		return nil, fmt.Errorf("approve compute cluster user: %w", err)
 	}
@@ -221,14 +223,7 @@ func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, revi
 	if reviewerID == "" {
 		return nil, fmt.Errorf("%w: reviewer is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
-	if err != nil {
-		return nil, fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return nil, ErrNotFound
-	}
-	return cu, nil
+	return s.lockClusterUserTx(ctx, tx, id)
 }
 
 func isLocalUsernameDuplicate(err error) bool {
@@ -322,24 +317,24 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 	if cu == nil || cu.ID == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	existing, err := s.clusterUsers.FindByID(ctx, cu.ID)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if existing == nil {
-		return ErrNotFound
-	}
-	if cu.ComputeClusterID == "" {
-		cu.ComputeClusterID = existing.ComputeClusterID
-	}
-	if cu.UserID == "" {
-		cu.UserID = existing.UserID
-	}
-	if cu.LocalUsername == "" {
-		cu.LocalUsername = existing.LocalUsername
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusterUsers.Update(ctx, tx, cu)
+		existing, err := s.lockClusterUserTx(ctx, tx, cu.ID, cu.UserID)
+		if err != nil {
+			return err
+		}
+		cu.ComputeClusterID = cmp.Or(cu.ComputeClusterID, existing.ComputeClusterID)
+		cu.UserID = cmp.Or(cu.UserID, existing.UserID)
+		cu.LocalUsername = cmp.Or(cu.LocalUsername, existing.LocalUsername)
+		if err := s.clusterUsers.Update(ctx, tx, cu); err != nil {
+			return err
+		}
+		if cu.UserID == existing.UserID && cu.ComputeClusterID == existing.ComputeClusterID {
+			return nil
+		}
+		if err := s.resyncMembersTx(ctx, tx, store.MembershipFilter{UserID: existing.UserID, ClusterID: existing.ComputeClusterID}); err != nil {
+			return err
+		}
+		return s.resyncMembersTx(ctx, tx, store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID})
 	}); err != nil {
 		return fmt.Errorf("update compute cluster user: %w", err)
 	}
@@ -348,35 +343,61 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 
 // MarkComputeClusterUserProvisioned stamps provisioned_at on the mapping, signaling that the account exists in the registry.
 // It first runs once an admin approves the cluster account, and again on the user's first sign-in
-// and on retries, so provisioned_at is stamped and the provision event published only the first time.
+// and on retries, so provisioned_at is stamped and storage requested only the first time.
 func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		now := nowUTC()
-		firstTime, err := s.clusterUsers.MarkProvisioned(ctx, tx, id, now)
+		cu, err := s.lockClusterUserTx(ctx, tx, id)
 		if err != nil {
 			return err
 		}
-		if firstTime {
-			cu.ProvisionedAt = &now
-		}
-		if firstTime {
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserProvisionEvent, cu)
-		}
-		return nil
+		return s.markProvisionedTx(ctx, tx, cu)
 	}); err != nil {
 		return fmt.Errorf("mark compute cluster user provisioned: %w", err)
 	}
 	return nil
+}
+
+// markProvisionedTx stamps provisioned_at the first time, then requests storage, readies memberships and resyncs groups.
+func (s *Service) markProvisionedTx(ctx context.Context, tx *sql.Tx, cu *models.ComputeClusterUser) error {
+	if err := s.lockUsersTx(ctx, tx, cu.UserID); err != nil {
+		return err
+	}
+	now := nowUTC()
+	firstTime, err := s.clusterUsers.MarkProvisioned(ctx, tx, cu.ID, now)
+	if err != nil || !firstTime {
+		return err
+	}
+	cu.ProvisionedAt = &now
+	if err := s.requestTx(ctx, tx, events.ComputeClusterUserStorageRequestEvent, cu, func() error {
+		return s.markStorageProvisionedTx(ctx, tx, cu.ID)
+	}); err != nil {
+		return err
+	}
+	return s.resyncMembersTx(ctx, tx, store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID})
+}
+
+// MarkComputeClusterUserStorageProvisioned stamps storage_provisioned_at, signaling that the account's own directories exist.
+func (s *Service) MarkComputeClusterUserStorageProvisioned(ctx context.Context, id string) error {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.markStorageProvisionedTx(ctx, tx, id) }); err != nil {
+		return fmt.Errorf("mark compute cluster user storage provisioned: %w", err)
+	}
+	return nil
+}
+
+// markStorageProvisionedTx publishes ready on the first stamp, since storage follows identity.
+func (s *Service) markStorageProvisionedTx(ctx context.Context, tx *sql.Tx, id string) error {
+	firstTime, err := s.clusterUsers.MarkStorageProvisioned(ctx, tx, id, nowUTC())
+	if err != nil || !firstTime {
+		return err
+	}
+	cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+	if err != nil || cu == nil {
+		return err
+	}
+	return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserReadyEvent, cu)
 }
 
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.
@@ -384,20 +405,49 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		cu, err := s.lockClusterUserTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu)
+		if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
+			return err
+		}
+		return s.resyncMembersTx(ctx, tx, store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID})
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster user: %w", err)
+	}
+	return nil
+}
+
+// lockClusterUserTx locks the account's user and any others given, then the account, the order a merge takes.
+func (s *Service) lockClusterUserTx(ctx context.Context, tx *sql.Tx, id string, users ...string) (*models.ComputeClusterUser, error) {
+	unlocked, err := s.clusterUsers.FindByID(ctx, id)
+	if err != nil || unlocked == nil {
+		return nil, cmp.Or(err, ErrNotFound)
+	}
+	if err := s.lockUsersTx(ctx, tx, append(users, unlocked.UserID)...); err != nil {
+		return nil, err
+	}
+	cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+	switch {
+	case err != nil || cu == nil:
+		return nil, cmp.Or(err, ErrNotFound)
+	case cu.UserID != unlocked.UserID:
+		return nil, fmt.Errorf("%w: compute cluster user moved to another user", ErrInUse)
+	}
+	return cu, nil
+}
+
+// lockUsersTx locks the users in id order before their accounts are written.
+func (s *Service) lockUsersTx(ctx context.Context, tx *sql.Tx, ids ...string) error {
+	for _, id := range slices.Compact(slices.Sorted(slices.Values(ids))) {
+		if _, err := s.users.FindByIDTx(ctx, tx, id, store.NoKeyUpdateLock); err != nil {
+			return err
+		}
 	}
 	return nil
 }

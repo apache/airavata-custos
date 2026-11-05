@@ -108,7 +108,7 @@ shutdown the HTTP server gets 15 seconds to finish in-flight requests. The serve
 `connectors/SLURM/Rest-Client` is the shared `slurmrestd` client library, not a connector. `GET /connectors` lists
 the configured connectors with their load status and requires `core:clusters:read`.
 
-The SLURM, VAST and account-ready email steps wait until the COmanage connector marks the account provisioned
+The SLURM and VAST steps act on core's requests and ready events, and the account-ready email on `ready`
 ([connector guide](contributing/writing-a-connector.md#9-event-bus-if-you-publish-or-subscribe)).
 
 ### Extensions
@@ -120,6 +120,26 @@ configuration.
 |---|---|---|
 | `CILogon-SSH-PAM` | A PAM module that lets `sshd` accept an OIDC device-flow login, CILogon at Custos sites | Does not call core |
 | `SSH-Certificate-Signer` | Signs short-lived SSH certificates for OIDC-authenticated callers | Calls core `GET /me` to read the caller's privileges for its admin APIs |
+
+### Connector requests
+
+Core decides when a connector has work and publishes a request in the transaction of the write that causes it.
+A connector handles one entity per request and reports completion through a core mark, which publishes the next event.
+A request nobody subscribes to is not awaited: core stamps its mark itself.
+At startup core does the requests of connectors turned off since the last run and drops their pending deliveries.
+With no identity connector, the cluster's accounts must exist by other means.
+A membership grants access while it and its allocation are `ACTIVE`, the scheduler has the allocation's account,
+and the member's account on the allocation's cluster is provisioned; core records it in `ready_at`.
+Each write changing it publishes `compute_allocation_membership::ready` or `compute_allocation_membership::deactivate`
+in the same transaction: membership writes, allocation status, account provisioning, account removal and user merges.
+
+| Request | Published when | Done |
+|---|---|---|
+| `compute_cluster_user::identity_request` | an account is approved; its user onboards | `MarkComputeClusterUserProvisioned` |
+| `compute_allocation::group_request` | an allocation or membership is written; an account is provisioned, deleted or merged | `compute_allocation::group_provision` |
+| `compute_allocation::scheduler_request` | an allocation is created | `MarkComputeAllocationSchedulerProvisioned` readies its members |
+| `compute_cluster_user::storage_request` | an account is provisioned | `MarkComputeClusterUserStorageProvisioned`, then `compute_cluster_user::ready` |
+| `compute_allocation_membership::storage_request` | a member is ready and its allocation group is provisioned | the delivery succeeds |
 
 ## Identity and authentication
 
@@ -196,8 +216,8 @@ This example follows one request through identity, the service layer and the eve
 3. The router dispatches the request. `RequirePrivilege` checks for `core:clusters:write` and returns `403` when it
    is absent.
 4. The handler calls `coreService.ApproveComputeClusterUser`. Inside one transaction the service records the
-   review, writes an `audit_events` row and publishes `compute_cluster_user::approve`. The audit row and the event
-   carry the request's `trace_id` and `span_id`.
+   review, writes an `audit_events` row and publishes `compute_cluster_user::approve` and
+   `compute_cluster_user::identity_request`. The audit row and the events carry the request's `trace_id` and `span_id`.
 5. The bus stores the event with one delivery row per subscriber, in that same transaction. The change, the audit
    row and the event commit or roll back together.
 6. The handler returns the response.

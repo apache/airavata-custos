@@ -123,33 +123,3 @@ func (a *AssociationSubscriber) removeUserFromCluster(ctx context.Context, csu m
 func activeAllocation(allocation models.ComputeAllocation) bool {
 	return allocation.Status == models.ACTIVE
 }
-
-// restoreAssociationsForAllocation re-grants every active member of an
-// allocation, for when the allocation becomes usable again. Members whose
-// account is not provisioned yet are left to the reconciler, the same as on
-// first membership.
-func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
-	members, err := a.coreService.ListMembersForAllocation(ctx, allocation.ID)
-	if err != nil {
-		return fmt.Errorf("list members for allocation: %w", err)
-	}
-	var failed int
-	for _, member := range members {
-		if member.MembershipStatus != models.ACTIVE {
-			continue
-		}
-		if err := a.upsertAssociationsForMembership(ctx, member.ComputeAllocationMembership); err != nil {
-			if errors.Is(err, errNotProvisioned) {
-				continue
-			}
-			failed++
-			slog.ErrorContext(ctx, "Failed to restore association for member",
-				"membership_id", member.ID, "allocation_id", allocation.ID, "error", err)
-		}
-	}
-	if failed > 0 {
-		return fmt.Errorf("%d of %d members could not be restored", failed, len(members))
-	}
-	slog.InfoContext(ctx, "Restored associations for allocation", "account", allocation.Name, "members", len(members))
-	return nil
-}

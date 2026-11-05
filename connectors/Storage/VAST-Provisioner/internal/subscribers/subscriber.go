@@ -81,10 +81,9 @@ func NewStorageSubscriber(bus *events.Bus, core service.CoreService, clusters ma
 // Each event creates only its own user's or allocation's mounts, so a failure
 // names the right user and can be retried alone. The reconciler does the rest.
 func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
-	s.bus.SubscribeComputeClusterUserProvisioned(subscriber, s.ensureUser)
-	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
-	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
-	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeClusterUserStorageRequested(subscriber, s.ensureUser)
+	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureGroup)
+	s.bus.SubscribeComputeAllocationMembershipStorageRequested(subscriber, s.ensureMember)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.markUser)
 	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.markAllocation)
 }
@@ -107,44 +106,26 @@ func (s *StorageSubscriber) mark(ctx context.Context, clusterID, ownerKind, owne
 	return nil
 }
 
-// ensureUser needs no approval check: COmanage provisions approved accounts only.
-// After the account's own mounts, it creates the account's mount in each of its allocations.
+// ensureUser creates the account's own mounts and marks them done, even on an unlisted cluster, so core can ready it.
 func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClusterUser) error {
-	c, ok := s.clusters[cu.ComputeClusterID]
-	if !ok || cu.ProvisionedAt == nil {
+	// A retried request can outlive its account, so it acts on the current row.
+	row, err := s.core.GetComputeClusterUser(ctx, cu.ID)
+	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
-	if err := s.ensureMounts(ctx, c, cu.LocalUsername, nil); err != nil {
-		return err
-	}
-	memberships, err := s.core.ListAllocationsForUser(ctx, cu.UserID)
 	if err != nil {
 		return err
 	}
-	for _, m := range memberships {
-		if m.MembershipStatus != models.ACTIVE {
-			continue
-		}
-		a, _, err := s.provisionedAllocation(ctx, m.ComputeAllocationID)
-		if err != nil {
-			return err
-		}
-		if a == nil || a.ComputeClusterID != cu.ComputeClusterID {
-			continue
-		}
-		if err := s.ensureMemberMounts(ctx, c, cu.LocalUsername, a); err != nil {
+	if c, ok := s.clusters[row.ComputeClusterID]; ok {
+		if err := s.ensureMounts(ctx, c, row.LocalUsername, nil); err != nil {
 			return err
 		}
 	}
-	return nil
+	return s.core.MarkComputeClusterUserStorageProvisioned(ctx, row.ID)
 }
 
-// ensureMember creates the member's mount in the allocation. A member without a
-// provisioned account is skipped, its provision event creates the mount later.
+// ensureMember makes a ready member's project directory; core sends it only once the member's account is provisioned.
 func (s *StorageSubscriber) ensureMember(ctx context.Context, m models.ComputeAllocationMembership) error {
-	if m.MembershipStatus != models.ACTIVE {
-		return nil
-	}
 	a, c, err := s.provisionedAllocation(ctx, m.ComputeAllocationID)
 	if err != nil || a == nil {
 		return err
@@ -189,6 +170,14 @@ func (s *StorageSubscriber) ensureMemberMounts(ctx context.Context, c Cluster, u
 		return err
 	}
 	return s.ensureMounts(ctx, c, user, a)
+}
+
+func (s *StorageSubscriber) ensureGroup(ctx context.Context, a models.ComputeAllocation) error {
+	c, ok := s.allocationCluster(a)
+	if !ok {
+		return nil
+	}
+	return s.ensureMounts(ctx, c, "", &a)
 }
 
 // ensureAllocation creates an allocation's mounts once its group is on the cluster, then each provisioned member's.
@@ -272,7 +261,11 @@ func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster)
 	errs := []error{err}
 	for _, cu := range users {
 		if cu.ProvisionedAt != nil {
-			errs = append(errs, s.ensureMounts(ctx, c, cu.LocalUsername, nil))
+			err := s.ensureMounts(ctx, c, cu.LocalUsername, nil)
+			if err == nil && cu.StorageProvisionedAt == nil {
+				err = s.core.MarkComputeClusterUserStorageProvisioned(ctx, cu.ID)
+			}
+			errs = append(errs, err)
 		}
 	}
 	allocs, err := s.core.ListComputeAllocationsByCluster(ctx, id)

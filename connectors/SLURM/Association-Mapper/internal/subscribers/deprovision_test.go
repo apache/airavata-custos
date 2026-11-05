@@ -55,37 +55,10 @@ func TestMembershipDeactivationRemovesAssociations(t *testing.T) {
 	}
 }
 
-// Flipping back to ACTIVE re-grants access rather than leaving the member cut off.
-func TestMembershipReactivationRestoresAssociations(t *testing.T) {
-	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
-	slurm := &fakeSlurmClient{}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipUpdated(context.Background(), testMembership())
-
-	if n := len(slurm.allDeletes()); n != 0 {
-		t.Fatalf("an active membership must not be deprovisioned, got %d deletes", n)
-	}
-	if n := len(slurm.all()); n != 1 {
-		t.Fatalf("expected the association to be restored, got %d writes", n)
-	}
-}
-
-func TestMembershipDeletionRemovesAssociations(t *testing.T) {
-	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
-	slurm := &fakeSlurmClient{}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationMembershipDeleted(context.Background(), testMembership())
-
-	got := slurm.allDeletes()
-	if len(got) != 1 || got[0].User != "testuser" || got[0].Account != "test-alloc" {
-		t.Fatalf("expected the member's associations to be removed, got %+v", got)
-	}
-}
-
-// A membership deleted alongside its allocation or cluster account arrives after
+// A deactivation sent as its allocation or cluster account is deleted arrives after
 // they are gone; the delivery must succeed instead of retrying a lookup that
 // can never pass.
-func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
+func TestMembershipDeactivationWithMissingRecordsSucceeds(t *testing.T) {
 	for name, gone := range map[string]func(*service.CoreServiceMock){
 		"cluster account": func(c *service.CoreServiceMock) {
 			c.GetComputeClusterUserByPairFunc = func(context.Context, string, string) (*models.ComputeClusterUser, error) {
@@ -103,7 +76,7 @@ func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
 			gone(core)
 			slurm := &fakeSlurmClient{}
 			err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
-				handleComputeAllocationMembershipDeleted(context.Background(), testMembership())
+				handleComputeAllocationMembershipUpdated(context.Background(), testMembership())
 			if err != nil {
 				t.Fatalf("expected success, got %v", err)
 			}
@@ -111,65 +84,6 @@ func TestMembershipDeletionWithMissingRecordsSucceeds(t *testing.T) {
 				t.Errorf("nothing to delete without the record, got %d deletes", n)
 			}
 		})
-	}
-}
-
-func TestAllocationDeactivationRemovesAllAssociations(t *testing.T) {
-	core := coreMock(mockOpts{})
-	slurm := &fakeSlurmClient{}
-	alloc := models.ComputeAllocation{
-		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.INACTIVE,
-	}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationUpdated(context.Background(), alloc)
-
-	got := slurm.allDeletes()
-	if len(got) != 1 {
-		t.Fatalf("expected 1 delete, got %d", len(got))
-	}
-	// No user pinned: every member of the allocation loses access.
-	if got[0].Account != "test-alloc" || got[0].User != "" {
-		t.Errorf("expected an account-wide delete, got %+v", got[0])
-	}
-}
-
-// An allocation coming back to ACTIVE restores its members here and now,
-// rather than leaving them without access until the next reconciler pass.
-func TestAllocationReactivationRestoresMemberAssociations(t *testing.T) {
-	core := coreMock(mockOpts{
-		provisionedAt: ago(time.Minute),
-		memberships:   []models.ComputeAllocationMembership{testMembership()},
-	})
-	slurm := &fakeSlurmClient{}
-	alloc := models.ComputeAllocation{
-		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.ACTIVE,
-	}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationUpdated(context.Background(), alloc)
-
-	if n := len(slurm.allDeletes()); n != 0 {
-		t.Fatalf("an active allocation must not be deprovisioned, got %d deletes", n)
-	}
-	if n := len(slurm.all()); n != 1 {
-		t.Fatalf("expected the active member's association to be restored, got %d writes", n)
-	}
-}
-
-// Members whose account is not provisioned yet stay with the reconciler.
-func TestAllocationReactivationSkipsUnprovisionedMembers(t *testing.T) {
-	core := coreMock(mockOpts{
-		provisionedAt: nil,
-		memberships:   []models.ComputeAllocationMembership{testMembership()},
-	})
-	slurm := &fakeSlurmClient{}
-	alloc := models.ComputeAllocation{
-		ID: "alloc-1", Name: "test-alloc", ComputeClusterID: "cluster-1", Status: models.ACTIVE,
-	}
-	NewAssociationSubscriber(slurm, nil, core, 0, 0).
-		handleComputeAllocationUpdated(context.Background(), alloc)
-
-	if n := len(slurm.all()); n != 0 {
-		t.Fatalf("expected no association for an unprovisioned account, got %d", n)
 	}
 }
 

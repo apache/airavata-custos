@@ -323,7 +323,7 @@ func TestPruneKeepsSubscriptionsOfSubscribersThatDidNotLoad(t *testing.T) {
 	// A fresh process where "loaded" dropped the delete topic and "absent" did not start.
 	bus := newBus(t, database)
 	bus.SubscribeComputeClusterUserCreated("loaded", noop)
-	bus.pruneSubscriptionsOnStart(context.Background())
+	bus.PruneSubscriptions(context.Background())
 
 	subs, err := bus.store.ListSubscriptions(context.Background())
 	if err != nil {

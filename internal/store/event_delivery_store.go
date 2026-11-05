@@ -64,7 +64,8 @@ func (s *pgEventDeliveryStore) ListSubscriptions(ctx context.Context) ([]models.
 
 func (s *pgEventDeliveryStore) DeleteSubscriptions(ctx context.Context, subscriber string) error {
 	_, err := s.db.ExecContext(ctx,
-		`DELETE FROM event_subscriptions WHERE subscriber = $1`, subscriber)
+		`WITH pending AS (DELETE FROM event_deliveries WHERE subscriber = $1 AND status = $2)
+		 DELETE FROM event_subscriptions WHERE subscriber = $1`, subscriber, models.EventDeliveryPending)
 	return err
 }
 

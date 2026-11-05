@@ -34,9 +34,6 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// Subscriber drives the orchestrator from three events,
-// ComputeClusterUserApproveEvent, ComputeClusterUserDeleteEvent, and UserOnboardedEvent.
-// Both are ignored if the user doesn't have a cluster account on `CustosClusterID`.
 type Subscriber struct {
 	ops             provisioner
 	bus             *events.Bus
@@ -64,18 +61,10 @@ func NewSubscriber(c *client.Client, bus *events.Bus, core *service.Service, cus
 
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (s *Subscriber) RegisterSubscribers(subscriber string) {
-	// Provisioning needs an approved account and an onboarded user approving the user agreement.
-	// Whichever of the `approve event` and the `onboarded event` comes second starts it.
-	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
+	s.bus.SubscribeComputeClusterUserIdentityRequested(subscriber, s.handleClusterUserApproved)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
-	s.bus.SubscribeUserOnboarded(subscriber, s.handleUserOnboarded)
-
-	s.bus.SubscribeComputeAllocationCreated(subscriber, s.handleComputeAllocationChanged)
-	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.handleComputeAllocationChanged)
+	s.bus.SubscribeComputeAllocationGroupRequested(subscriber, s.handleComputeAllocationChanged)
 	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.handleComputeAllocationDeleted)
-	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.handleMembershipChanged)
-	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.handleMembershipChanged)
-	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
 }
 
 // handleClusterUserDeleted removes the account from the registry.
@@ -91,42 +80,7 @@ func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.Com
 		slog.ErrorContext(ctx, "comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
-	return s.syncUserAllocations(ctx, cu.UserID)
-}
-
-// handleUserOnboarded re-runs provisioning once the `User` has a `sub`.
-// A user provisioned before their first sign-in has none in the registry, so
-// the cluster cannot match the person to their ssh login.
-func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) error {
-	ctx = audit.WithSource(ctx, "comanage")
-	ctx, span := tracing.Start(ctx, "comanage.user_onboarded")
-	defer span.End()
-	span.SetAttributes(attribute.String("comanage.user_id", user.ID))
-
-	cu, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, user.ID)
-	if errors.Is(err, service.ErrNotFound) {
-		// Expected for portal admins, system users, and temp users, which have no compute cluster account.
-		slog.DebugContext(ctx, "comanage subscriber: no cluster account to link the sub to", "user_id", user.ID, "cluster_id", s.custosClusterID)
-		return nil
-	}
-	if err != nil {
-		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", user.ID, "err", err)
-		return err
-	}
-	if err := s.ops.EnsureClusterAccount(ctx, cu); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
-		return err
-	}
-	if cu.AccessLevel == models.ClusterAccessAdmin && cu.ApprovalStatus == models.ClusterAccountApproved {
-		if err := s.ops.EnsureClusterAdminMembership(ctx, cu); err != nil {
-			span.RecordError(err)
-			slog.ErrorContext(ctx, "comanage subscriber: EnsureClusterAdminMembership failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
-			return err
-		}
-	}
-	return s.syncUserAllocations(ctx, cu.UserID)
+	return nil
 }
 
 func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
@@ -134,8 +88,17 @@ func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.Co
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_approved")
 	defer span.End()
 
-	if cu.ComputeClusterID != s.custosClusterID {
+	// A retried request can outlive its account, so it acts on the current row.
+	row, err := s.core.GetComputeClusterUser(ctx, cu.ID)
+	if errors.Is(err, service.ErrNotFound) {
 		return nil
+	}
+	if err != nil {
+		return err
+	}
+	cu = *row
+	if cu.ComputeClusterID != s.custosClusterID {
+		return s.core.MarkComputeClusterUserProvisioned(ctx, cu.ID)
 	}
 	span.SetAttributes(
 		attribute.String("comanage.cluster_user_id", cu.ID),
@@ -147,7 +110,7 @@ func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.Co
 	}
 	if oidc == nil {
 		// The registry needs the sign-in sub, so provisioning waits for the first sign-in.
-		// The onboarded event runs it then.
+		// Core requests it again at onboarding.
 		_, _ = s.core.CreateAuditEvent(ctx, &models.AuditEvent{
 			EventType:  "ComanageProvisioningDeferred",
 			EntityID:   cu.ID,
@@ -180,5 +143,5 @@ func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.Co
 			return err
 		}
 	}
-	return s.syncUserAllocations(ctx, cu.UserID)
+	return nil
 }
