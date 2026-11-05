@@ -1,4 +1,6 @@
+#include <vector>
 #include "gtest/gtest.h"
+#include "include/config.hpp"
 #include "pam_oauth2_device.hpp"
 
 
@@ -19,8 +21,8 @@ namespace
 
 TEST(PamTest, Device)
 {
-    Config config;
-    pam_oauth2_log logger;
+    Config config{};
+    pam_oauth2_log logger(nullptr, pam_oauth2_log::log_level_t::OFF);
     DeviceAuthResponse response;
     make_authorization_request(config,
 			       logger,
@@ -38,8 +40,13 @@ TEST(PamTest, Device)
 
 TEST(PamTest, Token)
 {
+    Config config;
+    config.client_id = CLIENT_ID;
+    config.client_secret = CLIENT_SECRET;
+    config.http_basic_auth = true;
+    pam_oauth2_log logger(nullptr, pam_oauth2_log::log_level_t::OFF);
     std::string token;
-    poll_for_token(CLIENT_ID, CLIENT_SECRET,
+    poll_for_token(config, logger, CLIENT_ID, CLIENT_SECRET,
                    TOKEN_ENDPOINT,
                    DEVICE_CODE, token);
     EXPECT_EQ(token, ACCESS_TOKEN);
@@ -47,14 +54,15 @@ TEST(PamTest, Token)
 
 TEST(PamTest, Userinfo)
 {
-    Userinfo userinfo;
-    get_userinfo(USERINFO_ENDPOINT,
-                 ACCESS_TOKEN,
-                 USERNAME_ATTRIBUTE,
-                 &userinfo);
-    EXPECT_EQ(userinfo.sub, "YzQ4YWIzMzJhZjc5OWFkMzgwNmEwM2M5");
-    EXPECT_EQ(userinfo.username, "jdoe");
-    EXPECT_EQ(userinfo.name, "Joe Doe");
+    Config config{};
+    pam_oauth2_log logger(nullptr, pam_oauth2_log::log_level_t::OFF);
+    Userinfo userinfo = get_userinfo(config, logger,
+                                     USERINFO_ENDPOINT,
+                                     ACCESS_TOKEN,
+                                     USERNAME_ATTRIBUTE);
+    EXPECT_EQ(userinfo.sub(), "YzQ4YWIzMzJhZjc5OWFkMzgwNmEwM2M5");
+    EXPECT_EQ(userinfo.username(), "jdoe");
+    EXPECT_EQ(userinfo.name(), "Joe Doe");
 }
 
 } // namespace
