@@ -5726,6 +5726,29 @@ paths:
       summary: List compute cluster users for a user
       tags:
       - Compute Cluster Users
+  /users/{id}/deactivate:
+    post:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a user
+      tags:
+      - Users
   /users/{id}/privileges:
     get:
       description: Returns DIRECT grants only (not role-derived). Combine with `GET

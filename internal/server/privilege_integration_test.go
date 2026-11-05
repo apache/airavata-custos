@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/apache/airavata-custos/internal/tracing"
@@ -369,5 +370,22 @@ func TestCreateUser_WithoutUsersWrite_403(t *testing.T) {
 	}
 	if count != 0 {
 		t.Errorf("a caller without users:write created a user")
+	}
+}
+
+// Make sure write cannot deactivate through a status update, which the deactivate privilege gates.
+func TestStatusUpdate_InactiveNeedsDeactivate(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	user := seedUser(t, database, "user@example.edu")
+	for path, body := range map[string]string{
+		"/users/u1/status":                          `{"status":"INACTIVE"}`,
+		"/compute-allocation-memberships/m1/status": `{"membership_status":"INACTIVE"}`,
+	} {
+		rr := httptest.NewRecorder()
+		req := withTestCaller(httptest.NewRequest(http.MethodPut, path, strings.NewReader(body)), user, models.UsersWrite, models.AllocationsWrite)
+		srv.ServeHTTP(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", path, rr.Code)
+		}
 	}
 }

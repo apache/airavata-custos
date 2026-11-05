@@ -18,6 +18,7 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/apache/airavata-custos/pkg/common"
@@ -107,6 +108,10 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 	}
 	if err := common.DecodeJSON(r, &body); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if body.MembershipStatus == models.INACTIVE {
+		common.WriteError(w, http.StatusBadRequest, errors.New("use POST /compute-allocation-memberships/{id}/deactivate"))
 		return
 	}
 	updated, err := s.svc.UpdateMembershipStatus(r.Context(), r.PathValue("id"), body.MembershipStatus)

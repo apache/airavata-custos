@@ -18,6 +18,7 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/apache/airavata-custos/pkg/common"
@@ -134,12 +135,31 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	if models.UserStatus(req.Status) == models.UserInactive {
+		common.WriteError(w, http.StatusBadRequest, errors.New("use POST /users/{id}/deactivate"))
+		return
+	}
 	u, err := s.svc.UpdateUserStatus(r.Context(), r.PathValue("id"), models.UserStatus(req.Status))
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
 	common.WriteJSON(w, http.StatusOK, u)
+}
+
+// @Summary	Deactivate a user
+// @Tags	Users
+// @Security	BearerAuth
+// @Param	id	path	string	true	"User ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/deactivate [post]
+func (s *Server) deactivateUser(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.svc.UpdateUserStatus(r.Context(), r.PathValue("id"), models.UserInactive); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type userNameUpdateRequest struct {

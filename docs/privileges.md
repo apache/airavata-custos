@@ -56,6 +56,7 @@ A key exists only once it is registered with `models.Register(...)`. Grants and 
 | `core:projects:write` | `POST /projects`, `PUT /projects/{id}`, `PUT /projects/{id}/status`, `DELETE /projects/{id}`, `PUT /projects/{id}/members/{userId}` |
 | `core:users:read` | `GET /users`<br>`GET /users/{id}`<br>`GET /user-identities/{id}`<br>`GET /user-identities/sources/{source}/external/{externalId}`<br>`GET /user-identities/oidc-subjects/{oidcSub}`<br>`GET /users/{id}/user-identities` |
 | `core:users:write` | `POST /users`<br>`PUT /users/{id}`<br>`PUT /users/{id}/status`<br>`POST /users/merge`<br>`POST /user-identities`<br>`PUT /user-identities/{id}`<br>`DELETE /user-identities/{id}` |
+| `core:users:deactivate` | `POST /users/{id}/deactivate` |
 | `core:organizations:read` | `GET /organizations`<br>`GET /organizations/{id}` |
 | `core:organizations:write` | `POST /organizations` |
 | `core:traces:read` | `GET /audit/traces`<br>`GET /audit/traces/{trace_id}`<br>`GET /audit/events`<br>`GET /audit/sources`<br>`GET /events/deliveries`<br>`GET /events/deliveries/{id}`<br>`GET /events/subscriptions` |
