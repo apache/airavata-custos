@@ -20,7 +20,9 @@ package main
 // graph shapes the JSON that GET /events/graph serves.
 // Each Event is a bus topic. Its Entry list names what publishes it first:
 // API, timer, startup or a connector type. Subs counts connector subscribers.
-// An Edge links two events. A Term ends a flow.
+// An Edge runs from an event to what a connector handler on it publishes.
+// Events one write publishes together are siblings, never linked; an event no connector takes is a leaf.
+// A Term ends a flow.
 
 import (
 	"cmp"
@@ -42,9 +44,7 @@ type Event struct {
 	Subs  int     `json:"subs"`
 }
 
-// Edge is a transition from one event to the next.
-// Kind core: a core function publishes To after From.
-// Kind conn: a connector handler on From publishes To directly, not through another of its topics.
+// Edge is a connector handler on From whose call into core publishes To.
 type Edge struct {
 	From  string   `json:"from"`
 	To    string   `json:"to"`
@@ -54,8 +54,6 @@ type Edge struct {
 	Sites []string `json:"sites"`
 	Chain []string `json:"chain"`
 	Cond  bool     `json:"cond"`
-	// Order marks a core pair published in a helper and then its caller: sequence, not cause.
-	Order bool `json:"order,omitempty"`
 }
 
 // Term is a connector handler on From that publishes no event.
@@ -142,7 +140,7 @@ func (st *state) graph() Graph {
 		node(e.To)
 		k := [3]string{e.From, e.To, e.Actor}
 		if o := edges[k]; o != nil {
-			o.Cond, o.Order = o.Cond && e.Cond, o.Order && e.Order
+			o.Cond = o.Cond && e.Cond
 			for _, s := range e.Sites {
 				o.Sites = appendU(o.Sites, s)
 			}
@@ -156,30 +154,13 @@ func (st *state) graph() Graph {
 		node(o.topic)
 		pubSite[[2]string{o.chain[0], o.topic}] = o.pubPos
 	}
-	trans := map[[2]string]bool{}
-	for _, x := range st.trans {
-		if x.From == x.To {
-			continue
-		}
-		trans[[2]string{x.From, x.To}] = true
-		edge(&Edge{From: x.From, To: x.To, Kind: "core", Conn: "core", Actor: actor(x.Func), Sites: []string{x.SiteFrom + " → " + x.SiteTo},
-			Chain: shorts(x.Chain), Cond: x.Conditional, Order: actor(x.Chain[0]) != actor(x.Func)})
-	}
-
-	// An entry starts the topics its root publishes that no transition from another of them explains.
 	for _, r := range st.roots {
 		if r.kind == "handler" {
 			continue
 		}
-		var ts []string
 		for _, e := range st.emits {
 			if e.Handler == fname(r.fn) && e.RootKind == r.kind {
-				ts = append(ts, e.Topic)
-			}
-		}
-		for _, t := range ts {
-			if !slices.ContainsFunc(ts, func(a string) bool { return a != t && trans[[2]string{a, t}] }) {
-				node(t).Entry = append(node(t).Entry, Entry{st.entryKind(r), rootLabel(r.key)})
+				node(e.Topic).Entry = append(node(e.Topic).Entry, Entry{st.entryKind(r), rootLabel(r.key)})
 			}
 		}
 	}
@@ -191,13 +172,9 @@ func (st *state) graph() Graph {
 		c := st.connName(s.Connector)
 		name := c + "." + actor(s.Handler)
 		node(s.Topic).Subs++
-		var primary []string
-		if s.hfn != nil {
-			primary = st.handlerPrimary(st.trans, s.Handler, s.hfn)
-		}
 		emitted := false
 		for _, e := range st.emits {
-			if e.RootKind != "handler" || e.Handler != s.Handler || s.hfn != nil && !slices.Contains(primary, e.Topic) {
+			if e.RootKind != "handler" || e.Handler != s.Handler {
 				continue
 			}
 			emitted = true

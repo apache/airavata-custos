@@ -112,7 +112,6 @@ type state struct {
 	sinks      map[*ssa.Function]*Sink
 	unresolved []map[string]any
 	loadErrs   []string
-	trans      []Transition
 }
 
 func analyse() *state {
@@ -193,7 +192,6 @@ func analyse() *state {
 			st.emits = append(st.emits, best[t])
 		}
 	}
-	st.trans = st.coreTransitions()
 	return st
 }
 

@@ -75,13 +75,12 @@ export const eventGraphSchema = z.object({
     z.object({
       from: z.string(),
       to: z.string(),
-      kind: z.enum(["core", "conn"]),
+      kind: z.literal("conn"),
       conn: z.string(),
       actor: z.string(),
       sites: list(z.string()),
       chain: list(z.string()),
       cond: z.boolean(),
-      order: z.boolean().optional(),
     }),
   ),
   terms: z.array(
