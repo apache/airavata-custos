@@ -59,6 +59,7 @@ The placeholders decide which event creates the entry:
 | `compute_allocation::group_provision` | The project's directories, once the group's first member puts it on the cluster |
 | `compute_allocation_membership::storage_request` | That member's project directory, once the member is ready and the group provisioned |
 | `compute_cluster_user::delete` | Marks the account's directories for deletion, including its directory in each project |
+| `compute_cluster_user::deactivate` | Marks the account's directories for deletion |
 | `compute_allocation::delete` | Marks the project's directories, and its members' directories inside them, for deletion |
 | Startup, then once per `reconcile_interval` | Everything, for each provisioned account and each allocation on each cluster |
 

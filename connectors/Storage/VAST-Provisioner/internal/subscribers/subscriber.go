@@ -84,6 +84,7 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserStorageRequested(subscriber, s.ensureUser)
 	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationMembershipStorageRequested(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeClusterUserDeactivated(subscriber, s.markUser)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.markUser)
 	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.markAllocation)
 }
@@ -256,7 +257,7 @@ func (s *StorageSubscriber) reconcile(ctx context.Context, id string, c Cluster)
 	users, err := s.core.ListComputeClusterUsersByCluster(ctx, id)
 	errs := []error{err}
 	for _, cu := range users {
-		if cu.ProvisionedAt == nil {
+		if cu.ProvisionedAt == nil || cu.Status == models.INACTIVE {
 			continue
 		}
 		err := s.ensureMounts(ctx, c, cu.LocalUsername, nil)
