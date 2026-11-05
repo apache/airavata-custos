@@ -6,7 +6,7 @@ SRC_DIR = ../src
 
 CPPFLAGS += -isystem -I$(GTEST_DIR)/include -I$(SRC_DIR)/include -I$(SRC_DIR)
 
-CXXFLAGS += -g -Wall -Wextra -Wno-unused-parameter -pthread -std=c++11
+CXXFLAGS += -g -Wall -Wextra -Wno-unused-parameter -pthread -std=c++17
 
 LDLIBS=-lpam -lcurl -lldap -llber
 

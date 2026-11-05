@@ -196,8 +196,9 @@ cmp_file_string(char const *filename, std::string const &string)
         if(c1 != c2) {
             return index;
         }
+        ++index;
     }
-    return -1;    // match
+    return foo.peek() == EOF ? -1 : index;    // -1: match
 }
 
 
