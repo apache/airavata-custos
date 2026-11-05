@@ -48,20 +48,20 @@ func (f *fakeOps) RemoveAllocationGroup(context.Context, *models.ComputeAllocati
 	return nil
 }
 
-func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.AuditEvent) {
+func approveWith(t *testing.T, oidc *models.UserIdentity, level models.ClusterAccessLevel) (*fakeOps, []models.AuditEvent) {
 	t.Helper()
 	var audits []models.AuditEvent
+	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: models.ClusterAccountApproved}
 	core := &service.CoreServiceMock{
 		GetOIDCIdentityFunc: func(context.Context, string) (*models.UserIdentity, error) { return oidc, nil },
 		CreateAuditEventFunc: func(_ context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
 			audits = append(audits, *e)
 			return e, nil
 		},
-		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+		GetComputeClusterUserFunc: func(context.Context, string) (*models.ComputeClusterUser, error) { return &cu, nil },
 	}
 	ops := &fakeOps{}
 	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
-	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
 	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 }
 
 func TestClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
-	ops, audits := approveWith(t, nil)
+	ops, audits := approveWith(t, nil, models.ClusterAccessUser)
 	if len(ops.provisioned) != 0 {
 		t.Fatalf("provisioned before first sign-in: %v", ops.provisioned)
 	}
@@ -85,38 +85,18 @@ func TestClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
 }
 
 func TestClusterUserApproved_RunsWithOIDCIdentity(t *testing.T) {
-	ops, _ := approveWith(t, &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"})
+	ops, _ := approveWith(t, &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"}, models.ClusterAccessUser)
 	if len(ops.provisioned) != 1 || ops.provisioned[0] != "cu1" {
 		t.Fatalf("provisioned = %v, want [cu1]", ops.provisioned)
 	}
 }
 
-func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T) {
-	signIn := func(level models.ClusterAccessLevel, approval models.ClusterAccountApproval) *fakeOps {
-		core := &service.CoreServiceMock{
-			GetComputeClusterUserByPairFunc: func(context.Context, string, string) (*models.ComputeClusterUser, error) {
-				return &models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: approval}, nil
-			},
-			ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
-		}
-		ops := &fakeOps{}
-		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
-		if err := s.handleUserOnboarded(context.Background(), models.User{ID: "u1", Status: models.UserActive}); err != nil {
-			t.Fatal(err)
-		}
-		return ops
-	}
-
-	// An admin account joins the cluster admin group on first sign-in.
-	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountApproved); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
+func TestIdentityRequested_JoinsAdminGroupOnlyForAdminAccounts(t *testing.T) {
+	sub := &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"}
+	if ops, _ := approveWith(t, sub, models.ClusterAccessAdmin); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
 		t.Fatalf("admin account: admin group calls = %v, want [cu1]", ops.admins)
 	}
-	// A normal account does not.
-	if ops := signIn(models.ClusterAccessUser, models.ClusterAccountApproved); len(ops.admins) != 0 {
+	if ops, _ := approveWith(t, sub, models.ClusterAccessUser); len(ops.admins) != 0 {
 		t.Fatalf("normal account: admin group calls = %v, want none", ops.admins)
-	}
-	// An admin account still awaiting approval does not.
-	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountPending); len(ops.admins) != 0 {
-		t.Fatalf("pending admin account: admin group calls = %v, want none", ops.admins)
 	}
 }

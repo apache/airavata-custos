@@ -58,12 +58,9 @@ const (
 	auditDeliveryRetried   = "EVENT_DELIVERY_RETRIED"
 )
 
-// Run is started once, after the connectors have loaded. It first drops the
-// subscriptions the loaded connectors no longer handle, then delivers due
+// Run is started once, after the connectors have loaded and PruneSubscriptions ran. It delivers due
 // events until ctx is canceled.
 func (b *Bus) Run(ctx context.Context) {
-	b.pruneSubscriptionsOnStart(ctx)
-
 	slog.Info("event delivery worker started", "interval", pollInterval)
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
@@ -80,11 +77,11 @@ func (b *Bus) Run(ctx context.Context) {
 	}
 }
 
-// pruneSubscriptionsOnStart removes the subscriptions a loaded subscriber no
+// PruneSubscriptions removes the subscriptions a loaded subscriber no
 // longer has a handler for, which happens when a handler function is dropped
 // from the connector's code and the system restarts. A subscriber that did
 // not load (could be due to an issue) is skipped, so its events keep queuing.
-func (b *Bus) pruneSubscriptionsOnStart(ctx context.Context) {
+func (b *Bus) PruneSubscriptions(ctx context.Context) {
 	loaded := make(map[string]struct{})
 	for _, name := range b.loadedSubscribers() {
 		loaded[name] = struct{}{}

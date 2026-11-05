@@ -50,7 +50,7 @@ func (n *Notifier) RegisterSubscribers(bus *events.Bus, subscriber string) {
 	n.source = subscriber
 	bus.SubscribeComputeClusterUserCreated(subscriber, n.requestReceived)
 	bus.SubscribeComputeClusterUserApproved(subscriber, n.requestApproved)
-	bus.SubscribeComputeClusterUserProvisioned(subscriber, n.accountReady)
+	bus.SubscribeComputeClusterUserReady(subscriber, n.accountReady)
 	bus.SubscribeComputeClusterUserDenied(subscriber, n.requestDenied)
 }
 

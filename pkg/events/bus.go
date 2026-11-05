@@ -187,6 +187,11 @@ func (b *Bus) Publish(ctx context.Context, tx *sql.Tx, topic EventType, payload 
 	return nil
 }
 
+// Subscribed reports whether any connector, loaded or not, subscribes to topic, so core knows whether to await it.
+func (b *Bus) Subscribed(topic EventType) bool {
+	return len(b.subscribersOf(string(topic))) > 0
+}
+
 func (b *Bus) subscribersOf(topic string) []string {
 	b.mu.RLock()
 	defer b.mu.RUnlock()

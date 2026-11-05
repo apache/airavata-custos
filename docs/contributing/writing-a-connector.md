@@ -429,6 +429,7 @@ A connector that creates accounts on the cluster must call
 `coreService.MarkComputeClusterUserProvisioned` once each account exists. For an allocation group it calls
 `MarkComputeAllocationGroupProvisioned`. The SLURM Association-Mapper, the VAST-Provisioner and
 the `account-ready` email act only on marked accounts. In this repository, only the COmanage connector sets the mark.
+With no identity connector enabled, core sets it on approval.
 
 ### 11. Audit rows (and `audit_extras` if you have your own references)
 

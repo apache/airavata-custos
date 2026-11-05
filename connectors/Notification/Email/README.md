@@ -28,7 +28,7 @@ account ready. It sends through an SMTP server.
 |---|---|---|
 | `compute_cluster_user::create` | `request-received` | The account is pending approval |
 | `compute_cluster_user::approve` | `request-approved` | The user has not signed in yet, so they must sign in to finish setup |
-| `compute_cluster_user::provision` | `account-ready` | An identity connector, such as COmanage, marks the account provisioned. Without one, this email is never sent. |
+| `compute_cluster_user::ready` | `account-ready` | Core finds the account's identity and storage both done |
 | `compute_cluster_user::deny` | `request-denied` | An administrator denied the request. The email carries the review note |
 
 Each email names the project of the user's first allocation on that cluster. That allocation's request created the
@@ -78,7 +78,7 @@ stay. The server does not start if a file there does not parse.
 | No emails; log shows `required setting not set; skipping` | A required setting is empty | Set it, then restart |
 | A delivery fails at once with `user ... has no email` | The user record has no email | Add the email, then retry the delivery under `/events/deliveries` |
 | Deliveries keep retrying | The SMTP server rejects the connection or login | Check host, port and credentials. A login requires TLS |
-| A user who already signed in gets no `request-approved` email | Expected | They get `account-ready` once the account is provisioned |
+| A user who already signed in gets no `request-approved` email | Expected | They get `account-ready` once the account is ready |
 
 ## Development
 
