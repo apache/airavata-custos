@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -192,5 +193,15 @@ func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	}
 	if left, _ := svc.memberships.FindByUser(ctx(), member); len(left) != 0 {
 		t.Fatalf("%d memberships left", len(left))
+	}
+}
+
+func TestDeleteUser_RefusesAUserStillReferenced(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	pi := seedUser(t, database, "pi@example.edu")
+	newClusterAllocation(t, svc, pi)
+	if err := svc.DeleteUser(ctx(), pi); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete a project PI: %v, want ErrInUse", err)
 	}
 }

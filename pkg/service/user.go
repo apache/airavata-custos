@@ -20,10 +20,12 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // CreateUser persists a new user. If user.ID is empty a new UUID is generated.
@@ -243,6 +245,9 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		}
 		return s.eventBus.Publish(ctx, tx, events.UserDeleteEvent, existing)
 	}); err != nil {
+		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			return fmt.Errorf("%w: user %q is referenced by records that must stay", ErrInUse, id)
+		}
 		return fmt.Errorf("delete user: %w", err)
 	}
 	s.InvalidateAllIdentities()
