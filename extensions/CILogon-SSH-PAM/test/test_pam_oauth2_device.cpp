@@ -40,16 +40,19 @@ TEST(PamTest, Device)
 
 TEST(PamTest, Token)
 {
-    Config config;
-    config.client_id = CLIENT_ID;
-    config.client_secret = CLIENT_SECRET;
-    config.http_basic_auth = true;
-    pam_oauth2_log logger(nullptr, pam_oauth2_log::log_level_t::OFF);
-    std::string token;
-    poll_for_token(config, logger, CLIENT_ID, CLIENT_SECRET,
-                   TOKEN_ENDPOINT,
-                   DEVICE_CODE, token);
-    EXPECT_EQ(token, ACCESS_TOKEN);
+    for (bool basic : {true, false})
+    {
+        Config config;
+        config.client_id = CLIENT_ID;
+        config.client_secret = CLIENT_SECRET;
+        config.http_basic_auth = basic;
+        pam_oauth2_log logger(nullptr, pam_oauth2_log::log_level_t::OFF);
+        std::string token;
+        poll_for_token(config, logger, CLIENT_ID, CLIENT_SECRET,
+                       TOKEN_ENDPOINT,
+                       DEVICE_CODE, token);
+        EXPECT_EQ(token, ACCESS_TOKEN) << "http_basic_auth=" << basic;
+    }
 }
 
 TEST(PamTest, Userinfo)
