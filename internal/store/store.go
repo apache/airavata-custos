@@ -103,7 +103,7 @@ type ComputeClusterUserStore interface {
 	FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error)
 	// ListByApprovalStatus returns mappings joined with the user, cluster and allocation, plus the total. Empty status or query matches all.
 	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
-	// Create inserts a new mapping within the provided transaction.
+	// Create inserts a new mapping within the provided transaction, or reopens the pair's INACTIVE one with its id and username.
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// Review records the admin's decision on the mapping within the provided transaction.
 	Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error

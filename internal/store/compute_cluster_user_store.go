@@ -160,11 +160,15 @@ func (s *pgComputeClusterUserStore) FindByUserTx(ctx context.Context, tx *sql.Tx
 }
 
 func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
-	_, err := tx.ExecContext(ctx,
+	return tx.QueryRowContext(ctx,
 		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, access_level, approval_status, reviewed_at, reviewed_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy)
-	return err
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (compute_cluster_id, user_id) DO UPDATE
+            SET status = 'ACTIVE', access_level = $5, approval_status = $6, reviewed_at = $7, reviewed_by = $8, review_note = NULL, provisioned_at = NULL, storage_provisioned_at = NULL, ready_at = NULL
+          WHERE compute_cluster_users.status = 'INACTIVE'
+         RETURNING id, local_username, status`,
+		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy).
+		Scan(&c.ID, &c.LocalUsername, &c.Status)
 }
 
 // clusterAccountListFrom links each account to the user's newest allocation on

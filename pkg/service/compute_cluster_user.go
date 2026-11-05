@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -91,13 +92,6 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		return nil, fmt.Errorf("%w: user %q not found", ErrInvalidInput, cu.UserID)
 	}
 
-	if existing, err := s.clusterUsers.FindByPair(ctx, cu.ComputeClusterID, cu.UserID); err != nil {
-		return nil, fmt.Errorf("lookup compute cluster user by pair: %w", err)
-	} else if existing != nil {
-		return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
-			ErrAlreadyExists, cu.UserID, cu.ComputeClusterID)
-	}
-
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.clusterUsers.Create(ctx, tx, cu); err != nil {
 			return err
@@ -114,7 +108,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		switch {
 		case isLocalUsernameDuplicate(err):
 			return nil, fmt.Errorf("%w: %s", ErrAlreadyExists, cu.LocalUsername)
-		case isPairDuplicate(err):
+		case errors.Is(err, sql.ErrNoRows):
 			return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
 				ErrAlreadyExists, cu.UserID, cu.ComputeClusterID)
 		default:
@@ -245,10 +239,6 @@ func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, revi
 
 func isLocalUsernameDuplicate(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_local_username")
-}
-
-func isPairDuplicate(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_pair")
 }
 
 // GetComputeClusterUser retrieves a compute-cluster user by its ID.
