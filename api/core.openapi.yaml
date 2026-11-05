@@ -2568,6 +2568,29 @@ paths:
       summary: Update a compute allocation membership
       tags:
       - Compute Allocation Memberships
+  /compute-allocation-memberships/{id}/deactivate:
+    post:
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute allocation membership
+      tags:
+      - Compute Allocation Memberships
   /compute-allocation-memberships/{id}/resource-overrides:
     get:
       parameters:
@@ -3254,6 +3277,29 @@ paths:
       summary: List change requests for a compute allocation
       tags:
       - Compute Allocation Change Requests
+  /compute-allocations/{id}/deactivate:
+    post:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute allocation
+      tags:
+      - Compute Allocations
   /compute-allocations/{id}/diffs:
     get:
       parameters:

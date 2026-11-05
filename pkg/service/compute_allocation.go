@@ -239,6 +239,21 @@ func (s *Service) markSchedulerProvisionedTx(ctx context.Context, tx *sql.Tx, id
 	return s.syncMembershipsTx(ctx, tx, store.MembershipFilter{AllocationID: id})
 }
 
+// DeactivateComputeAllocation makes an active compute allocation and its active memberships INACTIVE.
+func (s *Service) DeactivateComputeAllocation(ctx context.Context, id string) error {
+	alloc, err := s.GetComputeAllocation(ctx, id)
+	if err != nil || alloc.Status != models.ACTIVE {
+		return err
+	}
+	alloc.Status = models.INACTIVE
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
+			return err
+		}
+		return s.deactivateMembershipsTx(ctx, tx, store.MembershipFilter{AllocationID: id})
+	})
+}
+
 // DeleteComputeAllocation removes a compute allocation by ID.
 func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error {
 	if id == "" {

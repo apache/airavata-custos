@@ -85,6 +85,21 @@ func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	Deactivate a compute allocation
+// @Tags	Compute Allocations
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/deactivate [post]
+func (s *Server) deactivateComputeAllocation(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeactivateComputeAllocation(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // @Summary	Create a compute allocation diff
 // @Description	Records a discrete change against a compute allocation (e.g. USAGE_UPDATE or ALLOCATION_STATUS_CHANGE).
 // @Tags	Compute Allocation Diffs

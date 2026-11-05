@@ -92,6 +92,7 @@ func (s *Server) routes() {
 	s.router.RequireAuth("GET /compute-allocations", s.listComputeAllocations)
 	s.router.RequirePrivilege("POST /compute-allocations", models.AllocationsWrite, s.createComputeAllocation)
 	s.router.RequireScoped("GET /compute-allocations/{id}", s.canReadAllocation, s.getComputeAllocation)
+	s.router.RequirePrivilege("POST /compute-allocations/{id}/deactivate", models.AllocationsDeactivate, s.deactivateComputeAllocation)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}", models.AllocationsWrite, s.deleteComputeAllocation)
 
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
@@ -137,6 +138,7 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /compute-allocation-memberships/{id}", models.AllocationsRead, s.getComputeAllocationMembership)
 	s.router.RequirePrivilege("PUT /compute-allocation-memberships/{id}", models.AllocationsWrite, s.updateComputeAllocationMembership)
 	s.router.RequirePrivilege("PUT /compute-allocation-memberships/{id}/status", models.AllocationsWrite, s.updateMembershipStatus)
+	s.router.RequirePrivilege("POST /compute-allocation-memberships/{id}/deactivate", models.AllocationsDeactivate, s.deactivateComputeAllocationMembership)
 	s.router.RequirePrivilege("DELETE /compute-allocation-memberships/{id}", models.AllocationsWrite, s.deleteComputeAllocationMembership)
 	s.router.RequireScoped("GET /compute-allocations/{id}/memberships", s.canReadAllocation, s.listMembersForAllocation)
 	s.router.RequirePrivilege("GET /users/{id}/compute-allocation-memberships", models.AllocationsRead, s.listAllocationsForUser)
