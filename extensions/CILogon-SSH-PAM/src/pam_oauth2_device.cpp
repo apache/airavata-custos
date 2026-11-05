@@ -600,10 +600,9 @@ parse_args(Config &config, [[maybe_unused]] int flags, int argc, const char **ar
         // TODO reallow override in argv
         config.load(config_path);
     }
-    catch (json::exception &e)
+    catch (std::exception const &e)
     {
-	logger.log(pam_oauth2_log::log_level_t::ERR, "Failed to load config:");
-	logger.log(pam_oauth2_log::log_level_t::ERR, e.what());
+	logger.log(pam_oauth2_log::log_level_t::ERR, "Failed to load config: %s", e.what());
 	return false;
     }
 
@@ -644,7 +643,7 @@ bypass(Config const &config, pam_oauth2_log &logger, char const *local_user)
 	}
     }
 
-    if(config.ldap_host.empty() && config.ldap_preauth.empty())
+    if(config.ldap_preauth.empty())
 	return false;
     int scope = ldap_scope_value(config.ldap_scope.c_str());
     if(scope < -1)

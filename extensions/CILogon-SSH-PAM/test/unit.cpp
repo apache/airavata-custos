@@ -79,6 +79,15 @@ bool is_authorized(Config const &config,
 		   Userinfo const &userinfo,
 		   char const *metadata_path = nullptr);
 
+bool parse_args(Config &config, int flags, int argc, const char **argv, pam_oauth2_log &logger);
+
+TEST(PamOAuth2Unit, MissingConfigFailsCleanly)
+{
+    Config config;
+    pam_oauth2_log logger(nullptr, pam_oauth2_log::log_level_t::OFF);
+    EXPECT_FALSE(parse_args(config, 0, 0, nullptr, logger));
+}
+
 
 TEST(PamOAuth2Unit, QrCodeTest)
 {

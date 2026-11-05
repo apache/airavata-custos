@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <fstream>
 #include "gtest/gtest.h"
 #include "include/config.hpp"
 #include "include/nlohmann/json.hpp"
@@ -45,6 +47,19 @@ TEST(ConfigTest, Full)
     EXPECT_EQ(config.usermap["provider_user_id_1"].count("bob"), 1);
     EXPECT_EQ(config.usermap.size(), 3);
     EXPECT_EQ(config.qr_error_correction_level, 0);
+}
+
+TEST(ConfigTest, IncompleteLdap)
+{
+    for (auto const *ldap : {R"j({"host":"ldap://h","attr":"uid"})j", R"j({"host":"ldap://h","filter":"(uid=%s)"})j", R"j({"preauth":"(uid=%s)"})j"})
+    {
+        json j = json::parse(std::ifstream("data/template_noldap.json"));
+        j["ldap"] = json::parse(ldap);
+        std::ofstream("data/ldap.json") << j;
+        Config config;
+        EXPECT_THROW(config.load("data/ldap.json"), std::runtime_error) << ldap;
+    }
+    std::remove("data/ldap.json");
 }
 
 } // namespace
