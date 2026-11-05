@@ -16,7 +16,7 @@
 // under the License.
 
 // Core alone decides when a membership grants access: it and its allocation are ACTIVE, the scheduler has the
-// allocation's account, and the member's account on the allocation's cluster is provisioned; ready_at records it.
+// allocation's account, and the member's account on the allocation's cluster is active and provisioned; ready_at records it.
 // Every ready_at write goes through syncMembershipTx, which publishes ready or deactivate when the answer changes.
 // Writes to a membership's allocation or account resync it through syncMembershipsTx, in the same transaction.
 // A membership create share-locks its user and allocation, and syncMembershipsTx locks them for update, so the two
@@ -115,7 +115,7 @@ func (s *Service) eligibilityTx(ctx context.Context, tx *sql.Tx, membershipID st
 		return nil, nil, false, err
 	}
 	return m, alloc, m.MembershipStatus == models.ACTIVE && alloc.Status == models.ACTIVE && alloc.SchedulerProvisionedAt != nil &&
-		account != nil && account.ProvisionedAt != nil, nil
+		account != nil && account.Status == models.ACTIVE && account.ProvisionedAt != nil, nil
 }
 
 // deactivateMembershipTx clears ready_at and publishes deactivate with m as stored.

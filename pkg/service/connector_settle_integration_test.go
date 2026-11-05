@@ -18,10 +18,12 @@
 package service
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/google/uuid"
 )
 
 // Make sure a request left pending by a connector that is then disabled is done by core, and its delivery dropped.
@@ -93,5 +95,29 @@ func TestSettle_ExhaustedRequestReissued(t *testing.T) {
 	got := published[models.ComputeAllocation](t, svc, events.ComputeAllocationSchedulerRequestEvent)
 	if len(got) != 2 || got[1].ID != f.alloc.ID {
 		t.Fatalf("scheduler requests %+v, want the original and one resend for %s", got, f.alloc.ID)
+	}
+}
+
+// Make sure core does not do a deactivated account's request when its connector is disabled.
+func TestSettle_SkipsInactiveAccount(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	subscribeAll(svc, events.ComputeClusterUserIdentityRequestEvent)
+	f := newLifecycleFixture(t, svc, database, 1, models.ACTIVE)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	if _, err := svc.ApproveComputeClusterUser(ctx(), f.users[0].ID, admin); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := svc.DeactivateComputeClusterUser(ctx(), f.users[0].ID); err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+	if err := svc.EventBus().Unsubscribe(ctx(), "test-subscriber"); err != nil {
+		t.Fatalf("unsubscribe: %v", err)
+	}
+	if err := svc.settleConnectors(ctx()); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	if cu, err := svc.GetComputeClusterUser(ctx(), f.users[0].ID); err != nil || cu.ProvisionedAt != nil {
+		t.Fatalf("inactive account after settle: %+v, %v; want unprovisioned", cu, err)
 	}
 }

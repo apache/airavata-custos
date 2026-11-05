@@ -66,6 +66,8 @@ const (
 	ComputeClusterUserDeleteEvent  EventType = "compute_cluster_user::delete"
 	ComputeClusterUserApproveEvent EventType = "compute_cluster_user::approve"
 	ComputeClusterUserDenyEvent    EventType = "compute_cluster_user::deny"
+	// Core publishes deactivate when an approved account is made INACTIVE; its memberships deactivate with it.
+	ComputeClusterUserDeactivateEvent EventType = "compute_cluster_user::deactivate"
 	// Core asks storage for the account's own directories once its identity exists.
 	ComputeClusterUserStorageRequestEvent EventType = "compute_cluster_user::storage_request"
 	// Core publishes ready once the account's identity and storage are both done.

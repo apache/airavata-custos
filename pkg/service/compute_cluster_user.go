@@ -427,6 +427,33 @@ func (s *Service) markStorageProvisionedTx(ctx context.Context, tx *sql.Tx, id s
 	return s.readyAccountTx(ctx, tx, id)
 }
 
+// DeactivateComputeClusterUser makes an approved account and the user's memberships on its cluster INACTIVE.
+// A pending or denied request is deleted instead.
+func (s *Service) DeactivateComputeClusterUser(ctx context.Context, id string) error {
+	cu, err := s.GetComputeClusterUser(ctx, id)
+	if err != nil || cu.Status != models.ACTIVE {
+		return err
+	}
+	if cu.ApprovalStatus != models.ClusterAccountApproved {
+		return fmt.Errorf("%w: compute cluster user %q is %s, delete it instead", ErrInvalidInput, id, cu.ApprovalStatus)
+	}
+	return s.inTx(ctx, func(tx *sql.Tx) error { return s.deactivateComputeClusterUserTx(ctx, tx, cu) })
+}
+
+func (s *Service) deactivateComputeClusterUserTx(ctx context.Context, tx *sql.Tx, cu *models.ComputeClusterUser) error {
+	if err := s.lockUsersTx(ctx, tx, cu.UserID); err != nil {
+		return err
+	}
+	cu.Status = models.INACTIVE
+	if err := s.clusterUsers.Deactivate(ctx, tx, cu.ID); err != nil {
+		return err
+	}
+	if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeactivateEvent, cu); err != nil {
+		return err
+	}
+	return s.deactivateMembershipsTx(ctx, tx, store.MembershipFilter{UserID: cu.UserID, ClusterID: cu.ComputeClusterID})
+}
+
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.
 func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error {
 	if id == "" {

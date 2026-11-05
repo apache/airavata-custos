@@ -62,6 +62,7 @@ type ComputeClusterUser struct {
 	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
 	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
+	Status           AllocationStatus       `json:"status"             db:"status"`
 
 	StorageProvisionedAt *time.Time `json:"storage_provisioned_at" db:"storage_provisioned_at"` // When storage made the account's own directories; nil until then.
 	ReadyAt              *time.Time `json:"ready_at" db:"ready_at"`                             // When identity and storage were both done and ready was published; nil until then.

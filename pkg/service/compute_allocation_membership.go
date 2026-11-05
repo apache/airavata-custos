@@ -263,3 +263,20 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 	}
 	return nil
 }
+
+// deactivateMembershipsTx makes the ACTIVE memberships matching f INACTIVE.
+func (s *Service) deactivateMembershipsTx(ctx context.Context, tx *sql.Tx, f store.MembershipFilter) error {
+	ms, err := s.memberships.FindTx(ctx, tx, f)
+	if err != nil {
+		return err
+	}
+	for _, m := range ms {
+		if m.MembershipStatus != models.ACTIVE {
+			continue
+		}
+		if _, err := s.UpdateMembershipStatusTx(ctx, tx, m.ID, models.INACTIVE); err != nil {
+			return err
+		}
+	}
+	return nil
+}

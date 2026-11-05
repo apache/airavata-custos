@@ -103,6 +103,8 @@ definitions:
       reviewed_by:
         description: The admin who approved or denied the cluster account.
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       storage_provisioned_at:
         description: When storage made the account's own directories; nil until then.
         type: string
@@ -213,6 +215,8 @@ definitions:
         type: string
       reviewer_name:
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       storage_provisioned_at:
         description: When storage made the account's own directories; nil until then.
         type: string
@@ -515,6 +519,8 @@ definitions:
       reviewed_by:
         description: The admin who approved or denied the cluster account.
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       storage_provisioned_at:
         description: When storage made the account's own directories; nil until then.
         type: string
@@ -682,6 +688,9 @@ definitions:
     - core:events:manage
     - core:agreements:read
     - core:agreements:manage
+    - core:clusters:deactivate
+    - core:allocations:deactivate
+    - core:users:deactivate
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -700,6 +709,9 @@ definitions:
     - EventsManage
     - AgreementsRead
     - AgreementsManage
+    - ClustersDeactivate
+    - AllocationsDeactivate
+    - UsersDeactivate
   Project:
     properties:
       created_time:
@@ -3832,6 +3844,36 @@ paths:
       summary: Approve a cluster account
       tags:
       - Compute Cluster Users
+  /compute-cluster-users/{id}/deactivate:
+    post:
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute cluster user
+      tags:
+      - Compute Cluster Users
   /compute-cluster-users/{id}/deny:
     post:
       consumes:
@@ -4486,6 +4528,9 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:clusters:deactivate
+        - core:allocations:deactivate
+        - core:users:deactivate
         in: path
         name: key
         required: true
@@ -5144,6 +5189,9 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:clusters:deactivate
+        - core:allocations:deactivate
+        - core:users:deactivate
         in: path
         name: key
         required: true
@@ -5755,6 +5803,9 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:clusters:deactivate
+        - core:allocations:deactivate
+        - core:users:deactivate
         in: path
         name: key
         required: true

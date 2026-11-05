@@ -43,6 +43,10 @@ const (
 	EventsManage       PrivilegeKey = "core:events:manage"
 	AgreementsRead     PrivilegeKey = "core:agreements:read"
 	AgreementsManage   PrivilegeKey = "core:agreements:manage"
+
+	ClustersDeactivate    PrivilegeKey = "core:clusters:deactivate"
+	AllocationsDeactivate PrivilegeKey = "core:allocations:deactivate"
+	UsersDeactivate       PrivilegeKey = "core:users:deactivate"
 )
 
 var (
@@ -54,12 +58,15 @@ func init() {
 	Register(
 		ClustersRead,
 		ClustersWrite,
+		ClustersDeactivate,
 		AllocationsRead,
 		AllocationsWrite,
+		AllocationsDeactivate,
 		ProjectsRead,
 		ProjectsWrite,
 		UsersRead,
 		UsersWrite,
+		UsersDeactivate,
 		OrganizationsRead,
 		OrganizationsWrite,
 		TracesRead,

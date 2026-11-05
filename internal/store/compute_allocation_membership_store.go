@@ -127,7 +127,8 @@ func (s *pgComputeAllocationMembershipStore) FindStaleReady(ctx context.Context)
 		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
 		   LEFT JOIN compute_cluster_users cu ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
 		  WHERE (m.ready_at IS NOT NULL) <>
-		        (m.membership_status = 'ACTIVE' AND a.status = 'ACTIVE' AND a.scheduler_provisioned_at IS NOT NULL AND cu.provisioned_at IS NOT NULL)
+		        (m.membership_status = 'ACTIVE' AND a.status = 'ACTIVE' AND a.scheduler_provisioned_at IS NOT NULL
+		         AND cu.status IS NOT DISTINCT FROM 'ACTIVE' AND cu.provisioned_at IS NOT NULL)
 		  ORDER BY m.id`)
 	return ids, err
 }

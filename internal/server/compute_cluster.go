@@ -188,6 +188,22 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	Deactivate a compute cluster user
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-cluster-users/{id}/deactivate [post]
+func (s *Server) deactivateComputeClusterUser(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeactivateComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // @Summary	List cluster accounts by approval status
 // @Description	Cluster users with their user, cluster, and the user's newest allocation on that cluster. PENDING comes grouped by allocation, the rest newest first. Every status unless one is given.
 // @Tags	Compute Cluster Users

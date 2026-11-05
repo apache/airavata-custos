@@ -28,6 +28,7 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
@@ -85,6 +86,8 @@ func (s *Service) settleConnectors(ctx context.Context) error {
 		if states[i].accounts, err = s.clusterUsers.FindByCluster(ctx, c.ID); err != nil {
 			return err
 		}
+		// A deactivated account has no request outstanding.
+		states[i].accounts = slices.DeleteFunc(states[i].accounts, func(cu models.ComputeClusterUser) bool { return cu.Status != models.ACTIVE })
 		if states[i].allocs, err = s.allocs.FindByCluster(ctx, c.ID); err != nil {
 			return err
 		}

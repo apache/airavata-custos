@@ -109,6 +109,8 @@ type ComputeClusterUserStore interface {
 	Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// Deactivate makes an existing mapping INACTIVE within the provided transaction.
+	Deactivate(ctx context.Context, tx *sql.Tx, id string) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.
 	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// MarkStorageProvisioned stamps storage_provisioned_at the first time and reports whether it did.
