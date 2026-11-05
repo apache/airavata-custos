@@ -121,6 +121,30 @@ configuration.
 | `CILogon-SSH-PAM` | A PAM module that lets `sshd` accept an OIDC device-flow login, CILogon at Custos sites | Does not call core |
 | `SSH-Certificate-Signer` | Signs short-lived SSH certificates for OIDC-authenticated callers | Calls core `GET /me` to read the caller's privileges for its admin APIs |
 
+### Membership readiness
+
+A membership grants access while it and its allocation are `ACTIVE`, the scheduler has the allocation's account, and the member's account on the allocation's cluster is provisioned; core records it in `ready_at`.
+Any write that changes it publishes `compute_allocation_membership::ready` or `compute_allocation_membership::deactivate` in the same transaction: membership writes, allocation status, account provisioning, account removal and user merges.
+A membership create share-locks its user and allocation, and the resync after an allocation or account write locks them for update, so neither misses the other.
+
+### Connector requests
+
+Core decides when a connector has work and publishes a request in the transaction of the write that causes it.
+A connector handles one entity per request and reports completion through a core mark, which publishes the next event.
+A request nobody subscribes to is not awaited: core stamps its mark itself.
+
+The scheduler and storage connectors act on accounts the identity step provisioned. Any combination of the three
+is valid: with no identity connector, core marks approved accounts provisioned, and the cluster's accounts must
+exist by other means.
+
+| Request | Published when | Done |
+|---|---|---|
+| `compute_cluster_user::identity_request` | an account is approved; its user onboards | `MarkComputeClusterUserProvisioned` |
+| `compute_allocation::group_request` | an allocation or membership is written; an account is provisioned, deleted or merged | `compute_allocation::group_provision` |
+| `compute_allocation::scheduler_request` | an allocation is created | `MarkComputeAllocationSchedulerProvisioned` readies its members |
+| `compute_cluster_user::storage_request` | an account is provisioned | `MarkComputeClusterUserStorageProvisioned`, then `compute_cluster_user::ready` |
+| `compute_allocation_membership::storage_request` | a member is ready and its allocation group is provisioned | the delivery succeeds |
+
 ## Identity and authentication
 
 Inbound authentication is an OIDC bearer JWT. `pkg/identity/verifier.go` checks its signature, `iss` and `aud`.
@@ -196,13 +220,13 @@ This example follows one request through identity, the service layer and the eve
 3. The router dispatches the request. `RequirePrivilege` checks for `core:clusters:write` and returns `403` when it
    is absent.
 4. The handler calls `coreService.ApproveComputeClusterUser`. Inside one transaction the service records the
-   review, writes an `audit_events` row and publishes `compute_cluster_user::approve`. The audit row and the event
-   carry the request's `trace_id` and `span_id`.
+   review, writes an `audit_events` row and publishes `compute_cluster_user::approve` and
+   `compute_cluster_user::identity_request`. The audit row and the events carry the request's `trace_id` and `span_id`.
 5. The bus stores the event with one delivery row per subscriber, in that same transaction. The change, the audit
    row and the event commit or roll back together.
 6. The handler returns the response.
 7. The bus worker delivers each row to its subscriber. At a site that runs COmanage, for example, its connector
-   provisions the account once the user has also onboarded. Each attempt writes an audit row under the same trace.
+   provisions the account on the identity request and marks it provisioned. Each attempt writes an audit row under the same trace.
    A failed delivery is retried with backoff.
 
 An invalid token returns `401` before any handler runs. A missing privilege returns `403` before the service is

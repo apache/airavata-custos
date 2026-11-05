@@ -139,6 +139,9 @@ At startup the server goes through the blocks:
 
 To add a connector type, follow [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md).
 
+Drain pending event deliveries before upgrading to core's connector requests. A delivery whose topic the loaded
+connector no longer handles fails at once.
+
 ### Temporary accounts and analytics
 
 The `temp-account` and `analytics` connectors take no keys beyond `type` and `enabled`.

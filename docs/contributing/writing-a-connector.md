@@ -350,7 +350,10 @@ Nothing is lost when the server restarts or a handler fails.
 
 Event types are typed constants in `pkg/events/types.go`, such as `UserCreateEvent` (`user::create`). Each entity
 has a file of typed subscribe helpers, for example `user_subscribe.go` and `compute_cluster_user_subscribe.go`.
-The helpers, such as `SubscribeUserCreated` and `SubscribeComputeClusterUserApproved`, decode the payload for you.
+The helpers, such as `SubscribeUserCreated` and `SubscribeComputeClusterUserIdentityRequested`, decode the payload for you.
+
+A connector handles one entity per event and never lists core state to find more work. Where core waits on the
+result, the connector reports it through a core mark such as `MarkComputeClusterUserProvisioned`.
 
 **Subscribing.** Register inside `LoadConnector`, under your connector's`Type` name. 
 The bus saves the subscription under that name, so it has to be the same on every start.
@@ -362,10 +365,10 @@ type Subscriber struct {
 }
 
 func (s *Subscriber) RegisterSubscribers(subscriber string) {
-	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleApproved)
+	s.bus.SubscribeComputeClusterUserIdentityRequested(subscriber, s.handleIdentityRequested)
 }
 
-func (s *Subscriber) handleApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleIdentityRequested(ctx context.Context, cu models.ComputeClusterUser) error {
 	// ...react...
 	return nil
 }
@@ -428,6 +431,7 @@ A connector that creates accounts on the cluster must call
 `coreService.MarkComputeClusterUserProvisioned` once each account exists. For an allocation group it calls
 `MarkComputeAllocationGroupProvisioned`. The SLURM Association-Mapper, the VAST-Provisioner and
 the `account-ready` email act only on marked accounts. In this repository, only the COmanage connector sets the mark.
+With no identity connector enabled, core sets it on approval.
 
 ### 11. Audit rows (and `audit_extras` if you have your own references)
 

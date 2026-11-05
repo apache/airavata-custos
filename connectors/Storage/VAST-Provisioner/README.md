@@ -20,8 +20,10 @@
 # VAST-Provisioner
 
 The VAST-Provisioner creates each user's and project's directories on a cluster's VAST storage, with quotas and NFS
-views, through the REST API of VMS, the VAST Management System. It acts once core records the account or allocation
-group as provisioned, so VAST can resolve the owners. With COmanage, the COmanage Identity-Provisioner records that.
+views, through the REST API of VMS, the VAST Management System. It acts on core's storage requests, sent once the account or allocation
+group is provisioned, so VAST can resolve the owners. With COmanage, the COmanage Identity-Provisioner provisions them.
+With no identity connector enabled, core marks both provisioned itself, and VMS must resolve the owners from another
+provider.
 Enable it when a cluster's home, scratch or project space lives on VAST.
 
 ## Prerequisites on VMS
@@ -53,9 +55,9 @@ The placeholders decide which event creates the entry:
 
 | Trigger | Runs |
 |---|---|
-| `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
-| `compute_allocation::group_provision` | The project's directories and each provisioned member's, once the group's first member puts it on the cluster |
-| `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
+| `compute_cluster_user::storage_request` | The account's directories, then marks storage done, even on an unlisted cluster |
+| `compute_allocation::group_provision` | The project's directories, once the group's first member puts it on the cluster |
+| `compute_allocation_membership::storage_request` | That member's project directory, once the member is ready and the group provisioned |
 | `compute_cluster_user::delete` | Marks the account's directories for deletion, including its directory in each project |
 | `compute_allocation::delete` | Marks the project's directories, and its members' directories inside them, for deletion |
 | Startup, then once per `reconcile_interval` | Everything, for each provisioned account and each allocation on each cluster |

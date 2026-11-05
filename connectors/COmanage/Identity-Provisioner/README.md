@@ -31,14 +31,13 @@ The connector subscribes to core events for one cluster, `provisioning.custos_cl
 
 | Event | Action |
 |---|---|
-| `compute_cluster_user::approve` | Provision the account, join the admin group for an `ADMIN` account, then sync the user's allocation groups |
-| `user::onboarded` | Provision again once the user has signed in, so the registry gets their OIDC `sub` |
-| `compute_cluster_user::delete` | Remove an approved account from the registry, then sync the user's allocation groups |
-| `compute_allocation::create` and `::update`; `compute_allocation_membership::create`, `::update` and `::delete` | Sync the allocation's group |
+| `compute_cluster_user::identity_request` | Provision the account, join the admin group for an `ADMIN` account, then mark it provisioned |
+| `compute_cluster_user::delete` | Remove an approved account from the registry |
+| `compute_allocation::group_request` | Sync the allocation's group to its active, provisioned members |
 | `compute_allocation::delete` | Delete the allocation's group |
 
 The registry matches a person to their SSH login by the OIDC `sub`. An account approved before the first sign-in has
-none. The connector then writes `ComanageProvisioningDeferred` and runs again on `user::onboarded`.
+none. The connector then writes `ComanageProvisioningDeferred`, and core requests the identity again at the first sign-in.
 
 The [event bus](../../../docs/architecture.md#event-bus) retries a failed delivery with backoff. Each step finds an
 existing record before it creates one, so a retry is safe.
@@ -112,7 +111,7 @@ Each audit row the connector writes goes to the core `audit_events` table with `
 
 | Event type | When |
 |------------|------|
-| `ComanageProvisioningDeferred` | The user has not signed in. Provisioning waits for `user::onboarded`. |
+| `ComanageProvisioningDeferred` | The user has not signed in. Provisioning waits for the first sign-in. |
 | `ComanageProvisioningStarted` | Provisioning of an approved account began. |
 | `ComanageCoPersonCreated` | Step 1 created a new CoPerson. A lookup that found one does not write this. |
 | `ComanageOIDCLinkageCreated` | Step 4 added the `oidcsub` identifier. |
