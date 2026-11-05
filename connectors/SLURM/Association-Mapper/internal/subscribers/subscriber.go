@@ -65,12 +65,11 @@ func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, cor
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (a *AssociationSubscriber) RegisterSubscribers(subscriber string) {
 	a.name = subscriber
-	a.eventBus.SubscribeComputeAllocationCreated(subscriber, a.handleComputeAllocationCreated)
+	a.eventBus.SubscribeComputeAllocationSchedulerRequested(subscriber, a.handleComputeAllocationCreated)
 	a.eventBus.SubscribeComputeAllocationDeleted(subscriber, a.handleComputeAllocationDeleted)
 	a.eventBus.SubscribeComputeAllocationUpdated(subscriber, a.handleComputeAllocationUpdated)
-	a.eventBus.SubscribeComputeAllocationMembershipCreated(subscriber, a.handleComputeAllocationMembershipCreated)
-	a.eventBus.SubscribeComputeAllocationMembershipUpdated(subscriber, a.handleComputeAllocationMembershipUpdated)
-	a.eventBus.SubscribeComputeAllocationMembershipDeleted(subscriber, a.handleComputeAllocationMembershipDeleted)
+	a.eventBus.SubscribeComputeAllocationMembershipReady(subscriber, a.handleComputeAllocationMembershipCreated)
+	a.eventBus.SubscribeComputeAllocationMembershipDeactivated(subscriber, a.handleComputeAllocationMembershipUpdated)
 	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber, a.handleComputeAllocationMembershipResourceOverrideCreated)
 	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(subscriber, a.handleComputeAllocationResourceMappingCreated)
 	a.eventBus.SubscribeComputeClusterUserDeleted(subscriber, a.handleComputeClusterUserDeleted)

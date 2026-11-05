@@ -97,7 +97,7 @@ func (a *AssociationSubscriber) handleComputeAllocationCreated(ctx context.Conte
 
 	a.recordAuditEvent(ctx, "ComputeAllocationCreationSucceeded", "compute_allocation", computeAllocation.ID, "Successfully created SLURM account for compute allocation.")
 	slog.InfoContext(ctx, "Successfully created SLURM account for compute allocation", "account", account)
-	return nil
+	return a.coreService.MarkComputeAllocationSchedulerProvisioned(ctx, computeAllocation.ID)
 }
 
 // handleComputeAllocationDeleted revokes every member's access when the

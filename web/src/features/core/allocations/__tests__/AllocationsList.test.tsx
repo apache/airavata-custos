@@ -37,6 +37,7 @@ const allocation: ComputeAllocation = {
   end_time: "2027-03-31T00:00:00.000Z",
   posix_group: null,
   group_provisioned_at: null,
+  scheduler_provisioned_at: null,
 };
 
 function renderList(overrides: Partial<React.ComponentProps<typeof AllocationsList>> = {}) {

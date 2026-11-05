@@ -62,11 +62,14 @@ const (
 
 // ComputeClusterUser lifecycle message types.
 const (
-	ComputeClusterUserCreateEvent    EventType = "compute_cluster_user::create"
-	ComputeClusterUserDeleteEvent    EventType = "compute_cluster_user::delete"
-	ComputeClusterUserApproveEvent   EventType = "compute_cluster_user::approve"
-	ComputeClusterUserDenyEvent      EventType = "compute_cluster_user::deny"
-	ComputeClusterUserProvisionEvent EventType = "compute_cluster_user::provision"
+	ComputeClusterUserCreateEvent  EventType = "compute_cluster_user::create"
+	ComputeClusterUserDeleteEvent  EventType = "compute_cluster_user::delete"
+	ComputeClusterUserApproveEvent EventType = "compute_cluster_user::approve"
+	ComputeClusterUserDenyEvent    EventType = "compute_cluster_user::deny"
+	// Core asks storage for the account's own directories once its identity exists.
+	ComputeClusterUserStorageRequestEvent EventType = "compute_cluster_user::storage_request"
+	// Core publishes ready once the account's identity and storage are both done.
+	ComputeClusterUserReadyEvent EventType = "compute_cluster_user::ready"
 )
 
 // ClusterAccount lifecycle message types.
@@ -78,10 +81,13 @@ const (
 
 // ComputeAllocation lifecycle message types.
 const (
-	ComputeAllocationCreateEvent         EventType = "compute_allocation::create"
 	ComputeAllocationUpdateEvent         EventType = "compute_allocation::update"
 	ComputeAllocationDeleteEvent         EventType = "compute_allocation::delete"
 	ComputeAllocationGroupProvisionEvent EventType = "compute_allocation::group_provision"
+	// Core asks the identity registry to resync the allocation's group; group_provision marks the first one done.
+	ComputeAllocationGroupRequestEvent EventType = "compute_allocation::group_request"
+	// Core asks the scheduler for the allocation's account; members are not ready until it is done.
+	ComputeAllocationSchedulerRequestEvent EventType = "compute_allocation::scheduler_request"
 )
 
 // CreateComputeAllocationDiff lifecycle message types.
@@ -100,9 +106,10 @@ const (
 
 // ComputeAllocationMembership lifecycle message types.
 const (
-	ComputeAllocationMembershipCreateEvent EventType = "compute_allocation_membership::create"
-	ComputeAllocationMembershipUpdateEvent EventType = "compute_allocation_membership::update"
-	ComputeAllocationMembershipDeleteEvent EventType = "compute_allocation_membership::delete"
+	ComputeAllocationMembershipReadyEvent      EventType = "compute_allocation_membership::ready"
+	ComputeAllocationMembershipDeactivateEvent EventType = "compute_allocation_membership::deactivate"
+	// Core asks storage for a ready member's directories once the allocation group is provisioned.
+	ComputeAllocationMembershipStorageRequestEvent EventType = "compute_allocation_membership::storage_request"
 )
 
 // ComputeAllocationMembershipResourceOverride lifecycle message types.

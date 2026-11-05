@@ -78,6 +78,7 @@ const allocation: ComputeAllocation = {
   end_time: "2027-03-31T00:00:00Z",
   posix_group: null,
   group_provisioned_at: null,
+  scheduler_provisioned_at: null,
 };
 
 describe("<AllocationMembersTab />", () => {

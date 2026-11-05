@@ -36,6 +36,8 @@ const clusterUser = {
   access_level: "USER",
   approval_status: "PENDING",
   provisioned_at: null,
+  storage_provisioned_at: null,
+  ready_at: null,
 };
 
 const account = {

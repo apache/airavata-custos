@@ -47,11 +47,16 @@ func (b *Bus) SubscribeComputeClusterUserDenied(subscriber string, handler Compu
 	subscribeTyped(b, subscriber, ComputeClusterUserDenyEvent, handler)
 }
 
-// SubscribeComputeClusterUserProvisioned registers a typed handler invoked
-// whenever a compute_cluster_user::provision event is published, which is
-// when the account first exists in the registry.
-func (b *Bus) SubscribeComputeClusterUserProvisioned(subscriber string, handler ComputeClusterUserHandler) {
-	subscribeTyped(b, subscriber, ComputeClusterUserProvisionEvent, handler)
+// SubscribeComputeClusterUserStorageRequested registers a handler for storage_request, published when the account first
+// exists in the registry.
+func (b *Bus) SubscribeComputeClusterUserStorageRequested(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserStorageRequestEvent, handler)
+}
+
+// SubscribeComputeClusterUserReady registers a handler for ready, published when the account's identity and storage
+// both exist.
+func (b *Bus) SubscribeComputeClusterUserReady(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserReadyEvent, handler)
 }
 
 // SubscribeComputeClusterUserDeleted registers a typed handler invoked

@@ -180,7 +180,7 @@ func ago(d time.Duration) *time.Time {
 func testMembership() models.ComputeAllocationMembership {
 	return models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
-		MembershipStatus: models.ACTIVE,
+		MembershipStatus: models.ACTIVE, ReadyAt: ago(time.Minute),
 	}
 }
 
@@ -445,7 +445,7 @@ func TestReconcilerSkipsUnprovisionedAndTooFreshAccounts(t *testing.T) {
 
 func TestReconcilerSkipsInactiveMemberships(t *testing.T) {
 	inactive := testMembership()
-	inactive.MembershipStatus = models.INACTIVE
+	inactive.MembershipStatus, inactive.ReadyAt = models.INACTIVE, nil
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		memberships:   []models.ComputeAllocationMembership{inactive},

@@ -6,7 +6,9 @@
     "local_username": "alovelace",
     "access_level": "USER",
     "approval_status": "APPROVED",
-    "provisioned_at": "2026-04-01T00:00:00.000Z"
+    "provisioned_at": "2026-04-01T00:00:00.000Z",
+    "storage_provisioned_at": "2026-04-01T00:00:00.000Z",
+    "ready_at": "2026-04-01T00:00:00.000Z"
   },
   {
     "id": "ccu-a-grace",
@@ -15,7 +17,9 @@
     "local_username": "ghopper",
     "access_level": "USER",
     "approval_status": "APPROVED",
-    "provisioned_at": "2026-04-01T00:00:00.000Z"
+    "provisioned_at": "2026-04-01T00:00:00.000Z",
+    "storage_provisioned_at": "2026-04-01T00:00:00.000Z",
+    "ready_at": "2026-04-01T00:00:00.000Z"
   },
   {
     "id": "ccu-a-dennis",
@@ -24,7 +28,9 @@
     "local_username": "dritchie",
     "access_level": "USER",
     "approval_status": "APPROVED",
-    "provisioned_at": "2026-04-01T00:00:00.000Z"
+    "provisioned_at": "2026-04-01T00:00:00.000Z",
+    "storage_provisioned_at": "2026-04-01T00:00:00.000Z",
+    "ready_at": "2026-04-01T00:00:00.000Z"
   },
   {
     "id": "ccu-c-ada",
@@ -33,7 +39,9 @@
     "local_username": "ada",
     "access_level": "USER",
     "approval_status": "APPROVED",
-    "provisioned_at": "2026-04-01T00:00:00.000Z"
+    "provisioned_at": "2026-04-01T00:00:00.000Z",
+    "storage_provisioned_at": "2026-04-01T00:00:00.000Z",
+    "ready_at": "2026-04-01T00:00:00.000Z"
   },
   {
     "id": "ccu-d-katherine",
@@ -42,7 +50,9 @@
     "local_username": "kjohnson",
     "access_level": "USER",
     "approval_status": "APPROVED",
-    "provisioned_at": "2026-04-01T00:00:00.000Z"
+    "provisioned_at": "2026-04-01T00:00:00.000Z",
+    "storage_provisioned_at": "2026-04-01T00:00:00.000Z",
+    "ready_at": "2026-04-01T00:00:00.000Z"
   },
   {
     "id": "ccu-b-donald",
@@ -51,6 +61,8 @@
     "local_username": "dknuth",
     "access_level": "USER",
     "approval_status": "APPROVED",
-    "provisioned_at": "2026-04-01T00:00:00.000Z"
+    "provisioned_at": "2026-04-01T00:00:00.000Z",
+    "storage_provisioned_at": "2026-04-01T00:00:00.000Z",
+    "ready_at": "2026-04-01T00:00:00.000Z"
   }
 ]

@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -29,7 +30,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
+const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status, ready_at"
 
 // MembershipWithUser is the result shape of the join-based list methods. Role
 // is the user's project-wide role (MEMBER without one). Joined user fields stay
@@ -81,6 +82,48 @@ func (s *pgComputeAllocationMembershipStore) FindByIDTx(ctx context.Context, tx 
 		return nil, err
 	}
 	return &r, nil
+}
+
+func (s *pgComputeAllocationMembershipStore) FindTx(ctx context.Context, tx *sql.Tx, f MembershipFilter) ([]models.ComputeAllocationMembership, error) {
+	// Allocations lock before their memberships, the order an allocation write takes.
+	if _, err := tx.ExecContext(ctx,
+		`SELECT FROM compute_allocations a
+		  WHERE ($1 = '' OR a.id = $1) AND ($3 = '' OR a.compute_cluster_id = $3)
+		    AND EXISTS (SELECT 1 FROM compute_allocation_memberships m
+		                 WHERE m.compute_allocation_id = a.id AND ($2 = '' OR m.user_id = $2) AND ($4 = '' OR m.id = $4))
+		  ORDER BY a.id
+		    FOR NO KEY UPDATE`, f.AllocationID, f.UserID, f.ClusterID, f.ID); err != nil {
+		return nil, err
+	}
+	var rows []models.ComputeAllocationMembership
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).SelectContext(ctx, &rows,
+		`SELECT m.`+strings.ReplaceAll(computeAllocationMembershipColumns, ", ", ", m.")+`
+		   FROM compute_allocation_memberships m
+		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
+		  WHERE ($1 = '' OR m.compute_allocation_id = $1)
+		    AND ($2 = '' OR m.user_id = $2)
+		    AND ($3 = '' OR a.compute_cluster_id = $3)
+		    AND ($4 = '' OR m.id = $4)
+		  ORDER BY m.id
+		    FOR UPDATE OF m`, f.AllocationID, f.UserID, f.ClusterID, f.ID)
+	return rows, err
+}
+
+func (s *pgComputeAllocationMembershipStore) HasProvisionedMemberTx(ctx context.Context, tx *sql.Tx, allocationID string) (bool, error) {
+	var ok bool
+	err := tx.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM compute_allocation_memberships m
+		   JOIN compute_allocations a ON a.id = m.compute_allocation_id
+		   JOIN compute_cluster_users cu ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id
+		  WHERE m.compute_allocation_id = $1 AND m.membership_status = 'ACTIVE' AND a.status = 'ACTIVE' AND cu.provisioned_at IS NOT NULL)`,
+		allocationID).Scan(&ok)
+	return ok, err
+}
+
+func (s *pgComputeAllocationMembershipStore) SetReady(ctx context.Context, tx *sql.Tx, id string, at *time.Time) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_allocation_memberships SET ready_at = $1 WHERE id = $2`, at, id)
+	return err
 }
 
 func (s *pgComputeAllocationMembershipStore) FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {

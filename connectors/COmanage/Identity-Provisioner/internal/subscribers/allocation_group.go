@@ -34,13 +34,6 @@ func (s *Subscriber) handleComputeAllocationChanged(ctx context.Context, a model
 	return s.syncAllocation(ctx, a.ID)
 }
 
-func (s *Subscriber) handleMembershipChanged(ctx context.Context, m models.ComputeAllocationMembership) error {
-	ctx = audit.WithSource(ctx, "comanage")
-	ctx, span := tracing.Start(ctx, "comanage.membership_changed")
-	defer span.End()
-	return s.syncAllocation(ctx, m.ComputeAllocationID)
-}
-
 func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_deleted")

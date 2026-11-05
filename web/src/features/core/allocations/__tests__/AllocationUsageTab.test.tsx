@@ -50,6 +50,7 @@ const allocation: ComputeAllocation = {
   end_time: "2027-04-11T00:00:00.000Z",
   posix_group: null,
   group_provisioned_at: null,
+  scheduler_provisioned_at: null,
 };
 
 function usageRow(overrides: Partial<ComputeAllocationUsage>): ComputeAllocationUsage {

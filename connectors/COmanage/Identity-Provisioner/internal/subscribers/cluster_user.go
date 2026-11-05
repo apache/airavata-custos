@@ -70,12 +70,8 @@ func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
 	s.bus.SubscribeUserOnboarded(subscriber, s.handleUserOnboarded)
 
-	s.bus.SubscribeComputeAllocationCreated(subscriber, s.handleComputeAllocationChanged)
-	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.handleComputeAllocationChanged)
+	s.bus.SubscribeComputeAllocationGroupRequested(subscriber, s.handleComputeAllocationChanged)
 	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.handleComputeAllocationDeleted)
-	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.handleMembershipChanged)
-	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.handleMembershipChanged)
-	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
 }
 
 // handleClusterUserDeleted removes the account from the registry.

@@ -46,6 +46,7 @@ function renderDialog(overrides: Partial<Parameters<typeof AddUserDialog>[0]> = 
           end_time: "2027-01-01T00:00:00Z",
           posix_group: null,
           group_provisioned_at: null,
+          scheduler_provisioned_at: null,
         },
       ]}
       {...overrides}

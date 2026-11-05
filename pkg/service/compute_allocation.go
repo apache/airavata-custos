@@ -118,7 +118,10 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		if err := s.allocs.Create(ctx, tx, alloc); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationCreateEvent, alloc)
+		if err := s.requestSchedulerTx(ctx, tx, alloc); err != nil {
+			return err
+		}
+		return s.requestGroupsTx(ctx, tx, alloc.ID)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation: %w", err)
 	}
@@ -171,7 +174,13 @@ func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, all
 		if err := s.allocs.Update(ctx, tx, alloc); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc)
+		if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc); err != nil {
+			return err
+		}
+		if err := s.requestGroupsTx(ctx, tx, alloc.ID); err != nil {
+			return err
+		}
+		return s.syncMembershipsTx(ctx, tx, store.MembershipFilter{AllocationID: alloc.ID})
 	}(); err != nil {
 		return fmt.Errorf("update compute allocation: %w", err)
 	}
@@ -202,7 +211,32 @@ func (s *Service) markGroupProvisionedTx(ctx context.Context, tx *sql.Tx, alloc 
 	if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc); err != nil {
 		return err
 	}
+	ms, err := s.memberships.FindTx(ctx, tx, store.MembershipFilter{AllocationID: alloc.ID})
+	if err != nil {
+		return err
+	}
+	for _, m := range ms {
+		if err := s.requestStorageTx(ctx, tx, &m, alloc); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// MarkComputeAllocationSchedulerProvisioned stamps scheduler_provisioned_at the first time and readies the allocation's members.
+func (s *Service) MarkComputeAllocationSchedulerProvisioned(ctx context.Context, id string) error {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.markSchedulerProvisionedTx(ctx, tx, id) }); err != nil {
+		return fmt.Errorf("mark compute allocation scheduler provisioned: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) markSchedulerProvisionedTx(ctx context.Context, tx *sql.Tx, id string) error {
+	firstTime, err := s.allocs.MarkSchedulerProvisioned(ctx, tx, id, nowUTC())
+	if err != nil || !firstTime {
+		return err
+	}
+	return s.syncMembershipsTx(ctx, tx, store.MembershipFilter{AllocationID: id})
 }
 
 // DeleteComputeAllocation removes a compute allocation by ID.
