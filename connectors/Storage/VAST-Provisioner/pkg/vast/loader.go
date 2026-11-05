@@ -112,12 +112,8 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	return nil
 }
 
-// setting returns "" when the env var is not set, since the config keeps ${VAR} as is.
 func setting(m map[string]interface{}, key string) string {
 	s, _ := m[key].(string)
-	if strings.Contains(s, "${") {
-		return ""
-	}
 	return s
 }
 

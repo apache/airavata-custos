@@ -119,11 +119,7 @@ func applyAuthDefaults(a *AuthConfig) error {
 func expandEnvVars(input string) string {
 	re := regexp.MustCompile(`\$\{([^}]+)\}`)
 	return re.ReplaceAllStringFunc(input, func(match string) string {
-		envVar := match[2 : len(match)-1]
-		if value, exists := os.LookupEnv(envVar); exists {
-			return value
-		}
-		return match
+		return os.Getenv(match[2 : len(match)-1])
 	})
 }
 

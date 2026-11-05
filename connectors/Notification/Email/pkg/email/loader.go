@@ -43,10 +43,6 @@ const Type = "email-notifier"
 func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, cfg *config.ConnectorConfig) error {
 	get := func(key string) string {
 		v, _ := cfg.GetStringField(key)
-		// A "${...}" left in place is an env var that was not set.
-		if strings.HasPrefix(v, "${") {
-			return ""
-		}
 		return v
 	}
 	port, err := cfg.GetIntField("smtp_port")
