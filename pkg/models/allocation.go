@@ -68,6 +68,11 @@ type ComputeClusterUser struct {
 	ReadyAt              *time.Time `json:"ready_at" db:"ready_at"`                             // When identity and storage were both done and ready was published; nil until then.
 }
 
+// HoldsAccess reports whether the account is approved and active.
+func (c ComputeClusterUser) HoldsAccess() bool {
+	return c.Status == ACTIVE && c.ApprovalStatus == ClusterAccountApproved
+}
+
 type ComputeAllocation struct {
 	ID               string           `json:"id"                 db:"id"`
 	ProjectID        string           `json:"project_id"         db:"project_id"`
