@@ -52,10 +52,10 @@ func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, er
 	return &u, nil
 }
 
-func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error) {
+func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.User, error) {
 	var r models.User
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
-		`SELECT `+userColumns+` FROM users WHERE id = $1 FOR NO KEY UPDATE`, id)
+		`SELECT `+userColumns+` FROM users WHERE id = $1 `+string(lock), id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

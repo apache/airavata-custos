@@ -339,10 +339,7 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 		cu.LocalUsername = existing.LocalUsername
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.clusterUsers.Update(ctx, tx, cu); err != nil {
-			return err
-		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu)
+		return s.clusterUsers.Update(ctx, tx, cu)
 	}); err != nil {
 		return fmt.Errorf("update compute cluster user: %w", err)
 	}
@@ -371,9 +368,6 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 		}
 		if firstTime {
 			cu.ProvisionedAt = &now
-		}
-		if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu); err != nil {
-			return err
 		}
 		if firstTime {
 			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserProvisionEvent, cu)

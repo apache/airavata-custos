@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -63,7 +64,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		return nil, fmt.Errorf("%w: cannot merge a user with itself", ErrInvalidInput)
 	}
 
-	survivor, err := s.users.FindByIDTx(ctx, tx, survivingID)
+	survivor, err := s.users.FindByIDTx(ctx, tx, survivingID, store.NoKeyUpdateLock)
 	if err != nil {
 		return nil, fmt.Errorf("lookup surviving user: %w", err)
 	}
@@ -74,7 +75,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		return nil, fmt.Errorf("%w: surviving user %q must be ACTIVE or PENDING (got %s)",
 			ErrInvalidInput, survivingID, survivor.Status)
 	}
-	retiring, err := s.users.FindByIDTx(ctx, tx, retiringID)
+	retiring, err := s.users.FindByIDTx(ctx, tx, retiringID, store.NoKeyUpdateLock)
 	if err != nil {
 		return nil, fmt.Errorf("lookup retiring user: %w", err)
 	}

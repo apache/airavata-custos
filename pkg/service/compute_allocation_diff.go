@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -52,7 +53,7 @@ func (s *Service) CreateComputeAllocationDiffTx(ctx context.Context, tx *sql.Tx,
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
 
-	if alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID); err != nil {
+	if alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID, store.UpdateLock); err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)
 	} else if alloc == nil {
 		return nil, fmt.Errorf("%w: compute allocation %q not found", ErrInvalidInput, diff.ComputeAllocationID)

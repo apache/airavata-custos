@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -398,7 +399,7 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		// Recheck under the row lock. A parallel submit may have onboarded this user already.
-		user, err := s.users.FindByIDTx(ctx, tx, matched.ID)
+		user, err := s.users.FindByIDTx(ctx, tx, matched.ID, store.NoKeyUpdateLock)
 		if err != nil {
 			return fmt.Errorf("lock user: %w", err)
 		}

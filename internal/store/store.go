@@ -29,9 +29,8 @@ import (
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.User, error)
-	// FindByIDTx returns the user locked FOR NO KEY UPDATE in tx, or nil if not found.
-	// That still lets other transactions insert rows that reference the user.
-	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error)
+	// FindByIDTx returns the user read in tx under lock, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	// List returns a page of users ordered by email, plus the total count.
@@ -183,8 +182,8 @@ type ProjectListFilter struct {
 type ComputeAllocationStore interface {
 	// FindByID returns the allocation with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error)
-	// FindByIDTx returns the allocation locked FOR UPDATE in tx, or nil if not found.
-	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocation, error)
+	// FindByIDTx returns the allocation read in tx under lock, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.ComputeAllocation, error)
 	// FindByProject returns all allocations attached to the given project.
 	FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	// FindByCluster returns all allocations attached to the given compute cluster.
@@ -207,6 +206,17 @@ type ComputeAllocationStore interface {
 	// before MEMBER, or "" for none.
 	RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 }
+
+// RowLock is the lock a read in a transaction takes on the rows it returns.
+type RowLock string
+
+const (
+	NoLock     RowLock = ""
+	UpdateLock RowLock = "FOR UPDATE"
+	// NoKeyUpdateLock still lets other transactions insert rows that reference the locked row.
+	NoKeyUpdateLock RowLock = "FOR NO KEY UPDATE"
+	ShareLock       RowLock = "FOR SHARE"
+)
 
 // AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
 type AllocationListFilter struct {
@@ -590,4 +600,14 @@ type ComputeAllocationUsageStore interface {
 	Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error
 	// Delete removes a usage event by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// execOnce runs an update and reports whether it changed exactly one row.
+func execOnce(ctx context.Context, tx *sql.Tx, query string, args ...any) (bool, error) {
+	res, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
 }

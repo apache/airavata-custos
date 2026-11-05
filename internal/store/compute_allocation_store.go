@@ -53,10 +53,10 @@ func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*mo
 	return &a, nil
 }
 
-func (s *pgComputeAllocationStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocation, error) {
+func (s *pgComputeAllocationStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.ComputeAllocation, error) {
 	var r models.ComputeAllocation
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
-		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = $1 FOR UPDATE`, id)
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = $1 `+string(lock), id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -111,12 +111,7 @@ func (s *pgComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id st
 }
 
 func (s *pgComputeAllocationStore) MarkGroupProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
-	res, err := tx.ExecContext(ctx, `UPDATE compute_allocations SET group_provisioned_at = $1 WHERE id = $2 AND group_provisioned_at IS NULL`, at, id)
-	if err != nil {
-		return false, err
-	}
-	n, err := res.RowsAffected()
-	return n == 1, err
+	return execOnce(ctx, tx, `UPDATE compute_allocations SET group_provisioned_at = $1 WHERE id = $2 AND group_provisioned_at IS NULL`, at, id)
 }
 
 // FindByParticipant returns the allocations where the user holds an active
