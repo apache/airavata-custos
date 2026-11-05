@@ -383,6 +383,37 @@ func TestReconcilerWritesAssociationsForProvisionedMembers(t *testing.T) {
 	}
 }
 
+// A member with no account on another cluster must not stop this cluster's pass.
+func TestReconcilerSkipsMembershipsOnUnprovisionedClusters(t *testing.T) {
+	elsewhere := models.ComputeAllocationMembership{
+		ID: "mem-2", ComputeAllocationID: "alloc-2", UserID: "user-1", MembershipStatus: models.ACTIVE,
+	}
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{elsewhere, testMembership()},
+	})
+	getAllocation, getAccount := core.GetComputeAllocationFunc, core.GetComputeClusterUserByPairFunc
+	core.GetComputeAllocationFunc = func(ctx context.Context, id string) (*models.ComputeAllocation, error) {
+		alloc, err := getAllocation(ctx, id)
+		if id == "alloc-2" {
+			alloc.ComputeClusterID = "cluster-2"
+		}
+		return alloc, err
+	}
+	core.GetComputeClusterUserByPairFunc = func(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error) {
+		if clusterID == "cluster-2" {
+			return nil, service.ErrNotFound
+		}
+		return getAccount(ctx, clusterID, userID)
+	}
+	slurm := &fakeSlurmClient{}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if n := len(slurm.all()); n != 1 {
+		t.Fatalf("expected the provisioned cluster's association, got %d", n)
+	}
+}
+
 func TestReconcilerSkipsUnprovisionedAndTooFreshAccounts(t *testing.T) {
 	cases := map[string]*time.Time{
 		"never provisioned": nil,
