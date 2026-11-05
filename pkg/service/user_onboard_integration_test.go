@@ -414,11 +414,14 @@ func TestCompleteOnboarding_HappyPath(t *testing.T) {
 	database := setupTestDB(t)
 	bus := newTestBus(database)
 	svc := New(database, bus)
-	bus.SubscribeUserOnboarded("test-subscriber", func(context.Context, models.User) error { return nil })
+	bus.SubscribeComputeClusterUserIdentityRequested("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
 	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
 	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
 	user := seedPendingUserWithEmail(t, database, email)
-	newClusterAccount(t, svc, user, "custos-jdoe")
+	account := newClusterAccount(t, svc, user, "custos-jdoe")
+	if _, err := database.Exec("UPDATE compute_cluster_users SET approval_status = 'APPROVED' WHERE id = $1", account.ID); err != nil {
+		t.Fatalf("approve account: %v", err)
+	}
 	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
 
 	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
@@ -442,8 +445,9 @@ func TestCompleteOnboarding_HappyPath(t *testing.T) {
 			t.Errorf("audit %s: got %d, want 1", ev, got)
 		}
 	}
-	if n := countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = 'user::onboarded'"); n != 1 {
-		t.Errorf("user::onboarded events: got %d, want 1", n)
+	// The request carries the renamed account, so the registry links the new sub under the new name.
+	if n := countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = 'compute_cluster_user::identity_request' AND payload->>'local_username' = 'jdoe'"); n != 1 {
+		t.Errorf("identity requests for jdoe: got %d, want 1", n)
 	}
 }
 

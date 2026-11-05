@@ -32,12 +32,35 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+// requestIdentityTx asks the identity registry to create or relink each approved account.
+func (s *Service) requestIdentityTx(ctx context.Context, tx *sql.Tx, accounts ...models.ComputeClusterUser) error {
+	for _, cu := range accounts {
+		if cu.ApprovalStatus != models.ClusterAccountApproved {
+			continue
+		}
+		if err := s.requestTx(ctx, tx, events.ComputeClusterUserIdentityRequestEvent, cu, func() error {
+			return s.markProvisionedTx(ctx, tx, &cu)
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // requestTx publishes a request to its connector, or runs done, the connector's mark, when nobody subscribes.
 func (s *Service) requestTx(ctx context.Context, tx *sql.Tx, topic events.EventType, payload any, done func() error) error {
 	if s.eventBus.Subscribed(topic) {
 		return s.eventBus.Publish(ctx, tx, topic, payload)
 	}
 	return done()
+}
+
+// approveTx publishes the approval and asks for the account's identity.
+func (s *Service) approveTx(ctx context.Context, tx *sql.Tx, cu *models.ComputeClusterUser) error {
+	if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu); err != nil {
+		return err
+	}
+	return s.requestIdentityTx(ctx, tx, *cu)
 }
 
 // requestGroupsTx asks once per allocation for its group to be resynced.

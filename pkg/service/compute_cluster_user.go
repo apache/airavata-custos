@@ -107,7 +107,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		}
 		// Approved at creation, so provisioning starts now.
 		if cu.ApprovalStatus == models.ClusterAccountApproved {
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+			return s.approveTx(ctx, tx, cu)
 		}
 		return nil
 	}); err != nil {
@@ -165,7 +165,7 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 		}); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
+		return s.approveTx(ctx, tx, cu)
 	}); err != nil {
 		return nil, fmt.Errorf("approve compute cluster user: %w", err)
 	}
@@ -221,6 +221,17 @@ func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, revi
 	}
 	if reviewerID == "" {
 		return nil, fmt.Errorf("%w: reviewer is required", ErrInvalidInput)
+	}
+	unlocked, err := s.clusterUsers.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("lookup compute cluster user: %w", err)
+	}
+	if unlocked == nil {
+		return nil, ErrNotFound
+	}
+	// Approval may provision in this transaction, so the user is locked before the account, the order a merge takes.
+	if err := s.lockUsersTx(ctx, tx, unlocked.UserID); err != nil {
+		return nil, err
 	}
 	cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
 	if err != nil {

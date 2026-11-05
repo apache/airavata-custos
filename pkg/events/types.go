@@ -70,6 +70,8 @@ const (
 	ComputeClusterUserStorageRequestEvent EventType = "compute_cluster_user::storage_request"
 	// Core publishes ready once the account's identity and storage are both done.
 	ComputeClusterUserReadyEvent EventType = "compute_cluster_user::ready"
+	// Core asks the identity registry to create or relink the account; MarkComputeClusterUserProvisioned marks it done.
+	ComputeClusterUserIdentityRequestEvent EventType = "compute_cluster_user::identity_request"
 )
 
 // ClusterAccount lifecycle message types.

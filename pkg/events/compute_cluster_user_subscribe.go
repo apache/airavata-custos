@@ -47,6 +47,12 @@ func (b *Bus) SubscribeComputeClusterUserDenied(subscriber string, handler Compu
 	subscribeTyped(b, subscriber, ComputeClusterUserDenyEvent, handler)
 }
 
+// SubscribeComputeClusterUserIdentityRequested registers a handler for identity_request, published when an approved
+// account needs its registry entry created or linked to a new sign-in identity.
+func (b *Bus) SubscribeComputeClusterUserIdentityRequested(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserIdentityRequestEvent, handler)
+}
+
 // SubscribeComputeClusterUserStorageRequested registers a handler for storage_request, published when the account first
 // exists in the registry.
 func (b *Bus) SubscribeComputeClusterUserStorageRequested(subscriber string, handler ComputeClusterUserHandler) {

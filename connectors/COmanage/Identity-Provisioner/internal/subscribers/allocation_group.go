@@ -56,15 +56,3 @@ func (s *Subscriber) syncAllocation(ctx context.Context, allocationID string) er
 	}
 	return s.ops.EnsureAllocationGroup(ctx, a)
 }
-
-func (s *Subscriber) syncUserAllocations(ctx context.Context, userID string) error {
-	memberships, err := s.core.ListAllocationsForUser(ctx, userID)
-	if err != nil {
-		return err
-	}
-	var errs []error
-	for _, m := range memberships {
-		errs = append(errs, s.syncAllocation(ctx, m.ComputeAllocationID))
-	}
-	return errors.Join(errs...)
-}

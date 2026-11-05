@@ -57,7 +57,6 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 			audits = append(audits, *e)
 			return e, nil
 		},
-		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
 	}
 	ops := &fakeOps{}
 	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
@@ -91,32 +90,28 @@ func TestClusterUserApproved_RunsWithOIDCIdentity(t *testing.T) {
 	}
 }
 
-func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T) {
-	signIn := func(level models.ClusterAccessLevel, approval models.ClusterAccountApproval) *fakeOps {
+// Core requests identity only for approved accounts, so the handler joins the admin group on access level alone.
+func TestIdentityRequested_JoinsAdminGroupOnlyForAdminAccounts(t *testing.T) {
+	request := func(level models.ClusterAccessLevel) *fakeOps {
 		core := &service.CoreServiceMock{
-			GetComputeClusterUserByPairFunc: func(context.Context, string, string) (*models.ComputeClusterUser, error) {
-				return &models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: approval}, nil
+			GetOIDCIdentityFunc: func(context.Context, string) (*models.UserIdentity, error) {
+				return &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"}, nil
 			},
-			ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+			CreateAuditEventFunc: func(_ context.Context, e *models.AuditEvent) (*models.AuditEvent, error) { return e, nil },
 		}
 		ops := &fakeOps{}
 		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
-		if err := s.handleUserOnboarded(context.Background(), models.User{ID: "u1", Status: models.UserActive}); err != nil {
+		cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: models.ClusterAccountApproved}
+		if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
 			t.Fatal(err)
 		}
 		return ops
 	}
 
-	// An admin account joins the cluster admin group on first sign-in.
-	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountApproved); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
+	if ops := request(models.ClusterAccessAdmin); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
 		t.Fatalf("admin account: admin group calls = %v, want [cu1]", ops.admins)
 	}
-	// A normal account does not.
-	if ops := signIn(models.ClusterAccessUser, models.ClusterAccountApproved); len(ops.admins) != 0 {
+	if ops := request(models.ClusterAccessUser); len(ops.admins) != 0 {
 		t.Fatalf("normal account: admin group calls = %v, want none", ops.admins)
-	}
-	// An admin account still awaiting approval does not.
-	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountPending); len(ops.admins) != 0 {
-		t.Fatalf("pending admin account: admin group calls = %v, want none", ops.admins)
 	}
 }

@@ -23,9 +23,30 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// Make sure only an approved account is sent to the identity registry.
+func TestIdentityRequest_OnApprove(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	subscribeAll(svc, events.ComputeClusterUserIdentityRequestEvent)
+	f := newLifecycleFixture(t, svc, database, 1, models.ACTIVE)
+	if n := countTopic(t, svc, events.ComputeClusterUserIdentityRequestEvent); n != 0 {
+		t.Fatalf("%d identity requests for a pending account, want 0", n)
+	}
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	if _, err := svc.ApproveComputeClusterUser(ctx(), f.users[0].ID, admin); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if got := published[models.ComputeClusterUser](t, svc, events.ComputeClusterUserIdentityRequestEvent); len(got) != 1 || got[0].ID != f.users[0].ID {
+		t.Fatalf("identity requests %+v, want one for %s", got, f.users[0].ID)
+	}
+}
 
 // Make sure a provisioned account resyncs each of its allocation groups once.
 func TestGroupRequest_OnProvision(t *testing.T) {
@@ -96,5 +117,37 @@ func TestAccountReady_WaitsOnStorage(t *testing.T) {
 	}
 	if n := countTopic(t, svc, events.ComputeClusterUserReadyEvent); n != 1 {
 		t.Fatalf("%d ready, want 1", n)
+	}
+}
+
+func memberReady(t *testing.T, database *sqlx.DB, id string) bool {
+	t.Helper()
+	var ready bool
+	if err := database.Get(&ready, `SELECT ready_at IS NOT NULL FROM compute_allocation_memberships WHERE id = $1`, id); err != nil {
+		t.Fatalf("read ready_at: %v", err)
+	}
+	return ready
+}
+
+// Make sure approval alone readies everything when no connector is configured.
+func TestNoConnectors_ApprovalReadiesAll(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	f := newLifecycleFixture(t, svc, database, 1, models.ACTIVE)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	if _, err := svc.ApproveComputeClusterUser(ctx(), f.users[0].ID, admin); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	cu, err := svc.GetComputeClusterUser(ctx(), f.users[0].ID)
+	if err != nil {
+		t.Fatalf("get account: %v", err)
+	}
+	a, err := svc.GetComputeAllocation(ctx(), f.alloc.ID)
+	if err != nil {
+		t.Fatalf("get allocation: %v", err)
+	}
+	if cu.ProvisionedAt == nil || cu.ReadyAt == nil || a.GroupProvisionedAt == nil || !memberReady(t, database, f.members[0].ID) {
+		t.Fatalf("provisioned=%v ready=%v group=%v member ready=%v, want all set",
+			cu.ProvisionedAt, cu.ReadyAt, a.GroupProvisionedAt, memberReady(t, database, f.members[0].ID))
 	}
 }

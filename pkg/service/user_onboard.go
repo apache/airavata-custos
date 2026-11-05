@@ -297,7 +297,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return err
 			}
 			// Approved at creation, so provisioning starts now.
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, clusterUser)
+			return s.approveTx(ctx, tx, clusterUser)
 		}
 		return nil
 	}); err != nil {
@@ -437,7 +437,15 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 			}
 		}
 		user.Status = models.UserActive
-		return s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user)
+		if err := s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user); err != nil {
+			return err
+		}
+		// An account deferred at approval waits for this sign-in.
+		accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
+		if err != nil {
+			return err
+		}
+		return s.requestIdentityTx(ctx, tx, accounts...)
 	}); err != nil {
 		return nil, err
 	}
