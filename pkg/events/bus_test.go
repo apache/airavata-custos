@@ -319,6 +319,7 @@ func TestPruneKeepsSubscriptionsOfSubscribersThatDidNotLoad(t *testing.T) {
 	earlier.SubscribeComputeClusterUserCreated("loaded", noop)
 	earlier.SubscribeComputeClusterUserDeleted("loaded", noop)
 	earlier.SubscribeComputeClusterUserCreated("absent", noop)
+	publish(t, tracingtest.Context(), earlier, ComputeClusterUserDeleteEvent, clusterUser())
 
 	// A fresh process where "loaded" dropped the delete topic and "absent" did not start.
 	bus := newBus(t, database)
@@ -337,6 +338,8 @@ func TestPruneKeepsSubscriptionsOfSubscribersThatDidNotLoad(t *testing.T) {
 	if !slices.Equal(kept, want) {
 		t.Fatalf("kept %v, want %v", kept, want)
 	}
+	bus.deliverDue(context.Background())
+	onlyDelivery(t, bus, models.EventDeliveryFailed)
 }
 
 // Make sure the sync publish stores nothing, stops at the first failing

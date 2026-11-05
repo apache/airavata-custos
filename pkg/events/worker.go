@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -161,7 +162,7 @@ func (b *Bus) loadedSubscribers() []string {
 func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 	handler, ok := b.handlerFor(row.Subscriber, row.Event.EventType)
 	if !ok {
-		return
+		handler = func(context.Context, Event, any) error { return fmt.Errorf("%w: no handler for topic", ErrPermanent) }
 	}
 
 	// Build the handler's context. It carries the span and source of the
