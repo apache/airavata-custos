@@ -27,6 +27,7 @@ the repo the workflow validates:
 | `core-` | Go backend: `cmd/`, `internal/`, `pkg/`, and unit tests repo-wide |
 | `web-` | the portal under `web/` |
 | `amie-` | the AMIE connector and its integration stack |
+| `pam-` | the PAM module under `extensions/CILogon-SSH-PAM/` |
 
 Current workflows:
 
@@ -38,6 +39,8 @@ Current workflows:
 - `amie-integration-tests.yml` — the AMIE integration suite with its own
   compose stack (mock AMIE server + PostgreSQL). Runs on connector changes.
   Not duplicated by `core-verify.yml`.
+- `pam-verify.yml` — builds the PAM module and runs its GoogleTest suite
+  against the bundled mock OAuth server. Runs on PAM changes.
 
 When adding a workflow, keep the area prefix, add path filters so unrelated
 PRs skip it, and list it here.

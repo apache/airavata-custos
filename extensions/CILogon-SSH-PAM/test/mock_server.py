@@ -61,12 +61,14 @@ class MockServerRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
         elif re.search(self.TOKEN_PATTERN, self.path):
             auth = self.headers.get('Authorization', '')
-            if (post_data['client_id'] == [self.CLIENT_ID] and
-                    post_data['device_code'] == [self.DEVICE_CODE] and
-                    post_data['grant_type'] == ['urn:ietf:params:oauth:grant-type:device_code'] and
-                    'Basic' in auth and
-                    base64.b64decode(auth.split()[1]).decode() == '{}:{}'.format(
-                        self.CLIENT_ID, self.CLIENT_SECRET)):
+            # RFC 6749 section 2.3.1: HTTP Basic or client_id and client_secret in the body.
+            basic = auth.startswith('Basic ') and base64.b64decode(auth.split()[1]).decode() == '{}:{}'.format(
+                self.CLIENT_ID, self.CLIENT_SECRET)
+            body = (post_data.get('client_id') == [self.CLIENT_ID] and
+                    post_data.get('client_secret') == [self.CLIENT_SECRET])
+            if ((basic or body) and
+                    post_data.get('device_code') == [self.DEVICE_CODE] and
+                    post_data.get('grant_type') == ['urn:ietf:params:oauth:grant-type:device_code']):
                 response_data = {
                     'access_token': self.ACCESS_TOKEN,
                     'error': None,
