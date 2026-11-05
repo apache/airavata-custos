@@ -31,7 +31,7 @@ the repo the workflow validates:
 Current workflows:
 
 - `core-verify.yml` — formatting, build, vet, unit tests for all Go packages,
-  and the `./internal/...` integration suite against a PostgreSQL service
+  and every integration suite except AMIE against a PostgreSQL service
   container. Runs on Go changes.
 - `web-verify.yml` — frozen-lockfile install, typecheck, lint, unit tests,
   and a production build. Runs on `web/` changes.

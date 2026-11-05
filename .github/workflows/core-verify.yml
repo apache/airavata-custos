@@ -85,10 +85,9 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
-      # The AMIE integration suite has its own workflow and compose stack;
-      # this covers the core suite only. The packages share one database and
-      # truncate tables, so they must not run in parallel.
-      - name: Core integration tests
+      # AMIE has its own workflow and mock stack. The packages share one
+      # database and truncate tables, so they must not run in parallel.
+      - name: Integration tests
         env:
           CORE_TEST_DATABASE_DSN: "postgres://admin:admin@127.0.0.1:5432/custos?sslmode=disable"
-        run: go test -tags integration -p 1 ./internal/...
+        run: go test -tags integration -p 1 $(go list -tags integration ./... | grep -v /connectors/ACCESS/AMIE-Processor/)
