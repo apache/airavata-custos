@@ -181,19 +181,26 @@ func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, all
 // MarkComputeAllocationGroupProvisioned stamps group_provisioned_at and publishes the group provision event the first time only.
 func (s *Service) MarkComputeAllocationGroupProvisioned(ctx context.Context, id string) error {
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		now := nowUTC()
-		firstTime, err := s.allocs.MarkGroupProvisioned(ctx, tx, id, now)
-		if err != nil || !firstTime {
-			return err
-		}
-		alloc, err := s.allocs.FindByID(ctx, id)
+		alloc, err := s.allocs.FindByIDTx(ctx, tx, id, store.NoLock)
 		if err != nil || alloc == nil {
 			return err
 		}
-		alloc.GroupProvisionedAt = &now
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc)
+		return s.markGroupProvisionedTx(ctx, tx, alloc)
 	}); err != nil {
 		return fmt.Errorf("mark compute allocation group provisioned: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) markGroupProvisionedTx(ctx context.Context, tx *sql.Tx, alloc *models.ComputeAllocation) error {
+	now := nowUTC()
+	firstTime, err := s.allocs.MarkGroupProvisioned(ctx, tx, alloc.ID, now)
+	if err != nil || !firstTime {
+		return err
+	}
+	alloc.GroupProvisionedAt = &now
+	if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc); err != nil {
+		return err
 	}
 	return nil
 }
