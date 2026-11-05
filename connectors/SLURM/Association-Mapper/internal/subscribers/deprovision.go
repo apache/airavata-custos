@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -91,6 +92,31 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 	slog.InfoContext(ctx, "Removed associations for allocation",
 		"account", allocation.Name, "cluster", cluster.Name)
 	return nil
+}
+
+// removeUserFromCluster deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
+func (a *AssociationSubscriber) removeUserFromCluster(ctx context.Context, csu models.ComputeClusterUser) error {
+	cluster, err := a.coreService.GetComputeCluster(ctx, csu.ComputeClusterID)
+	if err != nil {
+		return fmt.Errorf("get compute cluster: %w", err)
+	}
+	user := csu.LocalUsername
+	assocs, err := a.slurmClient.ListAssociations(client.AssocFilter{User: user})
+	if err != nil || len(assocs) == 0 {
+		return err
+	}
+	if !slices.ContainsFunc(assocs, func(x client.Association) bool { return x.Cluster != cluster.Name }) {
+		return a.slurmClient.DeleteUser(user)
+	}
+	// Slurm refuses the default account while others remain, so it goes last.
+	for _, x := range assocs {
+		if x.Cluster == cluster.Name && x.Account != noAllocation {
+			if err := a.slurmClient.DeleteAssociation(client.AssocFilter{Cluster: cluster.Name, Account: x.Account, User: user}); err != nil {
+				return err
+			}
+		}
+	}
+	return a.slurmClient.DeleteAssociation(client.AssocFilter{Cluster: cluster.Name, Account: noAllocation, User: user})
 }
 
 // activeAllocation reports whether an allocation should still grant access.

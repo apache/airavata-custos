@@ -72,3 +72,9 @@ func (c *Client) DeleteAccount(name string) error {
 	_, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/account/"+name, nil, nil)
 	return err
 }
+
+// DeleteUser deletes a user with all its associations.
+func (c *Client) DeleteUser(name string) error {
+	_, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/user/"+name, nil, nil)
+	return err
+}

@@ -32,17 +32,25 @@ import (
 )
 
 type fakeSlurmClient struct {
-	mu       sync.Mutex
-	upserts  []client.Association
-	defaults []string
-	deletes  []client.AssocFilter
-	existing []client.Association
+	mu           sync.Mutex
+	upserts      []client.Association
+	defaults     []string
+	deletes      []client.AssocFilter
+	existing     []client.Association
+	deletedUsers []string
 }
 
 func (f *fakeSlurmClient) DeleteAssociation(filter client.AssocFilter) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.deletes = append(f.deletes, filter)
+	return nil
+}
+
+func (f *fakeSlurmClient) DeleteUser(name string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.deletedUsers = append(f.deletedUsers, name)
 	return nil
 }
 
