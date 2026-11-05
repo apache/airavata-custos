@@ -25,7 +25,6 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -97,8 +96,7 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		if pType, ok := unixCluster["person_id_type"].(string); ok {
 			personIDType = pType
 		}
-		// Treat "${...}" as an unset env var in the yaml
-		if g, ok := unixCluster["admin_group"].(string); ok && !strings.HasPrefix(g, "${") {
+		if g, ok := unixCluster["admin_group"].(string); ok {
 			adminGroup = g
 		}
 	}
