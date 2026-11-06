@@ -87,10 +87,21 @@ func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.coreService.DeleteUser(r.Context(), userID)
+	// Users are never deleted. Deleting accounts here publishes the cluster delete events.
+	if _, err := h.coreService.UpdateUserStatus(r.Context(), userID, models.UserInactive); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	accounts, err := h.coreService.ListComputeClusterUsersByUser(r.Context(), userID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
+	}
+	for _, a := range accounts {
+		if err := h.coreService.DeleteComputeClusterUser(r.Context(), a.ID); err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -26,7 +26,7 @@ objects = $(SRC_DIR)/pam_oauth2_device.o \
 		  $(SRC_DIR)/include/pam_oauth2_log.o
 
 all: $(TESTS)
-	for test in $(TESTS); do ./$${test}; done
+	set -e; for test in $(TESTS); do ./$${test}; done
 
 
 .PHONY: clean distclean
