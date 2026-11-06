@@ -57,6 +57,10 @@ export async function getUser(id: string): Promise<User> {
   return zGetUsersByIdResponse.parse(await apiFetch(`/users/${id}`));
 }
 
+export async function updatePendingUserEmail(userId: string, email: string): Promise<User> {
+  return zUser.parse(await apiFetch(`/users/${userId}/email`, { method: "PUT", body: { email } }));
+}
+
 export async function listRolesCatalog(): Promise<Role[]> {
   return rolesResponseSchema.parse(await apiFetch("/roles"));
 }

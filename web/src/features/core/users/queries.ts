@@ -38,6 +38,7 @@ import {
   listUserIdentities,
   listUsers,
   removeUserRole,
+  updatePendingUserEmail,
 } from "./api";
 import type { CreateUserPayload } from "./schemas";
 import type {
@@ -133,6 +134,15 @@ export function useCreateUser() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateUserPayload) => createUser(payload),
+    onSuccess: () => client.invalidateQueries({ queryKey: userKeys.all }),
+  });
+}
+
+export function useUpdatePendingUserEmail() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, email }: { userId: string; email: string }) =>
+      updatePendingUserEmail(userId, email),
     onSuccess: () => client.invalidateQueries({ queryKey: userKeys.all }),
   });
 }

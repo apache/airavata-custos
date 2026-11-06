@@ -529,3 +529,25 @@ func TestSetupSteps_FollowProvisioning(t *testing.T) {
 		}
 	}
 }
+
+// Make sure only a pending user without a bound sub can change email.
+func TestUpdatePendingUserEmail(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	active := seedUser(t, database, "active-"+uuid.NewString()[:8]+"@example.edu")
+	bound := seedPendingUserWithEmail(t, database, "bound-"+uuid.NewString()[:8]+"@example.edu")
+	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: bound, Source: "oidc", ExternalID: "sub-x", OIDCSub: "sub-x"}); err != nil {
+		t.Fatalf("create oidc identity: %v", err)
+	}
+	pending := seedPendingUserWithEmail(t, database, "pending-"+uuid.NewString()[:8]+"@example.edu")
+	alias := "alias-" + uuid.NewString()[:8] + "@example.edu"
+
+	for _, user := range []string{active, bound} {
+		if _, err := svc.UpdatePendingUserEmail(ctx(), user, alias); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("user %s: got %v, want ErrInvalidInput", user, err)
+		}
+	}
+	if u, err := svc.UpdatePendingUserEmail(ctx(), pending, alias); err != nil || u.Email != alias {
+		t.Fatalf("pending user: got %+v, %v, want email %s", u, err, alias)
+	}
+}

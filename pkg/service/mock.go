@@ -457,6 +457,9 @@ var _ CoreService = &CoreServiceMock{}
 //			UpdateOrganizationFunc: func(ctx context.Context, org *models.Organization) error {
 //				panic("mock out the UpdateOrganization method")
 //			},
+//			UpdatePendingUserEmailFunc: func(ctx context.Context, id string, email string) (*models.User, error) {
+//				panic("mock out the UpdatePendingUserEmail method")
+//			},
 //			UpdateProjectFunc: func(ctx context.Context, project *models.Project) error {
 //				panic("mock out the UpdateProject method")
 //			},
@@ -925,6 +928,9 @@ type CoreServiceMock struct {
 
 	// UpdateOrganizationFunc mocks the UpdateOrganization method.
 	UpdateOrganizationFunc func(ctx context.Context, org *models.Organization) error
+
+	// UpdatePendingUserEmailFunc mocks the UpdatePendingUserEmail method.
+	UpdatePendingUserEmailFunc func(ctx context.Context, id string, email string) (*models.User, error)
 
 	// UpdateProjectFunc mocks the UpdateProject method.
 	UpdateProjectFunc func(ctx context.Context, project *models.Project) error
@@ -2064,6 +2070,15 @@ type CoreServiceMock struct {
 			// Org is the org argument value.
 			Org *models.Organization
 		}
+		// UpdatePendingUserEmail holds details about calls to the UpdatePendingUserEmail method.
+		UpdatePendingUserEmail []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// Email is the email argument value.
+			Email string
+		}
 		// UpdateProject holds details about calls to the UpdateProject method.
 		UpdateProject []struct {
 			// Ctx is the ctx argument value.
@@ -2285,6 +2300,7 @@ type CoreServiceMock struct {
 	lockUpdateComputeClusterUser                               sync.RWMutex
 	lockUpdateMembershipStatus                                 sync.RWMutex
 	lockUpdateOrganization                                     sync.RWMutex
+	lockUpdatePendingUserEmail                                 sync.RWMutex
 	lockUpdateProject                                          sync.RWMutex
 	lockUpdateProjectStatus                                    sync.RWMutex
 	lockUpdateRole                                             sync.RWMutex
@@ -7700,6 +7716,46 @@ func (mock *CoreServiceMock) UpdateOrganizationCalls() []struct {
 	mock.lockUpdateOrganization.RLock()
 	calls = mock.calls.UpdateOrganization
 	mock.lockUpdateOrganization.RUnlock()
+	return calls
+}
+
+// UpdatePendingUserEmail calls UpdatePendingUserEmailFunc.
+func (mock *CoreServiceMock) UpdatePendingUserEmail(ctx context.Context, id string, email string) (*models.User, error) {
+	if mock.UpdatePendingUserEmailFunc == nil {
+		panic("CoreServiceMock.UpdatePendingUserEmailFunc: method is nil but CoreService.UpdatePendingUserEmail was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		ID    string
+		Email string
+	}{
+		Ctx:   ctx,
+		ID:    id,
+		Email: email,
+	}
+	mock.lockUpdatePendingUserEmail.Lock()
+	mock.calls.UpdatePendingUserEmail = append(mock.calls.UpdatePendingUserEmail, callInfo)
+	mock.lockUpdatePendingUserEmail.Unlock()
+	return mock.UpdatePendingUserEmailFunc(ctx, id, email)
+}
+
+// UpdatePendingUserEmailCalls gets all the calls that were made to UpdatePendingUserEmail.
+// Check the length with:
+//
+//	len(mockedCoreService.UpdatePendingUserEmailCalls())
+func (mock *CoreServiceMock) UpdatePendingUserEmailCalls() []struct {
+	Ctx   context.Context
+	ID    string
+	Email string
+} {
+	var calls []struct {
+		Ctx   context.Context
+		ID    string
+		Email string
+	}
+	mock.lockUpdatePendingUserEmail.RLock()
+	calls = mock.calls.UpdatePendingUserEmail
+	mock.lockUpdatePendingUserEmail.RUnlock()
 	return calls
 }
 

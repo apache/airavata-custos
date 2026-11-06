@@ -227,6 +227,29 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	return existing, nil
 }
 
+// UpdatePendingUserEmail changes the email first sign-in matches on; refused once a sub is bound.
+func (s *Service) UpdatePendingUserEmail(ctx context.Context, id, email string) (*models.User, error) {
+	if email == "" {
+		return nil, fmt.Errorf("%w: email is required", ErrInvalidInput)
+	}
+	var updated *models.User
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		user, err := s.lockUnboundPendingTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		user.Email = email
+		if err := s.users.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		updated = user
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
+	}); err != nil {
+		return nil, fmt.Errorf("update pending user email: %w", err)
+	}
+	return updated, nil
+}
+
 // DeleteUser removes a user by ID.
 func (s *Service) DeleteUser(ctx context.Context, id string) error {
 	if id == "" {
