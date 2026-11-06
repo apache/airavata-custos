@@ -96,8 +96,8 @@ out=$(ssh "${SSH_OPTS[@]}" "$PRINCIPAL@127.0.0.1" whoami)
 check "SSH login as $PRINCIPAL" $?
 
 # --- audit row
-count=$(docker compose exec -T db mariadb -u admin -padmin custos_signer -N \
-  -e "SELECT COUNT(*) FROM certificate_issuance_logs WHERE serial_number = $SERIAL")
+count=$(docker compose exec -T db psql -U admin -d custos_signer -tA \
+  -c "SELECT COUNT(*) FROM certificate_issuance_logs WHERE serial_number = $SERIAL")
 [ "$count" = "1" ]
 check "audit log row for serial $SERIAL" $?
 
