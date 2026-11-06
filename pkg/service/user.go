@@ -18,12 +18,14 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -217,10 +219,40 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	}
 	existing.Status = status
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		was, err := s.users.FindByIDTx(ctx, tx, id, store.NoKeyUpdateLock)
+		if err != nil || was == nil {
+			return cmp.Or(err, ErrNotFound)
+		}
 		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
+		if err := s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing); err != nil {
+			return err
+		}
+		// Access needs an ACTIVE user; PENDING and MERGED are left to onboarding and merge.
+		revoke, restore := was.Status == models.UserActive && status.Revoked(), was.Status.Revoked() && status == models.UserActive
+		if !revoke && !restore {
+			return nil
+		}
+		accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		for _, cu := range accounts {
+			if cu.ApprovalStatus != models.ClusterAccountApproved {
+				continue
+			}
+			if revoke {
+				if err := s.clusterUsers.ClearProvisioned(ctx, tx, cu.ID); err != nil {
+					return err
+				}
+				cu.ProvisionedAt = nil
+			}
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserUpdateEvent, cu); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}

@@ -37,6 +37,9 @@ func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClus
 	return nil
 }
 func (f *fakeOps) RemoveClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
+func (f *fakeOps) DeactivateClusterAccount(context.Context, *models.ComputeClusterUser) error {
+	return nil
+}
 func (f *fakeOps) EnsureClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.admins = append(f.admins, cu.ID)
 	return nil
@@ -58,6 +61,9 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 			return e, nil
 		},
 		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+		GetUserFunc: func(_ context.Context, id string) (*models.User, error) {
+			return &models.User{ID: id, Status: models.UserActive}, nil
+		},
 	}
 	ops := &fakeOps{}
 	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
@@ -98,6 +104,9 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 				return &models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: approval}, nil
 			},
 			ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+			GetUserFunc: func(_ context.Context, id string) (*models.User, error) {
+				return &models.User{ID: id, Status: models.UserActive}, nil
+			},
 		}
 		ops := &fakeOps{}
 		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}

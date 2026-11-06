@@ -30,6 +30,9 @@ const (
 	UserMerged    UserStatus = "MERGED"
 )
 
+// Revoked reports whether the status takes away the user's cluster access.
+func (s UserStatus) Revoked() bool { return s == UserInactive || s == UserSuspended }
+
 // ProjectStatus enumerates the lifecycle states a Project may occupy.
 type ProjectStatus string
 
