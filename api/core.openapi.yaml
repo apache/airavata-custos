@@ -1166,6 +1166,11 @@ definitions:
       note:
         type: string
     type: object
+  emailUpdateRequest:
+    properties:
+      email:
+        type: string
+    type: object
   grantPrivilegeRequest:
     properties:
       privilege:
@@ -5607,6 +5612,57 @@ paths:
       summary: List compute cluster users for a user
       tags:
       - Compute Cluster Users
+  /users/{id}/email:
+    put:
+      consumes:
+      - application/json
+      description: Changes the email first sign-in matches on. Refused once the user
+        has a sign-in identity.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Email patch
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/emailUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a pending user's email
+      tags:
+      - Users
   /users/{id}/privileges:
     get:
       description: Returns DIRECT grants only (not role-derived). Combine with `GET

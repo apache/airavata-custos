@@ -59,6 +59,7 @@ type UserService interface {
 	ListUsersByOrganization(ctx context.Context, organizationID string) ([]models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
 	UpdateUserStatus(ctx context.Context, id string, status models.UserStatus) (*models.User, error)
+	UpdatePendingUserEmail(ctx context.Context, actorID, id, email string) (*models.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	MergeUsers(ctx context.Context, survivingID, retiringID string) (*models.User, error)
 	ValidateUsername(name string) error

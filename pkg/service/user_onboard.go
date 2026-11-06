@@ -398,20 +398,13 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 		return nil, err
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		// Recheck under the row lock. A parallel submit may have onboarded this user already.
-		user, err := s.users.FindByIDTx(ctx, tx, matched.ID, store.NoKeyUpdateLock)
+		// Recheck under the row lock. A parallel submit or email edit may have changed this user.
+		user, err := s.lockUnboundPendingTx(ctx, tx, matched.ID)
 		if err != nil {
-			return fmt.Errorf("lock user: %w", err)
+			return err
 		}
-		if user == nil || user.Status != models.UserPending {
-			return fmt.Errorf("%w: user is not waiting for onboarding", ErrInvalidInput)
-		}
-		bound, err := s.userIdentities.FindByUserAndSource(ctx, user.ID, identitySourceOIDC)
-		if err != nil {
-			return fmt.Errorf("lookup oidc identity: %w", err)
-		}
-		if bound != nil {
-			return fmt.Errorf("%w: user already has a sign-in identity", ErrInvalidInput)
+		if user.Email != claims.Email {
+			return fmt.Errorf("%w: user email changed during sign-in", ErrInvalidInput)
 		}
 
 		current, err := s.agreements.FindCurrent(ctx)
@@ -442,6 +435,23 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 		return nil, err
 	}
 	return s.GetUser(ctx, matched.ID)
+}
+
+// lockUnboundPendingTx locks a user that is PENDING with no sign-in identity bound yet.
+func (s *Service) lockUnboundPendingTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error) {
+	user, err := s.users.FindByIDTx(ctx, tx, id, store.NoKeyUpdateLock)
+	if err != nil {
+		return nil, fmt.Errorf("lock user: %w", err)
+	}
+	if user == nil || user.Status != models.UserPending {
+		return nil, fmt.Errorf("%w: user is not waiting for onboarding", ErrInvalidInput)
+	}
+	if bound, err := s.userIdentities.FindByUserAndSource(ctx, id, identitySourceOIDC); err != nil {
+		return nil, fmt.Errorf("lookup oidc identity: %w", err)
+	} else if bound != nil {
+		return nil, fmt.Errorf("%w: user already has a sign-in identity", ErrInvalidInput)
+	}
+	return user, nil
 }
 
 // A locked name is skipped, not refused, so onboarding still finishes.

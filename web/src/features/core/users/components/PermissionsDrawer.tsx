@@ -37,6 +37,7 @@ import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 import type { ClusterAccountsView, UserAccountRow } from "../types";
+import { PendingEmailField } from "./PendingEmailField";
 import { PrivilegeList } from "./PrivilegeList";
 import { RoleAssignMenu } from "./RoleAssignMenu";
 import { UserStatusBadge } from "./UserStatusBadge";
@@ -193,6 +194,9 @@ export function PermissionsDrawer({
           <section>
             <h3 className={HEADING}>Details</h3>
             <dl className="grid grid-cols-[max-content_1fr] items-center gap-x-4 gap-y-2 text-sm">
+              {user.status === "PENDING" ? (
+                <PendingEmailField key={user.id} userId={user.id} email={user.email} />
+              ) : null}
               <dt className="text-muted-foreground">Status</dt>
               <dd>
                 <UserStatusBadge status={user.status} />

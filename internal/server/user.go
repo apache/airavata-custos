@@ -142,6 +142,41 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, u)
 }
 
+type emailUpdateRequest struct {
+	Email string `json:"email"`
+}
+
+// @Summary	Update a pending user's email
+// @Description	Changes the email first sign-in matches on. Refused once the user has a sign-in identity.
+// @Tags	Users
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Param	request	body	emailUpdateRequest	true	"Email patch"
+// @Success	200	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/users/{id}/email [put]
+func (s *Server) updatePendingUserEmail(w http.ResponseWriter, r *http.Request) {
+	var req emailUpdateRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	u, err := s.svc.UpdatePendingUserEmail(r.Context(), caller.UserID, r.PathValue("id"), req.Email)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, u)
+}
+
 type userNameUpdateRequest struct {
 	FirstName  string `json:"first_name"`
 	MiddleName string `json:"middle_name"`

@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -225,6 +226,55 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	}
 	s.InvalidateAllIdentities()
 	return existing, nil
+}
+
+const (
+	userAuditEmailChangeRequested = "USER_EMAIL_CHANGE_REQUESTED"
+	userAuditEmailChanged         = "USER_EMAIL_CHANGED"
+	userAuditEmailChangeFailed    = "USER_EMAIL_CHANGE_FAILED"
+)
+
+// UpdatePendingUserEmail changes the email first sign-in matches on; refused once a sub is bound.
+// The request and a failure are audited in their own transactions, so they outlive a rollback.
+func (s *Service) UpdatePendingUserEmail(ctx context.Context, actorID, id, email string) (*models.User, error) {
+	if email == "" {
+		return nil, fmt.Errorf("%w: email is required", ErrInvalidInput)
+	}
+	auditCtx := context.WithoutCancel(ctx)
+	audit := func(eventType string, details map[string]any) error {
+		return s.inTx(auditCtx, func(tx *sql.Tx) error { return s.writeAuditTx(auditCtx, tx, "user", eventType, id, details) })
+	}
+	if err := audit(userAuditEmailChangeRequested, map[string]any{"actor_id": actorID, "email": email}); err != nil {
+		return nil, fmt.Errorf("audit email change request: %w", err)
+	}
+	var updated *models.User
+	err := s.inTx(ctx, func(tx *sql.Tx) error {
+		user, err := s.lockUnboundPendingTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		previous := user.Email
+		user.Email = email
+		if err := s.users.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		if err := s.writeAuditTx(ctx, tx, "user", userAuditEmailChanged, id, map[string]any{
+			"actor_id": actorID,
+			"from":     previous,
+			"to":       email,
+		}); err != nil {
+			return err
+		}
+		updated = user
+		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
+	})
+	if err != nil {
+		if aerr := audit(userAuditEmailChangeFailed, map[string]any{"actor_id": actorID, "error": err.Error()}); aerr != nil {
+			slog.ErrorContext(ctx, "audit email change failure", "user_id", id, "error", aerr)
+		}
+		return nil, fmt.Errorf("update pending user email: %w", err)
+	}
+	return updated, nil
 }
 
 // DeleteUser removes a user by ID.
