@@ -125,11 +125,9 @@ info:
 paths:
   /connectors/analytics/allocations/{id}/jobs:
     get:
-      description: A page of usage records (a job's charge) the newest first, with
-        the total count. Access is membership-scoped like the usage summary. Plain
-        members always see only their own records; project managers see everyone's
-        by default and can narrow to their own with mine=true. Non-members receive
-        404.
+      description: |-
+        A page of usage records (a job's charge) the newest first, with the total count. Access is membership-scoped like the usage summary.
+        Plain members always see only their own records; project managers and core:allocations:read holders see everyone's by default and can narrow to their own with mine=true. Non-members receive 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -183,10 +181,9 @@ paths:
       - Analytics
   /connectors/analytics/allocations/{id}/usage-summary:
     get:
-      description: 'Aggregated usage for one allocation. Access is membership-scoped:
-        the caller must hold a membership on the allocation or a governance role on
-        its project. The per-member breakdown is populated only for project managers.
-        Callers without access receive 404 so allocation existence is not leaked.'
+      description: |-
+        Aggregated usage for one allocation. The caller must hold a membership on the allocation, a governance role on its project, or core:allocations:read.
+        The per-member breakdown is populated only for project managers and core:allocations:read holders. Callers without access receive 404 so allocation existence is not leaked.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -228,9 +225,9 @@ paths:
       - Analytics
   /connectors/analytics/contexts:
     get:
-      description: Projects the caller belongs to (through a role or allocation membership),
-        each with the caller's role and its allocations. No privilege required; scoped
-        to the caller's own memberships.
+      description: |-
+        Projects the caller belongs to (through a role or allocation membership), each with the caller's role and its allocations.
+        A caller with core:allocations:read gets every project, with a null role where they hold none.
       produces:
       - application/json
       responses:

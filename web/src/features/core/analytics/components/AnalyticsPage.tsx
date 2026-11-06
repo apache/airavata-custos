@@ -18,6 +18,7 @@
 "use client";
 
 import type { Allocation, UsageSummary } from "@/generated/analytics/zod.gen";
+import { usePermissions } from "@/shared/casl/permissions";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -25,7 +26,7 @@ import { ChartColumn } from "lucide-react";
 import * as React from "react";
 import { buildResourceSeries } from "../lib";
 import { useAnalyticsContexts, useUsageSummary } from "../queries";
-import type { AnalyticsContext } from "../schemas";
+import type { AnalyticsContext, AnalyticsRole } from "../schemas";
 import { useAnalyticsSelection } from "../useAnalyticsSelection";
 import { ContextSwitcher } from "./ContextSwitcher";
 import { HERO_TILE_COUNT, HeroTiles } from "./HeroTiles";
@@ -36,7 +37,7 @@ import { UsageOverTimeBars } from "./UsageOverTimeBars";
 
 const MANAGER_ROLES = new Set(["PI", "CO_PI", "ALLOCATION_MANAGER"]);
 
-const ROLE_LABEL: Record<AnalyticsContext["role"], string> = {
+const ROLE_LABEL: Record<AnalyticsRole, string> = {
   PI: "PI on this project",
   CO_PI: "Co-PI on this project",
   ALLOCATION_MANAGER: "Allocation manager",
@@ -50,7 +51,10 @@ export function AnalyticsPage() {
   const { project, allocation, select } = useAnalyticsSelection(contexts);
   const summaryQuery = useUsageSummary(allocation?.id);
 
-  const isManager = project ? MANAGER_ROLES.has(project.role) : false;
+  const can = usePermissions();
+  const managerRoleLabel =
+    project?.role && MANAGER_ROLES.has(project.role) ? ROLE_LABEL[project.role] : null;
+  const isManager = managerRoleLabel !== null || can.allocationsRead;
 
   return (
     <div className="space-y-6">
@@ -61,7 +65,9 @@ export function AnalyticsPage() {
             How your allocation is being used and how long it will last.
           </p>
         </div>
-        {project && isManager ? <RoleChip role={project.role} /> : null}
+        {project && isManager ? (
+          <RoleChip label={managerRoleLabel ?? "Viewing all allocations"} />
+        ) : null}
       </header>
 
       {contextsQuery.isLoading ? (
@@ -170,10 +176,10 @@ function TileSkeletons() {
 }
 
 // Only rendered for managers; the chip explains why the extra cards appear.
-function RoleChip({ role }: { role: AnalyticsContext["role"] }) {
+function RoleChip({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-[color:var(--tone-info-bg)] px-3 py-1 text-xs font-medium text-[color:var(--tone-info-fg)]">
-      {ROLE_LABEL[role]}
+      {label}
     </span>
   );
 }

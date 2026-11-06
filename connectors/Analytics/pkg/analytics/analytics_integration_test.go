@@ -162,8 +162,8 @@ func TestAnalyticsContexts_PIRoleAndAllocations(t *testing.T) {
 		t.Fatalf("contexts: got %d, want 1", len(got))
 	}
 	c := got[0]
-	if c.Role != string(models.ProjectRolePI) {
-		t.Errorf("role: got %q, want PI", c.Role)
+	if roleOf(c) != string(models.ProjectRolePI) {
+		t.Errorf("role: got %q, want PI", roleOf(c))
 	}
 	if len(c.Allocations) != 2 {
 		t.Fatalf("allocations: got %d, want 2", len(c.Allocations))
@@ -202,8 +202,8 @@ func TestAnalyticsContexts_MemberViaAllocationOnly(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("contexts: got %d, want 1", len(got))
 	}
-	if got[0].Role != roleMember {
-		t.Errorf("role: got %q, want MEMBER (derived from allocation membership)", got[0].Role)
+	if roleOf(got[0]) != roleMember {
+		t.Errorf("role: got %q, want MEMBER (derived from allocation membership)", roleOf(got[0]))
 	}
 }
 
@@ -425,9 +425,8 @@ func TestUsageSummary_MemberWithoutNameFallsBackToEmail(t *testing.T) {
 	}
 }
 
-// Access is membership-only: a site-wide privilege does not open an allocation
-// the caller has no membership or role on.
-func TestUsageSummary_SitePrivilegeAloneDoesNotGrantAccess_404(t *testing.T) {
+// Make sure core:allocations:read opens an allocation's full usage.
+func TestUsageSummary_AllocationsReadGivesFullView(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	pi := seedUser(t, database, "pi6@example.edu")
 	admin := seedUser(t, database, "admin6@example.edu")
@@ -439,11 +438,47 @@ func TestUsageSummary_SitePrivilegeAloneDoesNotGrantAccess_404(t *testing.T) {
 	seedUsage(t, database, alloc, res, pi, 400, 40, time.Now().UTC().AddDate(0, 0, -1))
 
 	rr := httptest.NewRecorder()
-	// admin has no membership on this allocation, only site allocations:read.
 	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/allocations/"+alloc+"/usage-summary", nil), admin, models.AllocationsRead)
 	srv.ServeHTTP(rr, req)
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("status: got %d, want 404 (site privilege must not grant access)", rr.Code)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var got UsageSummary
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.ByMember) != 1 || got.ByMember[0].UserID != pi {
+		t.Errorf("by_member: got %+v, want the PI's usage", got.ByMember)
+	}
+}
+
+func roleOf(c ProjectContext) string {
+	if c.Role == nil {
+		return ""
+	}
+	return *c.Role
+}
+
+// Make sure core:allocations:read lists every project, with a null role where the caller has none.
+func TestAnalyticsContexts_AllocationsReadListsEveryProject(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "pi7@example.edu")
+	admin := seedUser(t, database, "admin7@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	alloc := seedAllocation(t, database, project, cluster, 1000, time.Now().UTC().AddDate(0, 0, -2), time.Now().UTC().AddDate(0, 0, 28))
+
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/contexts", nil), admin, models.AllocationsRead))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var got []ProjectContext
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got) != 1 || got[0].Role != nil || len(got[0].Allocations) != 1 || got[0].Allocations[0].ID != alloc {
+		t.Errorf("contexts: got %+v, want the project with a null role and its allocation", got)
 	}
 }
 
@@ -658,8 +693,8 @@ func TestAnalyticsContexts_CoPIMemberAndProjectWithoutAllocations(t *testing.T) 
 	}
 	allocs := map[string][]Allocation{}
 	for _, c := range got {
-		if c.Role != string(models.ProjectRoleCoPI) {
-			t.Errorf("project %s role: got %q, want CO_PI", c.ProjectID, c.Role)
+		if roleOf(c) != string(models.ProjectRoleCoPI) {
+			t.Errorf("project %s role: got %q, want CO_PI", c.ProjectID, roleOf(c))
 		}
 		allocs[c.ProjectID] = c.Allocations
 	}
