@@ -22,7 +22,7 @@ test.describe("agreement gates", () => {
   // Checks that a first sign-in sees the setup page with the suggested username instead of the portal.
   test("shows the onboarding page", async ({ page }) => {
     await signInAs(page, "researcher", "onboarding");
-    await page.goto("/allocations");
+    await page.goto("/projects");
 
     await expect(page.getByRole("heading", { name: "Set up your account" })).toBeVisible({
       timeout: 20_000,
@@ -33,7 +33,7 @@ test.describe("agreement gates", () => {
   // Checks that a user with a newer version pending sees the policy update page.
   test("shows the policy update page", async ({ page }) => {
     await signInAs(page, "researcher", "consent");
-    await page.goto("/allocations");
+    await page.goto("/projects");
 
     await expect(page.getByRole("heading", { name: "Accept the updated agreement" })).toBeVisible({
       timeout: 20_000,

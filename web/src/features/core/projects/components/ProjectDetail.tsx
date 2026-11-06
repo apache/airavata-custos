@@ -17,14 +17,11 @@
 
 "use client";
 
-import { CreateAllocationDialog } from "@/features/core/allocations/components/CreateAllocationDialog";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
 import { DeleteButton } from "@/shared/ui/ConfirmDialog";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import * as React from "react";
 import { useDeleteProject, useProject } from "../queries";
 import { ProjectDetailHeader } from "./ProjectDetailHeader";
 import { ProjectMembersTab } from "./ProjectMembersTab";
@@ -37,7 +34,6 @@ export type ProjectDetailProps = {
 export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const can = usePermissions();
   const projectQuery = useProject(projectId);
-  const [addingAllocation, setAddingAllocation] = React.useState(false);
   const remove = useDeleteProject();
   useBreadcrumbLabel(projectId, projectQuery.data?.title);
 
@@ -66,29 +62,13 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
           A project can be deleted only once it has no allocations. This cannot be undone.
         </DeleteButton>
       </div>
-      <ProjectOverviewTab
-        project={project}
-        addAllocation={
-          <GuardedButton
-            variant="link"
-            className="h-auto border-0 p-0"
-            allowed={can.allocationsWrite && can.clustersRead}
-            reason={requires("allocationsWrite", "clustersRead")}
-            onClick={() => setAddingAllocation(true)}
-          >
-            Add allocation
-          </GuardedButton>
-        }
-      />
+      <ProjectOverviewTab project={project} />
       <ProjectMembersTab
         projectId={project.id}
         canEditRoles={can.projectsWrite}
         canEditAccess={can.allocationsWrite}
         canSearchUsers={can.usersRead}
       />
-      {addingAllocation ? (
-        <CreateAllocationDialog onOpenChange={setAddingAllocation} project={project} />
-      ) : null}
     </section>
   );
 }

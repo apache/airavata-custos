@@ -15,11 +15,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { AllocationDetail } from "@/features/core/allocations/components/AllocationDetail";
+"use client";
 
-export default async function AllocationDetailPage(props: {
+import { useAllocation } from "@/features/core/allocations/queries";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+
+// Allocation pages live under their project; links that know only the allocation id land here.
+export default function AllocationRedirectPage(props: {
   params: Promise<{ allocationId: string }>;
 }) {
-  const { allocationId } = await props.params;
-  return <AllocationDetail allocationId={allocationId} />;
+  const { allocationId } = React.use(props.params);
+  const { data, error, refetch } = useAllocation(allocationId);
+  const router = useRouter();
+  React.useEffect(() => {
+    if (data) router.replace(`/projects/${data.project_id}/${data.id}`);
+  }, [data, router]);
+  return error ? <ErrorState message={error.message} onRetry={() => refetch()} /> : null;
 }
