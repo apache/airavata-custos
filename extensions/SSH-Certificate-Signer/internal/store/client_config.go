@@ -23,7 +23,6 @@ import (
 )
 
 type ClientConfig struct {
-	TenantID                 string
 	ClientID                 string
 	ClientSecret             string // BCrypt hash
 	TargetHost               string
@@ -36,7 +35,7 @@ type ClientConfig struct {
 	Enabled                  bool
 }
 
-func (d *DB) GetClientConfig(ctx context.Context, tenantID, clientID string) (*ClientConfig, error) {
+func (d *DB) GetClientConfig(ctx context.Context, clientID string) (*ClientConfig, error) {
 	var (
 		cc                       ClientConfig
 		allowedKeyTypesJSON      []byte
@@ -45,14 +44,14 @@ func (d *DB) GetClientConfig(ctx context.Context, tenantID, clientID string) (*C
 	)
 
 	err := d.QueryRowContext(ctx,
-		`SELECT tenant_id, client_id, client_secret, target_host, target_port,
+		`SELECT client_id, client_secret, target_host, target_port,
 		        max_ttl_seconds, allowed_key_types, source_address_restriction,
 		        denied_extensions, principal_source, enabled
 		 FROM client_ssh_configs
-		 WHERE tenant_id = $1 AND client_id = $2`,
-		tenantID, clientID,
+		 WHERE client_id = $1`,
+		clientID,
 	).Scan(
-		&cc.TenantID, &cc.ClientID, &cc.ClientSecret, &cc.TargetHost, &cc.TargetPort,
+		&cc.ClientID, &cc.ClientSecret, &cc.TargetHost, &cc.TargetPort,
 		&cc.MaxTTLSeconds, &allowedKeyTypesJSON, &sourceAddressRestriction,
 		&deniedExtensionsJSON, &cc.PrincipalSource, &cc.Enabled,
 	)

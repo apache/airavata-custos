@@ -97,6 +97,10 @@ func (c *Client) Healthy(ctx context.Context) error {
 	return nil
 }
 
+// The deployment has one CA. Its keys and serial counter are stored here.
+// TODO CA from file path support
+const caPath = "ca"
+
 func (c *Client) kvPath(parts ...string) string {
 	path := c.mountPath + "/data"
 	for _, p := range parts {
@@ -106,8 +110,8 @@ func (c *Client) kvPath(parts ...string) string {
 }
 
 // GetCurrentCAKey returns the current CA key, auto-creating one if it doesn't exist.
-func (c *Client) GetCurrentCAKey(ctx context.Context, tenantID, clientID string) (*CAKeyPair, error) {
-	kp, err := c.readCAKey(ctx, tenantID, clientID, "current")
+func (c *Client) GetCurrentCAKey(ctx context.Context) (*CAKeyPair, error) {
+	kp, err := c.readCAKey(ctx, "current")
 	if err != nil {
 		return nil, err
 	}
@@ -120,11 +124,11 @@ func (c *Client) GetCurrentCAKey(ctx context.Context, tenantID, clientID string)
 		return nil, err
 	}
 
-	if err := c.writeCAKey(ctx, tenantID, clientID, "current", kp); err != nil {
+	if err := c.writeCAKey(ctx, "current", kp); err != nil {
 		return nil, err
 	}
 
-	if err := c.initMetadata(ctx, tenantID, clientID); err != nil {
+	if err := c.initMetadata(ctx); err != nil {
 		return nil, err
 	}
 
@@ -132,19 +136,19 @@ func (c *Client) GetCurrentCAKey(ctx context.Context, tenantID, clientID string)
 }
 
 // GetNextCAKey returns the next CA key, or nil if none exists.
-func (c *Client) GetNextCAKey(ctx context.Context, tenantID, clientID string) (*CAKeyPair, error) {
-	return c.readCAKey(ctx, tenantID, clientID, "next")
+func (c *Client) GetNextCAKey(ctx context.Context) (*CAKeyPair, error) {
+	return c.readCAKey(ctx, "next")
 }
 
 // IncrementSerialCounter atomically reads, increments, and writes the serial
 // counter using Vault KV v2 CAS (Check-and-Set) to prevent lost updates.
-func (c *Client) IncrementSerialCounter(ctx context.Context, tenantID, clientID string) (int64, error) {
-	meta, version, err := c.readMetadataWithVersion(ctx, tenantID, clientID)
+func (c *Client) IncrementSerialCounter(ctx context.Context) (int64, error) {
+	meta, version, err := c.readMetadataWithVersion(ctx)
 	if err != nil {
 		return 0, err
 	}
 	if meta == nil {
-		if err := c.initMetadata(ctx, tenantID, clientID); err != nil {
+		if err := c.initMetadata(ctx); err != nil {
 			return 0, err
 		}
 		return 1, nil
@@ -152,22 +156,22 @@ func (c *Client) IncrementSerialCounter(ctx context.Context, tenantID, clientID 
 
 	newSerial := meta.SerialCounter + 1
 	meta.SerialCounter = newSerial
-	if err := c.writeMetadataCAS(ctx, tenantID, clientID, meta, version); err != nil {
+	if err := c.writeMetadataCAS(ctx, meta, version); err != nil {
 		return 0, err
 	}
 	return newSerial, nil
 }
 
 // RotateCA promotes next to current and generates a new next key.
-func (c *Client) RotateCA(ctx context.Context, tenantID, clientID string) (currentFP, nextFP string, err error) {
-	nextKey, err := c.readCAKey(ctx, tenantID, clientID, "next")
+func (c *Client) RotateCA(ctx context.Context) (currentFP, nextFP string, err error) {
+	nextKey, err := c.readCAKey(ctx, "next")
 	if err != nil {
 		return "", "", err
 	}
 
 	if nextKey != nil {
 		// Promote next to current
-		if err := c.writeCAKey(ctx, tenantID, clientID, "current", nextKey); err != nil {
+		if err := c.writeCAKey(ctx, "current", nextKey); err != nil {
 			return "", "", err
 		}
 	} else {
@@ -176,7 +180,7 @@ func (c *Client) RotateCA(ctx context.Context, tenantID, clientID string) (curre
 		if err != nil {
 			return "", "", err
 		}
-		if err := c.writeCAKey(ctx, tenantID, clientID, "current", newCurrent); err != nil {
+		if err := c.writeCAKey(ctx, "current", newCurrent); err != nil {
 			return "", "", err
 		}
 	}
@@ -186,12 +190,12 @@ func (c *Client) RotateCA(ctx context.Context, tenantID, clientID string) (curre
 	if err != nil {
 		return "", "", err
 	}
-	if err := c.writeCAKey(ctx, tenantID, clientID, "next", newNext); err != nil {
+	if err := c.writeCAKey(ctx, "next", newNext); err != nil {
 		return "", "", err
 	}
 
 	now := time.Now().UTC()
-	meta, err := c.readMetadata(ctx, tenantID, clientID)
+	meta, err := c.readMetadata(ctx)
 	if err != nil {
 		return "", "", err
 	}
@@ -202,12 +206,12 @@ func (c *Client) RotateCA(ctx context.Context, tenantID, clientID string) (curre
 	meta.NextRotationAt = now.Add(time.Duration(c.rotationCfg.PeriodHours) * time.Hour).Format(time.RFC3339)
 	meta.RotationPeriodH = c.rotationCfg.PeriodHours
 	meta.OverlapHours = c.rotationCfg.OverlapHours
-	if err := c.writeMetadata(ctx, tenantID, clientID, meta); err != nil {
+	if err := c.writeMetadata(ctx, meta); err != nil {
 		return "", "", err
 	}
 
 	// Read back keys to get fingerprints
-	currentKey, err := c.readCAKey(ctx, tenantID, clientID, "current")
+	currentKey, err := c.readCAKey(ctx, "current")
 	if err != nil {
 		return "", "", err
 	}
@@ -215,12 +219,12 @@ func (c *Client) RotateCA(ctx context.Context, tenantID, clientID string) (curre
 	return string(currentKey.PublicKey), string(newNext.PublicKey), nil
 }
 
-func (c *Client) GetMetadata(ctx context.Context, tenantID, clientID string) (*CAMetadata, error) {
-	return c.readMetadata(ctx, tenantID, clientID)
+func (c *Client) GetMetadata(ctx context.Context) (*CAMetadata, error) {
+	return c.readMetadata(ctx)
 }
 
-func (c *Client) readCAKey(ctx context.Context, tenantID, clientID, slot string) (*CAKeyPair, error) {
-	path := c.kvPath(tenantID, clientID, slot)
+func (c *Client) readCAKey(ctx context.Context, slot string) (*CAKeyPair, error) {
+	path := c.kvPath(caPath, slot)
 	secret, err := c.client.Logical().ReadWithContext(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("reading vault path %s: %w", path, err)
@@ -254,8 +258,8 @@ func (c *Client) readCAKey(ctx context.Context, tenantID, clientID, slot string)
 	return kp, nil
 }
 
-func (c *Client) writeCAKey(ctx context.Context, tenantID, clientID, slot string, kp *CAKeyPair) error {
-	path := c.kvPath(tenantID, clientID, slot)
+func (c *Client) writeCAKey(ctx context.Context, slot string, kp *CAKeyPair) error {
+	path := c.kvPath(caPath, slot)
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"private_key": string(kp.PrivateKey),
@@ -271,13 +275,13 @@ func (c *Client) writeCAKey(ctx context.Context, tenantID, clientID, slot string
 	return nil
 }
 
-func (c *Client) readMetadata(ctx context.Context, tenantID, clientID string) (*CAMetadata, error) {
-	meta, _, err := c.readMetadataWithVersion(ctx, tenantID, clientID)
+func (c *Client) readMetadata(ctx context.Context) (*CAMetadata, error) {
+	meta, _, err := c.readMetadataWithVersion(ctx)
 	return meta, err
 }
 
-func (c *Client) readMetadataWithVersion(ctx context.Context, tenantID, clientID string) (*CAMetadata, int, error) {
-	path := c.kvPath(tenantID, clientID, "metadata")
+func (c *Client) readMetadataWithVersion(ctx context.Context) (*CAMetadata, int, error) {
+	path := c.kvPath(caPath, "metadata")
 	secret, err := c.client.Logical().ReadWithContext(ctx, path)
 	if err != nil {
 		return nil, 0, fmt.Errorf("reading vault metadata: %w", err)
@@ -330,8 +334,8 @@ func (c *Client) readMetadataWithVersion(ctx context.Context, tenantID, clientID
 	return meta, version, nil
 }
 
-func (c *Client) writeMetadata(ctx context.Context, tenantID, clientID string, meta *CAMetadata) error {
-	path := c.kvPath(tenantID, clientID, "metadata")
+func (c *Client) writeMetadata(ctx context.Context, meta *CAMetadata) error {
+	path := c.kvPath(caPath, "metadata")
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"serial_counter":        strconv.FormatInt(meta.SerialCounter, 10),
@@ -348,8 +352,8 @@ func (c *Client) writeMetadata(ctx context.Context, tenantID, clientID string, m
 	return nil
 }
 
-func (c *Client) writeMetadataCAS(ctx context.Context, tenantID, clientID string, meta *CAMetadata, cas int) error {
-	path := c.kvPath(tenantID, clientID, "metadata")
+func (c *Client) writeMetadataCAS(ctx context.Context, meta *CAMetadata, cas int) error {
+	path := c.kvPath(caPath, "metadata")
 	data := map[string]interface{}{
 		"options": map[string]interface{}{
 			"cas": cas,
@@ -372,7 +376,7 @@ func (c *Client) writeMetadataCAS(ctx context.Context, tenantID, clientID string
 	return nil
 }
 
-func (c *Client) initMetadata(ctx context.Context, tenantID, clientID string) error {
+func (c *Client) initMetadata(ctx context.Context) error {
 	now := time.Now().UTC()
 	meta := &CAMetadata{
 		SerialCounter:   0,
@@ -381,7 +385,7 @@ func (c *Client) initMetadata(ctx context.Context, tenantID, clientID string) er
 		RotationPeriodH: c.rotationCfg.PeriodHours,
 		OverlapHours:    c.rotationCfg.OverlapHours,
 	}
-	return c.writeMetadata(ctx, tenantID, clientID, meta)
+	return c.writeMetadata(ctx, meta)
 }
 
 func generateEd25519CAKey() (*CAKeyPair, error) {
@@ -410,8 +414,8 @@ func generateEd25519CAKey() (*CAKeyPair, error) {
 	}, nil
 }
 
-// ValidationCredentials holds per-client - principal validation.
-// Stored in Vault at ssh-ca/{tenant_id}/{client_id}/validation.
+// ValidationCredentials holds one client's principal validation settings.
+// Stored at {mount}/clients/{client_id}/validation.
 type ValidationCredentials struct {
 	Type              string `json:"type"`                         // "ldap" or "comanage"
 	LDAPUrl           string `json:"ldap_url,omitempty"`           // LDAP
@@ -429,8 +433,8 @@ type ValidationCredentials struct {
 
 // GetValidationCredentials reads per-client validation credentials from Vault.
 // Returns (nil, nil) if no credentials exist at the path.
-func (c *Client) GetValidationCredentials(ctx context.Context, tenantID, clientID string) (*ValidationCredentials, error) {
-	path := c.kvPath(tenantID, clientID, "validation")
+func (c *Client) GetValidationCredentials(ctx context.Context, clientID string) (*ValidationCredentials, error) {
+	path := c.kvPath("clients", clientID, "validation")
 	secret, err := c.client.Logical().ReadWithContext(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("reading validation credentials at %s: %w", path, err)

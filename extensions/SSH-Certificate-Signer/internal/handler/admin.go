@@ -52,24 +52,21 @@ func (h *AdminHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantID := clientCfg.TenantID
-	clientID := clientCfg.ClientID
-
-	_, _, err := h.vaultClient.RotateCA(r.Context(), tenantID, clientID)
+	_, _, err := h.vaultClient.RotateCA(r.Context())
 	if err != nil {
-		h.logger.Error("failed to rotate CA", "error", err, "tenant_id", tenantID, "client_id", clientID)
+		h.logger.Error("failed to rotate CA", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to rotate CA keys")
 		return
 	}
 
-	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context(), tenantID, clientID)
+	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to read rotated keys")
 		return
 	}
 	currentFP, _ := cert.CAFingerprint(currentKey.PublicKey)
 
-	nextKey, err := h.vaultClient.GetNextCAKey(r.Context(), tenantID, clientID)
+	nextKey, err := h.vaultClient.GetNextCAKey(r.Context())
 	nextFP := ""
 	if err == nil && nextKey != nil {
 		nextFP, _ = cert.CAFingerprint(nextKey.PublicKey)

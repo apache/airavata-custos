@@ -91,7 +91,7 @@ func NewLDAPValidator(config LDAPConfig, connector LDAPConnector) *LDAPValidator
 	}
 }
 
-func (v *LDAPValidator) Validate(tenantID, clientID, principal, identitySubject string) (*ValidationResult, error) {
+func (v *LDAPValidator) Validate(clientID, principal, identitySubject string) (*ValidationResult, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 

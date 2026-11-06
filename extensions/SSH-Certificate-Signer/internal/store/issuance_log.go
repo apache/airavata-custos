@@ -23,7 +23,6 @@ import (
 )
 
 type IssuanceLog struct {
-	TenantID             string
 	ClientID             string
 	SerialNumber         int64
 	KeyID                string
@@ -61,11 +60,11 @@ func (d *DB) InsertIssuanceLog(ctx context.Context, log *IssuanceLog) error {
 
 	_, err = d.ExecContext(ctx,
 		`INSERT INTO certificate_issuance_logs
-		 (tenant_id, client_id, serial_number, key_id, principal, user_email, public_key_fingerprint,
+		 (client_id, serial_number, key_id, principal, user_email, public_key_fingerprint,
 		  ca_fingerprint, valid_after, valid_before, source_ip, granted_extensions, force_command,
 		  user_access_token_hash, request_metadata)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-		log.TenantID, log.ClientID, log.SerialNumber, log.KeyID, log.Principal,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		log.ClientID, log.SerialNumber, log.KeyID, log.Principal,
 		log.UserEmail, log.PublicKeyFingerprint, log.CAFingerprint, log.ValidAfter, log.ValidBefore,
 		log.SourceIP, grantedExtensionsJSON, log.ForceCommand, log.UserAccessTokenHash, metadataJSON,
 	)

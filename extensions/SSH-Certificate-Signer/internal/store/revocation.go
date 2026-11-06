@@ -27,7 +27,6 @@ import (
 var ErrCertificateNotFound = errors.New("certificate not found")
 
 type RevocationEvent struct {
-	TenantID      string
 	ClientID      string
 	SerialNumber  *int64
 	KeyID         *string
@@ -37,7 +36,6 @@ type RevocationEvent struct {
 }
 
 type CertificateForRevocation struct {
-	TenantID      string
 	ClientID      string
 	KeyID         string
 	CAFingerprint string
@@ -67,9 +65,9 @@ func (d *DB) InsertRevocationEvent(ctx context.Context, ev *RevocationEvent) err
 
 	_, err := d.ExecContext(ctx,
 		`INSERT INTO revocation_events
-		 (tenant_id, client_id, serial_number, key_id, ca_fingerprint, reason, revoked_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		ev.TenantID, ev.ClientID, serialNumber, keyID, caFingerprint, ev.Reason, ev.RevokedBy,
+		 (client_id, serial_number, key_id, ca_fingerprint, reason, revoked_by)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		ev.ClientID, serialNumber, keyID, caFingerprint, ev.Reason, ev.RevokedBy,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting revocation event: %w", err)
@@ -85,14 +83,14 @@ type RevocationDBTX interface {
 func GetCertificateForRevocation(ctx context.Context, db RevocationDBTX, serialNumber int64) (*CertificateForRevocation, error) {
 	var certificate CertificateForRevocation
 	err := db.QueryRowContext(ctx,
-		`SELECT tenant_id, client_id, key_id, ca_fingerprint, COALESCE(user_email, ''), valid_after, valid_before
+		`SELECT client_id, key_id, ca_fingerprint, COALESCE(user_email, ''), valid_after, valid_before
 		 FROM certificate_issuance_logs
 		 WHERE serial_number = $1
 		 LIMIT 1
 		 FOR UPDATE`,
 		serialNumber,
 	).Scan(
-		&certificate.TenantID, &certificate.ClientID, &certificate.KeyID,
+		&certificate.ClientID, &certificate.KeyID,
 		&certificate.CAFingerprint, &certificate.UserEmail, &certificate.ValidAfter, &certificate.ValidBefore,
 	)
 	if err != nil {
@@ -126,9 +124,9 @@ func GetLatestRevocation(ctx context.Context, db RevocationDBTX, serialNumber in
 func InsertRevocationEventAt(ctx context.Context, db RevocationDBTX, ev *RevocationEvent, revokedAt time.Time) error {
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO revocation_events
-		 (tenant_id, client_id, serial_number, key_id, ca_fingerprint, revoked_at, reason, revoked_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		ev.TenantID, ev.ClientID, ev.SerialNumber, ev.KeyID, ev.CAFingerprint, revokedAt, ev.Reason, ev.RevokedBy,
+		 (client_id, serial_number, key_id, ca_fingerprint, revoked_at, reason, revoked_by)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		ev.ClientID, ev.SerialNumber, ev.KeyID, ev.CAFingerprint, revokedAt, ev.Reason, ev.RevokedBy,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting revocation event: %w", err)

@@ -105,46 +105,45 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantID := clientCfg.TenantID
 	clientID := clientCfg.ClientID
 
 	defer func() {
 		duration := time.Since(startTime).Seconds()
-		metrics.SignDurationSeconds.WithLabelValues(tenantID).Observe(duration)
+		metrics.SignDurationSeconds.WithLabelValues(clientID).Observe(duration)
 	}()
 
 	var req SignRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 
 	if req.Principal == "" {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: principal")
 		return
 	}
 	if !principalRegex.MatchString(req.Principal) {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid principal format: must match ^[a-z_][a-z0-9_-]{0,31}$")
 		return
 	}
 
 	if req.PublicKey == "" {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: public_key")
 		return
 	}
 	if req.UserAccessToken == "" {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: user_access_token")
 		return
 	}
 
 	sshPubKey, err := cert.ParseSSHPublicKey(req.PublicKey)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid SSH public key format")
 		return
 	}
@@ -152,7 +151,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	identity, err := h.oidcValidator.ValidateAccessToken(r.Context(), req.UserAccessToken)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		if authErr, ok := err.(*auth.AuthError); ok {
 			writeError(w, authErr.Status, authErr.Code, authErr.Message)
 			return
@@ -164,7 +163,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	sourceIP := httputil.SourceIPFromContext(r.Context())
 	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type(), sourceIP, clientCfg); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		if policyErr, ok := err.(*policy.PolicyError); ok {
 			writeError(w, http.StatusBadRequest, "policy_violation", policyErr.Message)
 			return
@@ -177,16 +176,16 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// Resolve extensions: all standard - client denied - request excluded
 	grantedExts, err := cert.ResolveExtensions(clientCfg.DeniedExtensions, req.ExcludeExtensions)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
 	extensionsMap := cert.ExtensionsToMap(grantedExts)
 	grantedExtNames := cert.ExtensionNames(grantedExts)
 
-	valResult, err := h.principalValidator.ValidateForClient(r.Context(), tenantID, clientID, req.Principal, identity.Subject, clientCfg.PrincipalSource)
+	valResult, err := h.principalValidator.ValidateForClient(r.Context(), clientID, req.Principal, identity.Subject, clientCfg.PrincipalSource)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		if valErr, ok := err.(*validation.ValidationError); ok {
 			httputil.WriteJSONErrorWithExtra(w, http.StatusForbidden, "principal_denied", valErr.Message, map[string]string{
 				"reason_code": valErr.ReasonCode,
@@ -200,27 +199,27 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	validatedPrincipal := valResult.ValidatedPrincipal
 
-	caKeyPair, err := h.vaultClient.GetCurrentCAKey(r.Context(), tenantID, clientID)
+	caKeyPair, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "error").Inc()
-		h.logger.Error("failed to get CA key", "error", err, "tenant_id", tenantID, "client_id", clientID)
+		h.logger.Error("failed to get CA key", "error", err, "client_id", clientID)
 		writeError(w, http.StatusServiceUnavailable, "internal_error", "CA key storage unavailable")
 		return
 	}
 	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
 	mark("vault_key_fetch_us")
 
-	serial, err := h.vaultClient.IncrementSerialCounter(r.Context(), tenantID, clientID)
+	serial, err := h.vaultClient.IncrementSerialCounter(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
 		if errors.Is(err, vaultpkg.ErrSerialConflict) {
-			h.logger.Warn("serial counter conflict", "error", err, "tenant_id", tenantID, "client_id", clientID)
+			h.logger.Warn("serial counter conflict", "error", err, "client_id", clientID)
 			writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
 			return
 		}
-		h.logger.Error("failed to increment serial counter", "error", err, "tenant_id", tenantID, "client_id", clientID)
+		h.logger.Error("failed to increment serial counter", "error", err, "client_id", clientID)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
 	}
@@ -242,7 +241,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	signResult, err := cert.SignCertificate(signReq)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		h.logger.Error("failed to sign certificate", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 		return
@@ -253,7 +252,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	pubKeyFP := cert.SSHPublicKeyFingerprint(sshPubKey)
 
 	auditEntry := &audit.IssuanceEntry{
-		TenantID:             tenantID,
 		ClientID:             clientID,
 		SerialNumber:         serial,
 		KeyID:                signResult.KeyID,
@@ -273,7 +271,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	mark("audit_log_us")
 	if err := auditErr; err != nil {
 		if !isDuplicateKeyError(err) {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+			metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 			h.logger.Error("failed to write audit log", "error", err)
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
 			return
@@ -281,14 +279,14 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 		// Duplicate serial — retry with a fresh serial
 		h.logger.Warn("duplicate serial detected, retrying with fresh serial",
-			"serial", serial, "tenant_id", tenantID, "client_id", clientID)
+			"serial", serial, "client_id", clientID)
 
-		retrySerial, err := h.vaultClient.IncrementSerialCounter(r.Context(), tenantID, clientID)
+		retrySerial, err := h.vaultClient.IncrementSerialCounter(r.Context())
 		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+			metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 			metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
 			if errors.Is(err, vaultpkg.ErrSerialConflict) {
-				h.logger.Warn("serial counter conflict", "error", err, "tenant_id", tenantID, "client_id", clientID)
+				h.logger.Warn("serial counter conflict", "error", err, "client_id", clientID)
 				writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
 				return
 			}
@@ -301,7 +299,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		signReq.Serial = uint64(retrySerial)
 		retryResult, err := cert.SignCertificate(signReq)
 		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+			metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 			h.logger.Error("failed to sign certificate on retry", "error", err)
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 			return
@@ -317,7 +315,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		auditEntry.ValidBefore = time.Unix(int64(retryResult.ValidBefore), 0).UTC()
 
 		if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+			metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 			h.logger.Error("failed to write audit log on retry", "error", err)
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
 			return
@@ -325,7 +323,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		mark("audit_log_us")
 	}
 
-	metrics.SignRequestsTotal.WithLabelValues(tenantID, "success").Inc()
+	metrics.SignRequestsTotal.WithLabelValues(clientID, "success").Inc()
 	timings["total_us"] = time.Since(startTime).Microseconds()
 
 	resp := SignResponse{

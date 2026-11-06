@@ -1,6 +1,5 @@
 [
   {
-    "tenant_id": "tenant1",
     "client_id": "airavata",
     "user_email": "researcher@example.org",
     "serial_number": 42,
@@ -17,7 +16,6 @@
     "revoked": false
   },
   {
-    "tenant_id": "tenant1",
     "client_id": "airavata",
     "user_email": "researcher@example.org",
     "serial_number": 43,
@@ -34,7 +32,6 @@
     "revoked": false
   },
   {
-    "tenant_id": "tenant1",
     "client_id": "airavata",
     "user_email": "researcher@example.org",
     "serial_number": 44,
@@ -54,7 +51,6 @@
     "revoked_by": "admin@example.org"
   },
   {
-    "tenant_id": "tenant1",
     "client_id": "airavata",
     "user_email": "future@example.org",
     "serial_number": 45,

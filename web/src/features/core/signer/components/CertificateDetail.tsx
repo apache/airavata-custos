@@ -135,7 +135,6 @@ export function CertificateDetail({ serial }: CertificateDetailProps) {
 
 function CertificateMetadata({ cert }: { cert: Certificate }) {
   const items: Array<{ label: string; value: React.ReactNode }> = [
-    { label: "Tenant", value: cert.tenant_id },
     { label: "Signer client", value: cert.client_id },
     { label: "User email", value: cert.user_email || "—" },
     { label: "Serial number", value: <span className="font-mono">{cert.serial_number}</span> },
