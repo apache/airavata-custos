@@ -96,6 +96,31 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 }
 
+// Make sure a merge keeps the retiring user's active account and its memberships over the survivor's inactive ones on the same cluster.
+func TestMergeUsers_KeepsTheActiveAccount(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	_, allocID := newClusterAllocation(t, svc, admin)
+	survivor, _ := newMember(t, svc, database, allocID)
+	retiring, kept := newMember(t, svc, database, allocID)
+	if _, err := svc.ApproveComputeClusterUser(ctx(), survivor.ID, admin); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := svc.DeactivateComputeClusterUser(ctx(), survivor.ID); err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+	if _, err := svc.MergeUsers(ctx(), survivor.UserID, retiring.UserID); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	if got, err := svc.GetComputeClusterUserByPair(ctx(), survivor.ComputeClusterID, survivor.UserID); err != nil || got.ID != retiring.ID {
+		t.Fatalf("survivor's account = %+v, %v, want the active %s", got, err, retiring.ID)
+	}
+	if ms, err := svc.ListAllocationsForUser(ctx(), survivor.UserID); err != nil || len(ms) != 1 || ms[0].ID != kept.ID {
+		t.Fatalf("survivor's memberships = %+v, %v, want the active %s", ms, err, kept.ID)
+	}
+}
+
 // Make sure a merge keeps the higher tag per project and that the survivor
 // holds no tag on a project it leads.
 func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {

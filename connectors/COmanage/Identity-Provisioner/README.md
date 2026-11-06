@@ -33,6 +33,7 @@ The connector subscribes to core events for one cluster, `provisioning.custos_cl
 |---|---|
 | `compute_cluster_user::approve` | Provision the account, join the admin group for an `ADMIN` account, then sync the user's allocation groups |
 | `user::onboarded` | Provision again once the user has signed in, so the registry gets their OIDC `sub` |
+| `compute_cluster_user::deactivate` | Suspend the account in the registry and leave the admin group |
 | `compute_cluster_user::delete` | Remove an approved account from the registry, then sync the user's allocation groups |
 | `compute_allocation::create` and `::update`; `compute_allocation_membership::create`, `::update` and `::delete` | Sync the allocation's group |
 | `compute_allocation::delete` | Delete the allocation's group |
@@ -118,6 +119,7 @@ Each audit row the connector writes goes to the core `audit_events` table with `
 | `ComanageOIDCLinkageCreated` | Step 4 added the `oidcsub` identifier. |
 | `ComanageClusterAccountAttached` | Step 10 finished. `details` is `comanage_id=<id> username=<local> uid=<n>`. |
 | `ComanageClusterAdminGroupJoined` | An `ADMIN` account joined the admin group. |
+| `ComanageClusterAccountSuspended` | A deactivated account was suspended in the registry. |
 | `ComanageClusterAccountRemoved` | A deleted account was removed from the registry. |
 | `ComanageAllocationGroupCreated` | An active allocation's CoGroup was created. |
 | `ComanageAllocationGroupMemberAdded` | A provisioned, active member was added to an allocation's CoGroup. |

@@ -210,7 +210,7 @@ func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, use
 		return nil, fmt.Errorf("list compute cluster users: %w", err)
 	}
 	for _, a := range existing {
-		if a.ComputeClusterID == clusterID {
+		if a.ComputeClusterID == clusterID && a.Status != models.INACTIVE {
 			return &a, nil
 		}
 	}

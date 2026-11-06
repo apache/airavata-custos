@@ -52,7 +52,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &pgComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note, status`
 
 func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -145,11 +145,15 @@ func (s *pgComputeClusterUserStore) FindByUserTx(ctx context.Context, tx *sql.Tx
 }
 
 func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
-	_, err := tx.ExecContext(ctx,
+	return tx.QueryRowContext(ctx,
 		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, access_level, approval_status, reviewed_at, reviewed_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy)
-	return err
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (compute_cluster_id, user_id) DO UPDATE
+            SET status = 'ACTIVE', created_at = now(), access_level = $5, approval_status = $6, reviewed_at = $7, reviewed_by = $8, review_note = NULL
+          WHERE compute_cluster_users.status = 'INACTIVE'
+         RETURNING id, local_username, status`,
+		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.AccessLevel, c.ApprovalStatus, c.ReviewedAt, c.ReviewedBy).
+		Scan(&c.ID, &c.LocalUsername, &c.Status)
 }
 
 // clusterAccountListFrom links each account to the user's newest allocation on
@@ -180,7 +184,7 @@ func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, st
 	var rows []ComputeClusterUserWithUser
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT cu.id, cu.compute_cluster_id, cu.user_id, cu.local_username, cu.access_level, cu.provisioned_at,
-		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.created_at,
+		        cu.approval_status, cu.reviewed_at, cu.reviewed_by, cu.review_note, cu.status, cu.created_at,
 		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name,
 		        NULLIF(TRIM(CONCAT_WS(' ', r.first_name, r.last_name)), '') AS reviewer_name,
 		        a.id AS allocation_id, a.name AS allocation_name, a.project_id`+
@@ -218,8 +222,14 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
 	return err
 }
 
+func (s *pgComputeClusterUserStore) Deactivate(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_cluster_users SET status = 'INACTIVE', provisioned_at = NULL WHERE id = $1`, id)
+	return err
+}
+
 func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
-	return execOnce(ctx, tx, `UPDATE compute_cluster_users SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL`, at, id)
+	return execOnce(ctx, tx, `UPDATE compute_cluster_users SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL AND status = 'ACTIVE'`, at, id)
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {

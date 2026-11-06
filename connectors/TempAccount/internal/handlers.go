@@ -87,7 +87,7 @@ func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Users are never deleted. Deleting accounts here publishes the cluster delete events.
+	// Users are never deleted. INACTIVE deactivates the approved accounts; only requests never approved are deleted.
 	if _, err := h.coreService.UpdateUserStatus(r.Context(), userID, models.UserInactive); err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -98,6 +98,9 @@ func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, a := range accounts {
+		if a.ApprovalStatus == models.ClusterAccountApproved {
+			continue
+		}
 		if err := h.coreService.DeleteComputeClusterUser(r.Context(), a.ID); err != nil {
 			common.WriteServiceError(w, err)
 			return

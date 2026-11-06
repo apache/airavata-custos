@@ -111,6 +111,17 @@ func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, use
 	return rows, nil
 }
 
+func (s *pgComputeAllocationMembershipStore) FindByUserOnClusterTx(ctx context.Context, tx *sql.Tx, userID, clusterID string) ([]models.ComputeAllocationMembership, error) {
+	var rows []models.ComputeAllocationMembership
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).SelectContext(ctx, &rows,
+		`SELECT `+computeAllocationMembershipColumns+`
+		 FROM compute_allocation_memberships
+		 WHERE user_id = $1 AND compute_allocation_id IN (SELECT id FROM compute_allocations WHERE compute_cluster_id = $2)
+		 ORDER BY id
+		   FOR UPDATE`, userID, clusterID)
+	return rows, err
+}
+
 func (s *pgComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_memberships

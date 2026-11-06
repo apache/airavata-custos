@@ -66,6 +66,9 @@ func allocationWithMembers() *service.CoreServiceMock {
 		ListMembersForAllocationFunc: func(context.Context, string) ([]store.MembershipWithUser, error) {
 			return []store.MembershipWithUser{member("u1", "custos-jdoe", &provisioned), member("u2", "custos-asmith", &provisioned), member("u3", "custos-pending", nil)}, nil
 		},
+		GetComputeClusterUserFunc: func(_ context.Context, id string) (*models.ComputeClusterUser, error) {
+			return &models.ComputeClusterUser{ID: id, ProvisionedAt: &provisioned}, nil
+		},
 	}
 }
 
@@ -120,8 +123,12 @@ func TestEnsureUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, log := recordingVMS(t)
-			s := NewStorageSubscriber(nil, allocationWithMembers(), map[string]Cluster{"c1": c})
-			cu := models.ComputeClusterUser{ComputeClusterID: tt.cluster, UserID: "u1", LocalUsername: "custos-jdoe", ProvisionedAt: tt.provisionedAt}
+			core := allocationWithMembers()
+			core.GetComputeClusterUserFunc = func(context.Context, string) (*models.ComputeClusterUser, error) {
+				return &models.ComputeClusterUser{ProvisionedAt: tt.provisionedAt}, nil
+			}
+			s := NewStorageSubscriber(nil, core, map[string]Cluster{"c1": c})
+			cu := models.ComputeClusterUser{ComputeClusterID: tt.cluster, UserID: "u1", LocalUsername: "custos-jdoe"}
 			if err := s.ensureUser(context.Background(), cu); err != nil || !slices.Equal(*log, tt.want) {
 				t.Fatalf("err=%v calls=%v, want %v", err, *log, tt.want)
 			}

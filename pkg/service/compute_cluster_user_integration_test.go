@@ -498,3 +498,53 @@ func TestDeleteMembership_RefusedWhileActive(t *testing.T) {
 		t.Fatalf("delete inactive membership: %v", err)
 	}
 }
+
+// newMember gives a new user an account on the allocation's cluster and an active membership in it.
+func newMember(t *testing.T, svc *Service, database *sqlx.DB, allocID string) (*models.ComputeClusterUser, *models.ComputeAllocationMembership) {
+	t.Helper()
+	alloc, err := svc.GetComputeAllocation(ctx(), allocID)
+	if err != nil {
+		t.Fatalf("get allocation: %v", err)
+	}
+	userID := seedUser(t, database, fmt.Sprintf("member-%s@example.edu", uuid.NewString()))
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: alloc.ComputeClusterID, UserID: userID, LocalUsername: "member-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create compute cluster user: %v", err)
+	}
+	m, err := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{
+		ComputeAllocationID: alloc.ID, UserID: userID, StartTime: alloc.StartTime, EndTime: alloc.EndTime, MembershipStatus: models.ACTIVE,
+	})
+	if err != nil {
+		t.Fatalf("create membership: %v", err)
+	}
+	return cu, m
+}
+
+// Make sure an approved account cannot be deleted, deactivating its user revokes its memberships, and a new account on the cluster reopens the old one.
+func TestDeactivateUser_RevokesAndReopens(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
+	_, allocID := newClusterAllocation(t, svc, admin)
+	cu, m := newMember(t, svc, database, allocID)
+	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, admin); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := svc.DeleteComputeClusterUser(ctx(), cu.ID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete approved account: %v, want ErrInUse", err)
+	}
+
+	if _, err := svc.UpdateUserStatus(ctx(), cu.UserID, models.UserInactive); err != nil {
+		t.Fatalf("deactivate user: %v", err)
+	}
+	if got, err := svc.GetComputeAllocationMembership(ctx(), m.ID); err != nil || got.MembershipStatus != models.INACTIVE {
+		t.Fatalf("membership %+v, %v, want INACTIVE", got, err)
+	}
+	reopened, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cu.ComputeClusterID, UserID: cu.UserID, LocalUsername: "other"})
+	if err != nil || reopened.ID != cu.ID || reopened.LocalUsername != cu.LocalUsername || reopened.Status != models.ACTIVE {
+		t.Fatalf("reopened %+v, %v, want %s active as %s", reopened, err, cu.ID, cu.LocalUsername)
+	}
+	if _, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cu.ComputeClusterID, UserID: cu.UserID, LocalUsername: "other"}); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("create on an active pair: %v, want ErrAlreadyExists", err)
+	}
+}

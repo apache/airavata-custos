@@ -99,6 +99,8 @@ definitions:
       reviewed_by:
         description: The admin who approved or denied the cluster account.
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       user_id:
         type: string
     type: object
@@ -202,6 +204,8 @@ definitions:
         type: string
       reviewer_name:
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       user_id:
         type: string
     type: object
@@ -493,6 +497,8 @@ definitions:
       reviewed_by:
         description: The admin who approved or denied the cluster account.
         type: string
+      status:
+        $ref: '#/definitions/AllocationStatus'
       user_id:
         type: string
     type: object
@@ -3711,6 +3717,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute cluster user
@@ -3817,6 +3830,36 @@ paths:
       security:
       - BearerAuth: []
       summary: Approve a cluster account
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/deactivate:
+    post:
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deactivate a compute cluster user
       tags:
       - Compute Cluster Users
   /compute-cluster-users/{id}/deny:

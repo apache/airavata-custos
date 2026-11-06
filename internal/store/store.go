@@ -101,12 +101,14 @@ type ComputeClusterUserStore interface {
 	FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error)
 	// ListByApprovalStatus returns mappings joined with the user, cluster and allocation, plus the total. Empty status or query matches all.
 	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
-	// Create inserts a new mapping within the provided transaction.
+	// Create inserts a new mapping within the provided transaction, or reopens the pair's INACTIVE one with its id and username.
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// Review records the admin's decision on the mapping within the provided transaction.
 	Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// Deactivate makes the mapping INACTIVE and clears its connector marks within the provided transaction.
+	Deactivate(ctx context.Context, tx *sql.Tx, id string) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.
 	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
@@ -396,6 +398,8 @@ type ComputeAllocationMembershipStore interface {
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
+	// FindByUserOnClusterTx returns the user's memberships on the cluster's allocations, locked FOR UPDATE in tx.
+	FindByUserOnClusterTx(ctx context.Context, tx *sql.Tx, userID, clusterID string) ([]models.ComputeAllocationMembership, error)
 	// FindByAllocationWithUser returns the allocation's memberships joined with
 	// users so each row carries display_name, email, and the user's project-wide
 	// role (MEMBER by default).

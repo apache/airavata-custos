@@ -6,6 +6,7 @@
     "local_username": "alovelace",
     "access_level": "USER",
     "approval_status": "APPROVED",
+    "status": "ACTIVE",
     "provisioned_at": "2026-04-01T00:00:00.000Z"
   },
   {
@@ -15,6 +16,7 @@
     "local_username": "ghopper",
     "access_level": "USER",
     "approval_status": "APPROVED",
+    "status": "ACTIVE",
     "provisioned_at": "2026-04-01T00:00:00.000Z"
   },
   {
@@ -24,6 +26,7 @@
     "local_username": "dritchie",
     "access_level": "USER",
     "approval_status": "APPROVED",
+    "status": "ACTIVE",
     "provisioned_at": "2026-04-01T00:00:00.000Z"
   },
   {
@@ -33,6 +36,7 @@
     "local_username": "ada",
     "access_level": "USER",
     "approval_status": "APPROVED",
+    "status": "ACTIVE",
     "provisioned_at": "2026-04-01T00:00:00.000Z"
   },
   {
@@ -42,6 +46,7 @@
     "local_username": "kjohnson",
     "access_level": "USER",
     "approval_status": "APPROVED",
+    "status": "ACTIVE",
     "provisioned_at": "2026-04-01T00:00:00.000Z"
   },
   {
@@ -51,6 +56,7 @@
     "local_username": "dknuth",
     "access_level": "USER",
     "approval_status": "APPROVED",
+    "status": "ACTIVE",
     "provisioned_at": "2026-04-01T00:00:00.000Z"
   }
 ]

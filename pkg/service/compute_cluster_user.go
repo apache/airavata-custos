@@ -18,8 +18,10 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -88,13 +90,8 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		return nil, fmt.Errorf("lookup user: %w", err)
 	} else if user == nil {
 		return nil, fmt.Errorf("%w: user %q not found", ErrInvalidInput, cu.UserID)
-	}
-
-	if existing, err := s.clusterUsers.FindByPair(ctx, cu.ComputeClusterID, cu.UserID); err != nil {
-		return nil, fmt.Errorf("lookup compute cluster user by pair: %w", err)
-	} else if existing != nil {
-		return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
-			ErrAlreadyExists, cu.UserID, cu.ComputeClusterID)
+	} else if cu.ApprovalStatus == models.ClusterAccountApproved && user.Status == models.UserInactive {
+		return nil, fmt.Errorf("%w: user %q is inactive", ErrInvalidInput, cu.UserID)
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
@@ -113,7 +110,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		switch {
 		case isLocalUsernameDuplicate(err):
 			return nil, fmt.Errorf("%w: %s", ErrAlreadyExists, cu.LocalUsername)
-		case isPairDuplicate(err):
+		case errors.Is(err, sql.ErrNoRows):
 			return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
 				ErrAlreadyExists, cu.UserID, cu.ComputeClusterID)
 		default:
@@ -147,6 +144,11 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 		// Only a denied or pending cluster account can be approved
 		if cu.ApprovalStatus == models.ClusterAccountApproved {
 			return fmt.Errorf("%w: cluster user %q is already approved", ErrAlreadyExists, id)
+		}
+		if u, err := s.users.FindByIDTx(ctx, tx, cu.UserID, store.NoLock); err != nil {
+			return err
+		} else if u != nil && u.Status == models.UserInactive {
+			return fmt.Errorf("%w: user %q is inactive", ErrInvalidInput, cu.UserID)
 		}
 		now := nowUTC()
 		cu.ApprovalStatus = models.ClusterAccountApproved
@@ -186,7 +188,7 @@ func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, no
 		}
 		switch cu.ApprovalStatus {
 		case models.ClusterAccountApproved:
-			return fmt.Errorf("%w: cluster user %q is already approved, remove it instead", ErrAlreadyExists, id)
+			return fmt.Errorf("%w: cluster user %q is already approved, deactivate it instead", ErrAlreadyExists, id)
 		case models.ClusterAccountDenied:
 			return fmt.Errorf("%w: cluster user %q is already denied", ErrAlreadyExists, id)
 		}
@@ -233,10 +235,6 @@ func (s *Service) clusterUserForReview(ctx context.Context, tx *sql.Tx, id, revi
 
 func isLocalUsernameDuplicate(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_local_username")
-}
-
-func isPairDuplicate(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_pair")
 }
 
 // GetComputeClusterUser retrieves a compute-cluster user by its ID.
@@ -379,19 +377,58 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 	return nil
 }
 
+// DeactivateComputeClusterUser makes an approved account and the user's memberships on its cluster INACTIVE.
+func (s *Service) DeactivateComputeClusterUser(ctx context.Context, id string) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+		switch {
+		case err != nil || cu == nil:
+			return cmp.Or(err, ErrNotFound)
+		case cu.Status != models.ACTIVE:
+			return nil
+		case cu.ApprovalStatus != models.ClusterAccountApproved:
+			return fmt.Errorf("%w: compute cluster user %q is %s, delete it instead", ErrInvalidInput, id, cu.ApprovalStatus)
+		}
+		return s.deactivateComputeClusterUserTx(ctx, tx, cu)
+	})
+}
+
+// deactivateComputeClusterUserTx takes an account the caller has locked.
+func (s *Service) deactivateComputeClusterUserTx(ctx context.Context, tx *sql.Tx, cu *models.ComputeClusterUser) error {
+	cu.Status = models.INACTIVE
+	if err := s.clusterUsers.Deactivate(ctx, tx, cu.ID); err != nil {
+		return err
+	}
+	if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeactivateEvent, cu); err != nil {
+		return err
+	}
+	ms, err := s.memberships.FindByUserOnClusterTx(ctx, tx, cu.UserID, cu.ComputeClusterID)
+	if err != nil {
+		return err
+	}
+	for _, m := range ms {
+		if m.MembershipStatus == models.ACTIVE {
+			if _, err := s.UpdateMembershipStatusTx(ctx, tx, m.ID, models.INACTIVE); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.
 func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+		switch {
+		case err != nil || cu == nil:
+			return cmp.Or(err, ErrNotFound)
+		case cu.HoldsAccess():
+			return fmt.Errorf("%w: compute cluster user %q is active, deactivate it first", ErrInUse, id)
+		}
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}

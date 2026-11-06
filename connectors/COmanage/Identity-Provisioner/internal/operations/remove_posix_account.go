@@ -19,6 +19,7 @@ package operations
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -54,7 +55,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		return err
 	}
 	if personID != "" {
-		if err := o.removeAccountFromPerson(ctx, cu, personID, composite); err != nil {
+		if err := o.editPersonAccount(ctx, cu, personID, composite, removeLogin); err != nil {
 			return err
 		}
 	}
@@ -74,16 +75,34 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 	return nil
 }
 
-// removeAccountFromPerson takes the cluster account, its login name and the
-// admin group membership off the person. The person record itself stays.
-func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte) error {
-	body, changed, err := removeLogin(composite, cu.LocalUsername)
+// SuspendClusterAccount suspends the account in the registry and keeps it, so deleting it stays an admin decision.
+// Provisioning the account again makes it active.
+func (o *Orchestrator) SuspendClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+	user, err := o.core.GetUser(ctx, cu.UserID)
+	if err != nil {
+		return fmt.Errorf("get Custos user: %w", err)
+	}
+	personID, composite, err := o.findCoPerson(ctx, user)
+	if err != nil || personID == "" {
+		return err
+	}
+	if err := o.editPersonAccount(ctx, cu, personID, composite, suspendAccount); err != nil {
+		return err
+	}
+	o.audit(ctx, cu, "ComanageClusterAccountSuspended", fmt.Sprintf("comanage_id=%s username=%s", personID, cu.LocalUsername))
+	return nil
+}
+
+// editPersonAccount applies edit to the person's cluster account and takes the
+// person out of the admin group. The person record itself stays.
+func (o *Orchestrator) editPersonAccount(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte, edit func(json.RawMessage, string) ([]byte, bool, error)) error {
+	body, changed, err := edit(composite, cu.LocalUsername)
 	if err != nil {
 		return err
 	}
 	if changed {
 		if err := o.updatePerson(ctx, personID, body); err != nil {
-			return fmt.Errorf("remove account from person: %w", err)
+			return fmt.Errorf("update person account: %w", err)
 		}
 	}
 
