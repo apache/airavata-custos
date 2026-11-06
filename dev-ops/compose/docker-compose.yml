@@ -55,7 +55,7 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
       - "127.0.0.1:9001:9000"
     volumes:
       - ./keycloak/import:/opt/keycloak/data/import:ro
@@ -148,7 +148,9 @@ services:
     container_name: custos_signer
     restart: unless-stopped
     ports:
-      - "8084:8084"
+      - "127.0.0.1:8084:8084"
+    environment:
+      DB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
     volumes:
       - ./signer/config.yaml:/app/config.yaml:ro
     depends_on:
@@ -167,15 +169,15 @@ services:
       retries: 20
 
   signer-seed:
-    image: mariadb:11.2
+    image: postgres:17
     container_name: custos_signer_seed
     restart: "no"
     depends_on:
       signer:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c", "mariadb -h db -u admin -p\"$${MARIADB_PASSWORD}\" custos_signer < /seed/seed-client.sql && echo 'signer client seeded'"]
+    entrypoint: ["/bin/sh", "-c", "psql -h db -U admin -d custos_signer -v ON_ERROR_STOP=1 -f /seed/seed-client.sql && echo 'signer client seeded'"]
     environment:
-      MARIADB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
+      PGPASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
     volumes:
       - ./signer/seed-client.sql:/seed/seed-client.sql:ro
 

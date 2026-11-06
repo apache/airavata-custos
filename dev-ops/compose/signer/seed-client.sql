@@ -23,7 +23,7 @@ VALUES
     ('custos', 'bench',
      '$2y$10$2K2FooZeA95Z7ilfrZwB4OZOAKyBKwrT6CePe8q57psu/p3k1g1aa',
      'localhost', 2222, 86400, '["ed25519","rsa","ecdsa"]', 'ldap', TRUE)
-ON DUPLICATE KEY UPDATE
-    client_secret = '$2y$10$2K2FooZeA95Z7ilfrZwB4OZOAKyBKwrT6CePe8q57psu/p3k1g1aa',
-    principal_source = 'ldap',
-    enabled = TRUE;
+ON CONFLICT (tenant_id, client_id) DO UPDATE SET
+    client_secret = EXCLUDED.client_secret,
+    principal_source = EXCLUDED.principal_source,
+    enabled = EXCLUDED.enabled;
