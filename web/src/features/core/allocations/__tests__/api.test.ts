@@ -28,8 +28,8 @@ import {
   listChangeRequestEvents,
   listChangeRequests,
   rejectChangeRequest,
-  removeMember,
   submitChangeRequest,
+  toggleMember,
 } from "../api";
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -177,11 +177,13 @@ describe("addMember", () => {
   });
 });
 
-describe("removeMember", () => {
-  it("DELETEs the membership", async () => {
+describe("toggleMember", () => {
+  it("PUTs the flipped membership status", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await removeMember("mem-001");
-    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
+    await toggleMember({ id: "mem-001", membership_status: "ACTIVE" });
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toMatch(/\/compute-allocation-memberships\/mem-001\/status$/);
+    expect(init).toMatchObject({ method: "PUT", body: '{"membership_status":"INACTIVE"}' });
   });
 });
 

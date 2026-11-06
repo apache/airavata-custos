@@ -481,3 +481,20 @@ func TestDenyComputeClusterUser_ConcurrentDenialsRecordOnce(t *testing.T) {
 		t.Fatalf("denial audits: got %d, want 1", n)
 	}
 }
+
+// Make sure an active membership is refused deletion until it is deactivated.
+func TestDeleteMembership_RefusedWhileActive(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	_, allocID := newClusterAllocation(t, svc, seedUser(t, database, uuid.NewString()+"@example.edu"))
+	m, _ := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: allocID, UserID: seedUser(t, database, uuid.NewString()+"@example.edu"), MembershipStatus: models.ACTIVE})
+	if err := svc.DeleteComputeAllocationMembership(ctx(), m.ID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete active membership: %v, want ErrInUse", err)
+	}
+	if _, err := svc.UpdateMembershipStatus(ctx(), m.ID, models.INACTIVE); err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+	if err := svc.DeleteComputeAllocationMembership(ctx(), m.ID); err != nil {
+		t.Fatalf("delete inactive membership: %v", err)
+	}
+}

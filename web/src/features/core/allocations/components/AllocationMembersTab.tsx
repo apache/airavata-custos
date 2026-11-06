@@ -29,7 +29,7 @@ import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import * as React from "react";
 import { toast } from "sonner";
-import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
+import { useAddMember, useAllocationMembers, useToggleMember } from "../queries";
 import type {
   AllocationMembership,
   AllocationMembershipRole,
@@ -52,6 +52,8 @@ const ROLE_LABELS: Record<AllocationMembershipRole, string> = {
   MEMBER: "Member",
 };
 
+const isActive = (m: AllocationMembership) => m.membership_status === "ACTIVE";
+
 function initialsFrom(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
@@ -67,7 +69,7 @@ export function AllocationMembersTab({
   const query = useAllocationMembers(allocation.id);
   const addMutation = useAddMember(allocation.id);
   const roleMutation = useUpdateProjectMember(allocation.project_id);
-  const removeMutation = useRemoveMember(allocation.id);
+  const toggleMutation = useToggleMember(allocation.id);
   const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
   const [viewing, setViewing] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
@@ -171,17 +173,17 @@ export function AllocationMembersTab({
               Edit
             </GuardedButton>
             <GuardedButton
-              variant="destructive"
+              variant={isActive(row) ? "destructive" : "outline"}
               size="sm"
               allowed={canEditAccess}
               reason={requires("allocationsWrite")}
               onClick={() =>
-                removeMutation.mutate(row.id, { onError: (err) => toast.error(err.message) })
+                toggleMutation.mutate(row, { onError: (err) => toast.error(err.message) })
               }
-              aria-label={`Remove ${row.display_name ?? row.user_id}`}
-              disabled={removeMutation.isPending}
+              aria-label={`${isActive(row) ? "Deactivate" : "Reactivate"} ${row.display_name ?? row.user_id}`}
+              disabled={toggleMutation.isPending}
             >
-              Remove
+              {isActive(row) ? "Deactivate" : "Reactivate"}
             </GuardedButton>
           </div>
         ) : null,

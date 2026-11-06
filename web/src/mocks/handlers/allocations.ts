@@ -179,17 +179,16 @@ export const allocationsHandlers = [
     return HttpResponse.json(member, { status: 201 });
   }),
 
-  http.delete<{ id: string }>("*/api/v1/compute-allocation-memberships/:id", ({ params }) => {
-    const id = String(params.id);
-    for (const bucket of Object.values(membersByAlloc)) {
-      const idx = bucket.findIndex((m) => m.id === id);
-      if (idx !== -1) {
-        bucket.splice(idx, 1);
-        return new HttpResponse(null, { status: 204 });
-      }
-    }
-    return HttpResponse.json({ error: "membership not found" }, { status: 404 });
-  }),
+  http.put<{ id: string }, Pick<AllocationMembership, "membership_status">>(
+    "*/api/v1/compute-allocation-memberships/:id/status",
+    async ({ params, request }) => {
+      const all = Object.values(membersByAlloc).flat();
+      const member = all.find((m) => m.id === String(params.id));
+      if (!member) return HttpResponse.json({ error: "membership not found" }, { status: 404 });
+      member.membership_status = (await request.json()).membership_status;
+      return HttpResponse.json(member);
+    },
+  ),
 
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id/change-requests", ({ params }) => {
     const id = String(params.id);
