@@ -85,12 +85,25 @@ func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationGroupProvisioned(subscriber, s.ensureAllocation)
 	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.ensureMember)
 	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.ensureMember)
+	s.bus.SubscribeComputeClusterUserDeactivated(subscriber, s.markInactiveUser)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.markUser)
 	s.bus.SubscribeComputeAllocationDeleted(subscriber, s.markAllocation)
 }
 
 func (s *StorageSubscriber) markUser(ctx context.Context, cu models.ComputeClusterUser) error {
 	return s.mark(ctx, cu.ComputeClusterID, "cluster_user", cu.LocalUsername)
+}
+
+// markInactiveUser marks a deactivated account's folders, unless a retry finds the user ACTIVE again.
+func (s *StorageSubscriber) markInactiveUser(ctx context.Context, cu models.ComputeClusterUser) error {
+	u, err := s.core.GetUser(ctx, cu.UserID)
+	if err != nil && !errors.Is(err, service.ErrNotFound) {
+		return err
+	}
+	if u != nil && u.Status == models.UserActive {
+		return nil
+	}
+	return s.markUser(ctx, cu)
 }
 
 func (s *StorageSubscriber) markAllocation(ctx context.Context, a models.ComputeAllocation) error {
@@ -107,12 +120,19 @@ func (s *StorageSubscriber) mark(ctx context.Context, clusterID, ownerKind, owne
 	return nil
 }
 
-// ensureUser needs no approval check: COmanage provisions approved accounts only.
+// ensureUser re-reads the account, since a deactivation clears provisioned_at.
 // After the account's own mounts, it creates the account's mount in each of its allocations.
 func (s *StorageSubscriber) ensureUser(ctx context.Context, cu models.ComputeClusterUser) error {
 	c, ok := s.clusters[cu.ComputeClusterID]
-	if !ok || cu.ProvisionedAt == nil {
+	if !ok {
 		return nil
+	}
+	row, err := s.core.GetComputeClusterUser(ctx, cu.ID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil || row.ProvisionedAt == nil {
+		return err
 	}
 	if err := s.ensureMounts(ctx, c, cu.LocalUsername, nil); err != nil {
 		return err

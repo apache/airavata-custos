@@ -83,7 +83,7 @@ func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	newUser := func(first, username string) string {
-		user, err := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, FirstName: first, LastName: "Doe", Email: username + "@example.edu"})
+		user, err := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, FirstName: first, LastName: "Doe", Email: username + "@example.edu", Status: models.UserActive})
 		if err != nil {
 			t.Fatal(err)
 		}
