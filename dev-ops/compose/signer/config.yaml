@@ -23,7 +23,7 @@ server:
 
 database:
   host: db
-  port: 3306
+  port: 5432
   name: custos_signer
   username: admin
   password: admin
