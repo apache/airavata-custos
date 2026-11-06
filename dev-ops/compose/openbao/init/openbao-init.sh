@@ -59,7 +59,7 @@ bao token lookup "$DEV_TOKEN" >/dev/null 2>&1 || \
   bao token create -id="$DEV_TOKEN" -policy=root -orphan >/dev/null
 
 # principal validation credentials for the seeded signer client
-bao kv put ssh-ca/custos/bench/validation \
+bao kv put ssh-ca/clients/bench/validation \
   type=ldap \
   ldap_url=ldap://openldap:389 \
   bind_dn="cn=admin,dc=custos,dc=example" \

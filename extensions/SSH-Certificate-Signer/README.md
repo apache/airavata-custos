@@ -36,7 +36,7 @@ SSH public key and the principal. The principal is the Unix username the certifi
 3. It enforces the client's policy: maximum TTL, allowed key types and source address. It grants the standard
    extensions, minus those denied.
 4. It validates the principal per `principal_source`, below.
-5. It signs with the client's CA key from Vault and logs the issuance in `certificate_issuance_logs`.
+5. It signs with the CA key from Vault and logs the issuance in `certificate_issuance_logs`.
 
 | `principal_source` | Principal check |
 |---|---|
@@ -44,7 +44,7 @@ SSH public key and the principal. The principal is the Unix username the certifi
 | `ldap` | Finds the LDAP entry for the OIDC subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
 | `comanage` | Not implemented. Rejects every request with `COMANAGE_NOT_IMPLEMENTED`. |
 
-Each tenant and client pair has its own Ed25519 CA, generated in Vault by the first client route that reads it.
+A deployment has one Ed25519 CA, shared by all clients. It is generated in Vault by the first client route that reads it.
 
 ## Prerequisites
 
@@ -99,10 +99,10 @@ Register a client:
 
 ```sql
 INSERT INTO client_ssh_configs
-  (tenant_id, client_id, client_secret, target_host, target_port,
+  (client_id, client_secret, target_host, target_port,
    max_ttl_seconds, allowed_key_types, enabled)
 VALUES
-  ('tenant1', 'webapp', '$2a$10$<bcrypt_hash_of_secret>', 'login.example.org', 22,
+  ('webapp', '$2a$10$<bcrypt_hash_of_secret>', 'login.example.org', 22,
    86400, '["ed25519","rsa","ecdsa"]', TRUE);
 ```
 
@@ -124,7 +124,7 @@ The path must match `vault.mount_path`. The signer creates CA keys on demand. No
 
 Ensure the configured token has read/write access to `ssh-ca/data/*`.
 
-For `principal_source = 'ldap'`, store each client's LDAP settings at `ssh-ca/<tenant_id>/<client_id>/validation`:
+For `principal_source = 'ldap'`, store each client's LDAP settings at `ssh-ca/clients/<client_id>/validation`:
 
 | Key | Value |
 |---|---|
@@ -235,7 +235,7 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 | `GET` | `/api/v1/health` | None | Health check |
 | `GET` | `/metrics` | None | Prometheus metrics, when `metrics.enabled` |
 
-Client credentials go in the `X-Client-Id` (`{tenant_id}:{client_id}`) and `X-Client-Secret` headers. OIDC Bearer
+Client credentials go in the `X-Client-Id` and `X-Client-Secret` headers. OIDC Bearer
 routes take `Authorization: Bearer <token>`.
 
 The signer reads the caller's privileges from `GET /me` at `core_api_base_url`:
@@ -269,7 +269,7 @@ ssh-keygen -t ed25519 -f /tmp/testkey -N ""
 
 curl -s -X POST http://localhost:8084/api/v1/sign \
   -H "Content-Type: application/json" \
-  -H "X-Client-Id: tenant1:webapp" \
+  -H "X-Client-Id: webapp" \
   -H "X-Client-Secret: your-secret" \
   -d '{
     "principal": "jdoe",
@@ -284,7 +284,7 @@ curl -s -X POST http://localhost:8084/api/v1/sign \
 ```bash
 curl -s -X POST http://localhost:8084/api/v1/revoke \
   -H "Content-Type: application/json" \
-  -H "X-Client-Id: tenant1:webapp" \
+  -H "X-Client-Id: webapp" \
   -H "X-Client-Secret: your-secret" \
   -d '{"serial_number": 42, "reason": "User deprovisioned"}' | jq .
 ```
@@ -293,7 +293,7 @@ curl -s -X POST http://localhost:8084/api/v1/revoke \
 
 ```bash
 curl -s http://localhost:8084/api/v1/jwks \
-  -H "X-Client-Id: tenant1:webapp" \
+  -H "X-Client-Id: webapp" \
   -H "X-Client-Secret: your-secret" | jq .
 ```
 
@@ -301,7 +301,7 @@ curl -s http://localhost:8084/api/v1/jwks \
 
 ```bash
 curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
-  -H "X-Client-Id: tenant1:webapp" \
+  -H "X-Client-Id: webapp" \
   -H "X-Client-Secret: your-secret" | jq .
 ```
 
@@ -312,7 +312,7 @@ curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
 | "failed to connect to database" | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
 | "failed to create vault client" | Vault unreachable or bad token | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled |
 | Migrations not found | The working directory is not this one | Run the signer from `extensions/SSH-Certificate-Signer` |
-| HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is `tenant_id:client_id` format, check bcrypt hash matches |
+| HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is the client's `client_id`, check bcrypt hash matches |
 | HTTP 403 "Client is disabled" | Client row has `enabled=false` | Set `enabled=true` in `client_ssh_configs` |
 | HTTP 401 "Issuer not allowed" | OIDC issuer not in allowed list | Add issuer to `allowed_issuers`, or set to empty list to accept all |
 | HTTP 403 on admin routes | The caller lacks `signer:certificates:read` in the Custos server | See the privilege note under [API](#api) |

@@ -34,7 +34,7 @@ type mockCredentialFetcher struct {
 	callCount int
 }
 
-func (m *mockCredentialFetcher) GetValidationCredentials(ctx context.Context, tenantID, clientID string) (*vault.ValidationCredentials, error) {
+func (m *mockCredentialFetcher) GetValidationCredentials(ctx context.Context, clientID string) (*vault.ValidationCredentials, error) {
 	m.callCount++
 	return m.creds, m.err
 }
@@ -46,7 +46,7 @@ func testLogger() *slog.Logger {
 func TestDispatcher_NoopSource(t *testing.T) {
 	d := NewValidatorDispatcher(nil, nil, "noop", time.Minute, testLogger())
 
-	result, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "noop")
+	result, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "noop")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestDispatcher_NoopSource(t *testing.T) {
 func TestDispatcher_EmptySourceUsesFallback(t *testing.T) {
 	d := NewValidatorDispatcher(nil, nil, "noop", time.Minute, testLogger())
 
-	result, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "")
+	result, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestDispatcher_LDAPSource_PrincipalFound(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	d := NewValidatorDispatcher(fetcher, connector, "noop", time.Minute, testLogger())
 
-	result, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	result, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestDispatcher_LDAPSource_NoCredentials(t *testing.T) {
 	fetcher := &mockCredentialFetcher{creds: nil}
 	d := NewValidatorDispatcher(fetcher, nil, "noop", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -118,7 +118,7 @@ func TestDispatcher_LDAPSource_VaultError(t *testing.T) {
 	fetcher := &mockCredentialFetcher{err: errors.New("vault sealed")}
 	d := NewValidatorDispatcher(fetcher, nil, "noop", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -150,9 +150,9 @@ func TestDispatcher_CacheHit(t *testing.T) {
 	d := NewValidatorDispatcher(fetcher, connector, "noop", time.Minute, testLogger())
 
 	// First call — fetches from Vault
-	d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 	// Second call — should use cache
-	d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 
 	if fetcher.callCount != 1 {
 		t.Errorf("expected 1 Vault fetch (cached), got %d", fetcher.callCount)
@@ -181,11 +181,11 @@ func TestDispatcher_CacheExpiry(t *testing.T) {
 	d := NewValidatorDispatcher(fetcher, connector, "noop", 1*time.Millisecond, testLogger())
 
 	// First call
-	d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 	// Wait for cache to expire
 	time.Sleep(5 * time.Millisecond)
 	// Second call — should re-fetch
-	d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "ldap")
+	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "ldap")
 
 	if fetcher.callCount != 2 {
 		t.Errorf("expected 2 Vault fetches (cache expired), got %d", fetcher.callCount)
@@ -195,7 +195,7 @@ func TestDispatcher_CacheExpiry(t *testing.T) {
 func TestDispatcher_UnknownSource(t *testing.T) {
 	d := NewValidatorDispatcher(nil, nil, "noop", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "unknown")
+	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "unknown")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -208,7 +208,7 @@ func TestDispatcher_UnknownSource(t *testing.T) {
 func TestDispatcher_ComanageStub(t *testing.T) {
 	d := NewValidatorDispatcher(nil, nil, "noop", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "t1", "c1", "jdoe", "sub1", "comanage")
+	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1", "comanage")
 	if err == nil {
 		t.Fatal("expected error")
 	}

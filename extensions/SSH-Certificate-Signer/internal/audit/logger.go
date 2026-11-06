@@ -38,7 +38,6 @@ func NewLogger(db *store.DB, baseLogger *slog.Logger) *Logger {
 }
 
 type IssuanceEntry struct {
-	TenantID             string
 	ClientID             string
 	SerialNumber         int64
 	KeyID                string
@@ -57,7 +56,6 @@ type IssuanceEntry struct {
 
 func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 	dbLog := &store.IssuanceLog{
-		TenantID:             entry.TenantID,
 		ClientID:             entry.ClientID,
 		SerialNumber:         entry.SerialNumber,
 		KeyID:                entry.KeyID,
@@ -80,7 +78,6 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 	l.slogger.InfoContext(ctx, "certificate issued",
 		"event_type", "certificate_issuance",
 		"timestamp", time.Now().UTC().Format(time.RFC3339),
-		"tenant_id", entry.TenantID,
 		"client_id", entry.ClientID,
 		"serial_number", entry.SerialNumber,
 		"key_id", entry.KeyID,
@@ -101,7 +98,6 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 }
 
 type RevocationEntry struct {
-	TenantID      string
 	ClientID      string
 	SerialNumber  *int64
 	KeyID         *string
@@ -113,7 +109,6 @@ type RevocationEntry struct {
 
 func (l *Logger) LogRevocation(ctx context.Context, entry *RevocationEntry) error {
 	ev := &store.RevocationEvent{
-		TenantID:      entry.TenantID,
 		ClientID:      entry.ClientID,
 		SerialNumber:  entry.SerialNumber,
 		KeyID:         entry.KeyID,
@@ -129,7 +124,6 @@ func (l *Logger) LogRevocation(ctx context.Context, entry *RevocationEntry) erro
 	attrs := []any{
 		"event_type", "certificate_revocation",
 		"timestamp", time.Now().UTC().Format(time.RFC3339),
-		"tenant_id", entry.TenantID,
 		"client_id", entry.ClientID,
 		"reason", entry.Reason,
 		"revoked_by", entry.RevokedBy,

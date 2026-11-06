@@ -31,7 +31,6 @@ afterEach(() => {
 });
 
 const certificate = {
-  tenant_id: "tenant-1",
   client_id: "signer-client",
   serial_number: 42,
   key_id: "k",

@@ -19,7 +19,7 @@ package validation
 type PrincipalValidator interface {
 	// Validate checks if the requested principal is authorized. The returned
 	// principal may differ from the requested one.
-	Validate(tenantID, clientID, principal, identitySubject string) (*ValidationResult, error)
+	Validate(clientID, principal, identitySubject string) (*ValidationResult, error)
 }
 
 type ValidationResult struct {

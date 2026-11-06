@@ -22,7 +22,7 @@ func NewNoOpValidator() *NoOpValidator {
 	return &NoOpValidator{}
 }
 
-func (v *NoOpValidator) Validate(tenantID, clientID, principal, identitySubject string) (*ValidationResult, error) {
+func (v *NoOpValidator) Validate(clientID, principal, identitySubject string) (*ValidationResult, error) {
 	return &ValidationResult{
 		Allowed:            true,
 		ValidatedPrincipal: principal,
