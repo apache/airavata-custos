@@ -56,7 +56,8 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const allocation = allocationQuery.data;
   if (!allocation) return null;
 
-  const memberCount = membersQuery.data?.length ?? 0;
+  const memberCount =
+    membersQuery.data?.filter((m) => m.membership_status === "ACTIVE").length ?? 0;
 
   return (
     <section className="space-y-6">
