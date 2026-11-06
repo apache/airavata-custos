@@ -170,7 +170,7 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		cacheTTL, logger,
 	)
 	logger.Info("principal validation dispatcher initialized",
-		"fallback_source", cfg.Signer.Validation.PrincipalValidator,
+		"source", cfg.Signer.Validation.PrincipalValidator,
 		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
 	signHandler := handler.NewSignHandler(oidcValidator, policyEnforcer, principalValidator, vaultClient, auditLogger, logger)

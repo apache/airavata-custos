@@ -414,8 +414,8 @@ func generateEd25519CAKey() (*CAKeyPair, error) {
 	}, nil
 }
 
-// ValidationCredentials holds one client's principal validation settings.
-// Stored at {mount}/clients/{client_id}/validation.
+// ValidationCredentials holds the deployment's principal validation settings.
+// Stored at {mount}/validation.
 type ValidationCredentials struct {
 	Type              string `json:"type"`                         // "ldap" or "comanage"
 	LDAPUrl           string `json:"ldap_url,omitempty"`           // LDAP
@@ -431,10 +431,10 @@ type ValidationCredentials struct {
 	APIPath           string `json:"api_path,omitempty"`           // COmanage
 }
 
-// GetValidationCredentials reads per-client validation credentials from Vault.
-// Returns (nil, nil) if no credentials exist at the path.
-func (c *Client) GetValidationCredentials(ctx context.Context, clientID string) (*ValidationCredentials, error) {
-	path := c.kvPath("clients", clientID, "validation")
+// GetValidationCredentials reads the principal validation settings.
+// Returns (nil, nil) if none exist at the path.
+func (c *Client) GetValidationCredentials(ctx context.Context) (*ValidationCredentials, error) {
+	path := c.kvPath("validation")
 	secret, err := c.client.Logical().ReadWithContext(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("reading validation credentials at %s: %w", path, err)

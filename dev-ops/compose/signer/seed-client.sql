@@ -18,12 +18,11 @@
 -- Dev client for the compose stack. Secret (bcrypt below): bench-secret
 INSERT INTO client_ssh_configs
     (client_id, client_secret, target_host, target_port,
-     max_ttl_seconds, allowed_key_types, principal_source, enabled)
+     max_ttl_seconds, allowed_key_types, enabled)
 VALUES
     ('bench',
      '$2y$10$2K2FooZeA95Z7ilfrZwB4OZOAKyBKwrT6CePe8q57psu/p3k1g1aa',
-     'localhost', 2222, 86400, '["ed25519","rsa","ecdsa"]', 'ldap', TRUE)
+     'localhost', 2222, 86400, '["ed25519","rsa","ecdsa"]', TRUE)
 ON CONFLICT (client_id) DO UPDATE SET
     client_secret = EXCLUDED.client_secret,
-    principal_source = EXCLUDED.principal_source,
     enabled = EXCLUDED.enabled;

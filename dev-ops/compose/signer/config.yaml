@@ -58,7 +58,7 @@ signer:
       jwks_max_providers: 10
       timeout_seconds: 10
   validation:
-    principal_validator: noop
+    principal_validator: ldap
     cache_ttl_seconds: 300
 
 dev_mode:
