@@ -31,7 +31,6 @@ type ClientConfig struct {
 	AllowedKeyTypes          []string
 	SourceAddressRestriction *string
 	DeniedExtensions         []string
-	PrincipalSource          string
 	Enabled                  bool
 }
 
@@ -46,14 +45,14 @@ func (d *DB) GetClientConfig(ctx context.Context, clientID string) (*ClientConfi
 	err := d.QueryRowContext(ctx,
 		`SELECT client_id, client_secret, target_host, target_port,
 		        max_ttl_seconds, allowed_key_types, source_address_restriction,
-		        denied_extensions, principal_source, enabled
+		        denied_extensions, enabled
 		 FROM client_ssh_configs
 		 WHERE client_id = $1`,
 		clientID,
 	).Scan(
 		&cc.ClientID, &cc.ClientSecret, &cc.TargetHost, &cc.TargetPort,
 		&cc.MaxTTLSeconds, &allowedKeyTypesJSON, &sourceAddressRestriction,
-		&deniedExtensionsJSON, &cc.PrincipalSource, &cc.Enabled,
+		&deniedExtensionsJSON, &cc.Enabled,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

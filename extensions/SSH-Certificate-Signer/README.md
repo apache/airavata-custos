@@ -35,10 +35,10 @@ SSH public key and the principal. The principal is the Unix username the certifi
    empty.
 3. It enforces the client's policy: maximum TTL, allowed key types and source address. It grants the standard
    extensions, minus those denied.
-4. It validates the principal per `principal_source`, below.
+4. It validates the principal with the validator set in `signer.validation.principal_validator`, below.
 5. It signs with the CA key from Vault and logs the issuance in `certificate_issuance_logs`.
 
-| `principal_source` | Principal check |
+| `principal_validator` | Principal check |
 |---|---|
 | `noop` | Accepts the principal |
 | `ldap` | Finds the LDAP entry for the OIDC subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
@@ -112,7 +112,7 @@ Generate the bcrypt hash with:
 htpasswd -nbBC 10 "" "your-secret" | cut -d: -f2
 ```
 
-The table also holds `source_address_restriction`, `denied_extensions` and `principal_source` (default `noop`).
+The table also holds `source_address_restriction` and `denied_extensions`.
 
 ### Vault
 
@@ -124,7 +124,7 @@ The path must match `vault.mount_path`. The signer creates CA keys on demand. No
 
 Ensure the configured token has read/write access to `ssh-ca/data/*`.
 
-For `principal_source = 'ldap'`, store each client's LDAP settings at `ssh-ca/clients/<client_id>/validation`:
+For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`:
 
 | Key | Value |
 |---|---|
