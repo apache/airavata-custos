@@ -30,9 +30,9 @@ import (
 )
 
 const (
-	lookupCertificateQuery  = "SELECT tenant_id, client_id, key_id, ca_fingerprint.*WHERE serial_number = \\$1"
+	lookupCertificateQuery  = "SELECT client_id, key_id, ca_fingerprint.*WHERE serial_number = \\$1"
 	existingRevocationQuery = "SELECT revoked_at, reason.*WHERE serial_number = \\$1"
-	insertRevocationQuery   = "INSERT INTO revocation_events.*VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6, \\$7, \\$8\\)"
+	insertRevocationQuery   = "INSERT INTO revocation_events.*VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6, \\$7\\)"
 )
 
 func newRevocationService(t *testing.T, now time.Time) (*RevocationService, sqlmock.Sqlmock) {
@@ -49,8 +49,8 @@ func newRevocationService(t *testing.T, now time.Time) (*RevocationService, sqlm
 
 func certificateRow(email string, validAfter, validBefore time.Time) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
-		"tenant_id", "client_id", "key_id", "ca_fingerprint", "user_email", "valid_after", "valid_before",
-	}).AddRow("tenant-1", "client-1", "key-1", "SHA256:ca", email, validAfter, validBefore)
+		"client_id", "key_id", "ca_fingerprint", "user_email", "valid_after", "valid_before",
+	}).AddRow("client-1", "key-1", "SHA256:ca", email, validAfter, validBefore)
 }
 
 func activeCommand() RevokeCommand {
@@ -68,7 +68,7 @@ func TestRevocationService_RevokeActiveOwner(t *testing.T) {
 		WillReturnRows(certificateRow("alice@example.org", now.Add(-time.Hour), now.Add(time.Hour)))
 	mock.ExpectQuery(existingRevocationQuery).WithArgs(int64(42)).WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(insertRevocationQuery).WithArgs(
-		"tenant-1", "client-1", int64(42), "key-1", "SHA256:ca", now,
+		"client-1", int64(42), "key-1", "SHA256:ca", now,
 		"compromised", "subject-1",
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()

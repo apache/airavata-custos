@@ -9,7 +9,6 @@ import { ApiError } from "@/shared/api/client";
 import type { Certificate } from "../schemas";
 
 const baseCertificate: Certificate = {
-  tenant_id: "tenant-1",
   client_id: "signer-client",
   serial_number: 42,
   key_id: "key-42",
@@ -78,7 +77,6 @@ describe("<CertificateDetail />", () => {
   it("renders complete issuance metadata", () => {
     render(<CertificateDetail serial="42" />);
     for (const value of [
-      "tenant-1",
       "signer-client",
       "admin@example.org",
       "key-42",

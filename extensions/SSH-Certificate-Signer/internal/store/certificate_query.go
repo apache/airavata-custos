@@ -26,7 +26,6 @@ import (
 
 type CertificateWithStatus struct {
 	ID                   int64
-	TenantID             string
 	ClientID             string
 	SerialNumber         int64
 	KeyID                string
@@ -87,7 +86,7 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 	// Fetch page with revocation status
 	rows, err := d.QueryContext(ctx,
 		`SELECT
-			c.id, c.tenant_id, c.client_id, c.serial_number, c.key_id,
+			c.id, c.client_id, c.serial_number, c.key_id,
 			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
 			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
 			c.granted_extensions, c.force_command,
@@ -119,7 +118,7 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 		var forceCommand sql.NullString
 
 		if err := rows.Scan(
-			&cert.ID, &cert.TenantID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
+			&cert.ID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
 			&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
 			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
 			&grantedExtensionsJSON, &forceCommand,
@@ -160,7 +159,7 @@ func (d *DB) ListCertificates(ctx context.Context, limit int, cursor *Certificat
 	}
 
 	query := `SELECT
-			c.id, c.tenant_id, c.client_id, c.serial_number, c.key_id,
+			c.id, c.client_id, c.serial_number, c.key_id,
 			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
 			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
 			c.granted_extensions, c.force_command,
@@ -220,7 +219,7 @@ func scanCertificates(rows certificateRows) ([]CertificateWithStatus, error) {
 		var grantedExtensionsJSON []byte
 		var forceCommand sql.NullString
 		if err := rows.Scan(
-			&cert.ID, &cert.TenantID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
+			&cert.ID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
 			&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
 			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
 			&grantedExtensionsJSON, &forceCommand,
@@ -253,7 +252,7 @@ func (d *DB) GetCertificateBySerial(ctx context.Context, serial int64) (*Certifi
 
 	err := d.QueryRowContext(ctx,
 		`SELECT
-			c.id, c.tenant_id, c.client_id, c.serial_number, c.key_id,
+			c.id, c.client_id, c.serial_number, c.key_id,
 			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
 			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
 			c.granted_extensions, c.force_command,
@@ -270,7 +269,7 @@ func (d *DB) GetCertificateBySerial(ctx context.Context, serial int64) (*Certifi
 		 WHERE c.serial_number = $1`,
 		serial,
 	).Scan(
-		&cert.ID, &cert.TenantID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
+		&cert.ID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
 		&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
 		&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
 		&grantedExtensionsJSON, &forceCommand,

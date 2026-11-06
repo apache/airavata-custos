@@ -21,7 +21,7 @@ import (
 
 func TestNoOpValidator_AllowsAll(t *testing.T) {
 	v := NewNoOpValidator()
-	result, err := v.Validate("t1", "c1", "anyuser", "sub123")
+	result, err := v.Validate("c1", "anyuser", "sub123")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestNoOpValidator_AllowsAll(t *testing.T) {
 
 func TestCOmanageValidator_AlwaysDenies(t *testing.T) {
 	v := NewCOmanageValidator()
-	result, err := v.Validate("t1", "c1", "user", "sub123")
+	result, err := v.Validate("c1", "user", "sub123")
 	if result != nil {
 		t.Error("expected nil result")
 	}

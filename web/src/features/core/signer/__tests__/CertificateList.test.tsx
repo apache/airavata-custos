@@ -21,7 +21,6 @@ import { CertificateList } from "../components/CertificateList";
 import type { Certificate } from "../schemas";
 
 const active: Certificate = {
-  tenant_id: "tenant-1",
   client_id: "signer-client",
   serial_number: 42,
   key_id: "k-active",

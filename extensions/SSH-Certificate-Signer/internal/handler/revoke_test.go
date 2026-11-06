@@ -69,7 +69,7 @@ func TestRevokeResponse_JSON(t *testing.T) {
 // SQL fragments (regexps under sqlmock's default matcher) identifying the two
 // revoke code paths.
 const (
-	qLookupCert = "SELECT tenant_id, client_id, key_id, ca_fingerprint"
+	qLookupCert = "SELECT client_id, key_id, ca_fingerprint"
 	qInsertRevo = "INSERT INTO revocation_events"
 )
 
@@ -92,7 +92,7 @@ func newMockRevokeHandler(t *testing.T) (*RevokeHandler, sqlmock.Sqlmock) {
 func revokeRequest(body string, withClient bool) *http.Request {
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/revoke", strings.NewReader(body))
 	if withClient {
-		cfg := &store.ClientConfig{TenantID: "tenant1", ClientID: "webapp"}
+		cfg := &store.ClientConfig{ClientID: "webapp"}
 		r = r.WithContext(httputil.WithClientConfig(r.Context(), cfg))
 	}
 	return r
@@ -160,7 +160,7 @@ func TestRevokeHandler_LegacyKeyIDOnly(t *testing.T) {
 	h, mock := newMockRevokeHandler(t)
 
 	mock.ExpectExec(qInsertRevo).
-		WithArgs("tenant1", "webapp", sqlmock.AnyArg(), "alice@webapp-1", sqlmock.AnyArg(), "key revoke", "tenant1:webapp").
+		WithArgs("webapp", sqlmock.AnyArg(), "alice@webapp-1", sqlmock.AnyArg(), "key revoke", "webapp").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	rr := httptest.NewRecorder()
@@ -179,7 +179,7 @@ func TestRevokeHandler_LegacyCAFingerprintOnly(t *testing.T) {
 	h, mock := newMockRevokeHandler(t)
 
 	mock.ExpectExec(qInsertRevo).
-		WithArgs("tenant1", "webapp", sqlmock.AnyArg(), sqlmock.AnyArg(), "SHA256:cafp", "ca revoke", "tenant1:webapp").
+		WithArgs("webapp", sqlmock.AnyArg(), sqlmock.AnyArg(), "SHA256:cafp", "ca revoke", "webapp").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	rr := httptest.NewRecorder()

@@ -25,9 +25,8 @@ import (
 )
 
 // ClientAuthMiddleware guards the machine-to-machine routes, including
-// POST /api/v1/revoke. Missing or malformed credentials are rejected with 401
-// before any database lookup, so a nil-DB authenticator exercises the rejection
-// paths safely.
+// POST /api/v1/revoke. Missing credentials are rejected with 401 before any
+// database lookup, so a nil-DB authenticator exercises the rejection paths safely.
 func TestClientAuthMiddleware_RejectsMissingCredentials(t *testing.T) {
 	authenticator := auth.NewClientAuthenticator(nil)
 
@@ -42,9 +41,8 @@ func TestClientAuthMiddleware_RejectsMissingCredentials(t *testing.T) {
 		secret   string
 	}{
 		{"missing both headers", "", ""},
-		{"missing secret", "tenant1:webapp", ""},
+		{"missing secret", "webapp", ""},
 		{"missing client id", "", "s3cret"},
-		{"malformed client id (no colon)", "webapp", "s3cret"},
 	}
 
 	for _, tc := range cases {

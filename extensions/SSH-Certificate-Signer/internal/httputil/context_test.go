@@ -25,7 +25,6 @@ import (
 
 func TestClientConfigContext(t *testing.T) {
 	cfg := &store.ClientConfig{
-		TenantID: "t1",
 		ClientID: "c1",
 	}
 	ctx := WithClientConfig(context.Background(), cfg)
@@ -33,7 +32,7 @@ func TestClientConfigContext(t *testing.T) {
 	if got == nil {
 		t.Fatal("expected non-nil config")
 	}
-	if got.TenantID != "t1" || got.ClientID != "c1" {
+	if got.ClientID != "c1" {
 		t.Errorf("unexpected config: %+v", got)
 	}
 }

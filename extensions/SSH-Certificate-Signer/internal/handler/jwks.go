@@ -53,10 +53,7 @@ func (h *JWKSHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantID := clientCfg.TenantID
-	clientID := clientCfg.ClientID
-
-	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context(), tenantID, clientID)
+	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
 		h.logger.Error("failed to get current CA key", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to retrieve CA keys")
@@ -79,7 +76,7 @@ func (h *JWKSHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		NextFingerprint:    "",
 	}
 
-	nextKey, err := h.vaultClient.GetNextCAKey(r.Context(), tenantID, clientID)
+	nextKey, err := h.vaultClient.GetNextCAKey(r.Context())
 	if err == nil && nextKey != nil {
 		nextJWK, err := cert.PublicKeyToJWK(nextKey.PublicKey)
 		if err == nil {
@@ -89,7 +86,7 @@ func (h *JWKSHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	meta, err := h.vaultClient.GetMetadata(r.Context(), tenantID, clientID)
+	meta, err := h.vaultClient.GetMetadata(r.Context())
 	if err == nil && meta != nil && meta.NextRotationAt != "" {
 		if t, err := time.Parse(time.RFC3339, meta.NextRotationAt); err == nil {
 			resp.RotationScheduledAt = t.Unix()
