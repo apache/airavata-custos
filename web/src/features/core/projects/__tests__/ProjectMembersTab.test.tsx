@@ -42,7 +42,8 @@ const allocations = [
   { id: "a-1", name: "Alpha", end_time: "2027-01-01T00:00:00Z" },
   { id: "a-2", name: "Beta", end_time: "2027-01-01T00:00:00Z" },
 ];
-const ciraInAlpha = { id: "m-1", compute_allocation_id: "a-1", user_id: "u-3" };
+const ciraInAlpha = { id: "m-1", user_id: "u-3", membership_status: "ACTIVE" };
+const ciraInBeta = { id: "m-2", user_id: "u-3", membership_status: "INACTIVE" };
 
 const roleMutation = { mutateAsync: vi.fn(async () => undefined), isPending: false };
 const toggle = { mutateAsync: vi.fn(async () => undefined), isPending: false };
@@ -56,7 +57,7 @@ vi.mock("../queries", () => ({
 vi.mock("@/features/core/allocations/queries", () => ({
   useAllocationsByProject: () => ({ data: { items: allocations }, isLoading: false, error: null }),
   useMembershipsByAllocation: () => ({
-    byAllocation: { "a-1": [ciraInAlpha], "a-2": [] },
+    byAllocation: { "a-1": [ciraInAlpha], "a-2": [ciraInBeta] },
     isLoading: false,
     error: null,
   }),
@@ -109,7 +110,7 @@ describe("<ProjectMembersTab />", () => {
       expect.objectContaining({ userId: "u-3", membership: ciraInAlpha }),
     );
     expect(toggle.mutateAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "u-3", membership: undefined }),
+      expect.objectContaining({ userId: "u-3", membership: ciraInBeta }),
     );
   });
 

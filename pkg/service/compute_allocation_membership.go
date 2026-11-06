@@ -18,6 +18,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -211,14 +212,14 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
 	}
-	existing, err := s.memberships.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute allocation membership: %w", err)
-	}
-	if existing == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		existing, err := s.memberships.FindByIDTx(ctx, tx, id)
+		if err != nil || existing == nil {
+			return cmp.Or(err, ErrNotFound)
+		}
+		if existing.MembershipStatus == models.ACTIVE {
+			return fmt.Errorf("%w: compute allocation membership %q is active, deactivate it first", ErrInUse, id)
+		}
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {
 			return err
 		}

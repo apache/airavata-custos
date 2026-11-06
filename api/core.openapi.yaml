@@ -2548,6 +2548,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute allocation membership
