@@ -69,3 +69,19 @@ func TestSetAllocationResources_ReplacesTheSet(t *testing.T) {
 		t.Errorf("attached: got %v, want %s and %s", got, b, c)
 	}
 }
+
+// Make sure deleting an active allocation is refused until it is deactivated.
+func TestDeleteAllocation_RefusedWhileActive(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	_, allocID := newClusterAllocation(t, svc, seedUser(t, database, uuid.NewString()+"@example.edu"))
+	if err := svc.DeleteComputeAllocation(ctx(), allocID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete while active: %v, want ErrInUse", err)
+	}
+	if _, err := svc.UpdateComputeAllocationStatus(ctx(), allocID, models.INACTIVE); err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+	if err := svc.DeleteComputeAllocation(ctx(), allocID); err != nil {
+		t.Fatalf("delete while inactive: %v", err)
+	}
+}

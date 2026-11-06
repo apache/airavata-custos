@@ -18,6 +18,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -210,14 +211,14 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
 	}
-	alloc, err := s.allocs.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute allocation: %w", err)
-	}
-	if alloc == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		alloc, err := s.allocs.FindByIDTx(ctx, tx, id, store.UpdateLock)
+		if err != nil || alloc == nil {
+			return cmp.Or(err, ErrNotFound)
+		}
+		if alloc.Status == models.ACTIVE {
+			return fmt.Errorf("%w: compute allocation %q is active, deactivate it first", ErrInUse, id)
+		}
 		if err := s.allocs.Delete(ctx, tx, id); err != nil {
 			return err
 		}
@@ -226,4 +227,19 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 		return fmt.Errorf("delete compute allocation: %w", err)
 	}
 	return nil
+}
+
+// UpdateComputeAllocationStatus sets an allocation ACTIVE or INACTIVE; INACTIVE ends its members' access.
+func (s *Service) UpdateComputeAllocationStatus(ctx context.Context, id string, status models.AllocationStatus) (alloc *models.ComputeAllocation, err error) {
+	if status != models.ACTIVE && status != models.INACTIVE {
+		return nil, fmt.Errorf("%w: status must be ACTIVE or INACTIVE", ErrInvalidInput)
+	}
+	err = s.inTx(ctx, func(tx *sql.Tx) error {
+		if alloc, err = s.allocs.FindByIDTx(ctx, tx, id, store.UpdateLock); err != nil || alloc == nil {
+			return cmp.Or(err, ErrNotFound)
+		}
+		alloc.Status = status
+		return s.UpdateComputeAllocationTx(ctx, tx, alloc)
+	})
+	return alloc, err
 }
