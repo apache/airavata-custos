@@ -67,29 +67,26 @@ func (h *RevokeHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantID := clientCfg.TenantID
 	clientID := clientCfg.ClientID
 
 	var req RevokeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.RevokeRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 
 	if req.SerialNumber == nil && req.KeyID == nil && req.CAFingerprint == nil {
-		metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.RevokeRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "At least one of serial_number, key_id, or ca_fingerprint is required")
 		return
 	}
 
 	if req.Reason == "" {
-		metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.RevokeRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: reason")
 		return
 	}
-
-	revokedBy := tenantID + ":" + clientID
 
 	// When a serial is supplied, use the shared store method so this route gets
 	// the same existence check, transactional insert, and idempotency as the
@@ -97,41 +94,40 @@ func (h *RevokeHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// preserve backward compatibility for automated clients.
 	if h.revoker != nil && req.SerialNumber != nil && *req.SerialNumber > 0 {
 		if _, err := h.revoker.Revoke(r.Context(), signerservice.RevokeCommand{
-			SerialNumber: *req.SerialNumber, Reason: req.Reason, RevokedBy: revokedBy,
+			SerialNumber: *req.SerialNumber, Reason: req.Reason, RevokedBy: clientID,
 			CanRevokeAny: true,
 		}); err != nil {
 			if !errors.Is(err, store.ErrCertificateNotFound) {
-				metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+				metrics.RevokeRequestsTotal.WithLabelValues(clientID, "error").Inc()
 				h.logger.Error("failed to revoke certificate", "error", err)
 				writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record revocation")
 				return
 			}
 			// Not found: fall through to the legacy audit insert below.
 		} else {
-			metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "success").Inc()
+			metrics.RevokeRequestsTotal.WithLabelValues(clientID, "success").Inc()
 			h.writeSuccess(w)
 			return
 		}
 	}
 
 	entry := &audit.RevocationEntry{
-		TenantID:      tenantID,
 		ClientID:      clientID,
 		SerialNumber:  req.SerialNumber,
 		KeyID:         req.KeyID,
 		CAFingerprint: req.CAFingerprint,
 		Reason:        req.Reason,
-		RevokedBy:     revokedBy,
+		RevokedBy:     clientID,
 	}
 
 	if err := h.auditLogger.LogRevocation(r.Context(), entry); err != nil {
-		metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		metrics.RevokeRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		h.logger.Error("failed to record revocation", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record revocation")
 		return
 	}
 
-	metrics.RevokeRequestsTotal.WithLabelValues(tenantID, "success").Inc()
+	metrics.RevokeRequestsTotal.WithLabelValues(clientID, "success").Inc()
 	h.writeSuccess(w)
 }
 

@@ -22,7 +22,7 @@ func NewCOmanageValidator() *COmanageValidator {
 	return &COmanageValidator{}
 }
 
-func (v *COmanageValidator) Validate(tenantID, clientID, principal, identitySubject string) (*ValidationResult, error) {
+func (v *COmanageValidator) Validate(clientID, principal, identitySubject string) (*ValidationResult, error) {
 	return nil, &ValidationError{
 		Message:    "Requested principal is not allowed",
 		ReasonCode: "COMANAGE_NOT_IMPLEMENTED",

@@ -189,7 +189,7 @@ services:
       - "127.0.0.1:2222:22"
     environment:
       SIGNER_URL: http://signer:8084
-      CLIENT_ID: custos:bench
+      CLIENT_ID: bench
       CLIENT_SECRET: bench-secret
     depends_on:
       signer-seed:

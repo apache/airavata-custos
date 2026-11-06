@@ -19,60 +19,6 @@ import (
 	"testing"
 )
 
-func TestParseClientID_NoColon(t *testing.T) {
-	_, _, err := ParseClientID("nocolonhere")
-	if err == nil {
-		t.Error("expected error for client ID without colon")
-	}
-}
-
-func TestParseClientID_MultipleColons(t *testing.T) {
-	tenant, client, err := ParseClientID("t1:c1:extra")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if tenant != "t1" {
-		t.Errorf("expected tenant t1, got %s", tenant)
-	}
-	if client != "c1:extra" {
-		t.Errorf("expected client c1:extra, got %s", client)
-	}
-}
-
-func TestParseClientID_Empty(t *testing.T) {
-	_, _, err := ParseClientID("")
-	if err == nil {
-		t.Error("expected error for empty client ID")
-	}
-}
-
-func TestParseClientID_Valid(t *testing.T) {
-	tenant, client, err := ParseClientID("tenant1:webapp")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if tenant != "tenant1" {
-		t.Errorf("expected tenant1, got %s", tenant)
-	}
-	if client != "webapp" {
-		t.Errorf("expected webapp, got %s", client)
-	}
-}
-
-func TestParseClientID_EmptyTenant(t *testing.T) {
-	_, _, err := ParseClientID(":client")
-	if err == nil {
-		t.Error("expected error for empty tenant")
-	}
-}
-
-func TestParseClientID_EmptyClient(t *testing.T) {
-	_, _, err := ParseClientID("tenant:")
-	if err == nil {
-		t.Error("expected error for empty client")
-	}
-}
-
 func TestAuthError_Interface(t *testing.T) {
 	err := &AuthError{Code: "unauthorized", Message: "test", Status: 401}
 	if err.Error() != "test" {
