@@ -62,11 +62,13 @@ const (
 
 // ComputeClusterUser lifecycle message types.
 const (
-	ComputeClusterUserCreateEvent    EventType = "compute_cluster_user::create"
-	ComputeClusterUserDeleteEvent    EventType = "compute_cluster_user::delete"
-	ComputeClusterUserApproveEvent   EventType = "compute_cluster_user::approve"
-	ComputeClusterUserDenyEvent      EventType = "compute_cluster_user::deny"
-	ComputeClusterUserProvisionEvent EventType = "compute_cluster_user::provision"
+	ComputeClusterUserCreateEvent          EventType = "compute_cluster_user::create"
+	ComputeClusterUserDeleteEvent          EventType = "compute_cluster_user::delete"
+	ComputeClusterUserApproveEvent         EventType = "compute_cluster_user::approve"
+	ComputeClusterUserDenyEvent            EventType = "compute_cluster_user::deny"
+	ComputeClusterUserStorageRequestEvent  EventType = "compute_cluster_user::storage_request"
+	ComputeClusterUserReadyEvent           EventType = "compute_cluster_user::ready"
+	ComputeClusterUserIdentityRequestEvent EventType = "compute_cluster_user::identity_request"
 )
 
 // ClusterAccount lifecycle message types.
@@ -78,10 +80,12 @@ const (
 
 // ComputeAllocation lifecycle message types.
 const (
-	ComputeAllocationCreateEvent         EventType = "compute_allocation::create"
 	ComputeAllocationUpdateEvent         EventType = "compute_allocation::update"
 	ComputeAllocationDeleteEvent         EventType = "compute_allocation::delete"
 	ComputeAllocationGroupProvisionEvent EventType = "compute_allocation::group_provision"
+
+	ComputeAllocationGroupRequestEvent     EventType = "compute_allocation::group_request"
+	ComputeAllocationSchedulerRequestEvent EventType = "compute_allocation::scheduler_request"
 )
 
 // CreateComputeAllocationDiff lifecycle message types.
@@ -100,9 +104,9 @@ const (
 
 // ComputeAllocationMembership lifecycle message types.
 const (
-	ComputeAllocationMembershipCreateEvent EventType = "compute_allocation_membership::create"
-	ComputeAllocationMembershipUpdateEvent EventType = "compute_allocation_membership::update"
-	ComputeAllocationMembershipDeleteEvent EventType = "compute_allocation_membership::delete"
+	ComputeAllocationMembershipReadyEvent          EventType = "compute_allocation_membership::ready"
+	ComputeAllocationMembershipDeactivateEvent     EventType = "compute_allocation_membership::deactivate"
+	ComputeAllocationMembershipStorageRequestEvent EventType = "compute_allocation_membership::storage_request"
 )
 
 // ComputeAllocationMembershipResourceOverride lifecycle message types.

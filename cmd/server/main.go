@@ -140,6 +140,10 @@ func run() error {
 	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, router); err != nil {
 		return err
 	}
+	eventBus.PruneSubscriptions(ctx)
+	if err := svc.SettleConnectors(ctx); err != nil {
+		slog.ErrorContext(ctx, "settle connectors", "error", err)
+	}
 	// Started after the connectors, so every handler is registered before
 	// the first delivery.
 	connectorsWG.Add(1)

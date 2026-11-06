@@ -118,7 +118,12 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 		if err := s.allocs.Create(ctx, tx, alloc); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationCreateEvent, alloc)
+		if err := s.requestTx(ctx, tx, events.ComputeAllocationSchedulerRequestEvent, alloc, func() error {
+			return s.markSchedulerProvisionedTx(ctx, tx, alloc.ID)
+		}); err != nil {
+			return err
+		}
+		return s.requestGroupsTx(ctx, tx, alloc.ID)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation: %w", err)
 	}
@@ -171,7 +176,13 @@ func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, all
 		if err := s.allocs.Update(ctx, tx, alloc); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc)
+		if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc); err != nil {
+			return err
+		}
+		if err := s.requestGroupsTx(ctx, tx, alloc.ID); err != nil {
+			return err
+		}
+		return s.syncMembershipsTx(ctx, tx, store.MembershipFilter{AllocationID: alloc.ID})
 	}(); err != nil {
 		return fmt.Errorf("update compute allocation: %w", err)
 	}
@@ -192,7 +203,11 @@ func (s *Service) MarkComputeAllocationGroupProvisioned(ctx context.Context, id 
 	return nil
 }
 
+// markGroupProvisionedTx marks the group once it has a provisioned member, when the registry first pushes it to the directory.
 func (s *Service) markGroupProvisionedTx(ctx context.Context, tx *sql.Tx, alloc *models.ComputeAllocation) error {
+	if ok, err := s.memberships.HasProvisionedMemberTx(ctx, tx, alloc.ID); err != nil || !ok {
+		return err
+	}
 	now := nowUTC()
 	firstTime, err := s.allocs.MarkGroupProvisioned(ctx, tx, alloc.ID, now)
 	if err != nil || !firstTime {
@@ -202,7 +217,34 @@ func (s *Service) markGroupProvisionedTx(ctx context.Context, tx *sql.Tx, alloc 
 	if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc); err != nil {
 		return err
 	}
+	ms, err := s.memberships.FindTx(ctx, tx, store.MembershipFilter{AllocationID: alloc.ID})
+	if err != nil {
+		return err
+	}
+	for _, m := range ms {
+		if m.ReadyAt != nil {
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipStorageRequestEvent, &m); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
+}
+
+// MarkComputeAllocationSchedulerProvisioned stamps scheduler_provisioned_at the first time and readies the allocation's members.
+func (s *Service) MarkComputeAllocationSchedulerProvisioned(ctx context.Context, id string) error {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.markSchedulerProvisionedTx(ctx, tx, id) }); err != nil {
+		return fmt.Errorf("mark compute allocation scheduler provisioned: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) markSchedulerProvisionedTx(ctx context.Context, tx *sql.Tx, id string) error {
+	firstTime, err := s.allocs.MarkSchedulerProvisioned(ctx, tx, id, nowUTC())
+	if err != nil || !firstTime {
+		return err
+	}
+	return s.syncMembershipsTx(ctx, tx, store.MembershipFilter{AllocationID: id})
 }
 
 // DeleteComputeAllocation removes a compute allocation by ID.

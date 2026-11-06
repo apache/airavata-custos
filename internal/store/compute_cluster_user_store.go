@@ -52,7 +52,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &pgComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, approval_status, reviewed_at, reviewed_by, review_note`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, access_level, provisioned_at, storage_provisioned_at, approval_status, reviewed_at, reviewed_by, review_note`
 
 func (s *pgComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -72,6 +72,19 @@ func (s *pgComputeClusterUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, 
 	var c models.ComputeClusterUser
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
 		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE id = $1 FOR UPDATE`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (s *pgComputeClusterUserStore) FindByPairTx(ctx context.Context, tx *sql.Tx, clusterID, userID string) (*models.ComputeClusterUser, error) {
+	var c models.ComputeClusterUser
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &c,
+		`SELECT `+computeClusterUserColumns+` FROM compute_cluster_users WHERE compute_cluster_id = $1 AND user_id = $2`, clusterID, userID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -220,6 +233,10 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
 
 func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
 	return execOnce(ctx, tx, `UPDATE compute_cluster_users SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL`, at, id)
+}
+
+func (s *pgComputeClusterUserStore) MarkStorageProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
+	return execOnce(ctx, tx, `UPDATE compute_cluster_users SET storage_provisioned_at = $1 WHERE id = $2 AND storage_provisioned_at IS NULL AND provisioned_at IS NOT NULL`, at, id)
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {

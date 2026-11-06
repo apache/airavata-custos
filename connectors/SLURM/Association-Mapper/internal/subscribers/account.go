@@ -97,7 +97,7 @@ func (a *AssociationSubscriber) handleComputeAllocationCreated(ctx context.Conte
 
 	a.recordAuditEvent(ctx, "ComputeAllocationCreationSucceeded", "compute_allocation", computeAllocation.ID, "Successfully created SLURM account for compute allocation.")
 	slog.InfoContext(ctx, "Successfully created SLURM account for compute allocation", "account", account)
-	return nil
+	return a.coreService.MarkComputeAllocationSchedulerProvisioned(ctx, computeAllocation.ID)
 }
 
 // handleComputeAllocationDeleted revokes every member's access when the
@@ -120,41 +120,6 @@ func (a *AssociationSubscriber) handleComputeAllocationDeleted(ctx context.Conte
 		return err
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deleted allocation.")
-	return nil
-}
-
-// handleComputeAllocationUpdated keeps cluster access in sync with the
-// allocation. An allocation that stops being active loses every association,
-// and one that becomes active again has them restored.
-func (a *AssociationSubscriber) handleComputeAllocationUpdated(ctx context.Context, computeAllocation models.ComputeAllocation) error {
-	ctx = audit.WithSource(ctx, "slurm")
-	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
-	defer span.End()
-	span.SetAttributes(attribute.String("slurm.allocation_id", computeAllocation.ID))
-
-	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	if activeAllocation(computeAllocation) {
-		if err := a.restoreAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-			slog.ErrorContext(ctx, "Failed to restore associations for reactivated allocation", "error", err)
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to restore associations. Error: "+err.Error())
-			return err
-		}
-		a.recordAuditEvent(ctx, "ComputeAllocationProvisioned", "compute_allocation", computeAllocation.ID, "Restored cluster associations for the active allocation.")
-		return nil
-	}
-
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-		slog.ErrorContext(ctx, "Failed to remove associations for deactivated allocation", "error", err)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
-		return err
-	}
-	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deactivated allocation.")
 	return nil
 }
 

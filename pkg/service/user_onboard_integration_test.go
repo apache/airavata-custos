@@ -415,10 +415,14 @@ func TestCompleteOnboarding_HappyPath(t *testing.T) {
 	bus := newTestBus(database)
 	svc := New(database, bus)
 	bus.SubscribeUserOnboarded("test-subscriber", func(context.Context, models.User) error { return nil })
+	bus.SubscribeComputeClusterUserIdentityRequested("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
 	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
 	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
 	user := seedPendingUserWithEmail(t, database, email)
-	newClusterAccount(t, svc, user, "custos-jdoe")
+	account := newClusterAccount(t, svc, user, "custos-jdoe")
+	if _, err := database.Exec("UPDATE compute_cluster_users SET approval_status = 'APPROVED' WHERE id = $1", account.ID); err != nil {
+		t.Fatalf("approve account: %v", err)
+	}
 	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
 
 	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
@@ -444,6 +448,10 @@ func TestCompleteOnboarding_HappyPath(t *testing.T) {
 	}
 	if n := countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = 'user::onboarded'"); n != 1 {
 		t.Errorf("user::onboarded events: got %d, want 1", n)
+	}
+	// The request carries the renamed account, so the registry links the new sub under the new name.
+	if n := countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = 'compute_cluster_user::identity_request' AND payload->>'local_username' = 'jdoe'"); n != 1 {
+		t.Errorf("identity requests for jdoe: got %d, want 1", n)
 	}
 }
 
@@ -489,6 +497,25 @@ func TestCompleteOnboarding_RegisteredUserKeepsUsername(t *testing.T) {
 	}
 	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
 
+	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
+		t.Fatalf("CompleteOnboarding: %v", err)
+	}
+	if accounts, err := svc.ListComputeClusterUsersByUser(ctx(), user); err != nil || len(accounts) != 1 || accounts[0].LocalUsername != "custos-jdoe" {
+		t.Errorf("cluster account: got %+v, %v, want one named custos-jdoe", accounts, err)
+	}
+}
+
+// Make sure an account provisioned without a registry keeps its username at first sign-in.
+func TestCompleteOnboarding_ProvisionedAccountKeepsUsername(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	user := seedPendingUserWithEmail(t, database, email)
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), newClusterAccount(t, svc, user, "custos-jdoe").ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
 	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
 		t.Fatalf("CompleteOnboarding: %v", err)
 	}

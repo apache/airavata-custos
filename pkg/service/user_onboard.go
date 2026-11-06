@@ -297,7 +297,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return err
 			}
 			// Approved at creation, so provisioning starts now.
-			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, clusterUser)
+			return s.approveTx(ctx, tx, clusterUser)
 		}
 		return nil
 	}); err != nil {
@@ -430,7 +430,20 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 			}
 		}
 		user.Status = models.UserActive
-		return s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user)
+		if err := s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user); err != nil {
+			return err
+		}
+		// An account deferred at approval waits for this sign-in.
+		accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
+		if err != nil {
+			return err
+		}
+		for i := range accounts {
+			if err := s.requestIdentityTx(ctx, tx, &accounts[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
 		return nil, err
 	}
@@ -487,9 +500,10 @@ func (s *Service) renameClusterAccountsTx(ctx context.Context, tx *sql.Tx, user 
 	return nil
 }
 
-// UsernameEditable is false once the registry knows the user, since the name may already be on the cluster.
+// UsernameEditable is false once an account is provisioned or the registry knows the user, since the name may already be on the cluster.
 func (s *Service) UsernameEditable(ctx context.Context, user *models.User, accounts []models.ComputeClusterUser) (bool, error) {
-	if user.Type != models.UserTypeClusterLocal || len(accounts) == 0 {
+	if user.Type != models.UserTypeClusterLocal || len(accounts) == 0 ||
+		slices.ContainsFunc(accounts, func(a models.ComputeClusterUser) bool { return a.ProvisionedAt != nil }) {
 		return false, nil
 	}
 	registered, err := s.userIdentities.FindByUserAndSource(ctx, user.ID, identitySourceComanage)

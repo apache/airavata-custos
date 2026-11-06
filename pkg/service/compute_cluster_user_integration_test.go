@@ -91,11 +91,11 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 	}
 }
 
-// Make sure `provisioned_at` is stamped and the provision event published only the first time.
+// Make sure `provisioned_at` is stamped and storage requested only the first time.
 func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	svc.EventBus().SubscribeComputeClusterUserProvisioned("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	svc.EventBus().SubscribeComputeClusterUserStorageRequested("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
 	cu := newClusterUser(t, svc, database)
 
 	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
@@ -117,7 +117,7 @@ func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) 
 		t.Fatalf("provisioned_at moved from %v to %v", first.ProvisionedAt, again.ProvisionedAt)
 	}
 	if n := countDeliveries(t, svc); n != 1 {
-		t.Fatalf("expected one delivery of the provision event, got %d", n)
+		t.Fatalf("expected one storage request, got %d", n)
 	}
 }
 
@@ -125,20 +125,11 @@ func TestMarkComputeClusterUserProvisioned_OnlyTheFirstTimeCounts(t *testing.T) 
 func TestMarkComputeAllocationGroupProvisioned_OnlyTheFirstTimeCounts(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})
-	if err != nil {
-		t.Fatalf("create cluster: %v", err)
-	}
-	pi := seedUser(t, database, fmt.Sprintf("pi-%s@example.edu", uuid.NewString()))
-	project, err := svc.CreateProject(ctx(), &models.Project{Title: "grp", Origination: "TEST", ProjectPIID: pi, Status: models.ProjectActive})
-	if err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
-		Name: "Grant", ProjectID: project.ID, ComputeClusterID: cluster.ID, StartTime: time.Now(), EndTime: time.Now().AddDate(1, 0, 0),
-	})
-	if err != nil {
-		t.Fatalf("create allocation: %v", err)
+	f := newLifecycleFixture(t, svc, database, 1, models.ACTIVE)
+	alloc := f.alloc
+	// A group is provisioned only once it has a provisioned member.
+	if _, err := database.Exec(`UPDATE compute_cluster_users SET provisioned_at = now() WHERE id = $1`, f.users[0].ID); err != nil {
+		t.Fatalf("provision account: %v", err)
 	}
 	svc.EventBus().SubscribeComputeAllocationGroupProvisioned("test-subscriber", func(context.Context, models.ComputeAllocation) error { return nil })
 

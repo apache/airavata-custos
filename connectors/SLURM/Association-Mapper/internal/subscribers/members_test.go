@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
-	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -159,13 +158,6 @@ func coreMock(o mockOpts) *service.CoreServiceMock {
 		ListAllocationsForUserFunc: func(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 			return o.memberships, nil
 		},
-		ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
-			out := make([]store.MembershipWithUser, 0, len(o.memberships))
-			for _, m := range o.memberships {
-				out = append(out, store.MembershipWithUser{ComputeAllocationMembership: m})
-			}
-			return out, nil
-		},
 		CreateAuditEventFunc: func(ctx context.Context, event *models.AuditEvent) (*models.AuditEvent, error) {
 			return event, nil
 		},
@@ -180,7 +172,7 @@ func ago(d time.Duration) *time.Time {
 func testMembership() models.ComputeAllocationMembership {
 	return models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
-		MembershipStatus: models.ACTIVE,
+		MembershipStatus: models.ACTIVE, ReadyAt: ago(time.Minute),
 	}
 }
 
@@ -246,11 +238,11 @@ func TestMembershipCreationReturnsCoreError(t *testing.T) {
 	}
 }
 
-// An unprovisioned account must NOT get an association: slurmctld would cache
+// An account inside the provision grace must NOT get an association: slurmctld would cache
 // the failed uid lookup and reject the user's jobs. The reconciler picks it up,
 // so the handler returns no error.
 func TestMembershipCreationDefersWhenNotProvisioned(t *testing.T) {
-	core := coreMock(mockOpts{provisionedAt: nil})
+	core := coreMock(mockOpts{provisionedAt: ago(time.Second)})
 	slurm := &fakeSlurmClient{}
 	err := NewAssociationSubscriber(slurm, nil, core, 0, 0).
 		handleComputeAllocationMembershipCreated(context.Background(), testMembership())
@@ -443,18 +435,18 @@ func TestReconcilerSkipsUnprovisionedAndTooFreshAccounts(t *testing.T) {
 	}
 }
 
-func TestReconcilerSkipsInactiveMemberships(t *testing.T) {
-	inactive := testMembership()
-	inactive.MembershipStatus = models.INACTIVE
+func TestReconcilerSkipsUnreadyMemberships(t *testing.T) {
+	unready := testMembership()
+	unready.ReadyAt = nil
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
-		memberships:   []models.ComputeAllocationMembership{inactive},
+		memberships:   []models.ComputeAllocationMembership{unready},
 	})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
 	if n := len(slurm.all()); n != 0 {
-		t.Fatalf("expected no association for an inactive membership, got %d", n)
+		t.Fatalf("expected no association for an unready membership, got %d", n)
 	}
 }
 

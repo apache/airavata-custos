@@ -302,7 +302,7 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, tx
 			return active, false, err
 		}
 	}
-	created, err := h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
+	created, err := h.svc.CreateComputeAllocationMembershipTx(ctx, tx, &models.ComputeAllocationMembership{
 		ComputeAllocationID: allocation.ID,
 		UserID:              piID,
 		StartTime:           allocation.StartTime,

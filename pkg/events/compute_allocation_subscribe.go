@@ -26,18 +26,22 @@ import (
 // ComputeAllocationHandler handles compute allocation lifecycle events with a typed payload.
 type ComputeAllocationHandler func(ctx context.Context, allocation models.ComputeAllocation) error
 
-// SubscribeComputeAllocationCreated registers a typed handler invoked whenever a
-// compute_allocation::create event is published. Events with payloads that are
-// not a models.ComputeAllocation (or *models.ComputeAllocation) are dropped
-// with a warning log.
-func (b *Bus) SubscribeComputeAllocationCreated(subscriber string, handler ComputeAllocationHandler) {
-	subscribeTyped(b, subscriber, ComputeAllocationCreateEvent, handler)
+// SubscribeComputeAllocationSchedulerRequested registers a typed handler invoked whenever a
+// compute_allocation::scheduler_request event is published, which is when a new allocation needs its scheduler account.
+func (b *Bus) SubscribeComputeAllocationSchedulerRequested(subscriber string, handler ComputeAllocationHandler) {
+	subscribeTyped(b, subscriber, ComputeAllocationSchedulerRequestEvent, handler)
 }
 
 // SubscribeComputeAllocationUpdated registers a typed handler invoked whenever a
 // compute_allocation::update event is published.
 func (b *Bus) SubscribeComputeAllocationUpdated(subscriber string, handler ComputeAllocationHandler) {
 	subscribeTyped(b, subscriber, ComputeAllocationUpdateEvent, handler)
+}
+
+// SubscribeComputeAllocationGroupRequested registers a typed handler invoked whenever a
+// compute_allocation::group_request event is published, which is when the allocation's group members may have changed.
+func (b *Bus) SubscribeComputeAllocationGroupRequested(subscriber string, handler ComputeAllocationHandler) {
+	subscribeTyped(b, subscriber, ComputeAllocationGroupRequestEvent, handler)
 }
 
 // SubscribeComputeAllocationGroupProvisioned registers a typed handler invoked whenever a

@@ -29,13 +29,11 @@ Events apply each change as it happens. A periodic sweep applies any change an e
 
 | Event | Action |
 |---|---|
-| `compute_allocation::create` | Create the SLURM account, named after the allocation in lowercase, under its organization |
-| `compute_allocation::update` | Remove all members' associations when the allocation leaves `ACTIVE`, restore them when it returns |
+| `compute_allocation::scheduler_request` | Create the SLURM account, named after the allocation in lowercase, under its organization, then mark it done so members can become ready |
 | `compute_allocation::delete` | Remove all members' associations. The account stays, so its job history remains attributable. |
 | `compute_allocation_resource_mapping::create` | Set the account's `GrpTRES` and `GrpTRESMins` from the mapped resource amount and time |
-| `compute_allocation_membership::create` | Write the member's association |
-| `compute_allocation_membership::update` | Remove the association when the membership leaves `ACTIVE`, write it again when it returns |
-| `compute_allocation_membership::delete` | Remove the member's association on that allocation only |
+| `compute_allocation_membership::ready` | Write the member's association |
+| `compute_allocation_membership::deactivate` | Remove the member's association on that allocation only |
 | `compute_allocation_membership_resource_override::create` | Rewrite the member's association with limits from all of their overrides |
 
 An association uses QoS `normal` and no partition, so the cluster's partition settings decide where jobs run. Overrides
@@ -44,9 +42,7 @@ on two GPU resources become one GPU limit, their sum. CPU and GPU limits stay se
 Before writing an association, the connector makes `none` the user's default account. `none` runs no jobs, so each job
 must name the allocation it charges.
 
-An association needs the member's cluster account on the cluster. The membership event writes it only if the account is
-already provisioned, such as by the COmanage Identity-Provisioner. Otherwise the sweep writes it. An account never
-marked provisioned gets no association.
+Core publishes `ready` only once the member's account is provisioned, by an identity connector or else on approval.
 
 The sweep waits `association_provision_grace` after provisioning, until the account reaches the directory and the name
 cache. An association written earlier makes `slurmctld` cache a failed uid lookup and reject the user's jobs.
@@ -94,9 +90,9 @@ The event handlers write audit rows with `source=slurm`. The sweep writes none.
 
 | Entity | Event types |
 |---|---|
-| `compute_allocation` | `ComputeAllocationCreationSucceeded`, `ComputeAllocationCreationFailed`, `ComputeAllocationProvisioned`, `ComputeAllocationDeprovisioned`, `ComputeAllocationUpdateFailed`, `ComputeAllocationDeletionFailed` |
+| `compute_allocation` | `ComputeAllocationCreationSucceeded`, `ComputeAllocationCreationFailed`, `ComputeAllocationDeprovisioned`, `ComputeAllocationDeletionFailed` |
 | `compute_allocation_resource_mapping` | `ComputeAllocationResourceMappingCreationSucceeded`, `ComputeAllocationResourceMappingCreationFailed` |
-| `compute_allocation_membership` | `ComputeAllocationMembershipCreationSucceeded`, `ComputeAllocationMembershipCreationFailed`, `ComputeAllocationMembershipDeprovisioned`, `ComputeAllocationMembershipUpdateFailed`, `ComputeAllocationMembershipDeletionFailed` |
+| `compute_allocation_membership` | `ComputeAllocationMembershipCreationSucceeded`, `ComputeAllocationMembershipCreationFailed`, `ComputeAllocationMembershipDeprovisioned`, `ComputeAllocationMembershipUpdateFailed` |
 | `compute_allocation_membership_resource_override` | `ComputeAllocationMembershipResourceOverrideCreationSucceeded`, `ComputeAllocationMembershipResourceOverrideCreationFailed` |
 
 The [event bus](../../../docs/architecture.md#event-bus) retries failed handlers. A resource with an empty
@@ -107,7 +103,7 @@ The [event bus](../../../docs/architecture.md#event-bus) retries failed handlers
 | Symptom | Cause | Fix |
 |---|---|---|
 | A new member gets `Invalid account` right after being added | The association was written before the cluster could resolve the user | Raise `association_provision_grace` |
-| A member waits minutes for access | The event came before provisioning, so the sweep writes the association | Expected. Lower `association_reconcile_interval` to shorten the wait |
+| A member waits minutes for access | The sweep held the association back for `association_provision_grace` | Expected. Lower `association_reconcile_interval` to shorten the wait |
 | All calls return 401 | The JWT expired | Issue a new token with `scontrol token` |
 
 ## Development
