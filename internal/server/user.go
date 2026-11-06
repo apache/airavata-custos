@@ -165,7 +165,11 @@ func (s *Server) updatePendingUserEmail(w http.ResponseWriter, r *http.Request) 
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	u, err := s.svc.UpdatePendingUserEmail(r.Context(), r.PathValue("id"), req.Email)
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	u, err := s.svc.UpdatePendingUserEmail(r.Context(), caller.UserID, r.PathValue("id"), req.Email)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

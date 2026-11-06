@@ -543,11 +543,18 @@ func TestUpdatePendingUserEmail(t *testing.T) {
 	alias := "alias-" + uuid.NewString()[:8] + "@example.edu"
 
 	for _, user := range []string{active, bound} {
-		if _, err := svc.UpdatePendingUserEmail(ctx(), user, alias); !errors.Is(err, ErrInvalidInput) {
+		if _, err := svc.UpdatePendingUserEmail(ctx(), active, user, alias); !errors.Is(err, ErrInvalidInput) {
 			t.Errorf("user %s: got %v, want ErrInvalidInput", user, err)
 		}
 	}
-	if u, err := svc.UpdatePendingUserEmail(ctx(), pending, alias); err != nil || u.Email != alias {
+	if u, err := svc.UpdatePendingUserEmail(ctx(), active, pending, alias); err != nil || u.Email != alias {
 		t.Fatalf("pending user: got %+v, %v, want email %s", u, err, alias)
+	}
+	for user, want := range map[string][3]int{active: {1, 0, 1}, pending: {1, 1, 0}} {
+		for i, ev := range []string{userAuditEmailChangeRequested, userAuditEmailChanged, userAuditEmailChangeFailed} {
+			if got := countAuditEventsOfType(t, database, ev, user); got != want[i] {
+				t.Errorf("user %s audit %s: got %d, want %d", user, ev, got, want[i])
+			}
+		}
 	}
 }
