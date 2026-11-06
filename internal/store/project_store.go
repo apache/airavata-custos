@@ -89,7 +89,7 @@ func (s *pgProjectStore) FindByID(ctx context.Context, id string) (*models.Proje
 func (s *pgProjectStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.Project, error) {
 	var r models.Project
 	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
-		`SELECT `+projectColumns+` FROM projects WHERE id = $1 FOR UPDATE`, id)
+		`SELECT `+projectColumns+` FROM projects WHERE id = $1 `+string(NoKeyUpdateLock), id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
