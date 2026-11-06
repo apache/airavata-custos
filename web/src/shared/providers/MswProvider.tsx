@@ -19,6 +19,9 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 
+// StrictMode runs effects twice; overlapping worker.start() calls race and throw.
+let starting: Promise<unknown> | undefined;
+
 export function MswProvider({ children }: { children: ReactNode }) {
   const enabled = process.env.NEXT_PUBLIC_PORTAL_USE_MSW === "true";
   const [ready, setReady] = useState(!enabled);
@@ -26,15 +29,15 @@ export function MswProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    (async () => {
-      const { worker } = await import("@/mocks/browser");
-      await worker.start({
-        onUnhandledRequest: "bypass",
-        serviceWorker: { url: "/mockServiceWorker.js" },
-      });
-      if (!cancelled) setReady(true);
-    })().catch((err) => {
-      console.error("MSW worker failed to start", err);
+    starting ??= import("@/mocks/browser")
+      .then(({ worker }) =>
+        worker.start({
+          onUnhandledRequest: "bypass",
+          serviceWorker: { url: "/mockServiceWorker.js" },
+        }),
+      )
+      .catch((err) => console.error("MSW worker failed to start", err));
+    starting.then(() => {
       if (!cancelled) setReady(true);
     });
     return () => {
