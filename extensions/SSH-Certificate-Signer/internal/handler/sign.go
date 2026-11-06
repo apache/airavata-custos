@@ -183,7 +183,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	extensionsMap := cert.ExtensionsToMap(grantedExts)
 	grantedExtNames := cert.ExtensionNames(grantedExts)
 
-	valResult, err := h.principalValidator.ValidateForClient(r.Context(), clientID, req.Principal, identity.Subject, clientCfg.PrincipalSource)
+	valResult, err := h.principalValidator.ValidateForClient(r.Context(), clientID, req.Principal, identity.Subject)
 	if err != nil {
 		metrics.SignRequestsTotal.WithLabelValues(clientID, "error").Inc()
 		if valErr, ok := err.(*validation.ValidationError); ok {
