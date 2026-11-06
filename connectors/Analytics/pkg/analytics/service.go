@@ -50,11 +50,12 @@ type Allocation struct {
 }
 
 // ProjectContext is one project the caller belongs to, their role on it, and
-// its allocations.
+// its allocations. Role is null when the caller has no role on the project and
+// sees it because of core:allocations:read.
 type ProjectContext struct {
 	ProjectID   string       `json:"project_id"`
 	ProjectName string       `json:"project_name"`
-	Role        string       `json:"role"`
+	Role        *string      `json:"role"`
 	Allocations []Allocation `json:"allocations"`
 }
 
@@ -183,29 +184,13 @@ func (s *Service) AllocationJobsPage(ctx context.Context, allocationID, callerID
 }
 
 // AnalyticsContexts returns the projects the caller touches, each with the
-// caller's role and its allocations. Empty (not nil) when the caller belongs
-// to nothing.
-func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]ProjectContext, error) {
-	projRows, err := s.store.ProjectsForUser(ctx, userID)
+// caller's role and its allocations. readAll returns every project instead.
+// Empty (not nil) when there are none.
+func (s *Service) AnalyticsContexts(ctx context.Context, userID string, readAll bool) ([]ProjectContext, error) {
+	projRows, allocRows, err := s.contextRows(ctx, userID, readAll)
 	if err != nil {
 		return nil, err
 	}
-	if len(projRows) == 0 {
-		return []ProjectContext{}, nil
-	}
-	allocs, err := s.core.ListComputeAllocationsForParticipant(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	ids := make([]string, len(allocs))
-	for i, a := range allocs {
-		ids[i] = a.ID
-	}
-	allocRows, err := s.store.AllocationsByID(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-
 	byProject := make(map[string][]Allocation, len(projRows))
 	for _, a := range allocRows {
 		byProject[a.ProjectID] = append(byProject[a.ProjectID], Allocation{
@@ -221,9 +206,12 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 
 	out := make([]ProjectContext, 0, len(projRows))
 	for _, p := range projRows {
-		role := roleMember
+		var role *string
 		if p.Role.Valid && p.Role.String != "" {
-			role = p.Role.String
+			role = &p.Role.String
+		} else if !readAll {
+			member := roleMember
+			role = &member
 		}
 		allocs := byProject[p.ProjectID]
 		if allocs == nil {
@@ -237,6 +225,31 @@ func (s *Service) AnalyticsContexts(ctx context.Context, userID string) ([]Proje
 		})
 	}
 	return out, nil
+}
+
+func (s *Service) contextRows(ctx context.Context, userID string, readAll bool) ([]ProjectRow, []AllocationRow, error) {
+	if readAll {
+		projRows, err := s.store.AllProjects(ctx, userID)
+		if err != nil {
+			return nil, nil, err
+		}
+		allocRows, err := s.store.AllAllocations(ctx)
+		return projRows, allocRows, err
+	}
+	projRows, err := s.store.ProjectsForUser(ctx, userID)
+	if err != nil || len(projRows) == 0 {
+		return nil, nil, err
+	}
+	allocs, err := s.core.ListComputeAllocationsForParticipant(ctx, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	ids := make([]string, len(allocs))
+	for i, a := range allocs {
+		ids[i] = a.ID
+	}
+	allocRows, err := s.store.AllocationsByID(ctx, ids)
+	return projRows, allocRows, err
 }
 
 // AllocationUsageSummary aggregates one allocation's usage. includeMembers

@@ -95,8 +95,12 @@ type Store interface {
 	// ProjectsForUser returns the projects the user touches through a governance
 	// role or an active allocation membership. Role is null for a plain member.
 	ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error)
+	// AllProjects returns every project with the user's governance role, null when none.
+	AllProjects(ctx context.Context, userID string) ([]ProjectRow, error)
 	// AllocationsByID returns the given allocations with their consumed credits, oldest first.
 	AllocationsByID(ctx context.Context, ids []string) ([]AllocationRow, error)
+	// AllAllocations returns every allocation with its consumed credits, oldest first.
+	AllAllocations(ctx context.Context) ([]AllocationRow, error)
 	// TotalUsed returns the credits consumed against an allocation.
 	TotalUsed(ctx context.Context, allocationID string) (float64, error)
 	// DailyUsage returns per-day, per-resource credits for one allocation.
@@ -135,17 +139,31 @@ func (s *pgStore) ProjectsForUser(ctx context.Context, userID string) ([]Project
 	return rows, nil
 }
 
-func (s *pgStore) AllocationsByID(ctx context.Context, ids []string) ([]AllocationRow, error) {
-	if len(ids) == 0 {
-		return nil, nil
+func (s *pgStore) AllProjects(ctx context.Context, userID string) ([]ProjectRow, error) {
+	var rows []ProjectRow
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT p.id, p.title, r.role
+		   FROM projects p
+		   LEFT JOIN project_roles r ON r.project_id = p.id AND r.user_id = $1 AND r.compute_allocation_id IS NULL
+		  ORDER BY p.title`, userID)
+	if err != nil {
+		return nil, err
 	}
-	query, args, err := sqlx.In(
-		`SELECT ca.project_id, ca.id, ca.name, ca.status,
+	return rows, nil
+}
+
+const allocationsWithUsage = `SELECT ca.project_id, ca.id, ca.name, ca.status,
 		        ca.initial_su_amount, ca.start_time, ca.end_time,
 		        COALESCE(SUM(u.used_su_amount), 0) AS used_su_amount
 		   FROM compute_allocations ca
 		   LEFT JOIN compute_allocation_usages u
-		     ON u.compute_allocation_id = ca.id AND `+inAllocationPeriod+`
+		     ON u.compute_allocation_id = ca.id AND ` + inAllocationPeriod
+
+func (s *pgStore) AllocationsByID(ctx context.Context, ids []string) ([]AllocationRow, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query, args, err := sqlx.In(allocationsWithUsage+`
 		  WHERE ca.id IN (?)
 		  GROUP BY ca.id
 		  ORDER BY ca.start_time`, ids)
@@ -154,6 +172,16 @@ func (s *pgStore) AllocationsByID(ctx context.Context, ids []string) ([]Allocati
 	}
 	var rows []AllocationRow
 	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (s *pgStore) AllAllocations(ctx context.Context) ([]AllocationRow, error) {
+	var rows []AllocationRow
+	if err := s.db.SelectContext(ctx, &rows, allocationsWithUsage+`
+		  GROUP BY ca.id
+		  ORDER BY ca.start_time`); err != nil {
 		return nil, err
 	}
 	return rows, nil

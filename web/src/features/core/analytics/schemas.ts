@@ -21,8 +21,9 @@ import { z } from "zod";
 export const analyticsRoleSchema = z.enum(["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"]);
 export type AnalyticsRole = z.infer<typeof analyticsRoleSchema>;
 
+// role is null for a project the caller reads only through core:allocations:read.
 export const analyticsContextSchema = zProjectContext.extend({
-  role: analyticsRoleSchema,
+  role: analyticsRoleSchema.nullable(),
 });
 export type AnalyticsContext = z.infer<typeof analyticsContextSchema>;
 

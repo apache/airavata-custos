@@ -23,6 +23,7 @@ import { useAbility } from "./AbilityProvider";
 // control and a 403 never disagree.
 const PERMISSIONS = {
   projectsWrite: { action: "manage", subject: "Project", privilege: "core:projects:write" },
+  allocationsRead: { action: "read", subject: "Allocation", privilege: "core:allocations:read" },
   allocationsWrite: {
     action: "manage",
     subject: "Allocation",
@@ -39,6 +40,7 @@ export function usePermissions(): Record<Permission, boolean> {
   const can = (p: Permission) => ability.can(PERMISSIONS[p].action, PERMISSIONS[p].subject);
   return {
     projectsWrite: can("projectsWrite"),
+    allocationsRead: can("allocationsRead"),
     allocationsWrite: can("allocationsWrite"),
     usersRead: can("usersRead"),
     clustersRead: can("clustersRead"),
