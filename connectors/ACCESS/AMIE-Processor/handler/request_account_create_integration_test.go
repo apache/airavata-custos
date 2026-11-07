@@ -30,6 +30,8 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // baseRACBody returns a fully populated request_account_create body with
@@ -436,6 +438,44 @@ func TestRequestAccountCreate_ForThePI(t *testing.T) {
 	}
 	if got := countRows(t, database, "project_memberships"); got != 0 {
 		t.Errorf("project role rows: got %d, want 0", got)
+	}
+}
+
+// Make sure an account create links a user who already exists with the same email,
+// taking the ACCESS organization and name rather than failing with the duplicate entry error.
+func TestRequestAccountCreate_LinksExistingUserByEmail(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	svc := newTestCoreService(database)
+	ctx := tracingtest.Context()
+	body := baseRACBody()
+	body["ProjectID"] = projectID
+	org, err := svc.CreateOrganization(ctx, &models.Organization{Name: "Placeholder Org"})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	existing, err := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, FirstName: "Sammy", Email: body["UserEmail"].(string), Status: models.UserActive})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	pkt := insertPacket(t, database, "request_account_create", body)
+	h := NewRequestAccountCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database))
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle returned error: %v", err)
+	}
+
+	linked, err := svc.GetUserByUserIdentity(ctx, "access", "bl-user-001")
+	if err != nil || linked.ID != existing.ID {
+		t.Fatalf("access identity: got %+v, %v, want it on user %s", linked, err, existing.ID)
+	}
+	if linked.FirstName != "Sam" || linked.LastName != "Userman" || linked.OrganizationID == org.ID {
+		t.Errorf("user: got %+v, want the ACCESS name and organization", linked)
+	}
+	if got := countRows(t, database, "compute_allocation_memberships"); got != 2 {
+		t.Errorf("memberships: got %d, want 2 (PI and this user)", got)
 	}
 }
 
