@@ -56,7 +56,7 @@ vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,
-  useRemoveMember: () => mutation,
+  useToggleMember: () => mutation,
 }));
 vi.mock("@/features/core/projects/queries", () => ({
   useUpdateProjectMember: () => mutation,
@@ -81,16 +81,16 @@ const allocation: ComputeAllocation = {
 };
 
 describe("<AllocationMembersTab />", () => {
-  it("offers no Edit or Remove for PI or Co-PI members", () => {
+  it("offers no Edit or Deactivate for PI or Co-PI members", () => {
     render(
       <AllocationMembersTab allocation={allocation} canEditAccess canEditRoles canSearchUsers />,
     );
     for (const name of ["Paula Ivey", "Carl Osei"]) {
       expect(screen.queryByRole("button", { name: `Edit ${name}` })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: `Remove ${name}` })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: `Deactivate ${name}` })).not.toBeInTheDocument();
     }
     expect(screen.getByRole("button", { name: "Edit Mina Frey" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Deactivate Mina Frey" })).toBeInTheDocument();
   });
 
   it("disables each action whose privilege is missing", () => {
@@ -102,7 +102,7 @@ describe("<AllocationMembersTab />", () => {
         canSearchUsers
       />,
     );
-    expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Deactivate Mina Frey" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit Mina Frey" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "+ Add member" })).toBeDisabled();
   });
