@@ -174,7 +174,7 @@ event published while a connector is not loaded gets a delivery row and waits fo
 | Handler timeout | 2 minutes |
 | Retry backoff | 30 seconds, doubling up to 1 hour |
 | Attempts | 10 |
-| Fail without retry | The handler's error wraps `events.ErrPermanent` |
+| Fail without retry | The handler's error wraps `events.ErrPermanent`, or the loaded connector no longer handles the topic |
 
 Handlers must be safe to run more than once for the same event. The bus worker writes an `audit_events` row for each
 delivery attempt, under the event's trace. Four endpoints expose the bus:

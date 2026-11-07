@@ -400,7 +400,7 @@ published while your connector is not loaded, or before it loads at startup,
 gets a delivery row and waits. It is delivered once the connector is loaded
 again. Setting `enabled: false` in the config removes the subscription, so no
 new deliveries are written for a connector that was turned off on purpose.
-Removing a subscribe call from your code drops that subscription on the next start.
+Removing a subscribe call from your code drops that subscription on the next start and fails its pending deliveries.
 
 Every delivery attempt writes an `audit_events` row under the event's trace,
 with the subscriber as the source. Deliveries can be listed and a failed one

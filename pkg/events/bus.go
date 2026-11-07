@@ -198,7 +198,7 @@ func (b *Bus) subscribersOf(topic string) []string {
 }
 
 // handlerFor returns the subscriber's handler for a topic, or false if the
-// subscriber is not loaded.
+// subscriber has no handler for the topic.
 func (b *Bus) handlerFor(subscriber, topic string) (EventSubscriberFunc, bool) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
