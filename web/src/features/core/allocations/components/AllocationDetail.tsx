@@ -17,6 +17,7 @@
 
 "use client";
 
+import { useProject } from "@/features/core/projects/queries";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
 import { DeleteButton } from "@/shared/ui/ConfirmDialog";
@@ -43,6 +44,8 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const membersQuery = useAllocationMembers(allocationId);
   const remove = useDeleteAllocation();
   useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
+  const projectId = allocationQuery.data?.project_id;
+  useBreadcrumbLabel(projectId, useProject(projectId).data?.title);
 
   if (allocationQuery.isLoading) return <CardSkeleton />;
   if (allocationQuery.error) {

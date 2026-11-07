@@ -26,7 +26,6 @@ import {
   type LucideIcon,
   ScrollText,
   Send,
-  Server,
   UserCog,
 } from "lucide-react";
 
@@ -39,6 +38,7 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   group: NavGroup;
+  children?: Array<{ href: string; label: string; marker: string }>;
   ability?: AbilityCheck;
 };
 
@@ -51,16 +51,27 @@ export const portalNav: NavItem[] = [
   // No ability gates on this group: the backend scopes these reads to the
   // caller's own memberships.
   {
-    href: "/allocations",
-    label: "Allocations",
-    icon: Server,
-    group: "allocations",
-  },
-  {
     href: "/projects",
     label: "Projects",
     icon: FolderKanban,
     group: "allocations",
+    children: [
+      {
+        href: "/projects?origination=ACCESS",
+        label: "ACCESS",
+        marker: "marker:text-custos-blue-500",
+      },
+      {
+        href: "/projects?origination=NAIRR",
+        label: "NAIRR",
+        marker: "marker:text-custos-green-600",
+      },
+      {
+        href: "/projects?origination=internal",
+        label: "Internal",
+        marker: "marker:text-custos-amber-600",
+      },
+    ],
   },
   {
     href: "/analytics",

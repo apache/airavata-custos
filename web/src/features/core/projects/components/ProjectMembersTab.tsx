@@ -347,7 +347,7 @@ export function ProjectMembersTab({
               <TableHead className="w-48">Role</TableHead>
               {allocations.map((a) => (
                 <TableHead key={a.id} className="text-center">
-                  <Link href={`/allocations/${a.id}`} className="hover:underline">
+                  <Link href={`/projects/${a.project_id}/${a.id}`} className="hover:underline">
                     {a.name}
                   </Link>
                 </TableHead>

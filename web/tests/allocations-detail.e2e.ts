@@ -23,6 +23,7 @@ test.describe("allocation detail", () => {
   test("renders header and tabs", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/allocations/alloc-001");
+    await expect(page).toHaveURL(/\/projects\/project-001\/alloc-001$/);
     await expect(
       page.getByRole("heading", { name: /Genomic Sequencing - GPU Pool/i }),
     ).toBeVisible();
@@ -46,7 +47,7 @@ test.describe("allocation detail", () => {
 
   test("axe sweep on allocation detail", async ({ page }) => {
     await signInAs(page, "admin");
-    await page.goto("/allocations/alloc-001");
+    await page.goto("/projects/project-001/alloc-001");
     await expect(
       page.getByRole("heading", { name: /Genomic Sequencing - GPU Pool/i }),
     ).toBeVisible();

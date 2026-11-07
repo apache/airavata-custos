@@ -105,7 +105,7 @@ test.describe("baseline live walk", () => {
 
   test("allocations: 2 baseline allocations render", async ({ page }) => {
     await signInAdmin(page);
-    await goto(page, "/allocations");
+    await goto(page, "/projects");
     await expect(page.getByRole("link", { name: "BL-001" }).first()).toBeVisible({
       timeout: 15_000,
     });
@@ -114,9 +114,9 @@ test.describe("baseline live walk", () => {
 
   test("allocation detail: Overview shows BL-001 with ACTIVE status", async ({ page }) => {
     await signInAdmin(page);
-    await goto(page, "/allocations");
+    await goto(page, "/projects");
     await page.getByRole("link", { name: "BL-001" }).first().click();
-    await expect(page).toHaveURL(/\/allocations\/[a-f0-9-]+/);
+    await expect(page).toHaveURL(/\/projects\/[a-f0-9-]+\/[a-f0-9-]+/);
     await expect(page.getByRole("heading", { name: /BL-001/ })).toBeVisible();
     await expect(page.getByText(/ACTIVE/i).first()).toBeVisible();
   });
@@ -125,7 +125,7 @@ test.describe("baseline live walk", () => {
     page,
   }) => {
     await signInAdmin(page);
-    await goto(page, "/allocations");
+    await goto(page, "/projects");
     await page.getByRole("link", { name: "BL-001" }).first().click();
     await page.getByRole("tab", { name: /members/i }).click();
     // Baseline produces exactly one ACTIVE membership for the survivor (Pat).
@@ -137,7 +137,7 @@ test.describe("baseline live walk", () => {
     page,
   }) => {
     await signInAdmin(page);
-    await goto(page, "/allocations");
+    await goto(page, "/projects");
     await page.getByRole("link", { name: "BL-001" }).first().click();
     await page.getByRole("tab", { name: /change requests/i }).click();
     await expect(page.getByText(/1 request/i)).toBeVisible({ timeout: 15_000 });
@@ -146,7 +146,7 @@ test.describe("baseline live walk", () => {
 
   test("allocation usage tab: BL-001 has at least one usage row from seed", async ({ page }) => {
     await signInAdmin(page);
-    await goto(page, "/allocations");
+    await goto(page, "/projects");
     await page.getByRole("link", { name: "BL-001" }).first().click();
     await page.getByRole("tab", { name: /usage/i }).click();
     await expect(page.getByText(/No usage data/i)).toHaveCount(0, { timeout: 15_000 });

@@ -15,12 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { ProjectStatus } from "@/generated/core/zod.gen";
-import { StatusIcon } from "@/shared/ui/StatusIcon";
-import { FolderKanban } from "lucide-react";
+import { AllocationDetail } from "@/features/core/allocations/components/AllocationDetail";
 
-export function ProjectStatusIcon({ status }: { status: ProjectStatus }) {
-  return (
-    <StatusIcon icon={FolderKanban} active={status === "ACTIVE"} label={status.toLowerCase()} />
-  );
+export default async function AllocationDetailPage(props: {
+  params: Promise<{ allocationId: string }>;
+}) {
+  const { allocationId } = await props.params;
+  return <AllocationDetail allocationId={allocationId} />;
 }

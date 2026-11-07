@@ -20,6 +20,7 @@
 import { cn } from "@/lib/utils";
 import { brand } from "@/shared/brand";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { useShallowSearchParams } from "@/shared/hooks/useShallowSearchParams";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_GROUP_LABELS, type NavGroup, type NavItem, portalNav } from "./nav";
@@ -72,7 +73,7 @@ function isActive(pathname: string, href: string): boolean {
 
 function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
-  return (
+  const link = (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
@@ -87,5 +88,44 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
       <span className="truncate">{item.label}</span>
       {active && <span className="absolute top-2 right-0 bottom-2 w-1 rounded-l-full bg-brand" />}
     </Link>
+  );
+  if (!item.children) return link;
+  return (
+    <>
+      {link}
+      <SidebarChildren items={item.children} />
+    </>
+  );
+}
+
+// Sub-links that narrow their parent by query; a child is active while the URL carries its query.
+function SidebarChildren({ items }: { items: NonNullable<NavItem["children"]> }) {
+  const pathname = usePathname();
+  const params = useShallowSearchParams();
+  return (
+    <ul className="mb-1 ml-[2.125rem] list-disc pl-6">
+      {items.map((child) => {
+        const [path, query] = child.href.split("?");
+        const active =
+          pathname === path &&
+          [...new URLSearchParams(query)].every(([key, value]) => params.get(key) === value);
+        return (
+          <li key={child.href} className={child.marker}>
+            <Link
+              href={child.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "block py-1 text-sm",
+                active
+                  ? "font-semibold text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {child.label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

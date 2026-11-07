@@ -63,6 +63,7 @@ export function ProjectsListContainer() {
       search={search}
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
+      origination={searchParams.get("origination")}
       onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
       headerCta={
         <>

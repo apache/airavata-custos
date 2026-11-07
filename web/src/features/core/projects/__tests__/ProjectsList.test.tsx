@@ -20,7 +20,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectsList } from "../components/ProjectsList";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("../components/ProjectCard", () => ({
+  ProjectCard: ({ project }: { project: ProjectResponse }) => (
+    <a href={`/projects/${project.id}`}>{project.title}</a>
+  ),
+}));
 
 const project: ProjectResponse = {
   id: "project-001",
@@ -41,6 +45,7 @@ function renderList(overrides: Partial<React.ComponentProps<typeof ProjectsList>
     search: "",
     onSearchChange: vi.fn(),
     statusFilter: "all" as const,
+    origination: null,
     onStatusFilterChange: vi.fn(),
     ...overrides,
   };
@@ -69,6 +74,18 @@ describe("<ProjectsList />", () => {
     renderList({ rows: [project, inactive], statusFilter: "INACTIVE" });
     expect(screen.queryByRole("link", { name: project.title })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: inactive.title })).toBeInTheDocument();
+  });
+
+  it("filters by origination, ignoring case", () => {
+    const nairr: ProjectResponse = {
+      ...project,
+      id: "project-003",
+      title: "NAIRR Project",
+      origination: "NAIRR",
+    };
+    renderList({ rows: [project, nairr], origination: "nairr" });
+    expect(screen.queryByRole("link", { name: project.title })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: nairr.title })).toBeInTheDocument();
   });
 
   it("surfaces an error state with a retry callback", () => {

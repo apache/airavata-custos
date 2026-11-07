@@ -37,13 +37,12 @@ function readCurrent(): URLSearchParams {
  * shallow setter via a custom event.
  */
 export function useShallowSearchParams(): URLSearchParams {
-  const nextParams = useNextSearchParams();
-  const [params, setParams] = React.useState<URLSearchParams>(
-    () => new URLSearchParams(nextParams?.toString() ?? ""),
-  );
+  const nextQuery = useNextSearchParams()?.toString() ?? "";
+  const [params, setParams] = React.useState<URLSearchParams>(() => new URLSearchParams(nextQuery));
+  // Next navigations, such as a Link to the same page with another query, bypass the shallow event.
+  React.useEffect(() => setParams(new URLSearchParams(nextQuery)), [nextQuery]);
   React.useEffect(() => {
     const sync = () => setParams(readCurrent());
-    sync();
     window.addEventListener(SHALLOW_EVENT, sync);
     window.addEventListener("popstate", sync);
     return () => {
