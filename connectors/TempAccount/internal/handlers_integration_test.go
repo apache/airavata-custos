@@ -57,8 +57,8 @@ func TestHandlers_UpdateAllocationKeepsVirtualUser(t *testing.T) {
 	}
 }
 
-// Make sure removing a temp account keeps the user INACTIVE and deletes its cluster account.
-func TestHandlers_RemoveKeepsUserAndDeletesClusterAccounts(t *testing.T) {
+// Make sure removing a temp account keeps the user INACTIVE, deactivates its approved account and deletes its pending one.
+func TestHandlers_RemoveDeactivatesApprovedAndDeletesPending(t *testing.T) {
 	database := dbtest.Open(t, dbtest.CoreDSN(t))
 	ctx := tracingtest.Context()
 	bus, err := events.New(ctx, database)
@@ -71,6 +71,9 @@ func TestHandlers_RemoveKeepsUserAndDeletesClusterAccounts(t *testing.T) {
 	cluster, _ := svc.CreateComputeCluster(ctx, &models.ComputeCluster{Name: uuid.NewString()})
 	virtual, _ := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, Email: uuid.NewString() + "@example.edu", Type: models.UserTypeVirtual})
 	account, _ := svc.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: virtual.ID, LocalUsername: "temp-" + uuid.NewString()[:8]})
+	other, _ := svc.CreateComputeCluster(ctx, &models.ComputeCluster{Name: uuid.NewString()})
+	approved, _ := svc.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{ComputeClusterID: other.ID, UserID: virtual.ID, LocalUsername: "temp-" + uuid.NewString()[:8],
+		ApprovalStatus: models.ClusterAccountApproved, ReviewedBy: &virtual.ID})
 
 	req := httptest.NewRequestWithContext(ctx, http.MethodDelete, "/", nil)
 	req.SetPathValue("user_id", virtual.ID)
@@ -83,8 +86,8 @@ func TestHandlers_RemoveKeepsUserAndDeletesClusterAccounts(t *testing.T) {
 	if u, err := svc.GetUser(ctx, virtual.ID); err != nil || u.Status != models.UserInactive {
 		t.Fatalf("user: got %+v, %v, want INACTIVE", u, err)
 	}
-	if accounts, _ := svc.ListComputeClusterUsersByUser(ctx, virtual.ID); len(accounts) != 0 {
-		t.Fatalf("cluster accounts left: %+v", accounts)
+	if accounts, _ := svc.ListComputeClusterUsersByUser(ctx, virtual.ID); len(accounts) != 1 || accounts[0].ID != approved.ID || accounts[0].Status != models.INACTIVE {
+		t.Fatalf("cluster accounts left: %+v, want only the approved one, INACTIVE", accounts)
 	}
 	var deletes int
 	if err := database.Get(&deletes, "SELECT COUNT(*) FROM events WHERE event_type = $1 AND payload->>'id' = $2", events.ComputeClusterUserDeleteEvent, account.ID); err != nil || deletes != 1 {

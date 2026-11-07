@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -108,6 +109,33 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	if err := func() error {
 		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user identities: %w", err)
+		}
+		// The survivor's inactive account, and its memberships the retiring user also holds, yield to the retiring user's active account.
+		for _, cu := range survivorAccounts {
+			if cu.Status == models.INACTIVE && slices.ContainsFunc(retiringAccounts, func(r models.ComputeClusterUser) bool {
+				return r.ComputeClusterID == cu.ComputeClusterID && r.Status == models.ACTIVE
+			}) {
+				delete(survivorClusters, cu.ComputeClusterID)
+				if err := s.clusterUsers.Delete(ctx, tx, cu.ID); err != nil {
+					return err
+				}
+				if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
+					return err
+				}
+				ours, err := s.memberships.FindByUserOnClusterTx(ctx, tx, survivingID, cu.ComputeClusterID)
+				if err != nil {
+					return err
+				}
+				for _, m := range ours {
+					if theirs, err := s.memberships.FindByPair(ctx, m.ComputeAllocationID, retiringID); err != nil {
+						return err
+					} else if theirs != nil {
+						if err := s.memberships.Delete(ctx, tx, m.ID); err != nil {
+							return err
+						}
+					}
+				}
+			}
 		}
 		if err := s.clusterUsers.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign compute cluster users: %w", err)

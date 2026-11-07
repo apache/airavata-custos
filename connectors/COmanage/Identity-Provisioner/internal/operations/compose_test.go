@@ -284,6 +284,19 @@ func TestRemoveLogin_LeavesAnotherPersonUntouched(t *testing.T) {
 	}
 }
 
+// Make sure suspending touches only the status of the named account, and only once.
+func TestSuspendAccount_SuspendsOnlyTheNamedAccount(t *testing.T) {
+	person := `{"CoPerson":{"co_id":2},"UnixClusterAccount":[{"username":"jdoe","status":"A"},{"username":"asmith","status":"A"}]}`
+	want := `{"CoPerson":{"co_id":2},"UnixClusterAccount":[{"username":"jdoe","status":"S"},{"username":"asmith","status":"A"}]}`
+	got, changed, err := suspendAccount(json.RawMessage(person), "jdoe")
+	if err != nil || !changed || !sameJSON(t, got, json.RawMessage(want)) {
+		t.Fatalf("suspend: changed=%v err=%v body=%s", changed, err, got)
+	}
+	if _, changed, _ := suspendAccount(got, "jdoe"); changed {
+		t.Fatal("a suspended account was suspended again")
+	}
+}
+
 // A person whose sub changes must end with one oidcsub, not two.
 func TestMergeIdentifier_ReplacesSameType(t *testing.T) {
 	person := `{"CoPerson":{"co_id":2},"Identifier":[{"identifier":"old-sub","type":"oidcsub","login":true,"status":"A"}]}`

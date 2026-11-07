@@ -24,11 +24,12 @@ import { Button } from "@/shared/ui/button";
 import { HardDrive } from "lucide-react";
 
 export function clusterAccountStatus(
-  row: Pick<ClusterAccountResponse, "approval_status" | "provisioned_at">,
+  row: Pick<ClusterAccountResponse, "approval_status" | "provisioned_at" | "status">,
 ): {
   variant: StatusBadgeVariant;
   label: string;
 } {
+  if (row.status === "INACTIVE") return { variant: "inactive", label: "Inactive" };
   if (row.approval_status === "DENIED") return { variant: "rejected", label: "Denied" };
   if (row.approval_status === "APPROVED") {
     return row.provisioned_at

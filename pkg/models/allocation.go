@@ -62,6 +62,12 @@ type ComputeClusterUser struct {
 	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
 	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
+	Status           AllocationStatus       `json:"status"             db:"status"`
+}
+
+// HoldsAccess reports whether the account is approved and active.
+func (c ComputeClusterUser) HoldsAccess() bool {
+	return c.Status == ACTIVE && c.ApprovalStatus == ClusterAccountApproved
 }
 
 type ComputeAllocation struct {

@@ -220,7 +220,21 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
+		if err := s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing); err != nil || status != models.UserInactive {
+			return err
+		}
+		accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		for _, cu := range accounts {
+			if cu.HoldsAccess() {
+				if err := s.deactivateComputeClusterUserTx(ctx, tx, &cu); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}

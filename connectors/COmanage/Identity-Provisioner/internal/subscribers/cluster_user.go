@@ -48,6 +48,7 @@ type Subscriber struct {
 type provisioner interface {
 	EnsureClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
 	RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
+	SuspendClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
 	EnsureClusterAdminMembership(ctx context.Context, cu *models.ComputeClusterUser) error
 	EnsureAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
 	RemoveAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
@@ -68,6 +69,7 @@ func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	// Whichever of the `approve event` and the `onboarded event` comes second starts it.
 	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
+	s.bus.SubscribeComputeClusterUserDeactivated(subscriber, s.handleClusterUserDeactivated)
 	s.bus.SubscribeUserOnboarded(subscriber, s.handleUserOnboarded)
 
 	s.bus.SubscribeComputeAllocationCreated(subscriber, s.handleComputeAllocationChanged)
@@ -76,6 +78,23 @@ func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationMembershipCreated(subscriber, s.handleMembershipChanged)
 	s.bus.SubscribeComputeAllocationMembershipUpdated(subscriber, s.handleMembershipChanged)
 	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
+}
+
+// handleClusterUserDeactivated suspends the account in the registry, unless a retry finds it reopened.
+func (s *Subscriber) handleClusterUserDeactivated(ctx context.Context, req models.ComputeClusterUser) error {
+	if req.ComputeClusterID != s.custosClusterID {
+		return nil
+	}
+	cu, err := s.core.GetComputeClusterUser(ctx, req.ID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil || cu.HoldsAccess() {
+		return err
+	}
+	ctx, span := tracing.Start(audit.WithSource(ctx, "comanage"), "comanage.cluster_user_deactivated")
+	defer span.End()
+	return s.ops.SuspendClusterAccount(ctx, cu)
 }
 
 // handleClusterUserDeleted removes the account from the registry.
@@ -113,6 +132,9 @@ func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) 
 		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", user.ID, "err", err)
 		return err
 	}
+	if !cu.HoldsAccess() {
+		return nil
+	}
 	if err := s.ops.EnsureClusterAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -137,6 +159,15 @@ func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.Co
 	if cu.ComputeClusterID != s.custosClusterID {
 		return nil
 	}
+	// A retry re-reads the account, so one deactivated since the approval is not provisioned.
+	row, err := s.core.GetComputeClusterUser(ctx, cu.ID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil || !row.HoldsAccess() {
+		return err
+	}
+	cu = *row
 	span.SetAttributes(
 		attribute.String("comanage.cluster_user_id", cu.ID),
 		attribute.String("comanage.user_id", cu.UserID),
