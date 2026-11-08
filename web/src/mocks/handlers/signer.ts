@@ -53,29 +53,29 @@ function paginatedCertificates(): Certificate[] {
 }
 
 export const signerHandlers = [
-  http.get("*/api/v1/signer/admin/certificates", ({ request }) => {
+  // The mock cursor is the index of the next row.
+  http.get("*/api/v1/connectors/signer/certificates", ({ request }) => {
     const url = new URL(request.url);
     const scenario = signerScenario();
     const source = scenario === "empty" ? [] : scenario === "paginated" ? paginatedCertificates() : certificates;
     const limit = Number(url.searchParams.get("limit") ?? source.length);
-    const offset = Number(url.searchParams.get("offset") ?? 0);
-    const items = source.slice(offset, offset + limit);
+    const start = Number(url.searchParams.get("cursor") ?? 0);
+    const end = start + limit;
     return HttpResponse.json({
-      certificates: items,
-      total: source.length,
+      certificates: source.slice(start, end),
       limit,
-      offset,
+      ...(end < source.length ? { next_cursor: String(end) } : {}),
     });
   }),
 
-  http.get("*/api/v1/signer/admin/certificates/:serial", ({ params }) => {
+  http.get("*/api/v1/connectors/signer/certificates/:serial", ({ params }) => {
     const serial = Number(params["serial"]);
     const found = certificates.find((c) => c.serial_number === serial);
     if (!found) return HttpResponse.json({ error: "certificate not found" }, { status: 404 });
     return HttpResponse.json(found);
   }),
 
-  http.post("*/api/v1/signer/admin/certificates/:serial/revoke", async ({ params, request }) => {
+  http.post("*/api/v1/connectors/signer/certificates/:serial/revoke", async ({ params, request }) => {
     const scenario = signerScenario();
     if (scenario === "forbidden") {
       return HttpResponse.json(

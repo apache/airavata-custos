@@ -32,10 +32,8 @@ describe("signer schemas", () => {
     expect(certificateSchema.parse(certificate)).toEqual(certificate);
   });
 
-  it("accepts a paginated certificate list", () => {
-    expect(
-      certificateListSchema.parse({ certificates: [certificate], total: 21, limit: 20, offset: 0 }),
-    ).toMatchObject({ total: 21, limit: 20, offset: 0 });
+  it("accepts a last page with no next cursor", () => {
+    expect(certificateListSchema.parse({ certificates: [], limit: 20 }).next_cursor).toBeUndefined();
   });
 
   it("accepts an idempotent revoke response", () => {
@@ -56,7 +54,7 @@ describe("signer schemas", () => {
     ["certificate", { ...certificate, serial_number: "42" }, certificateSchema],
     [
       "list",
-      { certificates: [certificate], total: -1, limit: 20, offset: 0 },
+      { certificates: [certificate], limit: 20, next_cursor: 7 },
       certificateListSchema,
     ],
     [

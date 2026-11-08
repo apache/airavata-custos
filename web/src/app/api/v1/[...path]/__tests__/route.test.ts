@@ -24,7 +24,6 @@ import { pickBackendBearer } from "@/shared/auth/session";
 vi.mock("@/lib/env", () => ({
   serverEnv: {
     CUSTOS_CORE_API_BASE_URL: "https://core.example.org",
-    CUSTOS_SIGNER_API_BASE_URL: "https://signer.example.org",
   },
 }));
 
@@ -58,27 +57,27 @@ describe("responseBodyForStatus", () => {
 });
 
 describe("api v1 proxy route", () => {
-  it("routes the signer namespace to the signer API without changing Core routing", async () => {
+  it("forwards the path, query, bearer and trace id to core", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ certificates: [] }), {
         status: 200,
-        headers: { "content-type": "application/json", "x-trace-id": "trace-signer-1" },
+        headers: { "content-type": "application/json", "x-trace-id": "trace-1" },
       }),
     );
 
     const response = await GET(
-      new NextRequest("http://localhost:3000/api/v1/signer/admin/certificates?limit=20"),
-      { params: Promise.resolve({ path: ["signer", "admin", "certificates"] }) },
+      new NextRequest("http://localhost:3000/api/v1/connectors/signer/certificates?limit=20"),
+      { params: Promise.resolve({ path: ["connectors", "signer", "certificates"] }) },
     );
 
     expect(response.status).toBe(200);
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(String(url)).toBe("https://signer.example.org/api/v1/admin/certificates?limit=20");
+    expect(String(url)).toBe("https://core.example.org/connectors/signer/certificates?limit=20");
     expect(new Headers(init?.headers).get("authorization")).toBe("Bearer access-token-abc");
-    expect(response.headers.get("x-trace-id")).toBe("trace-signer-1");
+    expect(response.headers.get("x-trace-id")).toBe("trace-1");
   });
 
-  it("forwards signer request bodies and query parameters", async () => {
+  it("forwards request bodies and content type", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -87,18 +86,16 @@ describe("api v1 proxy route", () => {
     );
 
     await POST(
-      new NextRequest("http://localhost:3000/api/v1/signer/admin/certificates/42/revoke?audit=true", {
+      new NextRequest("http://localhost:3000/api/v1/connectors/signer/certificates/42/revoke", {
         method: "POST",
         body: JSON.stringify({ reason: "compromised" }),
         headers: { "content-type": "application/json", accept: "application/json" },
       }),
-      { params: Promise.resolve({ path: ["signer", "admin", "certificates", "42", "revoke"] }) },
+      { params: Promise.resolve({ path: ["connectors", "signer", "certificates", "42", "revoke"] }) },
     );
 
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(String(url)).toBe(
-      "https://signer.example.org/api/v1/admin/certificates/42/revoke?audit=true",
-    );
+    expect(String(url)).toBe("https://core.example.org/connectors/signer/certificates/42/revoke");
     expect(init?.body).toBe(JSON.stringify({ reason: "compromised" }));
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
   });
@@ -126,8 +123,8 @@ describe("api v1 proxy route", () => {
     vi.mocked(pickBackendBearer).mockReturnValueOnce(null);
 
     const response = await GET(
-      new NextRequest("http://localhost:3000/api/v1/signer/admin/certificates"),
-      { params: Promise.resolve({ path: ["signer", "admin", "certificates"] }) },
+      new NextRequest("http://localhost:3000/api/v1/roles/role-1/privileges"),
+      ctx,
     );
 
     expect(response.status).toBe(401);
@@ -138,13 +135,13 @@ describe("api v1 proxy route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns a sanitized 503 when the selected upstream is unavailable", async () => {
+  it("returns a sanitized 503 when core is unavailable", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     fetchMock.mockRejectedValueOnce(new TypeError("fetch failed for secret upstream URL"));
 
     const response = await GET(
-      new NextRequest("http://localhost:3000/api/v1/signer/admin/certificates?limit=20"),
-      { params: Promise.resolve({ path: ["signer", "admin", "certificates"] }) },
+      new NextRequest("http://localhost:3000/api/v1/roles/role-1/privileges?limit=20"),
+      ctx,
     );
 
     expect(response.status).toBe(503);
@@ -153,33 +150,11 @@ describe("api v1 proxy route", () => {
       message: "Backend service is unavailable",
     });
     expect(consoleError).toHaveBeenCalledWith("API proxy upstream unavailable", {
-      service: "signer",
       method: "GET",
-      path: "/api/v1/admin/certificates",
+      path: "/roles/role-1/privileges",
     });
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("access-token-abc");
-    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("signer.example.org");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("core.example.org");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret upstream URL");
-  });
-
-  it("fails explicitly if a hermetic signer E2E request reaches the proxy", async () => {
-    vi.stubEnv("CUSTOS_E2E_FAIL_ON_SIGNER_PROXY_REQUEST", "true");
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
-    const response = await GET(
-      new NextRequest("http://localhost:3000/api/v1/signer/admin/certificates"),
-      { params: Promise.resolve({ path: ["signer", "admin", "certificates"] }) },
-    );
-
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      code: "unexpected_signer_proxy_request",
-      message: "Signer E2E request escaped its Playwright route",
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith(
-      "Unexpected signer proxy request during hermetic E2E",
-      { method: "GET", path: "/api/v1/signer/admin/certificates" },
-    );
   });
 });

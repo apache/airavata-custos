@@ -19,13 +19,15 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { DataTable, type DataTableColumn, type DataTablePagination } from "@/shared/ui/DataTable";
+import { Button } from "@/shared/ui/button";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import type { Certificate } from "../schemas";
+import type { CertificateListPaging } from "../types";
 import {
   CERTIFICATE_STATUS_LABELS,
   type CertificateStatus,
@@ -43,7 +45,7 @@ export type CertificateListProps = {
   onSearchChange: (next: string) => void;
   statusFilter: CertificateStatus | "all";
   onStatusFilterChange: (next: CertificateStatus | "all") => void;
-  pagination?: DataTablePagination;
+  paging?: CertificateListPaging;
 };
 
 export function CertificateList({
@@ -55,10 +57,8 @@ export function CertificateList({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  pagination,
+  paging,
 }: CertificateListProps) {
-  // Status/search narrow only the current server page; the signer API paginates
-  // by limit/offset and has no status filter, so deeper filtering is client-side.
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -160,25 +160,50 @@ export function CertificateList({
         <ErrorState message={error.message} onRetry={onRetry} />
       ) : filtered.length === 0 ? (
         <EmptyState
-          heading={
-            (pagination?.total ?? rows.length) === 0
-              ? "No certificates yet"
-              : "No matches on this page"
-          }
+          heading={rows.length === 0 ? "No certificates yet" : "No matches on this page"}
           description={
-            (pagination?.total ?? rows.length) === 0
+            rows.length === 0
               ? "The signer has not issued any certificates."
               : "No certificates on the loaded page match the current filters."
           }
         />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={filtered}
-          rowKey={(row) => String(row.serial_number)}
-          {...(pagination !== undefined ? { pagination } : {})}
-        />
+        <DataTable columns={columns} rows={filtered} rowKey={(row) => String(row.serial_number)} />
       )}
+      {paging && !isLoading && (error || rows.length > 0) && <CursorPager {...paging} />}
+    </div>
+  );
+}
+
+// The DataTable pager needs a total. The signer sends none, so this one only goes forward and back.
+function CursorPager({ page, pageSize, hasNext, onPrevious, onNext, onPageSizeChange }: CertificateListPaging) {
+  return (
+    <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <label className="flex items-center gap-2">
+        <span>Rows per page</span>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+        >
+          {[10, 20, 50, 100].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={onPrevious} disabled={page <= 1}>
+          Previous
+        </Button>
+        <span aria-current="page" className="font-medium text-foreground">
+          Page {page}
+        </span>
+        <Button variant="outline" size="sm" onClick={onNext} disabled={!hasNext}>
+          Next
+        </Button>
+      </div>
     </div>
   );
 }

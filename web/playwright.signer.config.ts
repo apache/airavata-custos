@@ -50,7 +50,6 @@ export default defineConfig({
     env: {
       PORT: String(port),
       NEXT_PUBLIC_PORTAL_USE_MSW: "false",
-      CUSTOS_E2E_FAIL_ON_SIGNER_PROXY_REQUEST: "true",
       NEXTAUTH_SECRET: sharedSecret,
       NEXTAUTH_URL: baseURL,
       OIDC_ISSUER_URL: "http://localhost:8081/realms/custos",

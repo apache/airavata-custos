@@ -45,17 +45,17 @@ const certificate = {
 };
 
 describe("listCertificates", () => {
-  it("round-trips pagination and returns the envelope", async () => {
+  it("sends the cursor and returns the next one", async () => {
     fetchMock.mockResolvedValueOnce(
-      mockResponse(200, { certificates: [certificate], total: 1, limit: 20, offset: 0 }),
+      mockResponse(200, { certificates: [certificate], limit: 20, next_cursor: "c2" }),
     );
-    const result = await listCertificates({ limit: 20, offset: 0 });
-    expect(result.total).toBe(1);
+    const result = await listCertificates({ limit: 20, cursor: "c1" });
+    expect(result.next_cursor).toBe("c2");
     expect(result.certificates).toHaveLength(1);
     const url = fetchMock.mock.calls[0]?.[0] as string;
-    expect(url).toContain("/api/v1/signer/admin/certificates");
+    expect(url).toContain("/api/v1/connectors/signer/certificates");
     expect(url).toContain("limit=20");
-    expect(url).toContain("offset=0");
+    expect(url).toContain("cursor=c1");
   });
 });
 
@@ -64,7 +64,7 @@ describe("getCertificate", () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, certificate));
     const out = await getCertificate(42);
     expect(out.serial_number).toBe(42);
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/signer/admin/certificates/42");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/connectors/signer/certificates/42");
   });
 });
 
@@ -85,7 +85,7 @@ describe("revokeCertificate", () => {
     expect(out.reason).toBe("compromised");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toContain("/api/v1/signer/admin/certificates/42/revoke");
+    expect(url).toContain("/api/v1/connectors/signer/certificates/42/revoke");
     expect(init?.method).toBe("POST");
     const sent = JSON.parse(String(init?.body));
     expect(sent).toEqual({ reason: "compromised" });
