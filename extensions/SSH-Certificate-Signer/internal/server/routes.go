@@ -31,7 +31,6 @@ type Handlers struct {
 	JWKS              http.HandlerFunc
 	CAPublicKey       http.HandlerFunc
 	Health            http.HandlerFunc
-	Admin             http.HandlerFunc
 	Certificates      http.HandlerFunc
 	CertificateDetail http.HandlerFunc
 	CertificateRevoke http.HandlerFunc
@@ -72,7 +71,6 @@ func NewRouter(
 		r.Post("/api/v1/revoke", handlers.Revoke)
 		r.Get("/api/v1/jwks", handlers.JWKS)
 		r.Get("/api/v1/ca-public-key", handlers.CAPublicKey)
-		r.Post("/api/v1/admin/rotate-ca", handlers.Admin)
 	})
 
 	// User-authenticated routes (OIDC Bearer token)

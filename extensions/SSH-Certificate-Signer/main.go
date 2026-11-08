@@ -129,6 +129,11 @@ func runMigrate(cfg *config.Config, logger *slog.Logger) {
 }
 
 func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
+	if err := cfg.Validate(); err != nil {
+		logger.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	db, err := store.NewDB(cfg.Database)
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
@@ -179,7 +184,6 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 	jwksHandler := handler.NewJWKSHandler(vaultClient, logger)
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
 	healthHandler := handler.NewHealthHandler(db, vaultClient)
-	adminHandler := handler.NewAdminHandler(vaultClient, logger)
 	certificatesHandler := handler.NewCertificatesHandler(db, logger).WithRevocation(coreAuthorizer, revocationService)
 	userInfoHandler := handler.NewUserInfoHandler()
 
@@ -189,7 +193,6 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		JWKS:              jwksHandler.Handle,
 		CAPublicKey:       caPublicKeyHandler.Handle,
 		Health:            healthHandler.Handle,
-		Admin:             adminHandler.Handle,
 		Certificates:      certificatesHandler.HandleList,
 		CertificateDetail: certificatesHandler.HandleGet,
 		CertificateRevoke: certificatesHandler.HandleRevoke,
