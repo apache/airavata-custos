@@ -17,6 +17,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -205,6 +206,14 @@ func Load(path string) (*Config, error) {
 
 	applyEnvOverrides(cfg)
 	return cfg, nil
+}
+
+// Validate refuses the noop principal validator outside dev mode.
+func (c *Config) Validate() error {
+	if v := c.Signer.Validation.PrincipalValidator; (v == "" || v == "noop") && !c.DevMode.Enabled {
+		return fmt.Errorf("principal_validator %q is allowed only in dev mode", v)
+	}
+	return nil
 }
 
 func applyEnvOverrides(cfg *Config) {

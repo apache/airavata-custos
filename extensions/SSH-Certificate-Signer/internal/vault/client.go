@@ -162,63 +162,6 @@ func (c *Client) IncrementSerialCounter(ctx context.Context) (int64, error) {
 	return newSerial, nil
 }
 
-// RotateCA promotes next to current and generates a new next key.
-func (c *Client) RotateCA(ctx context.Context) (currentFP, nextFP string, err error) {
-	nextKey, err := c.readCAKey(ctx, "next")
-	if err != nil {
-		return "", "", err
-	}
-
-	if nextKey != nil {
-		// Promote next to current
-		if err := c.writeCAKey(ctx, "current", nextKey); err != nil {
-			return "", "", err
-		}
-	} else {
-		// Generate fresh current
-		newCurrent, err := generateEd25519CAKey()
-		if err != nil {
-			return "", "", err
-		}
-		if err := c.writeCAKey(ctx, "current", newCurrent); err != nil {
-			return "", "", err
-		}
-	}
-
-	// Generate new next key
-	newNext, err := generateEd25519CAKey()
-	if err != nil {
-		return "", "", err
-	}
-	if err := c.writeCAKey(ctx, "next", newNext); err != nil {
-		return "", "", err
-	}
-
-	now := time.Now().UTC()
-	meta, err := c.readMetadata(ctx)
-	if err != nil {
-		return "", "", err
-	}
-	if meta == nil {
-		meta = &CAMetadata{SerialCounter: 0}
-	}
-	meta.LastRotationAt = now.Format(time.RFC3339)
-	meta.NextRotationAt = now.Add(time.Duration(c.rotationCfg.PeriodHours) * time.Hour).Format(time.RFC3339)
-	meta.RotationPeriodH = c.rotationCfg.PeriodHours
-	meta.OverlapHours = c.rotationCfg.OverlapHours
-	if err := c.writeMetadata(ctx, meta); err != nil {
-		return "", "", err
-	}
-
-	// Read back keys to get fingerprints
-	currentKey, err := c.readCAKey(ctx, "current")
-	if err != nil {
-		return "", "", err
-	}
-
-	return string(currentKey.PublicKey), string(newNext.PublicKey), nil
-}
-
 func (c *Client) GetMetadata(ctx context.Context) (*CAMetadata, error) {
 	return c.readMetadata(ctx)
 }
