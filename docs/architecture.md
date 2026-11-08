@@ -104,6 +104,7 @@ shutdown the HTTP server gets 15 seconds to finish in-flight requests. The serve
 | `email-notifier` | `connectors/Notification/Email` | Emails users about their cluster account requests |
 | `analytics` | `connectors/Analytics` | Usage summaries and job lists for allocation participants |
 | `temp-account` | `connectors/TempAccount` | Creates temporary accounts and assigns them allocations |
+| `signer` | `connectors/Signer` | Forwards certificate list and revoke calls to the SSH certificate signer |
 
 `connectors/SLURM/Rest-Client` is the shared `slurmrestd` client library, not a connector. `GET /connectors` lists
 the configured connectors with their load status and requires `core:clusters:read`.

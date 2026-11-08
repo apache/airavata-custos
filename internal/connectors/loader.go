@@ -28,6 +28,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/Notification/Email/pkg/email"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
+	"github.com/apache/airavata-custos/connectors/Signer/pkg/signer"
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/pkg/vast"
 	"github.com/apache/airavata-custos/connectors/TempAccount/pkg/tempaccount"
 	"github.com/apache/airavata-custos/internal/config"
@@ -51,6 +52,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		analytics.Type:   analytics.LoadConnector,
 		vast.Type:        vast.LoadConnector,
 		email.Type:       email.LoadConnector,
+		signer.Type:      signer.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {
