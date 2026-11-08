@@ -137,7 +137,8 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 					"membership_id", membership.ID, "error", err)
 				return
 			}
-			if record == nil {
+			// Memberships span clusters; each cluster's pass writes and prunes its own.
+			if record == nil || record.Cluster != cluster.Name {
 				continue
 			}
 			desired[keyOf(*record)] = struct{}{}

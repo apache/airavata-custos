@@ -422,6 +422,35 @@ func TestReconcilerSkipsMembershipsOnUnprovisionedClusters(t *testing.T) {
 	}
 }
 
+// Another cluster's memberships are not written here.
+func TestReconcilerLeavesOtherClustersAssociations(t *testing.T) {
+	elsewhere := models.ComputeAllocationMembership{
+		ID: "mem-2", ComputeAllocationID: "alloc-2", UserID: "user-1", MembershipStatus: models.ACTIVE,
+	}
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{elsewhere},
+	})
+	getAllocation, getCluster := core.GetComputeAllocationFunc, core.GetComputeClusterFunc
+	core.GetComputeAllocationFunc = func(ctx context.Context, id string) (*models.ComputeAllocation, error) {
+		alloc, err := getAllocation(ctx, id)
+		alloc.ComputeClusterID = "cluster-2"
+		return alloc, err
+	}
+	core.GetComputeClusterFunc = func(ctx context.Context, id string) (*models.ComputeCluster, error) {
+		if id == "cluster-2" {
+			return &models.ComputeCluster{ID: id, Name: "othercluster"}, nil
+		}
+		return getCluster(ctx, id)
+	}
+	slurm := &fakeSlurmClient{}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if got := slurm.all(); len(got) != 0 {
+		t.Fatalf("expected no write for another cluster, got %+v", got)
+	}
+}
+
 func TestReconcilerSkipsUnprovisionedAndTooFreshAccounts(t *testing.T) {
 	cases := map[string]*time.Time{
 		"never provisioned": nil,
