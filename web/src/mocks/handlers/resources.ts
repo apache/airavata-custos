@@ -26,7 +26,7 @@ import {
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
-const resources = z.array(zComputeAllocationResource).parse(resourcesFixture);
+export const resources = z.array(zComputeAllocationResource).parse(resourcesFixture);
 const rates = z.array(zComputeAllocationResourceRate).parse(ratesFixture);
 
 function ratesFor(resourceId: string): ComputeAllocationResourceRate[] {

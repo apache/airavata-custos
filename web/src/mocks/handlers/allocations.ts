@@ -27,6 +27,7 @@ import {
   type ChangeRequest,
   allocationMembershipSchema,
   changeRequestSchema,
+  createAllocationPayloadSchema,
   createChangeRequestPayloadSchema,
   createMembershipPayloadSchema,
   updateChangeRequestPayloadSchema,
@@ -42,6 +43,7 @@ import {
 } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
+import { resources } from "./resources";
 
 const byId = <T extends z.ZodType>(row: T) => z.record(z.string(), z.array(row));
 
@@ -88,6 +90,40 @@ export const allocationsHandlers = [
     const items = matched.slice(offset, offset + limit);
     return HttpResponse.json({ items, total: matched.length });
   }),
+
+  http.post("*/api/v1/compute-allocations", async ({ request }) => {
+    const payload = createAllocationPayloadSchema.parse(await request.json());
+    const created: ComputeAllocation = {
+      ...payload,
+      id: `alloc-${Date.now()}-${allocations.length}`,
+      status: "ACTIVE",
+      posix_group: null,
+      group_provisioned_at: null,
+    };
+    allocations.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+
+  http.put<{ id: string }>(
+    "*/api/v1/compute-allocations/:id/resources",
+    async ({ params, request }) => {
+      const { resource_ids } = z
+        .object({ resource_ids: z.array(z.string()) })
+        .parse(await request.json());
+      resourcesByAlloc[String(params.id)] = resources.filter((r) => resource_ids.includes(r.id));
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
+
+  http.get<{ id: string }>("*/api/v1/compute-allocations/:id/usages/total", ({ params }) =>
+    HttpResponse.json({
+      compute_allocation_id: String(params.id),
+      total_su_amount: (usageByAlloc[String(params.id)] ?? []).reduce(
+        (n, u) => n + u.used_su_amount,
+        0,
+      ),
+    }),
+  ),
 
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id", ({ params }) => {
     const id = String(params.id);
