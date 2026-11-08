@@ -245,8 +245,8 @@ The signer reads the caller's privileges from `GET /me` at `core_api_base_url`:
 | Revoke another user's certificate | `signer:certificates:write` |
 | Revoke one's own certificate | No privilege |
 
-The Custos server does not register the `signer:` privileges ([docs/privileges.md](../../docs/privileges.md#other-connectors)).
-Calls that need one return 403.
+The Custos server registers the `signer:` privileges through its [Signer connector](../../connectors/Signer/README.md),
+which also forwards the certificate routes under `/connectors/signer` ([docs/privileges.md](../../docs/privileges.md#signer-connector-connectorssignerinternalprivilegesgo)).
 
 `GET /api/v1/admin/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
 It returns no total or offset.

@@ -78,6 +78,7 @@ These routes need a verified caller but no key.
 | `RequireScoped` | `GET /projects/{id}` | `core:projects:read`, or a participant in the project; `404` otherwise |
 | `RequireScoped` | `GET /compute-allocations/{id}`<br>`GET /compute-allocations/{id}/resources`<br>`GET /compute-allocations/{id}/memberships`<br>`GET /compute-allocations/{id}/usages`<br>`GET /compute-allocations/{id}/usages/total` | `core:allocations:read`, or a participant in the allocation; `404` otherwise |
 | `RequireAuth` | `GET /connectors/analytics/contexts`<br>`GET /connectors/analytics/allocations/{id}/usage-summary`<br>`GET /connectors/analytics/allocations/{id}/jobs` | Decided by allocation role alone: PI, CO_PI and ALLOCATION_MANAGER see all members, plain members see their own records |
+| `RequireAuth` | `GET /connectors/signer/me/certificates`<br>`GET /connectors/signer/me/certificates/{serial}` | The caller's own certificates, as decided by the signer |
 
 ## AMIE connector (`connectors/ACCESS/AMIE-Processor/server/privileges.go`)
 
@@ -97,13 +98,19 @@ These routes need a verified caller but no key.
 | `temp-account:accounts:read` | `GET /connectors/temp-account/membership/{user_id}` |
 | `temp-account:accounts:write` | `POST /connectors/temp-account/create`<br>`POST /connectors/temp-account/assign-allocation`<br>`POST /connectors/temp-account/update-allocation`<br>`DELETE /connectors/temp-account/remove/{user_id}` |
 
+## Signer connector (`connectors/Signer/internal/privileges.go`)
+
+| Privilege | Routes it gates |
+|---|---|
+| `signer:certificates:read` | `GET /connectors/signer/certificates`<br>`GET /connectors/signer/certificates/{serial}`<br>`GET /connectors/signer/status` |
+| `signer:certificates:write` | `POST /connectors/signer/certificates/{serial}/revoke` |
+
+The SSH-Certificate-Signer extension checks the same two keys in the privileges that core `GET /me` returns.
+
 ## Other connectors
 
 The VAST-Provisioner routes use the core `core:clusters:*` keys, listed above. The remaining connectors gate
 no route on a key.
-
-The SSH-Certificate-Signer extension looks for `signer:certificates:read` and `signer:certificates:write` in the
-privileges that core `GET /me` returns. Core does not register these keys, so they cannot be granted.
 
 ## System roles
 
