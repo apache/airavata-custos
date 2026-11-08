@@ -79,9 +79,10 @@ async function installSignerRoutes(context: BrowserContext) {
       return;
     }
 
+    // The mock cursor is the index of the next row.
     if (
       request.method() === "GET" &&
-      url.pathname === "/api/v1/signer/admin/certificates"
+      url.pathname === "/api/v1/connectors/signer/certificates"
     ) {
       const source =
         scenario === "empty"
@@ -90,18 +91,18 @@ async function installSignerRoutes(context: BrowserContext) {
             ? paginatedCertificates(certificates)
             : certificates;
       const limit = Number(url.searchParams.get("limit") ?? source.length);
-      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const start = Number(url.searchParams.get("cursor") ?? 0);
+      const end = start + limit;
       await json(route, {
-        certificates: source.slice(offset, offset + limit),
-        total: source.length,
+        certificates: source.slice(start, end),
         limit,
-        offset,
+        ...(end < source.length ? { next_cursor: String(end) } : {}),
       });
       return;
     }
 
     const detailMatch = url.pathname.match(
-      /^\/api\/v1\/signer\/admin\/certificates\/(\d+)$/,
+      /^\/api\/v1\/connectors\/signer\/certificates\/(\d+)$/,
     );
     if (request.method() === "GET" && detailMatch) {
       const certificate = certificates.find(
@@ -116,7 +117,7 @@ async function installSignerRoutes(context: BrowserContext) {
     }
 
     const revokeMatch = url.pathname.match(
-      /^\/api\/v1\/signer\/admin\/certificates\/(\d+)\/revoke$/,
+      /^\/api\/v1\/connectors\/signer\/certificates\/(\d+)\/revoke$/,
     );
     if (request.method() === "POST" && revokeMatch) {
       if (scenario === "forbidden") {

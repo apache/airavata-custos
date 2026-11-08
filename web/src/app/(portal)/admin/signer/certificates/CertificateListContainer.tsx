@@ -35,7 +35,8 @@ function statusFilterFromUrl(raw: string | null): CertificateStatus | "all" {
 
 export function CertificateListContainer() {
   const searchParams = useShallowSearchParams();
-  const [page, setPage] = React.useState(1);
+  // The cursor of each page after the first, so Previous can walk back.
+  const [cursors, setCursors] = React.useState<string[]>([]);
   const [pageSize, setPageSize] = React.useState(20);
 
   const search = searchParams.get("q") ?? "";
@@ -51,9 +52,9 @@ export function CertificateListContainer() {
     [searchParams],
   );
 
-  const query = useCertificates({ limit: pageSize, offset: (page - 1) * pageSize });
+  const query = useCertificates({ limit: pageSize, cursor: cursors.at(-1) });
   const rows = query.data?.certificates ?? [];
-  const total = query.data?.total ?? 0;
+  const nextCursor = query.data?.next_cursor;
 
   return (
     <CertificateList
@@ -65,13 +66,14 @@ export function CertificateListContainer() {
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
       onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
-      pagination={{
-        page,
+      paging={{
+        page: cursors.length + 1,
         pageSize,
-        total,
-        onPageChange: setPage,
+        hasNext: Boolean(nextCursor),
+        onNext: () => nextCursor && setCursors((prev) => [...prev, nextCursor]),
+        onPrevious: () => setCursors((prev) => prev.slice(0, -1)),
         onPageSizeChange: (next) => {
-          setPage(1);
+          setCursors([]);
           setPageSize(next);
         },
       }}

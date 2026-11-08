@@ -36,7 +36,7 @@ describe("signerKeys", () => {
   });
 
   it("list key carries the params", () => {
-    const params = { limit: 20, offset: 0 };
+    const params = { limit: 20, cursor: "c1" };
     expect(signerKeys.list(params)).toEqual(["signer-certificates", "list", params]);
   });
 

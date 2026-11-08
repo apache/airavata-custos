@@ -42,15 +42,15 @@ export const certificateSchema = z.object({
 });
 export type Certificate = z.infer<typeof certificateSchema>;
 
+// next_cursor is missing on the last page. The list has no total.
 export const certificateListSchema = z.object({
   certificates: z.array(certificateSchema),
-  total: z.number().int().nonnegative(),
   limit: z.number().int(),
-  offset: z.number().int(),
+  next_cursor: z.string().optional(),
 });
 export type CertificateList = z.infer<typeof certificateListSchema>;
 
-// Response from POST /signer/certificates/{serial}/revoke. already_revoked is
+// Response from POST /certificates/{serial}/revoke. already_revoked is
 // true when the certificate was revoked by a prior request (idempotent success).
 export const revokeResponseSchema = z.object({
   success: z.boolean(),

@@ -62,14 +62,19 @@ test.describe("ssh certificates", () => {
     await expect(page.getByRole("heading", { name: /no certificates yet/i })).toBeVisible();
   });
 
-  test("paginates against accurate server totals", async ({ page, signerApi }) => {
+  test("pages forward and back with the server cursor", async ({ page, signerApi }) => {
     await signInAs(page, "admin");
     signerApi.setScenario("paginated");
     await page.goto("/admin/signer/certificates");
-    await expect(page.getByText(/Showing 1.*20 of 25/)).toBeVisible();
+    await expect(page.getByText("Page 1")).toBeVisible();
+    await expect(page.getByRole("link", { name: "100" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Previous$/ })).toBeDisabled();
     await page.getByRole("button", { name: /^Next$/ }).click();
-    await expect(page.getByText(/Showing 21.*25 of 25/)).toBeVisible();
+    await expect(page.getByText("Page 2")).toBeVisible();
     await expect(page.getByRole("link", { name: "120" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Next$/ })).toBeDisabled();
+    await page.getByRole("button", { name: /^Previous$/ }).click();
+    await expect(page.getByRole("link", { name: "100" })).toBeVisible();
   });
 
   test("distinguishes no matches on a loaded page", async ({ page }) => {

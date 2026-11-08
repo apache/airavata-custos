@@ -71,10 +71,7 @@ describe("<CertificateList />", () => {
   });
 
   it("distinguishes no matches on a loaded page from no certificates", () => {
-    renderList({
-      rows: [],
-      pagination: { page: 1, pageSize: 20, total: 25, onPageChange: vi.fn() },
-    });
+    renderList({ rows: [active], search: "not-present" });
     expect(screen.getByRole("heading", { name: /no matches on this page/i })).toBeInTheDocument();
   });
 
@@ -112,19 +109,33 @@ describe("<CertificateList />", () => {
     expect(props.onStatusFilterChange).toHaveBeenCalledWith("revoked");
   });
 
-  it("renders accurate totals and invokes pagination callbacks", () => {
-    const onPageChange = vi.fn();
-    const onPageSizeChange = vi.fn();
-    renderList({
-      pagination: { page: 1, pageSize: 20, total: 41, onPageChange, onPageSizeChange },
-    });
-    expect(screen.getByText(/Showing 1.+20 of 41/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /next/i }));
-    fireEvent.change(screen.getByRole("combobox", { name: /rows per page/i }), {
-      target: { value: "50" },
-    });
-    expect(onPageChange).toHaveBeenCalledWith(2);
-    expect(onPageSizeChange).toHaveBeenCalledWith(50);
+  const paging = {
+    page: 1,
+    pageSize: 20,
+    hasNext: true,
+    onPrevious: vi.fn(),
+    onNext: vi.fn(),
+    onPageSizeChange: vi.fn(),
+  };
+
+  // Make sure the first page cannot go back.
+  it("disables Previous on the first page", () => {
+    renderList({ paging });
+    expect(screen.getByRole("button", { name: /previous/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
+  });
+
+  // Make sure a page without a next cursor is treated as the last page.
+  it("disables Next when the signer sends no next cursor", () => {
+    renderList({ paging: { ...paging, page: 2, hasNext: false } });
+    expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /previous/i })).toBeEnabled();
+  });
+
+  // Make sure a filter that empties the page can still move to the next page.
+  it("keeps the pager when no row on the page matches", () => {
+    renderList({ rows: [active], search: "not-present", paging });
+    expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
   });
 
   it("surfaces an error state with a retry callback", () => {

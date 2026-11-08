@@ -23,7 +23,6 @@ export const serverSchema = z.object({
   NEXTAUTH_URL: z.string().url().optional(),
 
   CUSTOS_CORE_API_BASE_URL: z.string().url().default("http://localhost:8080"),
-  CUSTOS_SIGNER_API_BASE_URL: z.string().url().default("http://localhost:8084"),
 
   OIDC_ISSUER_URL: z.string().url(),
   OIDC_CLIENT_ID: z.string().min(1),
