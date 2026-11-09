@@ -26,12 +26,13 @@ import {
   type LucideIcon,
   ScrollText,
   Send,
+  SquareTerminal,
   UserCog,
 } from "lucide-react";
 
 export type AbilityCheck = { action: string; subject: string };
 
-export type NavGroup = "allocations" | "admin";
+export type NavGroup = "allocations" | "access" | "admin";
 
 export type NavItem = {
   href: string;
@@ -44,6 +45,7 @@ export type NavItem = {
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
   allocations: "My allocations",
+  access: "My access",
   admin: "Site administration",
 };
 
@@ -78,6 +80,12 @@ export const portalNav: NavItem[] = [
     label: "Analytics",
     icon: ChartColumn,
     group: "allocations",
+  },
+  {
+    href: "/ssh-access",
+    label: "SSH access",
+    icon: SquareTerminal,
+    group: "access",
   },
   {
     href: "/admin/users",

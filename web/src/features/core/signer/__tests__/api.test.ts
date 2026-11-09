@@ -31,7 +31,8 @@ afterEach(() => {
 });
 
 const certificate = {
-  client_id: "signer-client",
+  user_sub: "sub-1",
+  requested_by: "user/1",
   serial_number: 42,
   key_id: "k",
   principal: "dev-admin",

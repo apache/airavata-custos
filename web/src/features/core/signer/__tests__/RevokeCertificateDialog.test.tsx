@@ -34,16 +34,18 @@ function renderDialog(
 }
 
 describe("<RevokeCertificateDialog />", () => {
-  it("disables confirm until a reason is entered, then submits the trimmed reason", () => {
+  it("submits the trimmed reason", () => {
     const { props } = renderDialog();
-    const confirm = screen.getByRole("button", { name: /confirm revoke/i });
-    expect(confirm).toBeDisabled();
-
     fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: "  compromised  " } });
-    expect(confirm).toBeEnabled();
-
-    fireEvent.click(confirm);
+    fireEvent.click(screen.getByRole("button", { name: /confirm revoke/i }));
     expect(props.onSubmit).toHaveBeenCalledWith("compromised");
+  });
+
+  // Make sure someone can revoke without giving a reason.
+  it("allows an empty reason", () => {
+    const { props } = renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: /confirm revoke/i }));
+    expect(props.onSubmit).toHaveBeenCalledWith("");
   });
 
   it("surfaces an error message", () => {
@@ -62,14 +64,6 @@ describe("<RevokeCertificateDialog />", () => {
     if (form) fireEvent.submit(form);
     expect(props.onOpenChange).not.toHaveBeenCalled();
     expect(props.onSubmit).not.toHaveBeenCalled();
-  });
-
-  it("shows remaining-length feedback and rejects whitespace-only reasons", () => {
-    renderDialog();
-    const reason = screen.getByLabelText(/reason/i);
-    fireEvent.change(reason, { target: { value: "   " } });
-    expect(screen.getByText("255 remaining")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /confirm revoke/i })).toBeDisabled();
   });
 
   it("rejects reasons longer than 255 characters", () => {

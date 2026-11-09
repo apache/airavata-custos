@@ -14,7 +14,8 @@ export type SignerScenario =
   | "already-revoked"
   | "inactive"
   | "forbidden"
-  | "server-error";
+  | "server-error"
+  | "no-allocation";
 
 type SignerApiController = {
   setScenario(scenario: SignerScenario): void;
@@ -76,6 +77,52 @@ async function installSignerRoutes(context: BrowserContext) {
 
     if (request.method() === "GET" && url.pathname === "/api/v1/user/privileges") {
       await json(route, { privileges: cookiePrivileges(route) });
+      return;
+    }
+
+    if (url.pathname === "/api/v1/connectors/signer/me/certificates") {
+      if (request.method() === "GET") {
+        await json(route, { certificates, limit: certificates.length });
+        return;
+      }
+      if (scenario === "no-allocation") {
+        await json(route, { error: "no_active_allocation", message: "refused" }, 403);
+        return;
+      }
+      await json(route, {
+        certificate: "ssh-ed25519-cert-v01@openssh.com AAAA",
+        serial_number: 50,
+        principal: "dev-admin",
+        valid_before: 4_102_444_800,
+        login_host: "login.example.edu",
+        login_port: 22,
+      });
+      return;
+    }
+
+    const myDetailMatch = url.pathname.match(/^\/api\/v1\/connectors\/signer\/me\/certificates\/(\d+)$/);
+    if (request.method() === "GET" && myDetailMatch) {
+      const certificate = certificates.find((candidate) => candidate.serial_number === Number(myDetailMatch[1]));
+      await json(route, certificate ?? { error: "not_found" }, certificate ? 200 : 404);
+      return;
+    }
+
+    const myRevokeMatch = url.pathname.match(/^\/api\/v1\/connectors\/signer\/me\/certificates\/(\d+)\/revoke$/);
+    if (request.method() === "POST" && myRevokeMatch) {
+      const certificate = certificates.find((candidate) => candidate.serial_number === Number(myRevokeMatch[1]));
+      if (certificate) {
+        certificate.revoked = true;
+        certificate.revoked_at = Math.floor(Date.now() / 1000);
+        certificate.revoked_by = "self";
+      }
+      await json(route, {
+        success: true,
+        message: "Certificate revoked successfully",
+        serial_number: Number(myRevokeMatch[1]),
+        revoked: true,
+        revoked_at: Math.floor(Date.now() / 1000),
+        reason: "",
+      });
       return;
     }
 
@@ -168,10 +215,10 @@ async function installSignerRoutes(context: BrowserContext) {
         // that the signer API would return for malformed JSON.
       }
       const reason = (body.reason ?? "").trim();
-      if (!reason || reason.length > 255) {
+      if (reason.length > 255) {
         await json(
           route,
-          { error: "invalid_reason", message: "Reason must be between 1 and 255 characters" },
+          { error: "invalid_reason", message: "Reason is limited to 255 characters" },
           400,
         );
         return;
