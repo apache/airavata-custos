@@ -151,6 +151,7 @@ services:
       - "127.0.0.1:8084:8084"
     environment:
       DB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
+      SIGNER_SERVICE_TOKEN: ${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}
     volumes:
       - ./signer/config.yaml:/app/config.yaml:ro
     depends_on:
@@ -158,28 +159,11 @@ services:
         condition: service_healthy
       openbao-init:
         condition: service_completed_successfully
-      openldap:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8084/api/v1/health"]
       interval: 5s
       timeout: 3s
       retries: 20
-
-  signer-seed:
-    image: postgres:17
-    container_name: custos_signer_seed
-    restart: "no"
-    depends_on:
-      signer:
-        condition: service_healthy
-    entrypoint: ["/bin/sh", "-c", "psql -h db -U admin -d custos_signer -v ON_ERROR_STOP=1 -f /seed/seed-client.sql && echo 'signer client seeded'"]
-    environment:
-      PGPASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
-    volumes:
-      - ./signer/seed-client.sql:/seed/seed-client.sql:ro
 
   sshd-login:
     build: ./sshd-login
@@ -189,11 +173,10 @@ services:
       - "127.0.0.1:2222:22"
     environment:
       SIGNER_URL: http://signer:8084
-      CLIENT_ID: bench
-      CLIENT_SECRET: bench-secret
+      SIGNER_SERVICE_TOKEN: ${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}
     depends_on:
-      signer-seed:
-        condition: service_completed_successfully
+      signer:
+        condition: service_healthy
 
 volumes:
   openbao-data:

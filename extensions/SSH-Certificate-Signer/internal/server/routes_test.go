@@ -19,6 +19,8 @@ package server
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -26,19 +28,45 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
 
-func TestCertificateRevokeRoutes(t *testing.T) {
-	router := NewRouter(&config.Config{}, nil, nil, nil, Handlers{})
-	routes := map[string]bool{}
-	if err := chi.Walk(router, func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
-		routes[method+" "+route] = true
+const testServiceToken = "0123456789abcdef0123456789abcdef"
+
+func testRouter() *chi.Mux {
+	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
+	cfg := &config.Config{}
+	cfg.Signer.ServiceToken = testServiceToken
+	return NewRouter(cfg, Handlers{Sign: ok, CAPublicKey: ok, Health: ok, Certificates: ok, CertificateDetail: ok, CertificateRevoke: ok})
+}
+
+// Make sure every route except health needs the service token since nothing else protects the signer.
+func TestEveryRouteNeedsTheServiceToken(t *testing.T) {
+	router := testRouter()
+	err := chi.Walk(router, func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+		if route == "/api/v1/health" {
+			return nil
+		}
+		for _, header := range []string{"", "Bearer wrong-token"} {
+			r := httptest.NewRequest(method, strings.ReplaceAll(route, "{serial}", "1"), nil)
+			r.Header.Set("Authorization", header)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, r)
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("%s %s with %q: got %d", method, route, header, rec.Code)
+			}
+		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if !routes[http.MethodPost+" /api/v1/certificates/{serial}/revoke"] {
-		t.Fatal("shared certificate revoke route is missing")
-	}
-	if routes[http.MethodPost+" /api/v1/admin/certificates/{serial}/revoke"] {
-		t.Fatal("old administrator revoke route is still registered")
+}
+
+// Make sure the right token gets through.
+func TestServiceTokenAdmitsTheCaller(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/certificates", nil)
+	r.Header.Set("Authorization", "Bearer "+testServiceToken)
+	rec := httptest.NewRecorder()
+	testRouter().ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d", rec.Code)
 	}
 }

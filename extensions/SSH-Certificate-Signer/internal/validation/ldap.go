@@ -18,6 +18,7 @@ package validation
 import (
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/go-ldap/ldap/v3"
@@ -55,7 +56,7 @@ func (c *DefaultLDAPConnector) Connect(url string, verifySSL bool) (LDAPConnecti
 // LDAPConfig holds the configuration needed to validate principals via LDAP.
 //
 // The lookup flow:
-//  1. Search LDAP using the OIDC subject (identitySubject) against SearchFilter
+//  1. Search LDAP using the user's subject (identitySubject) against SearchFilter
 //     e.g. (&(objectClass=posixAccount)(voPersonExternalID=%s))
 //  2. Extract the POSIX username from UsernameAttribute (e.g. "uid")
 //  3. Compare the extracted username with the requested principal
@@ -64,12 +65,12 @@ type LDAPConfig struct {
 	BindDN            string
 	BindPassword      string
 	BaseDN            string
-	SearchFilter      string // must contain %s — substituted with the OIDC subject
+	SearchFilter      string // must contain %s, replaced with the user's subject
 	UsernameAttribute string // LDAP attribute holding the POSIX username (e.g. "uid")
 	VerifySSL         bool
 }
 
-// LDAPValidator resolves an OIDC subject to a POSIX username via LDAP directory lookup.
+// LDAPValidator resolves a user's subject to a POSIX username via LDAP directory lookup.
 // It maintains a persistent LDAP connection that is reused across requests and
 // automatically reconnects on failure.
 type LDAPValidator struct {
@@ -91,7 +92,7 @@ func NewLDAPValidator(config LDAPConfig, connector LDAPConnector) *LDAPValidator
 	}
 }
 
-func (v *LDAPValidator) Validate(clientID, principal, identitySubject string) (*ValidationResult, error) {
+func (v *LDAPValidator) Validate(principal, identitySubject string) (*ValidationResult, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
@@ -102,8 +103,10 @@ func (v *LDAPValidator) Validate(clientID, principal, identitySubject string) (*
 		result, err = v.searchLDAP(identitySubject)
 		if err != nil {
 			v.closeConn()
+			// The raw error can name the directory host and this message reaches the user.
+			slog.Error("ldap search failed", "error", err)
 			return nil, &ValidationError{
-				Message:    "Principal validation unavailable: " + err.Error(),
+				Message:    "Principal validation unavailable",
 				ReasonCode: "LDAP_UNAVAILABLE",
 			}
 		}

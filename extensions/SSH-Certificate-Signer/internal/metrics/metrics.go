@@ -25,18 +25,13 @@ var (
 	SignRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "signer_sign_requests_total",
 		Help: "Total number of signing requests",
-	}, []string{"client_id", "status"})
+	}, []string{"status"})
 
-	SignDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	SignDurationSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "signer_sign_duration_seconds",
 		Help:    "Duration of signing requests in seconds",
 		Buckets: prometheus.DefBuckets,
-	}, []string{"client_id"})
-
-	RevokeRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "signer_revoke_requests_total",
-		Help: "Total number of revocation requests",
-	}, []string{"client_id", "status"})
+	})
 
 	AuthFailuresTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "signer_auth_failures_total",
@@ -47,10 +42,4 @@ var (
 		Name: "signer_vault_operations_total",
 		Help: "Total number of Vault operations",
 	}, []string{"operation", "status"})
-
-	DBQueryDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "signer_db_query_duration_seconds",
-		Help:    "Duration of database queries in seconds",
-		Buckets: prometheus.DefBuckets,
-	}, []string{"query"})
 )

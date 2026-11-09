@@ -13,18 +13,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validation
+// Package httputil provides shared helpers for writing JSON error responses.
+package httputil
 
-// COmanageValidator is a stub — full COmanage Registry integration is deferred.
-type COmanageValidator struct{}
+import (
+	"encoding/json"
+	"net/http"
+)
 
-func NewCOmanageValidator() *COmanageValidator {
-	return &COmanageValidator{}
+func WriteJSONError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error":   code,
+		"message": message,
+	})
 }
 
-func (v *COmanageValidator) Validate(clientID, principal, identitySubject string) (*ValidationResult, error) {
-	return nil, &ValidationError{
-		Message:    "Requested principal is not allowed",
-		ReasonCode: "COMANAGE_NOT_IMPLEMENTED",
+func WriteJSONErrorWithExtra(w http.ResponseWriter, status int, code, message string, extra map[string]string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	resp := map[string]string{
+		"error":   code,
+		"message": message,
 	}
+	for k, v := range extra {
+		resp[k] = v
+	}
+	json.NewEncoder(w).Encode(resp)
 }

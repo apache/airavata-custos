@@ -19,34 +19,22 @@ package config
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
+const minServiceTokenLength = 32
+
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	Database DatabaseConfig `yaml:"database"`
 	Vault    VaultConfig    `yaml:"vault"`
 	Signer   SignerConfig   `yaml:"signer"`
-	DevMode  DevModeConfig  `yaml:"dev_mode"`
 	Logging  LoggingConfig  `yaml:"logging"`
 	Metrics  MetricsConfig  `yaml:"metrics"`
-	CORS     CORSConfig     `yaml:"cors"`
-}
-
-// DevModeConfig disables OIDC token validation and returns a default identity
-// for all requests when enabled.
-type DevModeConfig struct {
-	Enabled        bool   `yaml:"enabled"`
-	DefaultEmail   string `yaml:"default_email"`
-	DefaultSubject string `yaml:"default_subject"`
-}
-
-type CORSConfig struct {
-	Enabled        bool     `yaml:"enabled"`
-	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 type ServerConfig struct {
@@ -75,11 +63,13 @@ type VaultConfig struct {
 }
 
 type SignerConfig struct {
-	CoreAPIBaseURL string           `yaml:"core_api_base_url"`
-	CA             CAConfig         `yaml:"ca"`
-	Policy         PolicyConfig     `yaml:"policy"`
-	Auth           AuthConfig       `yaml:"auth"`
-	Validation     ValidationConfig `yaml:"validation"`
+	ServiceToken      string           `yaml:"service_token"`
+	ReservedUsernames []string         `yaml:"reserved_usernames"`
+	LoginHost         string           `yaml:"login_host"`
+	LoginPort         int              `yaml:"login_port"`
+	CA                CAConfig         `yaml:"ca"`
+	Policy            PolicyConfig     `yaml:"policy"`
+	Validation        ValidationConfig `yaml:"validation"`
 }
 
 type CAConfig struct {
@@ -92,23 +82,9 @@ type RotationConfig struct {
 }
 
 type PolicyConfig struct {
-	Defaults PolicyDefaults `yaml:"defaults"`
-}
-
-type PolicyDefaults struct {
-	MaxTTLSeconds   int      `yaml:"max_ttl_seconds"`
-	AllowedKeyTypes []string `yaml:"allowed_key_types"`
-}
-
-type AuthConfig struct {
-	AllowedIssuers []string   `yaml:"allowed_issuers"`
-	OIDC           OIDCConfig `yaml:"oidc"`
-}
-
-type OIDCConfig struct {
-	JWKSCacheTTLSeconds int `yaml:"jwks_cache_ttl_seconds"`
-	JWKSMaxProviders    int `yaml:"jwks_max_providers"`
-	TimeoutSeconds      int `yaml:"timeout_seconds"`
+	MaxTTLSeconds    int      `yaml:"max_ttl_seconds"`
+	AllowedKeyTypes  []string `yaml:"allowed_key_types"`
+	DeniedExtensions []string `yaml:"denied_extensions"`
 }
 
 type ValidationConfig struct {
@@ -117,9 +93,8 @@ type ValidationConfig struct {
 }
 
 type LoggingConfig struct {
-	Level      string `yaml:"level"`
-	Format     string `yaml:"format"`
-	AuditLevel string `yaml:"audit_level"`
+	Level  string `yaml:"level"`
+	Format string `yaml:"format"`
 }
 
 type MetricsConfig struct {
@@ -152,7 +127,8 @@ func DefaultConfig() *Config {
 			TimeoutSeconds: 10,
 		},
 		Signer: SignerConfig{
-			CoreAPIBaseURL: "http://localhost:8080",
+			ReservedUsernames: []string{"root"},
+			LoginPort:         22,
 			CA: CAConfig{
 				Rotation: RotationConfig{
 					PeriodHours:  2160,
@@ -160,28 +136,17 @@ func DefaultConfig() *Config {
 				},
 			},
 			Policy: PolicyConfig{
-				Defaults: PolicyDefaults{
-					MaxTTLSeconds:   86400,
-					AllowedKeyTypes: []string{"ed25519", "rsa", "ecdsa"},
-				},
-			},
-			Auth: AuthConfig{
-				AllowedIssuers: []string{},
-				OIDC: OIDCConfig{
-					JWKSCacheTTLSeconds: 300,
-					JWKSMaxProviders:    10,
-					TimeoutSeconds:      10,
-				},
+				MaxTTLSeconds:   86400,
+				AllowedKeyTypes: []string{"ed25519", "rsa", "ecdsa"},
 			},
 			Validation: ValidationConfig{
-				PrincipalValidator: "noop",
+				PrincipalValidator: "none",
 				CacheTTLSeconds:    300, // 5 minutes cache
 			},
 		},
 		Logging: LoggingConfig{
-			Level:      "info",
-			Format:     "json",
-			AuditLevel: "info",
+			Level:  "info",
+			Format: "json",
 		},
 		Metrics: MetricsConfig{
 			Enabled: true,
@@ -208,10 +173,19 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Validate refuses the noop principal validator outside dev mode.
+// Validate stops startup on unsafe settings. Whoever holds the service token can get a certificate for any user that is not reserved.
 func (c *Config) Validate() error {
-	if v := c.Signer.Validation.PrincipalValidator; (v == "" || v == "noop") && !c.DevMode.Enabled {
-		return fmt.Errorf("principal_validator %q is allowed only in dev mode", v)
+	if len(c.Signer.ServiceToken) < minServiceTokenLength {
+		return fmt.Errorf("service_token must be at least %d characters", minServiceTokenLength)
+	}
+	if v := c.Signer.Validation.PrincipalValidator; v != "none" && v != "ldap" {
+		return fmt.Errorf("principal_validator %q must be none or ldap", v)
+	}
+	if !slices.ContainsFunc(c.Signer.ReservedUsernames, func(name string) bool { return strings.EqualFold(name, "root") }) {
+		return fmt.Errorf("reserved_usernames must include root")
+	}
+	if c.Signer.LoginHost == "" {
+		return fmt.Errorf("login_host is required")
 	}
 	return nil
 }
@@ -240,25 +214,8 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("VAULT_TOKEN"); v != "" {
 		cfg.Vault.Token = v
 	}
-	if v := os.Getenv("DEV_MODE"); v != "" {
-		cfg.DevMode.Enabled = strings.EqualFold(v, "true")
-	}
-	if v := os.Getenv("DEV_DEFAULT_EMAIL"); v != "" {
-		cfg.DevMode.DefaultEmail = v
-	}
-	if v := os.Getenv("ALLOWED_ISSUERS"); v != "" {
-		issuers := strings.Split(v, ",")
-		trimmed := make([]string, 0, len(issuers))
-		for _, issuer := range issuers {
-			s := strings.TrimSpace(issuer)
-			if s != "" {
-				trimmed = append(trimmed, s)
-			}
-		}
-		cfg.Signer.Auth.AllowedIssuers = trimmed
-	}
-	if v := os.Getenv("CORE_API_BASE_URL"); v != "" {
-		cfg.Signer.CoreAPIBaseURL = strings.TrimRight(v, "/")
+	if v := os.Getenv("SIGNER_SERVICE_TOKEN"); v != "" {
+		cfg.Signer.ServiceToken = v
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.Logging.Level = v

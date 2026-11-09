@@ -21,22 +21,40 @@ import (
 	"testing"
 )
 
-func TestLoad_DefaultConfig(t *testing.T) {
-	cfg, err := Load("")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+// Make sure the signer does not start with a missing or short service token.
+func TestValidate_RefusesWeakServiceToken(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Signer.LoginHost = "login.example.edu"
+	if err := cfg.Validate(); err == nil {
+		t.Error("started without a service token")
 	}
-	if cfg.Server.Port != 8084 {
-		t.Errorf("expected port 8084, got %d", cfg.Server.Port)
+	cfg.Signer.ServiceToken = "short"
+	if err := cfg.Validate(); err == nil {
+		t.Error("started with a short service token")
 	}
-	if cfg.Database.Host != "localhost" {
-		t.Errorf("expected host localhost, got %s", cfg.Database.Host)
+	cfg.Signer.ServiceToken = "0123456789abcdef0123456789abcdef"
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("refused a good token: %v", err)
 	}
-	if cfg.Signer.Validation.PrincipalValidator != "noop" {
-		t.Errorf("expected noop validator, got %s", cfg.Signer.Validation.PrincipalValidator)
+}
+
+// Make sure certificates are not generated for reserved usernames.
+func TestValidate_RefusesReservedListWithoutRoot(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Signer.ServiceToken = "0123456789abcdef0123456789abcdef"
+	cfg.Signer.ReservedUsernames = []string{"slurm"}
+	if err := cfg.Validate(); err == nil {
+		t.Error("certificates generated for reserved usernames")
 	}
-	if cfg.Signer.CoreAPIBaseURL != "http://localhost:8080" {
-		t.Errorf("unexpected Core API URL: %s", cfg.Signer.CoreAPIBaseURL)
+}
+
+// Make sure a mistyped validator name stops startup instead of failing every sign request.
+func TestValidate_RefusesUnknownValidator(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Signer.ServiceToken = "0123456789abcdef0123456789abcdef"
+	cfg.Signer.Validation.PrincipalValidator = "ldpa"
+	if err := cfg.Validate(); err == nil {
+		t.Error("started with an unknown validator")
 	}
 }
 
@@ -85,11 +103,8 @@ database:
 	t.Setenv("DB_PASSWORD", "env_password")
 	t.Setenv("DB_HOST", "envhost")
 	t.Setenv("VAULT_ADDRESS", "http://vault:8200")
-	t.Setenv("DEV_MODE", "true")
-	t.Setenv("DEV_DEFAULT_EMAIL", "test@dev.local")
-	t.Setenv("ALLOWED_ISSUERS", "https://a.com, https://b.com")
+	t.Setenv("SIGNER_SERVICE_TOKEN", "env-token")
 	t.Setenv("LOG_LEVEL", "debug")
-	t.Setenv("CORE_API_BASE_URL", "http://core:8080/")
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -104,26 +119,10 @@ database:
 	if cfg.Vault.Address != "http://vault:8200" {
 		t.Errorf("expected vault address override, got %s", cfg.Vault.Address)
 	}
-	if !cfg.DevMode.Enabled {
-		t.Error("expected dev mode enabled via env")
-	}
-	if cfg.DevMode.DefaultEmail != "test@dev.local" {
-		t.Errorf("expected default email 'test@dev.local', got %s", cfg.DevMode.DefaultEmail)
-	}
-	if len(cfg.Signer.Auth.AllowedIssuers) != 2 {
-		t.Errorf("expected 2 issuers, got %d", len(cfg.Signer.Auth.AllowedIssuers))
+	if cfg.Signer.ServiceToken != "env-token" {
+		t.Errorf("expected service token from env, got %s", cfg.Signer.ServiceToken)
 	}
 	if cfg.Logging.Level != "debug" {
 		t.Errorf("expected debug log level, got %s", cfg.Logging.Level)
-	}
-	if cfg.Signer.CoreAPIBaseURL != "http://core:8080" {
-		t.Errorf("expected Core API override, got %s", cfg.Signer.CoreAPIBaseURL)
-	}
-}
-
-func TestLoad_FileNotFound(t *testing.T) {
-	_, err := Load("/nonexistent/config.yaml")
-	if err == nil {
-		t.Error("expected error for missing config file")
 	}
 }

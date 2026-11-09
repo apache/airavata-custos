@@ -76,7 +76,7 @@ func TestLDAPValidator_SubjectResolvesToPrincipal(t *testing.T) {
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
 	// OIDC subject resolves to uid=jdoe, requested principal is jdoe → match
-	result, err := v.Validate("client1", "jdoe", "http://cilogon.org/serverE/users/100001")
+	result, err := v.Validate("jdoe", "http://cilogon.org/serverE/users/100001")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestLDAPValidator_PrincipalMismatch(t *testing.T) {
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
 	// OIDC subject resolves to jdoe, but caller requested "admin" → mismatch
-	_, err := v.Validate("client1", "admin", "http://cilogon.org/serverE/users/100001")
+	_, err := v.Validate("admin", "http://cilogon.org/serverE/users/100001")
 	if err == nil {
 		t.Fatal("expected error for principal mismatch")
 	}
@@ -115,7 +115,7 @@ func TestLDAPValidator_IdentityNotFound(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
-	_, err := v.Validate("client1", "jdoe", "http://cilogon.org/serverE/users/999999")
+	_, err := v.Validate("jdoe", "http://cilogon.org/serverE/users/999999")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -136,7 +136,7 @@ func TestLDAPValidator_MissingUsernameAttribute(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
-	_, err := v.Validate("client1", "someone", "sub123")
+	_, err := v.Validate("someone", "sub123")
 	if err == nil {
 		t.Fatal("expected error for missing uid attribute")
 	}
@@ -150,7 +150,7 @@ func TestLDAPValidator_ConnectionFailure(t *testing.T) {
 	connector := &mockLDAPConnector{connErr: errors.New("connection refused")}
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
-	_, err := v.Validate("c1", "jdoe", "sub123")
+	_, err := v.Validate("jdoe", "sub123")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -165,7 +165,7 @@ func TestLDAPValidator_BindFailure(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
-	_, err := v.Validate("c1", "jdoe", "sub123")
+	_, err := v.Validate("jdoe", "sub123")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -180,7 +180,7 @@ func TestLDAPValidator_SearchError(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
-	_, err := v.Validate("c1", "jdoe", "sub123")
+	_, err := v.Validate("jdoe", "sub123")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -203,7 +203,7 @@ func TestLDAPValidator_FilterEscaping(t *testing.T) {
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
 	// OIDC subject with injection characters — should be escaped in filter
-	v.Validate("c1", "jdoe", "http://evil.org/)(objectClass=*)")
+	v.Validate("jdoe", "http://evil.org/)(objectClass=*)")
 
 	expected := `(&(objectClass=posixAccount)(voPersonExternalID=http://evil.org/\29\28objectClass=\2a\29))`
 	if capturedFilter != expected {
@@ -222,7 +222,7 @@ func TestLDAPValidator_DefaultUsernameAttribute(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	v := NewLDAPValidator(cfg, connector)
 
-	result, err := v.Validate("c1", "jdoe", "sub123")
+	result, err := v.Validate("jdoe", "sub123")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -241,8 +241,8 @@ func TestLDAPValidator_ConnectionReuse(t *testing.T) {
 	v := NewLDAPValidator(baseLDAPConfig(), connector)
 
 	// Two calls should reuse the same connection
-	v.Validate("c1", "jdoe", "sub123")
-	v.Validate("c1", "jdoe", "sub123")
+	v.Validate("jdoe", "sub123")
+	v.Validate("jdoe", "sub123")
 
 	if connector.callCount != 1 {
 		t.Errorf("expected 1 connect call (reuse), got %d", connector.callCount)
@@ -270,7 +270,7 @@ func TestLDAPValidator_ReconnectOnSearchError(t *testing.T) {
 	}
 	v := NewLDAPValidator(baseLDAPConfig(), switchingConnector)
 
-	result, err := v.Validate("c1", "jdoe", "sub123")
+	result, err := v.Validate("jdoe", "sub123")
 	if err != nil {
 		t.Fatalf("expected success after reconnect, got: %v", err)
 	}

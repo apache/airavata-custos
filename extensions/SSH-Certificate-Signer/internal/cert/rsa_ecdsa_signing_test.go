@@ -77,7 +77,7 @@ func TestSignCertificate_RSAKeyWithRSACA(t *testing.T) {
 		CAPrivateKeyPEM: caPEM,
 		Serial:          10,
 		Principal:       "rsauser",
-		ClientID:        "c1",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      3600,
 	})
 	if err != nil {
@@ -103,7 +103,7 @@ func TestSignCertificate_ECDSAKeyWithECDSACA(t *testing.T) {
 		CAPrivateKeyPEM: caPEM,
 		Serial:          20,
 		Principal:       "ecuser",
-		ClientID:        "c1",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      3600,
 	})
 	if err != nil {
@@ -131,7 +131,7 @@ func TestSignCertificate_Ed25519KeyWithRSACA(t *testing.T) {
 		CAPrivateKeyPEM: caPEM,
 		Serial:          30,
 		Principal:       "crossuser",
-		ClientID:        "c1",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      3600,
 	})
 	if err != nil {
@@ -159,7 +159,7 @@ func TestSignCertificate_Ed25519KeyWithECDSACA(t *testing.T) {
 		CAPrivateKeyPEM: caPEM,
 		Serial:          40,
 		Principal:       "ecdsacauser",
-		ClientID:        "c1",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      3600,
 	})
 	if err != nil {
@@ -168,43 +168,5 @@ func TestSignCertificate_Ed25519KeyWithECDSACA(t *testing.T) {
 
 	if result.Serial != 40 {
 		t.Errorf("expected serial 40, got %d", result.Serial)
-	}
-}
-
-// Test JWK conversion for RSA and ECDSA keys
-func TestPublicKeyToJWK_RSA(t *testing.T) {
-	key, _ := rsa.GenerateKey(rand.Reader, 2048)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	jwkMap, err := PublicKeyToJWK(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if jwkMap["kty"] != "RSA" {
-		t.Errorf("expected kty RSA, got %v", jwkMap["kty"])
-	}
-	if jwkMap["n"] == nil {
-		t.Error("expected n field")
-	}
-	if jwkMap["e"] == nil {
-		t.Error("expected e field")
-	}
-}
-
-func TestPublicKeyToJWK_ECDSA(t *testing.T) {
-	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	jwkMap, err := PublicKeyToJWK(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if jwkMap["kty"] != "EC" {
-		t.Errorf("expected kty EC, got %v", jwkMap["kty"])
-	}
-	if jwkMap["crv"] != "P-256" {
-		t.Errorf("expected crv P-256, got %v", jwkMap["crv"])
 	}
 }

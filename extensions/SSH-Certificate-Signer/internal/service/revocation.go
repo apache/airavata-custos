@@ -27,22 +27,16 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/store"
 )
 
-var (
-	ErrForbidden            = errors.New("certificate revocation is forbidden")
-	ErrCertificateNotActive = errors.New("certificate is not active")
-)
+var ErrCertificateNotActive = errors.New("certificate is not active")
 
 type Transactor interface {
 	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
 }
 
 type RevokeCommand struct {
-	SerialNumber  int64
-	Reason        string
-	RevokedBy     string
-	OwnerEmail    string
-	CanRevokeAny  bool
-	RequireActive bool
+	SerialNumber int64
+	Reason       string
+	RevokedBy    string
 }
 
 type RevokedCertificate struct {
@@ -72,9 +66,6 @@ func (s *RevocationService) Revoke(ctx context.Context, command RevokeCommand) (
 	if err != nil {
 		return nil, err
 	}
-	if command.OwnerEmail != "" && certificate.UserEmail != command.OwnerEmail && !command.CanRevokeAny {
-		return nil, ErrForbidden
-	}
 
 	existing, err := store.GetLatestRevocation(ctx, tx, command.SerialNumber)
 	switch {
@@ -93,16 +84,12 @@ func (s *RevocationService) Revoke(ctx context.Context, command RevokeCommand) (
 	}
 
 	now := s.now().UTC()
-	if command.RequireActive && (now.Before(certificate.ValidAfter) || !now.Before(certificate.ValidBefore)) {
+	if now.Before(certificate.ValidAfter) || !now.Before(certificate.ValidBefore) {
 		return nil, ErrCertificateNotActive
 	}
 
-	serial := command.SerialNumber
-	keyID := certificate.KeyID
-	caFingerprint := certificate.CAFingerprint
 	event := &store.RevocationEvent{
-		ClientID:     certificate.ClientID,
-		SerialNumber: &serial, KeyID: &keyID, CAFingerprint: &caFingerprint,
+		SerialNumber: command.SerialNumber, KeyID: certificate.KeyID, CAFingerprint: certificate.CAFingerprint,
 		Reason: command.Reason, RevokedBy: command.RevokedBy,
 	}
 	if err := store.InsertRevocationEventAt(ctx, tx, event, now); err != nil {
