@@ -20,6 +20,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"regexp"
 	"slices"
 	"strings"
@@ -51,6 +52,7 @@ type SignRequest struct {
 	UserSub           string   `json:"user_sub"`
 	RequestedBy       string   `json:"requested_by"`
 	ForceCommand      string   `json:"force_command,omitempty"`
+	SourceAddress     string   `json:"source_address,omitempty"`
 	ExcludeExtensions []string `json:"exclude_extensions,omitempty"`
 }
 
@@ -147,6 +149,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "user_email, user_sub, requested_by or force_command is not valid")
 		return
 	}
+	if req.SourceAddress != "" && !validSourceAddress(req.SourceAddress) {
+		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		writeError(w, http.StatusBadRequest, "invalid_request", "source_address must be a comma-separated list of IP addresses or CIDR blocks")
+		return
+	}
 
 	sshPubKey, err := cert.ParseSSHPublicKey(req.PublicKey)
 	if err != nil {
@@ -219,9 +226,12 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
 	mark("vault_serial_us")
 
-	var criticalOpts map[string]string
+	criticalOpts := map[string]string{}
 	if req.ForceCommand != "" {
-		criticalOpts = map[string]string{"force-command": req.ForceCommand}
+		criticalOpts["force-command"] = req.ForceCommand
+	}
+	if req.SourceAddress != "" {
+		criticalOpts["source-address"] = req.SourceAddress
 	}
 
 	signReq := &cert.SignRequest{
@@ -261,6 +271,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		ValidBefore:          time.Unix(int64(signResult.ValidBefore), 0).UTC(),
 		GrantedExtensions:    grantedExtNames,
 		ForceCommand:         stringPtrIfNonEmpty(req.ForceCommand),
+		SourceAddress:        stringPtrIfNonEmpty(req.SourceAddress),
 	}
 
 	auditErr := h.auditLogger.LogIssuance(r.Context(), auditEntry)
@@ -350,6 +361,20 @@ func validAttributes(req *SignRequest) bool {
 	}
 	return !strings.ContainsFunc(req.ForceCommand, unicode.IsControl) &&
 		!strings.Contains(req.UserEmail, ":") && !strings.Contains(req.RequestedBy, ":")
+}
+
+// validSourceAddress validate the ip address that is going be restricted on the certificate
+func validSourceAddress(list string) bool {
+	for entry := range strings.SplitSeq(list, ",") {
+		if addr, err := netip.ParseAddr(entry); err == nil && addr.Zone() == "" && !addr.Is4In6() {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(entry)
+		if err != nil || prefix != prefix.Masked() || prefix.Addr().Is4In6() {
+			return false
+		}
+	}
+	return true
 }
 
 // isDuplicateKeyError detects a unique-constraint violation (SQLSTATE 23505).

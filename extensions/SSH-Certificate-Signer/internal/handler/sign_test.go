@@ -62,6 +62,16 @@ func TestSign_RefusesUnsafeAttributes(t *testing.T) {
 	}
 }
 
+// Make sure an address list sshd would reject or never match is refused at signing.
+func TestSign_RefusesUnreadableSourceAddress(t *testing.T) {
+	for _, address := range []string{"10.0.0.5/24", "10.0.0.1, 10.0.0.2", "10.0.0.1,", "login.example.edu", "fe80::1%eth0", "::ffff:10.0.0.1", "::ffff:10.0.0.0/104"} {
+		body := `{"principal":"jdoe","public_key":"k","user_email":"a@example.edu","user_sub":"s","requested_by":"user/1","source_address":"` + address + `"}`
+		if code, errorCode := signError(t, body); code != http.StatusBadRequest || errorCode != "invalid_request" {
+			t.Errorf("%s: got %d %s", address, code, errorCode)
+		}
+	}
+}
+
 // Make sure a certificate cannot be issued without saying who it is for and who asked.
 func TestSign_RequiresUserAndRequester(t *testing.T) {
 	for _, body := range []string{

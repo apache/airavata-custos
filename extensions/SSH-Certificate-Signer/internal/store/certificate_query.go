@@ -17,7 +17,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -39,6 +38,7 @@ type CertificateWithStatus struct {
 	IssuedAt             time.Time
 	GrantedExtensions    []string
 	ForceCommand         *string
+	SourceAddress        *string
 	Revoked              bool
 	RevokedAt            *time.Time
 	RevocationReason     string
@@ -65,7 +65,7 @@ const certificateSelect = `SELECT
 			c.id, c.serial_number, c.key_id,
 			c.principal, c.user_email, c.user_sub, c.requested_by, c.public_key_fingerprint, c.ca_fingerprint,
 			c.valid_after, c.valid_before, c.issued_at,
-			c.granted_extensions, c.force_command,
+			c.granted_extensions, c.force_command, c.source_address,
 			CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS revoked,
 			r.revoked_at,
 			COALESCE(r.reason, '') AS revocation_reason,
@@ -139,12 +139,11 @@ func scanCertificates(rows certificateRows) ([]CertificateWithStatus, error) {
 		var cert CertificateWithStatus
 		var revokedAt *time.Time
 		var grantedExtensionsJSON []byte
-		var forceCommand sql.NullString
 		if err := rows.Scan(
 			&cert.ID, &cert.SerialNumber, &cert.KeyID,
 			&cert.Principal, &cert.UserEmail, &cert.UserSub, &cert.RequestedBy, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
 			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt,
-			&grantedExtensionsJSON, &forceCommand,
+			&grantedExtensionsJSON, &cert.ForceCommand, &cert.SourceAddress,
 			&cert.Revoked, &revokedAt, &cert.RevocationReason, &cert.RevokedBy,
 		); err != nil {
 			return nil, fmt.Errorf("scanning certificate row: %w", err)
@@ -153,9 +152,6 @@ func scanCertificates(rows certificateRows) ([]CertificateWithStatus, error) {
 			if err := json.Unmarshal(grantedExtensionsJSON, &cert.GrantedExtensions); err != nil {
 				return nil, fmt.Errorf("unmarshaling granted_extensions: %w", err)
 			}
-		}
-		if forceCommand.Valid {
-			cert.ForceCommand = &forceCommand.String
 		}
 		cert.RevokedAt = revokedAt
 		certs = append(certs, cert)

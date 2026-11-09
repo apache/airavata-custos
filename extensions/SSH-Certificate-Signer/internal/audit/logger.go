@@ -50,6 +50,7 @@ type IssuanceEntry struct {
 	ValidBefore          time.Time
 	GrantedExtensions    []string
 	ForceCommand         *string
+	SourceAddress        *string
 }
 
 func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
@@ -66,6 +67,7 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 		ValidBefore:          entry.ValidBefore,
 		GrantedExtensions:    entry.GrantedExtensions,
 		ForceCommand:         entry.ForceCommand,
+		SourceAddress:        entry.SourceAddress,
 	}
 
 	if err := l.db.InsertIssuanceLog(ctx, dbLog); err != nil {
@@ -87,6 +89,7 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 		"valid_before", entry.ValidBefore.Unix(),
 		"granted_extensions", entry.GrantedExtensions,
 		"force_command", entry.ForceCommand,
+		"source_address", entry.SourceAddress,
 	)
 
 	return nil
