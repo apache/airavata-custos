@@ -65,6 +65,7 @@ export function MyCertificateDetail({ serial }: { serial: string }) {
     ["Lifetime", formatCertificateLifetime(cert)],
     ["Options", cert.granted_extensions?.join(", ") || "None"],
     ["Command", cert.force_command || "None"],
+    ["Can log in from", cert.source_address || "Any address"],
   ];
 
   return (

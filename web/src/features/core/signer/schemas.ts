@@ -35,6 +35,7 @@ export const certificateSchema = z.object({
   issued_at: z.number().int(),
   granted_extensions: z.array(z.string()).optional(),
   force_command: z.string().nullable().optional(),
+  source_address: z.string().nullable().optional(),
   revoked: z.boolean(),
   revoked_at: z.number().int().nullable().optional(),
   revocation_reason: z.string().optional(),

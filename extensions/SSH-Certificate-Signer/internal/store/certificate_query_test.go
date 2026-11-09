@@ -32,11 +32,11 @@ func certificateQueryRow() *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
 		"id", "serial_number", "key_id", "principal", "user_email", "user_sub", "requested_by",
 		"public_key_fingerprint", "ca_fingerprint", "valid_after", "valid_before", "issued_at",
-		"granted_extensions", "force_command", "revoked", "revoked_at", "revocation_reason", "revoked_by",
+		"granted_extensions", "force_command", "source_address", "revoked", "revoked_at", "revocation_reason", "revoked_by",
 	}).AddRow(
 		1, 42, "key-1", "alice", "alice@example.org", "sub-1", "app-1",
 		"SHA256:key", "SHA256:ca", issued, issued.Add(time.Hour), issued,
-		[]byte(`["permit-pty"]`), nil, true, revoked, "compromised", "admin@example.org",
+		[]byte(`["permit-pty"]`), nil, nil, true, revoked, "compromised", "admin@example.org",
 	)
 }
 
@@ -100,7 +100,7 @@ func TestListCertificatesDeploymentWideUsesCursorAndTimestampTieBreaker(t *testi
 	rows.AddRow(
 		2, 41, "key-2", "alice", "alice@example.org", "sub-1", "app-1",
 		"SHA256:key2", "SHA256:ca", issued, issued.Add(time.Hour), issued,
-		[]byte(`[]`), nil, false, nil, "", "",
+		[]byte(`[]`), nil, nil, false, nil, "", "",
 	)
 	mock.ExpectQuery("WHERE \\(c.issued_at < \\$1 OR \\(c.issued_at = \\$2 AND c.id < \\$3\\)\\)").
 		WithArgs(issued, issued, int64(10), 2).

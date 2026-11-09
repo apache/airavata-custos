@@ -58,14 +58,14 @@ ssh-keygen -t ed25519 -N "" -q -f "$WORK_DIR/key"
 PUBKEY=$(cat "$WORK_DIR/key.pub")
 
 sign_body() {
-  echo "{\"principal\":\"$1\",\"ttl_seconds\":$2,\"public_key\":\"$PUBKEY\",\"user_email\":\"$USER_EMAIL\",\"user_sub\":\"$USER_SUB\",\"requested_by\":\"$REQUESTED_BY\"}"
+  echo "{\"principal\":\"$1\",\"ttl_seconds\":$2,\"public_key\":\"$PUBKEY\",\"user_email\":\"$USER_EMAIL\",\"user_sub\":\"$USER_SUB\",\"requested_by\":\"$REQUESTED_BY\"${3:+,\"source_address\":\"$3\"}}"
 }
 
 sign() {
   curl -s -o "$WORK_DIR/resp.json" -w "%{http_code}" "$SIGNER_URL/api/v1/sign" \
     -H "Authorization: Bearer $SERVICE_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "$(sign_body "$1" "$2")"
+    -d "$(sign_body "$1" "$2" "${3:-}")"
 }
 
 code=$(curl -s -o /dev/null -w "%{http_code}" "$SIGNER_URL/api/v1/sign" \
@@ -131,6 +131,36 @@ revoked=$(curl -s "$SIGNER_URL/api/v1/certificates/$SERIAL" -H "Authorization: B
   python3 -c "import sys,json; c=json.load(sys.stdin); print(c['revoked'], c['revoked_by'])")
 [ "$revoked" = "True self" ]
 check "certificate shows revoked by self (saw: $revoked)" $?
+
+# --- source address: sshd accepts the certificate only from the listed addresses
+code=$(sign "$PRINCIPAL" 300 "203.0.113.5,2001:db8::/32,0.0.0.0/0")
+[ "$code" = "200" ]
+check "sign certificate with a source address list (HTTP $code)" $?
+write_cert
+out=$(ssh "${SSH_OPTS[@]}" "$PRINCIPAL@127.0.0.1" whoami)
+[ "$out" = "$PRINCIPAL" ]
+check "SSH login from an address on the list" $?
+
+code=$(sign "$PRINCIPAL" 300 "192.0.2.0/24")
+[ "$code" = "200" ]
+check "sign certificate limited to another network (HTTP $code)" $?
+write_cert
+RESTRICTED_SERIAL=$(json_get serial_number < "$WORK_DIR/resp.json")
+ssh-keygen -Lf "$WORK_DIR/key-cert.pub" | grep -q "source-address 192.0.2.0/24"
+check "certificate carries the source address" $?
+if ssh "${SSH_OPTS[@]}" "$PRINCIPAL@127.0.0.1" true 2>/dev/null; then
+  check "SSH login from an address not on the list rejected" 1
+else
+  check "SSH login from an address not on the list rejected" 0
+fi
+
+stored=$(curl -s "$SIGNER_URL/api/v1/certificates/$RESTRICTED_SERIAL" -H "Authorization: Bearer $SERVICE_TOKEN" | json_get source_address)
+[ "$stored" = "192.0.2.0/24" ]
+check "certificate record shows the source address (saw: $stored)" $?
+
+code=$(sign "$PRINCIPAL" 300 "10.0.0.5/24")
+[ "$code" = "400" ]
+check "CIDR with host bits set rejected (HTTP $code)" $?
 
 # --- expired cert: TTL 1s, wait, connection must fail
 code=$(sign "$PRINCIPAL" 1)

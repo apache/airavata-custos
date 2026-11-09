@@ -48,12 +48,15 @@ not interpret `requested_by`.
 
 The certificate names who it is for. The CA signature covers all of it.
 
-| Field                                      | Value                                                       |
-|--------------------------------------------|-------------------------------------------------------------|
-| Key ID                                     | `<email>:<requested_by>`. sshd writes it to the login log.  |
-| Extension `user-sub@custos.apache.org`     | The user's subject                                          |
-| Extension `user-email@custos.apache.org`   | The user's email                                            |
-| Extension `requested-by@custos.apache.org` | Who asked. Custos sends `user/<id>` or `app/<id>`.          |
+| Field                                      | Value                                                      |
+|--------------------------------------------|------------------------------------------------------------|
+| Key ID                                     | `<email>:<requested_by>`. sshd writes it to the login log. |
+| Extension `user-sub@custos.apache.org`     | The user's subject                                         |
+| Extension `user-email@custos.apache.org`   | The user's email                                           |
+| Extension `requested-by@custos.apache.org` | Who asked. Custos sends `user/<id>` or `app/<id>`.         |
+
+A request can also set `source_address`, a comma-separated list of IP addresses or CIDR blocks. It goes in the
+certificate's `source-address` critical option, and sshd then accepts the certificate only from those addresses.
 
 A deployment has one Ed25519 CA. It is generated in Vault by the first request that reads it.
 

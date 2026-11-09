@@ -158,6 +158,7 @@ function CertificateMetadata({ cert }: { cert: Certificate }) {
       value: cert.granted_extensions?.length ? cert.granted_extensions.join(", ") : "—",
     },
     { label: "Force command", value: cert.force_command || "—" },
+    { label: "Source address", value: cert.source_address || "Any" },
   ];
 
   if (cert.revoked) {

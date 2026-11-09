@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS certificate_issuance_logs
     issued_at              TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     granted_extensions     JSONB          NOT NULL,
     force_command          TEXT           NULL,
+    source_address         TEXT           NULL,
 
     PRIMARY KEY (id),
     CONSTRAINT uq_issuance_serial UNIQUE (serial_number)

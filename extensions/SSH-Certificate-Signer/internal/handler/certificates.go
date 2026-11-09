@@ -48,6 +48,7 @@ type CertificateResponse struct {
 	IssuedAt             int64    `json:"issued_at"`
 	GrantedExtensions    []string `json:"granted_extensions,omitempty"`
 	ForceCommand         *string  `json:"force_command,omitempty"`
+	SourceAddress        *string  `json:"source_address,omitempty"`
 	Revoked              bool     `json:"revoked"`
 	RevokedAt            *int64   `json:"revoked_at,omitempty"`
 	RevocationReason     string   `json:"revocation_reason,omitempty"`
@@ -253,6 +254,7 @@ func toCertificateResponse(c *store.CertificateWithStatus) CertificateResponse {
 		IssuedAt:             c.IssuedAt.Unix(),
 		GrantedExtensions:    c.GrantedExtensions,
 		ForceCommand:         c.ForceCommand,
+		SourceAddress:        c.SourceAddress,
 		Revoked:              c.Revoked,
 		RevocationReason:     c.RevocationReason,
 		RevokedBy:            c.RevokedBy,
