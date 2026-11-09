@@ -40,7 +40,7 @@ test.describe("ssh certificates", () => {
     await expect(page).toHaveURL(/\/admin\/signer\/certificates\/42/);
     await expect(page.getByRole("heading", { name: /^Certificate 42$/ })).toBeVisible();
     await expect(page.getByText("researcher@example.org")).toBeVisible();
-    await expect(page.getByText("203.0.113.42")).toBeVisible();
+    await expect(page.getByText("sub-researcher")).toBeVisible();
     await expect(page.getByText(/permit-pty/)).toBeVisible();
   });
 
@@ -196,5 +196,48 @@ test.describe("ssh certificates", () => {
     await page.getByRole("button", { name: /^Revoke$/ }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectNoSeriousAxeViolations(page, "[role=dialog]");
+  });
+
+  // Make sure a member with no privileges can generate and is told how to use the certificate.
+  test("member generates a certificate and gets the ssh command", async ({ page }) => {
+    await signInAs(page, "researcher");
+    await page.goto("/ssh-access");
+    await page.getByRole("button", { name: /^Generate certificate$/ }).click();
+    await page.getByLabel(/public key/i).fill("ssh-ed25519 AAAA me@laptop");
+    await page.getByRole("dialog").getByRole("button", { name: /^Generate certificate$/ }).click();
+    await expect(page.getByText(/Your certificate is ready/)).toBeVisible();
+    await expect(page.getByText("ssh -i ~/.ssh/id_ed25519 dev-admin@login.example.edu")).toBeVisible();
+  });
+
+  // Make sure a pasted private key cannot be submitted.
+  test("member cannot submit a private key", async ({ page }) => {
+    await signInAs(page, "researcher");
+    await page.goto("/ssh-access");
+    await page.getByRole("button", { name: /^Generate certificate$/ }).click();
+    await page.getByLabel(/public key/i).fill("-----BEGIN OPENSSH PRIVATE KEY-----");
+    await expect(page.getByText(/This is a private key/)).toBeVisible();
+    await expect(page.getByRole("dialog").getByRole("button", { name: /^Generate certificate$/ })).toBeDisabled();
+  });
+
+  // Make sure a refusal says why and keeps the pasted key.
+  test("member sees why a certificate was refused", async ({ page, signerApi }) => {
+    await signInAs(page, "researcher");
+    signerApi.setScenario("no-allocation");
+    await page.goto("/ssh-access");
+    await page.getByRole("button", { name: /^Generate certificate$/ }).click();
+    await page.getByLabel(/public key/i).fill("ssh-ed25519 AAAA me@laptop");
+    await page.getByRole("dialog").getByRole("button", { name: /^Generate certificate$/ }).click();
+    await expect(page.getByText("You need an active allocation to get a certificate.")).toBeVisible();
+    await expect(page.getByLabel(/public key/i)).toHaveValue("ssh-ed25519 AAAA me@laptop");
+  });
+
+  // Make sure a member can revoke their own certificate with no privilege, and no reason.
+  test("member revokes their own certificate", async ({ page }) => {
+    await signInAs(page, "researcher");
+    await page.goto("/ssh-access/42");
+    await page.getByRole("button", { name: /^Revoke$/ }).click();
+    await page.getByRole("button", { name: /^Confirm revoke$/ }).click();
+    await expect(page.getByText(/by you/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Revoke$/ })).toHaveCount(0);
   });
 });

@@ -53,6 +53,45 @@ function paginatedCertificates(): Certificate[] {
 }
 
 export const signerHandlers = [
+  http.get("*/api/v1/connectors/signer/me/certificates", () =>
+    HttpResponse.json({ certificates, limit: certificates.length }),
+  ),
+
+  http.post("*/api/v1/connectors/signer/me/certificates", () =>
+    HttpResponse.json({
+      certificate: "ssh-ed25519-cert-v01@openssh.com AAAAexample",
+      serial_number: 50,
+      principal: "dev-admin",
+      valid_before: Math.floor(Date.now() / 1000) + 28800,
+      login_host: "login.example.edu",
+      login_port: 22,
+    }),
+  ),
+
+  http.get("*/api/v1/connectors/signer/me/certificates/:serial", ({ params }) => {
+    const found = certificates.find((c) => c.serial_number === Number(params["serial"]));
+    if (!found) return HttpResponse.json({ error: "not_found" }, { status: 404 });
+    return HttpResponse.json(found);
+  }),
+
+  http.post("*/api/v1/connectors/signer/me/certificates/:serial/revoke", ({ params }) => {
+    const serial = Number(params["serial"]);
+    const found = certificates.find((c) => c.serial_number === serial);
+    if (!found) return HttpResponse.json({ error: "not_found" }, { status: 404 });
+    const now = Math.floor(Date.now() / 1000);
+    found.revoked = true;
+    found.revoked_at = now;
+    found.revoked_by = "self";
+    return HttpResponse.json({
+      success: true,
+      message: "Certificate revoked successfully",
+      serial_number: serial,
+      revoked: true,
+      revoked_at: now,
+      reason: "",
+    });
+  }),
+
   // The mock cursor is the index of the next row.
   http.get("*/api/v1/connectors/signer/certificates", ({ request }) => {
     const url = new URL(request.url);
@@ -107,9 +146,9 @@ export const signerHandlers = [
 
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
     const reason = (body.reason ?? "").trim();
-    if (!reason || reason.length > 255) {
+    if (reason.length > 255) {
       return HttpResponse.json(
-        { error: "invalid_reason", message: "Reason must be between 1 and 255 characters" },
+        { error: "invalid_reason", message: "Reason is limited to 255 characters" },
         { status: 400 },
       );
     }

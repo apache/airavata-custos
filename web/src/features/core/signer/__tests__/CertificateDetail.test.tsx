@@ -9,7 +9,8 @@ import { ApiError } from "@/shared/api/client";
 import type { Certificate } from "../schemas";
 
 const baseCertificate: Certificate = {
-  client_id: "signer-client",
+  user_sub: "sub-admin",
+  requested_by: "user/1",
   serial_number: 42,
   key_id: "key-42",
   principal: "someone-else",
@@ -19,7 +20,6 @@ const baseCertificate: Certificate = {
   valid_after: 1_700_000_000,
   valid_before: 4_102_444_800,
   issued_at: 1_700_000_000,
-  source_ip: "192.0.2.42",
   granted_extensions: ["permit-pty", "permit-user-rc"],
   force_command: "/usr/bin/id",
   revoked: false,
@@ -77,12 +77,12 @@ describe("<CertificateDetail />", () => {
   it("renders complete issuance metadata", () => {
     render(<CertificateDetail serial="42" />);
     for (const value of [
-      "signer-client",
+      "Self-service",
       "admin@example.org",
       "key-42",
       "SHA256:pk",
       "SHA256:ca",
-      "192.0.2.42",
+      "sub-admin",
       "permit-pty, permit-user-rc",
       "/usr/bin/id",
     ]) {

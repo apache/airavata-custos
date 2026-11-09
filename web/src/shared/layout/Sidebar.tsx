@@ -25,7 +25,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_GROUP_LABELS, type NavGroup, type NavItem, portalNav } from "./nav";
 
-const GROUP_ORDER: NavGroup[] = ["allocations", "admin"];
+const GROUP_ORDER: NavGroup[] = ["allocations", "access", "admin"];
 
 export function Sidebar() {
   const pathname = usePathname();

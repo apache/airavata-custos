@@ -50,7 +50,7 @@ export function RevokeCertificateDialog({
   const [reason, setReason] = React.useState("");
   const trimmedReason = reason.trim();
   const reasonLength = Array.from(trimmedReason).length;
-  const reasonIsValid = reasonLength > 0 && reasonLength <= 255;
+  const reasonIsValid = reasonLength <= 255;
 
   React.useEffect(() => {
     if (!open) setReason("");
@@ -67,7 +67,8 @@ export function RevokeCertificateDialog({
         <DialogHeader>
           <DialogTitle>Revoke certificate?</DialogTitle>
           <DialogDescription>
-            This revokes certificate serial {serialNumber}. This cannot be undone.
+            This revokes certificate serial {serialNumber} and cannot be undone. Login nodes still
+            accept it until it expires.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -88,7 +89,6 @@ export function RevokeCertificateDialog({
               aria-describedby="revoke-reason-help"
               aria-invalid={reasonLength > 255}
               disabled={isPending}
-              required
             />
             <div
               id="revoke-reason-help"
@@ -97,7 +97,7 @@ export function RevokeCertificateDialog({
               <span>
                 {reasonLength > 255
                   ? "Reason must be 255 characters or fewer."
-                  : "Required for the revocation audit record."}
+                  : "Optional."}
               </span>
               <span>{Math.max(0, 255 - reasonLength)} remaining</span>
             </div>

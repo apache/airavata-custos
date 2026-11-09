@@ -19,22 +19,54 @@ import { apiFetch } from "@/shared/api/client";
 import {
   type Certificate,
   type CertificateList,
+  type GeneratedCertificate,
   type RevokeResponse,
   certificateListSchema,
   certificateSchema,
+  generatedCertificateSchema,
   revokeResponseSchema,
 } from "./schemas";
 import type { CertificateListParams } from "./types";
 
-export async function listCertificates(
-  params: CertificateListParams = {},
+async function fetchCertificateList(
+  path: string,
+  params: CertificateListParams,
 ): Promise<CertificateList> {
   const search = new URLSearchParams();
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (params.cursor) search.set("cursor", params.cursor);
   const qs = search.toString();
-  const raw = await apiFetch(`/connectors/signer/certificates${qs ? `?${qs}` : ""}`);
+  const raw = await apiFetch(`${path}${qs ? `?${qs}` : ""}`);
   return certificateListSchema.parse(raw);
+}
+
+export function listCertificates(params: CertificateListParams = {}): Promise<CertificateList> {
+  return fetchCertificateList("/connectors/signer/certificates", params);
+}
+
+export function listMyCertificates(params: CertificateListParams = {}): Promise<CertificateList> {
+  return fetchCertificateList("/connectors/signer/me/certificates", params);
+}
+
+export async function getMyCertificate(serial: number | string): Promise<Certificate> {
+  const raw = await apiFetch(`/connectors/signer/me/certificates/${serial}`);
+  return certificateSchema.parse(raw);
+}
+
+export async function generateCertificate(publicKey: string): Promise<GeneratedCertificate> {
+  const raw = await apiFetch("/connectors/signer/me/certificates", {
+    method: "POST",
+    body: { public_key: publicKey },
+  });
+  return generatedCertificateSchema.parse(raw);
+}
+
+export async function revokeMyCertificate(serial: number, reason: string): Promise<RevokeResponse> {
+  const raw = await apiFetch(`/connectors/signer/me/certificates/${serial}/revoke`, {
+    method: "POST",
+    body: { reason },
+  });
+  return revokeResponseSchema.parse(raw);
 }
 
 export async function getCertificate(serial: number | string): Promise<Certificate> {

@@ -176,7 +176,7 @@ export function CertificateList({
 }
 
 // The DataTable pager needs a total. The signer sends none, so this one only goes forward and back.
-function CursorPager({ page, pageSize, hasNext, onPrevious, onNext, onPageSizeChange }: CertificateListPaging) {
+export function CursorPager({ page, pageSize, hasNext, onPrevious, onNext, onPageSizeChange }: CertificateListPaging) {
   return (
     <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <label className="flex items-center gap-2">
