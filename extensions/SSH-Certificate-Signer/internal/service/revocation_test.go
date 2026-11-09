@@ -30,9 +30,9 @@ import (
 )
 
 const (
-	lookupCertificateQuery  = "SELECT client_id, key_id, ca_fingerprint.*WHERE serial_number = \\$1"
+	lookupCertificateQuery  = "SELECT key_id, ca_fingerprint.*WHERE serial_number = \\$1"
 	existingRevocationQuery = "SELECT revoked_at, reason.*WHERE serial_number = \\$1"
-	insertRevocationQuery   = "INSERT INTO revocation_events.*VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6, \\$7\\)"
+	insertRevocationQuery   = "INSERT INTO revocation_events.*VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6\\)"
 )
 
 func newRevocationService(t *testing.T, now time.Time) (*RevocationService, sqlmock.Sqlmock) {
@@ -47,28 +47,25 @@ func newRevocationService(t *testing.T, now time.Time) (*RevocationService, sqlm
 	return service, mock
 }
 
-func certificateRow(email string, validAfter, validBefore time.Time) *sqlmock.Rows {
+func certificateRow(validAfter, validBefore time.Time) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
-		"client_id", "key_id", "ca_fingerprint", "user_email", "valid_after", "valid_before",
-	}).AddRow("client-1", "key-1", "SHA256:ca", email, validAfter, validBefore)
+		"key_id", "ca_fingerprint", "valid_after", "valid_before",
+	}).AddRow("key-1", "SHA256:ca", validAfter, validBefore)
 }
 
 func activeCommand() RevokeCommand {
-	return RevokeCommand{
-		SerialNumber: 42, Reason: "compromised", RevokedBy: "subject-1",
-		OwnerEmail: "alice@example.org", RequireActive: true,
-	}
+	return RevokeCommand{SerialNumber: 42, Reason: "compromised", RevokedBy: "subject-1"}
 }
 
-func TestRevocationService_RevokeActiveOwner(t *testing.T) {
+func TestRevocationService_RevokeActive(t *testing.T) {
 	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
 	service, mock := newRevocationService(t, now)
 	mock.ExpectBegin()
 	mock.ExpectQuery(lookupCertificateQuery).WithArgs(int64(42)).
-		WillReturnRows(certificateRow("alice@example.org", now.Add(-time.Hour), now.Add(time.Hour)))
+		WillReturnRows(certificateRow(now.Add(-time.Hour), now.Add(time.Hour)))
 	mock.ExpectQuery(existingRevocationQuery).WithArgs(int64(42)).WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(insertRevocationQuery).WithArgs(
-		"client-1", int64(42), "key-1", "SHA256:ca", now,
+		int64(42), "key-1", "SHA256:ca", now,
 		"compromised", "subject-1",
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
@@ -85,40 +82,12 @@ func TestRevocationService_RevokeActiveOwner(t *testing.T) {
 	}
 }
 
-func TestRevocationService_PrivilegedNonOwner(t *testing.T) {
-	now := time.Now().UTC()
-	service, mock := newRevocationService(t, now)
-	command := activeCommand()
-	command.CanRevokeAny = true
-	command.RevokedBy = "admin-id"
-	mock.ExpectBegin()
-	mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("other@example.org", now.Add(-time.Hour), now.Add(time.Hour)))
-	mock.ExpectQuery(existingRevocationQuery).WillReturnError(sql.ErrNoRows)
-	mock.ExpectExec(insertRevocationQuery).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
-	if _, err := service.Revoke(context.Background(), command); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestRevocationService_RejectsNonOwner(t *testing.T) {
-	now := time.Now().UTC()
-	service, mock := newRevocationService(t, now)
-	mock.ExpectBegin()
-	mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("other@example.org", now.Add(-time.Hour), now.Add(time.Hour)))
-	mock.ExpectRollback()
-	_, err := service.Revoke(context.Background(), activeCommand())
-	if !errors.Is(err, ErrForbidden) {
-		t.Fatalf("error = %v, want ErrForbidden", err)
-	}
-}
-
 func TestRevocationService_ActiveOnlyAndIdempotency(t *testing.T) {
 	now := time.Now().UTC()
 	t.Run("expired first revoke", func(t *testing.T) {
 		service, mock := newRevocationService(t, now)
 		mock.ExpectBegin()
-		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("alice@example.org", now.Add(-2*time.Hour), now.Add(-time.Hour)))
+		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow(now.Add(-2*time.Hour), now.Add(-time.Hour)))
 		mock.ExpectQuery(existingRevocationQuery).WillReturnError(sql.ErrNoRows)
 		mock.ExpectRollback()
 		_, err := service.Revoke(context.Background(), activeCommand())
@@ -129,7 +98,7 @@ func TestRevocationService_ActiveOnlyAndIdempotency(t *testing.T) {
 	t.Run("future first revoke", func(t *testing.T) {
 		service, mock := newRevocationService(t, now)
 		mock.ExpectBegin()
-		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("alice@example.org", now.Add(time.Hour), now.Add(2*time.Hour)))
+		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow(now.Add(time.Hour), now.Add(2*time.Hour)))
 		mock.ExpectQuery(existingRevocationQuery).WillReturnError(sql.ErrNoRows)
 		mock.ExpectRollback()
 		_, err := service.Revoke(context.Background(), activeCommand())
@@ -141,7 +110,7 @@ func TestRevocationService_ActiveOnlyAndIdempotency(t *testing.T) {
 		service, mock := newRevocationService(t, now)
 		original := now.Add(-2 * time.Hour)
 		mock.ExpectBegin()
-		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("alice@example.org", now.Add(-3*time.Hour), now.Add(-time.Hour)))
+		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow(now.Add(-3*time.Hour), now.Add(-time.Hour)))
 		mock.ExpectQuery(existingRevocationQuery).WillReturnRows(sqlmock.NewRows([]string{"revoked_at", "reason"}).AddRow(original, "original"))
 		mock.ExpectCommit()
 		result, err := service.Revoke(context.Background(), activeCommand())
@@ -172,7 +141,7 @@ func TestRevocationService_FailuresRollback(t *testing.T) {
 	t.Run("insert", func(t *testing.T) {
 		service, mock := newRevocationService(t, now)
 		mock.ExpectBegin()
-		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("alice@example.org", now.Add(-time.Hour), now.Add(time.Hour)))
+		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow(now.Add(-time.Hour), now.Add(time.Hour)))
 		mock.ExpectQuery(existingRevocationQuery).WillReturnError(sql.ErrNoRows)
 		mock.ExpectExec(insertRevocationQuery).WillReturnError(errors.New("insert failed"))
 		mock.ExpectRollback()
@@ -183,7 +152,7 @@ func TestRevocationService_FailuresRollback(t *testing.T) {
 	t.Run("commit", func(t *testing.T) {
 		service, mock := newRevocationService(t, now)
 		mock.ExpectBegin()
-		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow("alice@example.org", now.Add(-time.Hour), now.Add(time.Hour)))
+		mock.ExpectQuery(lookupCertificateQuery).WillReturnRows(certificateRow(now.Add(-time.Hour), now.Add(time.Hour)))
 		mock.ExpectQuery(existingRevocationQuery).WillReturnError(sql.ErrNoRows)
 		mock.ExpectExec(insertRevocationQuery).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit().WillReturnError(errors.New("commit failed"))

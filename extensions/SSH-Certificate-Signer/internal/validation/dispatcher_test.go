@@ -43,16 +43,16 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 }
 
-// Make sure the noop validator accepts the requested principal as is.
-func TestDispatcher_NoopSource(t *testing.T) {
-	d := NewValidatorDispatcher(nil, nil, "noop", time.Minute, testLogger())
+// Make sure no validator accepts the requested principal as is.
+func TestDispatcher_NoneSource(t *testing.T) {
+	d := NewValidatorDispatcher(nil, nil, "none", time.Minute, testLogger())
 
-	result, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	result, err := d.Validate(context.Background(), "jdoe", "sub1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !result.Allowed {
-		t.Error("expected Allowed=true for noop")
+		t.Error("expected Allowed=true for none")
 	}
 	if result.ValidatedPrincipal != "jdoe" {
 		t.Errorf("expected principal jdoe, got %s", result.ValidatedPrincipal)
@@ -81,7 +81,7 @@ func TestDispatcher_LDAPSource_PrincipalFound(t *testing.T) {
 	connector := &mockLDAPConnector{conn: conn}
 	d := NewValidatorDispatcher(fetcher, connector, "ldap", time.Minute, testLogger())
 
-	result, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	result, err := d.Validate(context.Background(), "jdoe", "sub1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestDispatcher_LDAPSource_NoCredentials(t *testing.T) {
 	fetcher := &mockCredentialFetcher{creds: nil}
 	d := NewValidatorDispatcher(fetcher, nil, "ldap", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	_, err := d.Validate(context.Background(), "jdoe", "sub1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -111,7 +111,7 @@ func TestDispatcher_LDAPSource_VaultError(t *testing.T) {
 	fetcher := &mockCredentialFetcher{err: errors.New("vault sealed")}
 	d := NewValidatorDispatcher(fetcher, nil, "ldap", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	_, err := d.Validate(context.Background(), "jdoe", "sub1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -144,9 +144,9 @@ func TestDispatcher_CacheHit(t *testing.T) {
 	d := NewValidatorDispatcher(fetcher, connector, "ldap", time.Minute, testLogger())
 
 	// First call — fetches from Vault
-	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	d.Validate(context.Background(), "jdoe", "sub1")
 	// Second call — should use cache
-	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	d.Validate(context.Background(), "jdoe", "sub1")
 
 	if fetcher.callCount != 1 {
 		t.Errorf("expected 1 Vault fetch (cached), got %d", fetcher.callCount)
@@ -176,11 +176,11 @@ func TestDispatcher_CacheExpiry(t *testing.T) {
 	d := NewValidatorDispatcher(fetcher, connector, "ldap", 1*time.Millisecond, testLogger())
 
 	// First call
-	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	d.Validate(context.Background(), "jdoe", "sub1")
 	// Wait for cache to expire
 	time.Sleep(5 * time.Millisecond)
 	// Second call — should re-fetch
-	d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	d.Validate(context.Background(), "jdoe", "sub1")
 
 	if fetcher.callCount != 2 {
 		t.Errorf("expected 2 Vault fetches (cache expired), got %d", fetcher.callCount)
@@ -191,26 +191,12 @@ func TestDispatcher_CacheExpiry(t *testing.T) {
 func TestDispatcher_UnknownSource(t *testing.T) {
 	d := NewValidatorDispatcher(nil, nil, "unknown", time.Minute, testLogger())
 
-	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
+	_, err := d.Validate(context.Background(), "jdoe", "sub1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
 	valErr := err.(*ValidationError)
 	if valErr.ReasonCode != "UNKNOWN_PRINCIPAL_SOURCE" {
 		t.Errorf("expected UNKNOWN_PRINCIPAL_SOURCE, got %s", valErr.ReasonCode)
-	}
-}
-
-// Make sure the comanage validator refuses every request until it is implemented.
-func TestDispatcher_ComanageStub(t *testing.T) {
-	d := NewValidatorDispatcher(nil, nil, "comanage", time.Minute, testLogger())
-
-	_, err := d.ValidateForClient(context.Background(), "c1", "jdoe", "sub1")
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	valErr := err.(*ValidationError)
-	if valErr.ReasonCode != "COMANAGE_NOT_IMPLEMENTED" {
-		t.Errorf("expected COMANAGE_NOT_IMPLEMENTED, got %s", valErr.ReasonCode)
 	}
 }

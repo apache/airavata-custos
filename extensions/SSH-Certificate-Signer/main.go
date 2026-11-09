@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/signer/internal/audit"
-	"github.com/apache/airavata-custos/signer/internal/auth"
 	"github.com/apache/airavata-custos/signer/internal/config"
 	"github.com/apache/airavata-custos/signer/internal/handler"
 	"github.com/apache/airavata-custos/signer/internal/policy"
@@ -85,11 +84,6 @@ func main() {
 
 	logger := setupLogger(cfg.Logging)
 	slog.SetDefault(logger)
-
-	if cfg.DevMode.Enabled {
-		logger.Warn("DEV MODE ENABLED - OIDC token validation is disabled. DO NOT use in production.",
-			"default_email", cfg.DevMode.DefaultEmail)
-	}
 
 	switch cmd {
 	case "migrate":
@@ -154,20 +148,10 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 	}
 	logger.Info("vault client initialized")
 
-	authenticator := auth.NewClientAuthenticator(db)
-	oidcValidator := auth.NewOIDCValidator(cfg.Signer.Auth, cfg.DevMode)
-	coreAuthorizer, err := auth.NewCoreAuthorizationClient(cfg.Signer.CoreAPIBaseURL, 10*time.Second)
-	if err != nil {
-		logger.Error("failed to configure core authorization client", "error", err)
-		os.Exit(1)
-	}
-	policyEnforcer := policy.NewEnforcer(cfg.Signer.Policy.Defaults.MaxTTLSeconds, cfg.Signer.Policy.Defaults.AllowedKeyTypes)
+	policyEnforcer := policy.NewEnforcer(cfg.Signer.Policy.MaxTTLSeconds, cfg.Signer.Policy.AllowedKeyTypes)
 	auditLogger := audit.NewLogger(db, logger)
 
 	cacheTTL := time.Duration(cfg.Signer.Validation.CacheTTLSeconds) * time.Second
-	if cacheTTL <= 0 {
-		cacheTTL = 5 * time.Minute
-	}
 	ldapConnector := validation.NewDefaultLDAPConnector()
 	principalValidator := validation.NewValidatorDispatcher(
 		vaultClient, ldapConnector,
@@ -178,30 +162,26 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		"source", cfg.Signer.Validation.PrincipalValidator,
 		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
-	signHandler := handler.NewSignHandler(oidcValidator, policyEnforcer, principalValidator, vaultClient, auditLogger, logger)
-	revocationService := signerservice.NewRevocationService(db)
-	revokeHandler := handler.NewRevokeHandler(auditLogger, revocationService, logger)
-	jwksHandler := handler.NewJWKSHandler(vaultClient, logger)
+	signHandler := handler.NewSignHandler(policyEnforcer, principalValidator, vaultClient, auditLogger, handler.SignSettings{
+		ReservedUsernames: cfg.Signer.ReservedUsernames,
+		DeniedExtensions:  cfg.Signer.Policy.DeniedExtensions,
+		LoginHost:         cfg.Signer.LoginHost,
+		LoginPort:         cfg.Signer.LoginPort,
+	}, logger)
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
 	healthHandler := handler.NewHealthHandler(db, vaultClient)
-	certificatesHandler := handler.NewCertificatesHandler(db, logger).WithRevocation(coreAuthorizer, revocationService)
-	userInfoHandler := handler.NewUserInfoHandler()
+	certificatesHandler := handler.NewCertificatesHandler(db, signerservice.NewRevocationService(db), logger)
 
 	handlers := server.Handlers{
 		Sign:              signHandler.Handle,
-		Revoke:            revokeHandler.Handle,
-		JWKS:              jwksHandler.Handle,
 		CAPublicKey:       caPublicKeyHandler.Handle,
 		Health:            healthHandler.Handle,
 		Certificates:      certificatesHandler.HandleList,
 		CertificateDetail: certificatesHandler.HandleGet,
 		CertificateRevoke: certificatesHandler.HandleRevoke,
-		AdminCertificates: certificatesHandler.HandleAdminList,
-		AdminCertificate:  certificatesHandler.HandleAdminGet,
-		UserInfo:          userInfoHandler.Handle,
 	}
 
-	router := server.NewRouter(cfg, authenticator, oidcValidator, coreAuthorizer, handlers)
+	router := server.NewRouter(cfg, handlers)
 
 	srv := server.New(cfg.Server, router, logger)
 	if err := srv.ListenAndServe(); err != nil {

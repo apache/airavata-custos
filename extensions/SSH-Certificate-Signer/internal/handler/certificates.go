@@ -17,7 +17,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -31,24 +30,22 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/apache/airavata-custos/signer/internal/auth"
-	"github.com/apache/airavata-custos/signer/internal/httputil"
 	signerservice "github.com/apache/airavata-custos/signer/internal/service"
 	"github.com/apache/airavata-custos/signer/internal/store"
 )
 
 type CertificateResponse struct {
-	ClientID             string   `json:"client_id"`
 	SerialNumber         int64    `json:"serial_number"`
 	KeyID                string   `json:"key_id"`
 	Principal            string   `json:"principal"`
 	UserEmail            string   `json:"user_email"`
+	UserSub              string   `json:"user_sub"`
+	RequestedBy          string   `json:"requested_by"`
 	PublicKeyFingerprint string   `json:"public_key_fingerprint"`
 	CAFingerprint        string   `json:"ca_fingerprint"`
 	ValidAfter           int64    `json:"valid_after"`
 	ValidBefore          int64    `json:"valid_before"`
 	IssuedAt             int64    `json:"issued_at"`
-	SourceIP             string   `json:"source_ip,omitempty"`
 	GrantedExtensions    []string `json:"granted_extensions,omitempty"`
 	ForceCommand         *string  `json:"force_command,omitempty"`
 	Revoked              bool     `json:"revoked"`
@@ -59,19 +56,13 @@ type CertificateResponse struct {
 
 type CertificateListResponse struct {
 	Certificates []CertificateResponse `json:"certificates"`
-	Total        int                   `json:"total"`
-	Limit        int                   `json:"limit"`
-	Offset       int                   `json:"offset"`
-}
-
-type AdminCertificateListResponse struct {
-	Certificates []CertificateResponse `json:"certificates"`
 	Limit        int                   `json:"limit"`
 	NextCursor   string                `json:"next_cursor,omitempty"`
 }
 
 type CertificateRevokeRequest struct {
-	Reason string `json:"reason"`
+	Reason    string `json:"reason"`
+	RevokedBy string `json:"revoked_by"`
 }
 
 type CertificateRevokeResponse struct {
@@ -85,133 +76,25 @@ type CertificateRevokeResponse struct {
 }
 
 type CertificateStore interface {
-	ListCertificatesByEmail(context.Context, string, int, int) (*store.CertificateListResult, error)
-	ListCertificates(context.Context, int, *store.CertificateCursor) (*store.CertificatePageResult, error)
+	ListCertificates(context.Context, int, *store.CertificateCursor, store.CertificateFilter) (*store.CertificatePageResult, error)
 	GetCertificateBySerial(context.Context, int64) (*store.CertificateWithStatus, error)
 }
 
+type CertificateRevoker interface {
+	Revoke(context.Context, signerservice.RevokeCommand) (*signerservice.RevokedCertificate, error)
+}
+
 type CertificatesHandler struct {
-	db             CertificateStore
-	coreAuthorizer auth.CoreAuthorizer
-	revoker        CertificateRevoker
-	logger         *slog.Logger
+	db      CertificateStore
+	revoker CertificateRevoker
+	logger  *slog.Logger
 }
 
-func NewCertificatesHandler(db CertificateStore, logger *slog.Logger) *CertificatesHandler {
-	return &CertificatesHandler{
-		db:     db,
-		logger: logger,
-	}
-}
-
-func (h *CertificatesHandler) WithRevocation(authorizer auth.CoreAuthorizer, revoker CertificateRevoker) *CertificatesHandler {
-	h.coreAuthorizer = authorizer
-	h.revoker = revoker
-	return h
+func NewCertificatesHandler(db CertificateStore, revoker CertificateRevoker, logger *slog.Logger) *CertificatesHandler {
+	return &CertificatesHandler{db: db, revoker: revoker, logger: logger}
 }
 
 func (h *CertificatesHandler) HandleList(w http.ResponseWriter, r *http.Request) {
-	identity := httputil.UserIdentityFromContext(r.Context())
-	if identity == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "Missing user identity")
-		return
-	}
-
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-
-	if limit <= 0 {
-		limit = 20
-	}
-
-	result, err := h.db.ListCertificatesByEmail(r.Context(), identity.Email, limit, offset)
-	if err != nil {
-		h.logger.Error("failed to list certificates", "error", err, "email", identity.Email)
-		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to list certificates")
-		return
-	}
-
-	certs := make([]CertificateResponse, 0, len(result.Certificates))
-	for _, c := range result.Certificates {
-		cert := CertificateResponse{
-			ClientID:             c.ClientID,
-			SerialNumber:         c.SerialNumber,
-			KeyID:                c.KeyID,
-			Principal:            c.Principal,
-			UserEmail:            c.UserEmail,
-			PublicKeyFingerprint: c.PublicKeyFingerprint,
-			CAFingerprint:        c.CAFingerprint,
-			ValidAfter:           c.ValidAfter.Unix(),
-			ValidBefore:          c.ValidBefore.Unix(),
-			IssuedAt:             c.IssuedAt.Unix(),
-			SourceIP:             c.SourceIP,
-			GrantedExtensions:    c.GrantedExtensions,
-			ForceCommand:         c.ForceCommand,
-			Revoked:              c.Revoked,
-			RevocationReason:     c.RevocationReason,
-			RevokedBy:            c.RevokedBy,
-		}
-		if c.RevokedAt != nil {
-			ts := c.RevokedAt.Unix()
-			cert.RevokedAt = &ts
-		}
-		certs = append(certs, cert)
-	}
-
-	resp := CertificateListResponse{
-		Certificates: certs,
-		Total:        result.Total,
-		Limit:        limit,
-		Offset:       offset,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
-}
-
-// HandleGet expects the serial number as the last URL path segment.
-func (h *CertificatesHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	identity := httputil.UserIdentityFromContext(r.Context())
-	if identity == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "Missing user identity")
-		return
-	}
-
-	parts := strings.Split(strings.TrimRight(r.URL.Path, "/"), "/")
-	serialStr := parts[len(parts)-1]
-
-	serial, err := strconv.ParseInt(serialStr, 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid serial number")
-		return
-	}
-
-	cert, err := h.db.GetCertificateBySerial(r.Context(), serial)
-	if err != nil {
-		if err == sql.ErrNoRows || strings.Contains(err.Error(), "no rows") {
-			writeError(w, http.StatusNotFound, "not_found", "Certificate not found")
-			return
-		}
-		h.logger.Error("failed to get certificate", "error", err, "serial", serial)
-		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to get certificate")
-		return
-	}
-
-	// Authorization: user can only view their own certificates
-	if cert.UserEmail != identity.Email {
-		writeError(w, http.StatusForbidden, "forbidden", "You can only view your own certificates")
-		return
-	}
-
-	resp := toCertificateResponse(cert)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
-}
-
-func (h *CertificatesHandler) HandleAdminList(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 {
 		limit = 20
@@ -224,9 +107,10 @@ func (h *CertificatesHandler) HandleAdminList(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusBadRequest, "invalid_cursor", "Invalid certificate cursor")
 		return
 	}
-	result, err := h.db.ListCertificates(r.Context(), limit, cursor)
+	filter := store.CertificateFilter{UserSub: r.URL.Query().Get("user_sub"), RequestedBy: r.URL.Query().Get("requested_by")}
+	result, err := h.db.ListCertificates(r.Context(), limit, cursor, filter)
 	if err != nil {
-		h.logger.Error("failed to list certificates for administrator", "error", err)
+		h.logger.Error("failed to list certificates", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to list certificates")
 		return
 	}
@@ -234,25 +118,25 @@ func (h *CertificatesHandler) HandleAdminList(w http.ResponseWriter, r *http.Req
 	for i := range result.Certificates {
 		certificates = append(certificates, toCertificateResponse(&result.Certificates[i]))
 	}
-	response := AdminCertificateListResponse{Certificates: certificates, Limit: limit}
+	response := CertificateListResponse{Certificates: certificates, Limit: limit}
 	if result.NextCursor != nil {
 		response.NextCursor = encodeCertificateCursor(result.NextCursor)
 	}
 	writeJSON(w, http.StatusOK, response)
 }
 
-func (h *CertificatesHandler) HandleAdminGet(w http.ResponseWriter, r *http.Request) {
+func (h *CertificatesHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	serial, ok := certificateSerial(w, r)
 	if !ok {
 		return
 	}
 	certificate, err := h.db.GetCertificateBySerial(r.Context(), serial)
 	if err != nil {
-		if errors.Is(err, store.ErrCertificateNotFound) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, store.ErrCertificateNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Certificate not found")
 			return
 		}
-		h.logger.Error("failed to get certificate for administrator", "error", err, "serial", serial)
+		h.logger.Error("failed to get certificate", "error", err, "serial", serial)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to get certificate")
 		return
 	}
@@ -260,11 +144,6 @@ func (h *CertificatesHandler) HandleAdminGet(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *CertificatesHandler) HandleRevoke(w http.ResponseWriter, r *http.Request) {
-	identity := httputil.UserIdentityFromContext(r.Context())
-	if identity == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "Missing user identity")
-		return
-	}
 	serial, ok := certificateSerial(w, r)
 	if !ok {
 		return
@@ -282,66 +161,20 @@ func (h *CertificatesHandler) HandleRevoke(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	reason := strings.TrimSpace(request.Reason)
-	if utf8.RuneCountInString(reason) == 0 || utf8.RuneCountInString(reason) > 255 {
-		writeError(w, http.StatusBadRequest, "invalid_reason", "Reason must be between 1 and 255 characters")
+	if utf8.RuneCountInString(reason) > 255 {
+		writeError(w, http.StatusBadRequest, "invalid_reason", "Reason is limited to 255 characters")
+		return
+	}
+	revokedBy := strings.TrimSpace(request.RevokedBy)
+	if revokedBy == "" || utf8.RuneCountInString(revokedBy) > 255 {
+		writeError(w, http.StatusBadRequest, "invalid_request", "revoked_by must be between 1 and 255 characters")
 		return
 	}
 
-	certificate, err := h.db.GetCertificateBySerial(r.Context(), serial)
-	if err != nil {
-		if errors.Is(err, store.ErrCertificateNotFound) || errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "not_found", "Certificate not found")
-			return
-		}
-		h.logger.Error("failed to load certificate for revocation authorization", "error", err, "serial", serial)
-		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to load certificate")
-		return
-	}
-
-	revokedBy := identity.Subject
-	if revokedBy == "" {
-		revokedBy = identity.Email
-	}
-	canRevokeAny := false
-	if certificate.UserEmail != identity.Email {
-		if h.coreAuthorizer == nil {
-			writeError(w, http.StatusServiceUnavailable, "authorization_unavailable", "Authorization service unavailable")
-			return
-		}
-		token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-		caller, err := h.coreAuthorizer.ResolveCaller(r.Context(), token)
-		if errors.Is(err, auth.ErrCoreUnauthorized) {
-			writeError(w, http.StatusUnauthorized, "unauthorized", "Invalid or expired bearer token")
-			return
-		}
-		if err != nil || caller == nil {
-			writeError(w, http.StatusServiceUnavailable, "authorization_unavailable", "Authorization service unavailable")
-			return
-		}
-		if !caller.HasPrivilege(auth.SignerCertificatesWrite) {
-			writeError(w, http.StatusForbidden, "insufficient_privilege", "Caller lacks required privilege")
-			return
-		}
-		canRevokeAny = true
-		revokedBy = caller.ID
-		if revokedBy == "" {
-			revokedBy = caller.Email
-		}
-	}
-	if h.revoker == nil {
-		writeError(w, http.StatusInternalServerError, "internal_error", "Revocation service unavailable")
-		return
-	}
-	result, err := h.revoker.Revoke(r.Context(), signerservice.RevokeCommand{
-		SerialNumber: serial, Reason: reason, RevokedBy: revokedBy,
-		OwnerEmail: identity.Email, CanRevokeAny: canRevokeAny, RequireActive: true,
-	})
+	result, err := h.revoker.Revoke(r.Context(), signerservice.RevokeCommand{SerialNumber: serial, Reason: reason, RevokedBy: revokedBy})
 	switch {
 	case errors.Is(err, store.ErrCertificateNotFound):
 		writeError(w, http.StatusNotFound, "not_found", "Certificate not found")
-		return
-	case errors.Is(err, signerservice.ErrForbidden):
-		writeError(w, http.StatusForbidden, "forbidden", "You cannot revoke this certificate")
 		return
 	case errors.Is(err, signerservice.ErrCertificateNotActive):
 		writeError(w, http.StatusConflict, "certificate_not_active", "Certificate is not active")
@@ -391,16 +224,7 @@ func decodeCertificateCursor(value string) (*store.CertificateCursor, error) {
 }
 
 func certificateSerial(w http.ResponseWriter, r *http.Request) (int64, bool) {
-	value := chi.URLParam(r, "serial")
-	if value == "" {
-		parts := strings.Split(strings.TrimRight(r.URL.Path, "/"), "/")
-		last := len(parts) - 1
-		if parts[last] == "revoke" && last > 0 {
-			last--
-		}
-		value = parts[last]
-	}
-	serial, err := strconv.ParseInt(value, 10, 64)
+	serial, err := strconv.ParseInt(chi.URLParam(r, "serial"), 10, 64)
 	if err != nil || serial <= 0 {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid serial number")
 		return 0, false
@@ -416,17 +240,17 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func toCertificateResponse(c *store.CertificateWithStatus) CertificateResponse {
 	resp := CertificateResponse{
-		ClientID:             c.ClientID,
 		SerialNumber:         c.SerialNumber,
 		KeyID:                c.KeyID,
 		Principal:            c.Principal,
 		UserEmail:            c.UserEmail,
+		UserSub:              c.UserSub,
+		RequestedBy:          c.RequestedBy,
 		PublicKeyFingerprint: c.PublicKeyFingerprint,
 		CAFingerprint:        c.CAFingerprint,
 		ValidAfter:           c.ValidAfter.Unix(),
 		ValidBefore:          c.ValidBefore.Unix(),
 		IssuedAt:             c.IssuedAt.Unix(),
-		SourceIP:             c.SourceIP,
 		GrantedExtensions:    c.GrantedExtensions,
 		ForceCommand:         c.ForceCommand,
 		Revoked:              c.Revoked,

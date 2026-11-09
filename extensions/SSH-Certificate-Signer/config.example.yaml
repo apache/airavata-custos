@@ -38,43 +38,37 @@ vault:
   timeout_seconds: 10
 
 signer:
-  # Custos Core resolves effective administrator privileges for signer admin APIs.
-  core_api_base_url: http://localhost:8080  # env: CORE_API_BASE_URL
+  service_token: ""                    # env: SIGNER_SERVICE_TOKEN. At least 32 characters.
+  reserved_usernames:                  # never signed, whatever the caller asks
+    - root
+    - daemon
+    - bin
+    - sys
+    - adm
+    - nobody
+    - sshd
+    - slurm
+    - munge
+  login_host: login.example.org        # returned with each certificate
+  login_port: 22
   ca:
     rotation:
       period_hours: 2160              # 90 days
       overlap_hours: 2
   policy:
-    defaults:
-      max_ttl_seconds: 86400          # 24 hours
-      allowed_key_types:
-        - ed25519
-        - rsa
-        - ecdsa
-  auth:
-    allowed_issuers:                   # env: ALLOWED_ISSUERS (comma-separated)
-      - https://cilogon.org
-    oidc:
-      jwks_cache_ttl_seconds: 300     # 5 minutes
-      jwks_max_providers: 10
-      timeout_seconds: 10
+    max_ttl_seconds: 86400            # 24 hours
+    allowed_key_types:
+      - ed25519
+      - rsa
+      - ecdsa
+    denied_extensions: []             # any of the standard ssh extensions
   validation:
-    principal_validator: ldap          # "ldap" or "comanage"; "noop" only with dev_mode
+    principal_validator: none          # "none", or "ldap" for the site's own check
     cache_ttl_seconds: 300            # Vault credential cache TTL for validators
-
-dev_mode:
-  enabled: false                       # env: DEV_MODE (disables OIDC validation)
-  default_email: dev@localhost           # env: DEV_DEFAULT_EMAIL
-
-cors:
-  enabled: false                         # Enable CORS for cross-origin requests
-  allowed_origins:                       # Origins allowed for cross-origin requests
-    - http://localhost:5173
 
 logging:
   level: info                          # debug, info, warn, error
   format: json                         # json or text
-  audit_level: info
 
 metrics:
   enabled: true

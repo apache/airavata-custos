@@ -18,12 +18,8 @@ package cert
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -166,72 +162,4 @@ func CAFingerprint(publicKeyPEM []byte) (string, error) {
 		return "", err
 	}
 	return ssh.FingerprintSHA256(sshPub), nil
-}
-
-func PublicKeyToJWK(publicKeyPEM []byte) (map[string]interface{}, error) {
-	block, _ := pem.Decode(publicKeyPEM)
-	if block == nil {
-		return nil, fmt.Errorf("failed to decode PEM block")
-	}
-
-	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("parsing public key: %w", err)
-	}
-
-	sshPub, err := ssh.NewPublicKey(pubKey)
-	if err != nil {
-		return nil, fmt.Errorf("converting to SSH public key: %w", err)
-	}
-	fingerprint := ssh.FingerprintSHA256(sshPub)
-
-	jwkMap := map[string]interface{}{
-		"kid": fingerprint,
-	}
-
-	switch key := pubKey.(type) {
-	case ed25519.PublicKey:
-		jwkMap["kty"] = "OKP"
-		jwkMap["crv"] = "Ed25519"
-		jwkMap["x"] = base64.RawURLEncoding.EncodeToString([]byte(key))
-	case *ecdsa.PublicKey:
-		jwkMap["kty"] = "EC"
-		switch key.Curve.Params().BitSize {
-		case 256:
-			jwkMap["crv"] = "P-256"
-		case 384:
-			jwkMap["crv"] = "P-384"
-		case 521:
-			jwkMap["crv"] = "P-521"
-		}
-		byteLen := (key.Curve.Params().BitSize + 7) / 8
-		xBytes := key.X.Bytes()
-		yBytes := key.Y.Bytes()
-		// Pad to full length
-		xPadded := make([]byte, byteLen)
-		yPadded := make([]byte, byteLen)
-		copy(xPadded[byteLen-len(xBytes):], xBytes)
-		copy(yPadded[byteLen-len(yBytes):], yBytes)
-		jwkMap["x"] = base64.RawURLEncoding.EncodeToString(xPadded)
-		jwkMap["y"] = base64.RawURLEncoding.EncodeToString(yPadded)
-	case *rsa.PublicKey:
-		jwkMap["kty"] = "RSA"
-		jwkMap["n"] = base64.RawURLEncoding.EncodeToString(key.N.Bytes())
-		eBytes := make([]byte, 0)
-		e := key.E
-		for e > 0 {
-			eBytes = append([]byte{byte(e & 0xff)}, eBytes...)
-			e >>= 8
-		}
-		jwkMap["e"] = base64.RawURLEncoding.EncodeToString(eBytes)
-	default:
-		return nil, fmt.Errorf("unsupported public key type")
-	}
-
-	return jwkMap, nil
-}
-
-func HashToken(token string) string {
-	h := sha256.Sum256([]byte(token))
-	return base64.StdEncoding.EncodeToString(h[:])
 }

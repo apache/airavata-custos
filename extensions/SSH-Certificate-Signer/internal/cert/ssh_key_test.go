@@ -21,9 +21,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"strings"
 	"testing"
@@ -106,31 +104,6 @@ func TestNormalizeKeyType(t *testing.T) {
 	}
 }
 
-func TestHashToken(t *testing.T) {
-	hash1 := HashToken("eyJhbGciOiJSUzI1NiIs")
-	hash2 := HashToken("eyJhbGciOiJSUzI1NiIs")
-
-	// Consistent
-	if hash1 != hash2 {
-		t.Error("hash should be consistent for the same input")
-	}
-
-	// Verify it is SHA-256 base64
-	decoded, err := base64.StdEncoding.DecodeString(hash1)
-	if err != nil {
-		t.Fatalf("not valid base64: %v", err)
-	}
-	if len(decoded) != sha256.Size {
-		t.Errorf("expected %d bytes, got %d", sha256.Size, len(decoded))
-	}
-
-	// Different tokens produce different hashes
-	hash3 := HashToken("different-token")
-	if hash1 == hash3 {
-		t.Error("different tokens should produce different hashes")
-	}
-}
-
 func TestSSHPublicKeyFingerprint(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
 	sshPub, _ := ssh.NewPublicKey(pub)
@@ -189,29 +162,6 @@ func TestParseCAPrivateKey_InvalidPEM(t *testing.T) {
 	_, _, err := ParseCAPrivateKey([]byte("not a PEM"))
 	if err == nil {
 		t.Error("expected error for invalid PEM")
-	}
-}
-
-func TestPublicKeyToJWK_Ed25519(t *testing.T) {
-	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(pub)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	jwkMap, err := PublicKeyToJWK(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if jwkMap["kty"] != "OKP" {
-		t.Errorf("expected kty OKP, got %v", jwkMap["kty"])
-	}
-	if jwkMap["crv"] != "Ed25519" {
-		t.Errorf("expected crv Ed25519, got %v", jwkMap["crv"])
-	}
-	if jwkMap["x"] == nil || jwkMap["x"] == "" {
-		t.Error("expected non-empty x")
-	}
-	if jwkMap["kid"] == nil || jwkMap["kid"] == "" {
-		t.Error("expected non-empty kid")
 	}
 }
 

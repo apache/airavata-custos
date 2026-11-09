@@ -35,7 +35,7 @@ type cachedCreds struct {
 	fetchedAt time.Time
 }
 
-// ValidatorDispatcher runs the deployment's principal validator (noop, ldap, comanage).
+// ValidatorDispatcher runs the deployment's principal validator (none or ldap).
 type ValidatorDispatcher struct {
 	credFetcher   CredentialFetcher
 	ldapConnector LDAPConnector
@@ -68,24 +68,16 @@ func NewValidatorDispatcher(
 	}
 }
 
-// ValidateForClient checks the principal with the deployment's validator.
-// Called directly by the sign handler.
-func (d *ValidatorDispatcher) ValidateForClient(ctx context.Context, clientID, principal, identitySubject string) (*ValidationResult, error) {
+func (d *ValidatorDispatcher) Validate(ctx context.Context, principal, identitySubject string) (*ValidationResult, error) {
 	switch d.source {
-	case "noop", "":
+	case "none":
 		return &ValidationResult{
 			Allowed:            true,
 			ValidatedPrincipal: principal,
 		}, nil
 
 	case "ldap":
-		return d.validateLDAP(ctx, clientID, principal, identitySubject)
-
-	case "comanage":
-		return nil, &ValidationError{
-			Message:    "COmanage principal validation is not yet implemented",
-			ReasonCode: "COMANAGE_NOT_IMPLEMENTED",
-		}
+		return d.validateLDAP(ctx, principal, identitySubject)
 
 	default:
 		return nil, &ValidationError{
@@ -95,7 +87,7 @@ func (d *ValidatorDispatcher) ValidateForClient(ctx context.Context, clientID, p
 	}
 }
 
-func (d *ValidatorDispatcher) validateLDAP(ctx context.Context, clientID, principal, identitySubject string) (*ValidationResult, error) {
+func (d *ValidatorDispatcher) validateLDAP(ctx context.Context, principal, identitySubject string) (*ValidationResult, error) {
 	creds, err := d.fetchCredentials(ctx)
 	if err != nil {
 		d.logger.Error("failed to fetch validation credentials", "error", err)
@@ -112,7 +104,7 @@ func (d *ValidatorDispatcher) validateLDAP(ctx context.Context, clientID, princi
 	}
 
 	validator := d.getOrCreateValidator(creds)
-	return validator.Validate(clientID, principal, identitySubject)
+	return validator.Validate(principal, identitySubject)
 }
 
 func (d *ValidatorDispatcher) getOrCreateValidator(creds *vault.ValidationCredentials) *LDAPValidator {

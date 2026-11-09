@@ -135,11 +135,6 @@ func (c *Client) GetCurrentCAKey(ctx context.Context) (*CAKeyPair, error) {
 	return kp, nil
 }
 
-// GetNextCAKey returns the next CA key, or nil if none exists.
-func (c *Client) GetNextCAKey(ctx context.Context) (*CAKeyPair, error) {
-	return c.readCAKey(ctx, "next")
-}
-
 // IncrementSerialCounter atomically reads, increments, and writes the serial
 // counter using Vault KV v2 CAS (Check-and-Set) to prevent lost updates.
 func (c *Client) IncrementSerialCounter(ctx context.Context) (int64, error) {
@@ -160,10 +155,6 @@ func (c *Client) IncrementSerialCounter(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return newSerial, nil
-}
-
-func (c *Client) GetMetadata(ctx context.Context) (*CAMetadata, error) {
-	return c.readMetadata(ctx)
 }
 
 func (c *Client) readCAKey(ctx context.Context, slot string) (*CAKeyPair, error) {
@@ -216,11 +207,6 @@ func (c *Client) writeCAKey(ctx context.Context, slot string, kp *CAKeyPair) err
 		return fmt.Errorf("writing vault path %s: %w", path, err)
 	}
 	return nil
-}
-
-func (c *Client) readMetadata(ctx context.Context) (*CAMetadata, error) {
-	meta, _, err := c.readMetadataWithVersion(ctx)
-	return meta, err
 }
 
 func (c *Client) readMetadataWithVersion(ctx context.Context) (*CAMetadata, int, error) {

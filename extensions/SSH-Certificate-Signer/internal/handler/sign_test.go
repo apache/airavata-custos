@@ -16,17 +16,66 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func TestPrincipalRegex(t *testing.T) {
-	re := regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
+func signError(t *testing.T, body string) (int, string) {
+	t.Helper()
+	h := NewSignHandler(nil, nil, nil, nil, SignSettings{ReservedUsernames: []string{"root"}}, slog.Default())
+	rec := httptest.NewRecorder()
+	h.Handle(rec, httptest.NewRequest(http.MethodPost, "/api/v1/sign", strings.NewReader(body)))
+	var got struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	return rec.Code, got.Error
+}
 
+// Make sure a reserved username is refused before any validator or key is used.
+func TestSign_RefusesReservedUsername(t *testing.T) {
+	code, errorCode := signError(t, `{"principal":"root","public_key":"k","user_email":"a@example.edu","user_sub":"s","requested_by":"user/1"}`)
+	if code != http.StatusForbidden || errorCode != "reserved_username" {
+		t.Fatalf("got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a value that could forge a login log line or make two key IDs the same is refused.
+func TestSign_RefusesUnsafeAttributes(t *testing.T) {
+	for name, body := range map[string]string{
+		"newline in email":       `{"principal":"jdoe","public_key":"k","user_email":"a@example.edu\nfake","user_sub":"s","requested_by":"user/1"}`,
+		"separator in requester": `{"principal":"jdoe","public_key":"k","user_email":"a@example.edu","user_sub":"s","requested_by":"b:c"}`,
+	} {
+		if code, errorCode := signError(t, body); code != http.StatusBadRequest || errorCode != "invalid_request" {
+			t.Errorf("%s: got %d %s", name, code, errorCode)
+		}
+	}
+}
+
+// Make sure a certificate cannot be issued without saying who it is for and who asked.
+func TestSign_RequiresUserAndRequester(t *testing.T) {
+	for _, body := range []string{
+		`{"principal":"jdoe","public_key":"k","user_sub":"s","requested_by":"user/1"}`,
+		`{"principal":"jdoe","public_key":"k","user_email":"a@example.edu","requested_by":"user/1"}`,
+		`{"principal":"jdoe","public_key":"k","user_email":"a@example.edu","user_sub":"s"}`,
+	} {
+		if code, errorCode := signError(t, body); code != http.StatusBadRequest || errorCode != "invalid_request" {
+			t.Errorf("%s: got %d %s", body, code, errorCode)
+		}
+	}
+}
+
+func TestPrincipalRegex(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -55,7 +104,7 @@ func TestPrincipalRegex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := re.MatchString(tt.input)
+			got := principalRegex.MatchString(tt.input)
 			if got != tt.valid {
 				t.Errorf("principalRegex.MatchString(%q) = %v, want %v", tt.input, got, tt.valid)
 			}

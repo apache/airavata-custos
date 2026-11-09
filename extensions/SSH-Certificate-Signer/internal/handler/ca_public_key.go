@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/apache/airavata-custos/signer/internal/cert"
-	"github.com/apache/airavata-custos/signer/internal/httputil"
 	vaultpkg "github.com/apache/airavata-custos/signer/internal/vault"
 )
 
@@ -45,12 +44,6 @@ func NewCAPublicKeyHandler(vaultClient *vaultpkg.Client, logger *slog.Logger) *C
 }
 
 func (h *CAPublicKeyHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	clientCfg := httputil.ClientConfigFromContext(r.Context())
-	if clientCfg == nil {
-		writeError(w, http.StatusInternalServerError, "internal_error", "Missing client config")
-		return
-	}
-
 	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
 		h.logger.Error("failed to get current CA key", "error", err)

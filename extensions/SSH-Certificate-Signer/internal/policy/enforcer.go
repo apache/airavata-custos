@@ -17,26 +17,22 @@ package policy
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	"github.com/apache/airavata-custos/signer/internal/cert"
-	"github.com/apache/airavata-custos/signer/internal/store"
 )
 
 type Enforcer struct {
-	defaultMaxTTL       int
-	defaultAllowedTypes []string
+	maxTTL       int
+	allowedTypes []string
 }
 
-func NewEnforcer(defaultMaxTTL int, defaultAllowedTypes []string) *Enforcer {
-	return &Enforcer{
-		defaultMaxTTL:       defaultMaxTTL,
-		defaultAllowedTypes: defaultAllowedTypes,
-	}
+func NewEnforcer(maxTTL int, allowedTypes []string) *Enforcer {
+	return &Enforcer{maxTTL: maxTTL, allowedTypes: allowedTypes}
 }
 
 type PolicyError struct {
+	Code    string
 	Message string
 }
 
@@ -44,63 +40,19 @@ func (e *PolicyError) Error() string {
 	return e.Message
 }
 
-func (e *Enforcer) Enforce(ttlSeconds int, sshKeyType string, sourceIP string, clientCfg *store.ClientConfig) error {
-	maxTTL := clientCfg.MaxTTLSeconds
-	if maxTTL == 0 {
-		maxTTL = e.defaultMaxTTL
-	}
+func (e *Enforcer) Enforce(ttlSeconds int, sshKeyType string) error {
 	if ttlSeconds <= 0 {
-		return &PolicyError{Message: fmt.Sprintf("TTL must be greater than 0, got %d", ttlSeconds)}
+		return &PolicyError{Code: "invalid_ttl", Message: fmt.Sprintf("TTL must be greater than 0, got %d", ttlSeconds)}
 	}
-	if ttlSeconds > maxTTL {
-		return &PolicyError{Message: fmt.Sprintf("Requested TTL %d seconds exceeds maximum allowed TTL %d seconds", ttlSeconds, maxTTL)}
+	if ttlSeconds > e.maxTTL {
+		return &PolicyError{Code: "invalid_ttl", Message: fmt.Sprintf("Requested TTL %d seconds exceeds maximum allowed TTL %d seconds", ttlSeconds, e.maxTTL)}
 	}
 
 	normalizedType := cert.NormalizeKeyType(sshKeyType)
-	allowedTypes := clientCfg.AllowedKeyTypes
-	if len(allowedTypes) == 0 {
-		allowedTypes = e.defaultAllowedTypes
-	}
-	typeAllowed := false
-	for _, at := range allowedTypes {
-		if strings.EqualFold(at, normalizedType) {
-			typeAllowed = true
-			break
+	for _, allowed := range e.allowedTypes {
+		if strings.EqualFold(allowed, normalizedType) {
+			return nil
 		}
 	}
-	if !typeAllowed {
-		return &PolicyError{Message: fmt.Sprintf("Key type %q is not allowed. Allowed types: %v", normalizedType, allowedTypes)}
-	}
-
-	if clientCfg.SourceAddressRestriction != nil && *clientCfg.SourceAddressRestriction != "" {
-		_, cidr, err := net.ParseCIDR(*clientCfg.SourceAddressRestriction)
-		if err != nil {
-			return &PolicyError{Message: fmt.Sprintf("Invalid source address restriction CIDR: %s", *clientCfg.SourceAddressRestriction)}
-		}
-		ip := net.ParseIP(sourceIP)
-		if ip == nil {
-			return &PolicyError{Message: fmt.Sprintf("Could not parse source IP: %s", sourceIP)}
-		}
-		if !cidr.Contains(ip) {
-			return &PolicyError{Message: fmt.Sprintf("Source IP %s is not within allowed CIDR %s", sourceIP, *clientCfg.SourceAddressRestriction)}
-		}
-	}
-
-	return nil
-}
-
-// BuildCriticalOptions constructs the SSH certificate critical options map from
-// the client config's source address restriction and the per-request force command.
-func BuildCriticalOptions(sourceAddr *string, forceCommand string) map[string]string {
-	opts := make(map[string]string)
-	if sourceAddr != nil && *sourceAddr != "" {
-		opts["source-address"] = *sourceAddr
-	}
-	if forceCommand != "" {
-		opts["force-command"] = forceCommand
-	}
-	if len(opts) == 0 {
-		return nil
-	}
-	return opts
+	return &PolicyError{Code: "key_type_not_allowed", Message: fmt.Sprintf("Key type %q is not allowed. Allowed types: %v", normalizedType, e.allowedTypes)}
 }
