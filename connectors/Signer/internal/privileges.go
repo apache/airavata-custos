@@ -19,7 +19,6 @@ package internal
 
 import "github.com/apache/airavata-custos/pkg/models"
 
-// The signer checks these same keys on the caller's /me, so they must match its names.
 const (
 	CertificatesRead  models.PrivilegeKey = "signer:certificates:read"
 	CertificatesWrite models.PrivilegeKey = "signer:certificates:write"

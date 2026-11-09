@@ -19,32 +19,45 @@
 
 # Signer
 
-The Signer connector puts the [SSH certificate signer](../../extensions/SSH-Certificate-Signer/README.md) behind the
-Custos server. It registers the `signer:` privileges and forwards the certificate routes to the signer with the caller's
-own token, so the signer applies its owner and privilege checks to the real user.
+The Signer connector is the only caller of
+the [SSH certificate signer](../../extensions/SSH-Certificate-Signer/README.md).
+It decides who may have a certificate, then calls the signer with one service token. The caller's own token never goes
+to the signer. To offer the signer without the rest of Custos, enable only this connector.
 
 ## Routes
 
-| Route                                                  | Needs                       | Forwards to                                                       |
-|--------------------------------------------------------|-----------------------------|-------------------------------------------------------------------|
-| `GET /connectors/signer/certificates`                  | `signer:certificates:read`  | `GET /api/v1/admin/certificates`                                  |
-| `GET /connectors/signer/certificates/{serial}`         | `signer:certificates:read`  | `GET /api/v1/admin/certificates/{serial}`                         |
-| `POST /connectors/signer/certificates/{serial}/revoke` | `signer:certificates:write` | `POST /api/v1/certificates/{serial}/revoke`                       |
-| `GET /connectors/signer/me/certificates`               | Signed in                   | `GET /api/v1/certificates`                                        |
-| `GET /connectors/signer/me/certificates/{serial}`      | Signed in                   | `GET /api/v1/certificates/{serial}`                               |
-| `GET /connectors/signer/status`                        | `signer:certificates:read`  | Reports whether the signer answers its health route, and how fast |
+| Route                                                     | Needs                       | Does                                                          |
+|-----------------------------------------------------------|-----------------------------|---------------------------------------------------------------|
+| `GET /connectors/signer/certificates`                     | `signer:certificates:read`  | All certificates                                              |
+| `GET /connectors/signer/certificates/{serial}`            | `signer:certificates:read`  | Any certificate                                               |
+| `POST /connectors/signer/certificates/{serial}/revoke`    | `signer:certificates:write` | Revoke any certificate, recorded under the email of the admin |
+| `GET /connectors/signer/me/certificates`                  | Signed in                   | The caller's own certificates                                 |
+| `POST /connectors/signer/me/certificates`                 | Signed in                   | Generate a certificate for the caller's account               |
+| `GET /connectors/signer/me/certificates/{serial}`         | Signed in                   | One of the caller's own certificates                          |
+| `POST /connectors/signer/me/certificates/{serial}/revoke` | Signed in                   | Revoke one of the caller's own, recorded as `self`            |
+| `GET /connectors/signer/status`                           | `signer:certificates:read`  | Whether the signer answers its health route, and how fast     |
 
-Query strings, request bodies and the signer's response pass through unchanged. The certificate list is keyset-paged:
-pass `limit` and the last `next_cursor` as `cursor`. A signer that cannot be reached returns 502.
+The certificate lists are keyset-paged: pass `limit` and the last `next_cursor` as `cursor`. Someone else's certificate
+on a `me` route is a 404.
+
+To generate, the caller needs an approved and provisioned cluster account on `cluster_id`, and an active membership in
+an
+active allocation on that cluster. The username comes from the cluster account, and the email and subject from the
+caller's verified token, never from the request.
+
+A refusal has an `error` code: `user_not_active`, `no_cluster_account`, `cluster_account_not_ready`,
+`no_active_allocation`, `signer_unavailable`, or from the signer `reserved_username`, `invalid_public_key` and
+`key_type_not_allowed`.
 
 ## Configuration
 
-Settings are in the `connectors.signer` block of [`config/custos.yaml`](../../config/custos.yaml). With an empty
-`base_url` the connector skips loading and reports the gap on `GET /connectors`.
+Settings are in the `connectors.signer` block of [`config/custos.yaml`](../../config/custos.yaml). When a required
+setting is empty the connector skips loading and reports the gap on `GET /connectors`.
 
-| Key               | Variable in `config/custos.yaml` | Required | Purpose                       |
-|-------------------|----------------------------------|----------|-------------------------------|
-| `base_url`        | `SIGNER_BASE_URL`                | yes      | The signer's URL              |
-| `timeout_seconds` |                                  | no       | Request timeout, default `10` |
-
-The connector holds no signer client credentials. Those stay with the applications that call `POST /api/v1/sign`.
+| Key                       | Variable in `config/custos.yaml` | Required | Purpose                                        |
+|---------------------------|----------------------------------|----------|------------------------------------------------|
+| `base_url`                | `SIGNER_BASE_URL`                | yes      | The signer's URL. Keep it off public networks. |
+| `service_token`           | `SIGNER_SERVICE_TOKEN`           | yes      | The same token set on the signer               |
+| `cluster_id`              | `CUSTOS_CLUSTER_ID`              | yes      | The cluster certificates log in to             |
+| `certificate_ttl_seconds` |                                  | no       | Certificate lifetime, default `28800`          |
+| `timeout_seconds`         |                                  | no       | Request timeout, default `10`                  |
