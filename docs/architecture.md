@@ -26,11 +26,11 @@ write a connector.
 
 Only three parts of Custos are fixed:
 
-| Part | What it is |
-|---|---|
-| Core records | Users, organizations, projects, allocations, memberships and cluster accounts, in PostgreSQL |
+| Part          | What it is                                                                                                                                                 |
+|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Core records  | Users, organizations, projects, allocations, memberships and cluster accounts, in PostgreSQL                                                               |
 | State machine | The service layer in `pkg/service`. It is the only code that changes the records, for example by approving a cluster account or deactivating a membership. |
-| Event bus | `pkg/events`. The service layer publishes each change as an event in the same transaction. The bus delivers it to each subscriber with retries. |
+| Event bus     | `pkg/events`. The service layer publishes each change as an event in the same transaction. The bus delivers it to each subscriber with retries.            |
 
 Everything that talks to another system is a connector: allocation intake from ACCESS, accounts in COmanage,
 SLURM associations, storage on VAST, email. No connector is required. A site enables one with a block in
@@ -58,17 +58,17 @@ airavata-custos/
 └── dev-ops/       # Local Compose stack, Terraform, Ansible
 ```
 
-| Directory | Contents | Examples |
-|---|---|---|
-| `cmd/server` | Opens the database, runs migrations, builds the service, loads connectors and serves HTTP | `main.go`, `bootstrap.go` |
-| `pkg` | Contracts that connectors build on. `service.Service` is the domain API; `events.Bus` carries domain events | `pkg/models`, `pkg/service`, `pkg/events`, `pkg/identity` |
-| `internal` | Code private to the server module | `internal/server` (handlers), `internal/store`, `internal/db/migrations`, `internal/connectors/loader.go` |
-| `connectors` | Packages compiled into the server, one per external system | `ACCESS/AMIE-Processor`, `SLURM/Association-Mapper` |
-| `extensions` | Separate processes a site deploys if it wants them | `CILogon-SSH-PAM`, `SSH-Certificate-Signer` |
-| `api` | `core.openapi.yaml`, generated from handler annotations | [`api/README.md`](../api/README.md) |
-| `config` | `custos.yaml`, with `${VAR}` interpolation for secrets | [`CONFIG.md`](../CONFIG.md) |
-| `web` | The portal that calls the REST API | [`web/README.md`](../web/README.md) |
-| `dev-ops` | Local dev stack and deployment automation | `compose/`, `terraform/`, `account-provisioning/`, `local-amie/` |
+| Directory    | Contents                                                                                                    | Examples                                                                                                  |
+|--------------|-------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `cmd/server` | Opens the database, runs migrations, builds the service, loads connectors and serves HTTP                   | `main.go`, `bootstrap.go`                                                                                 |
+| `pkg`        | Contracts that connectors build on. `service.Service` is the domain API; `events.Bus` carries domain events | `pkg/models`, `pkg/service`, `pkg/events`, `pkg/identity`                                                 |
+| `internal`   | Code private to the server module                                                                           | `internal/server` (handlers), `internal/store`, `internal/db/migrations`, `internal/connectors/loader.go` |
+| `connectors` | Packages compiled into the server, one per external system                                                  | `ACCESS/AMIE-Processor`, `SLURM/Association-Mapper`                                                       |
+| `extensions` | Separate processes a site deploys if it wants them                                                          | `CILogon-SSH-PAM`, `SSH-Certificate-Signer`                                                               |
+| `api`        | `core.openapi.yaml`, generated from handler annotations                                                     | [`api/README.md`](../api/README.md)                                                                       |
+| `config`     | `custos.yaml`, with `${VAR}` interpolation for secrets                                                      | [`CONFIG.md`](../CONFIG.md)                                                                               |
+| `web`        | The portal that calls the REST API                                                                          | [`web/README.md`](../web/README.md)                                                                       |
+| `dev-ops`    | Local dev stack and deployment automation                                                                   | `compose/`, `terraform/`, `account-provisioning/`, `local-amie/`                                          |
 
 ## Runtime topology
 
@@ -94,17 +94,17 @@ shutdown the HTTP server gets 15 seconds to finish in-flight requests. The serve
 
 ### Connectors in the tree
 
-| `type:` in config | Directory | Role |
-|---|---|---|
-| `amie-processor` | `connectors/ACCESS/AMIE-Processor` | Polls ACCESS-CI AMIE packets, applies them to core and sends replies |
-| `comanage-identity-provisioner` | `connectors/COmanage/Identity-Provisioner` | Provisions approved cluster accounts and allocation groups in COmanage |
-| `slurm-association-mapper` | `connectors/SLURM/Association-Mapper` | Mirrors allocation membership into SLURM accounts and associations |
-| `slurm-usage-monitor` | `connectors/SLURM/Usage-Monitor` | Polls `slurmrestd` for finished jobs and records usage in core |
-| `vast-storage-provisioner` | `connectors/Storage/VAST-Provisioner` | Creates directories, views and quotas on VAST |
-| `email-notifier` | `connectors/Notification/Email` | Emails users about their cluster account requests |
-| `analytics` | `connectors/Analytics` | Usage summaries and job lists for allocation participants |
-| `temp-account` | `connectors/TempAccount` | Creates temporary accounts and assigns them allocations |
-| `signer` | `connectors/Signer` | Forwards certificate list and revoke calls to the SSH certificate signer |
+| `type:` in config               | Directory                                  | Role                                                                                  |
+|---------------------------------|--------------------------------------------|---------------------------------------------------------------------------------------|
+| `amie-processor`                | `connectors/ACCESS/AMIE-Processor`         | Polls ACCESS-CI AMIE packets, applies them to core and sends replies                  |
+| `comanage-identity-provisioner` | `connectors/COmanage/Identity-Provisioner` | Provisions approved cluster accounts and allocation groups in COmanage                |
+| `slurm-association-mapper`      | `connectors/SLURM/Association-Mapper`      | Mirrors allocation membership into SLURM accounts and associations                    |
+| `slurm-usage-monitor`           | `connectors/SLURM/Usage-Monitor`           | Polls `slurmrestd` for finished jobs and records usage in core                        |
+| `vast-storage-provisioner`      | `connectors/Storage/VAST-Provisioner`      | Creates directories, views and quotas on VAST                                         |
+| `email-notifier`                | `connectors/Notification/Email`            | Emails users about their cluster account requests                                     |
+| `analytics`                     | `connectors/Analytics`                     | Usage summaries and job lists for allocation participants                             |
+| `temp-account`                  | `connectors/TempAccount`                   | Creates temporary accounts and assigns them allocations                               |
+| `signer`                        | `connectors/Signer`                        | Decides who may have an SSH certificate and calls the signer to issue and revoke them |
 
 `connectors/SLURM/Rest-Client` is the shared `slurmrestd` client library, not a connector. `GET /connectors` lists
 the configured connectors with their load status and requires `core:clusters:read`.
@@ -117,10 +117,10 @@ The SLURM, VAST and account-ready email steps wait until the COmanage connector 
 Extensions are separate processes that `LoadConnectorsFromConfig` does not load. Each has its own OIDC
 configuration.
 
-| Extension | What it does | Relation to core |
-|---|---|---|
-| `CILogon-SSH-PAM` | A PAM module that lets `sshd` accept an OIDC device-flow login, CILogon at Custos sites | Does not call core |
-| `SSH-Certificate-Signer` | Signs short-lived SSH certificates for OIDC-authenticated callers | Calls core `GET /me` to read the caller's privileges for its admin APIs |
+| Extension                | What it does                                                                            | Relation to core                                                        |
+|--------------------------|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| `CILogon-SSH-PAM`        | A PAM module that lets `sshd` accept an OIDC device-flow login, CILogon at Custos sites | Does not call core                                                      |
+| `SSH-Certificate-Signer` | Signs short-lived SSH certificates for OIDC-authenticated callers                       | Calls core `GET /me` to read the caller's privileges for its admin APIs |
 
 ## Identity and authentication
 
@@ -130,13 +130,13 @@ Inbound authentication is an OIDC bearer JWT. `pkg/identity/verifier.go` checks 
 
 Routes register through one of five router methods:
 
-| Method | Who gets through | Example |
-|---|---|---|
-| `Public(pattern, h)` | Anyone; the token is not checked | `GET /healthz` |
-| `RequireAuthWithoutUserConsent(pattern, h)` | A verified caller, before onboarding or accepting the user agreement | `GET /me`, `POST /me/onboarding` |
-| `RequireAuth(pattern, h)` | A verified caller who has onboarded and accepted the current agreement | `GET /projects`, `GET /compute-allocations` |
-| `RequireScoped(pattern, authorize, h)` | A verified caller whom `authorize` admits for that resource | `GET /compute-allocations/{id}` |
-| `RequirePrivilege(pattern, key, h)` | A verified caller who holds `key` | `POST /compute-clusters` |
+| Method                                      | Who gets through                                                       | Example                                     |
+|---------------------------------------------|------------------------------------------------------------------------|---------------------------------------------|
+| `Public(pattern, h)`                        | Anyone; the token is not checked                                       | `GET /healthz`                              |
+| `RequireAuthWithoutUserConsent(pattern, h)` | A verified caller, before onboarding or accepting the user agreement   | `GET /me`, `POST /me/onboarding`            |
+| `RequireAuth(pattern, h)`                   | A verified caller who has onboarded and accepted the current agreement | `GET /projects`, `GET /compute-allocations` |
+| `RequireScoped(pattern, authorize, h)`      | A verified caller whom `authorize` admits for that resource            | `GET /compute-allocations/{id}`             |
+| `RequirePrivilege(pattern, key, h)`         | A verified caller who holds `key`                                      | `POST /compute-clusters`                    |
 
 `GET /projects` and `GET /compute-allocations` return everything to a caller with the matching read privilege and
 only the caller's own records otherwise. `RequireScoped` routes admit the read privilege or a participant in that
@@ -144,16 +144,16 @@ project or allocation, and return `404` to anyone else.
 
 The middleware answers authentication failures with `{"code": ..., "message": ...}`:
 
-| Status | `code` | Cause |
-|---|---|---|
-| `401` | `missing_bearer` | No `Authorization: Bearer` header |
-| `401` | `invalid_token` | Signature, issuer, audience or expiry check failed |
-| `401` | `identity_not_linked` | The token's identity matches no Custos user |
-| `403` | `user_disabled` | The user is disabled |
-| `403` | `onboarding_required` | First sign-in; the user has not onboarded |
-| `403` | `consent_required` | A newer user agreement waits for acceptance |
-| `403` | `insufficient_privilege` | The route's privilege is missing |
-| `503` | `auth_lookup_failed` | Caller resolution failed |
+| Status | `code`                   | Cause                                              |
+|--------|--------------------------|----------------------------------------------------|
+| `401`  | `missing_bearer`         | No `Authorization: Bearer` header                  |
+| `401`  | `invalid_token`          | Signature, issuer, audience or expiry check failed |
+| `401`  | `identity_not_linked`    | The token's identity matches no Custos user        |
+| `403`  | `user_disabled`          | The user is disabled                               |
+| `403`  | `onboarding_required`    | First sign-in; the user has not onboarded          |
+| `403`  | `consent_required`       | A newer user agreement waits for acceptance        |
+| `403`  | `insufficient_privilege` | The route's privilege is missing                   |
+| `503`  | `auth_lookup_failed`     | Caller resolution failed                           |
 
 ### Privileges
 
@@ -169,13 +169,13 @@ through a role (`roles`, `role_privileges`, `user_roles`). `coreService.Effectiv
 is no external broker. A subscriber is a connector, named by its `Type` constant. Subscriptions are saved, so an
 event published while a connector is not loaded gets a delivery row and waits for it.
 
-| Setting | Value |
-|---|---|
-| Poll interval for due deliveries | 10 seconds |
-| Handler timeout | 2 minutes |
-| Retry backoff | 30 seconds, doubling up to 1 hour |
-| Attempts | 10 |
-| Fail without retry | The handler's error wraps `events.ErrPermanent` |
+| Setting                          | Value                                           |
+|----------------------------------|-------------------------------------------------|
+| Poll interval for due deliveries | 10 seconds                                      |
+| Handler timeout                  | 2 minutes                                       |
+| Retry backoff                    | 30 seconds, doubling up to 1 hour               |
+| Attempts                         | 10                                              |
+| Fail without retry               | The handler's error wraps `events.ErrPermanent` |
 
 Event names are stored in `event_subscriptions` and `events`. Renaming an `EventType` therefore needs a core
 migration that renames both. Without it, pending deliveries under the old name find no handler and stay due. Once
@@ -190,12 +190,12 @@ UPDATE events SET event_type = 'user::remove' WHERE event_type = 'user::delete';
 Handlers must be safe to run more than once for the same event. The bus worker writes an `audit_events` row for each
 delivery attempt, under the event's trace. Four endpoints expose the bus:
 
-| Endpoint | Use |
-|---|---|
-| `GET /events/deliveries` | List deliveries |
-| `POST /events/deliveries/{id}/retry` | Retry a failed delivery |
-| `GET /events/subscriptions` | Show which subscribers are loaded |
-| `GET /events/graph` | Show which events lead to which ([how it is built](../internal/server/eventgraph/README.md)) |
+| Endpoint                             | Use                                                                                          |
+|--------------------------------------|----------------------------------------------------------------------------------------------|
+| `GET /events/deliveries`             | List deliveries                                                                              |
+| `POST /events/deliveries/{id}/retry` | Retry a failed delivery                                                                      |
+| `GET /events/subscriptions`          | Show which subscribers are loaded                                                            |
+| `GET /events/graph`                  | Show which events lead to which ([how it is built](../internal/server/eventgraph/README.md)) |
 
 ## Worked example: approving a cluster account
 
@@ -242,11 +242,11 @@ and same-transaction write, see
 
 ## Where to look next
 
-| Topic | Document |
-|---|---|
-| Writing a connector | [`contributing/writing-a-connector.md`](contributing/writing-a-connector.md) |
-| Privilege keys and the routes they gate | [`privileges.md`](privileges.md) |
-| Allocation domain model | [`Allocation-Data-Models.md`](Allocation-Data-Models.md) |
-| REST API | [`API-Docs.md`](API-Docs.md) |
-| ACCESS-CI resource provider setup | [`ACCESS-HPC-Reference.md`](ACCESS-HPC-Reference.md) |
-| Domain terms | [`glossary.md`](glossary.md) |
+| Topic                                   | Document                                                                     |
+|-----------------------------------------|------------------------------------------------------------------------------|
+| Writing a connector                     | [`contributing/writing-a-connector.md`](contributing/writing-a-connector.md) |
+| Privilege keys and the routes they gate | [`privileges.md`](privileges.md)                                             |
+| Allocation domain model                 | [`Allocation-Data-Models.md`](Allocation-Data-Models.md)                     |
+| REST API                                | [`API-Docs.md`](API-Docs.md)                                                 |
+| ACCESS-CI resource provider setup       | [`ACCESS-HPC-Reference.md`](ACCESS-HPC-Reference.md)                         |
+| Domain terms                            | [`glossary.md`](glossary.md)                                                 |
