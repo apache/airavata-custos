@@ -48,6 +48,7 @@ vi.mock("@/shared/casl/AbilityProvider", () => ({
 vi.mock("sonner", () => ({ toast: { success: state.toastSuccess } }));
 
 vi.mock("../queries", () => ({
+  useAppNames: () => ({}),
   useCertificate: () => state.query,
   useRevokeCertificate: () => ({ mutate: state.mutate, isPending: state.isPending }),
 }));

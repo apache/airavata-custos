@@ -30,6 +30,7 @@ import { StatusBadge } from "@/shared/ui/StatusBadge";
 import type { App } from "../api";
 import { useApps, useDisableApp, useEnableApp } from "../queries";
 import { CreateAppDialog } from "./CreateAppDialog";
+import { EditAppDialog } from "./EditAppDialog";
 import { NewSecretDialog } from "./NewSecretDialog";
 
 export function AppsView() {
@@ -38,6 +39,7 @@ export function AppsView() {
   const disable = useDisableApp();
   const enable = useEnableApp();
   const [creating, setCreating] = React.useState(false);
+  const [editing, setEditing] = React.useState<App | null>(null);
   const [disabling, setDisabling] = React.useState<App | null>(null);
   const [newSecretFor, setNewSecretFor] = React.useState<App | null>(null);
 
@@ -99,6 +101,9 @@ export function AppsView() {
       header: "",
       cell: (app) => (
         <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={() => setEditing(app)}>
+            Edit
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setNewSecretFor(app)}>
             New secret
           </Button>
@@ -146,6 +151,8 @@ export function AppsView() {
       )}
 
       <CreateAppDialog open={creating} onOpenChange={setCreating} />
+
+      {editing ? <EditAppDialog app={editing} onClose={() => setEditing(null)} /> : null}
 
       {newSecretFor ? (
         <NewSecretDialog app={newSecretFor} onClose={() => setNewSecretFor(null)} />
