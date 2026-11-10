@@ -25,6 +25,7 @@ import {
   issueAppSecret,
   listAppConnectors,
   listApps,
+  updateApp,
 } from "./api";
 
 const appKeys = {
@@ -49,6 +50,7 @@ function useAppMutation<Input, Output>(mutationFn: (input: Input) => Promise<Out
 }
 
 export const useCreateApp = () => useAppMutation(createApp);
+export const useUpdateApp = () => useAppMutation(updateApp);
 export const useDisableApp = () => useAppMutation(disableApp);
 export const useEnableApp = () => useAppMutation(enableApp);
 export const useIssueAppSecret = () => useAppMutation(issueAppSecret);

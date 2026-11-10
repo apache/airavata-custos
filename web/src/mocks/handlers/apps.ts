@@ -54,6 +54,15 @@ function setStatus(id: unknown, status: App["status"]) {
 export const appsHandlers = [
   http.get("*/api/v1/apps", () => HttpResponse.json(apps)),
   http.get("*/api/v1/apps/connectors", () => HttpResponse.json(connectors)),
+  http.get("*/api/v1/apps/names", () =>
+    HttpResponse.json(apps.map(({ key, name }) => ({ key, name }))),
+  ),
+  http.put("*/api/v1/apps/:id", async ({ params: { id }, request }) => {
+    const app = apps.find((a) => a.id === id);
+    if (!app) return HttpResponse.json({ error: "not found" }, { status: 404 });
+    Object.assign(app, await request.json());
+    return HttpResponse.json(app);
+  }),
   http.post("*/api/v1/apps", async ({ request }) => {
     const body = (await request.json()) as NewApp;
     const connector = body.actions[0]?.split(":")[0] ?? "";

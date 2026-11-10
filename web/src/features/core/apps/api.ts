@@ -51,6 +51,17 @@ export async function createApp(body: NewApp): Promise<AppWithToken> {
   return zAppWithTokenView.parse(await apiFetch("/apps", { method: "POST", body }));
 }
 
+export async function updateApp({
+  id,
+  ...body
+}: {
+  id: string;
+  name: string;
+  description: string;
+}): Promise<App> {
+  return zAppView.parse(await apiFetch(appPath(id), { method: "PUT", body }));
+}
+
 export async function disableApp(id: string): Promise<App> {
   return zAppView.parse(await apiFetch(`${appPath(id)}/disable`, { method: "POST" }));
 }
