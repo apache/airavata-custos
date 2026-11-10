@@ -200,6 +200,16 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /agreements/{id}/remove", models.AgreementsManage, s.removeUserAgreement)
 	s.router.RequirePrivilege("GET /agreements/{id}/acceptances", models.AgreementsRead, s.listUserAgreementAcceptances)
 
+	s.router.RequirePrivilege("GET /apps", models.AppsManage, s.listApps)
+	s.router.RequirePrivilege("POST /apps", models.AppsManage, s.createApp)
+	s.router.RequirePrivilege("GET /apps/connectors", models.AppsManage, s.listAppConnectors)
+	s.router.RequireAuth("GET /apps/names", s.listAppNames)
+	s.router.RequirePrivilege("GET /apps/{id}", models.AppsManage, s.getApp)
+	s.router.RequirePrivilege("PUT /apps/{id}", models.AppsManage, s.updateApp)
+	s.router.RequirePrivilege("POST /apps/{id}/disable", models.AppsManage, s.disableApp)
+	s.router.RequirePrivilege("POST /apps/{id}/enable", models.AppsManage, s.enableApp)
+	s.router.RequirePrivilege("POST /apps/{id}/secret", models.AppsManage, s.issueAppSecret)
+
 	s.router.RequirePrivilege("GET /audit/traces", models.TracesRead, s.handleListTraces)
 	s.router.RequirePrivilege("GET /audit/traces/{trace_id}", models.TracesRead, s.handleGetTrace)
 	s.router.RequirePrivilege("GET /audit/events", models.TracesRead, s.handleListEvents)

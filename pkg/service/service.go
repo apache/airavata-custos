@@ -64,6 +64,7 @@ type Service struct {
 	agreements          store.UserAgreementStore
 	acceptances         store.UserAgreementAcceptanceStore
 	auditTraces         store.AuditTraceStore
+	apps                store.AppStore
 	identityCache       *identityCache
 }
 
@@ -98,6 +99,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		agreements:          store.NewUserAgreementStore(database),
 		acceptances:         store.NewUserAgreementAcceptanceStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
+		apps:                store.NewAppStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -159,6 +161,7 @@ func NewWithStores(
 		agreements:          agreements,
 		acceptances:         acceptances,
 		auditTraces:         store.NewAuditTraceStore(database),
+		apps:                store.NewAppStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }

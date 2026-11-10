@@ -34,6 +34,9 @@ type Caller struct {
 	UserID          string
 	NeedsOnboarding bool
 	ConsentPending  bool
+	AppID           string // set only for an app. UserID is then empty.
+	AppKey          string
+	AppActions      []string
 }
 
 // Wrap the ErrNotLinked to keep the specific cause in the log while the middleware
@@ -45,6 +48,8 @@ var (
 	ErrUserNotPending        = fmt.Errorf("%w: user is not pending", ErrNotLinked)
 	ErrUserAlreadyOIDCLinked = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
 	ErrUserDisabled          = errors.New("user is disabled")
+	ErrInvalidAppToken       = errors.New("app token is not valid")
+	ErrAppDisabled           = errors.New("app is disabled")
 )
 
 type TokenVerifier interface {
@@ -55,6 +60,10 @@ type TokenVerifier interface {
 // privilege set.
 type UserResolver interface {
 	ResolveCaller(ctx context.Context, claims *Claims) (*Caller, []models.PrivilegeKey, error)
+}
+
+type AppResolver interface {
+	ResolveApp(ctx context.Context, token string) (*Caller, error)
 }
 
 type ctxKey string

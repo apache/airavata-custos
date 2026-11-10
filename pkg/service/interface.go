@@ -321,6 +321,18 @@ type CoreService interface {
 	UserRoleService
 	UserAgreementService
 	UserConsentService
+	AppService
+}
+
+type AppService interface {
+	ListApps(ctx context.Context) ([]models.App, error)
+	GetApp(ctx context.Context, id string) (*models.App, error)
+	CreateApp(ctx context.Context, key, name, description string, actions []string, actorID string) (*models.App, string, error)
+	UpdateApp(ctx context.Context, id, name, description, actorID string) (*models.App, error)
+	DisableApp(ctx context.Context, id, actorID string) (*models.App, error)
+	EnableApp(ctx context.Context, id, actorID string) (*models.App, error)
+	IssueAppSecret(ctx context.Context, id, actorID string) (*models.App, string, error)
+	ResolveApp(ctx context.Context, token string) (*identity.Caller, error)
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.
