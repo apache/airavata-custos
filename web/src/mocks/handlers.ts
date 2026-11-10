@@ -20,6 +20,7 @@ import { agreementsHandlers } from "./handlers/agreements";
 import { allocationsHandlers } from "./handlers/allocations";
 import { amieHandlers } from "./handlers/amie";
 import { analyticsHandlers } from "./handlers/analytics";
+import { appsHandlers } from "./handlers/apps";
 import { clustersHandlers } from "./handlers/clusters";
 import { eventsHandlers } from "./handlers/events";
 import { healthzHandlers } from "./handlers/healthz";
@@ -50,4 +51,5 @@ export const handlers: RequestHandler[] = [
   ...clustersHandlers,
   ...resourcesHandlers,
   ...agreementsHandlers,
+  ...appsHandlers,
 ];

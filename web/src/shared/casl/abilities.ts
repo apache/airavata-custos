@@ -45,6 +45,7 @@ export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "core:events:manage": [{ action: "manage", subject: "EventDelivery" }],
   "core:agreements:read": [{ action: "read", subject: "Agreement" }],
   "core:agreements:manage": [{ action: "manage", subject: "Agreement" }],
+  "core:apps:manage": [{ action: "manage", subject: "App" }],
   "amie:packets:read": [{ action: "read", subject: "AMIE" }],
   "amie:packets:write": [{ action: "manage", subject: "AMIE" }],
   "amie:replies:read": [{ action: "read", subject: "AMIE" }],
