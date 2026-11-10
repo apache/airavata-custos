@@ -351,6 +351,7 @@ Nothing is lost when the server restarts or a handler fails.
 Event types are typed constants in `pkg/events/types.go`, such as `UserCreateEvent` (`user::create`). Each entity
 has a file of typed subscribe helpers, for example `user_subscribe.go` and `compute_cluster_user_subscribe.go`.
 The helpers, such as `SubscribeUserCreated` and `SubscribeComputeClusterUserApproved`, decode the payload for you.
+Renaming an event needs a migration of its stored name ([event bus](../architecture.md#event-bus)).
 
 **Subscribing.** Register inside `LoadConnector`, under your connector's`Type` name. 
 The bus saves the subscription under that name, so it has to be the same on every start.

@@ -176,6 +176,16 @@ event published while a connector is not loaded gets a delivery row and waits fo
 | Attempts | 10 |
 | Fail without retry | The handler's error wraps `events.ErrPermanent` |
 
+Event names are stored in `event_subscriptions` and `events`. Renaming an `EventType` therefore needs a core
+migration that renames both. Without it, pending deliveries under the old name find no handler and stay due. Once
+they reach the batch size, they block newer deliveries. A subscriber not loaded at that start keeps its old-name
+subscription, so it gets no deliveries of the new name.
+
+```sql
+UPDATE event_subscriptions SET event_type = 'user::remove' WHERE event_type = 'user::delete';
+UPDATE events SET event_type = 'user::remove' WHERE event_type = 'user::delete';
+```
+
 Handlers must be safe to run more than once for the same event. The bus worker writes an `audit_events` row for each
 delivery attempt, under the event's trace. Four endpoints expose the bus:
 
