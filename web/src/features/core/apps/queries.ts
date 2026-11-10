@@ -19,19 +19,31 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  authorizeApp,
   createApp,
   disableApp,
   enableApp,
   issueAppSecret,
+  listAppAuthorizations,
   listAppConnectors,
   listApps,
+  removeAppAuthorization,
   updateApp,
 } from "./api";
 
 const appKeys = {
   list: ["apps", "list"] as const,
   connectors: ["apps", "connectors"] as const,
+  authorizations: ["apps", "authorizations"] as const,
 };
+
+export function useAppAuthorizations() {
+  return useQuery({ queryKey: appKeys.authorizations, queryFn: listAppAuthorizations });
+}
+
+export const useAuthorizeApp = () => useAppMutation(authorizeApp, appKeys.authorizations);
+export const useRemoveAppAuthorization = () =>
+  useAppMutation(removeAppAuthorization, appKeys.authorizations);
 
 export function useApps() {
   return useQuery({ queryKey: appKeys.list, queryFn: listApps });
@@ -41,11 +53,14 @@ export function useAppConnectors() {
   return useQuery({ queryKey: appKeys.connectors, queryFn: listAppConnectors });
 }
 
-function useAppMutation<Input, Output>(mutationFn: (input: Input) => Promise<Output>) {
+function useAppMutation<Input, Output>(
+  mutationFn: (input: Input) => Promise<Output>,
+  queryKey: readonly string[] = appKeys.list,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: appKeys.list }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
 
