@@ -17,9 +17,11 @@
 
 import { z } from "zod";
 import {
+  type AppAuthorizationView,
   type AppConnector,
   type AppView,
   type AppWithTokenView,
+  zAppAuthorizationView,
   zAppConnector,
   zAppView,
   zAppWithTokenView,
@@ -28,6 +30,7 @@ import { apiFetch } from "@/shared/api/client";
 
 export type App = AppView;
 export type AppWithToken = AppWithTokenView;
+export type AppAuthorization = AppAuthorizationView;
 export type { AppConnector };
 
 export type NewApp = {
@@ -72,4 +75,18 @@ export async function enableApp(id: string): Promise<App> {
 
 export async function issueAppSecret(id: string): Promise<AppWithToken> {
   return zAppWithTokenView.parse(await apiFetch(`${appPath(id)}/secret`, { method: "POST" }));
+}
+
+const authorizationPath = (appId: string) => `/me/app-authorizations/${encodeURIComponent(appId)}`;
+
+export async function listAppAuthorizations(): Promise<AppAuthorization[]> {
+  return z.array(zAppAuthorizationView).parse(await apiFetch("/me/app-authorizations"));
+}
+
+export async function authorizeApp(appId: string): Promise<void> {
+  await apiFetch(authorizationPath(appId), { method: "POST" });
+}
+
+export async function removeAppAuthorization(appId: string): Promise<void> {
+  await apiFetch(authorizationPath(appId), { method: "DELETE" });
 }

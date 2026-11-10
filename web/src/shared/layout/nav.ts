@@ -89,6 +89,12 @@ export const portalNav: NavItem[] = [
     group: "access",
   },
   {
+    href: "/apps",
+    label: "Apps",
+    icon: Blocks,
+    group: "access",
+  },
+  {
     href: "/admin/users",
     label: "Users & Permissions",
     icon: UserCog,

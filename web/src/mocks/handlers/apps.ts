@@ -51,7 +51,29 @@ function setStatus(id: unknown, status: App["status"]) {
   return HttpResponse.json(app);
 }
 
+const allowed = new Set<string>();
+
 export const appsHandlers = [
+  http.get("*/api/v1/me/app-authorizations", () =>
+    HttpResponse.json(
+      apps
+        .filter((a) => a.status === "ACTIVE" && a.needs_user_authorization)
+        .map(({ id, name, description }) => ({
+          id,
+          name,
+          description,
+          authorized: allowed.has(id),
+        })),
+    ),
+  ),
+  http.post("*/api/v1/me/app-authorizations/:appId", ({ params: { appId } }) => {
+    allowed.add(String(appId));
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.delete("*/api/v1/me/app-authorizations/:appId", ({ params: { appId } }) => {
+    allowed.delete(String(appId));
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.get("*/api/v1/apps", () => HttpResponse.json(apps)),
   http.get("*/api/v1/apps/connectors", () => HttpResponse.json(connectors)),
   http.get("*/api/v1/apps/names", () =>
