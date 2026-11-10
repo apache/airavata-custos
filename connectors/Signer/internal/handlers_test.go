@@ -67,6 +67,24 @@ type fakeCore struct {
 	account     *models.ComputeClusterUser
 	memberships []models.ComputeAllocationMembership
 	allocation  models.ComputeAllocation
+	user        *models.User
+	pending     []models.UserAgreement
+	identities  []models.UserIdentity
+}
+
+func (f *fakeCore) GetUserByEmail(context.Context, string) (*models.User, error) {
+	if f.user == nil {
+		return nil, service.ErrNotFound
+	}
+	return f.user, nil
+}
+
+func (f *fakeCore) PendingUserAgreements(context.Context, string) ([]models.UserAgreement, error) {
+	return f.pending, nil
+}
+
+func (f *fakeCore) ListUserIdentitiesForUser(context.Context, string) ([]models.UserIdentity, error) {
+	return f.identities, nil
 }
 
 func (f *fakeCore) GetComputeClusterUserByPair(context.Context, string, string) (*models.ComputeClusterUser, error) {
@@ -92,6 +110,8 @@ func readyCore() *fakeCore {
 		account:     &models.ComputeClusterUser{LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountApproved, ProvisionedAt: &provisioned},
 		memberships: []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE, StartTime: start, EndTime: end}},
 		allocation:  models.ComputeAllocation{ComputeClusterID: testClusterID, Status: models.ACTIVE, StartTime: start, EndTime: end},
+		user:        &models.User{ID: "user-1", Email: "jdoe@example.edu", Status: models.UserActive},
+		identities:  []models.UserIdentity{{OIDCSub: testSub}},
 	}
 }
 

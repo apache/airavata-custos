@@ -31,6 +31,7 @@ import (
 	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -62,6 +63,11 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, _ *events.Bus, core *service
 		TTLSeconds:   ttl,
 		Timeout:      time.Duration(timeout) * time.Second,
 	}, core)
+	models.RegisterAppConnector(models.AppConnector{
+		Name:           Type,
+		NeedsUserGrant: true,
+		Actions:        []string{internal.AppActionGenerateCertificate, internal.AppActionRevokeCertificate},
+	})
 	handlers.RegisterRoutes(router)
 	// In the background so a down signer does not hold up startup.
 	go handlers.CheckHealth(ctx)
