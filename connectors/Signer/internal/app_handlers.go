@@ -60,7 +60,9 @@ func (h *Handlers) generateCertificateForApp(w http.ResponseWriter, r *http.Requ
 }
 
 // requireEligibleUser checks the user for the app which is asking certificates for. These are the checks a user passes at login, and an app call does not go through that.
-// TODO - move to core when another connector needs these checks
+// TODO - move to core when another connector needs these checks.
+//
+//	Then check the user's allow only when the calling connector needs it.
 func (h *Handlers) requireEligibleUser(w http.ResponseWriter, r *http.Request, email string) (*models.User, string, bool) {
 	user, err := h.core.GetUserByEmail(r.Context(), email)
 	if errors.Is(err, service.ErrNotFound) {
@@ -69,6 +71,15 @@ func (h *Handlers) requireEligibleUser(w http.ResponseWriter, r *http.Request, e
 	}
 	if err != nil {
 		accountReadFailed(w, err)
+		return nil, "", false
+	}
+	authorized, err := h.core.IsAppAuthorized(r.Context(), identity.CallerFromContext(r.Context()).AppID, user.ID)
+	if err != nil {
+		accountReadFailed(w, err)
+		return nil, "", false
+	}
+	if !authorized {
+		refuse(w, http.StatusForbidden, "app_not_authorized", "The user has not allowed this app")
 		return nil, "", false
 	}
 	if user.Status != models.UserActive {

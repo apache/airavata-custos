@@ -34,6 +34,9 @@ var _ CoreService = &CoreServiceMock{}
 //			AttachResourceToAllocationFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the AttachResourceToAllocation method")
 //			},
+//			AuthorizeAppFunc: func(ctx context.Context, appID string, userID string) error {
+//				panic("mock out the AuthorizeApp method")
+//			},
 //			BootstrapSuperAdminFunc: func(ctx context.Context, email string, source string) error {
 //				panic("mock out the BootstrapSuperAdmin method")
 //			},
@@ -289,6 +292,9 @@ var _ CoreService = &CoreServiceMock{}
 //			HasPrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error) {
 //				panic("mock out the HasPrivilege method")
 //			},
+//			IsAppAuthorizedFunc: func(ctx context.Context, appID string, userID string) (bool, error) {
+//				panic("mock out the IsAppAuthorized method")
+//			},
 //			IsProjectParticipantFunc: func(ctx context.Context, projectID string, userID string) (bool, error) {
 //				panic("mock out the IsProjectParticipant method")
 //			},
@@ -306,6 +312,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			ListAllocationsForUserFunc: func(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 //				panic("mock out the ListAllocationsForUser method")
+//			},
+//			ListAppAuthorizationsFunc: func(ctx context.Context, userID string) ([]AppAuthorization, error) {
+//				panic("mock out the ListAppAuthorizations method")
 //			},
 //			ListAppsFunc: func(ctx context.Context) ([]models.App, error) {
 //				panic("mock out the ListApps method")
@@ -430,6 +439,9 @@ var _ CoreService = &CoreServiceMock{}
 //			PublishUserAgreementFunc: func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
 //				panic("mock out the PublishUserAgreement method")
 //			},
+//			RemoveAppAuthorizationFunc: func(ctx context.Context, appID string, userID string) error {
+//				panic("mock out the RemoveAppAuthorization method")
+//			},
 //			RemovePrivilegeFromRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the RemovePrivilegeFromRole method")
 //			},
@@ -529,6 +541,9 @@ type CoreServiceMock struct {
 
 	// AttachResourceToAllocationFunc mocks the AttachResourceToAllocation method.
 	AttachResourceToAllocationFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
+
+	// AuthorizeAppFunc mocks the AuthorizeApp method.
+	AuthorizeAppFunc func(ctx context.Context, appID string, userID string) error
 
 	// BootstrapSuperAdminFunc mocks the BootstrapSuperAdmin method.
 	BootstrapSuperAdminFunc func(ctx context.Context, email string, source string) error
@@ -785,6 +800,9 @@ type CoreServiceMock struct {
 	// HasPrivilegeFunc mocks the HasPrivilege method.
 	HasPrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error)
 
+	// IsAppAuthorizedFunc mocks the IsAppAuthorized method.
+	IsAppAuthorizedFunc func(ctx context.Context, appID string, userID string) (bool, error)
+
 	// IsProjectParticipantFunc mocks the IsProjectParticipant method.
 	IsProjectParticipantFunc func(ctx context.Context, projectID string, userID string) (bool, error)
 
@@ -802,6 +820,9 @@ type CoreServiceMock struct {
 
 	// ListAllocationsForUserFunc mocks the ListAllocationsForUser method.
 	ListAllocationsForUserFunc func(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
+
+	// ListAppAuthorizationsFunc mocks the ListAppAuthorizations method.
+	ListAppAuthorizationsFunc func(ctx context.Context, userID string) ([]AppAuthorization, error)
 
 	// ListAppsFunc mocks the ListApps method.
 	ListAppsFunc func(ctx context.Context) ([]models.App, error)
@@ -925,6 +946,9 @@ type CoreServiceMock struct {
 
 	// PublishUserAgreementFunc mocks the PublishUserAgreement method.
 	PublishUserAgreementFunc func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error)
+
+	// RemoveAppAuthorizationFunc mocks the RemoveAppAuthorization method.
+	RemoveAppAuthorizationFunc func(ctx context.Context, appID string, userID string) error
 
 	// RemovePrivilegeFromRoleFunc mocks the RemovePrivilegeFromRole method.
 	RemovePrivilegeFromRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
@@ -1050,6 +1074,15 @@ type CoreServiceMock struct {
 			ResourceAmount int64
 			// ResourceTime is the resourceTime argument value.
 			ResourceTime int64
+		}
+		// AuthorizeApp holds details about calls to the AuthorizeApp method.
+		AuthorizeApp []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AppID is the appID argument value.
+			AppID string
+			// UserID is the userID argument value.
+			UserID string
 		}
 		// BootstrapSuperAdmin holds details about calls to the BootstrapSuperAdmin method.
 		BootstrapSuperAdmin []struct {
@@ -1712,6 +1745,15 @@ type CoreServiceMock struct {
 			// Privilege is the privilege argument value.
 			Privilege models.PrivilegeKey
 		}
+		// IsAppAuthorized holds details about calls to the IsAppAuthorized method.
+		IsAppAuthorized []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AppID is the appID argument value.
+			AppID string
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// IsProjectParticipant holds details about calls to the IsProjectParticipant method.
 		IsProjectParticipant []struct {
 			// Ctx is the ctx argument value.
@@ -1751,6 +1793,13 @@ type CoreServiceMock struct {
 		}
 		// ListAllocationsForUser holds details about calls to the ListAllocationsForUser method.
 		ListAllocationsForUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+		}
+		// ListAppAuthorizations holds details about calls to the ListAppAuthorizations method.
+		ListAppAuthorizations []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// UserID is the userID argument value.
@@ -2041,6 +2090,15 @@ type CoreServiceMock struct {
 			// ActorID is the actorID argument value.
 			ActorID string
 		}
+		// RemoveAppAuthorization holds details about calls to the RemoveAppAuthorization method.
+		RemoveAppAuthorization []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AppID is the appID argument value.
+			AppID string
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// RemovePrivilegeFromRole holds details about calls to the RemovePrivilegeFromRole method.
 		RemovePrivilegeFromRole []struct {
 			// Ctx is the ctx argument value.
@@ -2283,6 +2341,7 @@ type CoreServiceMock struct {
 	lockAddPrivilegeToRole                                     sync.RWMutex
 	lockAllocationRoleForUser                                  sync.RWMutex
 	lockAttachResourceToAllocation                             sync.RWMutex
+	lockAuthorizeApp                                           sync.RWMutex
 	lockBootstrapSuperAdmin                                    sync.RWMutex
 	lockCheckOnboardingUsername                                sync.RWMutex
 	lockCompleteOnboarding                                     sync.RWMutex
@@ -2368,12 +2427,14 @@ type CoreServiceMock struct {
 	lockGrantPrivilege                                         sync.RWMutex
 	lockGrantRoleToUser                                        sync.RWMutex
 	lockHasPrivilege                                           sync.RWMutex
+	lockIsAppAuthorized                                        sync.RWMutex
 	lockIsProjectParticipant                                   sync.RWMutex
 	lockIssueAppSecret                                         sync.RWMutex
 	lockLatestUsageTimeForCluster                              sync.RWMutex
 	lockListAllAuditEvents                                     sync.RWMutex
 	lockListAllocationsForResource                             sync.RWMutex
 	lockListAllocationsForUser                                 sync.RWMutex
+	lockListAppAuthorizations                                  sync.RWMutex
 	lockListApps                                               sync.RWMutex
 	lockListAuditEventsByEntity                                sync.RWMutex
 	lockListAuditEventsByEventType                             sync.RWMutex
@@ -2415,6 +2476,7 @@ type CoreServiceMock struct {
 	lockPendingUserAgreements                                  sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
 	lockPublishUserAgreement                                   sync.RWMutex
+	lockRemoveAppAuthorization                                 sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
 	lockRemoveUserAgreement                                    sync.RWMutex
 	lockResolveApp                                             sync.RWMutex
@@ -2613,6 +2675,46 @@ func (mock *CoreServiceMock) AttachResourceToAllocationCalls() []struct {
 	mock.lockAttachResourceToAllocation.RLock()
 	calls = mock.calls.AttachResourceToAllocation
 	mock.lockAttachResourceToAllocation.RUnlock()
+	return calls
+}
+
+// AuthorizeApp calls AuthorizeAppFunc.
+func (mock *CoreServiceMock) AuthorizeApp(ctx context.Context, appID string, userID string) error {
+	if mock.AuthorizeAppFunc == nil {
+		panic("CoreServiceMock.AuthorizeAppFunc: method is nil but CoreService.AuthorizeApp was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		AppID  string
+		UserID string
+	}{
+		Ctx:    ctx,
+		AppID:  appID,
+		UserID: userID,
+	}
+	mock.lockAuthorizeApp.Lock()
+	mock.calls.AuthorizeApp = append(mock.calls.AuthorizeApp, callInfo)
+	mock.lockAuthorizeApp.Unlock()
+	return mock.AuthorizeAppFunc(ctx, appID, userID)
+}
+
+// AuthorizeAppCalls gets all the calls that were made to AuthorizeApp.
+// Check the length with:
+//
+//	len(mockedCoreService.AuthorizeAppCalls())
+func (mock *CoreServiceMock) AuthorizeAppCalls() []struct {
+	Ctx    context.Context
+	AppID  string
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		AppID  string
+		UserID string
+	}
+	mock.lockAuthorizeApp.RLock()
+	calls = mock.calls.AuthorizeApp
+	mock.lockAuthorizeApp.RUnlock()
 	return calls
 }
 
@@ -5808,6 +5910,46 @@ func (mock *CoreServiceMock) HasPrivilegeCalls() []struct {
 	return calls
 }
 
+// IsAppAuthorized calls IsAppAuthorizedFunc.
+func (mock *CoreServiceMock) IsAppAuthorized(ctx context.Context, appID string, userID string) (bool, error) {
+	if mock.IsAppAuthorizedFunc == nil {
+		panic("CoreServiceMock.IsAppAuthorizedFunc: method is nil but CoreService.IsAppAuthorized was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		AppID  string
+		UserID string
+	}{
+		Ctx:    ctx,
+		AppID:  appID,
+		UserID: userID,
+	}
+	mock.lockIsAppAuthorized.Lock()
+	mock.calls.IsAppAuthorized = append(mock.calls.IsAppAuthorized, callInfo)
+	mock.lockIsAppAuthorized.Unlock()
+	return mock.IsAppAuthorizedFunc(ctx, appID, userID)
+}
+
+// IsAppAuthorizedCalls gets all the calls that were made to IsAppAuthorized.
+// Check the length with:
+//
+//	len(mockedCoreService.IsAppAuthorizedCalls())
+func (mock *CoreServiceMock) IsAppAuthorizedCalls() []struct {
+	Ctx    context.Context
+	AppID  string
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		AppID  string
+		UserID string
+	}
+	mock.lockIsAppAuthorized.RLock()
+	calls = mock.calls.IsAppAuthorized
+	mock.lockIsAppAuthorized.RUnlock()
+	return calls
+}
+
 // IsProjectParticipant calls IsProjectParticipantFunc.
 func (mock *CoreServiceMock) IsProjectParticipant(ctx context.Context, projectID string, userID string) (bool, error) {
 	if mock.IsProjectParticipantFunc == nil {
@@ -6025,6 +6167,42 @@ func (mock *CoreServiceMock) ListAllocationsForUserCalls() []struct {
 	mock.lockListAllocationsForUser.RLock()
 	calls = mock.calls.ListAllocationsForUser
 	mock.lockListAllocationsForUser.RUnlock()
+	return calls
+}
+
+// ListAppAuthorizations calls ListAppAuthorizationsFunc.
+func (mock *CoreServiceMock) ListAppAuthorizations(ctx context.Context, userID string) ([]AppAuthorization, error) {
+	if mock.ListAppAuthorizationsFunc == nil {
+		panic("CoreServiceMock.ListAppAuthorizationsFunc: method is nil but CoreService.ListAppAuthorizations was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		UserID string
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+	}
+	mock.lockListAppAuthorizations.Lock()
+	mock.calls.ListAppAuthorizations = append(mock.calls.ListAppAuthorizations, callInfo)
+	mock.lockListAppAuthorizations.Unlock()
+	return mock.ListAppAuthorizationsFunc(ctx, userID)
+}
+
+// ListAppAuthorizationsCalls gets all the calls that were made to ListAppAuthorizations.
+// Check the length with:
+//
+//	len(mockedCoreService.ListAppAuthorizationsCalls())
+func (mock *CoreServiceMock) ListAppAuthorizationsCalls() []struct {
+	Ctx    context.Context
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID string
+	}
+	mock.lockListAppAuthorizations.RLock()
+	calls = mock.calls.ListAppAuthorizations
+	mock.lockListAppAuthorizations.RUnlock()
 	return calls
 }
 
@@ -7496,6 +7674,46 @@ func (mock *CoreServiceMock) PublishUserAgreementCalls() []struct {
 	mock.lockPublishUserAgreement.RLock()
 	calls = mock.calls.PublishUserAgreement
 	mock.lockPublishUserAgreement.RUnlock()
+	return calls
+}
+
+// RemoveAppAuthorization calls RemoveAppAuthorizationFunc.
+func (mock *CoreServiceMock) RemoveAppAuthorization(ctx context.Context, appID string, userID string) error {
+	if mock.RemoveAppAuthorizationFunc == nil {
+		panic("CoreServiceMock.RemoveAppAuthorizationFunc: method is nil but CoreService.RemoveAppAuthorization was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		AppID  string
+		UserID string
+	}{
+		Ctx:    ctx,
+		AppID:  appID,
+		UserID: userID,
+	}
+	mock.lockRemoveAppAuthorization.Lock()
+	mock.calls.RemoveAppAuthorization = append(mock.calls.RemoveAppAuthorization, callInfo)
+	mock.lockRemoveAppAuthorization.Unlock()
+	return mock.RemoveAppAuthorizationFunc(ctx, appID, userID)
+}
+
+// RemoveAppAuthorizationCalls gets all the calls that were made to RemoveAppAuthorization.
+// Check the length with:
+//
+//	len(mockedCoreService.RemoveAppAuthorizationCalls())
+func (mock *CoreServiceMock) RemoveAppAuthorizationCalls() []struct {
+	Ctx    context.Context
+	AppID  string
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		AppID  string
+		UserID string
+	}
+	mock.lockRemoveAppAuthorization.RLock()
+	calls = mock.calls.RemoveAppAuthorization
+	mock.lockRemoveAppAuthorization.RUnlock()
 	return calls
 }
 

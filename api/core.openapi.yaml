@@ -1129,6 +1129,17 @@ definitions:
       name:
         type: string
     type: object
+  appAuthorizationView:
+    properties:
+      authorized:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   appNameView:
     properties:
       key:
@@ -4735,6 +4746,89 @@ paths:
       summary: List the current agreement if the caller has not accepted it
       tags:
       - Consent
+  /me/app-authorizations:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/appAuthorizationView'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the apps that need the caller's authorization
+      tags:
+      - Apps
+  /me/app-authorizations/{appId}:
+    delete:
+      description: Certificates the app already generated stay valid.
+      parameters:
+      - description: App ID
+        in: path
+        name: appId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove an app's authorization
+      tags:
+      - Apps
+    post:
+      parameters:
+      - description: App ID
+        in: path
+        name: appId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: The app cannot be authorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Allow an app to act for the caller
+      tags:
+      - Apps
   /me/onboarding:
     post:
       consumes:

@@ -70,6 +70,8 @@ type fakeCore struct {
 	user        *models.User
 	pending     []models.UserAgreement
 	identities  []models.UserIdentity
+
+	appAuthorized bool
 }
 
 func (f *fakeCore) GetUserByEmail(context.Context, string) (*models.User, error) {
@@ -85,6 +87,10 @@ func (f *fakeCore) PendingUserAgreements(context.Context, string) ([]models.User
 
 func (f *fakeCore) ListUserIdentitiesForUser(context.Context, string) ([]models.UserIdentity, error) {
 	return f.identities, nil
+}
+
+func (f *fakeCore) IsAppAuthorized(context.Context, string, string) (bool, error) {
+	return f.appAuthorized, nil
 }
 
 func (f *fakeCore) GetComputeClusterUserByPair(context.Context, string, string) (*models.ComputeClusterUser, error) {
@@ -112,6 +118,8 @@ func readyCore() *fakeCore {
 		allocation:  models.ComputeAllocation{ComputeClusterID: testClusterID, Status: models.ACTIVE, StartTime: start, EndTime: end},
 		user:        &models.User{ID: "user-1", Email: "jdoe@example.edu", Status: models.UserActive},
 		identities:  []models.UserIdentity{{OIDCSub: testSub}},
+
+		appAuthorized: true,
 	}
 }
 

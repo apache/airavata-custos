@@ -251,3 +251,75 @@ func (s *Server) issueAppSecret(w http.ResponseWriter, r *http.Request) {
 	}
 	common.WriteJSON(w, http.StatusOK, appWithTokenView{appView: viewApp(*a), Token: token})
 }
+
+type appAuthorizationView struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Authorized  bool   `json:"authorized"`
+}
+
+// @Summary	List the apps that need the caller's authorization
+// @Tags	Apps
+// @Security	BearerAuth
+// @Produce	json
+// @Success	200	{array}	appAuthorizationView
+// @Failure	401	{object}	object{error=string}
+// @Router	/me/app-authorizations [get]
+func (s *Server) listAppAuthorizations(w http.ResponseWriter, r *http.Request) {
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	authorizations, err := s.svc.ListAppAuthorizations(r.Context(), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	views := make([]appAuthorizationView, 0, len(authorizations))
+	for _, item := range authorizations {
+		views = append(views, appAuthorizationView{ID: item.App.ID, Name: item.App.Name, Description: item.App.Description, Authorized: item.Authorized})
+	}
+	common.WriteJSON(w, http.StatusOK, views)
+}
+
+// @Summary	Allow an app to act for the caller
+// @Tags	Apps
+// @Security	BearerAuth
+// @Param	appId	path	string	true	"App ID"
+// @Success	204
+// @Failure	400	{object}	object{error=string}	"The app cannot be authorized"
+// @Failure	401	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/me/app-authorizations/{appId} [post]
+func (s *Server) authorizeApp(w http.ResponseWriter, r *http.Request) {
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	writeNoContent(w, s.svc.AuthorizeApp(r.Context(), r.PathValue("appId"), caller.UserID))
+}
+
+// @Summary	Remove an app's authorization
+// @Description	Certificates the app already generated stay valid.
+// @Tags	Apps
+// @Security	BearerAuth
+// @Param	appId	path	string	true	"App ID"
+// @Success	204
+// @Failure	401	{object}	object{error=string}
+// @Router	/me/app-authorizations/{appId} [delete]
+func (s *Server) removeAppAuthorization(w http.ResponseWriter, r *http.Request) {
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	writeNoContent(w, s.svc.RemoveAppAuthorization(r.Context(), r.PathValue("appId"), caller.UserID))
+}
+
+func writeNoContent(w http.ResponseWriter, err error) {
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

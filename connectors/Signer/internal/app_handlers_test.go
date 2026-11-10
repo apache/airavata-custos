@@ -74,6 +74,7 @@ func TestGenerateForApp_RefusesUserWhoCannotHaveACertificate(t *testing.T) {
 		{"suspended user", func(c *fakeCore) { c.user.Status = models.UserSuspended }, http.StatusForbidden, "user_not_active"},
 		{"pending user agreement", func(c *fakeCore) { c.pending = []models.UserAgreement{{ID: "a1"}} }, http.StatusForbidden, "consent_required"},
 		{"never signed in", func(c *fakeCore) { c.identities = nil }, http.StatusForbidden, "user_not_signed_in"},
+		{"app not allowed by the user", func(c *fakeCore) { c.appAuthorized = false }, http.StatusForbidden, "app_not_authorized"},
 		{"no cluster account", func(c *fakeCore) { c.account = nil }, http.StatusForbidden, "no_cluster_account"},
 	}
 	for _, tc := range cases {

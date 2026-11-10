@@ -569,6 +569,11 @@ type AppStore interface {
 	List(ctx context.Context) ([]models.App, error)
 	Create(ctx context.Context, tx *sql.Tx, a *models.App) error
 	Update(ctx context.Context, tx *sql.Tx, a *models.App) error
+	HasGrant(ctx context.Context, appID, userID string) (bool, error)
+	ListGrantedAppIDs(ctx context.Context, userID string) ([]string, error)
+	CreateGrant(ctx context.Context, tx *sql.Tx, appID, userID string) error
+	DeleteGrant(ctx context.Context, tx *sql.Tx, appID, userID string) (bool, error)
+	ReassignGrants(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 }
 
 // UserAgreementAcceptanceStore defines persistence operations for the record of who accepted which agreement.

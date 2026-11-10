@@ -34,11 +34,13 @@ import (
 )
 
 const (
-	appAuditCreated      = "APP_CREATED"
-	appAuditUpdated      = "APP_UPDATED"
-	appAuditDisabled     = "APP_DISABLED"
-	appAuditEnabled      = "APP_ENABLED"
-	appAuditSecretIssued = "APP_SECRET_ISSUED"
+	appAuditCreated              = "APP_CREATED"
+	appAuditUpdated              = "APP_UPDATED"
+	appAuditDisabled             = "APP_DISABLED"
+	appAuditEnabled              = "APP_ENABLED"
+	appAuditSecretIssued         = "APP_SECRET_ISSUED"
+	appAuditAuthorized           = "APP_AUTHORIZED"
+	appAuditAuthorizationRemoved = "APP_AUTHORIZATION_REMOVED"
 
 	appNameMaxLength    = 100
 	appSecretHintLength = 4
@@ -220,4 +222,64 @@ func (s *Service) ResolveApp(ctx context.Context, token string) (*identity.Calle
 		return nil, identity.ErrAppDisabled
 	}
 	return &identity.Caller{AppID: a.ID, AppKey: a.Key, AppActions: a.Actions}, nil
+}
+
+// AppAuthorization is one app a user can allow.
+type AppAuthorization struct {
+	App        models.App
+	Authorized bool
+}
+
+func (s *Service) ListAppAuthorizations(ctx context.Context, userID string) ([]AppAuthorization, error) {
+	apps, err := s.apps.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list apps: %w", err)
+	}
+	granted, err := s.apps.ListGrantedAppIDs(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list app grants: %w", err)
+	}
+	var authorizations []AppAuthorization
+	for _, a := range apps {
+		if a.Status == models.AppActive && a.NeedsUserGrant() {
+			authorizations = append(authorizations, AppAuthorization{App: a, Authorized: slices.Contains(granted, a.ID)})
+		}
+	}
+	return authorizations, nil
+}
+
+func (s *Service) AuthorizeApp(ctx context.Context, appID, userID string) error {
+	a, err := s.GetApp(ctx, appID)
+	if err != nil {
+		return err
+	}
+	if a.Status != models.AppActive {
+		return fmt.Errorf("%w: this app is disabled", ErrInvalidInput)
+	}
+	if !a.NeedsUserGrant() {
+		return fmt.Errorf("%w: this app does not need authorization", ErrInvalidInput)
+	}
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.apps.CreateGrant(ctx, tx, appID, userID); err != nil {
+			return fmt.Errorf("insert app grant: %w", err)
+		}
+		return s.writeAuditTx(ctx, tx, "app", appAuditAuthorized, appID, map[string]any{"user_id": userID})
+	})
+}
+
+func (s *Service) RemoveAppAuthorization(ctx context.Context, appID, userID string) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		removed, err := s.apps.DeleteGrant(ctx, tx, appID, userID)
+		if err != nil {
+			return fmt.Errorf("delete app grant: %w", err)
+		}
+		if !removed {
+			return nil
+		}
+		return s.writeAuditTx(ctx, tx, "app", appAuditAuthorizationRemoved, appID, map[string]any{"user_id": userID})
+	})
+}
+
+func (s *Service) IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error) {
+	return s.apps.HasGrant(ctx, appID, userID)
 }
