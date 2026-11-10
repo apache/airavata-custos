@@ -51,6 +51,7 @@ type CoreAccounts interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	PendingUserAgreements(ctx context.Context, userID string) ([]models.UserAgreement, error)
 	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error)
 }
 
 type Config struct {

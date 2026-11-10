@@ -333,6 +333,10 @@ type AppService interface {
 	EnableApp(ctx context.Context, id, actorID string) (*models.App, error)
 	IssueAppSecret(ctx context.Context, id, actorID string) (*models.App, string, error)
 	ResolveApp(ctx context.Context, token string) (*identity.Caller, error)
+	ListAppAuthorizations(ctx context.Context, userID string) ([]AppAuthorization, error)
+	AuthorizeApp(ctx context.Context, appID, userID string) error
+	RemoveAppAuthorization(ctx context.Context, appID, userID string) error
+	IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error)
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

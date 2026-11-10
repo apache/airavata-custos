@@ -185,6 +185,98 @@ func TestApp_CreateRefusesBadActions(t *testing.T) {
 	}
 }
 
+// Make sure a user can allow an app and remove it again.
+func TestApp_UserCanAuthorizeAndRemove(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	app, _ := newTestApp(t, svc, seedAppAdmin(t, database))
+	userID := seedUser(t, database, "member@example.edu")
+
+	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || !authorized {
+		t.Fatalf("after allow: %v %v", authorized, err)
+	}
+	if err := svc.RemoveAppAuthorization(ctx(), app.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || authorized {
+		t.Fatalf("after remove: %v %v", authorized, err)
+	}
+}
+
+// Make sure the member list only has active apps that need authorization.
+func TestApp_AuthorizationListShowsOnlyActiveAppsThatNeedIt(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	app, _ := newTestApp(t, svc, adminID)
+	if _, _, err := svc.CreateApp(ctx(), "temp-tool", "Temp Tool", "", []string{"temp-account:app:create"}, adminID); err != nil {
+		t.Fatal(err)
+	}
+	userID := seedUser(t, database, "member@example.edu")
+	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+
+	listed, err := svc.ListAppAuthorizations(ctx(), userID)
+	if err != nil || len(listed) != 1 || listed[0].App.ID != app.ID || !listed[0].Authorized {
+		t.Fatalf("listed %+v, err %v", listed, err)
+	}
+	if _, err := svc.DisableApp(ctx(), app.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+	if listed, err := svc.ListAppAuthorizations(ctx(), userID); err != nil || len(listed) != 0 {
+		t.Fatalf("disabled app listed %+v, err %v", listed, err)
+	}
+	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || !authorized {
+		t.Fatalf("allow lost when disabled: %v %v", authorized, err)
+	}
+}
+
+// Make sure a user's allowed apps move to the surviving user when two users are merged.
+func TestApp_AuthorizationMovesOnUserMerge(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	app, _ := newTestApp(t, svc, seedAppAdmin(t, database))
+	retiring := seedUser(t, database, "retiring@example.edu")
+	survivor := seedUser(t, database, "survivor@example.edu")
+	if err := svc.AuthorizeApp(ctx(), app.ID, retiring); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatal(err)
+	}
+
+	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, survivor); err != nil || !authorized {
+		t.Fatalf("survivor: %v %v", authorized, err)
+	}
+}
+
+// Make sure an app that does not need authorization, or is disabled, cannot be allowed.
+func TestApp_CannotAuthorizeAppOutsideTheList(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	disabled, _ := newTestApp(t, svc, adminID)
+	if _, err := svc.DisableApp(ctx(), disabled.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+	noGrant, _, err := svc.CreateApp(ctx(), "temp-tool", "Temp Tool", "", []string{"temp-account:app:create"}, adminID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	userID := seedUser(t, database, "member@example.edu")
+
+	for _, appID := range []string{disabled.ID, noGrant.ID} {
+		if err := svc.AuthorizeApp(ctx(), appID, userID); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("%s: got %v", appID, err)
+		}
+	}
+}
+
 // Make sure only a holder of core:apps:manage can create an app.
 func TestApp_CreateNeedsAppsManage(t *testing.T) {
 	database := setupTestDB(t)

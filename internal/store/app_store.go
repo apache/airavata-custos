@@ -107,3 +107,35 @@ func (s *pgAppStore) Update(ctx context.Context, tx *sql.Tx, a *models.App) erro
 		a.Name, a.Description, a.Status, a.SecretHash, a.SecretHint, a.ID)
 	return err
 }
+
+func (s *pgAppStore) HasGrant(ctx context.Context, appID, userID string) (bool, error) {
+	var granted bool
+	err := s.db.GetContext(ctx, &granted, `SELECT EXISTS (SELECT 1 FROM app_grants WHERE app_id = $1 AND user_id = $2)`, appID, userID)
+	return granted, err
+}
+
+func (s *pgAppStore) ListGrantedAppIDs(ctx context.Context, userID string) ([]string, error) {
+	var appIDs []string
+	err := s.db.SelectContext(ctx, &appIDs, `SELECT app_id FROM app_grants WHERE user_id = $1`, userID)
+	return appIDs, err
+}
+
+func (s *pgAppStore) CreateGrant(ctx context.Context, tx *sql.Tx, appID, userID string) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO app_grants (app_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, appID, userID)
+	return err
+}
+
+func (s *pgAppStore) DeleteGrant(ctx context.Context, tx *sql.Tx, appID, userID string) (bool, error) {
+	return execOnce(ctx, tx, `DELETE FROM app_grants WHERE app_id = $1 AND user_id = $2`, appID, userID)
+}
+
+func (s *pgAppStore) ReassignGrants(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO app_grants (app_id, user_id, granted_at)
+		 SELECT app_id, $2, granted_at FROM app_grants WHERE user_id = $1
+		 ON CONFLICT DO NOTHING`, fromUserID, toUserID); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `DELETE FROM app_grants WHERE user_id = $1`, fromUserID)
+	return err
+}

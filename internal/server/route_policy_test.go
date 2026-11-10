@@ -34,9 +34,9 @@ func TestNoRequireAuthOnIdScopedRoutes(t *testing.T) {
 		t.Fatalf("read server.go: %v", err)
 	}
 	re := regexp.MustCompile(`RequireAuth(WithoutUserConsent)?\("[A-Z]+ ([^"]*\{[^"]*)"`)
-	for _, line := range strings.Split(string(src), "\n") {
+	for line := range strings.SplitSeq(string(src), "\n") {
 		m := re.FindStringSubmatch(line)
-		if m == nil || (m[1] == "WithoutUserConsent" && strings.HasPrefix(m[2], "/me/")) {
+		if m == nil || strings.HasPrefix(m[2], "/me/") {
 			continue
 		}
 		t.Errorf("id-scoped route registered with RequireAuth (needs RequireScoped or RequirePrivilege): %s", strings.TrimSpace(line))

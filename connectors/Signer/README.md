@@ -61,9 +61,9 @@ An app signs in with its token and can use only these routes. It never holds the
 | `POST /connectors/signer/app/certificates/{serial}/revoke` | `signer:app:revoke-certificate`   | Revoke one this app requested, recorded under the app |
 
 Generate takes `user_email`, `public_key` and an optional `source_address`. Every certificate records `app/<key>` as who
-asked. The user must be active, have accepted the current user agreement, have signed in to Custos at least once, and
-pass the same account and allocation checks as above. Besides the codes above, an app can get `user_not_found`,
-`consent_required` and `user_not_signed_in`.
+asked. The user must be active, have accepted the current user agreement, have signed in to Custos at least once, have
+allowed the app, and pass the same account and allocation checks as above. Besides the codes above, an app can get
+`user_not_found`, `consent_required`, `user_not_signed_in` and `app_not_authorized`.
 
 ## Configuration
 
