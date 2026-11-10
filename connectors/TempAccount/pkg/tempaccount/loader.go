@@ -25,6 +25,7 @@ import (
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
@@ -34,6 +35,7 @@ const Type = "temp-account"
 
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	handlers := internal.NewHandlers(coreService)
+	models.RegisterAppConnector(models.AppConnector{Name: Type, Actions: []string{internal.AppActionCreateUser}})
 	handlers.RegisterRoutes(router)
 	return nil
 }
