@@ -80,6 +80,11 @@ async function installSignerRoutes(context: BrowserContext) {
       return;
     }
 
+    if (request.method() === "GET" && url.pathname === "/api/v1/apps/names") {
+      await json(route, []);
+      return;
+    }
+
     if (url.pathname === "/api/v1/connectors/signer/me/certificates") {
       if (request.method() === "GET") {
         await json(route, { certificates, limit: certificates.length });

@@ -195,6 +195,9 @@ test.describe("ssh certificates", () => {
 
     await page.getByRole("button", { name: /^Revoke$/ }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
+    await page.evaluate(() =>
+      Promise.all(document.getAnimations().map((animation) => animation.finished)),
+    );
     await expectNoSeriousAxeViolations(page, "[role=dialog]");
   });
 
