@@ -206,7 +206,7 @@ func (s *Service) IssueAppSecret(ctx context.Context, id, actorID string) (*mode
 
 func (s *Service) ResolveApp(ctx context.Context, token string) (*identity.Caller, error) {
 	key, secret, ok := strings.Cut(strings.TrimPrefix(token, identity.AppTokenPrefix), ".")
-	if !ok {
+	if !ok || validateAppKey(key) != nil {
 		return nil, identity.ErrInvalidAppToken
 	}
 	a, err := s.apps.FindByKey(ctx, key)

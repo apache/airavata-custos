@@ -83,13 +83,13 @@ func TestApp_TokenAuthenticatesAndSecretIsNotStored(t *testing.T) {
 	}
 }
 
-// Make sure a token with the right app key but a wrong or missing secret is refused.
-func TestApp_WrongSecretIsRefused(t *testing.T) {
+// Make sure a token with a wrong or missing secret, or a malformed app key, is refused.
+func TestApp_BadTokenIsRefused(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	newTestApp(t, svc, seedAppAdmin(t, database))
 
-	for _, token := range []string{identity.AppTokenPrefix + "test-gateway.wrong", identity.AppTokenPrefix + "test-gateway"} {
+	for _, token := range []string{identity.AppTokenPrefix + "test-gateway.wrong", identity.AppTokenPrefix + "test-gateway", identity.AppTokenPrefix + "\xff.secret"} {
 		if _, err := svc.ResolveApp(ctx(), token); !errors.Is(err, identity.ErrInvalidAppToken) {
 			t.Errorf("%s: got %v", token, err)
 		}

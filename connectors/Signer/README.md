@@ -49,6 +49,22 @@ A refusal has an `error` code: `user_not_active`, `no_cluster_account`, `cluster
 `no_active_allocation`, `signer_unavailable`, or from the signer `reserved_username`, `invalid_public_key` and
 `key_type_not_allowed`.
 
+## App routes
+
+An app signs in with its token and can use only these routes. It never holds the privileges above.
+
+| Route                                                      | Action                            | Does                                                  |
+|------------------------------------------------------------|-----------------------------------|-------------------------------------------------------|
+| `POST /connectors/signer/app/certificates`                 | `signer:app:generate-certificate` | Generate a certificate for the user in `user_email`   |
+| `GET /connectors/signer/app/certificates`                  | `signer:app:generate-certificate` | The certificates this app requested                   |
+| `GET /connectors/signer/app/certificates/{serial}`         | `signer:app:generate-certificate` | One certificate this app requested                    |
+| `POST /connectors/signer/app/certificates/{serial}/revoke` | `signer:app:revoke-certificate`   | Revoke one this app requested, recorded under the app |
+
+Generate takes `user_email`, `public_key` and an optional `source_address`. Every certificate records `app/<key>` as who
+asked. The user must be active, have accepted the current user agreement, have signed in to Custos at least once, and
+pass the same account and allocation checks as above. Besides the codes above, an app can get `user_not_found`,
+`consent_required` and `user_not_signed_in`.
+
 ## Configuration
 
 Settings are in the `connectors.signer` block of [`config/custos.yaml`](../../config/custos.yaml). When a required
