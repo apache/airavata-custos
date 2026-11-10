@@ -560,6 +560,17 @@ type UserAgreementStore interface {
 	CountPendingUsers(ctx context.Context, agreementID string) (int, error)
 }
 
+// AppStore defines persistence operations for apps. Find methods return nil if not found.
+type AppStore interface {
+	FindByID(ctx context.Context, id string) (*models.App, error)
+	FindByKey(ctx context.Context, key string) (*models.App, error)
+	// FindByIDTx returns the app locked FOR UPDATE in tx.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.App, error)
+	List(ctx context.Context) ([]models.App, error)
+	Create(ctx context.Context, tx *sql.Tx, a *models.App) error
+	Update(ctx context.Context, tx *sql.Tx, a *models.App) error
+}
+
 // UserAgreementAcceptanceStore defines persistence operations for the record of who accepted which agreement.
 type UserAgreementAcceptanceStore interface {
 	// FindTx returns the user's acceptance of the agreement inside tx, or nil.

@@ -40,6 +40,25 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
+  AppConnector:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      needs_user_grant:
+        type: boolean
+    type: object
+  AppStatus:
+    enum:
+    - ACTIVE
+    - DISABLED
+    type: string
+    x-enum-varnames:
+    - AppActive
+    - AppDisabled
   AuditEvent:
     properties:
       details:
@@ -657,6 +676,7 @@ definitions:
     - core:events:manage
     - core:agreements:read
     - core:agreements:manage
+    - core:apps:manage
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -675,6 +695,7 @@ definitions:
     - EventsManage
     - AgreementsRead
     - AgreementsManage
+    - AppsManage
   Project:
     properties:
       created_time:
@@ -1108,6 +1129,73 @@ definitions:
       name:
         type: string
     type: object
+  appNameView:
+    properties:
+      key:
+        type: string
+      name:
+        type: string
+    type: object
+  appView:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      connector:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      needs_user_authorization:
+        type: boolean
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/AppStatus'
+      updated_at:
+        type: string
+    type: object
+  appWithTokenView:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      connector:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      needs_user_authorization:
+        type: boolean
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/AppStatus'
+      token:
+        type: string
+      updated_at:
+        type: string
+    type: object
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -1123,6 +1211,19 @@ definitions:
         items:
           $ref: '#/definitions/UserAgreement'
         type: array
+    type: object
+  createAppRequest:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
     type: object
   createComputeClusterUserRequest:
     properties:
@@ -1245,6 +1346,13 @@ definitions:
         type: integer
       resource_time:
         type: integer
+    type: object
+  updateAppRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
     type: object
   updateProjectRequest:
     properties:
@@ -1752,6 +1860,368 @@ paths:
       summary: Remove a published user agreement
       tags:
       - Agreements
+  /apps:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/appView'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List apps
+      tags:
+      - Apps
+    post:
+      consumes:
+      - application/json
+      description: The token is returned only here.
+      parameters:
+      - description: App
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/createAppRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/appWithTokenView'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That key or name is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create an app
+      tags:
+      - Apps
+  /apps/{id}:
+    get:
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/appView'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an app
+      tags:
+      - Apps
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Name and description
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateAppRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/appView'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That name is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Edit an app's name and description
+      tags:
+      - Apps
+  /apps/{id}/disable:
+    post:
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/appView'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Disable an app
+      tags:
+      - Apps
+  /apps/{id}/enable:
+    post:
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/appView'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Enable an app
+      tags:
+      - Apps
+  /apps/{id}/secret:
+    post:
+      description: The old token stops working at once. The new token is returned
+        only here.
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/appWithTokenView'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Issue a new secret for an app
+      tags:
+      - Apps
+  /apps/connectors:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AppConnector'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the connectors apps can use and their actions
+      tags:
+      - Apps
+  /apps/names:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/appNameView'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the key and name of every app, including disabled ones
+      tags:
+      - Apps
   /audit/events:
     get:
       parameters:
@@ -4466,6 +4936,7 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:apps:manage
         in: path
         name: key
         required: true
@@ -5124,6 +5595,7 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:apps:manage
         in: path
         name: key
         required: true
@@ -5786,6 +6258,7 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
+        - core:apps:manage
         in: path
         name: key
         required: true

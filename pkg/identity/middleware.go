@@ -22,6 +22,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -79,18 +80,71 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, public, withoutUs
 	})
 }
 
+// AppTokenPrefix marks a Custos issued app token (cak_ - custos app key).
+const AppTokenPrefix = "cak_"
+
+// AppMiddleware makes sure an app can only call the app routes, since routes with no privilege check are open otherwise.
+func AppMiddleware(resolver AppResolver, appRoutes func(*http.Request) bool, apps, users http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		rawToken, ok := bearer(req.Header.Get("Authorization"))
+		if !ok || !strings.HasPrefix(rawToken, AppTokenPrefix) {
+			users.ServeHTTP(w, req)
+			return
+		}
+		caller, err := resolver.ResolveApp(req.Context(), rawToken)
+		if errors.Is(err, ErrInvalidAppToken) {
+			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid app token")
+			return
+		}
+		if errors.Is(err, ErrAppDisabled) {
+			writeJSONError(w, http.StatusForbidden, "app_disabled", "App is disabled")
+			return
+		}
+		if err != nil {
+			slog.ErrorContext(req.Context(), "app lookup failed", "error", err.Error())
+			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
+			return
+		}
+		if !appRoutes(req) {
+			writeJSONError(w, http.StatusForbidden, "app_route_not_allowed", "Apps cannot use this route")
+			return
+		}
+		apps.ServeHTTP(w, req.WithContext(WithCaller(req.Context(), caller)))
+	})
+}
+
 // Router is the only path that lets HTTP routes hit the mux. The mux
 // field is unexported on purpose: callers must go through RequirePrivilege,
-// RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, or Public.
+// RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, RequireApp, or Public.
 type Router struct {
 	mux                   *http.ServeMux
 	publicMux             *http.ServeMux
 	withoutUserConsentMux *http.ServeMux
+	appMux                *http.ServeMux
 }
 
 // NewRouter wraps mux.
 func NewRouter(mux *http.ServeMux) *Router {
-	return &Router{mux: mux, publicMux: http.NewServeMux(), withoutUserConsentMux: http.NewServeMux()}
+	return &Router{mux: mux, publicMux: http.NewServeMux(), withoutUserConsentMux: http.NewServeMux(), appMux: http.NewServeMux()}
+}
+
+// RequireApp registers a route only an app can call, and only with this action.
+// Patterns must be under /connectors/<name>/app/ so they cannot overlap a user route.
+func (r *Router) RequireApp(pattern, action string, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
+		caller := CallerFromContext(req.Context())
+		if caller == nil || caller.AppID == "" || !slices.Contains(caller.AppActions, action) {
+			writeJSONError(w, http.StatusForbidden, "app_action_not_allowed", "Caller cannot perform this app action")
+			return
+		}
+		handler(w, req)
+	})
+	r.appMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
+}
+
+// AppRoutes reports whether a request targets a RequireApp route.
+func (r *Router) AppRoutes() func(*http.Request) bool {
+	return routesIn(r.appMux)
 }
 
 // RequirePrivilege registers an authenticated handler. The wrapper checks privilege

@@ -43,6 +43,7 @@ const (
 	EventsManage       PrivilegeKey = "core:events:manage"
 	AgreementsRead     PrivilegeKey = "core:agreements:read"
 	AgreementsManage   PrivilegeKey = "core:agreements:manage"
+	AppsManage         PrivilegeKey = "core:apps:manage"
 )
 
 var (
@@ -68,6 +69,7 @@ func init() {
 		EventsManage,
 		AgreementsRead,
 		AgreementsManage,
+		AppsManage,
 	)
 }
 
