@@ -217,6 +217,34 @@ func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, use
 	return allocateAndCreateClusterUser(ctx, svc, clusterID, userID)
 }
 
+// ensureUserByEmail returns the user with email, creating a PENDING one if none exists.
+// An existing user, added internally, takes the organization and name from ACCESS.
+func ensureUserByEmail(ctx context.Context, svc *service.Service, orgID, email, first, last string) (*models.User, error) {
+	user, err := svc.GetUserByEmail(ctx, email)
+	switch {
+	case err == nil:
+		user.OrganizationID, user.FirstName, user.LastName = orgID, first, last
+		if err := svc.UpdateUser(ctx, user); err != nil {
+			return nil, fmt.Errorf("update user: %w", err)
+		}
+		return user, nil
+	case errors.Is(err, service.ErrNotFound):
+		user, err = svc.CreateUser(ctx, &models.User{
+			OrganizationID: orgID,
+			FirstName:      first,
+			LastName:       last,
+			Email:          email,
+			Status:         models.UserPending,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("create user: %w", err)
+		}
+		return user, nil
+	default:
+		return nil, err
+	}
+}
+
 // ensureOrganization looks up an Organization by its originated_id (the
 // AMIE-side org code such as "TEST123"); creates one if missing, using the
 // human-readable organization name from the packet.

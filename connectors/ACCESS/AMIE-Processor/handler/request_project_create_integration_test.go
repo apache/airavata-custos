@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
@@ -439,6 +440,39 @@ func TestRequestProjectCreate_NegativeTransferDeducts(t *testing.T) {
 
 	if got := allocationAfter(t, database); got.InitialSUAmount != 699.5 {
 		t.Errorf("initial_su_amount: got %g, want 699.5", got.InitialSUAmount)
+	}
+}
+
+// Make sure a project create links a PI who already exists with the same email,
+// taking the ACCESS organization and name rather than failing with the duplicate entry error.
+func TestRequestProjectCreate_LinksExistingPIByEmail(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestCoreService(database)
+	ctx := tracingtest.Context()
+	body := baseRPCBody()
+	org, err := svc.CreateOrganization(ctx, &models.Organization{Name: "Placeholder Org"})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	existing, err := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, FirstName: "Patty", Email: body["PiEmail"].(string), Status: models.UserActive})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	pkt := insertPacket(t, database, "request_project_create", body)
+	h := NewRequestProjectCreateHandler(svc, testClusterID, &fakeAmieClient{}, newTestAuditService(database), nil)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle returned error: %v", err)
+	}
+
+	linked, err := svc.GetUserByUserIdentity(ctx, "access", "bl-pi-001")
+	if err != nil || linked.ID != existing.ID {
+		t.Fatalf("access identity: got %+v, %v, want it on user %s", linked, err, existing.ID)
+	}
+	if linked.FirstName != "Pat" || linked.LastName != "First" || linked.OrganizationID == org.ID {
+		t.Errorf("user: got %+v, want the ACCESS name and organization", linked)
 	}
 }
 
