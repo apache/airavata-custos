@@ -30,6 +30,7 @@ import (
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -184,6 +185,10 @@ func (s *Service) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 }
 
 func (s *Service) writeAuditTx(ctx context.Context, tx *sql.Tx, entityType, eventType, entityID string, details map[string]any) error {
+	// Record the app too when an app made the request.
+	if caller := identity.CallerFromContext(ctx); caller != nil && caller.IsApp() {
+		details["app_key"] = caller.AppKey
+	}
 	payload, err := json.Marshal(details)
 	if err != nil {
 		return fmt.Errorf("marshal audit details: %w", err)

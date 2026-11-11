@@ -317,3 +317,24 @@ func TestApp_AdminRoleCannotManageApps(t *testing.T) {
 		t.Fatal("the admin role holds core:apps:manage")
 	}
 }
+
+// Make sure a change made through an app records the app in the audit trail, next to the user.
+func TestApp_AuditRecordsTheApp(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	app, _ := newTestApp(t, svc, adminID)
+
+	viaApp := identity.WithCaller(ctx(), &identity.Caller{UserID: adminID, AppID: app.ID, AppKey: "gateway"})
+	if _, err := svc.DisableApp(viaApp, app.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+
+	var details string
+	if err := database.Get(&details, `SELECT details FROM audit_events WHERE entity_id = $1 AND event_type = $2`, app.ID, appAuditDisabled); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(details, `"app_key":"gateway"`) || !strings.Contains(details, `"actor_id":"`+adminID+`"`) {
+		t.Fatalf("details = %s", details)
+	}
+}
