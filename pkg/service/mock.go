@@ -46,7 +46,7 @@ var _ CoreService = &CoreServiceMock{}
 //			CompleteOnboardingFunc: func(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error) {
 //				panic("mock out the CompleteOnboarding method")
 //			},
-//			CreateAppFunc: func(ctx context.Context, key string, name string, description string, actions []string, actorID string) (*models.App, string, error) {
+//			CreateAppFunc: func(ctx context.Context, key string, name string, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error) {
 //				panic("mock out the CreateApp method")
 //			},
 //			CreateAuditEventFunc: func(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
@@ -448,7 +448,7 @@ var _ CoreService = &CoreServiceMock{}
 //			RemoveUserAgreementFunc: func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
 //				panic("mock out the RemoveUserAgreement method")
 //			},
-//			ResolveAppFunc: func(ctx context.Context, token string) (*identity.Caller, error) {
+//			ResolveAppFunc: func(ctx context.Context, token string) (*models.App, error) {
 //				panic("mock out the ResolveApp method")
 //			},
 //			RevokePrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error {
@@ -555,7 +555,7 @@ type CoreServiceMock struct {
 	CompleteOnboardingFunc func(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error)
 
 	// CreateAppFunc mocks the CreateApp method.
-	CreateAppFunc func(ctx context.Context, key string, name string, description string, actions []string, actorID string) (*models.App, string, error)
+	CreateAppFunc func(ctx context.Context, key string, name string, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error)
 
 	// CreateAuditEventFunc mocks the CreateAuditEvent method.
 	CreateAuditEventFunc func(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
@@ -957,7 +957,7 @@ type CoreServiceMock struct {
 	RemoveUserAgreementFunc func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error)
 
 	// ResolveAppFunc mocks the ResolveApp method.
-	ResolveAppFunc func(ctx context.Context, token string) (*identity.Caller, error)
+	ResolveAppFunc func(ctx context.Context, token string) (*models.App, error)
 
 	// RevokePrivilegeFunc mocks the RevokePrivilege method.
 	RevokePrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error
@@ -1121,8 +1121,10 @@ type CoreServiceMock struct {
 			Name string
 			// Description is the description argument value.
 			Description string
-			// Actions is the actions argument value.
-			Actions []string
+			// Mode is the mode argument value.
+			Mode models.AppMode
+			// Privileges is the privileges argument value.
+			Privileges []models.PrivilegeKey
 			// ActorID is the actorID argument value.
 			ActorID string
 		}
@@ -2839,7 +2841,7 @@ func (mock *CoreServiceMock) CompleteOnboardingCalls() []struct {
 }
 
 // CreateApp calls CreateAppFunc.
-func (mock *CoreServiceMock) CreateApp(ctx context.Context, key string, name string, description string, actions []string, actorID string) (*models.App, string, error) {
+func (mock *CoreServiceMock) CreateApp(ctx context.Context, key string, name string, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error) {
 	if mock.CreateAppFunc == nil {
 		panic("CoreServiceMock.CreateAppFunc: method is nil but CoreService.CreateApp was just called")
 	}
@@ -2848,20 +2850,22 @@ func (mock *CoreServiceMock) CreateApp(ctx context.Context, key string, name str
 		Key         string
 		Name        string
 		Description string
-		Actions     []string
+		Mode        models.AppMode
+		Privileges  []models.PrivilegeKey
 		ActorID     string
 	}{
 		Ctx:         ctx,
 		Key:         key,
 		Name:        name,
 		Description: description,
-		Actions:     actions,
+		Mode:        mode,
+		Privileges:  privileges,
 		ActorID:     actorID,
 	}
 	mock.lockCreateApp.Lock()
 	mock.calls.CreateApp = append(mock.calls.CreateApp, callInfo)
 	mock.lockCreateApp.Unlock()
-	return mock.CreateAppFunc(ctx, key, name, description, actions, actorID)
+	return mock.CreateAppFunc(ctx, key, name, description, mode, privileges, actorID)
 }
 
 // CreateAppCalls gets all the calls that were made to CreateApp.
@@ -2873,7 +2877,8 @@ func (mock *CoreServiceMock) CreateAppCalls() []struct {
 	Key         string
 	Name        string
 	Description string
-	Actions     []string
+	Mode        models.AppMode
+	Privileges  []models.PrivilegeKey
 	ActorID     string
 } {
 	var calls []struct {
@@ -2881,7 +2886,8 @@ func (mock *CoreServiceMock) CreateAppCalls() []struct {
 		Key         string
 		Name        string
 		Description string
-		Actions     []string
+		Mode        models.AppMode
+		Privileges  []models.PrivilegeKey
 		ActorID     string
 	}
 	mock.lockCreateApp.RLock()
@@ -7802,7 +7808,7 @@ func (mock *CoreServiceMock) RemoveUserAgreementCalls() []struct {
 }
 
 // ResolveApp calls ResolveAppFunc.
-func (mock *CoreServiceMock) ResolveApp(ctx context.Context, token string) (*identity.Caller, error) {
+func (mock *CoreServiceMock) ResolveApp(ctx context.Context, token string) (*models.App, error) {
 	if mock.ResolveAppFunc == nil {
 		panic("CoreServiceMock.ResolveAppFunc: method is nil but CoreService.ResolveApp was just called")
 	}

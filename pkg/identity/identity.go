@@ -32,11 +32,25 @@ import (
 // NeedsOnboarding is set on a first sign-in -- the email matched a PENDING user but no sub is stored yet.
 type Caller struct {
 	UserID          string
+	Email           string
 	NeedsOnboarding bool
 	ConsentPending  bool
-	AppID           string // set only for an app. UserID is then empty.
+	AppID           string
 	AppKey          string
-	AppActions      []string
+}
+
+// IsApp reports whether an app made the call, as itself or for a user.
+func (c *Caller) IsApp() bool { return c.AppID != "" }
+
+// IsServiceApp reports whether an app is calling as itself, with no user.
+func (c *Caller) IsServiceApp() bool { return c.AppID != "" && c.UserID == "" }
+
+// Requester is who made the call app or a user.
+func (c *Caller) Requester() string {
+	if c.IsApp() {
+		return "app/" + c.AppKey
+	}
+	return "user/" + c.UserID
 }
 
 // Wrap the ErrNotLinked to keep the specific cause in the log while the middleware
@@ -63,7 +77,8 @@ type UserResolver interface {
 }
 
 type AppResolver interface {
-	ResolveApp(ctx context.Context, token string) (*Caller, error)
+	ResolveApp(ctx context.Context, token string) (*models.App, error)
+	IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error)
 }
 
 type ctxKey string

@@ -67,30 +67,6 @@ type fakeCore struct {
 	account     *models.ComputeClusterUser
 	memberships []models.ComputeAllocationMembership
 	allocation  models.ComputeAllocation
-	user        *models.User
-	pending     []models.UserAgreement
-	identities  []models.UserIdentity
-
-	appAuthorized bool
-}
-
-func (f *fakeCore) GetUserByEmail(context.Context, string) (*models.User, error) {
-	if f.user == nil {
-		return nil, service.ErrNotFound
-	}
-	return f.user, nil
-}
-
-func (f *fakeCore) PendingUserAgreements(context.Context, string) ([]models.UserAgreement, error) {
-	return f.pending, nil
-}
-
-func (f *fakeCore) ListUserIdentitiesForUser(context.Context, string) ([]models.UserIdentity, error) {
-	return f.identities, nil
-}
-
-func (f *fakeCore) IsAppAuthorized(context.Context, string, string) (bool, error) {
-	return f.appAuthorized, nil
 }
 
 func (f *fakeCore) GetComputeClusterUserByPair(context.Context, string, string) (*models.ComputeClusterUser, error) {
@@ -116,23 +92,27 @@ func readyCore() *fakeCore {
 		account:     &models.ComputeClusterUser{LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountApproved, ProvisionedAt: &provisioned},
 		memberships: []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE, StartTime: start, EndTime: end}},
 		allocation:  models.ComputeAllocation{ComputeClusterID: testClusterID, Status: models.ACTIVE, StartTime: start, EndTime: end},
-		user:        &models.User{ID: "user-1", Email: "jdoe@example.edu", Status: models.UserActive},
-		identities:  []models.UserIdentity{{OIDCSub: testSub}},
-
-		appAuthorized: true,
 	}
 }
 
-func serveWith(core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
+func serveAs(caller *identity.Caller, claims *identity.Claims, core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
 	mux := http.NewServeMux()
 	NewHandlers(Config{BaseURL: baseURL, ServiceToken: "service-token", ClusterID: testClusterID, TTLSeconds: 3600, Timeout: 2 * time.Second}, core).RegisterRoutes(identity.NewRouter(mux))
 	r.Header.Set("Authorization", "Bearer user-token")
-	ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: "user-1"})
-	ctx = identity.WithClaims(ctx, &identity.Claims{Sub: testSub, Email: "jdoe@example.edu"})
+	ctx := identity.WithClaims(identity.WithCaller(r.Context(), caller), claims)
 	r = r.WithContext(identity.WithPrivilegesForTest(ctx, privs))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, r)
 	return rec
+}
+
+func serveWith(core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
+	return serveAs(&identity.Caller{UserID: "user-1", Email: "jdoe@example.edu"}, &identity.Claims{Sub: testSub, Email: "jdoe@example.edu"}, core, baseURL, r, privs...)
+}
+
+// serveForApp calls as a delegated app. Its user token has no email.
+func serveForApp(baseURL string, r *http.Request) *httptest.ResponseRecorder {
+	return serveAs(&identity.Caller{UserID: "user-1", Email: "jdoe@example.edu", AppID: "a1", AppKey: "gateway"}, &identity.Claims{Sub: testSub}, readyCore(), baseURL, r)
 }
 
 func serve(baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
@@ -247,14 +227,29 @@ func TestOwnRoutes_HideOtherUsersCertificates(t *testing.T) {
 	}
 }
 
-// Make sure a user can revoke their own certificate with no privilege, recorded as self.
-func TestRevokeOwn_RecordedAsSelf(t *testing.T) {
+// Make sure a user can revoke their own certificate with no privilege, recorded under their user ID.
+func TestRevokeOwn_RecordedAsTheUser(t *testing.T) {
 	srv, seen := mockSignerServer(t, http.StatusOK, `{"user_sub":"`+testSub+`"}`)
 
 	rec := serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates/42/revoke", strings.NewReader(`{}`)))
 
-	if rec.Code != http.StatusOK || seen.path != "/api/v1/certificates/42/revoke" || !strings.Contains(seen.body, `"revoked_by":"self"`) {
+	if rec.Code != http.StatusOK || seen.path != "/api/v1/certificates/42/revoke" || !strings.Contains(seen.body, `"revoked_by":"user/user-1"`) {
 		t.Fatalf("got %d, signer saw %+v", rec.Code, *seen)
+	}
+}
+
+// Make sure a certificate a delegated app generates or revokes records the app and gets the user's email even though the token has none.
+func TestOwnRoutes_ByAppRecordTheApp(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{"user_sub":"`+testSub+`"}`)
+
+	serveForApp(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(`{"public_key":"k"}`)))
+	if !strings.Contains(seen.body, `"requested_by":"app/gateway"`) || !strings.Contains(seen.body, `"user_email":"jdoe@example.edu"`) {
+		t.Fatalf("generate: signer got %s", seen.body)
+	}
+
+	serveForApp(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates/42/revoke", strings.NewReader(`{}`)))
+	if !strings.Contains(seen.body, `"revoked_by":"app/gateway"`) {
+		t.Fatalf("revoke: signer got %s", seen.body)
 	}
 }
 

@@ -27,8 +27,6 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-const AppActionCreateUser = "temp-account:app:create-user"
-
 type Handlers struct {
 	coreService *service.Service
 }
@@ -44,7 +42,7 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequirePrivilege("POST /connectors/temp-account/update-allocation", AccountsWrite, h.updateAllocationToTempAccount)
 	router.RequirePrivilege("DELETE /connectors/temp-account/remove/{user_id}", AccountsWrite, h.removeTempAccount)
 	router.RequirePrivilege("GET /connectors/temp-account/membership/{user_id}", AccountsRead, h.getAllocationMembershipForTempUser)
-	router.RequireApp("POST /connectors/temp-account/app/create", AppActionCreateUser, h.createTempAccount)
+	router.RequirePrivilege("POST /connectors/temp-account/users", UsersCreate, h.createTempAccount)
 }
 
 func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {

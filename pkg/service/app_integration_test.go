@@ -33,9 +33,21 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func registerTestAppConnectors() {
-	models.RegisterAppConnector(models.AppConnector{Name: "signer", NeedsUserGrant: true, Actions: []string{"signer:app:generate", "signer:app:revoke"}})
-	models.RegisterAppConnector(models.AppConnector{Name: "temp-account", Actions: []string{"temp-account:app:create"}})
+const testAppPrivilege models.PrivilegeKey = "test:items:create"
+
+func registerTestAppPrivilege() {
+	models.AllowForApps(testAppPrivilege)
+}
+
+// newServiceApp creates a service app named temp-tool.
+func newServiceApp(t *testing.T, svc *Service, adminID string) *models.App {
+	t.Helper()
+	registerTestAppPrivilege()
+	app, _, err := svc.CreateApp(ctx(), "temp-tool", "Temp Tool", "", models.AppService, []models.PrivilegeKey{testAppPrivilege}, adminID)
+	if err != nil {
+		t.Fatalf("create service app: %v", err)
+	}
+	return app
 }
 
 func seedAppAdmin(t *testing.T, database *sqlx.DB) string {
@@ -52,26 +64,26 @@ func seedAppAdmin(t *testing.T, database *sqlx.DB) string {
 
 func newTestApp(t *testing.T, svc *Service, adminID string) (*models.App, string) {
 	t.Helper()
-	registerTestAppConnectors()
-	app, token, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", []string{"signer:app:revoke", "signer:app:generate"}, adminID)
+	registerTestAppPrivilege()
+	app, token, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", models.AppDelegated, []models.PrivilegeKey{testAppPrivilege}, adminID)
 	if err != nil {
 		t.Fatalf("create app: %v", err)
 	}
 	return app, token
 }
 
-// Make sure the token returned at creation authenticates the app with its actions, and the secret itself is not stored.
+// Make sure the token from creation finds the app with its mode and privileges, and the secret isn't stored.
 func TestApp_TokenAuthenticatesAndSecretIsNotStored(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	app, token := newTestApp(t, svc, seedAppAdmin(t, database))
 
-	caller, err := svc.ResolveApp(ctx(), token)
+	resolved, err := svc.ResolveApp(ctx(), token)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
-	if caller.AppID != app.ID || caller.AppKey != "test-gateway" || caller.UserID != "" || !slices.Equal(caller.AppActions, []string{"signer:app:generate", "signer:app:revoke"}) {
-		t.Fatalf("caller = %+v", caller)
+	if resolved.ID != app.ID || resolved.Mode != models.AppDelegated || !slices.Equal(resolved.Privileges, []models.PrivilegeKey{testAppPrivilege}) {
+		t.Fatalf("app = %+v", resolved)
 	}
 	_, secret, _ := strings.Cut(token, ".")
 	var stored int
@@ -107,7 +119,7 @@ func TestApp_CreateRefusesDuplicateKeyAndName(t *testing.T) {
 		{"test-gateway", "Another Gateway"},
 		{"another-gateway", "Test Gateway"},
 	} {
-		if _, _, err := svc.CreateApp(ctx(), app.key, app.name, "", []string{"signer:app:generate"}, adminID); !errors.Is(err, ErrAlreadyExists) {
+		if _, _, err := svc.CreateApp(ctx(), app.key, app.name, "", models.AppDelegated, nil, adminID); !errors.Is(err, ErrAlreadyExists) {
 			t.Errorf("%s: got %v", app.key, err)
 		}
 	}
@@ -118,10 +130,9 @@ func TestApp_CreateRefusesBadAppKey(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	adminID := seedAppAdmin(t, database)
-	registerTestAppConnectors()
 
 	for _, key := range []string{"has.dot", "has:colon", "Upper", ""} {
-		if _, _, err := svc.CreateApp(ctx(), key, "Test Gateway", "", []string{"signer:app:generate"}, adminID); !errors.Is(err, ErrInvalidInput) {
+		if _, _, err := svc.CreateApp(ctx(), key, "Test Gateway", "", models.AppDelegated, nil, adminID); !errors.Is(err, ErrInvalidInput) {
 			t.Errorf("%q: %v", key, err)
 		}
 	}
@@ -167,36 +178,23 @@ func TestApp_DisabledAppIsRefused(t *testing.T) {
 	}
 }
 
-// Make sure an app can use several connectors and needs user authorization when one of them does.
-func TestApp_OneAppCanUseSeveralConnectors(t *testing.T) {
+// Make sure an app can't get a privilege that isn't allowed for apps, a service app needs at least one privilege, and the mode must be known.
+func TestApp_CreateRefusesAccessAppsCannotHave(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	adminID := seedAppAdmin(t, database)
-	registerTestAppConnectors()
+	registerTestAppPrivilege()
 
-	app, _, err := svc.CreateApp(ctx(), "gateway", "Gateway", "", []string{"temp-account:app:create", "signer:app:generate"}, adminID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(app.Connectors(), []string{"signer", "temp-account"}) || !app.NeedsUserGrant() {
-		t.Fatalf("connectors %v, needs grant %v", app.Connectors(), app.NeedsUserGrant())
-	}
-}
-
-// Make sure an app cannot be created with an unknown action or with none.
-func TestApp_CreateRefusesBadActions(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestService(database)
-	adminID := seedAppAdmin(t, database)
-	registerTestAppConnectors()
-
-	for _, actions := range [][]string{
-		{"signer:app:unknown"},
-		{"unknown:app:create"},
-		{},
+	for name, app := range map[string]struct {
+		mode       models.AppMode
+		privileges []models.PrivilegeKey
+	}{
+		"admin privilege":   {models.AppDelegated, []models.PrivilegeKey{models.UsersWrite}},
+		"service with none": {models.AppService, nil},
+		"unknown mode":      {"OTHER", []models.PrivilegeKey{testAppPrivilege}},
 	} {
-		if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", actions, adminID); !errors.Is(err, ErrInvalidInput) {
-			t.Errorf("%v: %v", actions, err)
+		if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", app.mode, app.privileges, adminID); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("%s: %v", name, err)
 		}
 	}
 }
@@ -222,15 +220,13 @@ func TestApp_UserCanAuthorizeAndRemove(t *testing.T) {
 	}
 }
 
-// Make sure the member list only has active apps that need authorization.
-func TestApp_AuthorizationListShowsOnlyActiveAppsThatNeedIt(t *testing.T) {
+// Make sure the member list only shows active delegated apps.
+func TestApp_AuthorizationListShowsOnlyActiveDelegatedApps(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	adminID := seedAppAdmin(t, database)
 	app, _ := newTestApp(t, svc, adminID)
-	if _, _, err := svc.CreateApp(ctx(), "temp-tool", "Temp Tool", "", []string{"temp-account:app:create"}, adminID); err != nil {
-		t.Fatal(err)
-	}
+	newServiceApp(t, svc, adminID)
 	userID := seedUser(t, database, "member@example.edu")
 	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
 		t.Fatal(err)
@@ -271,7 +267,7 @@ func TestApp_AuthorizationMovesOnUserMerge(t *testing.T) {
 	}
 }
 
-// Make sure an app that does not need authorization, or is disabled, cannot be allowed.
+// Make sure a service app or a disabled app can't be allowed.
 func TestApp_CannotAuthorizeAppOutsideTheList(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -280,13 +276,10 @@ func TestApp_CannotAuthorizeAppOutsideTheList(t *testing.T) {
 	if _, err := svc.DisableApp(ctx(), disabled.ID, adminID); err != nil {
 		t.Fatal(err)
 	}
-	noGrant, _, err := svc.CreateApp(ctx(), "temp-tool", "Temp Tool", "", []string{"temp-account:app:create"}, adminID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	service := newServiceApp(t, svc, adminID)
 	userID := seedUser(t, database, "member@example.edu")
 
-	for _, appID := range []string{disabled.ID, noGrant.ID} {
+	for _, appID := range []string{disabled.ID, service.ID} {
 		if err := svc.AuthorizeApp(ctx(), appID, userID); !errors.Is(err, ErrInvalidInput) {
 			t.Errorf("%s: got %v", appID, err)
 		}
@@ -297,10 +290,9 @@ func TestApp_CannotAuthorizeAppOutsideTheList(t *testing.T) {
 func TestApp_CreateNeedsAppsManage(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	registerTestAppConnectors()
 	userID := seedUser(t, database, "plain-user@example.edu")
 
-	if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", []string{"signer:app:generate"}, userID); err == nil {
+	if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", models.AppDelegated, nil, userID); err == nil {
 		t.Fatal("created an app without core:apps:manage")
 	}
 }

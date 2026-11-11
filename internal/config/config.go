@@ -68,6 +68,8 @@ type AuthConfig struct {
 type OIDCConfig struct {
 	Issuer   string `yaml:"issuer"`
 	Audience string `yaml:"audience"`
+	// Public client for apps. Empty turns off delegated apps.
+	AppsAudience string `yaml:"apps_audience"`
 }
 
 type ConnectorConfig struct {

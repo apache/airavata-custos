@@ -40,17 +40,41 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
-  AppConnector:
+  App:
     properties:
-      actions:
-        items:
-          type: string
-        type: array
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      mode:
+        $ref: '#/definitions/AppMode'
       name:
         type: string
-      needs_user_grant:
-        type: boolean
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/AppStatus'
+      updated_at:
+        type: string
     type: object
+  AppMode:
+    enum:
+    - SERVICE
+    - DELEGATED
+    type: string
+    x-enum-varnames:
+    - AppService
+    - AppDelegated
   AppStatus:
     enum:
     - ACTIVE
@@ -1147,47 +1171,8 @@ definitions:
       name:
         type: string
     type: object
-  appView:
-    properties:
-      actions:
-        items:
-          type: string
-        type: array
-      connectors:
-        items:
-          type: string
-        type: array
-      created_at:
-        type: string
-      created_by:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      key:
-        type: string
-      name:
-        type: string
-      needs_user_authorization:
-        type: boolean
-      secret_hint:
-        type: string
-      status:
-        $ref: '#/definitions/AppStatus'
-      updated_at:
-        type: string
-    type: object
   appWithTokenView:
     properties:
-      actions:
-        items:
-          type: string
-        type: array
-      connectors:
-        items:
-          type: string
-        type: array
       created_at:
         type: string
       created_by:
@@ -1198,10 +1183,14 @@ definitions:
         type: string
       key:
         type: string
+      mode:
+        $ref: '#/definitions/AppMode'
       name:
         type: string
-      needs_user_authorization:
-        type: boolean
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
       secret_hint:
         type: string
       status:
@@ -1229,16 +1218,18 @@ definitions:
     type: object
   createAppRequest:
     properties:
-      actions:
-        items:
-          type: string
-        type: array
       description:
         type: string
       key:
         type: string
+      mode:
+        $ref: '#/definitions/AppMode'
       name:
         type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
     type: object
   createComputeClusterUserRequest:
     properties:
@@ -1884,7 +1875,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/appView'
+              $ref: '#/definitions/App'
             type: array
         "401":
           description: Unauthorized
@@ -1970,7 +1961,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/appView'
+            $ref: '#/definitions/App'
         "401":
           description: Unauthorized
           schema:
@@ -2018,7 +2009,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/appView'
+            $ref: '#/definitions/App'
         "400":
           description: Bad Request
           schema:
@@ -2073,7 +2064,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/appView'
+            $ref: '#/definitions/App'
         "401":
           description: Unauthorized
           schema:
@@ -2114,7 +2105,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/appView'
+            $ref: '#/definitions/App'
         "401":
           description: Unauthorized
           schema:
@@ -2184,36 +2175,6 @@ paths:
       summary: Issue a new secret for an app
       tags:
       - Apps
-  /apps/connectors:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/AppConnector'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List the connectors apps can use and their actions
-      tags:
-      - Apps
   /apps/names:
     get:
       produces:
@@ -2235,6 +2196,36 @@ paths:
       security:
       - BearerAuth: []
       summary: List the key and name of every app, including disabled ones
+      tags:
+      - Apps
+  /apps/privileges:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the privileges an app may hold
       tags:
       - Apps
   /audit/events:
@@ -4770,7 +4761,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List the apps that need the caller's authorization
+      summary: List the apps that can act for the caller
       tags:
       - Apps
   /me/app-authorizations/{appId}:

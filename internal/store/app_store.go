@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const appColumns = `id, key, name, description, status, secret_hash, secret_hint, created_by, created_at, updated_at`
+const appColumns = `id, key, name, description, status, mode, secret_hash, secret_hint, created_by, created_at, updated_at`
 
 type pgAppStore struct {
 	db *sqlx.DB
@@ -37,10 +37,10 @@ func NewAppStore(db *sqlx.DB) AppStore {
 	return &pgAppStore{db: db}
 }
 
-func (s *pgAppStore) actions(ctx context.Context, appID string) ([]string, error) {
-	actions := []string{}
-	err := s.db.SelectContext(ctx, &actions, `SELECT action FROM app_actions WHERE app_id = $1 ORDER BY action`, appID)
-	return actions, err
+func (s *pgAppStore) privileges(ctx context.Context, appID string) ([]models.PrivilegeKey, error) {
+	privileges := []models.PrivilegeKey{}
+	err := s.db.SelectContext(ctx, &privileges, `SELECT privilege FROM app_privileges WHERE app_id = $1 ORDER BY privilege`, appID)
+	return privileges, err
 }
 
 func (s *pgAppStore) find(ctx context.Context, q sqlx.QueryerContext, where string, arg any) (*models.App, error) {
@@ -52,7 +52,7 @@ func (s *pgAppStore) find(ctx context.Context, q sqlx.QueryerContext, where stri
 	if err != nil {
 		return nil, err
 	}
-	if a.Actions, err = s.actions(ctx, a.ID); err != nil {
+	if a.Privileges, err = s.privileges(ctx, a.ID); err != nil {
 		return nil, err
 	}
 	return &a, nil
@@ -71,29 +71,29 @@ func (s *pgAppStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*mo
 }
 
 func (s *pgAppStore) List(ctx context.Context) ([]models.App, error) {
-	var apps []models.App
+	apps := []models.App{}
 	if err := s.db.SelectContext(ctx, &apps, `SELECT `+appColumns+` FROM apps ORDER BY name`); err != nil {
 		return nil, err
 	}
 	for i := range apps {
-		actions, err := s.actions(ctx, apps[i].ID)
+		privileges, err := s.privileges(ctx, apps[i].ID)
 		if err != nil {
 			return nil, err
 		}
-		apps[i].Actions = actions
+		apps[i].Privileges = privileges
 	}
 	return apps, nil
 }
 
 func (s *pgAppStore) Create(ctx context.Context, tx *sql.Tx, a *models.App) error {
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO apps (id, key, name, description, status, secret_hash, secret_hint, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		a.ID, a.Key, a.Name, a.Description, a.Status, a.SecretHash, a.SecretHint, a.CreatedBy); err != nil {
+		`INSERT INTO apps (id, key, name, description, status, mode, secret_hash, secret_hint, created_by)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		a.ID, a.Key, a.Name, a.Description, a.Status, a.Mode, a.SecretHash, a.SecretHint, a.CreatedBy); err != nil {
 		return err
 	}
-	for _, action := range a.Actions {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO app_actions (app_id, action) VALUES ($1, $2)`, a.ID, action); err != nil {
+	for _, privilege := range a.Privileges {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO app_privileges (app_id, privilege) VALUES ($1, $2)`, a.ID, privilege); err != nil {
 			return err
 		}
 	}

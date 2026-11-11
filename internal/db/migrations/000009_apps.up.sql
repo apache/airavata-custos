@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS apps
     key         VARCHAR(50)    NOT NULL, -- The app's readable ID. It is in the token and on every certificate.
     name        VARCHAR(100)   NOT NULL,
     description TEXT           NOT NULL DEFAULT '',
-    status     VARCHAR(16)    NOT NULL DEFAULT 'ACTIVE',
+    status      VARCHAR(16)    NOT NULL DEFAULT 'ACTIVE',
+    mode        VARCHAR(16)    NOT NULL,
     secret_hash VARCHAR(64)    NOT NULL,
     secret_hint VARCHAR(12)    NOT NULL, -- First part of the secret to identify which key is being used
     created_by  VARCHAR(255)   NOT NULL,
@@ -31,13 +32,14 @@ CREATE TABLE IF NOT EXISTS apps
     CONSTRAINT uq_apps_key UNIQUE (key),
     CONSTRAINT uq_apps_name UNIQUE (name),
     CONSTRAINT chk_apps_status CHECK (status IN ('ACTIVE', 'DISABLED')),
+    CONSTRAINT chk_apps_mode CHECK (mode IN ('SERVICE', 'DELEGATED')),
     CONSTRAINT fk_apps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
 
-CREATE TABLE IF NOT EXISTS app_actions
+CREATE TABLE IF NOT EXISTS app_privileges
 (
-    app_id VARCHAR(255) NOT NULL,
-    action VARCHAR(100) NOT NULL,
-    PRIMARY KEY (app_id, action),
-    CONSTRAINT fk_app_actions_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT
+    app_id    VARCHAR(255) NOT NULL,
+    privilege VARCHAR(100) NOT NULL,
+    PRIMARY KEY (app_id, privilege),
+    CONSTRAINT fk_app_privileges_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT
 );

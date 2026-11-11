@@ -48,10 +48,6 @@ type CoreAccounts interface {
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	GetComputeAllocation(ctx context.Context, id string) (*models.ComputeAllocation, error)
-	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
-	PendingUserAgreements(ctx context.Context, userID string) ([]models.UserAgreement, error)
-	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
-	IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error)
 }
 
 type Config struct {
@@ -82,10 +78,6 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequireAuth("GET /connectors/signer/me/certificates/{serial}", h.getOwnCertificate)
 	router.RequireAuth("POST /connectors/signer/me/certificates/{serial}/revoke", h.revokeOwnCertificate)
 	router.RequirePrivilege("GET /connectors/signer/status", CertificatesRead, h.status)
-	router.RequireApp("POST /connectors/signer/app/certificates", AppActionGenerateCertificate, h.generateCertificateForApp)
-	router.RequireApp("GET /connectors/signer/app/certificates", AppActionGenerateCertificate, h.listCertificatesForApp)
-	router.RequireApp("GET /connectors/signer/app/certificates/{serial}", AppActionGenerateCertificate, h.getCertificateForApp)
-	router.RequireApp("POST /connectors/signer/app/certificates/{serial}/revoke", AppActionRevokeCertificate, h.revokeCertificateForApp)
 }
 
 func refuse(w http.ResponseWriter, status int, code, message string) {
@@ -103,7 +95,7 @@ func certificatePath(r *http.Request) string {
 // requireClaims writes the refusal and returns nil if the token does not say who the caller is.
 func requireClaims(w http.ResponseWriter, r *http.Request) *identity.Claims {
 	claims := identity.ClaimsFromContext(r.Context())
-	if claims == nil || claims.Sub == "" || claims.Email == "" {
+	if claims == nil || claims.Sub == "" {
 		refuse(w, http.StatusForbidden, "user_not_active", "Your account cannot do this")
 		return nil
 	}
@@ -171,7 +163,7 @@ func (h *Handlers) revokeAnyCertificate(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// revokedBy is the admin's email, the app, or "self" when users revoke their own.
+// revokedBy is the admin's email, or the caller's Requester when users revoke their own.
 func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, revokedBy string) {
 	var req struct {
 		Reason string `json:"reason"`
@@ -248,7 +240,7 @@ func (h *Handlers) getOwnCertificate(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) revokeOwnCertificate(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.fetchUsersCertificate(w, r); ok {
-		h.revoke(w, r, "self")
+		h.revoke(w, r, identity.CallerFromContext(r.Context()).Requester())
 	}
 }
 
@@ -257,19 +249,21 @@ func (h *Handlers) generateCertificate(w http.ResponseWriter, r *http.Request) {
 	if claims == nil {
 		return
 	}
-	userID := identity.CallerFromContext(r.Context()).UserID
+	caller := identity.CallerFromContext(r.Context())
 	var req struct {
-		PublicKey string `json:"public_key"`
+		PublicKey     string `json:"public_key"`
+		SourceAddress string `json:"source_address"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxRequestBytes)).Decode(&req); err != nil || req.PublicKey == "" {
 		refuse(w, http.StatusBadRequest, "invalid_public_key", "A public key is required")
 		return
 	}
-	h.issueCertificate(w, r, userID, map[string]any{
-		"public_key":   req.PublicKey,
-		"user_email":   claims.Email,
-		"user_sub":     claims.Sub,
-		"requested_by": "user/" + userID,
+	h.issueCertificate(w, r, caller.UserID, map[string]any{
+		"public_key":     req.PublicKey,
+		"user_email":     caller.Email,
+		"user_sub":       claims.Sub,
+		"requested_by":   caller.Requester(),
+		"source_address": req.SourceAddress,
 	})
 }
 

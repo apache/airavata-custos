@@ -18,7 +18,7 @@
 package models
 
 import (
-	"sort"
+	"slices"
 	"sync"
 	"time"
 )
@@ -46,9 +46,14 @@ const (
 	AppsManage         PrivilegeKey = "core:apps:manage"
 )
 
+// privilegeRules holds what we know about a privilege.
+type privilegeRules struct {
+	allowedForApps bool
+}
+
 var (
 	registryMu sync.RWMutex
-	registry   = map[PrivilegeKey]struct{}{}
+	registry   = map[PrivilegeKey]privilegeRules{}
 )
 
 func init() {
@@ -78,20 +83,50 @@ func Register(keys ...PrivilegeKey) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
 	for _, k := range keys {
-		registry[k] = struct{}{}
+		if _, ok := registry[k]; !ok {
+			registry[k] = privilegeRules{}
+		}
+	}
+}
+
+// AllowForApps registers privileges that can be given to an app.
+// Never use it for privileges that manage users, roles, privileges, or apps.
+func AllowForApps(keys ...PrivilegeKey) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	for _, k := range keys {
+		registry[k] = privilegeRules{allowedForApps: true}
 	}
 }
 
 // KnownPrivileges returns the registered keys, sorted.
 func KnownPrivileges() []PrivilegeKey {
+	return registeredKeys(func(privilegeRules) bool { return true })
+}
+
+// AppPrivileges returns the privileges an app can hold, sorted.
+func AppPrivileges() []PrivilegeKey {
+	return registeredKeys(func(rules privilegeRules) bool { return rules.allowedForApps })
+}
+
+func registeredKeys(include func(privilegeRules) bool) []PrivilegeKey {
 	registryMu.RLock()
 	defer registryMu.RUnlock()
-	keys := make([]PrivilegeKey, 0, len(registry))
-	for k := range registry {
-		keys = append(keys, k)
+	keys := []PrivilegeKey{} // not nil, so the API returns [] instead of null
+	for k, rules := range registry {
+		if include(rules) {
+			keys = append(keys, k)
+		}
 	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	slices.Sort(keys)
 	return keys
+}
+
+// IsAppPrivilege reports whether an app can hold p.
+func IsAppPrivilege(p PrivilegeKey) bool {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	return registry[p].allowedForApps
 }
 
 // IsKnownPrivilege reports whether p is registered.

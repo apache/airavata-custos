@@ -24,14 +24,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type appView struct {
-	models.App
-	Connectors             []string `json:"connectors"`
-	NeedsUserAuthorization bool     `json:"needs_user_authorization"`
-}
-
 type appWithTokenView struct {
-	appView
+	models.App
 	Token string `json:"token"`
 }
 
@@ -41,10 +35,11 @@ type appNameView struct {
 }
 
 type createAppRequest struct {
-	Key         string   `json:"key"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Actions     []string `json:"actions"`
+	Key         string                `json:"key"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Mode        models.AppMode        `json:"mode"`
+	Privileges  []models.PrivilegeKey `json:"privileges"`
 }
 
 type updateAppRequest struct {
@@ -52,23 +47,19 @@ type updateAppRequest struct {
 	Description string `json:"description"`
 }
 
-func viewApp(a models.App) appView {
-	return appView{App: a, Connectors: a.Connectors(), NeedsUserAuthorization: a.NeedsUserGrant()}
-}
-
 func writeApp(w http.ResponseWriter, a *models.App, err error) {
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, viewApp(*a))
+	common.WriteJSON(w, http.StatusOK, a)
 }
 
 // @Summary	List apps
 // @Tags	Apps
 // @Security	BearerAuth
 // @Produce	json
-// @Success	200	{array}	appView
+// @Success	200	{array}	models.App
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
 // @Router	/apps [get]
@@ -78,23 +69,19 @@ func (s *Server) listApps(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	views := make([]appView, 0, len(apps))
-	for _, a := range apps {
-		views = append(views, viewApp(a))
-	}
-	common.WriteJSON(w, http.StatusOK, views)
+	common.WriteJSON(w, http.StatusOK, apps)
 }
 
-// @Summary	List the connectors apps can use and their actions
+// @Summary	List the privileges an app may hold
 // @Tags	Apps
 // @Security	BearerAuth
 // @Produce	json
-// @Success	200	{array}	models.AppConnector
+// @Success	200	{array}	string
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
-// @Router	/apps/connectors [get]
-func (s *Server) listAppConnectors(w http.ResponseWriter, r *http.Request) {
-	common.WriteJSON(w, http.StatusOK, models.KnownAppConnectors())
+// @Router	/apps/privileges [get]
+func (s *Server) listAppPrivileges(w http.ResponseWriter, r *http.Request) {
+	common.WriteJSON(w, http.StatusOK, models.AppPrivileges())
 }
 
 // @Summary	List the key and name of every app, including disabled ones
@@ -140,12 +127,12 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	a, token, err := s.svc.CreateApp(r.Context(), req.Key, req.Name, req.Description, req.Actions, caller.UserID)
+	a, token, err := s.svc.CreateApp(r.Context(), req.Key, req.Name, req.Description, req.Mode, req.Privileges, caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusCreated, appWithTokenView{appView: viewApp(*a), Token: token})
+	common.WriteJSON(w, http.StatusCreated, appWithTokenView{App: *a, Token: token})
 }
 
 // @Summary	Get an app
@@ -153,7 +140,7 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"App ID"
-// @Success	200	{object}	appView
+// @Success	200	{object}	models.App
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
 // @Failure	404	{object}	object{error=string}
@@ -170,7 +157,7 @@ func (s *Server) getApp(w http.ResponseWriter, r *http.Request) {
 // @Produce	json
 // @Param	id	path	string	true	"App ID"
 // @Param	request	body	updateAppRequest	true	"Name and description"
-// @Success	200	{object}	appView
+// @Success	200	{object}	models.App
 // @Failure	400	{object}	object{error=string}
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
@@ -196,7 +183,7 @@ func (s *Server) updateApp(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"App ID"
-// @Success	200	{object}	appView
+// @Success	200	{object}	models.App
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
 // @Failure	404	{object}	object{error=string}
@@ -215,7 +202,7 @@ func (s *Server) disableApp(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"App ID"
-// @Success	200	{object}	appView
+// @Success	200	{object}	models.App
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
 // @Failure	404	{object}	object{error=string}
@@ -250,7 +237,7 @@ func (s *Server) issueAppSecret(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, appWithTokenView{appView: viewApp(*a), Token: token})
+	common.WriteJSON(w, http.StatusOK, appWithTokenView{App: *a, Token: token})
 }
 
 type appAuthorizationView struct {
@@ -260,7 +247,7 @@ type appAuthorizationView struct {
 	Authorized  bool   `json:"authorized"`
 }
 
-// @Summary	List the apps that need the caller's authorization
+// @Summary	List the apps that can act for the caller
 // @Tags	Apps
 // @Security	BearerAuth
 // @Produce	json

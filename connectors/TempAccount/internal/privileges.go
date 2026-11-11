@@ -22,8 +22,10 @@ import "github.com/apache/airavata-custos/pkg/models"
 const (
 	AccountsRead  models.PrivilegeKey = "temp-account:accounts:read"
 	AccountsWrite models.PrivilegeKey = "temp-account:accounts:write"
+	UsersCreate   models.PrivilegeKey = "temp-account:users:create"
 )
 
 func init() {
 	models.Register(AccountsRead, AccountsWrite)
+	models.AllowForApps(UsersCreate)
 }

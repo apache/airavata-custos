@@ -76,15 +76,16 @@ func validateAppName(name string) (string, error) {
 	return name, nil
 }
 
-func validateAppActions(actions []string) error {
-	if len(actions) == 0 {
-		return fmt.Errorf("%w: at least one action is required", ErrInvalidInput)
+func validateAppAccess(mode models.AppMode, privileges []models.PrivilegeKey) error {
+	if mode != models.AppService && mode != models.AppDelegated {
+		return fmt.Errorf("%w: mode must be %s or %s", ErrInvalidInput, models.AppService, models.AppDelegated)
 	}
-	for _, action := range actions {
-		name, _, _ := strings.Cut(action, ":")
-		connector, ok := models.FindAppConnector(name)
-		if !ok || !slices.Contains(connector.Actions, action) {
-			return fmt.Errorf("%w: unknown action %s", ErrInvalidInput, action)
+	if mode == models.AppService && len(privileges) == 0 {
+		return fmt.Errorf("%w: a service app needs at least one privilege", ErrInvalidInput)
+	}
+	for _, privilege := range privileges {
+		if !models.IsAppPrivilege(privilege) {
+			return fmt.Errorf("%w: apps cannot hold %s", ErrInvalidInput, privilege)
 		}
 	}
 	return nil
@@ -116,7 +117,7 @@ func (s *Service) GetApp(ctx context.Context, id string) (*models.App, error) {
 }
 
 // CreateApp The returned token cannot be read again.
-func (s *Service) CreateApp(ctx context.Context, key, name, description string, actions []string, actorID string) (*models.App, string, error) {
+func (s *Service) CreateApp(ctx context.Context, key, name, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error) {
 	if err := validateAppKey(key); err != nil {
 		return nil, "", err
 	}
@@ -124,9 +125,9 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 	if err != nil {
 		return nil, "", err
 	}
-	slices.Sort(actions)
-	actions = slices.Compact(actions)
-	if err := validateAppActions(actions); err != nil {
+	slices.Sort(privileges)
+	privileges = slices.Compact(privileges)
+	if err := validateAppAccess(mode, privileges); err != nil {
 		return nil, "", err
 	}
 	a := &models.App{
@@ -135,8 +136,9 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 		Name:        name,
 		Description: description,
 		Status:      models.AppActive,
+		Mode:        mode,
 		CreatedBy:   actorID,
-		Actions:     actions,
+		Privileges:  privileges,
 	}
 	token := setNewAppSecret(a)
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
@@ -146,7 +148,7 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 		if err := s.apps.Create(ctx, tx, a); err != nil {
 			return appWriteErr("insert app", err)
 		}
-		return s.writeAuditTx(ctx, tx, "app", appAuditCreated, a.ID, map[string]any{"actor_id": actorID, "name": a.Name, "actions": a.Actions})
+		return s.writeAuditTx(ctx, tx, "app", appAuditCreated, a.ID, map[string]any{"actor_id": actorID, "name": a.Name, "mode": a.Mode, "privileges": a.Privileges})
 	}); err != nil {
 		return nil, "", err
 	}
@@ -201,7 +203,7 @@ func (s *Service) IssueAppSecret(ctx context.Context, id, actorID string) (*mode
 	return a, token, err
 }
 
-func (s *Service) ResolveApp(ctx context.Context, token string) (*identity.Caller, error) {
+func (s *Service) ResolveApp(ctx context.Context, token string) (*models.App, error) {
 	key, secret, ok := strings.Cut(strings.TrimPrefix(token, identity.AppTokenPrefix), ".")
 	if !ok || validateAppKey(key) != nil {
 		return nil, identity.ErrInvalidAppToken
@@ -216,7 +218,7 @@ func (s *Service) ResolveApp(ctx context.Context, token string) (*identity.Calle
 	if a.Status != models.AppActive {
 		return nil, identity.ErrAppDisabled
 	}
-	return &identity.Caller{AppID: a.ID, AppKey: a.Key, AppActions: a.Actions}, nil
+	return a, nil
 }
 
 // AppAuthorization is one app a user can allow.
@@ -236,7 +238,7 @@ func (s *Service) ListAppAuthorizations(ctx context.Context, userID string) ([]A
 	}
 	var authorizations []AppAuthorization
 	for _, a := range apps {
-		if a.Status == models.AppActive && a.NeedsUserGrant() {
+		if a.Status == models.AppActive && a.Mode == models.AppDelegated {
 			authorizations = append(authorizations, AppAuthorization{App: a, Authorized: slices.Contains(granted, a.ID)})
 		}
 	}
@@ -251,8 +253,8 @@ func (s *Service) AuthorizeApp(ctx context.Context, appID, userID string) error 
 	if a.Status != models.AppActive {
 		return fmt.Errorf("%w: this app is disabled", ErrInvalidInput)
 	}
-	if !a.NeedsUserGrant() {
-		return fmt.Errorf("%w: this app does not need authorization", ErrInvalidInput)
+	if a.Mode != models.AppDelegated {
+		return fmt.Errorf("%w: this app is not delegated", ErrInvalidInput)
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.apps.CreateGrant(ctx, tx, appID, userID); err != nil {

@@ -98,6 +98,7 @@ These routes need a verified caller but no key.
 |-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `temp-account:accounts:read`  | `GET /connectors/temp-account/membership/{user_id}`                                                                                                                                                    |
 | `temp-account:accounts:write` | `POST /connectors/temp-account/create`<br>`POST /connectors/temp-account/assign-allocation`<br>`POST /connectors/temp-account/update-allocation`<br>`DELETE /connectors/temp-account/remove/{user_id}` |
+| `temp-account:users:create`   | `POST /connectors/temp-account/users`. Apps may hold this key.                                                                                                                                         |
 
 ## Signer connector (`connectors/Signer/internal/privileges.go`)
 
