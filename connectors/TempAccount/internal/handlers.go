@@ -45,6 +45,7 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequirePrivilege("DELETE /connectors/temp-account/remove/{user_id}", AccountsWrite, h.removeTempAccount)
 	router.RequirePrivilege("GET /connectors/temp-account/membership/{user_id}", AccountsRead, h.getAllocationMembershipForTempUser)
 	router.RequireApp("POST /connectors/temp-account/app/create", AppActionCreateUser, h.createTempAccount)
+	router.RequireApp("GET /connectors/temp-account/app/user", AppActionCreateUser, h.getUser)
 }
 
 func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +67,16 @@ func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	common.WriteJSON(w, http.StatusCreated, created)
+}
+
+// getUser returns the user holding ?email=, so a caller that lost the create response can recover the ID.
+func (h *Handlers) getUser(w http.ResponseWriter, r *http.Request) {
+	user, err := h.coreService.GetUserByEmail(r.Context(), r.URL.Query().Get("email"))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, user)
 }
 
 func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
