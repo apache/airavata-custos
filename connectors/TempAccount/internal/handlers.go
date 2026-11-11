@@ -37,12 +37,8 @@ func NewHandlers(coreService *service.Service) *Handlers {
 
 // RegisterRoutes attaches the TempAccount connector's HTTP endpoints to router.
 func (h *Handlers) RegisterRoutes(router *identity.Router) {
-	router.RequirePrivilege("POST /connectors/temp-account/create", AccountsWrite, h.createTempAccount)
-	router.RequirePrivilege("POST /connectors/temp-account/assign-allocation", AccountsWrite, h.assignAllocationToTempAccount)
-	router.RequirePrivilege("POST /connectors/temp-account/update-allocation", AccountsWrite, h.updateAllocationToTempAccount)
-	router.RequirePrivilege("DELETE /connectors/temp-account/remove/{user_id}", AccountsWrite, h.removeTempAccount)
-	router.RequirePrivilege("GET /connectors/temp-account/membership/{user_id}", AccountsRead, h.getAllocationMembershipForTempUser)
-	router.RequirePrivilege("POST /connectors/temp-account/users", UsersCreate, h.createTempAccount)
+	router.RequireServiceAccount("POST /connectors/temp-account/users", UsersCreate, h.createTempAccount)
+	router.RequireServiceAccount("GET /connectors/temp-account/users", UsersRead, h.getUser)
 }
 
 func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {
@@ -56,158 +52,30 @@ func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("User type must be VIRTUAL"))
 		return
 	}
+	// Only a PENDING user binds a first sign-in.
+	u.ID, u.Status = "", ""
 
-	created, err := h.coreService.CreateUser(r.Context(), &u)
-
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	common.WriteJSON(w, http.StatusCreated, created)
-}
-
-func (h *Handlers) removeTempAccount(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("user_id")
-	if userID == "" {
-		common.WriteError(w, http.StatusBadRequest, errors.New("user_id query parameter is required"))
-		return
-	}
-
-	user, err := h.coreService.GetUser(r.Context(), userID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	if user == nil {
-		common.WriteError(w, http.StatusNotFound, errors.New("user not found"))
-		return
-	}
-
-	if user.Type != models.UserTypeVirtual {
-		common.WriteError(w, http.StatusBadRequest, errors.New("User type must be VIRTUAL"))
-		return
-	}
-
-	// Users are never deleted. Deleting accounts here publishes the cluster delete events.
-	if _, err := h.coreService.UpdateUserStatus(r.Context(), userID, models.UserInactive); err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	accounts, err := h.coreService.ListComputeClusterUsersByUser(r.Context(), userID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	for _, a := range accounts {
-		if err := h.coreService.DeleteComputeClusterUser(r.Context(), a.ID); err != nil {
-			common.WriteServiceError(w, err)
-			return
+	status := http.StatusCreated
+	user, err := h.coreService.CreateUser(r.Context(), &u)
+	if errors.Is(err, service.ErrAlreadyExists) {
+		status = http.StatusOK
+		if user, err = h.coreService.GetUserByEmail(r.Context(), u.Email); err == nil && user.Type != models.UserTypeVirtual {
+			err = service.ErrAlreadyExists
 		}
 	}
-	w.WriteHeader(http.StatusNoContent)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, status, user)
 }
 
-func (h *Handlers) assignAllocationToTempAccount(w http.ResponseWriter, r *http.Request) {
-	var m models.ComputeAllocationMembership
-	if err := common.DecodeJSON(r, &m); err != nil {
-		common.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	if m.UserID == "" || m.ComputeAllocationID == "" {
-		common.WriteError(w, http.StatusBadRequest, errors.New("UserID and ComputeAllocationID must be provided"))
-		return
-	}
-
-	// In future, we may want to check that the user already has a membership to an allocation
-	// If that's the case, prevent user from getting membershup to multiple allocations, which TempAccount connector doesn't support.
-
-	user, err := h.coreService.GetUser(r.Context(), m.UserID)
-
+// getUser returns the user holding ?email=, of any type.
+func (h *Handlers) getUser(w http.ResponseWriter, r *http.Request) {
+	user, err := h.coreService.GetUserByEmail(r.Context(), r.URL.Query().Get("email"))
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-
-	if user.Type != models.UserTypeVirtual {
-		common.WriteError(w, http.StatusBadRequest, errors.New("User type must be VIRTUAL"))
-		return
-	}
-
-	assigned, err := h.coreService.CreateComputeAllocationMembership(r.Context(), &m)
-
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	common.WriteJSON(w, http.StatusOK, assigned)
-}
-
-func (h *Handlers) updateAllocationToTempAccount(w http.ResponseWriter, r *http.Request) {
-	var m models.ComputeAllocationMembership
-	if err := common.DecodeJSON(r, &m); err != nil {
-		common.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	existing, err := h.coreService.GetComputeAllocationMembership(r.Context(), m.ID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-
-	user, err := h.coreService.GetUser(r.Context(), existing.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-
-	if user.Type != models.UserTypeVirtual {
-		common.WriteError(w, http.StatusBadRequest, errors.New("User type must be VIRTUAL"))
-		return
-	}
-
-	m.UserID = existing.UserID
-	updated, err := h.coreService.UpdateComputeAllocationMembership(r.Context(), &m)
-
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	common.WriteJSON(w, http.StatusOK, updated)
-}
-
-func (h *Handlers) getAllocationMembershipForTempUser(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("user_id")
-	if userID == "" {
-		common.WriteError(w, http.StatusBadRequest, errors.New("user_id query parameter is required"))
-		return
-	}
-
-	user, err := h.coreService.GetUser(r.Context(), userID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	if user == nil {
-		common.WriteError(w, http.StatusNotFound, errors.New("user not found"))
-		return
-	}
-
-	if user.Type != models.UserTypeVirtual {
-		common.WriteError(w, http.StatusBadRequest, errors.New("User type must be VIRTUAL"))
-		return
-	}
-
-	memberships, err := h.coreService.ListAllocationsForUser(r.Context(), userID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	if memberships == nil {
-		common.WriteError(w, http.StatusNotFound, errors.New("membership not found for user"))
-		return
-	}
-
-	common.WriteJSON(w, http.StatusOK, memberships)
+	common.WriteJSON(w, http.StatusOK, user)
 }

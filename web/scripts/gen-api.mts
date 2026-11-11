@@ -46,7 +46,7 @@ async function main() {
   for (const mod of modules) {
     const spec: unknown = parse(readFileSync(mod.input, "utf8"));
     if (!isNode(spec)) throw new Error(`gen-api: ${mod.input} is not an OpenAPI document`);
-    supplement(mod.name, spec, go, repoRoot);
+    supplement(mod.name, spec, go);
     const report = applyPresence(spec, go);
     settle(mod.name, spec);
     console.log(`gen-api: ${mod.name} presence ${JSON.stringify(report)}`);

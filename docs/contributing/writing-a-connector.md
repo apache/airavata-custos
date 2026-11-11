@@ -83,7 +83,8 @@ What each argument is for:
   `coreService.CreateComputeAllocationMembership`) instead of going to stores yourself.
 - `wg` — register every long-running goroutine with `wg.Add(1)` and `defer wg.Done()`. The server waits up to 30s for
   this group to drain on shutdown.
-- `router` — `*identity.Router`. Register routes with `Public`, `RequireAuth`, or `RequirePrivilege`.
+- `router` — `*identity.Router`. Register routes with `Public`, `RequireAuth`, `RequirePrivilege`, or
+  `RequireServiceAccount`.
 - `connectorConfig` — the YAML block keyed under your connector's name in `config/custos.yaml`. Use `GetStringField`,
   `GetNestedConfig`, etc. on `*config.ConnectorConfig` to read fields.
 
@@ -644,7 +645,7 @@ including the AMIE-specific isolated stack on `:5433`.
 
 ## Where to look next
 
-- Smallest working sample: `connectors/TempAccount/` (~270 lines total).
+- Smallest working sample: `connectors/TempAccount/`.
 - Event-subscriber sample: `connectors/COmanage/Identity-Provisioner/`.
 - Full-shape sample: `connectors/ACCESS/AMIE-Processor/` (HTTP + workers + DB + external client).
 - Router API: `pkg/identity/middleware.go`.

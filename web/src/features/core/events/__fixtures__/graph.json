@@ -73,10 +73,6 @@
         {
           "kind": "amie-processor",
           "label": "worker.Processor.processPendingEvents"
-        },
-        {
-          "kind": "temp-account",
-          "label": "POST /connectors/temp-account/assign-allocation"
         }
       ],
       "subs": 3
@@ -113,10 +109,6 @@
         {
           "kind": "amie-processor",
           "label": "worker.Processor.processPendingEvents"
-        },
-        {
-          "kind": "temp-account",
-          "label": "POST /connectors/temp-account/update-allocation"
         }
       ],
       "subs": 3

@@ -20,7 +20,7 @@
 package internal
 
 import (
-	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,59 +35,34 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func TestHandlers_UpdateAllocationKeepsVirtualUser(t *testing.T) {
-	database := dbtest.Open(t, dbtest.CoreDSN(t))
+// Make sure a repeat returns the first user, ignores a posted id and status, and never returns a regular user.
+func TestCreateTempAccount_RepeatReturnsTheSameUser(t *testing.T) {
 	ctx := tracingtest.Context()
+	database := dbtest.Open(t, dbtest.CoreDSN(t))
 	bus, err := events.New(ctx, database)
 	if err != nil {
 		t.Fatal(err)
 	}
 	svc := service.New(database, bus)
+	create := func(body string) (int, models.User) {
+		rec := httptest.NewRecorder()
+		NewHandlers(svc).createTempAccount(rec, httptest.NewRequestWithContext(ctx, http.MethodPost, "/", strings.NewReader(body)))
+		var u models.User
+		_ = json.NewDecoder(rec.Body).Decode(&u)
+		return rec.Code, u
+	}
 	org, _ := svc.CreateOrganization(ctx, &models.Organization{Name: "Example University"})
-	cluster, _ := svc.CreateComputeCluster(ctx, &models.ComputeCluster{Name: uuid.NewString()})
-	virtual, _ := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, Email: uuid.NewString() + "@example.edu", Type: models.UserTypeVirtual})
-	project, _ := svc.CreateProject(ctx, &models.Project{Title: "Example Project", ProjectPIID: virtual.ID})
-	alloc, _ := svc.CreateComputeAllocation(ctx, &models.ComputeAllocation{ProjectID: project.ID, Name: "example", ComputeClusterID: cluster.ID})
-	m, _ := svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{ComputeAllocationID: alloc.ID, UserID: virtual.ID})
+	body := `{"id": "chosen", "status": "ACTIVE", "type": "VIRTUAL", "organization_id": "` + org.ID + `", "email": "` + uuid.NewString() + `@example.edu"}`
 
-	rec := httptest.NewRecorder()
-	NewHandlers(svc).updateAllocationToTempAccount(rec, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"id": "`+m.ID+`", "user_id": "`+uuid.NewString()+`"}`)))
-	if stored, _ := svc.GetComputeAllocationMembership(ctx, m.ID); rec.Code != http.StatusOK || stored.UserID != virtual.ID {
-		t.Fatalf("status %d, stored user %s", rec.Code, stored.UserID)
+	code, first := create(body)
+	if code != http.StatusCreated || first.ID == "chosen" || first.Status != models.UserPending {
+		t.Fatalf("first create: status %d, user %+v", code, first)
 	}
-}
-
-// Make sure removing a temp account keeps the user INACTIVE and deletes its cluster account.
-func TestHandlers_RemoveKeepsUserAndDeletesClusterAccounts(t *testing.T) {
-	database := dbtest.Open(t, dbtest.CoreDSN(t))
-	ctx := tracingtest.Context()
-	bus, err := events.New(ctx, database)
-	if err != nil {
-		t.Fatal(err)
+	if code, again := create(body); code != http.StatusOK || again.ID != first.ID {
+		t.Fatalf("repeat create: status %d, user %+v, want 200 and %s", code, again, first.ID)
 	}
-	bus.SubscribeComputeClusterUserDeleted("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
-	svc := service.New(database, bus)
-	org, _ := svc.CreateOrganization(ctx, &models.Organization{Name: "Example University"})
-	cluster, _ := svc.CreateComputeCluster(ctx, &models.ComputeCluster{Name: uuid.NewString()})
-	virtual, _ := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, Email: uuid.NewString() + "@example.edu", Type: models.UserTypeVirtual})
-	account, _ := svc.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: virtual.ID, LocalUsername: "temp-" + uuid.NewString()[:8]})
-
-	req := httptest.NewRequestWithContext(ctx, http.MethodDelete, "/", nil)
-	req.SetPathValue("user_id", virtual.ID)
-	rec := httptest.NewRecorder()
-	NewHandlers(svc).removeTempAccount(rec, req)
-
-	if rec.Code != http.StatusNoContent {
-		t.Fatalf("status %d: %s", rec.Code, rec.Body)
-	}
-	if u, err := svc.GetUser(ctx, virtual.ID); err != nil || u.Status != models.UserInactive {
-		t.Fatalf("user: got %+v, %v, want INACTIVE", u, err)
-	}
-	if accounts, _ := svc.ListComputeClusterUsersByUser(ctx, virtual.ID); len(accounts) != 0 {
-		t.Fatalf("cluster accounts left: %+v", accounts)
-	}
-	var deletes int
-	if err := database.Get(&deletes, "SELECT COUNT(*) FROM events WHERE event_type = $1 AND payload->>'id' = $2", events.ComputeClusterUserDeleteEvent, account.ID); err != nil || deletes != 1 {
-		t.Fatalf("delete events for the account: got %d, %v, want 1", deletes, err)
+	regular, _ := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, Email: uuid.NewString() + "@example.edu"})
+	if code, _ := create(strings.Replace(body, first.Email, regular.Email, 1)); code != http.StatusConflict {
+		t.Fatalf("create over a regular user: status %d, want 409", code)
 	}
 }
