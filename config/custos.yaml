@@ -196,6 +196,13 @@ connectors:
     type: "temp-account"
     enabled: true
 
+  airavata:
+    type: "airavata"
+    enabled: true
+    url: "${AIRAVATA_URL}"
+    service_token: "${AIRAVATA_SERVICE_TOKEN}"
+    virtual_user_gid: "${AIRAVATA_VIRTUAL_USER_GID}"
+
   analytics:
     type: "analytics"
     enabled: true
