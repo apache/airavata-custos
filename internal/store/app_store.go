@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const appColumns = `id, key, name, description, connector, status, secret_hash, secret_hint, created_by, created_at, updated_at`
+const appColumns = `id, key, name, description, status, secret_hash, secret_hint, created_by, created_at, updated_at`
 
 type pgAppStore struct {
 	db *sqlx.DB
@@ -87,9 +87,9 @@ func (s *pgAppStore) List(ctx context.Context) ([]models.App, error) {
 
 func (s *pgAppStore) Create(ctx context.Context, tx *sql.Tx, a *models.App) error {
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO apps (id, key, name, description, connector, status, secret_hash, secret_hint, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		a.ID, a.Key, a.Name, a.Description, a.Connector, a.Status, a.SecretHash, a.SecretHint, a.CreatedBy); err != nil {
+		`INSERT INTO apps (id, key, name, description, status, secret_hash, secret_hint, created_by)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		a.ID, a.Key, a.Name, a.Description, a.Status, a.SecretHash, a.SecretHint, a.CreatedBy); err != nil {
 		return err
 	}
 	for _, action := range a.Actions {

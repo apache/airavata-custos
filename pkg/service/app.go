@@ -76,21 +76,18 @@ func validateAppName(name string) (string, error) {
 	return name, nil
 }
 
-func appConnector(actions []string) (string, error) {
+func validateAppActions(actions []string) error {
 	if len(actions) == 0 {
-		return "", fmt.Errorf("%w: at least one action is required", ErrInvalidInput)
-	}
-	name, _, _ := strings.Cut(actions[0], ":")
-	connector, ok := models.FindAppConnector(name)
-	if !ok {
-		return "", fmt.Errorf("%w: unknown action %s", ErrInvalidInput, actions[0])
+		return fmt.Errorf("%w: at least one action is required", ErrInvalidInput)
 	}
 	for _, action := range actions {
-		if !slices.Contains(connector.Actions, action) {
-			return "", fmt.Errorf("%w: %s is not an action of the %s connector", ErrInvalidInput, action, name)
+		name, _, _ := strings.Cut(action, ":")
+		connector, ok := models.FindAppConnector(name)
+		if !ok || !slices.Contains(connector.Actions, action) {
+			return fmt.Errorf("%w: unknown action %s", ErrInvalidInput, action)
 		}
 	}
-	return name, nil
+	return nil
 }
 
 func appWriteErr(op string, err error) error {
@@ -129,8 +126,7 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 	}
 	slices.Sort(actions)
 	actions = slices.Compact(actions)
-	connector, err := appConnector(actions)
-	if err != nil {
+	if err := validateAppActions(actions); err != nil {
 		return nil, "", err
 	}
 	a := &models.App{
@@ -138,7 +134,6 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 		Key:         key,
 		Name:        name,
 		Description: description,
-		Connector:   connector,
 		Status:      models.AppActive,
 		CreatedBy:   actorID,
 		Actions:     actions,

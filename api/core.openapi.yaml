@@ -1153,8 +1153,10 @@ definitions:
         items:
           type: string
         type: array
-      connector:
-        type: string
+      connectors:
+        items:
+          type: string
+        type: array
       created_at:
         type: string
       created_by:
@@ -1182,8 +1184,10 @@ definitions:
         items:
           type: string
         type: array
-      connector:
-        type: string
+      connectors:
+        items:
+          type: string
+        type: array
       created_at:
         type: string
       created_by:
