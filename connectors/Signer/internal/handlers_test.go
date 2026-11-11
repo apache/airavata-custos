@@ -253,13 +253,13 @@ func TestOwnRoutes_ByAppRecordTheApp(t *testing.T) {
 	}
 }
 
-// Make sure an admin revoke is recorded under the admin's email.
+// Make sure an admin revoke is recorded under the admin's user ID.
 func TestRevokeAny_RecordedAsTheAdmin(t *testing.T) {
 	srv, seen := mockSignerServer(t, http.StatusOK, `{}`)
 
 	serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/certificates/42/revoke", strings.NewReader(`{"reason":"lost laptop"}`)), CertificatesWrite)
 
-	if !strings.Contains(seen.body, `"revoked_by":"jdoe@example.edu"`) || !strings.Contains(seen.body, `"reason":"lost laptop"`) {
+	if !strings.Contains(seen.body, `"revoked_by":"user/user-1"`) || !strings.Contains(seen.body, `"reason":"lost laptop"`) {
 		t.Fatalf("signer got %s", seen.body)
 	}
 }

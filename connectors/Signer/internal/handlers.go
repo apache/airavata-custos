@@ -72,7 +72,7 @@ func NewHandlers(cfg Config, core CoreAccounts) *Handlers {
 func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequirePrivilege("GET /connectors/signer/certificates", CertificatesRead, h.listAllCertificates)
 	router.RequirePrivilege("GET /connectors/signer/certificates/{serial}", CertificatesRead, h.getAnyCertificate)
-	router.RequirePrivilege("POST /connectors/signer/certificates/{serial}/revoke", CertificatesWrite, h.revokeAnyCertificate)
+	router.RequirePrivilege("POST /connectors/signer/certificates/{serial}/revoke", CertificatesWrite, h.revoke)
 	router.RequireAuth("GET /connectors/signer/me/certificates", h.listOwnCertificates)
 	router.RequireAuth("POST /connectors/signer/me/certificates", h.generateCertificate)
 	router.RequireAuth("GET /connectors/signer/me/certificates/{serial}", h.getOwnCertificate)
@@ -157,14 +157,7 @@ func (h *Handlers) getAnyCertificate(w http.ResponseWriter, r *http.Request) {
 	h.relay(w, r, http.MethodGet, certificatePath(r), nil)
 }
 
-func (h *Handlers) revokeAnyCertificate(w http.ResponseWriter, r *http.Request) {
-	if claims := requireClaims(w, r); claims != nil {
-		h.revoke(w, r, claims.Email)
-	}
-}
-
-// revokedBy is the admin's email, or the caller's Requester when users revoke their own.
-func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, revokedBy string) {
+func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Reason string `json:"reason"`
 	}
@@ -172,6 +165,7 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, revokedBy stri
 		refuse(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
+	revokedBy := identity.CallerFromContext(r.Context()).Requester()
 	h.relay(w, r, http.MethodPost, certificatePath(r)+"/revoke", map[string]string{"reason": req.Reason, "revoked_by": revokedBy})
 }
 
@@ -240,7 +234,7 @@ func (h *Handlers) getOwnCertificate(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) revokeOwnCertificate(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.fetchUsersCertificate(w, r); ok {
-		h.revoke(w, r, identity.CallerFromContext(r.Context()).Requester())
+		h.revoke(w, r)
 	}
 }
 
