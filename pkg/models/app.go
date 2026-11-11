@@ -37,7 +37,6 @@ type App struct {
 	Key         string    `json:"key"         db:"key"`
 	Name        string    `json:"name"        db:"name"`
 	Description string    `json:"description" db:"description"`
-	Connector   string    `json:"connector"   db:"connector"`
 	Status      AppStatus `json:"status"      db:"status"`
 	SecretHash  string    `json:"-"           db:"secret_hash"`
 	SecretHint  string    `json:"secret_hint" db:"secret_hint"`
@@ -84,7 +83,23 @@ func FindAppConnector(name string) (AppConnector, bool) {
 	return c, ok
 }
 
+// Connectors lists the connectors the app's actions belong to.
+func (a App) Connectors() []string {
+	var names []string
+	for _, action := range a.Actions {
+		name, _, _ := strings.Cut(action, ":")
+		if !slices.Contains(names, name) {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+// NeedsUserGrant reports whether any of the app's connectors needs the user's authorization.
 func (a App) NeedsUserGrant() bool {
-	c, ok := FindAppConnector(a.Connector)
-	return ok && c.NeedsUserGrant
+	return slices.ContainsFunc(a.Connectors(), func(name string) bool {
+		c, ok := FindAppConnector(name)
+		return ok && c.NeedsUserGrant
+	})
 }

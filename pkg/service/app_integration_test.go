@@ -167,7 +167,23 @@ func TestApp_DisabledAppIsRefused(t *testing.T) {
 	}
 }
 
-// Make sure an app cannot be created with actions from two connectors or with an unknown action.
+// Make sure an app can use several connectors and needs user authorization when one of them does.
+func TestApp_OneAppCanUseSeveralConnectors(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	registerTestAppConnectors()
+
+	app, _, err := svc.CreateApp(ctx(), "gateway", "Gateway", "", []string{"temp-account:app:create", "signer:app:generate"}, adminID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(app.Connectors(), []string{"signer", "temp-account"}) || !app.NeedsUserGrant() {
+		t.Fatalf("connectors %v, needs grant %v", app.Connectors(), app.NeedsUserGrant())
+	}
+}
+
+// Make sure an app cannot be created with an unknown action or with none.
 func TestApp_CreateRefusesBadActions(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -175,8 +191,8 @@ func TestApp_CreateRefusesBadActions(t *testing.T) {
 	registerTestAppConnectors()
 
 	for _, actions := range [][]string{
-		{"signer:app:generate", "temp-account:app:create"},
 		{"signer:app:unknown"},
+		{"unknown:app:create"},
 		{},
 	} {
 		if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", actions, adminID); !errors.Is(err, ErrInvalidInput) {

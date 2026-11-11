@@ -26,7 +26,8 @@ import (
 
 type appView struct {
 	models.App
-	NeedsUserAuthorization bool `json:"needs_user_authorization"`
+	Connectors             []string `json:"connectors"`
+	NeedsUserAuthorization bool     `json:"needs_user_authorization"`
 }
 
 type appWithTokenView struct {
@@ -52,7 +53,7 @@ type updateAppRequest struct {
 }
 
 func viewApp(a models.App) appView {
-	return appView{App: a, NeedsUserAuthorization: a.NeedsUserGrant()}
+	return appView{App: a, Connectors: a.Connectors(), NeedsUserAuthorization: a.NeedsUserGrant()}
 }
 
 func writeApp(w http.ResponseWriter, a *models.App, err error) {

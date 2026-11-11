@@ -21,8 +21,7 @@ CREATE TABLE IF NOT EXISTS apps
     key         VARCHAR(50)    NOT NULL, -- The app's readable ID. It is in the token and on every certificate.
     name        VARCHAR(100)   NOT NULL,
     description TEXT           NOT NULL DEFAULT '',
-    connector   VARCHAR(50)    NOT NULL,
-    status      VARCHAR(16)    NOT NULL DEFAULT 'ACTIVE',
+    status     VARCHAR(16)    NOT NULL DEFAULT 'ACTIVE',
     secret_hash VARCHAR(64)    NOT NULL,
     secret_hint VARCHAR(12)    NOT NULL, -- First part of the secret to identify which key is being used
     created_by  VARCHAR(255)   NOT NULL,
