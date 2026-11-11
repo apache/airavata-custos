@@ -33,7 +33,7 @@ const apps: App[] = [
     key: "notebook-hub",
     name: "Notebook Hub",
     description: "Creates workshop accounts.",
-    connector: "temp-account",
+    connectors: ["temp-account"],
     status: "ACTIVE",
     secret_hint: "9F3A",
     needs_user_authorization: false,
@@ -87,14 +87,14 @@ export const appsHandlers = [
   }),
   http.post("*/api/v1/apps", async ({ request }) => {
     const body = (await request.json()) as NewApp;
-    const connector = body.actions[0]?.split(":")[0] ?? "";
+    const appConnectors = [...new Set(body.actions.map((action) => action.split(":")[0] ?? ""))];
     const app: App = {
       ...body,
       id: `app-${apps.length + 1}`,
-      connector,
+      connectors: appConnectors.sort(),
       status: "ACTIVE",
       secret_hint: "ABCD",
-      needs_user_authorization: connector === "signer",
+      needs_user_authorization: appConnectors.includes("signer"),
       created_by: "user-admin",
       created_at: "2026-11-10T12:00:00Z",
       updated_at: "2026-11-10T12:00:00Z",

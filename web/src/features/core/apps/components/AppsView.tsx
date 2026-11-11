@@ -66,11 +66,11 @@ export function AppsView() {
       cell: (app) => <span className="font-mono text-xs">{app.key}</span>,
     },
     {
-      key: "connector",
-      header: "Connector",
+      key: "connectors",
+      header: "Connectors",
       cell: (app) => (
         <div className="space-y-1">
-          <div>{app.connector}</div>
+          <div>{(app.connectors ?? []).join(", ")}</div>
           {app.needs_user_authorization ? (
             <StatusBadge variant="pending" label="Needs user authorization" />
           ) : null}
