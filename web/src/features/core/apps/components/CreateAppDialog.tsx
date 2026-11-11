@@ -48,7 +48,6 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
   const [key, setKey] = React.useState("");
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [connectorName, setConnectorName] = React.useState("");
   const [actions, setActions] = React.useState<string[]>([]);
 
   React.useEffect(() => {
@@ -56,21 +55,14 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
       setKey("");
       setName("");
       setDescription("");
-      setConnectorName("");
       setActions([]);
       reset();
     }
   }, [open, reset]);
 
-  const connector = connectors.data?.find((c) => c.name === connectorName);
   const keyIsValid = APP_KEY.test(key) && key.length <= APP_KEY_MAX_LENGTH;
   const canSubmit = keyIsValid && name.trim() !== "" && actions.length > 0 && !create.isPending;
   const result = create.data;
-
-  function chooseConnector(next: string) {
-    setConnectorName(next);
-    setActions(connectors.data?.find((c) => c.name === next)?.actions ?? []);
-  }
 
   function toggleAction(action: string, checked: boolean) {
     setActions((current) => (checked ? [...current, action] : current.filter((a) => a !== action)));
@@ -132,41 +124,35 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">Connector</legend>
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Actions</p>
                 {connectors.data?.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No connector offers app actions.</p>
                 ) : null}
                 {connectors.data?.map((c) => (
-                  <label key={c.name} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="app-connector"
-                      checked={connectorName === c.name}
-                      onChange={() => chooseConnector(c.name)}
-                    />
-                    {c.name}
-                    {c.needs_user_grant ? (
-                      <StatusBadge variant="pending" label="Needs user authorization" />
-                    ) : null}
-                  </label>
+                  <fieldset key={c.name} className="space-y-2">
+                    <legend className="flex items-center gap-2 text-sm">
+                      {c.name}
+                      {c.needs_user_grant ? (
+                        <StatusBadge variant="pending" label="Needs user authorization" />
+                      ) : null}
+                    </legend>
+                    {c.actions?.map((action) => (
+                      <label
+                        key={action}
+                        className="flex items-center gap-2 pl-4 font-mono text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={actions.includes(action)}
+                          onChange={(e) => toggleAction(action, e.target.checked)}
+                        />
+                        {action}
+                      </label>
+                    ))}
+                  </fieldset>
                 ))}
-              </fieldset>
-              {connector ? (
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium">Actions</legend>
-                  {connector.actions?.map((action) => (
-                    <label key={action} className="flex items-center gap-2 font-mono text-xs">
-                      <input
-                        type="checkbox"
-                        checked={actions.includes(action)}
-                        onChange={(e) => toggleAction(action, e.target.checked)}
-                      />
-                      {action}
-                    </label>
-                  ))}
-                </fieldset>
-              ) : null}
+              </div>
               {create.error ? (
                 <p role="alert" className="text-sm text-destructive">
                   {create.error.message}
