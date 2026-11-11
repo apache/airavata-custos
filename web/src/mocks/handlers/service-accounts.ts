@@ -18,7 +18,7 @@
 import { HttpResponse, http } from "msw";
 import type { NewServiceAccount, ServiceAccount } from "@/features/core/service-accounts/api";
 
-const serviceAccountPrivileges = ["temp-account:users:create"];
+const serviceAccountPrivileges = ["temp-account:users:create", "temp-account:users:read"];
 
 const accounts: ServiceAccount[] = [
   {

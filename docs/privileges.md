@@ -98,9 +98,8 @@ How these routes treat service accounts is in [architecture.md](architecture.md#
 
 | Privilege                     | Routes it gates                                                                                                                                                                                        |
 |-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `temp-account:accounts:read`  | `GET /connectors/temp-account/membership/{user_id}`                                                                                                                                                    |
-| `temp-account:accounts:write` | `POST /connectors/temp-account/create`<br>`POST /connectors/temp-account/assign-allocation`<br>`POST /connectors/temp-account/update-allocation`<br>`DELETE /connectors/temp-account/remove/{user_id}` |
-| `temp-account:users:create`   | `POST /connectors/temp-account/users`. Service accounts may hold this key.                                                                                                                             |
+| `temp-account:users:read`     | `GET /connectors/temp-account/users`                                                                                                                                                                   |
+| `temp-account:users:create`   | `POST /connectors/temp-account/users`                                                                                                                                                                  |
 
 ## Signer connector (`connectors/Signer/internal/privileges.go`)
 

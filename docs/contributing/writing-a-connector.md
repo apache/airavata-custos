@@ -644,7 +644,7 @@ including the AMIE-specific isolated stack on `:5433`.
 
 ## Where to look next
 
-- Smallest working sample: `connectors/TempAccount/` (~270 lines total).
+- Smallest working sample: `connectors/TempAccount/`.
 - Event-subscriber sample: `connectors/COmanage/Identity-Provisioner/`.
 - Full-shape sample: `connectors/ACCESS/AMIE-Processor/` (HTTP + workers + DB + external client).
 - Router API: `pkg/identity/middleware.go`.

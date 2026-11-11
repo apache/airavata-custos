@@ -74,6 +74,18 @@ func TestServiceAccount_NeedsTheRoutePrivilege(t *testing.T) {
 	}
 }
 
+// Make sure a service-account-only route refuses a user who holds its privilege.
+func TestRequireServiceAccount_RefusesUsers(t *testing.T) {
+	router := NewRouter(http.NewServeMux())
+	router.RequireServiceAccount("GET /tools", models.ClustersWrite, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	ctx := withPrivileges(WithCaller(context.Background(), &Caller{UserID: "u1"}), []models.PrivilegeKey{models.ClustersWrite})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tools", nil).WithContext(ctx))
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("user with the privilege: got %d %s", rec.Code, rec.Body)
+	}
+}
+
 // Make sure a service account can't use any route without a privilege, such as /me or a scoped route,
 // since those work on a person's own data and a service account never acts as a person.
 func TestServiceAccount_RefusedOnRoutesWithoutAPrivilege(t *testing.T) {
