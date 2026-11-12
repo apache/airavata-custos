@@ -181,13 +181,12 @@ func (h *Handlers) listOwnCertificates(w http.ResponseWriter, r *http.Request) {
 	h.relay(w, r, http.MethodGet, "/api/v1/certificates?"+query.Encode(), nil)
 }
 
-type certificateOwner struct {
-	UserSub     string `json:"user_sub"`
-	RequestedBy string `json:"requested_by"`
-}
-
-// fetchIfOwned extracts own certificate from the Signer and returns false if it is not the caller's.
-func (h *Handlers) fetchIfOwned(w http.ResponseWriter, r *http.Request, owned func(certificateOwner) bool) ([]byte, bool) {
+// fetchUsersCertificate gets the certificate from the signer and answers 404 when it is not the caller's.
+func (h *Handlers) fetchUsersCertificate(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+	claims := requireClaims(w, r)
+	if claims == nil {
+		return nil, false
+	}
 	resp, err := h.callSigner(r.Context(), http.MethodGet, certificatePath(r), nil)
 	if err != nil {
 		signerUnavailable(w)
@@ -203,24 +202,18 @@ func (h *Handlers) fetchIfOwned(w http.ResponseWriter, r *http.Request, owned fu
 		signerUnavailable(w)
 		return nil, false
 	}
-	var certificate certificateOwner
+	var certificate struct {
+		UserSub string `json:"user_sub"`
+	}
 	if err := json.Unmarshal(body, &certificate); err != nil {
 		signerUnavailable(w)
 		return nil, false
 	}
-	if !owned(certificate) {
+	if certificate.UserSub != claims.Sub {
 		refuse(w, http.StatusNotFound, "not_found", "Certificate not found")
 		return nil, false
 	}
 	return body, true
-}
-
-func (h *Handlers) fetchUsersCertificate(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
-	claims := requireClaims(w, r)
-	if claims == nil {
-		return nil, false
-	}
-	return h.fetchIfOwned(w, r, func(c certificateOwner) bool { return c.UserSub == claims.Sub })
 }
 
 func writeCertificate(w http.ResponseWriter, body []byte) {
