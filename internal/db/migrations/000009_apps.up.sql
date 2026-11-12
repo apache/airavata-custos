@@ -18,11 +18,10 @@
 CREATE TABLE IF NOT EXISTS apps
 (
     id          VARCHAR(255)   NOT NULL,
-    key         VARCHAR(50)    NOT NULL, -- The app's readable ID. It is in the token and on every certificate.
+    key         VARCHAR(50)    NOT NULL, -- The app's readable ID. It is in the token and in audit records.
     name        VARCHAR(100)   NOT NULL,
     description TEXT           NOT NULL DEFAULT '',
     status      VARCHAR(16)    NOT NULL DEFAULT 'ACTIVE',
-    mode        VARCHAR(16)    NOT NULL,
     secret_hash VARCHAR(64)    NOT NULL,
     secret_hint VARCHAR(12)    NOT NULL, -- First part of the secret to identify which key is being used
     created_by  VARCHAR(255)   NOT NULL,
@@ -31,7 +30,6 @@ CREATE TABLE IF NOT EXISTS apps
     PRIMARY KEY (id),
     CONSTRAINT uq_apps_key UNIQUE (key), -- Deleted apps keep their key, so it is never reused.
     CONSTRAINT chk_apps_status CHECK (status IN ('ACTIVE', 'DISABLED', 'DELETED')),
-    CONSTRAINT chk_apps_mode CHECK (mode IN ('SERVICE', 'DELEGATED')),
     CONSTRAINT fk_apps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
 
@@ -44,15 +42,4 @@ CREATE TABLE IF NOT EXISTS app_privileges
     privilege VARCHAR(64)  NOT NULL,
     PRIMARY KEY (app_id, privilege),
     CONSTRAINT fk_app_privileges_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT
-);
-
--- A row means the user has allowed the app. Removing it is recorded in audit_events.
-CREATE TABLE IF NOT EXISTS app_grants
-(
-    app_id     VARCHAR(255)   NOT NULL,
-    user_id    VARCHAR(255)   NOT NULL,
-    granted_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    PRIMARY KEY (app_id, user_id),
-    CONSTRAINT fk_app_grants_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT,
-    CONSTRAINT fk_app_grants_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT
 );

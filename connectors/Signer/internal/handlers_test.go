@@ -114,11 +114,6 @@ func serveWith(core CoreAccounts, baseURL string, r *http.Request, privs ...mode
 	return serveAs(&identity.Caller{UserID: "user-1", Email: "jdoe@example.edu"}, &identity.Claims{Sub: testSub, Email: "jdoe@example.edu"}, core, baseURL, r, privs...)
 }
 
-// serveForApp calls as a delegated app. Its user token has no email.
-func serveForApp(baseURL string, r *http.Request) *httptest.ResponseRecorder {
-	return serveAs(&identity.Caller{UserID: "user-1", Email: "jdoe@example.edu", AppID: "a1", AppKey: "gateway"}, &identity.Claims{Sub: testSub}, readyCore(), baseURL, r)
-}
-
 func serve(baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
 	return serveWith(readyCore(), baseURL, r, privs...)
 }
@@ -239,21 +234,6 @@ func TestRevokeOwn_RecordedAsTheUser(t *testing.T) {
 
 	if rec.Code != http.StatusOK || seen.path != "/api/v1/certificates/42/revoke" || !strings.Contains(seen.body, `"revoked_by":"user/user-1"`) {
 		t.Fatalf("got %d, signer saw %+v", rec.Code, *seen)
-	}
-}
-
-// Make sure a certificate a delegated app generates or revokes records the app and gets the user's email even though the token has none.
-func TestOwnRoutes_ByAppRecordTheApp(t *testing.T) {
-	srv, seen := mockSignerServer(t, http.StatusOK, `{"user_sub":"`+testSub+`"}`)
-
-	serveForApp(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(`{"public_key":"k"}`)))
-	if !strings.Contains(seen.body, `"requested_by":"app/gateway"`) || !strings.Contains(seen.body, `"user_email":"jdoe@example.edu"`) {
-		t.Fatalf("generate: signer got %s", seen.body)
-	}
-
-	serveForApp(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates/42/revoke", strings.NewReader(`{}`)))
-	if !strings.Contains(seen.body, `"revoked_by":"app/gateway"`) {
-		t.Fatalf("revoke: signer got %s", seen.body)
 	}
 }
 

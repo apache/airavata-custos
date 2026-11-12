@@ -52,8 +52,6 @@ definitions:
         type: string
       key:
         type: string
-      mode:
-        $ref: '#/definitions/AppMode'
       name:
         type: string
       privileges:
@@ -67,14 +65,6 @@ definitions:
       updated_at:
         type: string
     type: object
-  AppMode:
-    enum:
-    - SERVICE
-    - DELEGATED
-    type: string
-    x-enum-varnames:
-    - AppService
-    - AppDelegated
   AppStatus:
     enum:
     - ACTIVE
@@ -1155,53 +1145,6 @@ definitions:
       name:
         type: string
     type: object
-  appAuthorizationView:
-    properties:
-      authorized:
-        type: boolean
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-    type: object
-  appDetailView:
-    properties:
-      authorized_users:
-        type: integer
-      created_at:
-        type: string
-      created_by:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      key:
-        type: string
-      mode:
-        $ref: '#/definitions/AppMode'
-      name:
-        type: string
-      privileges:
-        items:
-          $ref: '#/definitions/PrivilegeKey'
-        type: array
-      secret_hint:
-        type: string
-      status:
-        $ref: '#/definitions/AppStatus'
-      updated_at:
-        type: string
-    type: object
-  appNameView:
-    properties:
-      key:
-        type: string
-      name:
-        type: string
-    type: object
   appWithTokenView:
     properties:
       created_at:
@@ -1214,8 +1157,6 @@ definitions:
         type: string
       key:
         type: string
-      mode:
-        $ref: '#/definitions/AppMode'
       name:
         type: string
       privileges:
@@ -1253,8 +1194,6 @@ definitions:
         type: string
       key:
         type: string
-      mode:
-        $ref: '#/definitions/AppMode'
       name:
         type: string
       privileges:
@@ -1980,7 +1919,7 @@ paths:
       - Apps
   /apps/{id}:
     delete:
-      description: Every user's allow is removed. The key can never be used again.
+      description: The key can never be used again.
       parameters:
       - description: App ID
         in: path
@@ -2036,7 +1975,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/appDetailView'
+            $ref: '#/definitions/App'
         "401":
           description: Unauthorized
           schema:
@@ -2248,29 +2187,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Issue a new secret for an app
-      tags:
-      - Apps
-  /apps/names:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/appNameView'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List the key and name of every app, including disabled and deleted ones
       tags:
       - Apps
   /apps/privileges:
@@ -4816,89 +4732,6 @@ paths:
       summary: List the current agreement if the caller has not accepted it
       tags:
       - Consent
-  /me/app-authorizations:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/appAuthorizationView'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List the apps that can act for the caller
-      tags:
-      - Apps
-  /me/app-authorizations/{appId}:
-    delete:
-      description: Certificates the app already generated stay valid.
-      parameters:
-      - description: App ID
-        in: path
-        name: appId
-        required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Remove an app's authorization
-      tags:
-      - Apps
-    post:
-      parameters:
-      - description: App ID
-        in: path
-        name: appId
-        required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: The app cannot be authorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Allow an app to act for the caller
-      tags:
-      - Apps
   /me/onboarding:
     post:
       consumes:

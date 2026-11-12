@@ -168,27 +168,6 @@ func TestLoadConfig_AuthRejectsEmptyAudience(t *testing.T) {
 	assert.Contains(t, err.Error(), "core.auth.oidc.audience")
 }
 
-// Make sure Custos refuses to start when the app client is the portal client.
-func TestLoadConfig_AuthRejectsAppsAudienceSameAsPortal(t *testing.T) {
-	yaml := `core:
-  database:
-    url: "dsn"
-  api:
-    port: 8080
-  log_level: "info"
-  auth:
-    oidc:
-      issuer: "https://idp.example"
-      audience: "portal-client"
-      apps_audience: "portal-client"
-`
-	_, err := LoadConfig(writeTempYAML(t, yaml))
-	if err == nil {
-		t.Fatal("expected error for apps_audience equal to audience, got nil")
-	}
-	assert.Contains(t, err.Error(), "core.auth.oidc.apps_audience")
-}
-
 func TestLoadConfig_AuthClampsTTLAboveMax(t *testing.T) {
 	yaml := `core:
   database:

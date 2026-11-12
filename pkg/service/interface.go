@@ -326,20 +326,14 @@ type CoreService interface {
 
 type AppService interface {
 	ListApps(ctx context.Context) ([]models.App, error)
-	ListAppNames(ctx context.Context) ([]models.App, error)
 	GetApp(ctx context.Context, id string) (*models.App, error)
-	CountAppAuthorizations(ctx context.Context, appID string) (int, error)
 	DeleteApp(ctx context.Context, id, actorID string) error
-	CreateApp(ctx context.Context, key, name, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error)
+	CreateApp(ctx context.Context, key, name, description string, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error)
 	UpdateApp(ctx context.Context, id, name, description, actorID string) (*models.App, error)
 	DisableApp(ctx context.Context, id, actorID string) (*models.App, error)
 	EnableApp(ctx context.Context, id, actorID string) (*models.App, error)
 	IssueAppSecret(ctx context.Context, id, actorID string) (*models.App, string, error)
 	ResolveApp(ctx context.Context, token string) (*models.App, error)
-	ListAppAuthorizations(ctx context.Context, userID string) ([]AppAuthorization, error)
-	AuthorizeApp(ctx context.Context, appID, userID string) error
-	RemoveAppAuthorization(ctx context.Context, appID, userID string) error
-	IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error)
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

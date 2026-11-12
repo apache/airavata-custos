@@ -20,7 +20,6 @@ package identity
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,85 +28,30 @@ import (
 )
 
 type fakeApps struct {
-	app     *models.App
-	err     error
-	allowed bool
+	app *models.App
+	err error
 }
 
 func (f fakeApps) ResolveApp(context.Context, string) (*models.App, error) { return f.app, f.err }
 
-func (f fakeApps) IsAppAuthorized(context.Context, string, string) (bool, error) {
-	return f.allowed, nil
+func appWith(privileges ...models.PrivilegeKey) fakeApps {
+	return fakeApps{app: &models.App{ID: "a1", Key: "tool", Privileges: privileges}}
 }
 
-// fakeAppsClient accepts any user token except one from another client.
-type fakeAppsClient struct{}
-
-func (fakeAppsClient) Verify(_ context.Context, token string) (*Claims, error) {
-	if token == "other-client-token" {
-		return nil, errors.New("wrong audience")
-	}
-	return &Claims{Sub: "sub-1"}, nil
-}
-
-// fakeUser is an active user who accepted the agreement, unless a field says otherwise.
-type fakeUser struct {
-	privileges     []models.PrivilegeKey
-	consentPending bool
-	err            error
-}
-
-func (f fakeUser) ResolveCaller(context.Context, *Claims) (*Caller, []models.PrivilegeKey, error) {
-	if f.err != nil {
-		return nil, nil, f.err
-	}
-	return &Caller{UserID: "u1", ConsentPending: f.consentPending}, f.privileges, nil
-}
-
-type appCall struct {
-	apps          fakeApps
-	user          fakeUser
-	userToken     string
-	appsClientOff bool   // no app client configured
-	method        string // GET when empty
-	path          string
-}
-
-func serviceApp(privileges ...models.PrivilegeKey) *models.App {
-	return &models.App{ID: "a1", Key: "tool", Mode: models.AppService, Privileges: privileges}
-}
-
-func delegatedApp(privileges ...models.PrivilegeKey) *models.App {
-	return &models.App{ID: "a1", Key: "gateway", Mode: models.AppDelegated, Privileges: privileges}
-}
-
-// serve runs an app call through AppMiddleware. The router has a privileged route, the user's
-// own routes registered as in the server, and the app authorization route.
-func serve(call appCall) (int, string) {
+// serve runs an app call through AppMiddleware. The router has one route of each kind,
+// registered the way the server registers them.
+func serve(apps fakeApps, method, path string) (int, string) {
 	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 	router := NewRouter(http.NewServeMux())
 	router.RequirePrivilege("GET /clusters", models.ClustersWrite, ok)
 	router.RequireAuth("GET /me/certificates", ok)
 	router.RequireScoped("GET /projects/{id}", func(http.ResponseWriter, *http.Request) bool { return true }, ok)
 	router.RequireAuthWithoutUserConsent("GET /me", ok)
-	router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", ok)
-	router.RequireAuthUsersOnly("GET /me/app-authorizations", ok)
 	nonAppCalls := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusTeapot) })
-	var userTokens TokenVerifier = fakeAppsClient{}
-	if call.appsClientOff {
-		userTokens = nil
-	}
-	handler := AppMiddleware(call.apps, userTokens, call.user, router, nonAppCalls)
+	handler := AppMiddleware(apps, router, nonAppCalls)
 
-	method := call.method
-	if method == "" {
-		method = http.MethodGet
-	}
-	req := httptest.NewRequest(method, call.path, nil)
+	req := httptest.NewRequest(method, path, nil)
 	req.Header.Set("Authorization", "Bearer "+AppTokenPrefix+"tool.secret")
-	if call.userToken != "" {
-		req.Header.Set(UserTokenHeader, call.userToken)
-	}
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -118,139 +62,49 @@ func serve(call appCall) (int, string) {
 	return rec.Code, body.Code
 }
 
-// Make sure a service app can call a privileged route only when it has that privilege.
-func TestServiceApp_NeedsTheRoutePrivilege(t *testing.T) {
-	if code, errorCode := serve(appCall{apps: fakeApps{app: serviceApp(models.ClustersWrite)}, path: "/clusters"}); code != http.StatusOK {
+// Make sure an app can call a privileged route only when it has that privilege.
+func TestApp_NeedsTheRoutePrivilege(t *testing.T) {
+	if code, errorCode := serve(appWith(models.ClustersWrite), http.MethodGet, "/clusters"); code != http.StatusOK {
 		t.Errorf("app with the privilege: got %d %s", code, errorCode)
 	}
-	if code, errorCode := serve(appCall{apps: fakeApps{app: serviceApp(models.ClustersRead)}, path: "/clusters"}); code != http.StatusForbidden || errorCode != "insufficient_privilege" {
+	if code, errorCode := serve(appWith(models.ClustersRead), http.MethodGet, "/clusters"); code != http.StatusForbidden || errorCode != "insufficient_privilege" {
 		t.Errorf("app without the privilege: got %d %s", code, errorCode)
 	}
 }
 
-// Make sure a service app can't use routes without a privilege, since those work on the caller's own data.
-func TestServiceApp_RefusedOnMeRoutes(t *testing.T) {
-	code, errorCode := serve(appCall{apps: fakeApps{app: serviceApp(models.ClustersWrite)}, path: "/me"})
-	if code != http.StatusForbidden || errorCode != "app_needs_user" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a service app can't act for a user by sending a user token.
-func TestServiceApp_RefusesUserToken(t *testing.T) {
-	code, errorCode := serve(appCall{apps: fakeApps{app: serviceApp(models.ClustersWrite)}, userToken: "user-token", path: "/clusters"})
-	if code != http.StatusForbidden || errorCode != "user_token_not_allowed" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a delegated app can't call anything without a user token.
-func TestDelegatedApp_NeedsUserToken(t *testing.T) {
-	code, errorCode := serve(appCall{apps: fakeApps{app: delegatedApp(models.ClustersWrite), allowed: true}, path: "/clusters"})
-	if code != http.StatusUnauthorized || errorCode != "user_token_required" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a user token from another client, including the portal, is refused.
-func TestDelegatedApp_RefusesTokenFromAnotherClient(t *testing.T) {
-	code, errorCode := serve(appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "other-client-token", path: "/me"})
-	if code != http.StatusUnauthorized || errorCode != "invalid_user_token" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure an app can't act for a user who hasn't allowed it.
-func TestDelegatedApp_NeedsUsersAllow(t *testing.T) {
-	code, errorCode := serve(appCall{apps: fakeApps{app: delegatedApp()}, userToken: "user-token", path: "/me"})
-	if code != http.StatusForbidden || errorCode != "app_not_authorized" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a delegated app can call a privileged route only when both the app and the user have the privilege.
-func TestDelegatedApp_GetsOnlyPrivilegesBothHold(t *testing.T) {
-	tests := []struct {
-		name string
-		app  []models.PrivilegeKey
-		user []models.PrivilegeKey
-		want int
-	}{
-		{"both hold it", []models.PrivilegeKey{models.ClustersWrite}, []models.PrivilegeKey{models.ClustersWrite}, http.StatusOK},
-		{"only the app", []models.PrivilegeKey{models.ClustersWrite}, nil, http.StatusForbidden},
-		{"only the user", nil, []models.PrivilegeKey{models.ClustersWrite}, http.StatusForbidden},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			call := appCall{apps: fakeApps{app: delegatedApp(tt.app...), allowed: true}, user: fakeUser{privileges: tt.user}, userToken: "user-token", path: "/clusters"}
-			if code, errorCode := serve(call); code != tt.want {
-				t.Fatalf("got %d %s, want %d", code, errorCode, tt.want)
-			}
-		})
-	}
-}
-
-// Make sure a delegated app can use the user's own routes, including the profile, but can't allow or remove apps for them.
-func TestDelegatedApp_CannotManageAppAuthorizations(t *testing.T) {
-	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "user-token"}
-	for _, path := range []string{"/me/certificates", "/me"} {
-		call.path = path
-		if code, errorCode := serve(call); code != http.StatusOK {
-			t.Errorf("%s: got %d %s", path, code, errorCode)
+// Make sure an app can't use any route without a privilege, such as /me or a scoped route,
+// since those work on a person's own data and an app never acts as a person.
+func TestApp_RefusedOnRoutesWithoutAPrivilege(t *testing.T) {
+	for _, route := range []struct{ method, path string }{
+		{http.MethodGet, "/me/certificates"},
+		{http.MethodGet, "/projects/p1"},
+		{http.MethodGet, "/me"},
+	} {
+		if code, errorCode := serve(appWith(models.ClustersWrite), route.method, route.path); code != http.StatusForbidden || errorCode != "app_not_allowed" {
+			t.Errorf("%s %s: got %d %s", route.method, route.path, code, errorCode)
 		}
-	}
-	call.path = "/me/app-authorizations"
-	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "app_not_allowed" {
-		t.Errorf("app authorizations: got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a delegated app cannot accept a user agreement for the user, even though it can read the profile on the same kind of route.
-func TestDelegatedApp_CannotAcceptAgreement(t *testing.T) {
-	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "user-token", method: http.MethodPost, path: "/me/agreements/a1/accept"}
-	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "app_not_allowed" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a service app can't use a route that depends on the user's relation to the resource.
-func TestServiceApp_RefusedOnScopedRoutes(t *testing.T) {
-	code, errorCode := serve(appCall{apps: fakeApps{app: serviceApp(models.ClustersWrite)}, path: "/projects/p1"})
-	if code != http.StatusForbidden || errorCode != "app_needs_user" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a delegated app can't act for a user who still has a user agreement to accept.
-func TestDelegatedApp_RefusedWhileAgreementPending(t *testing.T) {
-	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, user: fakeUser{consentPending: true}, userToken: "user-token", path: "/me"}
-	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "consent_required" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure a delegated app can't act for someone who has never signed in to the portal.
-func TestDelegatedApp_RefusedForUserNeverSignedIn(t *testing.T) {
-	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, user: fakeUser{err: ErrNotLinked}, userToken: "user-token", path: "/me"}
-	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "user_not_signed_in" {
-		t.Fatalf("got %d %s", code, errorCode)
-	}
-}
-
-// Make sure delegated apps are refused when no app client is configured.
-func TestDelegatedApp_RefusedWhenAppsClientOff(t *testing.T) {
-	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "user-token", appsClientOff: true, path: "/me"}
-	if code, errorCode := serve(call); code != http.StatusUnauthorized || errorCode != "invalid_user_token" {
-		t.Fatalf("got %d %s", code, errorCode)
 	}
 }
 
 // Make sure an unknown token and a disabled app are refused before any route runs.
 func TestAppMiddleware_RefusesBadKeyAndDisabledApp(t *testing.T) {
-	if code, errorCode := serve(appCall{apps: fakeApps{err: ErrInvalidAppToken}, path: "/clusters"}); code != http.StatusUnauthorized || errorCode != "invalid_token" {
+	if code, errorCode := serve(fakeApps{err: ErrInvalidAppToken}, http.MethodGet, "/clusters"); code != http.StatusUnauthorized || errorCode != "invalid_token" {
 		t.Errorf("unknown token: got %d %s", code, errorCode)
 	}
-	if code, errorCode := serve(appCall{apps: fakeApps{err: ErrAppDisabled}, path: "/clusters"}); code != http.StatusForbidden || errorCode != "app_disabled" {
+	if code, errorCode := serve(fakeApps{err: ErrAppDisabled}, http.MethodGet, "/clusters"); code != http.StatusForbidden || errorCode != "app_disabled" {
 		t.Errorf("disabled app: got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a call without an app token, such as a person's sign-in token, skips the app path.
+func TestAppMiddleware_PassesOtherTokensOn(t *testing.T) {
+	nonAppCalls := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusTeapot) })
+	handler := AppMiddleware(appWith(models.ClustersWrite), http.NotFoundHandler(), nonAppCalls)
+	req := httptest.NewRequest(http.MethodGet, "/clusters", nil)
+	req.Header.Set("Authorization", "Bearer user-token")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusTeapot {
+		t.Fatalf("got %d", rec.Code)
 	}
 }

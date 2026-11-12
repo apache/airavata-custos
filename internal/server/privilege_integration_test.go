@@ -29,7 +29,6 @@ import (
 
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
-	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -170,29 +169,6 @@ func TestGetCallerProfile_IncludesOwnRoles(t *testing.T) {
 	// without any cache warm-up or context injection.
 	if len(body.Privileges) != 1 || body.Privileges[0] != "core:traces:read" {
 		t.Errorf("effective privileges: got %v, want [core:traces:read]", body.Privileges)
-	}
-}
-
-// Make sure a delegated app reading the profile sees only the privileges it shares with the user, not the user's own privileges or roles.
-func TestGetCallerProfile_DelegatedAppSeesOnlySharedPrivileges(t *testing.T) {
-	database, _, srv := setupTestStack(t)
-	user := seedUser(t, database, "admin@example.edu")
-	seedPrivilegesGrant(t, database, user)
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/me", nil)
-	ctx, _ := tracing.Start(req.Context(), "test.request")
-	ctx = identity.WithCaller(ctx, &identity.Caller{UserID: user, AppID: "app-1", AppKey: "gateway"})
-	srv.ServeHTTP(rr, req.WithContext(identity.WithPrivilegesForTest(ctx, nil)))
-	if rr.Code != http.StatusOK {
-		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
-	}
-	var body CallerProfileResponse
-	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if len(body.Privileges) != 0 || len(body.Roles) != 0 {
-		t.Errorf("privileges %v, roles %v: want both empty", body.Privileges, body.Roles)
 	}
 }
 

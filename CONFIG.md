@@ -93,7 +93,6 @@ core:
     oidc:
       issuer: "${OIDC_ISSUER_URL}"
       audience: "${OIDC_AUDIENCE}"
-      apps_audience: "${OIDC_APPS_AUDIENCE}"
     cache_ttl: "30s"
   users:
     reserved_usernames: [ root, daemon, slurm, ... ]
@@ -106,7 +105,6 @@ core:
 | `core.log_level`                | `info`   | `debug`, `info`, `warn` or `error`. Any other value means `info`.                                                                                                                              |
 | `core.auth.oidc.issuer`         | required | OIDC issuer URL. The verifier discovers the JWKS from `<issuer>/.well-known/openid-configuration`. Empty → boot fails with `core.auth.oidc.issuer is required`.                                |
 | `core.auth.oidc.audience`       | required | Expected `aud` claim, usually the client ID registered with the provider. Empty → boot fails with `core.auth.oidc.audience is required`.                                                       |
-| `core.auth.oidc.apps_audience`  | empty    | Client ID of our public client that delegated apps use to get the user's token ([apps](docs/architecture.md#apps)). Empty turns off delegated apps. The same value as `audience` → boot fails. |
 | `core.auth.cache_ttl`           | `30s`    | How long a resolved caller and its privileges stay cached. A Go duration such as `30s` or `1m`. Zero or negative → `30s`. Above `60s` → capped at `60s` with a warning.                        |
 | `core.users.reserved_usernames` | empty    | Names a user cannot choose as their cluster login. The sample lists system, service and distribution accounts.                                                                                 |
 

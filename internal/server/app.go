@@ -29,21 +29,10 @@ type appWithTokenView struct {
 	Token string `json:"token"`
 }
 
-type appDetailView struct {
-	models.App
-	AuthorizedUsers int `json:"authorized_users"`
-}
-
-type appNameView struct {
-	Key  string `json:"key"`
-	Name string `json:"name"`
-}
-
 type createAppRequest struct {
 	Key         string                `json:"key"`
 	Name        string                `json:"name"`
 	Description string                `json:"description"`
-	Mode        models.AppMode        `json:"mode"`
 	Privileges  []models.PrivilegeKey `json:"privileges"`
 }
 
@@ -89,26 +78,6 @@ func (s *Server) listAppPrivileges(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, models.AppPrivileges())
 }
 
-// @Summary	List the key and name of every app, including disabled and deleted ones
-// @Tags	Apps
-// @Security	BearerAuth
-// @Produce	json
-// @Success	200	{array}	appNameView
-// @Failure	401	{object}	object{error=string}
-// @Router	/apps/names [get]
-func (s *Server) listAppNames(w http.ResponseWriter, r *http.Request) {
-	apps, err := s.svc.ListAppNames(r.Context())
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	names := make([]appNameView, 0, len(apps))
-	for _, a := range apps {
-		names = append(names, appNameView{Key: a.Key, Name: a.Name})
-	}
-	common.WriteJSON(w, http.StatusOK, names)
-}
-
 // @Summary	Create an app
 // @Description	The token is returned only here.
 // @Tags	Apps
@@ -132,7 +101,7 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	a, token, err := s.svc.CreateApp(r.Context(), req.Key, req.Name, req.Description, req.Mode, req.Privileges, caller.UserID)
+	a, token, err := s.svc.CreateApp(r.Context(), req.Key, req.Name, req.Description, req.Privileges, caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -145,27 +114,18 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"App ID"
-// @Success	200	{object}	appDetailView
+// @Success	200	{object}	models.App
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
 // @Failure	404	{object}	object{error=string}
 // @Router	/apps/{id} [get]
 func (s *Server) getApp(w http.ResponseWriter, r *http.Request) {
 	a, err := s.svc.GetApp(r.Context(), r.PathValue("id"))
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	count, err := s.svc.CountAppAuthorizations(r.Context(), a.ID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	common.WriteJSON(w, http.StatusOK, appDetailView{App: *a, AuthorizedUsers: count})
+	writeApp(w, a, err)
 }
 
 // @Summary	Delete a disabled app
-// @Description	Every user's allow is removed. The key can never be used again.
+// @Description	The key can never be used again.
 // @Tags	Apps
 // @Security	BearerAuth
 // @Param	id	path	string	true	"App ID"
@@ -271,70 +231,6 @@ func (s *Server) issueAppSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	common.WriteJSON(w, http.StatusOK, appWithTokenView{App: *a, Token: token})
-}
-
-type appAuthorizationView struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Authorized  bool   `json:"authorized"`
-}
-
-// @Summary	List the apps that can act for the caller
-// @Tags	Apps
-// @Security	BearerAuth
-// @Produce	json
-// @Success	200	{array}	appAuthorizationView
-// @Failure	401	{object}	object{error=string}
-// @Router	/me/app-authorizations [get]
-func (s *Server) listAppAuthorizations(w http.ResponseWriter, r *http.Request) {
-	caller := common.RequireCaller(w, r)
-	if caller == nil {
-		return
-	}
-	authorizations, err := s.svc.ListAppAuthorizations(r.Context(), caller.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return
-	}
-	views := make([]appAuthorizationView, 0, len(authorizations))
-	for _, item := range authorizations {
-		views = append(views, appAuthorizationView{ID: item.App.ID, Name: item.App.Name, Description: item.App.Description, Authorized: item.Authorized})
-	}
-	common.WriteJSON(w, http.StatusOK, views)
-}
-
-// @Summary	Allow an app to act for the caller
-// @Tags	Apps
-// @Security	BearerAuth
-// @Param	appId	path	string	true	"App ID"
-// @Success	204
-// @Failure	400	{object}	object{error=string}	"The app cannot be authorized"
-// @Failure	401	{object}	object{error=string}
-// @Failure	404	{object}	object{error=string}
-// @Router	/me/app-authorizations/{appId} [post]
-func (s *Server) authorizeApp(w http.ResponseWriter, r *http.Request) {
-	caller := common.RequireCaller(w, r)
-	if caller == nil {
-		return
-	}
-	writeNoContent(w, s.svc.AuthorizeApp(r.Context(), r.PathValue("appId"), caller.UserID))
-}
-
-// @Summary	Remove an app's authorization
-// @Description	Certificates the app already generated stay valid.
-// @Tags	Apps
-// @Security	BearerAuth
-// @Param	appId	path	string	true	"App ID"
-// @Success	204
-// @Failure	401	{object}	object{error=string}
-// @Router	/me/app-authorizations/{appId} [delete]
-func (s *Server) removeAppAuthorization(w http.ResponseWriter, r *http.Request) {
-	caller := common.RequireCaller(w, r)
-	if caller == nil {
-		return
-	}
-	writeNoContent(w, s.svc.RemoveAppAuthorization(r.Context(), r.PathValue("appId"), caller.UserID))
 }
 
 func writeNoContent(w http.ResponseWriter, err error) {

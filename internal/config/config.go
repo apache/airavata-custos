@@ -68,8 +68,6 @@ type AuthConfig struct {
 type OIDCConfig struct {
 	Issuer   string `yaml:"issuer"`
 	Audience string `yaml:"audience"`
-	// Public client for apps. Empty turns off delegated apps.
-	AppsAudience string `yaml:"apps_audience"`
 }
 
 type ConnectorConfig struct {
@@ -100,7 +98,6 @@ func LoadConfig(path string) (*Config, error) {
 
 // applyAuthDefaults enforces the auth invariants:
 //   - Issuer and Audience are required.
-//   - AppsAudience, when set, must differ from Audience.
 //   - CacheTTL <= 0 collapses to IdentityCacheDefaultTTL.
 //   - CacheTTL > IdentityCacheMaxTTL caps at the ceiling and logs a warning.
 func applyAuthDefaults(a *AuthConfig) error {
@@ -109,10 +106,6 @@ func applyAuthDefaults(a *AuthConfig) error {
 	}
 	if a.OIDC.Audience == "" {
 		return fmt.Errorf("core.auth.oidc.audience is required")
-	}
-	// The same client for both would let portal tokens act as user tokens for apps, and the other way round.
-	if a.OIDC.AppsAudience == a.OIDC.Audience {
-		return fmt.Errorf("core.auth.oidc.apps_audience must be a different client from core.auth.oidc.audience")
 	}
 	if a.CacheTTL <= 0 {
 		a.CacheTTL = IdentityCacheDefaultTTL

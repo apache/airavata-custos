@@ -39,11 +39,8 @@ type Caller struct {
 	AppKey          string
 }
 
-// IsApp reports whether an app made the call, as itself or for a user.
+// IsApp reports whether an app made the call.
 func (c *Caller) IsApp() bool { return c.AppID != "" }
-
-// IsServiceApp reports whether an app is calling as itself, with no user.
-func (c *Caller) IsServiceApp() bool { return c.AppID != "" && c.UserID == "" }
 
 // Requester is who made the call app or a user.
 func (c *Caller) Requester() string {
@@ -78,7 +75,6 @@ type UserResolver interface {
 
 type AppResolver interface {
 	ResolveApp(ctx context.Context, token string) (*models.App, error)
-	IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error)
 }
 
 type ctxKey string

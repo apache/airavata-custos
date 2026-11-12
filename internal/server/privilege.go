@@ -101,12 +101,7 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	keys := []models.PrivilegeKey{}
 	roles := []CallerRoleGrant{}
-	if caller.IsApp() {
-		// Show what the app can use for this user, privileges both hold.
-		if shared := identity.PrivilegesFromContext(r.Context()); shared != nil {
-			keys = shared
-		}
-	} else if !caller.NeedsOnboarding {
+	if !caller.NeedsOnboarding {
 		// Read fresh instead of using the cached context set, so roles and the
 		// effective privileges in one response always agree with each other.
 		if keys, err = s.svc.EffectivePrivileges(r.Context(), caller.UserID); err != nil {

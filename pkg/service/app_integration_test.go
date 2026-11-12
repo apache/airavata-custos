@@ -35,19 +35,10 @@ import (
 
 const testAppPrivilege models.PrivilegeKey = "test:items:create"
 
-func registerTestAppPrivilege() {
+// testAppPrivileges registers the test key as allowed for apps and returns it as an app's privileges.
+func testAppPrivileges() []models.PrivilegeKey {
 	models.AllowForApps(testAppPrivilege)
-}
-
-// newServiceApp creates a service app named temp-tool.
-func newServiceApp(t *testing.T, svc *Service, adminID string) *models.App {
-	t.Helper()
-	registerTestAppPrivilege()
-	app, _, err := svc.CreateApp(ctx(), "temp-tool", "Temp Tool", "", models.AppService, []models.PrivilegeKey{testAppPrivilege}, adminID)
-	if err != nil {
-		t.Fatalf("create service app: %v", err)
-	}
-	return app
+	return []models.PrivilegeKey{testAppPrivilege}
 }
 
 func seedAppAdmin(t *testing.T, database *sqlx.DB) string {
@@ -64,15 +55,14 @@ func seedAppAdmin(t *testing.T, database *sqlx.DB) string {
 
 func newTestApp(t *testing.T, svc *Service, adminID string) (*models.App, string) {
 	t.Helper()
-	registerTestAppPrivilege()
-	app, token, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", models.AppDelegated, []models.PrivilegeKey{testAppPrivilege}, adminID)
+	app, token, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", testAppPrivileges(), adminID)
 	if err != nil {
 		t.Fatalf("create app: %v", err)
 	}
 	return app, token
 }
 
-// Make sure the token from creation finds the app with its mode and privileges, and the secret isn't stored.
+// Make sure the token from creation finds the app with its privileges, and the secret isn't stored.
 func TestApp_TokenAuthenticatesAndSecretIsNotStored(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -82,7 +72,7 @@ func TestApp_TokenAuthenticatesAndSecretIsNotStored(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
-	if resolved.ID != app.ID || resolved.Mode != models.AppDelegated || !slices.Equal(resolved.Privileges, []models.PrivilegeKey{testAppPrivilege}) {
+	if resolved.ID != app.ID || !slices.Equal(resolved.Privileges, []models.PrivilegeKey{testAppPrivilege}) {
 		t.Fatalf("app = %+v", resolved)
 	}
 	_, secret, _ := strings.Cut(token, ".")
@@ -138,20 +128,20 @@ func TestApp_CreateRefusesDuplicateKeyAndName(t *testing.T) {
 		{"test-gateway", "Another Gateway"},
 		{"another-gateway", "Test Gateway"},
 	} {
-		if _, _, err := svc.CreateApp(ctx(), app.key, app.name, "", models.AppDelegated, nil, adminID); !errors.Is(err, ErrAlreadyExists) {
+		if _, _, err := svc.CreateApp(ctx(), app.key, app.name, "", testAppPrivileges(), adminID); !errors.Is(err, ErrAlreadyExists) {
 			t.Errorf("%s: got %v", app.key, err)
 		}
 	}
 }
 
-// Make sure an app key that would break the token or the certificate key ID is refused.
+// Make sure an app key that would break the token is refused.
 func TestApp_CreateRefusesBadAppKey(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	adminID := seedAppAdmin(t, database)
 
 	for _, key := range []string{"has.dot", "has:colon", "Upper", ""} {
-		if _, _, err := svc.CreateApp(ctx(), key, "Test Gateway", "", models.AppDelegated, nil, adminID); !errors.Is(err, ErrInvalidInput) {
+		if _, _, err := svc.CreateApp(ctx(), key, "Test Gateway", "", testAppPrivileges(), adminID); !errors.Is(err, ErrInvalidInput) {
 			t.Errorf("%q: %v", key, err)
 		}
 	}
@@ -197,121 +187,26 @@ func TestApp_DisabledAppIsRefused(t *testing.T) {
 	}
 }
 
-// createTestApp tries to create an app with the given mode and privileges.
-func createTestApp(t *testing.T, mode models.AppMode, privileges ...models.PrivilegeKey) error {
+// createTestApp tries to create an app with the given privileges.
+func createTestApp(t *testing.T, privileges ...models.PrivilegeKey) error {
 	t.Helper()
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	registerTestAppPrivilege()
-	_, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", mode, privileges, seedAppAdmin(t, database))
+	_, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", privileges, seedAppAdmin(t, database))
 	return err
 }
 
 // Make sure an app can't be given a privilege that isn't allowed for apps, such as managing users.
 func TestApp_CreateRefusesPrivilegeNotAllowedForApps(t *testing.T) {
-	if err := createTestApp(t, models.AppDelegated, models.UsersWrite); !errors.Is(err, ErrInvalidInput) {
+	if err := createTestApp(t, models.UsersWrite); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("got %v", err)
 	}
 }
 
-// Make sure a service app needs at least one privilege, since without one it can't call anything.
-func TestApp_CreateRefusesServiceAppWithoutPrivileges(t *testing.T) {
-	if err := createTestApp(t, models.AppService); !errors.Is(err, ErrInvalidInput) {
+// Make sure an app needs at least one privilege, since without one it can't call anything.
+func TestApp_CreateRefusesAppWithoutPrivileges(t *testing.T) {
+	if err := createTestApp(t); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("got %v", err)
-	}
-}
-
-// Make sure an app can't be created with a mode other than service or delegated.
-func TestApp_CreateRefusesUnknownMode(t *testing.T) {
-	if err := createTestApp(t, "OTHER", testAppPrivilege); !errors.Is(err, ErrInvalidInput) {
-		t.Fatalf("got %v", err)
-	}
-}
-
-// Make sure a user can allow an app and remove it again.
-func TestApp_UserCanAuthorizeAndRemove(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestService(database)
-	app, _ := newTestApp(t, svc, seedAppAdmin(t, database))
-	userID := seedUser(t, database, "member@example.edu")
-
-	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
-		t.Fatal(err)
-	}
-	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || !authorized {
-		t.Fatalf("after allow: %v %v", authorized, err)
-	}
-	if err := svc.RemoveAppAuthorization(ctx(), app.ID, userID); err != nil {
-		t.Fatal(err)
-	}
-	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || authorized {
-		t.Fatalf("after remove: %v %v", authorized, err)
-	}
-}
-
-// Make sure the member list only shows active delegated apps.
-func TestApp_AuthorizationListShowsOnlyActiveDelegatedApps(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestService(database)
-	adminID := seedAppAdmin(t, database)
-	app, _ := newTestApp(t, svc, adminID)
-	newServiceApp(t, svc, adminID)
-	userID := seedUser(t, database, "member@example.edu")
-	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
-		t.Fatal(err)
-	}
-
-	listed, err := svc.ListAppAuthorizations(ctx(), userID)
-	if err != nil || len(listed) != 1 || listed[0].App.ID != app.ID || !listed[0].Authorized {
-		t.Fatalf("listed %+v, err %v", listed, err)
-	}
-	if _, err := svc.DisableApp(ctx(), app.ID, adminID); err != nil {
-		t.Fatal(err)
-	}
-	if listed, err := svc.ListAppAuthorizations(ctx(), userID); err != nil || len(listed) != 0 {
-		t.Fatalf("disabled app listed %+v, err %v", listed, err)
-	}
-	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || !authorized {
-		t.Fatalf("allow lost when disabled: %v %v", authorized, err)
-	}
-}
-
-// Make sure a user's allowed apps move to the surviving user when two users are merged.
-func TestApp_AuthorizationMovesOnUserMerge(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestService(database)
-	app, _ := newTestApp(t, svc, seedAppAdmin(t, database))
-	retiring := seedUser(t, database, "retiring@example.edu")
-	survivor := seedUser(t, database, "survivor@example.edu")
-	if err := svc.AuthorizeApp(ctx(), app.ID, retiring); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
-		t.Fatal(err)
-	}
-
-	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, survivor); err != nil || !authorized {
-		t.Fatalf("survivor: %v %v", authorized, err)
-	}
-}
-
-// Make sure a service app or a disabled app can't be allowed.
-func TestApp_CannotAuthorizeAppOutsideTheList(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestService(database)
-	adminID := seedAppAdmin(t, database)
-	disabled, _ := newTestApp(t, svc, adminID)
-	if _, err := svc.DisableApp(ctx(), disabled.ID, adminID); err != nil {
-		t.Fatal(err)
-	}
-	service := newServiceApp(t, svc, adminID)
-	userID := seedUser(t, database, "member@example.edu")
-
-	for _, appID := range []string{disabled.ID, service.ID} {
-		if err := svc.AuthorizeApp(ctx(), appID, userID); !errors.Is(err, ErrInvalidInput) {
-			t.Errorf("%s: got %v", appID, err)
-		}
 	}
 }
 
@@ -321,7 +216,7 @@ func TestApp_CreateNeedsAppsManage(t *testing.T) {
 	svc := newTestService(database)
 	userID := seedUser(t, database, "plain-user@example.edu")
 
-	if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", models.AppDelegated, nil, userID); err == nil {
+	if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", testAppPrivileges(), userID); err == nil {
 		t.Fatal("created an app without core:apps:manage")
 	}
 }
@@ -347,14 +242,14 @@ func TestApp_AdminRoleCannotManageApps(t *testing.T) {
 	}
 }
 
-// Make sure a change made through an app records the app in the audit trail, next to the user.
+// Make sure a change made through an app records the app in the audit trail.
 func TestApp_AuditRecordsTheApp(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	adminID := seedAppAdmin(t, database)
 	app, _ := newTestApp(t, svc, adminID)
 
-	viaApp := identity.WithCaller(ctx(), &identity.Caller{UserID: adminID, AppID: app.ID, AppKey: "gateway"})
+	viaApp := identity.WithCaller(ctx(), &identity.Caller{AppID: app.ID, AppKey: "gateway"})
 	if _, err := svc.DisableApp(viaApp, app.ID, adminID); err != nil {
 		t.Fatal(err)
 	}
@@ -380,16 +275,12 @@ func TestApp_DeleteNeedsTheAppDisabled(t *testing.T) {
 	}
 }
 
-// Make sure a deleted app can never be used or changed again and loses every user's authorizations.
+// Make sure a deleted app can never be used or changed again.
 func TestApp_DeletedAppCannotBeUsedAgain(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	adminID := seedAppAdmin(t, database)
 	app, token := newTestApp(t, svc, adminID)
-	userID := seedUser(t, database, "member@example.edu")
-	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
-		t.Fatal(err)
-	}
 	if _, err := svc.DisableApp(ctx(), app.ID, adminID); err != nil {
 		t.Fatal(err)
 	}
@@ -407,16 +298,13 @@ func TestApp_DeletedAppCannotBeUsedAgain(t *testing.T) {
 	if _, _, err := svc.IssueAppSecret(ctx(), app.ID, adminID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("new secret: %v", err)
 	}
-	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || authorized {
-		t.Errorf("allow kept: %v %v", authorized, err)
-	}
 	if apps, err := svc.ListApps(ctx()); err != nil || len(apps) != 0 {
 		t.Errorf("still listed: %v %v", apps, err)
 	}
 }
 
 // Make sure a deleted app's key is never given to another app, so older records that store the key,
-// such as certificates, keep pointing at the right app. Its name is free to use again.
+// such as audit rows, keep pointing at the right app. Its name is free to use again.
 func TestApp_DeletedAppKeepsItsKey(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -429,14 +317,10 @@ func TestApp_DeletedAppKeepsItsKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, _, err := svc.CreateApp(ctx(), app.Key, "Another Gateway", "", models.AppDelegated, nil, adminID); !errors.Is(err, ErrAlreadyExists) {
+	if _, _, err := svc.CreateApp(ctx(), app.Key, "Another Gateway", "", testAppPrivileges(), adminID); !errors.Is(err, ErrAlreadyExists) {
 		t.Errorf("same key: %v", err)
 	}
-	if _, _, err := svc.CreateApp(ctx(), "new-gateway", app.Name, "", models.AppDelegated, nil, adminID); err != nil {
+	if _, _, err := svc.CreateApp(ctx(), "new-gateway", app.Name, "", testAppPrivileges(), adminID); err != nil {
 		t.Errorf("same name: %v", err)
-	}
-	names, err := svc.ListAppNames(ctx())
-	if err != nil || !slices.ContainsFunc(names, func(a models.App) bool { return a.Key == app.Key && a.Name == app.Name }) {
-		t.Errorf("name of the deleted app missing: %v %v", names, err)
 	}
 }

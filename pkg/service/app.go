@@ -34,20 +34,18 @@ import (
 )
 
 const (
-	appAuditCreated              = "APP_CREATED"
-	appAuditUpdated              = "APP_UPDATED"
-	appAuditDisabled             = "APP_DISABLED"
-	appAuditEnabled              = "APP_ENABLED"
-	appAuditSecretIssued         = "APP_SECRET_ISSUED"
-	appAuditAuthorized           = "APP_AUTHORIZED"
-	appAuditAuthorizationRemoved = "APP_AUTHORIZATION_REMOVED"
-	appAuditDeleted              = "APP_DELETED"
+	appAuditCreated      = "APP_CREATED"
+	appAuditUpdated      = "APP_UPDATED"
+	appAuditDisabled     = "APP_DISABLED"
+	appAuditEnabled      = "APP_ENABLED"
+	appAuditSecretIssued = "APP_SECRET_ISSUED"
+	appAuditDeleted      = "APP_DELETED"
 
 	appNameMaxLength    = 100
 	appSecretHintLength = 4
 )
 
-// The token splits on "." and the certificate key ID splits on ":", so an app key can have neither.
+// The token splits on ".", so an app key can't have one.
 var appKeyRegex = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 func hashAppSecret(secret string) string {
@@ -77,12 +75,10 @@ func validateAppName(name string) (string, error) {
 	return name, nil
 }
 
-func validateAppAccess(mode models.AppMode, privileges []models.PrivilegeKey) error {
-	if mode != models.AppService && mode != models.AppDelegated {
-		return fmt.Errorf("%w: mode must be %s or %s", ErrInvalidInput, models.AppService, models.AppDelegated)
-	}
-	if mode == models.AppService && len(privileges) == 0 {
-		return fmt.Errorf("%w: a service app needs at least one privilege", ErrInvalidInput)
+// An app with no privileges could not call anything.
+func validateAppPrivileges(privileges []models.PrivilegeKey) error {
+	if len(privileges) == 0 {
+		return fmt.Errorf("%w: an app needs at least one privilege", ErrInvalidInput)
 	}
 	for _, privilege := range privileges {
 		if !models.IsAppPrivilege(privilege) {
@@ -110,11 +106,6 @@ func (s *Service) ListApps(ctx context.Context) ([]models.App, error) {
 	return slices.DeleteFunc(apps, func(a models.App) bool { return a.Status == models.AppDeleted }), nil
 }
 
-// ListAppNames includes deleted apps, since older records still point at their keys.
-func (s *Service) ListAppNames(ctx context.Context) ([]models.App, error) {
-	return s.apps.List(ctx)
-}
-
 func (s *Service) GetApp(ctx context.Context, id string) (*models.App, error) {
 	a, err := s.apps.FindByID(ctx, id)
 	if err != nil {
@@ -126,13 +117,8 @@ func (s *Service) GetApp(ctx context.Context, id string) (*models.App, error) {
 	return a, nil
 }
 
-// CountAppAuthorizations is how many users have allowed the app.
-func (s *Service) CountAppAuthorizations(ctx context.Context, appID string) (int, error) {
-	return s.apps.CountGrants(ctx, appID)
-}
-
 // CreateApp The returned token cannot be read again.
-func (s *Service) CreateApp(ctx context.Context, key, name, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error) {
+func (s *Service) CreateApp(ctx context.Context, key, name, description string, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error) {
 	if err := validateAppKey(key); err != nil {
 		return nil, "", err
 	}
@@ -142,7 +128,7 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 	}
 	slices.Sort(privileges)
 	privileges = slices.Compact(privileges)
-	if err := validateAppAccess(mode, privileges); err != nil {
+	if err := validateAppPrivileges(privileges); err != nil {
 		return nil, "", err
 	}
 	a := &models.App{
@@ -151,7 +137,6 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 		Name:        name,
 		Description: description,
 		Status:      models.AppActive,
-		Mode:        mode,
 		CreatedBy:   actorID,
 		Privileges:  privileges,
 	}
@@ -163,7 +148,7 @@ func (s *Service) CreateApp(ctx context.Context, key, name, description string, 
 		if err := s.apps.Create(ctx, tx, a); err != nil {
 			return appWriteErr("insert app", err)
 		}
-		return s.writeAuditTx(ctx, tx, "app", appAuditCreated, a.ID, map[string]any{"actor_id": actorID, "name": a.Name, "mode": a.Mode, "privileges": a.Privileges})
+		return s.writeAuditTx(ctx, tx, "app", appAuditCreated, a.ID, map[string]any{"actor_id": actorID, "name": a.Name, "privileges": a.Privileges})
 	}); err != nil {
 		return nil, "", err
 	}
@@ -213,8 +198,7 @@ func (s *Service) EnableApp(ctx context.Context, id, actorID string) (*models.Ap
 	return s.changeApp(ctx, id, actorID, appAuditEnabled, func(a *models.App) { a.Status = models.AppActive })
 }
 
-// DeleteApp soft deletes a disabled app and removes every user's authorizations.
-// The row is kept so the app key is never reused.
+// DeleteApp soft deletes a disabled app. The row is kept so the app key is never reused.
 func (s *Service) DeleteApp(ctx context.Context, id, actorID string) error {
 	return s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.AppsManage); err != nil {
@@ -230,16 +214,12 @@ func (s *Service) DeleteApp(ctx context.Context, id, actorID string) error {
 		if a.Status != models.AppDisabled {
 			return fmt.Errorf("%w: disable the app before deleting it", ErrInUse)
 		}
-		removed, err := s.apps.DeleteAllGrants(ctx, tx, id)
-		if err != nil {
-			return fmt.Errorf("delete app grants: %w", err)
-		}
 		// Clear the secret so the old token can never work again even if the status is changed back.
 		a.Status, a.SecretHash = models.AppDeleted, ""
 		if err := s.apps.Update(ctx, tx, a); err != nil {
 			return fmt.Errorf("delete app: %w", err)
 		}
-		return s.writeAuditTx(ctx, tx, "app", appAuditDeleted, id, map[string]any{"actor_id": actorID, "key": a.Key, "name": a.Name, "grants_removed": removed})
+		return s.writeAuditTx(ctx, tx, "app", appAuditDeleted, id, map[string]any{"actor_id": actorID, "key": a.Key, "name": a.Name})
 	})
 }
 
@@ -267,64 +247,4 @@ func (s *Service) ResolveApp(ctx context.Context, token string) (*models.App, er
 	// A key taken off AllowForApps in a later release stops working for apps that were given it before.
 	a.Privileges = slices.DeleteFunc(a.Privileges, func(p models.PrivilegeKey) bool { return !models.IsAppPrivilege(p) })
 	return a, nil
-}
-
-// AppAuthorization is one app a user can allow.
-type AppAuthorization struct {
-	App        models.App
-	Authorized bool
-}
-
-func (s *Service) ListAppAuthorizations(ctx context.Context, userID string) ([]AppAuthorization, error) {
-	apps, err := s.apps.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list apps: %w", err)
-	}
-	granted, err := s.apps.ListGrantedAppIDs(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list app grants: %w", err)
-	}
-	var authorizations []AppAuthorization
-	for _, a := range apps {
-		if a.Status == models.AppActive && a.Mode == models.AppDelegated {
-			authorizations = append(authorizations, AppAuthorization{App: a, Authorized: slices.Contains(granted, a.ID)})
-		}
-	}
-	return authorizations, nil
-}
-
-func (s *Service) AuthorizeApp(ctx context.Context, appID, userID string) error {
-	a, err := s.GetApp(ctx, appID)
-	if err != nil {
-		return err
-	}
-	if a.Status != models.AppActive {
-		return fmt.Errorf("%w: this app is disabled", ErrInvalidInput)
-	}
-	if a.Mode != models.AppDelegated {
-		return fmt.Errorf("%w: this app is not delegated", ErrInvalidInput)
-	}
-	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.apps.CreateGrant(ctx, tx, appID, userID); err != nil {
-			return fmt.Errorf("insert app grant: %w", err)
-		}
-		return s.writeAuditTx(ctx, tx, "app", appAuditAuthorized, appID, map[string]any{"user_id": userID})
-	})
-}
-
-func (s *Service) RemoveAppAuthorization(ctx context.Context, appID, userID string) error {
-	return s.inTx(ctx, func(tx *sql.Tx) error {
-		removed, err := s.apps.DeleteGrant(ctx, tx, appID, userID)
-		if err != nil {
-			return fmt.Errorf("delete app grant: %w", err)
-		}
-		if !removed {
-			return nil
-		}
-		return s.writeAuditTx(ctx, tx, "app", appAuditAuthorizationRemoved, appID, map[string]any{"user_id": userID})
-	})
-}
-
-func (s *Service) IsAppAuthorized(ctx context.Context, appID, userID string) (bool, error) {
-	return s.apps.HasGrant(ctx, appID, userID)
 }

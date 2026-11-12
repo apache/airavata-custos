@@ -152,19 +152,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	var appUserTokenVerifier identity.TokenVerifier
-	if cfg.Core.Auth.OIDC.AppsAudience != "" {
-		if appUserTokenVerifier, err = identity.NewJWTVerifier(ctx, cfg.Core.Auth.OIDC.Issuer, cfg.Core.Auth.OIDC.AppsAudience); err != nil {
-			return err
-		}
-	}
 	svc.SetIdentityCacheTTL(cfg.Core.Auth.CacheTTL)
 	svc.SetReservedUsernames(cfg.Core.Users.ReservedUsernames)
 
 	// identity.Middleware sits in front of the router-backed server, so every
 	// gated route sees a verified caller + privilege set on ctx.
 	authed := identity.Middleware(verifier, svc, router.PublicRoutes(), router.WithoutUserConsentRoutes(), srv)
-	routed := identity.AppMiddleware(svc, appUserTokenVerifier, svc, srv, authed)
+	routed := identity.AppMiddleware(svc, srv, authed)
 	handler := server.LoggingMiddleware(tracing.Middleware(routed))
 
 	httpServer := &http.Server{

@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const appColumns = `id, key, name, description, status, mode, secret_hash, secret_hint, created_by, created_at, updated_at`
+const appColumns = `id, key, name, description, status, secret_hash, secret_hint, created_by, created_at, updated_at`
 
 type pgAppStore struct {
 	db *sqlx.DB
@@ -87,9 +87,9 @@ func (s *pgAppStore) List(ctx context.Context) ([]models.App, error) {
 
 func (s *pgAppStore) Create(ctx context.Context, tx *sql.Tx, a *models.App) error {
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO apps (id, key, name, description, status, mode, secret_hash, secret_hint, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		a.ID, a.Key, a.Name, a.Description, a.Status, a.Mode, a.SecretHash, a.SecretHint, a.CreatedBy); err != nil {
+		`INSERT INTO apps (id, key, name, description, status, secret_hash, secret_hint, created_by)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		a.ID, a.Key, a.Name, a.Description, a.Status, a.SecretHash, a.SecretHint, a.CreatedBy); err != nil {
 		return err
 	}
 	for _, privilege := range a.Privileges {
@@ -105,51 +105,5 @@ func (s *pgAppStore) Update(ctx context.Context, tx *sql.Tx, a *models.App) erro
 		`UPDATE apps SET name = $1, description = $2, status = $3, secret_hash = $4, secret_hint = $5, updated_at = CURRENT_TIMESTAMP(6)
 		 WHERE id = $6`,
 		a.Name, a.Description, a.Status, a.SecretHash, a.SecretHint, a.ID)
-	return err
-}
-
-func (s *pgAppStore) HasGrant(ctx context.Context, appID, userID string) (bool, error) {
-	var granted bool
-	err := s.db.GetContext(ctx, &granted, `SELECT EXISTS (SELECT 1 FROM app_grants WHERE app_id = $1 AND user_id = $2)`, appID, userID)
-	return granted, err
-}
-
-func (s *pgAppStore) ListGrantedAppIDs(ctx context.Context, userID string) ([]string, error) {
-	var appIDs []string
-	err := s.db.SelectContext(ctx, &appIDs, `SELECT app_id FROM app_grants WHERE user_id = $1`, userID)
-	return appIDs, err
-}
-
-func (s *pgAppStore) CreateGrant(ctx context.Context, tx *sql.Tx, appID, userID string) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO app_grants (app_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, appID, userID)
-	return err
-}
-
-func (s *pgAppStore) DeleteGrant(ctx context.Context, tx *sql.Tx, appID, userID string) (bool, error) {
-	return execOnce(ctx, tx, `DELETE FROM app_grants WHERE app_id = $1 AND user_id = $2`, appID, userID)
-}
-
-func (s *pgAppStore) CountGrants(ctx context.Context, appID string) (int, error) {
-	var count int
-	err := s.db.GetContext(ctx, &count, `SELECT COUNT(*) FROM app_grants WHERE app_id = $1`, appID)
-	return count, err
-}
-
-func (s *pgAppStore) DeleteAllGrants(ctx context.Context, tx *sql.Tx, appID string) (int64, error) {
-	res, err := tx.ExecContext(ctx, `DELETE FROM app_grants WHERE app_id = $1`, appID)
-	if err != nil {
-		return 0, err
-	}
-	return res.RowsAffected()
-}
-
-func (s *pgAppStore) ReassignGrants(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO app_grants (app_id, user_id, granted_at)
-		 SELECT app_id, $2, granted_at FROM app_grants WHERE user_id = $1
-		 ON CONFLICT DO NOTHING`, fromUserID, toUserID); err != nil {
-		return err
-	}
-	_, err := tx.ExecContext(ctx, `DELETE FROM app_grants WHERE user_id = $1`, fromUserID)
 	return err
 }

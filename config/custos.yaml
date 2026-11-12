@@ -25,7 +25,6 @@ core:
     oidc:
       issuer:   "${OIDC_ISSUER_URL}"
       audience: "${OIDC_AUDIENCE}"
-      apps_audience: "${OIDC_APPS_AUDIENCE}"
     cache_ttl: "30s"
   users:
     # Names a user cannot choose as their cluster login.

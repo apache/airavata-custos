@@ -28,21 +28,13 @@ const (
 	AppDeleted AppStatus = "DELETED"
 )
 
-type AppMode string
-
-const (
-	AppService   AppMode = "SERVICE"
-	AppDelegated AppMode = "DELEGATED"
-)
-
-// App is a tool that calls Custos with its own token, on the same routes as users.
+// App is a tool that calls Custos as itself with its own token, never as a user.
 type App struct {
 	ID          string         `json:"id"          db:"id"`
 	Key         string         `json:"key"         db:"key"`
 	Name        string         `json:"name"        db:"name"`
 	Description string         `json:"description" db:"description"`
 	Status      AppStatus      `json:"status"      db:"status"`
-	Mode        AppMode        `json:"mode"        db:"mode"`
 	SecretHash  string         `json:"-"           db:"secret_hash"`
 	SecretHint  string         `json:"secret_hint" db:"secret_hint"`
 	CreatedBy   string         `json:"created_by"  db:"created_by"`
