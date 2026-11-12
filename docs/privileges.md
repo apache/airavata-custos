@@ -106,10 +106,10 @@ How these routes treat apps is in [architecture.md](architecture.md#apps).
 
 ## Signer connector (`connectors/Signer/internal/privileges.go`)
 
-| Privilege                   | Routes it gates                                                                                                            |
-|-----------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `signer:certificates:read`  | `GET /connectors/signer/certificates`<br>`GET /connectors/signer/certificates/{serial}`<br>`GET /connectors/signer/status` |
-| `signer:certificates:write` | `POST /connectors/signer/certificates/{serial}/revoke`                                                                     |
+| Privilege                   | Routes it gates                                                                                                                                                                    |
+|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `signer:certificates:read`  | `GET /connectors/signer/certificates`<br>`GET /connectors/signer/certificates/{serial}`<br>`GET /connectors/signer/status`<br>`GET /connectors/signer/users/{id}` (the email only) |
+| `signer:certificates:write` | `POST /connectors/signer/certificates/{serial}/revoke`                                                                                                                             |
 
 ## Other connectors
 

@@ -84,6 +84,10 @@ func (f *fakeCore) GetComputeAllocation(context.Context, string) (*models.Comput
 	return &f.allocation, nil
 }
 
+func (f *fakeCore) GetUser(_ context.Context, id string) (*models.User, error) {
+	return &models.User{ID: id, Email: "admin@example.edu", FirstName: "Site", LastName: "Admin"}, nil
+}
+
 // readyCore is a user who can generate certificates
 func readyCore() *fakeCore {
 	provisioned := time.Now().Add(-time.Hour)
@@ -272,6 +276,15 @@ func TestRevoke_WithoutWritePrivilegeNeverReachesSigner(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden || seen.path != "" {
 		t.Fatalf("got %d, signer saw %q", rec.Code, seen.path)
+	}
+}
+
+// Make sure a certificate reader can see who revoked a certificate, getting the email and nothing else about that user.
+func TestUserEmail_ShowsOnlyTheEmail(t *testing.T) {
+	rec := serve("", httptest.NewRequest(http.MethodGet, "/connectors/signer/users/u-9", nil), CertificatesRead)
+
+	if rec.Code != http.StatusOK || rec.Body.String() != `{"email":"admin@example.edu","id":"u-9"}`+"\n" {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
 	}
 }
 

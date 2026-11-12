@@ -36,7 +36,9 @@ export async function listAppNames(): Promise<Record<string, string>> {
 }
 
 export async function getUserEmail(id: string): Promise<string> {
-  const user = z.object({ email: z.string() }).parse(await apiFetch(`/users/${encodeURIComponent(id)}`));
+  const user = z
+    .object({ email: z.string() })
+    .parse(await apiFetch(`/connectors/signer/users/${encodeURIComponent(id)}`));
   return user.email;
 }
 

@@ -48,6 +48,7 @@ type CoreAccounts interface {
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	GetComputeAllocation(ctx context.Context, id string) (*models.ComputeAllocation, error)
+	GetUser(ctx context.Context, id string) (*models.User, error)
 }
 
 type Config struct {
@@ -78,6 +79,7 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequireAuth("GET /connectors/signer/me/certificates/{serial}", h.getOwnCertificate)
 	router.RequireAuth("POST /connectors/signer/me/certificates/{serial}/revoke", h.revokeOwnCertificate)
 	router.RequirePrivilege("GET /connectors/signer/status", CertificatesRead, h.status)
+	router.RequirePrivilege("GET /connectors/signer/users/{id}", CertificatesRead, h.getUserEmail)
 }
 
 func refuse(w http.ResponseWriter, status int, code, message string) {
@@ -351,4 +353,19 @@ func (h *Handlers) status(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	err := h.CheckHealth(r.Context())
 	common.WriteJSON(w, http.StatusOK, statusResponse{Reachable: err == nil, LatencyMs: time.Since(start).Milliseconds()})
+}
+
+// getUserEmail lets a certificate reader see who generated or revoked a certificate.
+// Only the email, since the reader may not be allowed to read users.
+func (h *Handlers) getUserEmail(w http.ResponseWriter, r *http.Request) {
+	user, err := h.core.GetUser(r.Context(), r.PathValue("id"))
+	if errors.Is(err, service.ErrNotFound) {
+		refuse(w, http.StatusNotFound, "not_found", "User not found")
+		return
+	}
+	if err != nil {
+		accountReadFailed(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, map[string]string{"id": user.ID, "email": user.Email})
 }
