@@ -24,6 +24,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -55,8 +56,7 @@ func isCASMismatch(err error) bool {
 type CAKeyPair struct {
 	PrivateKey []byte // OpenSSH private key
 	PublicKey  []byte // OpenSSH public key line, as in authorized_keys
-	Algorithm  string // e.g., "ed25519"
-	CreatedAt  string
+	CreatedAt  string // RFC 3339, empty when the stored CA has none
 }
 
 type CAMetadata struct {
@@ -68,9 +68,11 @@ type CAMetadata struct {
 }
 
 type Client struct {
-	client      *vaultapi.Client
-	mountPath   string
-	rotationCfg config.RotationConfig
+	client         *vaultapi.Client
+	mountPath      string
+	caKeyPath      string
+	caMetadataPath string
+	rotationCfg    config.RotationConfig
 }
 
 func NewClient(cfg config.VaultConfig, rotationCfg config.RotationConfig) (*Client, error) {
@@ -85,9 +87,12 @@ func NewClient(cfg config.VaultConfig, rotationCfg config.RotationConfig) (*Clie
 	client.SetToken(cfg.Token)
 
 	return &Client{
-		client:      client,
-		mountPath:   cfg.MountPath,
-		rotationCfg: rotationCfg,
+		client:    client,
+		mountPath: cfg.MountPath,
+		caKeyPath: cfg.CAKeyPath,
+		// The serial counter and rotation settings stay next to the CA key.
+		caMetadataPath: path.Join(path.Dir(cfg.CAKeyPath), "metadata"),
+		rotationCfg:    rotationCfg,
 	}, nil
 }
 
@@ -99,27 +104,34 @@ func (c *Client) Healthy(ctx context.Context) error {
 	return nil
 }
 
-// The deployment has one CA. Its keys and serial counter are stored here.
-// TODO CA from file path support
-const caPath = "ca"
-
-func (c *Client) kvPath(parts ...string) string {
-	path := c.mountPath + "/data"
-	for _, p := range parts {
-		path += "/" + p
-	}
-	return path
+// kvPath turns a secret path into its KV v2 API path, {mount}/data/{secretPath}.
+func (c *Client) kvPath(secretPath string) string {
+	return c.mountPath + "/data/" + secretPath
 }
 
+// GetCurrentCAKey reads the CA keys from the private_key and public_key fields at the configured path.
+// TODO CA from file path support
 func (c *Client) GetCurrentCAKey(ctx context.Context) (*CAKeyPair, error) {
-	kp, err := c.readCAKey(ctx, "current")
+	kvPath := c.kvPath(c.caKeyPath)
+	secret, err := c.client.Logical().ReadWithContext(ctx, kvPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading vault path %s: %w", kvPath, err)
 	}
-	if kp == nil {
-		return nil, ErrCANotFound
+	var data map[string]any
+	if secret != nil {
+		data, _ = secret.Data["data"].(map[string]any)
 	}
-	return kp, nil
+	privateKey, _ := data["private_key"].(string)
+	publicKey, _ := data["public_key"].(string)
+	createdAt, _ := data["created_at"].(string)
+	if privateKey == "" {
+		return nil, fmt.Errorf("%w at %s", ErrCANotFound, kvPath)
+	}
+	// Not ErrCANotFound, so a missing public key never makes the signer replace an existing CA.
+	if publicKey == "" {
+		return nil, fmt.Errorf("CA public key missing at %s", kvPath)
+	}
+	return &CAKeyPair{PrivateKey: []byte(privateKey), PublicKey: []byte(publicKey), CreatedAt: createdAt}, nil
 }
 
 // GenerateCAKey generates a new CA key and stores it as the current one.
@@ -130,8 +142,14 @@ func (c *Client) GenerateCAKey(ctx context.Context) (*CAKeyPair, error) {
 		return nil, err
 	}
 
-	if err := c.writeCAKey(ctx, "current", kp); err != nil {
-		return nil, err
+	kvPath := c.kvPath(c.caKeyPath)
+	data := map[string]any{"data": map[string]any{
+		"private_key": string(kp.PrivateKey),
+		"public_key":  string(kp.PublicKey),
+		"created_at":  kp.CreatedAt,
+	}}
+	if _, err := c.client.Logical().WriteWithContext(ctx, kvPath, data); err != nil {
+		return nil, fmt.Errorf("writing vault path %s: %w", kvPath, err)
 	}
 
 	if err := c.initMetadata(ctx); err != nil {
@@ -163,60 +181,8 @@ func (c *Client) IncrementSerialCounter(ctx context.Context) (int64, error) {
 	return newSerial, nil
 }
 
-func (c *Client) readCAKey(ctx context.Context, slot string) (*CAKeyPair, error) {
-	path := c.kvPath(caPath, slot)
-	secret, err := c.client.Logical().ReadWithContext(ctx, path)
-	if err != nil {
-		return nil, fmt.Errorf("reading vault path %s: %w", path, err)
-	}
-	if secret == nil || secret.Data == nil {
-		return nil, nil
-	}
-
-	data, ok := secret.Data["data"].(map[string]interface{})
-	if !ok || data == nil {
-		return nil, nil
-	}
-
-	kp := &CAKeyPair{}
-	if v, ok := data["private_key"].(string); ok {
-		kp.PrivateKey = []byte(v)
-	}
-	if v, ok := data["public_key"].(string); ok {
-		kp.PublicKey = []byte(v)
-	}
-	if v, ok := data["algorithm"].(string); ok {
-		kp.Algorithm = v
-	}
-	if v, ok := data["created_at"].(string); ok {
-		kp.CreatedAt = v
-	}
-
-	if len(kp.PrivateKey) == 0 {
-		return nil, nil
-	}
-	return kp, nil
-}
-
-func (c *Client) writeCAKey(ctx context.Context, slot string, kp *CAKeyPair) error {
-	path := c.kvPath(caPath, slot)
-	data := map[string]interface{}{
-		"data": map[string]interface{}{
-			"private_key": string(kp.PrivateKey),
-			"public_key":  string(kp.PublicKey),
-			"algorithm":   kp.Algorithm,
-			"created_at":  kp.CreatedAt,
-		},
-	}
-	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
-	if err != nil {
-		return fmt.Errorf("writing vault path %s: %w", path, err)
-	}
-	return nil
-}
-
 func (c *Client) readMetadataWithVersion(ctx context.Context) (*CAMetadata, int, error) {
-	path := c.kvPath(caPath, "metadata")
+	path := c.kvPath(c.caMetadataPath)
 	secret, err := c.client.Logical().ReadWithContext(ctx, path)
 	if err != nil {
 		return nil, 0, fmt.Errorf("reading vault metadata: %w", err)
@@ -270,7 +236,7 @@ func (c *Client) readMetadataWithVersion(ctx context.Context) (*CAMetadata, int,
 }
 
 func (c *Client) writeMetadata(ctx context.Context, meta *CAMetadata) error {
-	path := c.kvPath(caPath, "metadata")
+	kvPath := c.kvPath(c.caMetadataPath)
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"serial_counter":        strconv.FormatInt(meta.SerialCounter, 10),
@@ -280,7 +246,7 @@ func (c *Client) writeMetadata(ctx context.Context, meta *CAMetadata) error {
 			"overlap_hours":         strconv.Itoa(meta.OverlapHours),
 		},
 	}
-	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
+	_, err := c.client.Logical().WriteWithContext(ctx, kvPath, data)
 	if err != nil {
 		return fmt.Errorf("writing vault metadata: %w", err)
 	}
@@ -288,12 +254,12 @@ func (c *Client) writeMetadata(ctx context.Context, meta *CAMetadata) error {
 }
 
 func (c *Client) writeMetadataCAS(ctx context.Context, meta *CAMetadata, cas int) error {
-	path := c.kvPath(caPath, "metadata")
-	data := map[string]interface{}{
-		"options": map[string]interface{}{
+	kvPath := c.kvPath(c.caMetadataPath)
+	data := map[string]any{
+		"options": map[string]any{
 			"cas": cas,
 		},
-		"data": map[string]interface{}{
+		"data": map[string]any{
 			"serial_counter":        strconv.FormatInt(meta.SerialCounter, 10),
 			"last_rotation_at":      meta.LastRotationAt,
 			"next_rotation_at":      meta.NextRotationAt,
@@ -301,7 +267,7 @@ func (c *Client) writeMetadataCAS(ctx context.Context, meta *CAMetadata, cas int
 			"overlap_hours":         strconv.Itoa(meta.OverlapHours),
 		},
 	}
-	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
+	_, err := c.client.Logical().WriteWithContext(ctx, kvPath, data)
 	if err != nil {
 		if isCASMismatch(err) {
 			return fmt.Errorf("%w (CAS=%d): %v", ErrSerialConflict, cas, err)
@@ -341,7 +307,6 @@ func generateEd25519CAKey() (*CAKeyPair, error) {
 	return &CAKeyPair{
 		PrivateKey: pem.EncodeToMemory(privBlock),
 		PublicKey:  ssh.MarshalAuthorizedKey(sshPub),
-		Algorithm:  "ed25519",
 		CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }

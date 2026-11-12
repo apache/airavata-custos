@@ -35,6 +35,7 @@ vault:
   address: http://localhost:8200       # env: VAULT_ADDRESS
   token: root-token                    # env: VAULT_TOKEN
   mount_path: ssh-ca                   # KV v2 mount path
+  ca_key_path: ca/current              # secret with private_key, public_key and optional created_at
   timeout_seconds: 10
 
 signer:

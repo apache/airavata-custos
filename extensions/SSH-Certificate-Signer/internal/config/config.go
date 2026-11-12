@@ -59,6 +59,7 @@ type VaultConfig struct {
 	Address        string `yaml:"address"`
 	Token          string `yaml:"token"`
 	MountPath      string `yaml:"mount_path"`
+	CAKeyPath      string `yaml:"ca_key_path"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
 }
 
@@ -125,6 +126,7 @@ func DefaultConfig() *Config {
 			Address:        "http://localhost:8200",
 			Token:          "",
 			MountPath:      "ssh-ca",
+			CAKeyPath:      "ca/current",
 			TimeoutSeconds: 10,
 		},
 		Signer: SignerConfig{
