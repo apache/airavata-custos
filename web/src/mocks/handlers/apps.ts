@@ -79,11 +79,26 @@ export const appsHandlers = [
     allowed.delete(String(appId));
     return new HttpResponse(null, { status: 204 });
   }),
-  http.get("*/api/v1/apps", () => HttpResponse.json(apps)),
+  http.get("*/api/v1/apps", () => HttpResponse.json(apps.filter((a) => a.status !== "DELETED"))),
   http.get("*/api/v1/apps/privileges", () => HttpResponse.json(appPrivileges)),
   http.get("*/api/v1/apps/names", () =>
     HttpResponse.json(apps.map(({ key, name }) => ({ key, name }))),
   ),
+  http.get("*/api/v1/apps/:id", ({ params: { id } }) => {
+    const app = apps.find((a) => a.id === id && a.status !== "DELETED");
+    if (!app) return HttpResponse.json({ error: "not found" }, { status: 404 });
+    return HttpResponse.json({ ...app, authorized_users: allowed.has(app.id) ? 1 : 0 });
+  }),
+  http.delete("*/api/v1/apps/:id", ({ params: { id } }) => {
+    const app = apps.find((a) => a.id === id && a.status !== "DELETED");
+    if (!app) return HttpResponse.json({ error: "not found" }, { status: 404 });
+    if (app.status !== "DISABLED") {
+      return HttpResponse.json({ error: "disable the app before deleting it" }, { status: 409 });
+    }
+    app.status = "DELETED";
+    allowed.delete(app.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.put("*/api/v1/apps/:id", async ({ params: { id }, request }) => {
     const app = apps.find((a) => a.id === id);
     if (!app) return HttpResponse.json({ error: "not found" }, { status: 404 });

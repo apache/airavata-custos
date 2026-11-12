@@ -76,6 +76,16 @@ export async function enableApp(id: string): Promise<App> {
   return appSchema.parse(await apiFetch(`${appPath(id)}/enable`, { method: "POST" }));
 }
 
+// How many users would lose the app if it were deleted.
+export async function countAppAuthorizations(id: string): Promise<number> {
+  const app = z.object({ authorized_users: z.number().int() }).parse(await apiFetch(appPath(id)));
+  return app.authorized_users;
+}
+
+export async function deleteApp(id: string): Promise<void> {
+  await apiFetch(appPath(id), { method: "DELETE" });
+}
+
 export async function issueAppSecret(id: string): Promise<AppWithToken> {
   return appWithTokenSchema.parse(await apiFetch(`${appPath(id)}/secret`, { method: "POST" }));
 }

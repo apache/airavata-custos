@@ -30,6 +30,7 @@ import { StatusBadge } from "@/shared/ui/StatusBadge";
 import type { App } from "../api";
 import { useApps, useDisableApp, useEnableApp } from "../queries";
 import { CreateAppDialog } from "./CreateAppDialog";
+import { DeleteAppDialog } from "./DeleteAppDialog";
 import { EditAppDialog } from "./EditAppDialog";
 import { NewSecretDialog } from "./NewSecretDialog";
 
@@ -42,6 +43,7 @@ export function AppsView() {
   const [editing, setEditing] = React.useState<App | null>(null);
   const [disabling, setDisabling] = React.useState<App | null>(null);
   const [newSecretFor, setNewSecretFor] = React.useState<App | null>(null);
+  const [deleting, setDeleting] = React.useState<App | null>(null);
 
   if (ability.cannot("manage", "App")) {
     return <ErrorState message="Not permitted." />;
@@ -119,16 +121,21 @@ export function AppsView() {
               Disable
             </Button>
           ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={enable.isPending}
-              onClick={() =>
-                enable.mutate(app.id, { onError: (error) => toast.error(error.message) })
-              }
-            >
-              Enable
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={enable.isPending}
+                onClick={() =>
+                  enable.mutate(app.id, { onError: (error) => toast.error(error.message) })
+                }
+              >
+                Enable
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => setDeleting(app)}>
+                Delete
+              </Button>
+            </>
           )}
         </div>
       ),
@@ -165,6 +172,8 @@ export function AppsView() {
         <NewSecretDialog app={newSecretFor} onClose={() => setNewSecretFor(null)} />
       ) : null}
 
+      {deleting ? <DeleteAppDialog app={deleting} onClose={() => setDeleting(null)} /> : null}
+
       <ConfirmDialog
         open={disabling !== null}
         onOpenChange={(open) => {
@@ -178,7 +187,7 @@ export function AppsView() {
           if (disabling) disable.mutate(disabling.id, { onSuccess: () => setDisabling(null) });
         }}
       >
-        Its token stops working at once. You can enable it again.
+        Its token stops working at once. You can enable it again, or delete it.
       </ConfirmDialog>
     </div>
   );

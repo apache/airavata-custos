@@ -20,7 +20,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   authorizeApp,
+  countAppAuthorizations,
   createApp,
+  deleteApp,
   disableApp,
   enableApp,
   issueAppSecret,
@@ -53,6 +55,14 @@ export function useAppPrivileges() {
   return useQuery({ queryKey: appKeys.privileges, queryFn: listAppPrivileges });
 }
 
+export function useAppAuthorizationCount(id: string | undefined) {
+  return useQuery({
+    queryKey: ["apps", "authorization-count", id],
+    queryFn: () => countAppAuthorizations(id ?? ""),
+    enabled: id !== undefined,
+  });
+}
+
 function useAppMutation<Input, Output>(
   mutationFn: (input: Input) => Promise<Output>,
   queryKey: readonly string[] = appKeys.list,
@@ -68,4 +78,5 @@ export const useCreateApp = () => useAppMutation(createApp);
 export const useUpdateApp = () => useAppMutation(updateApp);
 export const useDisableApp = () => useAppMutation(disableApp);
 export const useEnableApp = () => useAppMutation(enableApp);
+export const useDeleteApp = () => useAppMutation(deleteApp);
 export const useIssueAppSecret = () => useAppMutation(issueAppSecret);
