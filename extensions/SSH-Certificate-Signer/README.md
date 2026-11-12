@@ -58,7 +58,7 @@ The certificate names who it is for. The CA signature covers all of it.
 A request can also set `source_address`, a comma-separated list of IP addresses or CIDR blocks. It goes in the
 certificate's `source-address` critical option, and sshd then accepts the certificate only from those addresses.
 
-A deployment has one Ed25519 CA, stored in Vault. The signer reads it at startup and refuses to start without it,
+A deployment has one Ed25519 CA, stored in Vault in OpenSSH format, the same format `ssh-keygen -t ed25519` writes. The signer reads it at startup and refuses to start without it,
 unless `signer.ca.create_if_missing` is set, in which case it creates one and writes a `ca_created` audit log entry.
 
 ## Prerequisites

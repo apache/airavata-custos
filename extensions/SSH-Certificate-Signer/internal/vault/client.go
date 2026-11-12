@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -30,6 +29,7 @@ import (
 	"time"
 
 	vaultapi "github.com/openbao/openbao/api/v2"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
@@ -53,8 +53,8 @@ func isCASMismatch(err error) bool {
 }
 
 type CAKeyPair struct {
-	PrivateKey []byte // PEM-encoded private key
-	PublicKey  []byte // PEM-encoded public key
+	PrivateKey []byte // OpenSSH private key
+	PublicKey  []byte // OpenSSH public key line, as in authorized_keys
 	Algorithm  string // e.g., "ed25519"
 	CreatedAt  string
 }
@@ -329,21 +329,18 @@ func generateEd25519CAKey() (*CAKeyPair, error) {
 		return nil, fmt.Errorf("generating ed25519 key: %w", err)
 	}
 
-	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	privBlock, err := ssh.MarshalPrivateKey(priv, "")
 	if err != nil {
 		return nil, fmt.Errorf("marshaling private key: %w", err)
 	}
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
-
-	pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+	sshPub, err := ssh.NewPublicKey(pub)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling public key: %w", err)
 	}
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
 
 	return &CAKeyPair{
-		PrivateKey: privPEM,
-		PublicKey:  pubPEM,
+		PrivateKey: pem.EncodeToMemory(privBlock),
+		PublicKey:  ssh.MarshalAuthorizedKey(sshPub),
 		Algorithm:  "ed25519",
 		CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 	}, nil

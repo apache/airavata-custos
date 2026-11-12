@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"strings"
 
+	"golang.org/x/crypto/ssh"
+
 	"github.com/apache/airavata-custos/signer/internal/cert"
 	vaultpkg "github.com/apache/airavata-custos/signer/internal/vault"
 )
@@ -51,23 +53,21 @@ func (h *CAPublicKeyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opensshKey, err := cert.PEMToOpenSSH(currentKey.PublicKey)
+	caPublicKey, err := cert.ParseCAPublicKey(currentKey.PublicKey)
 	if err != nil {
-		h.logger.Error("failed to convert CA key to OpenSSH format", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to convert CA key")
+		h.logger.Error("failed to parse CA public key", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to read CA key")
 		return
 	}
+	opensshKey := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(caPublicKey)))
 
 	// If the client accepts JSON, return structured response
 	accept := r.Header.Get("Accept")
 	if strings.Contains(accept, "application/json") {
-		fingerprint, _ := cert.CAFingerprint(currentKey.PublicKey)
-		algorithm := cert.NormalizeKeyType(strings.SplitN(opensshKey, " ", 2)[0])
-
 		resp := CAPublicKeyJSONResponse{
 			PublicKey:   opensshKey,
-			Fingerprint: fingerprint,
-			Algorithm:   algorithm,
+			Fingerprint: ssh.FingerprintSHA256(caPublicKey),
+			Algorithm:   cert.NormalizeKeyType(caPublicKey.Type()),
 		}
 
 		w.Header().Set("Content-Type", "application/json")
