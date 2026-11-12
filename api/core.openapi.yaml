@@ -4449,6 +4449,34 @@ paths:
       summary: Check a login name for onboarding
       tags:
       - Onboarding
+  /me/privileges:
+    get:
+      description: Effective set is direct grants UNION every privilege carried by
+        every role the caller holds.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Effective privilege set
+          schema:
+            properties:
+              privileges:
+                items:
+                  $ref: '#/definitions/PrivilegeKey'
+                type: array
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get caller's effective privileges
+      tags:
+      - Caller
   /organizations:
     get:
       parameters:
@@ -5805,34 +5833,6 @@ paths:
       summary: Get a user identity by source and external ID
       tags:
       - User Identities
-  /user/privileges:
-    get:
-      description: Effective set is direct grants UNION every privilege carried by
-        every role the caller holds.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Effective privilege set
-          schema:
-            properties:
-              privileges:
-                items:
-                  $ref: '#/definitions/PrivilegeKey'
-                type: array
-            type: object
-        "401":
-          description: Missing authenticated caller
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get caller's effective privileges
-      tags:
-      - Caller
   /users:
     get:
       parameters:

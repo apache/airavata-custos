@@ -34,7 +34,7 @@ import (
 // @Produce	json
 // @Success	200	{object}	object{privileges=[]models.PrivilegeKey}	"Effective privilege set"
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
-// @Router	/user/privileges [get]
+// @Router	/me/privileges [get]
 func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 	if common.RequireCaller(w, r) == nil {
 		return

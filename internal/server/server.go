@@ -166,7 +166,7 @@ func (s *Server) routes() {
 
 	// A caller reads their own profile; no privilege needed.
 	// These stay reachable before the caller has onboarded or consented.
-	s.router.RequireAuthWithoutUserConsent("GET /user/privileges", s.getCallerPrivileges)
+	s.router.RequireAuthWithoutUserConsent("GET /me/privileges", s.getCallerPrivileges)
 	s.router.RequireAuthWithoutUserConsent("GET /me", s.getCallerProfile)
 	s.router.RequireAuthWithoutUserConsent("GET /me/agreements/pending", s.listCallerPendingAgreements)
 	s.router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", s.acceptCallerAgreement)
