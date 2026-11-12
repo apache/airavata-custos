@@ -17,6 +17,7 @@
 package cert
 
 import (
+	"bytes"
 	"encoding/pem"
 	"fmt"
 	"strings"
@@ -79,6 +80,22 @@ func ParseCAPublicKey(data []byte) (ssh.PublicKey, error) {
 		return nil, fmt.Errorf("CA key must be ed25519, got %s", pub.Type())
 	}
 	return pub, nil
+}
+
+// CheckCAKeysMatch returns an error unless publicKey belongs to privateKey.
+func CheckCAKeysMatch(privateKey, publicKey []byte) error {
+	signer, err := ParseCAPrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+	pub, err := ParseCAPublicKey(publicKey)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(signer.PublicKey().Marshal(), pub.Marshal()) {
+		return fmt.Errorf("CA public key does not match the private key")
+	}
+	return nil
 }
 
 func CAFingerprint(publicKey []byte) (string, error) {

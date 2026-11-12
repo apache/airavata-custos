@@ -164,3 +164,19 @@ func TestParseCAPublicKey_NeedsEd25519Line(t *testing.T) {
 		t.Error("rsa line: accepted")
 	}
 }
+
+// Make sure the stored CA public key must belong to the private key.
+func TestCheckCAKeysMatch(t *testing.T) {
+	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
+	sshPub, _ := ssh.NewPublicKey(pub)
+	otherPub, _, _ := ed25519.GenerateKey(rand.Reader)
+	otherSSHPub, _ := ssh.NewPublicKey(otherPub)
+	privateKey := openSSHPrivateKey(t, priv)
+
+	if err := CheckCAKeysMatch(privateKey, ssh.MarshalAuthorizedKey(sshPub)); err != nil {
+		t.Errorf("matching keys: %v", err)
+	}
+	if err := CheckCAKeysMatch(privateKey, ssh.MarshalAuthorizedKey(otherSSHPub)); err == nil {
+		t.Error("keys of different CAs: accepted")
+	}
+}

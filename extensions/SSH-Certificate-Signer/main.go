@@ -216,6 +216,9 @@ func loadCA(ctx context.Context, vaultClient *vault.Client, createIfMissing bool
 	if err != nil {
 		return "", err
 	}
+	if err := cert.CheckCAKeysMatch(kp.PrivateKey, kp.PublicKey); err != nil {
+		return "", err
+	}
 	return cert.CAFingerprint(kp.PublicKey)
 }
 
