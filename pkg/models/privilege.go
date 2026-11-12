@@ -90,7 +90,7 @@ func Register(keys ...PrivilegeKey) {
 }
 
 // AllowForApps registers privileges that can be given to an app.
-// Never use it for privileges that manage users, roles, privileges, or apps.
+// Never use it for privileges that manage user access, roles, privileges, or apps.
 func AllowForApps(keys ...PrivilegeKey) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
