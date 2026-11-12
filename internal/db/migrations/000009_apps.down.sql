@@ -15,5 +15,6 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
+DROP TABLE IF EXISTS app_grants;
 DROP TABLE IF EXISTS app_privileges;
 DROP TABLE IF EXISTS apps;

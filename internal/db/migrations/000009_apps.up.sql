@@ -43,3 +43,14 @@ CREATE TABLE IF NOT EXISTS app_privileges
     PRIMARY KEY (app_id, privilege),
     CONSTRAINT fk_app_privileges_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT
 );
+
+-- A row means the user has allowed the app. Removing it is recorded in audit_events.
+CREATE TABLE IF NOT EXISTS app_grants
+(
+    app_id     VARCHAR(255)   NOT NULL,
+    user_id    VARCHAR(255)   NOT NULL,
+    granted_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (app_id, user_id),
+    CONSTRAINT fk_app_grants_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_app_grants_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT
+);
