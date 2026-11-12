@@ -35,12 +35,11 @@ type Caller struct {
 	Email             string
 	NeedsOnboarding   bool
 	ConsentPending    bool
-	ServiceAccountID  string
 	ServiceAccountKey string
 }
 
 // IsServiceAccount reports whether a service account made the call.
-func (c *Caller) IsServiceAccount() bool { return c.ServiceAccountID != "" }
+func (c *Caller) IsServiceAccount() bool { return c.ServiceAccountKey != "" }
 
 // Requester is who made the call service account or a user.
 func (c *Caller) Requester() string {

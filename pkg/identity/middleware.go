@@ -105,7 +105,7 @@ func ServiceAccountMiddleware(accounts ServiceAccountResolver, next, nonServiceA
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
-		ctx := WithCaller(req.Context(), &Caller{ServiceAccountID: account.ID, ServiceAccountKey: account.Key})
+		ctx := WithCaller(req.Context(), &Caller{ServiceAccountKey: account.Key})
 		next.ServeHTTP(w, req.WithContext(withPrivileges(ctx, account.Privileges)))
 	})
 }

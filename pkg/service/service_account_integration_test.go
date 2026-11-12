@@ -250,7 +250,7 @@ func TestServiceAccount_AuditRecordsTheAccount(t *testing.T) {
 	adminID := seedServiceAccountAdmin(t, database)
 	account, _ := newTestServiceAccount(t, svc, adminID)
 
-	viaAccount := identity.WithCaller(ctx(), &identity.Caller{ServiceAccountID: account.ID, ServiceAccountKey: "gateway"})
+	viaAccount := identity.WithCaller(ctx(), &identity.Caller{ServiceAccountKey: "gateway"})
 	if _, err := svc.DisableServiceAccount(viaAccount, account.ID, adminID); err != nil {
 		t.Fatal(err)
 	}
