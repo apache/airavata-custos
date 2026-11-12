@@ -126,15 +126,16 @@ configuration.
 
 Inbound authentication is an OIDC bearer JWT. `pkg/identity/verifier.go` checks its signature, `iss` and `aud`.
 `iss` and `aud` must match `core.auth.oidc.{issuer,audience}`. The resolved caller is cached for `core.auth.cache_ttl`
-([CONFIG.md](../CONFIG.md#core-keys)).
+([CONFIG.md](../CONFIG.md#core-keys)). Apps authenticate differently, see [Apps](#apps).
 
-Routes register through one of five router methods:
+Routes register through one of six router methods:
 
 | Method                                      | Who gets through                                                       | Example                                     |
 |---------------------------------------------|------------------------------------------------------------------------|---------------------------------------------|
 | `Public(pattern, h)`                        | Anyone; the token is not checked                                       | `GET /healthz`                              |
 | `RequireAuthWithoutUserConsent(pattern, h)` | A verified caller, before onboarding or accepting the user agreement   | `GET /me`, `POST /me/onboarding`            |
 | `RequireAuth(pattern, h)`                   | A verified caller who has onboarded and accepted the current agreement | `GET /projects`, `GET /compute-allocations` |
+| `RequireAuthUsersOnly(pattern, h)`          | Like `RequireAuth`, but never an app                                   | `POST /me/app-authorizations/{appId}`       |
 | `RequireScoped(pattern, authorize, h)`      | A verified caller whom `authorize` admits for that resource            | `GET /compute-allocations/{id}`             |
 | `RequirePrivilege(pattern, key, h)`         | A verified caller who holds `key`                                      | `POST /compute-clusters`                    |
 
@@ -154,6 +155,46 @@ The middleware answers authentication failures with `{"code": ..., "message": ..
 | `403`  | `consent_required`       | A newer user agreement waits for acceptance        |
 | `403`  | `insufficient_privilege` | The route's privilege is missing                   |
 | `503`  | `auth_lookup_failed`     | Caller resolution failed                           |
+
+### Apps
+
+An app is a tool a super admin registers at `/apps` (`core:apps:manage`). It calls with
+`Authorization: Bearer cak_<key>.<secret>`, and `identity.AppMiddleware` handles those calls before the user path.
+Each app has a fixed mode:
+
+- **Service.** The app acts as itself, with the privileges the admin gave it.
+- **Delegated.** The app acts for a user who allowed it. Every call also sends the user's id token in
+  `X-User-Token`. The token must be issued to `core.auth.oidc.apps_audience`, our public client for apps, which must
+  differ from the portal's `audience`. The user must have signed in to the portal once, be active and have accepted
+  the agreement. The call then runs as that user with only the privileges both the app and the user hold.
+
+Only keys registered with `models.AllowForApps(...)` can be given to an app. Leaving `apps_audience` empty turns off
+delegated apps.
+
+| Method                          | Service app              | Delegated app                   |
+|---------------------------------|--------------------------|---------------------------------|
+| `Public`                        | Yes                      | Yes                             |
+| `RequireAuthWithoutUserConsent` | No                       | `GET` routes only, as the user  |
+| `RequireAuth`, `RequireScoped`  | No                       | Yes, as the user                |
+| `RequireAuthUsersOnly`          | No                       | No                              |
+| `RequirePrivilege`              | If the app holds the key | If the app and the user hold it |
+
+Extra codes on app calls:
+
+| Status | `code`                   | Cause                                            |
+|--------|--------------------------|--------------------------------------------------|
+| `401`  | `invalid_token`          | Unknown app or wrong secret                      |
+| `403`  | `app_disabled`           | The app is disabled                              |
+| `403`  | `user_token_not_allowed` | A service app sent `X-User-Token`                |
+| `401`  | `user_token_required`    | A delegated app sent no `X-User-Token`           |
+| `401`  | `invalid_user_token`     | The user token is expired or from another client |
+| `403`  | `user_not_signed_in`     | The user has never signed in to the portal       |
+| `403`  | `app_not_authorized`     | The user has not allowed the app                 |
+| `403`  | `app_needs_user`         | A service app called a route without a privilege |
+| `403`  | `app_not_allowed`        | The route is for the user only                   |
+
+Who made a call is `Caller.Requester()`: `app/<key>` when an app called, otherwise `user/<id>`. Audit rows written
+during an app's call also carry `app_key`.
 
 ### Privileges
 
