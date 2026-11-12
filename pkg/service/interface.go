@@ -112,6 +112,13 @@ type ComputeClusterUserService interface {
 	DeleteComputeClusterUser(ctx context.Context, id string) error
 }
 
+// StorageService exposes what a storage connector calls on core.
+type StorageService interface {
+	RecordStorageUsage(ctx context.Context, clusterID string, paths []string, used []int64) error
+	EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error)
+	ListStorages(ctx context.Context, clusterID string, limit, offset int) ([]models.Storage, int, error)
+}
+
 // ComputeAllocationService exposes compute-allocation CRUD.
 type ComputeAllocationService interface {
 	CreateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) (*models.ComputeAllocation, error)
@@ -304,6 +311,7 @@ type CoreService interface {
 	ProjectService
 	ComputeClusterService
 	ComputeClusterUserService
+	StorageService
 	ComputeAllocationService
 	ComputeAllocationResourceService
 	ComputeAllocationResourceMappingService

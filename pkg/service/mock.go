@@ -172,6 +172,9 @@ var _ CoreService = &CoreServiceMock{}
 //			EnsureProjectMembershipFunc: func(ctx context.Context, projectID string, userID string, role string) error {
 //				panic("mock out the EnsureProjectMembership method")
 //			},
+//			EnsureStoragesFunc: func(ctx context.Context, clusterID string) ([]models.Storage, error) {
+//				panic("mock out the EnsureStorages method")
+//			},
 //			GetAuditEventFunc: func(ctx context.Context, id string) (*models.AuditEvent, error) {
 //				panic("mock out the GetAuditEvent method")
 //			},
@@ -391,6 +394,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ListServiceAccountsFunc: func(ctx context.Context) ([]models.ServiceAccount, error) {
 //				panic("mock out the ListServiceAccounts method")
 //			},
+//			ListStoragesFunc: func(ctx context.Context, clusterID string, limit int, offset int) ([]models.Storage, int, error) {
+//				panic("mock out the ListStorages method")
+//			},
 //			ListUsagesByUserFunc: func(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error) {
 //				panic("mock out the ListUsagesByUser method")
 //			},
@@ -432,6 +438,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			PublishUserAgreementFunc: func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error) {
 //				panic("mock out the PublishUserAgreement method")
+//			},
+//			RecordStorageUsageFunc: func(ctx context.Context, clusterID string, paths []string, used []int64) error {
+//				panic("mock out the RecordStorageUsage method")
 //			},
 //			RemovePrivilegeFromRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the RemovePrivilegeFromRole method")
@@ -671,6 +680,9 @@ type CoreServiceMock struct {
 	// EnsureProjectMembershipFunc mocks the EnsureProjectMembership method.
 	EnsureProjectMembershipFunc func(ctx context.Context, projectID string, userID string, role string) error
 
+	// EnsureStoragesFunc mocks the EnsureStorages method.
+	EnsureStoragesFunc func(ctx context.Context, clusterID string) ([]models.Storage, error)
+
 	// GetAuditEventFunc mocks the GetAuditEvent method.
 	GetAuditEventFunc func(ctx context.Context, id string) (*models.AuditEvent, error)
 
@@ -890,6 +902,9 @@ type CoreServiceMock struct {
 	// ListServiceAccountsFunc mocks the ListServiceAccounts method.
 	ListServiceAccountsFunc func(ctx context.Context) ([]models.ServiceAccount, error)
 
+	// ListStoragesFunc mocks the ListStorages method.
+	ListStoragesFunc func(ctx context.Context, clusterID string, limit int, offset int) ([]models.Storage, int, error)
+
 	// ListUsagesByUserFunc mocks the ListUsagesByUser method.
 	ListUsagesByUserFunc func(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
 
@@ -931,6 +946,9 @@ type CoreServiceMock struct {
 
 	// PublishUserAgreementFunc mocks the PublishUserAgreement method.
 	PublishUserAgreementFunc func(ctx context.Context, id string, actorID string) (*models.UserAgreement, error)
+
+	// RecordStorageUsageFunc mocks the RecordStorageUsage method.
+	RecordStorageUsageFunc func(ctx context.Context, clusterID string, paths []string, used []int64) error
 
 	// RemovePrivilegeFromRoleFunc mocks the RemovePrivilegeFromRole method.
 	RemovePrivilegeFromRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
@@ -1414,6 +1432,13 @@ type CoreServiceMock struct {
 			UserID string
 			// Role is the role argument value.
 			Role string
+		}
+		// EnsureStorages holds details about calls to the EnsureStorages method.
+		EnsureStorages []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
 		}
 		// GetAuditEvent holds details about calls to the GetAuditEvent method.
 		GetAuditEvent []struct {
@@ -1952,6 +1977,17 @@ type CoreServiceMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 		}
+		// ListStorages holds details about calls to the ListStorages method.
+		ListStorages []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
+			// Limit is the limit argument value.
+			Limit int
+			// Offset is the offset argument value.
+			Offset int
+		}
 		// ListUsagesByUser holds details about calls to the ListUsagesByUser method.
 		ListUsagesByUser []struct {
 			// Ctx is the ctx argument value.
@@ -2055,6 +2091,17 @@ type CoreServiceMock struct {
 			ID string
 			// ActorID is the actorID argument value.
 			ActorID string
+		}
+		// RecordStorageUsage holds details about calls to the RecordStorageUsage method.
+		RecordStorageUsage []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
+			// Paths is the paths argument value.
+			Paths []string
+			// Used is the used argument value.
+			Used []int64
 		}
 		// RemovePrivilegeFromRole holds details about calls to the RemovePrivilegeFromRole method.
 		RemovePrivilegeFromRole []struct {
@@ -2344,6 +2391,7 @@ type CoreServiceMock struct {
 	lockEffectivePrivileges                                    sync.RWMutex
 	lockEnableServiceAccount                                   sync.RWMutex
 	lockEnsureProjectMembership                                sync.RWMutex
+	lockEnsureStorages                                         sync.RWMutex
 	lockGetAuditEvent                                          sync.RWMutex
 	lockGetComputeAllocation                                   sync.RWMutex
 	lockGetComputeAllocationChangeRequest                      sync.RWMutex
@@ -2417,6 +2465,7 @@ type CoreServiceMock struct {
 	lockListRolePrivileges                                     sync.RWMutex
 	lockListRoles                                              sync.RWMutex
 	lockListServiceAccounts                                    sync.RWMutex
+	lockListStorages                                           sync.RWMutex
 	lockListUsagesByUser                                       sync.RWMutex
 	lockListUsagesForAllocation                                sync.RWMutex
 	lockListUserAgreementAcceptances                           sync.RWMutex
@@ -2431,6 +2480,7 @@ type CoreServiceMock struct {
 	lockPendingUserAgreements                                  sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
 	lockPublishUserAgreement                                   sync.RWMutex
+	lockRecordStorageUsage                                     sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
 	lockRemoveUserAgreement                                    sync.RWMutex
 	lockResolveServiceAccount                                  sync.RWMutex
@@ -4357,6 +4407,42 @@ func (mock *CoreServiceMock) EnsureProjectMembershipCalls() []struct {
 	mock.lockEnsureProjectMembership.RLock()
 	calls = mock.calls.EnsureProjectMembership
 	mock.lockEnsureProjectMembership.RUnlock()
+	return calls
+}
+
+// EnsureStorages calls EnsureStoragesFunc.
+func (mock *CoreServiceMock) EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error) {
+	if mock.EnsureStoragesFunc == nil {
+		panic("CoreServiceMock.EnsureStoragesFunc: method is nil but CoreService.EnsureStorages was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+	}
+	mock.lockEnsureStorages.Lock()
+	mock.calls.EnsureStorages = append(mock.calls.EnsureStorages, callInfo)
+	mock.lockEnsureStorages.Unlock()
+	return mock.EnsureStoragesFunc(ctx, clusterID)
+}
+
+// EnsureStoragesCalls gets all the calls that were made to EnsureStorages.
+// Check the length with:
+//
+//	len(mockedCoreService.EnsureStoragesCalls())
+func (mock *CoreServiceMock) EnsureStoragesCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+	}
+	mock.lockEnsureStorages.RLock()
+	calls = mock.calls.EnsureStorages
+	mock.lockEnsureStorages.RUnlock()
 	return calls
 }
 
@@ -7040,6 +7126,50 @@ func (mock *CoreServiceMock) ListServiceAccountsCalls() []struct {
 	return calls
 }
 
+// ListStorages calls ListStoragesFunc.
+func (mock *CoreServiceMock) ListStorages(ctx context.Context, clusterID string, limit int, offset int) ([]models.Storage, int, error) {
+	if mock.ListStoragesFunc == nil {
+		panic("CoreServiceMock.ListStoragesFunc: method is nil but CoreService.ListStorages was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+		Limit     int
+		Offset    int
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+		Limit:     limit,
+		Offset:    offset,
+	}
+	mock.lockListStorages.Lock()
+	mock.calls.ListStorages = append(mock.calls.ListStorages, callInfo)
+	mock.lockListStorages.Unlock()
+	return mock.ListStoragesFunc(ctx, clusterID, limit, offset)
+}
+
+// ListStoragesCalls gets all the calls that were made to ListStorages.
+// Check the length with:
+//
+//	len(mockedCoreService.ListStoragesCalls())
+func (mock *CoreServiceMock) ListStoragesCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+	Limit     int
+	Offset    int
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+		Limit     int
+		Offset    int
+	}
+	mock.lockListStorages.RLock()
+	calls = mock.calls.ListStorages
+	mock.lockListStorages.RUnlock()
+	return calls
+}
+
 // ListUsagesByUser calls ListUsagesByUserFunc.
 func (mock *CoreServiceMock) ListUsagesByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error) {
 	if mock.ListUsagesByUserFunc == nil {
@@ -7552,6 +7682,50 @@ func (mock *CoreServiceMock) PublishUserAgreementCalls() []struct {
 	mock.lockPublishUserAgreement.RLock()
 	calls = mock.calls.PublishUserAgreement
 	mock.lockPublishUserAgreement.RUnlock()
+	return calls
+}
+
+// RecordStorageUsage calls RecordStorageUsageFunc.
+func (mock *CoreServiceMock) RecordStorageUsage(ctx context.Context, clusterID string, paths []string, used []int64) error {
+	if mock.RecordStorageUsageFunc == nil {
+		panic("CoreServiceMock.RecordStorageUsageFunc: method is nil but CoreService.RecordStorageUsage was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+		Paths     []string
+		Used      []int64
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+		Paths:     paths,
+		Used:      used,
+	}
+	mock.lockRecordStorageUsage.Lock()
+	mock.calls.RecordStorageUsage = append(mock.calls.RecordStorageUsage, callInfo)
+	mock.lockRecordStorageUsage.Unlock()
+	return mock.RecordStorageUsageFunc(ctx, clusterID, paths, used)
+}
+
+// RecordStorageUsageCalls gets all the calls that were made to RecordStorageUsage.
+// Check the length with:
+//
+//	len(mockedCoreService.RecordStorageUsageCalls())
+func (mock *CoreServiceMock) RecordStorageUsageCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+	Paths     []string
+	Used      []int64
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+		Paths     []string
+		Used      []int64
+	}
+	mock.lockRecordStorageUsage.RLock()
+	calls = mock.calls.RecordStorageUsage
+	mock.lockRecordStorageUsage.RUnlock()
 	return calls
 }
 

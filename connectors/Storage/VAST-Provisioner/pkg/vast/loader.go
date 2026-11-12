@@ -23,8 +23,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,12 +30,11 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
-	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/folders"
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
-	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -45,35 +42,38 @@ import (
 const Type = "vast-storage-provisioner"
 
 func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
-	if err := db.MigrateConnectorFS(database, folders.Migrations, "migrations", "vast"); err != nil {
-		return err
+	if _, err := database.ExecContext(ctx, pullFolders); err != nil {
+		return fmt.Errorf("vast provisioner: pull vast_folders into storages: %w", err)
 	}
 	entries, _ := connectorConfig.Config["clusters"].([]interface{})
 	clusters := map[string]subscribers.Cluster{}
-	registry := folders.New(database, func(clusterID string) (folders.VMS, error) {
-		c, ok := clusters[clusterID]
-		if !ok {
-			return nil, fmt.Errorf("vast provisioner: cluster %q is not configured", clusterID)
-		}
-		return c.VMS, nil
-	}, coreService)
 	for _, e := range entries {
 		cluster, _ := e.(map[string]interface{})
 		vms, _ := cluster["vast"].(map[string]interface{})
 		vmsURL, username, password := setting(vms, "url"), setting(vms, "username"), setting(vms, "password")
 		tenantID, _ := vms["tenant_id"].(int)
 		clusterID := setting(cluster, "id")
-		targets, _ := cluster["targets"].([]interface{})
-		if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" || len(targets) == 0 {
-			return fmt.Errorf("vast provisioner: cluster %q needs id, vast.url, vast.username, vast.password, vast.tenant_id and targets", clusterID)
+		if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" {
+			return fmt.Errorf("vast provisioner: cluster %q needs id, vast.url, vast.username, vast.password and vast.tenant_id", clusterID)
 		}
-		mounts, err := parseMounts(targets)
-		if err != nil {
-			return err
+		if cluster["targets"] != nil {
+			return fmt.Errorf("vast provisioner: cluster %s: targets moved to core; create them with POST /storage-policies", clusterID)
 		}
-		c := subscribers.Cluster{ID: clusterID, VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts, Folders: registry}
+		listed, _ := vms["storages"].([]interface{})
+		views := map[models.StorageType]bool{}
+		for _, e := range listed {
+			entry, _ := e.(map[string]interface{})
+			t := models.StorageType(setting(entry, "type"))
+			if _, _, ok := t.Takes(); !ok {
+				return fmt.Errorf("vast provisioner: cluster %s: vast.storages: %q is not a storage type", clusterID, t)
+			}
+			if view, _ := entry["view"].(bool); view {
+				views[t] = true
+			}
+		}
+		c := subscribers.Cluster{VMS: client.New(vmsURL, username, password, tenantID), Views: views}
 		// Verify that view policy is set otherwise stop the startup instead of failing every create request.
-		if slices.ContainsFunc(mounts, func(m subscribers.Mount) bool { return m.View }) {
+		if len(views) > 0 {
 			policy := setting(vms, "view_policy")
 			for p := range strings.SplitSeq(setting(vms, "view_protocols"), ",") {
 				if p = strings.TrimSpace(p); p != "" {
@@ -81,8 +81,9 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 				}
 			}
 			if policy == "" || len(c.ViewProtocols) == 0 {
-				return fmt.Errorf("vast provisioner: cluster %s has view targets, so vast.view_policy and vast.view_protocols are required", clusterID)
+				return fmt.Errorf("vast provisioner: cluster %s has a vast.storages view, so vast.view_policy and vast.view_protocols are required", clusterID)
 			}
+			var err error
 			if c.ViewPolicyID, err = c.VMS.ViewPolicyID(ctx, policy); err != nil {
 				return fmt.Errorf("vast provisioner: cluster %s: %w", clusterID, err)
 			}
@@ -101,7 +102,6 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 		}
 		interval = d
 	}
-	registry.RegisterRoutes(router)
 	subscriber := subscribers.NewStorageSubscriber(eventBus, coreService, clusters)
 	subscriber.RegisterSubscribers(Type)
 	wg.Add(1)
@@ -117,20 +117,20 @@ func setting(m map[string]interface{}, key string) string {
 	return s
 }
 
-func parseMounts(storage []interface{}) ([]subscribers.Mount, error) {
-	var mounts []subscribers.Mount
-	for i, e := range storage {
-		m, _ := e.(map[string]interface{})
-		str := func(k string) string { v, _ := m[k].(string); return v }
-		hardLimit, _ := m["hard_limit_size"].(int)
-		hardLimitInodes, _ := m["hard_limit_inodes"].(int)
-		view, _ := m["view"].(bool)
-		mode, err := strconv.ParseInt(str("mode"), 8, 32)
-		if err != nil {
-			return nil, fmt.Errorf("vast provisioner: targets[%d].mode must be octal, such as \"0700\": %w", i, err)
-		}
-		mounts = append(mounts, subscribers.Mount{Path: str("path"), Owner: str("owner"), Group: str("group"),
-			Mode: int(mode), HardLimit: int64(hardLimit), HardLimitInodes: int64(hardLimitInodes), View: view})
-	}
-	return mounts, nil
-}
+// pullFolders moves the folders this connector tracked before storages moved to core, once.
+const pullFolders = `DO $$ BEGIN
+PERFORM pg_advisory_xact_lock(hashtext('vast_folders'));
+IF to_regclass('vast_folders') IS NOT NULL THEN
+	INSERT INTO storages (id, compute_cluster_id, type, path, username, allocation_id, allocation_name, start_time, end_time,
+		owner, "group", mode, quota_bytes, quota_until, status)
+	SELECT id, compute_cluster_id,
+		CASE WHEN owner_kind = 'allocation' AND path LIKE '%/shared' THEN 'project_shared'
+			WHEN owner_kind = 'allocation' THEN 'project' WHEN allocation_id IS NULL THEN 'user' ELSE 'project_user' END,
+		path, CASE owner_kind WHEN 'cluster_user' THEN owner_name ELSE '' END, allocation_id,
+		allocation_name, start_time, end_time, split_part(unix_owner, ':', 1), split_part(unix_owner, ':', 2), '',
+		COALESCE(quota_override, 0), quota_until, status
+	FROM vast_folders WHERE compute_cluster_id IN (SELECT id FROM compute_clusters)
+	ON CONFLICT (compute_cluster_id, path) DO NOTHING;
+	DROP TABLE IF EXISTS vast_folders, schema_migrations_vast;
+END IF;
+END $$`

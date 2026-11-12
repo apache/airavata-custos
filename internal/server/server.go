@@ -89,6 +89,15 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /compute-clusters/{id}/users/{userId}", models.ClustersRead, s.getComputeClusterUserByPair)
 	s.router.RequirePrivilege("GET /users/{id}/compute-cluster-users", models.ClustersRead, s.listComputeClusterUsersByUser)
 
+	s.router.RequirePrivilege("GET /storages", models.StoragesRead, s.listStorages)
+	s.router.RequirePrivilege("POST /storages", models.StoragesManage, s.createStorage)
+	s.router.RequirePrivilege("PUT /storages/{id}", models.StoragesManage, s.updateStorage)
+	s.router.RequirePrivilege("DELETE /storages/{id}", models.StoragesManage, s.deleteStorage)
+	s.router.RequirePrivilege("GET /storage-policies", models.StoragePoliciesRead, s.listStoragePolicies)
+	s.router.RequirePrivilege("POST /storage-policies", models.StoragePoliciesManage, s.createStoragePolicy)
+	s.router.RequirePrivilege("PUT /storage-policies/{id}", models.StoragePoliciesManage, s.updateStoragePolicy)
+	s.router.RequirePrivilege("DELETE /storage-policies/{id}", models.StoragePoliciesManage, s.deleteStoragePolicy)
+
 	s.router.RequireAuth("GET /compute-allocations", s.listComputeAllocations)
 	s.router.RequirePrivilege("POST /compute-allocations", models.AllocationsWrite, s.createComputeAllocation)
 	s.router.RequireScoped("GET /compute-allocations/{id}", s.canReadAllocation, s.getComputeAllocation)

@@ -52,6 +52,10 @@ const PRIVILEGES: Record<Persona, string[]> = {
   admin: [
     "core:clusters:read",
     "core:clusters:write",
+    "core:storages:read",
+    "core:storages:manage",
+    "core:storage-policies:read",
+    "core:storage-policies:manage",
     "core:allocations:read",
     "core:allocations:write",
     "core:projects:read",

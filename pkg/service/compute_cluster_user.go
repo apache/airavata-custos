@@ -370,6 +370,9 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 			cu.ProvisionedAt = &now
 		}
 		if firstTime {
+			if _, err := s.ensureStorages(ctx, tx, store.StorageOwners{ClusterID: cu.ComputeClusterID, UserID: cu.UserID}); err != nil {
+				return err
+			}
 			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserProvisionEvent, cu)
 		}
 		return nil
@@ -395,9 +398,16 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu)
+		return s.retireAccount(ctx, tx, cu)
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster user: %w", err)
 	}
 	return nil
+}
+
+func (s *Service) retireAccount(ctx context.Context, tx *sql.Tx, cu *models.ComputeClusterUser) error {
+	if err := s.storages.MarkForDeletion(ctx, tx, cu.ComputeClusterID, cu.LocalUsername, ""); err != nil {
+		return err
+	}
+	return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu)
 }

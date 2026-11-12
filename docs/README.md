@@ -24,6 +24,7 @@
 | [architecture.md](architecture.md) | Need the repository layout, the runtime, the request path, and the event and audit conventions |
 | [contributing/writing-a-connector.md](contributing/writing-a-connector.md) | Connect Custos to a new external system |
 | [privileges.md](privileges.md) | Grant access, define a role or add a route |
+| [storage.md](storage.md) | Work on storage policies, storages or a storage connector |
 | [Allocation-Data-Models.md](Allocation-Data-Models.md) | Work on projects, allocations, rates, usage or memberships |
 | [API-Docs.md](API-Docs.md) | Write a client of the REST API |
 | [ACCESS-HPC-Reference.md](ACCESS-HPC-Reference.md) | Plan a deployment for an ACCESS-CI resource provider |

@@ -70,6 +70,9 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Create(ctx, tx, m); err != nil {
 			return err
 		}
+		if _, err := s.ensureStorages(ctx, tx, store.StorageOwners{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipCreateEvent, m)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation membership: %w", err)
@@ -163,6 +166,9 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Update(ctx, tx, m); err != nil {
 			return err
 		}
+		if _, err := s.ensureStorages(ctx, tx, store.StorageOwners{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, m)
 	}); err != nil {
 		return nil, fmt.Errorf("update compute allocation membership: %w", err)
@@ -197,6 +203,9 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 	existing.MembershipStatus = status
 	if err := func() error {
 		if err := s.memberships.Update(ctx, tx, existing); err != nil {
+			return err
+		}
+		if _, err := s.ensureStorages(ctx, tx, store.StorageOwners{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, existing)

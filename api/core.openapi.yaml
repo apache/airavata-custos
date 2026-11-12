@@ -643,6 +643,10 @@ definitions:
     enum:
     - core:clusters:read
     - core:clusters:write
+    - core:storages:read
+    - core:storages:manage
+    - core:storage-policies:read
+    - core:storage-policies:manage
     - core:allocations:read
     - core:allocations:write
     - core:projects:read
@@ -662,6 +666,10 @@ definitions:
     x-enum-varnames:
     - ClustersRead
     - ClustersWrite
+    - StoragesRead
+    - StoragesManage
+    - StoragePoliciesRead
+    - StoragePoliciesManage
     - AllocationsRead
     - AllocationsWrite
     - ProjectsRead
@@ -839,6 +847,84 @@ definitions:
       name:
         type: string
     type: object
+  Storage:
+    properties:
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      cluster_id:
+        type: string
+      end_time:
+        type: string
+      group:
+        type: string
+      id:
+        type: string
+      inherited:
+        description: It counts against the quota of a storage above it.
+        type: boolean
+      mode:
+        type: string
+      owner:
+        type: string
+      path:
+        type: string
+      policy_id:
+        description: The storage policy it was last made from; nil once that is deleted.
+        type: string
+      quota_bytes:
+        type: integer
+      quota_inodes:
+        type: integer
+      quota_until:
+        description: Set while an administrator's quota stands in for the policy's.
+        type: string
+      start_time:
+        type: string
+      status:
+        type: string
+      type:
+        $ref: '#/definitions/StorageType'
+      used_bytes:
+        type: integer
+      username:
+        type: string
+    type: object
+  StoragePolicy:
+    properties:
+      cluster_id:
+        type: string
+      group:
+        type: string
+      id:
+        type: string
+      mode:
+        description: Octal permission bits, such as "0755"; see ModeBits.
+        type: string
+      owner:
+        type: string
+      path_pattern:
+        type: string
+      quota_bytes:
+        type: integer
+      quota_inodes:
+        type: integer
+      type:
+        $ref: '#/definitions/StorageType'
+    type: object
+  StorageType:
+    enum:
+    - user
+    - project
+    - project_user
+    - project_shared
+    type: string
+    x-enum-varnames:
+    - StorageUser
+    - StorageProject
+    - StorageProjectUser
+    - StorageProjectShared
   Subscription:
     properties:
       created_at:
@@ -1342,6 +1428,15 @@ definitions:
       description:
         type: string
       name:
+        type: string
+    type: object
+  updateStorageRequest:
+    properties:
+      quota_bytes:
+        type: integer
+      quota_until:
+        type: string
+      reason:
         type: string
     type: object
   userAgreementDetail:
@@ -4564,6 +4659,10 @@ paths:
         enum:
         - core:clusters:read
         - core:clusters:write
+        - core:storages:read
+        - core:storages:manage
+        - core:storage-policies:read
+        - core:storage-policies:manage
         - core:allocations:read
         - core:allocations:write
         - core:projects:read
@@ -5223,6 +5322,10 @@ paths:
         enum:
         - core:clusters:read
         - core:clusters:write
+        - core:storages:read
+        - core:storages:manage
+        - core:storage-policies:read
+        - core:storage-policies:manage
         - core:allocations:read
         - core:allocations:write
         - core:projects:read
@@ -5654,6 +5757,258 @@ paths:
       summary: List the privileges a service account may hold
       tags:
       - Service accounts
+  /storage-policies:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: query
+        name: cluster_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/StoragePolicy'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List a compute cluster's storage policies
+      tags:
+      - Storages
+    post:
+      consumes:
+      - application/json
+      description: Says where the cluster's storages of one type go and how they are
+        made.
+      parameters:
+      - description: Storage policy payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/StoragePolicy'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/StoragePolicy'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a storage policy to a compute cluster
+      tags:
+      - Storages
+  /storage-policies/{id}:
+    delete:
+      description: Storages already made from it stay.
+      parameters:
+      - description: Storage policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a storage policy
+      tags:
+      - Storages
+    put:
+      consumes:
+      - application/json
+      description: Its cluster and type stay. A storage takes the change on its next
+        create; a new path_pattern makes new storages.
+      parameters:
+      - description: Storage policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Storage policy payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/StoragePolicy'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/StoragePolicy'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a storage policy
+      tags:
+      - Storages
+  /storages:
+    get:
+      parameters:
+      - description: Only this compute cluster's
+        in: query
+        name: cluster_id
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/Storage'
+                type: array
+              total:
+                type: integer
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search storages (paginated)
+      tags:
+      - Storages
+    post:
+      description: Makes the cluster's storages match its storage policies and owners,
+        as the storage connector's sweep does, and returns those made or changed.
+      parameters:
+      - description: Compute cluster ID; every cluster without one
+        in: query
+        name: cluster_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Storage'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Create a compute cluster's storages
+      tags:
+      - Storages
+  /storages/{id}:
+    delete:
+      description: It goes with the storages under it, once all are pending.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a pending storage
+      tags:
+      - Storages
+    put:
+      consumes:
+      - application/json
+      description: Lasts until a date at most 90 days ahead.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Quota payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateStorageRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set a storage's temporary quota
+      tags:
+      - Storages
   /user-identities:
     post:
       consumes:
@@ -6241,6 +6596,10 @@ paths:
         enum:
         - core:clusters:read
         - core:clusters:write
+        - core:storages:read
+        - core:storages:manage
+        - core:storage-policies:read
+        - core:storage-policies:manage
         - core:allocations:read
         - core:allocations:write
         - core:projects:read
