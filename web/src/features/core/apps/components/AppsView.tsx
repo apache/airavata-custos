@@ -68,11 +68,6 @@ export function AppsView() {
       cell: (app) => <span className="font-mono text-xs">{app.key}</span>,
     },
     {
-      key: "mode",
-      header: "Mode",
-      cell: (app) => (app.mode === "DELEGATED" ? "Delegated" : "Service"),
-    },
-    {
       key: "privileges",
       header: "Privileges",
       cell: (app) =>

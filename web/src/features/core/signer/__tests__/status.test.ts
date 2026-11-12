@@ -19,7 +19,6 @@ import { describe, expect, it } from "vitest";
 import type { Certificate } from "../schemas";
 import {
   formatCertificateLifetime,
-  generatedBy,
   getCertificateStatus,
   statusBadgeVariantFromCertificateStatus,
 } from "../status";
@@ -40,15 +39,6 @@ const base: Certificate = {
 };
 
 const now = new Date(1_700_043_200 * 1000); // midway through the validity window
-
-describe("generatedBy", () => {
-  // Make sure a certificate shows the app's name, and the person's own label when they generated it.
-  it("names the app that asked for the certificate", () => {
-    const fromApp = { ...base, requested_by: "app/notebook-hub" };
-    expect(generatedBy(fromApp, { "notebook-hub": "Notebook Hub" }, "You")).toBe("Notebook Hub");
-    expect(generatedBy(base, { "notebook-hub": "Notebook Hub" }, "You")).toBe("You");
-  });
-});
 
 describe("getCertificateStatus", () => {
   it("returns revoked when revoked, regardless of validity", () => {

@@ -17,29 +17,20 @@
 
 import { z } from "zod";
 import { privilegeKeySchema } from "@/features/core/identity/schemas";
-import {
-  type AppAuthorizationView,
-  type AppMode,
-  zApp,
-  zAppAuthorizationView,
-  zAppWithTokenView,
-} from "@/generated/core/zod.gen";
+import { zApp, zAppWithTokenView } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 
 const privilegesSchema = z.array(privilegeKeySchema).nullable();
 const appSchema = zApp.extend({ privileges: privilegesSchema });
 const appWithTokenSchema = zAppWithTokenView.extend({ privileges: privilegesSchema });
 
-export type { AppMode };
 export type App = z.infer<typeof appSchema>;
 export type AppWithToken = z.infer<typeof appWithTokenSchema>;
-export type AppAuthorization = AppAuthorizationView;
 
 export type NewApp = {
   key: string;
   name: string;
   description: string;
-  mode: AppMode;
   privileges: string[];
 };
 
@@ -76,30 +67,10 @@ export async function enableApp(id: string): Promise<App> {
   return appSchema.parse(await apiFetch(`${appPath(id)}/enable`, { method: "POST" }));
 }
 
-// How many users would lose the app if it were deleted.
-export async function countAppAuthorizations(id: string): Promise<number> {
-  const app = z.object({ authorized_users: z.number().int() }).parse(await apiFetch(appPath(id)));
-  return app.authorized_users;
-}
-
 export async function deleteApp(id: string): Promise<void> {
   await apiFetch(appPath(id), { method: "DELETE" });
 }
 
 export async function issueAppSecret(id: string): Promise<AppWithToken> {
   return appWithTokenSchema.parse(await apiFetch(`${appPath(id)}/secret`, { method: "POST" }));
-}
-
-const authorizationPath = (appId: string) => `/me/app-authorizations/${encodeURIComponent(appId)}`;
-
-export async function listAppAuthorizations(): Promise<AppAuthorization[]> {
-  return z.array(zAppAuthorizationView).parse(await apiFetch("/me/app-authorizations"));
-}
-
-export async function authorizeApp(appId: string): Promise<void> {
-  await apiFetch(authorizationPath(appId), { method: "POST" });
-}
-
-export async function removeAppAuthorization(appId: string): Promise<void> {
-  await apiFetch(authorizationPath(appId), { method: "DELETE" });
 }

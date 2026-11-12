@@ -54,7 +54,7 @@ export function EditAppDialog({ app, onClose }: EditAppDialogProps) {
         <DialogHeader>
           <DialogTitle>Edit {app.name}</DialogTitle>
           <DialogDescription>
-            The app key, mode and privileges cannot be changed. The token keeps working.
+            The app key and privileges cannot be changed. The token keeps working.
           </DialogDescription>
         </DialogHeader>
         <form

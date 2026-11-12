@@ -19,33 +19,20 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  authorizeApp,
-  countAppAuthorizations,
   createApp,
   deleteApp,
   disableApp,
   enableApp,
   issueAppSecret,
-  listAppAuthorizations,
   listAppPrivileges,
   listApps,
-  removeAppAuthorization,
   updateApp,
 } from "./api";
 
 const appKeys = {
   list: ["apps", "list"] as const,
   privileges: ["apps", "privileges"] as const,
-  authorizations: ["apps", "authorizations"] as const,
 };
-
-export function useAppAuthorizations() {
-  return useQuery({ queryKey: appKeys.authorizations, queryFn: listAppAuthorizations });
-}
-
-export const useAuthorizeApp = () => useAppMutation(authorizeApp, appKeys.authorizations);
-export const useRemoveAppAuthorization = () =>
-  useAppMutation(removeAppAuthorization, appKeys.authorizations);
 
 export function useApps() {
   return useQuery({ queryKey: appKeys.list, queryFn: listApps });
@@ -53,14 +40,6 @@ export function useApps() {
 
 export function useAppPrivileges() {
   return useQuery({ queryKey: appKeys.privileges, queryFn: listAppPrivileges });
-}
-
-export function useAppAuthorizationCount(id: string | undefined) {
-  return useQuery({
-    queryKey: ["apps", "authorization-count", id],
-    queryFn: () => countAppAuthorizations(id ?? ""),
-    enabled: id !== undefined,
-  });
 }
 
 function useAppMutation<Input, Output>(

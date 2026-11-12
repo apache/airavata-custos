@@ -16,7 +16,6 @@
 // under the License.
 
 import { z } from "zod";
-import { zAppNameView } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   type Certificate,
@@ -29,11 +28,6 @@ import {
   revokeResponseSchema,
 } from "./schemas";
 import type { CertificateListParams } from "./types";
-
-export async function listAppNames(): Promise<Record<string, string>> {
-  const apps = z.array(zAppNameView).parse(await apiFetch("/apps/names"));
-  return Object.fromEntries(apps.map((app) => [app.key, app.name]));
-}
 
 export async function getUserEmail(id: string): Promise<string> {
   const user = z

@@ -20,30 +20,8 @@ import type { Certificate } from "./schemas";
 
 export type CertificateStatus = "active" | "not-yet-valid" | "expired" | "revoked";
 
-// requested_by and revoked_by are "user/<id>" or "app/<key>".
-export function actorLabel(
-  actor: string,
-  appNames: Record<string, string>,
-  userLabel: (userId: string) => string,
-): string {
-  if (actor.startsWith("app/")) {
-    const key = actor.slice("app/".length);
-    return appNames[key] ?? key;
-  }
-  return userLabel(actor.replace(/^user\//, ""));
-}
-
 export function userIdOf(actor: string | undefined): string | null {
   return actor?.startsWith("user/") ? actor.slice("user/".length) : null;
-}
-
-// Only the owner generates for themselves, so a user here is always the owner.
-export function generatedBy(
-  cert: Certificate,
-  appNames: Record<string, string>,
-  ownerLabel: string,
-): string {
-  return actorLabel(cert.requested_by, appNames, () => ownerLabel);
 }
 
 export const CERTIFICATE_STATUS_LABELS: Record<CertificateStatus, string> = {

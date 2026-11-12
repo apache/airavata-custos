@@ -24,7 +24,6 @@ import {
   getCertificate,
   getMyCertificate,
   getUserEmail,
-  listAppNames,
   listCertificates,
   listMyCertificates,
   revokeCertificate,
@@ -39,11 +38,6 @@ export const signerKeys = {
   myList: (params: CertificateListParams = {}) => [...signerKeys.all, "me", "list", params] as const,
   myDetail: (serial: number | string) => [...signerKeys.all, "me", "detail", String(serial)] as const,
 };
-
-export function useAppNames(): Record<string, string> {
-  const query = useQuery({ queryKey: ["app-names"], queryFn: listAppNames, staleTime: 300_000 });
-  return query.data ?? {};
-}
 
 export function useUserEmail(id: string | null): string | undefined {
   const query = useQuery({

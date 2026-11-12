@@ -19,7 +19,7 @@
 
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import type { App } from "../api";
-import { useAppAuthorizationCount, useDeleteApp } from "../queries";
+import { useDeleteApp } from "../queries";
 
 export type DeleteAppDialogProps = {
   app: App;
@@ -27,9 +27,7 @@ export type DeleteAppDialogProps = {
 };
 
 export function DeleteAppDialog({ app, onClose }: DeleteAppDialogProps) {
-  const count = useAppAuthorizationCount(app.id);
   const remove = useDeleteApp();
-  const people = count.data ?? 0;
 
   return (
     <ConfirmDialog
@@ -39,13 +37,10 @@ export function DeleteAppDialog({ app, onClose }: DeleteAppDialogProps) {
       }}
       title={`Delete ${app.name}?`}
       confirmLabel="Delete app"
-      pending={remove.isPending || count.isLoading}
-      error={remove.error ?? count.error}
+      pending={remove.isPending}
+      error={remove.error}
       onConfirm={() => remove.mutate(app.id, { onSuccess: onClose })}
     >
-      {people > 0
-        ? `${people} ${people === 1 ? "person has" : "people have"} allowed this app. They all lose it, and the app can't act for them again. `
-        : null}
       This can't be undone. The app key {app.key} can't be used again.
     </ConfirmDialog>
   );
