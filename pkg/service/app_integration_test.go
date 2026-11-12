@@ -178,24 +178,34 @@ func TestApp_DisabledAppIsRefused(t *testing.T) {
 	}
 }
 
-// Make sure an app can't get a privilege that isn't allowed for apps, a service app needs at least one privilege, and the mode must be known.
-func TestApp_CreateRefusesAccessAppsCannotHave(t *testing.T) {
+// createTestApp tries to create an app with the given mode and privileges.
+func createTestApp(t *testing.T, mode models.AppMode, privileges ...models.PrivilegeKey) error {
+	t.Helper()
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	adminID := seedAppAdmin(t, database)
 	registerTestAppPrivilege()
+	_, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", mode, privileges, seedAppAdmin(t, database))
+	return err
+}
 
-	for name, app := range map[string]struct {
-		mode       models.AppMode
-		privileges []models.PrivilegeKey
-	}{
-		"admin privilege":   {models.AppDelegated, []models.PrivilegeKey{models.UsersWrite}},
-		"service with none": {models.AppService, nil},
-		"unknown mode":      {"OTHER", []models.PrivilegeKey{testAppPrivilege}},
-	} {
-		if _, _, err := svc.CreateApp(ctx(), "test-gateway", "Test Gateway", "", app.mode, app.privileges, adminID); !errors.Is(err, ErrInvalidInput) {
-			t.Errorf("%s: %v", name, err)
-		}
+// Make sure an app can't be given a privilege that isn't allowed for apps, such as managing users.
+func TestApp_CreateRefusesPrivilegeNotAllowedForApps(t *testing.T) {
+	if err := createTestApp(t, models.AppDelegated, models.UsersWrite); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+// Make sure a service app needs at least one privilege, since without one it can't call anything.
+func TestApp_CreateRefusesServiceAppWithoutPrivileges(t *testing.T) {
+	if err := createTestApp(t, models.AppService); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+// Make sure an app can't be created with a mode other than service or delegated.
+func TestApp_CreateRefusesUnknownMode(t *testing.T) {
+	if err := createTestApp(t, "OTHER", testAppPrivilege); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("got %v", err)
 	}
 }
 

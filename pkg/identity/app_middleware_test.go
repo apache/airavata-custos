@@ -50,18 +50,27 @@ func (fakeAppsClient) Verify(_ context.Context, token string) (*Claims, error) {
 	return &Claims{Sub: "sub-1"}, nil
 }
 
-type fakeUser struct{ privileges []models.PrivilegeKey }
+// fakeUser is an active user who accepted the agreement, unless a field says otherwise.
+type fakeUser struct {
+	privileges     []models.PrivilegeKey
+	consentPending bool
+	err            error
+}
 
 func (f fakeUser) ResolveCaller(context.Context, *Claims) (*Caller, []models.PrivilegeKey, error) {
-	return &Caller{UserID: "u1"}, f.privileges, nil
+	if f.err != nil {
+		return nil, nil, f.err
+	}
+	return &Caller{UserID: "u1", ConsentPending: f.consentPending}, f.privileges, nil
 }
 
 type appCall struct {
-	apps      fakeApps
-	user      fakeUser
-	userToken string
-	method    string // GET when empty
-	path      string
+	apps          fakeApps
+	user          fakeUser
+	userToken     string
+	appsClientOff bool   // no app client configured
+	method        string // GET when empty
+	path          string
 }
 
 func serviceApp(privileges ...models.PrivilegeKey) *models.App {
@@ -79,11 +88,16 @@ func serve(call appCall) (int, string) {
 	router := NewRouter(http.NewServeMux())
 	router.RequirePrivilege("GET /clusters", models.ClustersWrite, ok)
 	router.RequireAuth("GET /me/certificates", ok)
+	router.RequireScoped("GET /projects/{id}", func(http.ResponseWriter, *http.Request) bool { return true }, ok)
 	router.RequireAuthWithoutUserConsent("GET /me", ok)
 	router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", ok)
 	router.RequireAuthUsersOnly("GET /me/app-authorizations", ok)
 	nonAppCalls := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusTeapot) })
-	handler := AppMiddleware(call.apps, fakeAppsClient{}, call.user, router, nonAppCalls)
+	var userTokens TokenVerifier = fakeAppsClient{}
+	if call.appsClientOff {
+		userTokens = nil
+	}
+	handler := AppMiddleware(call.apps, userTokens, call.user, router, nonAppCalls)
 
 	method := call.method
 	if method == "" {
@@ -195,6 +209,38 @@ func TestDelegatedApp_CannotManageAppAuthorizations(t *testing.T) {
 func TestDelegatedApp_CannotAcceptAgreement(t *testing.T) {
 	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "user-token", method: http.MethodPost, path: "/me/agreements/a1/accept"}
 	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "app_not_allowed" {
+		t.Fatalf("got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a service app can't use a route that depends on the user's relation to the resource.
+func TestServiceApp_RefusedOnScopedRoutes(t *testing.T) {
+	code, errorCode := serve(appCall{apps: fakeApps{app: serviceApp(models.ClustersWrite)}, path: "/projects/p1"})
+	if code != http.StatusForbidden || errorCode != "app_needs_user" {
+		t.Fatalf("got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a delegated app can't act for a user who still has a user agreement to accept.
+func TestDelegatedApp_RefusedWhileAgreementPending(t *testing.T) {
+	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, user: fakeUser{consentPending: true}, userToken: "user-token", path: "/me"}
+	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "consent_required" {
+		t.Fatalf("got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a delegated app can't act for someone who has never signed in to the portal.
+func TestDelegatedApp_RefusedForUserNeverSignedIn(t *testing.T) {
+	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, user: fakeUser{err: ErrNotLinked}, userToken: "user-token", path: "/me"}
+	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "user_not_signed_in" {
+		t.Fatalf("got %d %s", code, errorCode)
+	}
+}
+
+// Make sure delegated apps are refused when no app client is configured.
+func TestDelegatedApp_RefusedWhenAppsClientOff(t *testing.T) {
+	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "user-token", appsClientOff: true, path: "/me"}
+	if code, errorCode := serve(call); code != http.StatusUnauthorized || errorCode != "invalid_user_token" {
 		t.Fatalf("got %d %s", code, errorCode)
 	}
 }
