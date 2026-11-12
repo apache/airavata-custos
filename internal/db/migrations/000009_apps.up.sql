@@ -29,12 +29,14 @@ CREATE TABLE IF NOT EXISTS apps
     created_at  TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at  TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    CONSTRAINT uq_apps_key UNIQUE (key),
-    CONSTRAINT uq_apps_name UNIQUE (name),
-    CONSTRAINT chk_apps_status CHECK (status IN ('ACTIVE', 'DISABLED')),
+    CONSTRAINT uq_apps_key UNIQUE (key), -- Deleted apps keep their key, so it is never reused.
+    CONSTRAINT chk_apps_status CHECK (status IN ('ACTIVE', 'DISABLED', 'DELETED')),
     CONSTRAINT chk_apps_mode CHECK (mode IN ('SERVICE', 'DELEGATED')),
     CONSTRAINT fk_apps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
+
+-- A deleted app's name can be used again.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_apps_name ON apps (name) WHERE status <> 'DELETED';
 
 CREATE TABLE IF NOT EXISTS app_privileges
 (

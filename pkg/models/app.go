@@ -24,6 +24,8 @@ type AppStatus string
 const (
 	AppActive   AppStatus = "ACTIVE"
 	AppDisabled AppStatus = "DISABLED"
+	// AppDeleted soft delete the record.
+	AppDeleted AppStatus = "DELETED"
 )
 
 type AppMode string

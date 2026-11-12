@@ -209,6 +209,7 @@ func (s *Server) routes() {
 	s.router.RequireAuthUsersOnly("DELETE /me/app-authorizations/{appId}", s.removeAppAuthorization)
 	s.router.RequirePrivilege("GET /apps/{id}", models.AppsManage, s.getApp)
 	s.router.RequirePrivilege("PUT /apps/{id}", models.AppsManage, s.updateApp)
+	s.router.RequirePrivilege("DELETE /apps/{id}", models.AppsManage, s.deleteApp)
 	s.router.RequirePrivilege("POST /apps/{id}/disable", models.AppsManage, s.disableApp)
 	s.router.RequirePrivilege("POST /apps/{id}/enable", models.AppsManage, s.enableApp)
 	s.router.RequirePrivilege("POST /apps/{id}/secret", models.AppsManage, s.issueAppSecret)

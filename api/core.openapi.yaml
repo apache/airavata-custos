@@ -79,10 +79,12 @@ definitions:
     enum:
     - ACTIVE
     - DISABLED
+    - DELETED
     type: string
     x-enum-varnames:
     - AppActive
     - AppDisabled
+    - AppDeleted
   AuditEvent:
     properties:
       details:
@@ -1164,6 +1166,35 @@ definitions:
       name:
         type: string
     type: object
+  appDetailView:
+    properties:
+      authorized_users:
+        type: integer
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      mode:
+        $ref: '#/definitions/AppMode'
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/AppStatus'
+      updated_at:
+        type: string
+    type: object
   appNameView:
     properties:
       key:
@@ -1948,6 +1979,50 @@ paths:
       tags:
       - Apps
   /apps/{id}:
+    delete:
+      description: Every user's allow is removed. The key can never be used again.
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks apps:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: The app is not disabled
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a disabled app
+      tags:
+      - Apps
     get:
       parameters:
       - description: App ID
@@ -1961,7 +2036,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/App'
+            $ref: '#/definitions/appDetailView'
         "401":
           description: Unauthorized
           schema:
@@ -2195,7 +2270,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List the key and name of every app, including disabled ones
+      summary: List the key and name of every app, including disabled and deleted ones
       tags:
       - Apps
   /apps/privileges:

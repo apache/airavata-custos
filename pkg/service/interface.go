@@ -326,7 +326,10 @@ type CoreService interface {
 
 type AppService interface {
 	ListApps(ctx context.Context) ([]models.App, error)
+	ListAppNames(ctx context.Context) ([]models.App, error)
 	GetApp(ctx context.Context, id string) (*models.App, error)
+	CountAppAuthorizations(ctx context.Context, appID string) (int, error)
+	DeleteApp(ctx context.Context, id, actorID string) error
 	CreateApp(ctx context.Context, key, name, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error)
 	UpdateApp(ctx context.Context, id, name, description, actorID string) (*models.App, error)
 	DisableApp(ctx context.Context, id, actorID string) (*models.App, error)

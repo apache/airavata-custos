@@ -46,6 +46,9 @@ var _ CoreService = &CoreServiceMock{}
 //			CompleteOnboardingFunc: func(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error) {
 //				panic("mock out the CompleteOnboarding method")
 //			},
+//			CountAppAuthorizationsFunc: func(ctx context.Context, appID string) (int, error) {
+//				panic("mock out the CountAppAuthorizations method")
+//			},
 //			CreateAppFunc: func(ctx context.Context, key string, name string, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error) {
 //				panic("mock out the CreateApp method")
 //			},
@@ -102,6 +105,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			CreateUserIdentityFunc: func(ctx context.Context, e *models.UserIdentity) (*models.UserIdentity, error) {
 //				panic("mock out the CreateUserIdentity method")
+//			},
+//			DeleteAppFunc: func(ctx context.Context, id string, actorID string) error {
+//				panic("mock out the DeleteApp method")
 //			},
 //			DeleteAuditEventFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the DeleteAuditEvent method")
@@ -315,6 +321,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			ListAppAuthorizationsFunc: func(ctx context.Context, userID string) ([]AppAuthorization, error) {
 //				panic("mock out the ListAppAuthorizations method")
+//			},
+//			ListAppNamesFunc: func(ctx context.Context) ([]models.App, error) {
+//				panic("mock out the ListAppNames method")
 //			},
 //			ListAppsFunc: func(ctx context.Context) ([]models.App, error) {
 //				panic("mock out the ListApps method")
@@ -554,6 +563,9 @@ type CoreServiceMock struct {
 	// CompleteOnboardingFunc mocks the CompleteOnboarding method.
 	CompleteOnboardingFunc func(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error)
 
+	// CountAppAuthorizationsFunc mocks the CountAppAuthorizations method.
+	CountAppAuthorizationsFunc func(ctx context.Context, appID string) (int, error)
+
 	// CreateAppFunc mocks the CreateApp method.
 	CreateAppFunc func(ctx context.Context, key string, name string, description string, mode models.AppMode, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error)
 
@@ -610,6 +622,9 @@ type CoreServiceMock struct {
 
 	// CreateUserIdentityFunc mocks the CreateUserIdentity method.
 	CreateUserIdentityFunc func(ctx context.Context, e *models.UserIdentity) (*models.UserIdentity, error)
+
+	// DeleteAppFunc mocks the DeleteApp method.
+	DeleteAppFunc func(ctx context.Context, id string, actorID string) error
 
 	// DeleteAuditEventFunc mocks the DeleteAuditEvent method.
 	DeleteAuditEventFunc func(ctx context.Context, id string) error
@@ -823,6 +838,9 @@ type CoreServiceMock struct {
 
 	// ListAppAuthorizationsFunc mocks the ListAppAuthorizations method.
 	ListAppAuthorizationsFunc func(ctx context.Context, userID string) ([]AppAuthorization, error)
+
+	// ListAppNamesFunc mocks the ListAppNames method.
+	ListAppNamesFunc func(ctx context.Context) ([]models.App, error)
 
 	// ListAppsFunc mocks the ListApps method.
 	ListAppsFunc func(ctx context.Context) ([]models.App, error)
@@ -1111,6 +1129,13 @@ type CoreServiceMock struct {
 			// In is the in argument value.
 			In OnboardingInput
 		}
+		// CountAppAuthorizations holds details about calls to the CountAppAuthorizations method.
+		CountAppAuthorizations []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AppID is the appID argument value.
+			AppID string
+		}
 		// CreateApp holds details about calls to the CreateApp method.
 		CreateApp []struct {
 			// Ctx is the ctx argument value.
@@ -1259,6 +1284,15 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// E is the e argument value.
 			E *models.UserIdentity
+		}
+		// DeleteApp holds details about calls to the DeleteApp method.
+		DeleteApp []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+			// ActorID is the actorID argument value.
+			ActorID string
 		}
 		// DeleteAuditEvent holds details about calls to the DeleteAuditEvent method.
 		DeleteAuditEvent []struct {
@@ -1807,6 +1841,11 @@ type CoreServiceMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// ListAppNames holds details about calls to the ListAppNames method.
+		ListAppNames []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// ListApps holds details about calls to the ListApps method.
 		ListApps []struct {
 			// Ctx is the ctx argument value.
@@ -2347,6 +2386,7 @@ type CoreServiceMock struct {
 	lockBootstrapSuperAdmin                                    sync.RWMutex
 	lockCheckOnboardingUsername                                sync.RWMutex
 	lockCompleteOnboarding                                     sync.RWMutex
+	lockCountAppAuthorizations                                 sync.RWMutex
 	lockCreateApp                                              sync.RWMutex
 	lockCreateAuditEvent                                       sync.RWMutex
 	lockCreateComputeAllocation                                sync.RWMutex
@@ -2366,6 +2406,7 @@ type CoreServiceMock struct {
 	lockCreateUser                                             sync.RWMutex
 	lockCreateUserAgreementDraft                               sync.RWMutex
 	lockCreateUserIdentity                                     sync.RWMutex
+	lockDeleteApp                                              sync.RWMutex
 	lockDeleteAuditEvent                                       sync.RWMutex
 	lockDeleteComputeAllocation                                sync.RWMutex
 	lockDeleteComputeAllocationChangeRequest                   sync.RWMutex
@@ -2437,6 +2478,7 @@ type CoreServiceMock struct {
 	lockListAllocationsForResource                             sync.RWMutex
 	lockListAllocationsForUser                                 sync.RWMutex
 	lockListAppAuthorizations                                  sync.RWMutex
+	lockListAppNames                                           sync.RWMutex
 	lockListApps                                               sync.RWMutex
 	lockListAuditEventsByEntity                                sync.RWMutex
 	lockListAuditEventsByEventType                             sync.RWMutex
@@ -2837,6 +2879,42 @@ func (mock *CoreServiceMock) CompleteOnboardingCalls() []struct {
 	mock.lockCompleteOnboarding.RLock()
 	calls = mock.calls.CompleteOnboarding
 	mock.lockCompleteOnboarding.RUnlock()
+	return calls
+}
+
+// CountAppAuthorizations calls CountAppAuthorizationsFunc.
+func (mock *CoreServiceMock) CountAppAuthorizations(ctx context.Context, appID string) (int, error) {
+	if mock.CountAppAuthorizationsFunc == nil {
+		panic("CoreServiceMock.CountAppAuthorizationsFunc: method is nil but CoreService.CountAppAuthorizations was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		AppID string
+	}{
+		Ctx:   ctx,
+		AppID: appID,
+	}
+	mock.lockCountAppAuthorizations.Lock()
+	mock.calls.CountAppAuthorizations = append(mock.calls.CountAppAuthorizations, callInfo)
+	mock.lockCountAppAuthorizations.Unlock()
+	return mock.CountAppAuthorizationsFunc(ctx, appID)
+}
+
+// CountAppAuthorizationsCalls gets all the calls that were made to CountAppAuthorizations.
+// Check the length with:
+//
+//	len(mockedCoreService.CountAppAuthorizationsCalls())
+func (mock *CoreServiceMock) CountAppAuthorizationsCalls() []struct {
+	Ctx   context.Context
+	AppID string
+} {
+	var calls []struct {
+		Ctx   context.Context
+		AppID string
+	}
+	mock.lockCountAppAuthorizations.RLock()
+	calls = mock.calls.CountAppAuthorizations
+	mock.lockCountAppAuthorizations.RUnlock()
 	return calls
 }
 
@@ -3553,6 +3631,46 @@ func (mock *CoreServiceMock) CreateUserIdentityCalls() []struct {
 	mock.lockCreateUserIdentity.RLock()
 	calls = mock.calls.CreateUserIdentity
 	mock.lockCreateUserIdentity.RUnlock()
+	return calls
+}
+
+// DeleteApp calls DeleteAppFunc.
+func (mock *CoreServiceMock) DeleteApp(ctx context.Context, id string, actorID string) error {
+	if mock.DeleteAppFunc == nil {
+		panic("CoreServiceMock.DeleteAppFunc: method is nil but CoreService.DeleteApp was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}{
+		Ctx:     ctx,
+		ID:      id,
+		ActorID: actorID,
+	}
+	mock.lockDeleteApp.Lock()
+	mock.calls.DeleteApp = append(mock.calls.DeleteApp, callInfo)
+	mock.lockDeleteApp.Unlock()
+	return mock.DeleteAppFunc(ctx, id, actorID)
+}
+
+// DeleteAppCalls gets all the calls that were made to DeleteApp.
+// Check the length with:
+//
+//	len(mockedCoreService.DeleteAppCalls())
+func (mock *CoreServiceMock) DeleteAppCalls() []struct {
+	Ctx     context.Context
+	ID      string
+	ActorID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		ID      string
+		ActorID string
+	}
+	mock.lockDeleteApp.RLock()
+	calls = mock.calls.DeleteApp
+	mock.lockDeleteApp.RUnlock()
 	return calls
 }
 
@@ -6209,6 +6327,38 @@ func (mock *CoreServiceMock) ListAppAuthorizationsCalls() []struct {
 	mock.lockListAppAuthorizations.RLock()
 	calls = mock.calls.ListAppAuthorizations
 	mock.lockListAppAuthorizations.RUnlock()
+	return calls
+}
+
+// ListAppNames calls ListAppNamesFunc.
+func (mock *CoreServiceMock) ListAppNames(ctx context.Context) ([]models.App, error) {
+	if mock.ListAppNamesFunc == nil {
+		panic("CoreServiceMock.ListAppNamesFunc: method is nil but CoreService.ListAppNames was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockListAppNames.Lock()
+	mock.calls.ListAppNames = append(mock.calls.ListAppNames, callInfo)
+	mock.lockListAppNames.Unlock()
+	return mock.ListAppNamesFunc(ctx)
+}
+
+// ListAppNamesCalls gets all the calls that were made to ListAppNames.
+// Check the length with:
+//
+//	len(mockedCoreService.ListAppNamesCalls())
+func (mock *CoreServiceMock) ListAppNamesCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockListAppNames.RLock()
+	calls = mock.calls.ListAppNames
+	mock.lockListAppNames.RUnlock()
 	return calls
 }
 

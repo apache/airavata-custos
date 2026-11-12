@@ -41,6 +41,7 @@ const (
 	appAuditSecretIssued         = "APP_SECRET_ISSUED"
 	appAuditAuthorized           = "APP_AUTHORIZED"
 	appAuditAuthorizationRemoved = "APP_AUTHORIZATION_REMOVED"
+	appAuditDeleted              = "APP_DELETED"
 
 	appNameMaxLength    = 100
 	appSecretHintLength = 4
@@ -93,7 +94,7 @@ func validateAppAccess(mode models.AppMode, privileges []models.PrivilegeKey) er
 
 func appWriteErr(op string, err error) error {
 	if strings.Contains(err.Error(), "uq_apps_key") {
-		return fmt.Errorf("%w: an app with this key already exists", ErrAlreadyExists)
+		return fmt.Errorf("%w: this app key is taken, deleted apps keep theirs", ErrAlreadyExists)
 	}
 	if strings.Contains(err.Error(), "uq_apps_name") {
 		return fmt.Errorf("%w: an app with this name already exists", ErrAlreadyExists)
@@ -102,6 +103,15 @@ func appWriteErr(op string, err error) error {
 }
 
 func (s *Service) ListApps(ctx context.Context) ([]models.App, error) {
+	apps, err := s.apps.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(apps, func(a models.App) bool { return a.Status == models.AppDeleted }), nil
+}
+
+// ListAppNames includes deleted apps, since older records still point at their keys.
+func (s *Service) ListAppNames(ctx context.Context) ([]models.App, error) {
 	return s.apps.List(ctx)
 }
 
@@ -110,10 +120,15 @@ func (s *Service) GetApp(ctx context.Context, id string) (*models.App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("lookup app: %w", err)
 	}
-	if a == nil {
+	if a == nil || a.Status == models.AppDeleted {
 		return nil, ErrNotFound
 	}
 	return a, nil
+}
+
+// CountAppAuthorizations is how many users have allowed the app.
+func (s *Service) CountAppAuthorizations(ctx context.Context, appID string) (int, error) {
+	return s.apps.CountGrants(ctx, appID)
 }
 
 // CreateApp The returned token cannot be read again.
@@ -165,7 +180,8 @@ func (s *Service) changeApp(ctx context.Context, id, actorID, auditType string, 
 		if a, err = s.apps.FindByIDTx(ctx, tx, id); err != nil {
 			return fmt.Errorf("lookup app: %w", err)
 		}
-		if a == nil {
+		// A deleted app can't be edited, enabled, or given a new secret.
+		if a == nil || a.Status == models.AppDeleted {
 			return ErrNotFound
 		}
 		change(a)
@@ -195,6 +211,36 @@ func (s *Service) DisableApp(ctx context.Context, id, actorID string) (*models.A
 
 func (s *Service) EnableApp(ctx context.Context, id, actorID string) (*models.App, error) {
 	return s.changeApp(ctx, id, actorID, appAuditEnabled, func(a *models.App) { a.Status = models.AppActive })
+}
+
+// DeleteApp soft deletes a disabled app and removes every user's authorizations.
+// The row is kept so the app key is never reused.
+func (s *Service) DeleteApp(ctx context.Context, id, actorID string) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.AppsManage); err != nil {
+			return err
+		}
+		a, err := s.apps.FindByIDTx(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("lookup app: %w", err)
+		}
+		if a == nil || a.Status == models.AppDeleted {
+			return ErrNotFound
+		}
+		if a.Status != models.AppDisabled {
+			return fmt.Errorf("%w: disable the app before deleting it", ErrInUse)
+		}
+		removed, err := s.apps.DeleteAllGrants(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("delete app grants: %w", err)
+		}
+		// Clear the secret so the old token can never work again even if the status is changed back.
+		a.Status, a.SecretHash = models.AppDeleted, ""
+		if err := s.apps.Update(ctx, tx, a); err != nil {
+			return fmt.Errorf("delete app: %w", err)
+		}
+		return s.writeAuditTx(ctx, tx, "app", appAuditDeleted, id, map[string]any{"actor_id": actorID, "key": a.Key, "name": a.Name, "grants_removed": removed})
+	})
 }
 
 func (s *Service) IssueAppSecret(ctx context.Context, id, actorID string) (*models.App, string, error) {

@@ -29,6 +29,11 @@ type appWithTokenView struct {
 	Token string `json:"token"`
 }
 
+type appDetailView struct {
+	models.App
+	AuthorizedUsers int `json:"authorized_users"`
+}
+
 type appNameView struct {
 	Key  string `json:"key"`
 	Name string `json:"name"`
@@ -84,7 +89,7 @@ func (s *Server) listAppPrivileges(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, models.AppPrivileges())
 }
 
-// @Summary	List the key and name of every app, including disabled ones
+// @Summary	List the key and name of every app, including disabled and deleted ones
 // @Tags	Apps
 // @Security	BearerAuth
 // @Produce	json
@@ -92,7 +97,7 @@ func (s *Server) listAppPrivileges(w http.ResponseWriter, r *http.Request) {
 // @Failure	401	{object}	object{error=string}
 // @Router	/apps/names [get]
 func (s *Server) listAppNames(w http.ResponseWriter, r *http.Request) {
-	apps, err := s.svc.ListApps(r.Context())
+	apps, err := s.svc.ListAppNames(r.Context())
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -140,14 +145,42 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"App ID"
-// @Success	200	{object}	models.App
+// @Success	200	{object}	appDetailView
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
 // @Failure	404	{object}	object{error=string}
 // @Router	/apps/{id} [get]
 func (s *Server) getApp(w http.ResponseWriter, r *http.Request) {
 	a, err := s.svc.GetApp(r.Context(), r.PathValue("id"))
-	writeApp(w, a, err)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	count, err := s.svc.CountAppAuthorizations(r.Context(), a.ID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, appDetailView{App: *a, AuthorizedUsers: count})
+}
+
+// @Summary	Delete a disabled app
+// @Description	Every user's allow is removed. The key can never be used again.
+// @Tags	Apps
+// @Security	BearerAuth
+// @Param	id	path	string	true	"App ID"
+// @Success	204
+// @Failure	401	{object}	object{error=string}
+// @Failure	403	{object}	object{error=string}	"Caller lacks apps:manage"
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"The app is not disabled"
+// @Router	/apps/{id} [delete]
+func (s *Server) deleteApp(w http.ResponseWriter, r *http.Request) {
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	writeNoContent(w, s.svc.DeleteApp(r.Context(), r.PathValue("id"), caller.UserID))
 }
 
 // @Summary	Edit an app's name and description

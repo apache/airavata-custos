@@ -573,6 +573,8 @@ type AppStore interface {
 	ListGrantedAppIDs(ctx context.Context, userID string) ([]string, error)
 	CreateGrant(ctx context.Context, tx *sql.Tx, appID, userID string) error
 	DeleteGrant(ctx context.Context, tx *sql.Tx, appID, userID string) (bool, error)
+	CountGrants(ctx context.Context, appID string) (int, error)
+	DeleteAllGrants(ctx context.Context, tx *sql.Tx, appID string) (int64, error)
 	ReassignGrants(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 }
 

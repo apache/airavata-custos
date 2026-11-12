@@ -129,6 +129,20 @@ func (s *pgAppStore) DeleteGrant(ctx context.Context, tx *sql.Tx, appID, userID 
 	return execOnce(ctx, tx, `DELETE FROM app_grants WHERE app_id = $1 AND user_id = $2`, appID, userID)
 }
 
+func (s *pgAppStore) CountGrants(ctx context.Context, appID string) (int, error) {
+	var count int
+	err := s.db.GetContext(ctx, &count, `SELECT COUNT(*) FROM app_grants WHERE app_id = $1`, appID)
+	return count, err
+}
+
+func (s *pgAppStore) DeleteAllGrants(ctx context.Context, tx *sql.Tx, appID string) (int64, error) {
+	res, err := tx.ExecContext(ctx, `DELETE FROM app_grants WHERE app_id = $1`, appID)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (s *pgAppStore) ReassignGrants(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO app_grants (app_id, user_id, granted_at)

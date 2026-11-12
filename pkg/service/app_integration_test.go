@@ -367,3 +367,76 @@ func TestApp_AuditRecordsTheApp(t *testing.T) {
 		t.Fatalf("details = %s", details)
 	}
 }
+
+// Make sure an active app can't be deleted, so it has to be disabled first.
+func TestApp_DeleteNeedsTheAppDisabled(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	app, _ := newTestApp(t, svc, adminID)
+
+	if err := svc.DeleteApp(ctx(), app.ID, adminID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+// Make sure a deleted app can never be used or changed again and loses every user's authorizations.
+func TestApp_DeletedAppCannotBeUsedAgain(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	app, token := newTestApp(t, svc, adminID)
+	userID := seedUser(t, database, "member@example.edu")
+	if err := svc.AuthorizeApp(ctx(), app.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.DisableApp(ctx(), app.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.DeleteApp(ctx(), app.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := svc.ResolveApp(ctx(), token); !errors.Is(err, identity.ErrInvalidAppToken) {
+		t.Errorf("token: %v", err)
+	}
+	if _, err := svc.EnableApp(ctx(), app.ID, adminID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("enable: %v", err)
+	}
+	if _, _, err := svc.IssueAppSecret(ctx(), app.ID, adminID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("new secret: %v", err)
+	}
+	if authorized, err := svc.IsAppAuthorized(ctx(), app.ID, userID); err != nil || authorized {
+		t.Errorf("allow kept: %v %v", authorized, err)
+	}
+	if apps, err := svc.ListApps(ctx()); err != nil || len(apps) != 0 {
+		t.Errorf("still listed: %v %v", apps, err)
+	}
+}
+
+// Make sure a deleted app's key is never given to another app, so older records that store the key,
+// such as certificates, keep pointing at the right app. Its name is free to use again.
+func TestApp_DeletedAppKeepsItsKey(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	adminID := seedAppAdmin(t, database)
+	app, _ := newTestApp(t, svc, adminID)
+	if _, err := svc.DisableApp(ctx(), app.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.DeleteApp(ctx(), app.ID, adminID); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, _, err := svc.CreateApp(ctx(), app.Key, "Another Gateway", "", models.AppDelegated, nil, adminID); !errors.Is(err, ErrAlreadyExists) {
+		t.Errorf("same key: %v", err)
+	}
+	if _, _, err := svc.CreateApp(ctx(), "new-gateway", app.Name, "", models.AppDelegated, nil, adminID); err != nil {
+		t.Errorf("same name: %v", err)
+	}
+	names, err := svc.ListAppNames(ctx())
+	if err != nil || !slices.ContainsFunc(names, func(a models.App) bool { return a.Key == app.Key && a.Name == app.Name }) {
+		t.Errorf("name of the deleted app missing: %v %v", names, err)
+	}
+}
