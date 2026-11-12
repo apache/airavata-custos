@@ -43,6 +43,7 @@ signer:
   login_host: localhost
   login_port: 2222
   ca:
+    create_if_missing: true
     rotation:
       period_hours: 2160
       overlap_hours: 2

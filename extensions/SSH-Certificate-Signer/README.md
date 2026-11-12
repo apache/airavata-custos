@@ -58,7 +58,8 @@ The certificate names who it is for. The CA signature covers all of it.
 A request can also set `source_address`, a comma-separated list of IP addresses or CIDR blocks. It goes in the
 certificate's `source-address` critical option, and sshd then accepts the certificate only from those addresses.
 
-A deployment has one Ed25519 CA. It is generated in Vault by the first request that reads it.
+A deployment has one Ed25519 CA, stored in Vault. The signer reads it at startup and refuses to start without it,
+unless `signer.ca.create_if_missing` is set, in which case it creates one and writes a `ca_created` audit log entry.
 
 ## Prerequisites
 
@@ -85,7 +86,7 @@ The rest of this section is the manual setup.
 
 ```sql
 CREATE
-DATABASE custos_signer;
+    DATABASE custos_signer;
 ```
 
 If using the project's Docker Compose, the `custos_signer` database is created automatically by
@@ -118,7 +119,8 @@ The initial migration creates two tables:
 vault secrets enable -path=ssh-ca kv-v2
 ```
 
-The path must match `vault.mount_path`. The signer creates CA keys on demand. No manual key setup is required.
+The path must match `vault.mount_path`. Store the CA key before starting the signer, or set
+`signer.ca.create_if_missing` to let it create one.
 
 Ensure the configured token has read/write access to `ssh-ca/data/*`.
 

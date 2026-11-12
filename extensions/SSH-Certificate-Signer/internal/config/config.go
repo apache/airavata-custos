@@ -73,7 +73,8 @@ type SignerConfig struct {
 }
 
 type CAConfig struct {
-	Rotation RotationConfig `yaml:"rotation"`
+	CreateIfMissing bool           `yaml:"create_if_missing"`
+	Rotation        RotationConfig `yaml:"rotation"`
 }
 
 type RotationConfig struct {

@@ -94,3 +94,11 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 
 	return nil
 }
+
+func (l *Logger) LogCACreated(ctx context.Context, caFingerprint string) {
+	l.slogger.WarnContext(ctx, "CA created",
+		"event_type", "ca_created",
+		"timestamp", time.Now().UTC().Format(time.RFC3339),
+		"ca_fingerprint", caFingerprint,
+	)
+}

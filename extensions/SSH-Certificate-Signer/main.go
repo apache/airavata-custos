@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/signer/internal/audit"
+	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/config"
 	"github.com/apache/airavata-custos/signer/internal/handler"
 	"github.com/apache/airavata-custos/signer/internal/policy"
@@ -151,6 +153,13 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 	policyEnforcer := policy.NewEnforcer(cfg.Signer.Policy.MaxTTLSeconds, cfg.Signer.Policy.AllowedKeyTypes)
 	auditLogger := audit.NewLogger(db, logger)
 
+	caFingerprint, err := loadCA(context.Background(), vaultClient, cfg.Signer.CA.CreateIfMissing, auditLogger)
+	if err != nil {
+		logger.Error("failed to load CA", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("CA loaded", "ca_fingerprint", caFingerprint)
+
 	cacheTTL := time.Duration(cfg.Signer.Validation.CacheTTLSeconds) * time.Second
 	ldapConnector := validation.NewDefaultLDAPConnector()
 	principalValidator := validation.NewValidatorDispatcher(
@@ -188,6 +197,26 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		logger.Error("server error", "error", err)
 		os.Exit(1)
 	}
+}
+
+// loadCA makes sure the CA exists before the signer serves requests and returns its fingerprint.
+func loadCA(ctx context.Context, vaultClient *vault.Client, createIfMissing bool, auditLogger *audit.Logger) (string, error) {
+	kp, err := vaultClient.GetCurrentCAKey(ctx)
+	if errors.Is(err, vault.ErrCANotFound) {
+		if !createIfMissing {
+			return "", fmt.Errorf("%w: store the CA key, or set signer.ca.create_if_missing to create one", err)
+		}
+		if kp, err = vaultClient.GenerateCAKey(ctx); err != nil {
+			return "", err
+		}
+		fingerprint, err := cert.CAFingerprint(kp.PublicKey)
+		auditLogger.LogCACreated(ctx, fingerprint)
+		return fingerprint, err
+	}
+	if err != nil {
+		return "", err
+	}
+	return cert.CAFingerprint(kp.PublicKey)
 }
 
 func setupLogger(cfg config.LoggingConfig) *slog.Logger {

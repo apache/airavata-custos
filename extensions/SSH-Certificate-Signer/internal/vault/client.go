@@ -37,6 +37,8 @@ import (
 // ErrSerialConflict marks a lost CAS race on the serial counter, not a store failure.
 var ErrSerialConflict = errors.New("serial counter conflict")
 
+var ErrCANotFound = errors.New("no CA key in vault")
+
 func isCASMismatch(err error) bool {
 	var respErr *vaultapi.ResponseError
 	if !errors.As(err, &respErr) {
@@ -109,17 +111,21 @@ func (c *Client) kvPath(parts ...string) string {
 	return path
 }
 
-// GetCurrentCAKey returns the current CA key, auto-creating one if it doesn't exist.
 func (c *Client) GetCurrentCAKey(ctx context.Context) (*CAKeyPair, error) {
 	kp, err := c.readCAKey(ctx, "current")
 	if err != nil {
 		return nil, err
 	}
-	if kp != nil {
-		return kp, nil
+	if kp == nil {
+		return nil, ErrCANotFound
 	}
+	return kp, nil
+}
 
-	kp, err = generateEd25519CAKey()
+// GenerateCAKey generates a new CA key and stores it as the current one.
+// TODO - also publish the new public key to the login nodes' trusted CA file.
+func (c *Client) GenerateCAKey(ctx context.Context) (*CAKeyPair, error) {
+	kp, err := generateEd25519CAKey()
 	if err != nil {
 		return nil, err
 	}

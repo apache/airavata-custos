@@ -52,6 +52,7 @@ signer:
   login_host: login.example.org        # returned with each certificate
   login_port: 22
   ca:
+    create_if_missing: false          # true creates a CA when none is stored.
     rotation:
       period_hours: 2160              # 90 days
       overlap_hours: 2
