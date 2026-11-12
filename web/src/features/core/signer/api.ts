@@ -35,6 +35,11 @@ export async function listAppNames(): Promise<Record<string, string>> {
   return Object.fromEntries(apps.map((app) => [app.key, app.name]));
 }
 
+export async function getUserEmail(id: string): Promise<string> {
+  const user = z.object({ email: z.string() }).parse(await apiFetch(`/users/${encodeURIComponent(id)}`));
+  return user.email;
+}
+
 async function fetchCertificateList(
   path: string,
   params: CertificateListParams,

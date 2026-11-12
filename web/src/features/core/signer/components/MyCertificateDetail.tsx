@@ -19,6 +19,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/features/core/identity/queries";
 import { ApiError } from "@/shared/api/client";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -26,6 +27,7 @@ import { CardSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { useAppNames, useMyCertificate, useRevokeMyCertificate } from "../queries";
 import {
+  actorLabel,
   CERTIFICATE_STATUS_LABELS,
   formatCertificateLifetime,
   formatUnixSeconds,
@@ -40,6 +42,7 @@ import { RevokeCertificateDialog } from "./RevokeCertificateDialog";
 export function MyCertificateDetail({ serial }: { serial: string }) {
   const query = useMyCertificate(serial);
   const appNames = useAppNames();
+  const { user } = useCurrentUser();
   const revoke = useRevokeMyCertificate();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [revokeError, setRevokeError] = React.useState<string | null>(null);
@@ -98,7 +101,9 @@ export function MyCertificateDetail({ serial }: { serial: string }) {
         <div className="rounded-md border border-[color:var(--custos-red-700)] p-3 text-sm">
           <p className="font-medium">
             Revoked {cert.revoked_at != null ? formatUnixSeconds(cert.revoked_at) : ""} by{" "}
-            {cert.revoked_by === "self" ? "you" : "your site"}
+            {actorLabel(cert.revoked_by ?? "", appNames, (id) =>
+              id === user?.id ? "you" : "your site",
+            )}
           </p>
           <p>{cert.revocation_reason ? `Reason: ${cert.revocation_reason}` : "No reason given."}</p>
           <p className="text-muted-foreground">

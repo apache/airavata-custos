@@ -16,42 +16,45 @@
 // under the License.
 
 import { z } from "zod";
+import { privilegeKeySchema } from "@/features/core/identity/schemas";
 import {
   type AppAuthorizationView,
-  type AppConnector,
-  type AppView,
-  type AppWithTokenView,
+  type AppMode,
+  zApp,
   zAppAuthorizationView,
-  zAppConnector,
-  zAppView,
   zAppWithTokenView,
 } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 
-export type App = AppView;
-export type AppWithToken = AppWithTokenView;
+const privilegesSchema = z.array(privilegeKeySchema).nullable();
+const appSchema = zApp.extend({ privileges: privilegesSchema });
+const appWithTokenSchema = zAppWithTokenView.extend({ privileges: privilegesSchema });
+
+export type { AppMode };
+export type App = z.infer<typeof appSchema>;
+export type AppWithToken = z.infer<typeof appWithTokenSchema>;
 export type AppAuthorization = AppAuthorizationView;
-export type { AppConnector };
 
 export type NewApp = {
   key: string;
   name: string;
   description: string;
-  actions: string[];
+  mode: AppMode;
+  privileges: string[];
 };
 
 const appPath = (id: string) => `/apps/${encodeURIComponent(id)}`;
 
 export async function listApps(): Promise<App[]> {
-  return z.array(zAppView).parse(await apiFetch("/apps"));
+  return z.array(appSchema).parse(await apiFetch("/apps"));
 }
 
-export async function listAppConnectors(): Promise<AppConnector[]> {
-  return z.array(zAppConnector).parse(await apiFetch("/apps/connectors"));
+export async function listAppPrivileges(): Promise<string[]> {
+  return z.array(privilegeKeySchema).parse(await apiFetch("/apps/privileges"));
 }
 
 export async function createApp(body: NewApp): Promise<AppWithToken> {
-  return zAppWithTokenView.parse(await apiFetch("/apps", { method: "POST", body }));
+  return appWithTokenSchema.parse(await apiFetch("/apps", { method: "POST", body }));
 }
 
 export async function updateApp({
@@ -62,19 +65,19 @@ export async function updateApp({
   name: string;
   description: string;
 }): Promise<App> {
-  return zAppView.parse(await apiFetch(appPath(id), { method: "PUT", body }));
+  return appSchema.parse(await apiFetch(appPath(id), { method: "PUT", body }));
 }
 
 export async function disableApp(id: string): Promise<App> {
-  return zAppView.parse(await apiFetch(`${appPath(id)}/disable`, { method: "POST" }));
+  return appSchema.parse(await apiFetch(`${appPath(id)}/disable`, { method: "POST" }));
 }
 
 export async function enableApp(id: string): Promise<App> {
-  return zAppView.parse(await apiFetch(`${appPath(id)}/enable`, { method: "POST" }));
+  return appSchema.parse(await apiFetch(`${appPath(id)}/enable`, { method: "POST" }));
 }
 
 export async function issueAppSecret(id: string): Promise<AppWithToken> {
-  return zAppWithTokenView.parse(await apiFetch(`${appPath(id)}/secret`, { method: "POST" }));
+  return appWithTokenSchema.parse(await apiFetch(`${appPath(id)}/secret`, { method: "POST" }));
 }
 
 const authorizationPath = (appId: string) => `/me/app-authorizations/${encodeURIComponent(appId)}`;

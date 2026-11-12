@@ -66,16 +66,23 @@ export function AppsView() {
       cell: (app) => <span className="font-mono text-xs">{app.key}</span>,
     },
     {
-      key: "connectors",
-      header: "Connectors",
-      cell: (app) => (
-        <div className="space-y-1">
-          <div>{(app.connectors ?? []).join(", ")}</div>
-          {app.needs_user_authorization ? (
-            <StatusBadge variant="pending" label="Needs user authorization" />
-          ) : null}
-        </div>
-      ),
+      key: "mode",
+      header: "Mode",
+      cell: (app) => (app.mode === "DELEGATED" ? "Delegated" : "Service"),
+    },
+    {
+      key: "privileges",
+      header: "Privileges",
+      cell: (app) =>
+        app.privileges?.length ? (
+          <div className="space-y-0.5 font-mono text-xs">
+            {app.privileges.map((privilege) => (
+              <div key={privilege}>{privilege}</div>
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">None</span>
+        ),
     },
     {
       key: "status",

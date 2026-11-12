@@ -25,7 +25,7 @@ import {
   enableApp,
   issueAppSecret,
   listAppAuthorizations,
-  listAppConnectors,
+  listAppPrivileges,
   listApps,
   removeAppAuthorization,
   updateApp,
@@ -33,7 +33,7 @@ import {
 
 const appKeys = {
   list: ["apps", "list"] as const,
-  connectors: ["apps", "connectors"] as const,
+  privileges: ["apps", "privileges"] as const,
   authorizations: ["apps", "authorizations"] as const,
 };
 
@@ -49,8 +49,8 @@ export function useApps() {
   return useQuery({ queryKey: appKeys.list, queryFn: listApps });
 }
 
-export function useAppConnectors() {
-  return useQuery({ queryKey: appKeys.connectors, queryFn: listAppConnectors });
+export function useAppPrivileges() {
+  return useQuery({ queryKey: appKeys.privileges, queryFn: listAppPrivileges });
 }
 
 function useAppMutation<Input, Output>(

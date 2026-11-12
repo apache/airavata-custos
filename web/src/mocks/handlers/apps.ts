@@ -16,16 +16,9 @@
 // under the License.
 
 import { HttpResponse, http } from "msw";
-import type { App, AppConnector, NewApp } from "@/features/core/apps/api";
+import type { App, NewApp } from "@/features/core/apps/api";
 
-const connectors: AppConnector[] = [
-  {
-    name: "signer",
-    needs_user_grant: true,
-    actions: ["signer:app:generate-certificate", "signer:app:revoke-certificate"],
-  },
-  { name: "temp-account", needs_user_grant: false, actions: ["temp-account:app:create-user"] },
-];
+const appPrivileges = ["temp-account:users:create"];
 
 const apps: App[] = [
   {
@@ -33,14 +26,26 @@ const apps: App[] = [
     key: "notebook-hub",
     name: "Notebook Hub",
     description: "Creates workshop accounts.",
-    connectors: ["temp-account"],
+    mode: "SERVICE",
+    privileges: ["temp-account:users:create"],
     status: "ACTIVE",
     secret_hint: "9F3A",
-    needs_user_authorization: false,
-    actions: ["temp-account:app:create-user"],
     created_by: "user-admin",
     created_at: "2026-11-01T12:00:00Z",
     updated_at: "2026-11-01T12:00:00Z",
+  },
+  {
+    id: "app-2",
+    key: "science-gateway",
+    name: "Science Gateway",
+    description: "Gets SSH certificates for its users.",
+    mode: "DELEGATED",
+    privileges: [],
+    status: "ACTIVE",
+    secret_hint: "7C21",
+    created_by: "user-admin",
+    created_at: "2026-11-02T12:00:00Z",
+    updated_at: "2026-11-02T12:00:00Z",
   },
 ];
 
@@ -57,7 +62,7 @@ export const appsHandlers = [
   http.get("*/api/v1/me/app-authorizations", () =>
     HttpResponse.json(
       apps
-        .filter((a) => a.status === "ACTIVE" && a.needs_user_authorization)
+        .filter((a) => a.status === "ACTIVE" && a.mode === "DELEGATED")
         .map(({ id, name, description }) => ({
           id,
           name,
@@ -75,7 +80,7 @@ export const appsHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
   http.get("*/api/v1/apps", () => HttpResponse.json(apps)),
-  http.get("*/api/v1/apps/connectors", () => HttpResponse.json(connectors)),
+  http.get("*/api/v1/apps/privileges", () => HttpResponse.json(appPrivileges)),
   http.get("*/api/v1/apps/names", () =>
     HttpResponse.json(apps.map(({ key, name }) => ({ key, name }))),
   ),
@@ -87,14 +92,11 @@ export const appsHandlers = [
   }),
   http.post("*/api/v1/apps", async ({ request }) => {
     const body = (await request.json()) as NewApp;
-    const appConnectors = [...new Set(body.actions.map((action) => action.split(":")[0] ?? ""))];
     const app: App = {
       ...body,
       id: `app-${apps.length + 1}`,
-      connectors: appConnectors.sort(),
       status: "ACTIVE",
       secret_hint: "ABCD",
-      needs_user_authorization: appConnectors.includes("signer"),
       created_by: "user-admin",
       created_at: "2026-11-10T12:00:00Z",
       updated_at: "2026-11-10T12:00:00Z",

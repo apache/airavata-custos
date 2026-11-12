@@ -18,6 +18,7 @@
 "use client";
 
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -29,12 +30,26 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
-import { useAppConnectors, useCreateApp } from "../queries";
+import type { AppMode } from "../api";
+import { useAppPrivileges, useCreateApp } from "../queries";
 import { TokenReveal } from "./TokenReveal";
 
 const APP_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const APP_KEY_MAX_LENGTH = 50;
+
+const MODES: Array<{ mode: AppMode; name: string; description: string }> = [
+  {
+    mode: "SERVICE",
+    name: "Service",
+    description: "Acts as itself with the privileges below. It never acts for a person.",
+  },
+  {
+    mode: "DELEGATED",
+    name: "Delegated",
+    description:
+      "Acts for a person who allowed it, with what that person can do. Privileges below apply only when the person has them too.",
+  },
+];
 
 export type CreateAppDialogProps = {
   open: boolean;
@@ -42,30 +57,36 @@ export type CreateAppDialogProps = {
 };
 
 export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
-  const connectors = useAppConnectors();
+  const allowedPrivileges = useAppPrivileges();
   const create = useCreateApp();
   const { reset } = create;
   const [key, setKey] = React.useState("");
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [actions, setActions] = React.useState<string[]>([]);
+  const [mode, setMode] = React.useState<AppMode | null>(null);
+  const [privileges, setPrivileges] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (!open) {
       setKey("");
       setName("");
       setDescription("");
-      setActions([]);
+      setMode(null);
+      setPrivileges([]);
       reset();
     }
   }, [open, reset]);
 
   const keyIsValid = APP_KEY.test(key) && key.length <= APP_KEY_MAX_LENGTH;
-  const canSubmit = keyIsValid && name.trim() !== "" && actions.length > 0 && !create.isPending;
+  const needsPrivilege = mode === "SERVICE" && privileges.length === 0;
+  const canSubmit =
+    keyIsValid && name.trim() !== "" && mode !== null && !needsPrivilege && !create.isPending;
   const result = create.data;
 
-  function toggleAction(action: string, checked: boolean) {
-    setActions((current) => (checked ? [...current, action] : current.filter((a) => a !== action)));
+  function togglePrivilege(privilege: string, checked: boolean) {
+    setPrivileges((current) =>
+      checked ? [...current, privilege] : current.filter((p) => p !== privilege),
+    );
   }
 
   return (
@@ -95,7 +116,8 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (canSubmit) create.mutate({ key, name: name.trim(), description, actions });
+                if (canSubmit && mode)
+                  create.mutate({ key, name: name.trim(), description, mode, privileges });
               }}
             >
               <div className="space-y-2">
@@ -124,35 +146,58 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Actions</p>
-                {connectors.data?.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No connector offers app actions.</p>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Mode</legend>
+                <p className="text-xs text-muted-foreground">It cannot be changed later.</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {MODES.map((option) => (
+                    <label
+                      key={option.mode}
+                      className={cn(
+                        "cursor-pointer rounded-md border p-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                        mode === option.mode
+                          ? "border-[color:var(--brand)] bg-[color:var(--brand-tint)]/40"
+                          : "hover:bg-muted",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="app-mode"
+                        checked={mode === option.mode}
+                        onChange={() => setMode(option.mode)}
+                        className="sr-only"
+                      />
+                      <span className="block text-sm font-medium">{option.name}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Privileges</legend>
+                <p className="text-xs text-muted-foreground">
+                  {mode === "DELEGATED"
+                    ? "Optional. The app can always use the person's own pages, like SSH access."
+                    : "Only privileges allowed for apps are listed. A service app needs at least one."}
+                </p>
+                {allowedPrivileges.data?.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No privileges are allowed for apps.
+                  </p>
                 ) : null}
-                {connectors.data?.map((c) => (
-                  <fieldset key={c.name} className="space-y-2">
-                    <legend className="flex items-center gap-2 text-sm">
-                      {c.name}
-                      {c.needs_user_grant ? (
-                        <StatusBadge variant="pending" label="Needs user authorization" />
-                      ) : null}
-                    </legend>
-                    {c.actions?.map((action) => (
-                      <label
-                        key={action}
-                        className="flex items-center gap-2 pl-4 font-mono text-xs"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={actions.includes(action)}
-                          onChange={(e) => toggleAction(action, e.target.checked)}
-                        />
-                        {action}
-                      </label>
-                    ))}
-                  </fieldset>
+                {allowedPrivileges.data?.map((privilege) => (
+                  <label key={privilege} className="flex items-center gap-2 font-mono text-xs">
+                    <input
+                      type="checkbox"
+                      checked={privileges.includes(privilege)}
+                      onChange={(e) => togglePrivilege(privilege, e.target.checked)}
+                    />
+                    {privilege}
+                  </label>
                 ))}
-              </div>
+              </fieldset>
               {create.error ? (
                 <p role="alert" className="text-sm text-destructive">
                   {create.error.message}

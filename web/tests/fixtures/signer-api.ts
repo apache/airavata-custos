@@ -118,7 +118,7 @@ async function installSignerRoutes(context: BrowserContext) {
       if (certificate) {
         certificate.revoked = true;
         certificate.revoked_at = Math.floor(Date.now() / 1000);
-        certificate.revoked_by = "self";
+        certificate.revoked_by = "user/test-researcher";
       }
       await json(route, {
         success: true,

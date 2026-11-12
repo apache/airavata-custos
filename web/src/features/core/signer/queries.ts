@@ -23,6 +23,7 @@ import {
   generateCertificate,
   getCertificate,
   getMyCertificate,
+  getUserEmail,
   listAppNames,
   listCertificates,
   listMyCertificates,
@@ -42,6 +43,18 @@ export const signerKeys = {
 export function useAppNames(): Record<string, string> {
   const query = useQuery({ queryKey: ["app-names"], queryFn: listAppNames, staleTime: 300_000 });
   return query.data ?? {};
+}
+
+// Needs core:users:read. Without it the email stays undefined and the page shows the ID.
+export function useUserEmail(id: string | null): string | undefined {
+  const query = useQuery({
+    queryKey: ["user-email", id],
+    queryFn: () => getUserEmail(id ?? ""),
+    enabled: id !== null,
+    retry: false,
+    staleTime: 300_000,
+  });
+  return query.data;
 }
 
 export function useCursorPaging() {

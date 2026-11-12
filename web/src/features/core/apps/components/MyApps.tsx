@@ -88,7 +88,7 @@ export function MyApps() {
       <div>
         <h1 className="font-display text-[28px] font-bold leading-tight">Apps</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Allow an app to generate SSH certificates for your account.
+          Apps you allow can act as you in Custos, for example to get SSH certificates.
         </p>
       </div>
 
@@ -98,8 +98,8 @@ export function MyApps() {
         <ErrorState message={apps.error.message} onRetry={() => apps.refetch()} />
       ) : apps.data?.length === 0 ? (
         <EmptyState
-          heading="No apps need your permission."
-          description="Apps that need it appear here."
+          heading="No apps can act for you yet."
+          description="Apps that can appear here once an admin adds them."
         />
       ) : (
         <DataTable columns={columns} rows={apps.data ?? []} rowKey={(app) => app.id} />
@@ -118,8 +118,7 @@ export function MyApps() {
           if (removing) remove.mutate(removing.id, { onSuccess: () => setRemoving(null) });
         }}
       >
-        It can no longer generate certificates for you. Certificates it already generated are not
-        revoked.
+        It can no longer act for you. Certificates it already generated are not revoked.
       </ConfirmDialog>
     </div>
   );
