@@ -18,16 +18,16 @@
 "use client";
 
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import type { App } from "../api";
-import { useDeleteApp } from "../queries";
+import type { ServiceAccount } from "../api";
+import { useDeleteServiceAccount } from "../queries";
 
-export type DeleteAppDialogProps = {
-  app: App;
+export type DeleteServiceAccountDialogProps = {
+  account: ServiceAccount;
   onClose: () => void;
 };
 
-export function DeleteAppDialog({ app, onClose }: DeleteAppDialogProps) {
-  const remove = useDeleteApp();
+export function DeleteServiceAccountDialog({ account, onClose }: DeleteServiceAccountDialogProps) {
+  const remove = useDeleteServiceAccount();
 
   return (
     <ConfirmDialog
@@ -35,13 +35,13 @@ export function DeleteAppDialog({ app, onClose }: DeleteAppDialogProps) {
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title={`Delete ${app.name}?`}
-      confirmLabel="Delete app"
+      title={`Delete ${account.name}?`}
+      confirmLabel="Delete service account"
       pending={remove.isPending}
       error={remove.error}
-      onConfirm={() => remove.mutate(app.id, { onSuccess: onClose })}
+      onConfirm={() => remove.mutate(account.id, { onSuccess: onClose })}
     >
-      This can't be undone. The app key {app.key} can't be used again.
+      This can't be undone. The key {account.key} can't be used again.
     </ConfirmDialog>
   );
 }

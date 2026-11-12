@@ -27,7 +27,7 @@ describe("TokenReveal", () => {
     render(
       <Dialog open>
         <DialogContent>
-          <TokenReveal appName="Notebook Hub" token="cak_notebook-hub.SECRET" onDone={onDone} />
+          <TokenReveal accountName="Notebook Hub" token="csa_notebook-hub.SECRET" onDone={onDone} />
         </DialogContent>
       </Dialog>,
     );

@@ -29,20 +29,23 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { useAppPrivileges, useCreateApp } from "../queries";
+import { useCreateServiceAccount, useServiceAccountPrivileges } from "../queries";
 import { TokenReveal } from "./TokenReveal";
 
-const APP_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const APP_KEY_MAX_LENGTH = 50;
+const SERVICE_ACCOUNT_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const SERVICE_ACCOUNT_KEY_MAX_LENGTH = 50;
 
-export type CreateAppDialogProps = {
+export type CreateServiceAccountDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
-  const allowedPrivileges = useAppPrivileges();
-  const create = useCreateApp();
+export function CreateServiceAccountDialog({
+  open,
+  onOpenChange,
+}: CreateServiceAccountDialogProps) {
+  const allowedPrivileges = useServiceAccountPrivileges();
+  const create = useCreateServiceAccount();
   const { reset } = create;
   const [key, setKey] = React.useState("");
   const [name, setName] = React.useState("");
@@ -59,9 +62,8 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
     }
   }, [open, reset]);
 
-  const keyIsValid = APP_KEY.test(key) && key.length <= APP_KEY_MAX_LENGTH;
-  const canSubmit =
-    keyIsValid && name.trim() !== "" && privileges.length > 0 && !create.isPending;
+  const keyIsValid = SERVICE_ACCOUNT_KEY.test(key) && key.length <= SERVICE_ACCOUNT_KEY_MAX_LENGTH;
+  const canSubmit = keyIsValid && name.trim() !== "" && privileges.length > 0 && !create.isPending;
   const result = create.data;
 
   function togglePrivilege(privilege: string, checked: boolean) {
@@ -81,16 +83,16 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
       <DialogContent>
         {result ? (
           <TokenReveal
-            appName={result.name}
+            accountName={result.name}
             token={result.token}
             onDone={() => onOpenChange(false)}
           />
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Create app</DialogTitle>
+              <DialogTitle>Create service account</DialogTitle>
               <DialogDescription>
-                An app is a trusted tool that calls Custos with its own token.
+                A service account is a trusted tool that calls Custos with its own token.
               </DialogDescription>
             </DialogHeader>
             <form
@@ -101,27 +103,31 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="app-key">App key</Label>
+                <Label htmlFor="service-account-key">Key</Label>
                 <Input
-                  id="app-key"
+                  id="service-account-key"
                   value={key}
                   onChange={(e) => setKey(e.target.value)}
-                  aria-describedby="app-key-help"
+                  aria-describedby="service-account-key-help"
                   className="font-mono"
                 />
-                <p id="app-key-help" className="text-xs text-muted-foreground">
+                <p id="service-account-key-help" className="text-xs text-muted-foreground">
                   Lowercase letters, digits and hyphens, for example notebook-hub. It cannot be
                   changed later.
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="app-name">Name</Label>
-                <Input id="app-name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Label htmlFor="service-account-name">Name</Label>
+                <Input
+                  id="service-account-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="app-description">Description</Label>
+                <Label htmlFor="service-account-description">Description</Label>
                 <Input
-                  id="app-description"
+                  id="service-account-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
@@ -129,11 +135,12 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
               <fieldset className="space-y-2">
                 <legend className="text-sm font-medium">Privileges</legend>
                 <p className="text-xs text-muted-foreground">
-                  Only privileges allowed for apps are listed. An app needs at least one.
+                  Only privileges allowed for service accounts are listed. A service account needs
+                  at least one.
                 </p>
                 {allowedPrivileges.data?.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No privileges are allowed for apps.
+                    No privileges are allowed for service accounts.
                   </p>
                 ) : null}
                 {allowedPrivileges.data?.map((privilege) => (
@@ -157,7 +164,7 @@ export function CreateAppDialog({ open, onOpenChange }: CreateAppDialogProps) {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={!canSubmit}>
-                  Create app
+                  Create service account
                 </Button>
               </DialogFooter>
             </form>

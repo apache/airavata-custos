@@ -29,18 +29,18 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import type { App } from "../api";
-import { useUpdateApp } from "../queries";
+import type { ServiceAccount } from "../api";
+import { useUpdateServiceAccount } from "../queries";
 
-export type EditAppDialogProps = {
-  app: App;
+export type EditServiceAccountDialogProps = {
+  account: ServiceAccount;
   onClose: () => void;
 };
 
-export function EditAppDialog({ app, onClose }: EditAppDialogProps) {
-  const update = useUpdateApp();
-  const [name, setName] = React.useState(app.name);
-  const [description, setDescription] = React.useState(app.description);
+export function EditServiceAccountDialog({ account, onClose }: EditServiceAccountDialogProps) {
+  const update = useUpdateServiceAccount();
+  const [name, setName] = React.useState(account.name);
+  const [description, setDescription] = React.useState(account.description);
   const canSubmit = name.trim() !== "" && !update.isPending;
 
   return (
@@ -52,9 +52,9 @@ export function EditAppDialog({ app, onClose }: EditAppDialogProps) {
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit {app.name}</DialogTitle>
+          <DialogTitle>Edit {account.name}</DialogTitle>
           <DialogDescription>
-            The app key and privileges cannot be changed. The token keeps working.
+            The key and privileges cannot be changed. The token keeps working.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -62,18 +62,25 @@ export function EditAppDialog({ app, onClose }: EditAppDialogProps) {
           onSubmit={(e) => {
             e.preventDefault();
             if (canSubmit) {
-              update.mutate({ id: app.id, name: name.trim(), description }, { onSuccess: onClose });
+              update.mutate(
+                { id: account.id, name: name.trim(), description },
+                { onSuccess: onClose },
+              );
             }
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="edit-app-name">Name</Label>
-            <Input id="edit-app-name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Label htmlFor="edit-service-account-name">Name</Label>
+            <Input
+              id="edit-service-account-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-app-description">Description</Label>
+            <Label htmlFor="edit-service-account-description">Description</Label>
             <Input
-              id="edit-app-description"
+              id="edit-service-account-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />

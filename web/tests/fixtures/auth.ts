@@ -66,7 +66,7 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "core:roles:manage",
     "core:agreements:read",
     "core:agreements:manage",
-    "core:apps:manage",
+    "core:service-accounts:manage",
     "amie:packets:read",
     "amie:packets:write",
     "amie:replies:read",

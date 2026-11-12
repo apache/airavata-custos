@@ -27,53 +27,53 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
-import type { App } from "../api";
-import { useApps, useDisableApp, useEnableApp } from "../queries";
-import { CreateAppDialog } from "./CreateAppDialog";
-import { DeleteAppDialog } from "./DeleteAppDialog";
-import { EditAppDialog } from "./EditAppDialog";
+import type { ServiceAccount } from "../api";
+import { useDisableServiceAccount, useEnableServiceAccount, useServiceAccounts } from "../queries";
+import { CreateServiceAccountDialog } from "./CreateServiceAccountDialog";
+import { DeleteServiceAccountDialog } from "./DeleteServiceAccountDialog";
+import { EditServiceAccountDialog } from "./EditServiceAccountDialog";
 import { NewSecretDialog } from "./NewSecretDialog";
 
-export function AppsView() {
+export function ServiceAccountsView() {
   const ability = useAbility();
-  const apps = useApps();
-  const disable = useDisableApp();
-  const enable = useEnableApp();
+  const accounts = useServiceAccounts();
+  const disable = useDisableServiceAccount();
+  const enable = useEnableServiceAccount();
   const [creating, setCreating] = React.useState(false);
-  const [editing, setEditing] = React.useState<App | null>(null);
-  const [disabling, setDisabling] = React.useState<App | null>(null);
-  const [newSecretFor, setNewSecretFor] = React.useState<App | null>(null);
-  const [deleting, setDeleting] = React.useState<App | null>(null);
+  const [editing, setEditing] = React.useState<ServiceAccount | null>(null);
+  const [disabling, setDisabling] = React.useState<ServiceAccount | null>(null);
+  const [newSecretFor, setNewSecretFor] = React.useState<ServiceAccount | null>(null);
+  const [deleting, setDeleting] = React.useState<ServiceAccount | null>(null);
 
-  if (ability.cannot("manage", "App")) {
+  if (ability.cannot("manage", "ServiceAccount")) {
     return <ErrorState message="Not permitted." />;
   }
 
-  const columns: Array<DataTableColumn<App>> = [
+  const columns: Array<DataTableColumn<ServiceAccount>> = [
     {
       key: "name",
       header: "Name",
-      cell: (app) => (
+      cell: (account) => (
         <div>
-          <div className="font-medium">{app.name}</div>
-          {app.description ? (
-            <div className="text-xs text-muted-foreground">{app.description}</div>
+          <div className="font-medium">{account.name}</div>
+          {account.description ? (
+            <div className="text-xs text-muted-foreground">{account.description}</div>
           ) : null}
         </div>
       ),
     },
     {
       key: "key",
-      header: "App key",
-      cell: (app) => <span className="font-mono text-xs">{app.key}</span>,
+      header: "Key",
+      cell: (account) => <span className="font-mono text-xs">{account.key}</span>,
     },
     {
       key: "privileges",
       header: "Privileges",
-      cell: (app) =>
-        app.privileges?.length ? (
+      cell: (account) =>
+        account.privileges?.length ? (
           <div className="space-y-0.5 font-mono text-xs">
-            {app.privileges.map((privilege) => (
+            {account.privileges.map((privilege) => (
               <div key={privilege}>{privilege}</div>
             ))}
           </div>
@@ -84,8 +84,8 @@ export function AppsView() {
     {
       key: "status",
       header: "Status",
-      cell: (app) =>
-        app.status === "ACTIVE" ? (
+      cell: (account) =>
+        account.status === "ACTIVE" ? (
           <StatusBadge variant="active" />
         ) : (
           <StatusBadge variant="inactive" label="Disabled" />
@@ -94,25 +94,25 @@ export function AppsView() {
     {
       key: "hint",
       header: "Secret hint",
-      cell: (app) => (
+      cell: (account) => (
         <span className="font-mono text-xs">
-          cak_{app.key}.{app.secret_hint}...
+          csa_{account.key}.{account.secret_hint}...
         </span>
       ),
     },
     {
       key: "manage",
       header: "",
-      cell: (app) => (
+      cell: (account) => (
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={() => setEditing(app)}>
+          <Button size="sm" variant="outline" onClick={() => setEditing(account)}>
             Edit
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setNewSecretFor(app)}>
+          <Button size="sm" variant="outline" onClick={() => setNewSecretFor(account)}>
             New secret
           </Button>
-          {app.status === "ACTIVE" ? (
-            <Button size="sm" variant="outline" onClick={() => setDisabling(app)}>
+          {account.status === "ACTIVE" ? (
+            <Button size="sm" variant="outline" onClick={() => setDisabling(account)}>
               Disable
             </Button>
           ) : (
@@ -122,12 +122,12 @@ export function AppsView() {
                 variant="outline"
                 disabled={enable.isPending}
                 onClick={() =>
-                  enable.mutate(app.id, { onError: (error) => toast.error(error.message) })
+                  enable.mutate(account.id, { onError: (error) => toast.error(error.message) })
                 }
               >
                 Enable
               </Button>
-              <Button size="sm" variant="destructive" onClick={() => setDeleting(app)}>
+              <Button size="sm" variant="destructive" onClick={() => setDeleting(account)}>
                 Delete
               </Button>
             </>
@@ -141,40 +141,47 @@ export function AppsView() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-[28px] font-bold leading-tight">Apps</h1>
+          <h1 className="font-display text-[28px] font-bold leading-tight">Service accounts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Trusted tools that call Custos with their own token.
           </p>
         </div>
-        <Button onClick={() => setCreating(true)}>Create app</Button>
+        <Button onClick={() => setCreating(true)}>Create service account</Button>
       </div>
 
-      {apps.isLoading ? (
+      {accounts.isLoading ? (
         <CardSkeleton />
-      ) : apps.error ? (
-        <ErrorState message={apps.error.message} onRetry={() => apps.refetch()} />
-      ) : apps.data?.length === 0 ? (
-        <EmptyState heading="No apps yet." description="Create one to give a tool its own token." />
+      ) : accounts.error ? (
+        <ErrorState message={accounts.error.message} onRetry={() => accounts.refetch()} />
+      ) : accounts.data?.length === 0 ? (
+        <EmptyState
+          heading="No service accounts yet."
+          description="Create one to give a tool its own token."
+        />
       ) : (
-        <DataTable columns={columns} rows={apps.data ?? []} rowKey={(app) => app.id} />
+        <DataTable columns={columns} rows={accounts.data ?? []} rowKey={(account) => account.id} />
       )}
 
-      <CreateAppDialog open={creating} onOpenChange={setCreating} />
+      <CreateServiceAccountDialog open={creating} onOpenChange={setCreating} />
 
-      {editing ? <EditAppDialog app={editing} onClose={() => setEditing(null)} /> : null}
-
-      {newSecretFor ? (
-        <NewSecretDialog app={newSecretFor} onClose={() => setNewSecretFor(null)} />
+      {editing ? (
+        <EditServiceAccountDialog account={editing} onClose={() => setEditing(null)} />
       ) : null}
 
-      {deleting ? <DeleteAppDialog app={deleting} onClose={() => setDeleting(null)} /> : null}
+      {newSecretFor ? (
+        <NewSecretDialog account={newSecretFor} onClose={() => setNewSecretFor(null)} />
+      ) : null}
+
+      {deleting ? (
+        <DeleteServiceAccountDialog account={deleting} onClose={() => setDeleting(null)} />
+      ) : null}
 
       <ConfirmDialog
         open={disabling !== null}
         onOpenChange={(open) => {
           if (!open) setDisabling(null);
         }}
-        title={`Disable ${disabling?.name ?? "app"}?`}
+        title={`Disable ${disabling?.name ?? "service account"}?`}
         confirmLabel="Disable"
         pending={disable.isPending}
         error={disable.error}

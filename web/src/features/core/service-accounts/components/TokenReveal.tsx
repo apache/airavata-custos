@@ -23,20 +23,20 @@ import { CopyValue } from "@/shared/ui/CopyValue";
 import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 
 export type TokenRevealProps = {
-  appName: string;
+  accountName: string;
   token: string;
   onDone: () => void;
 };
 
-export function TokenReveal({ appName, token, onDone }: TokenRevealProps) {
+export function TokenReveal({ accountName, token, onDone }: TokenRevealProps) {
   const [stored, setStored] = React.useState(false);
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Token for {appName}</DialogTitle>
+        <DialogTitle>Token for {accountName}</DialogTitle>
         <DialogDescription>
-          Give this to the tool that uses this app. It is shown only now. If it is lost, issue a new
-          secret.
+          Give this to the tool that uses this service account. It is shown only now. If it is lost,
+          issue a new secret.
         </DialogDescription>
       </DialogHeader>
       <div className="min-w-0 space-y-4 text-sm">

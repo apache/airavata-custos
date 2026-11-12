@@ -145,10 +145,10 @@ export const portalNav: NavItem[] = [
     ability: { action: "read", subject: "Agreement" },
   },
   {
-    href: "/admin/apps",
-    label: "Apps",
+    href: "/admin/service-accounts",
+    label: "Service accounts",
     icon: Blocks,
     group: "admin",
-    ability: { action: "manage", subject: "App" },
+    ability: { action: "manage", subject: "ServiceAccount" },
   },
 ];

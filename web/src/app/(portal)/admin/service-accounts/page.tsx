@@ -16,12 +16,12 @@
 // under the License.
 
 import type { Metadata } from "next";
-import { AppsView } from "@/features/core/apps/components/AppsView";
+import { ServiceAccountsView } from "@/features/core/service-accounts/components/ServiceAccountsView";
 
 export const metadata: Metadata = {
-  title: "Apps",
+  title: "Service accounts",
 };
 
-export default function AdminAppsPage() {
-  return <AppsView />;
+export default function AdminServiceAccountsPage() {
+  return <ServiceAccountsView />;
 }

@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Privilege } from "@/features/core/identity/types";
 import { http, HttpResponse } from "msw";
+import type { Privilege } from "@/features/core/identity/types";
 
 // Default to admin-grade so MSW-only browsing exercises the full UI; tests
 // override per-case via server.use().
@@ -36,7 +36,7 @@ const ALL_PRIVILEGES: Privilege[] = [
   "core:roles:manage",
   "core:agreements:read",
   "core:agreements:manage",
-  "core:apps:manage",
+  "core:service-accounts:manage",
   "amie:packets:read",
   "amie:packets:write",
   "amie:replies:read",

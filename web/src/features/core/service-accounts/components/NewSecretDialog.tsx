@@ -26,17 +26,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import type { App } from "../api";
-import { useIssueAppSecret } from "../queries";
+import type { ServiceAccount } from "../api";
+import { useIssueServiceAccountSecret } from "../queries";
 import { TokenReveal } from "./TokenReveal";
 
 export type NewSecretDialogProps = {
-  app: App;
+  account: ServiceAccount;
   onClose: () => void;
 };
 
-export function NewSecretDialog({ app, onClose }: NewSecretDialogProps) {
-  const issue = useIssueAppSecret();
+export function NewSecretDialog({ account, onClose }: NewSecretDialogProps) {
+  const issue = useIssueServiceAccountSecret();
   const result = issue.data;
 
   return (
@@ -49,11 +49,11 @@ export function NewSecretDialog({ app, onClose }: NewSecretDialogProps) {
     >
       <DialogContent>
         {result ? (
-          <TokenReveal appName={app.name} token={result.token} onDone={onClose} />
+          <TokenReveal accountName={account.name} token={result.token} onDone={onClose} />
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>New secret for {app.name}?</DialogTitle>
+              <DialogTitle>New secret for {account.name}?</DialogTitle>
               <DialogDescription>
                 The current token stops working at once. The tool must switch to the new token.
               </DialogDescription>
@@ -67,7 +67,7 @@ export function NewSecretDialog({ app, onClose }: NewSecretDialogProps) {
               <Button variant="outline" onClick={onClose} disabled={issue.isPending}>
                 Cancel
               </Button>
-              <Button onClick={() => issue.mutate(app.id)} disabled={issue.isPending}>
+              <Button onClick={() => issue.mutate(account.id)} disabled={issue.isPending}>
                 Issue new secret
               </Button>
             </DialogFooter>
