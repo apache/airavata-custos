@@ -15,10 +15,10 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-CREATE TABLE IF NOT EXISTS apps
+CREATE TABLE IF NOT EXISTS service_accounts
 (
     id          VARCHAR(255)   NOT NULL,
-    key         VARCHAR(50)    NOT NULL, -- The app's readable ID. It is in the token and in audit records.
+    key         VARCHAR(50)    NOT NULL, -- The service account's readable ID. It is in the token and in audit records.
     name        VARCHAR(100)   NOT NULL,
     description TEXT           NOT NULL DEFAULT '',
     status      VARCHAR(16)    NOT NULL DEFAULT 'ACTIVE',
@@ -28,18 +28,18 @@ CREATE TABLE IF NOT EXISTS apps
     created_at  TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at  TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    CONSTRAINT uq_apps_key UNIQUE (key), -- Deleted apps keep their key, so it is never reused.
-    CONSTRAINT chk_apps_status CHECK (status IN ('ACTIVE', 'DISABLED', 'DELETED')),
-    CONSTRAINT fk_apps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
+    CONSTRAINT uq_service_accounts_key UNIQUE (key), -- Deleted service accounts keep their key, so it is never reused.
+    CONSTRAINT chk_service_accounts_status CHECK (status IN ('ACTIVE', 'DISABLED', 'DELETED')),
+    CONSTRAINT fk_service_accounts_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
 
--- A deleted app's name can be used again.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_apps_name ON apps (name) WHERE status <> 'DELETED';
+-- A deleted service account's name can be used again.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_service_accounts_name ON service_accounts (name) WHERE status <> 'DELETED';
 
-CREATE TABLE IF NOT EXISTS app_privileges
+CREATE TABLE IF NOT EXISTS service_account_privileges
 (
-    app_id    VARCHAR(255) NOT NULL,
-    privilege VARCHAR(64)  NOT NULL,
-    PRIMARY KEY (app_id, privilege),
-    CONSTRAINT fk_app_privileges_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT
+    service_account_id VARCHAR(255) NOT NULL,
+    privilege          VARCHAR(64)  NOT NULL,
+    PRIMARY KEY (service_account_id, privilege),
+    CONSTRAINT fk_service_account_privileges_account FOREIGN KEY (service_account_id) REFERENCES service_accounts (id) ON DELETE RESTRICT
 );

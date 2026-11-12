@@ -321,19 +321,19 @@ type CoreService interface {
 	UserRoleService
 	UserAgreementService
 	UserConsentService
-	AppService
+	ServiceAccountService
 }
 
-type AppService interface {
-	ListApps(ctx context.Context) ([]models.App, error)
-	GetApp(ctx context.Context, id string) (*models.App, error)
-	DeleteApp(ctx context.Context, id, actorID string) error
-	CreateApp(ctx context.Context, key, name, description string, privileges []models.PrivilegeKey, actorID string) (*models.App, string, error)
-	UpdateApp(ctx context.Context, id, name, description, actorID string) (*models.App, error)
-	DisableApp(ctx context.Context, id, actorID string) (*models.App, error)
-	EnableApp(ctx context.Context, id, actorID string) (*models.App, error)
-	IssueAppSecret(ctx context.Context, id, actorID string) (*models.App, string, error)
-	ResolveApp(ctx context.Context, token string) (*models.App, error)
+type ServiceAccountService interface {
+	ListServiceAccounts(ctx context.Context) ([]models.ServiceAccount, error)
+	GetServiceAccount(ctx context.Context, id string) (*models.ServiceAccount, error)
+	DeleteServiceAccount(ctx context.Context, id, actorID string) error
+	CreateServiceAccount(ctx context.Context, key, name, description string, privileges []models.PrivilegeKey, actorID string) (*models.ServiceAccount, string, error)
+	UpdateServiceAccount(ctx context.Context, id, name, description, actorID string) (*models.ServiceAccount, error)
+	DisableServiceAccount(ctx context.Context, id, actorID string) (*models.ServiceAccount, error)
+	EnableServiceAccount(ctx context.Context, id, actorID string) (*models.ServiceAccount, error)
+	IssueServiceAccountSecret(ctx context.Context, id, actorID string) (*models.ServiceAccount, string, error)
+	ResolveServiceAccount(ctx context.Context, token string) (*models.ServiceAccount, error)
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

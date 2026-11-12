@@ -30,11 +30,11 @@ to the signer. To offer the signer without the rest of Custos, enable only this 
 |-----------------------------------------------------------|-----------------------------|---------------------------------------------------------------|
 | `GET /connectors/signer/certificates`                     | `signer:certificates:read`  | All certificates                                              |
 | `GET /connectors/signer/certificates/{serial}`            | `signer:certificates:read`  | Any certificate                                               |
-| `POST /connectors/signer/certificates/{serial}/revoke`    | `signer:certificates:write` | Revoke any certificate, recorded under the email of the admin |
+| `POST /connectors/signer/certificates/{serial}/revoke`    | `signer:certificates:write` | Revoke any certificate, recorded as `user/<admin id>`         |
 | `GET /connectors/signer/me/certificates`                  | Signed in                   | The caller's own certificates                                 |
 | `POST /connectors/signer/me/certificates`                 | Signed in                   | Generate a certificate for the caller's account               |
 | `GET /connectors/signer/me/certificates/{serial}`         | Signed in                   | One of the caller's own certificates                          |
-| `POST /connectors/signer/me/certificates/{serial}/revoke` | Signed in                   | Revoke one of the caller's own, recorded as `self`            |
+| `POST /connectors/signer/me/certificates/{serial}/revoke` | Signed in                   | Revoke one of the caller's own, recorded as `user/<id>`       |
 | `GET /connectors/signer/status`                           | `signer:certificates:read`  | Whether the signer answers its health route, and how fast     |
 
 The certificate lists are keyset-paged: pass `limit` and the last `next_cursor` as `cursor`. Someone else's certificate
@@ -49,21 +49,7 @@ A refusal has an `error` code: `user_not_active`, `no_cluster_account`, `cluster
 `no_active_allocation`, `signer_unavailable`, or from the signer `reserved_username`, `invalid_public_key` and
 `key_type_not_allowed`.
 
-## App routes
-
-An app signs in with its token and can use only these routes. It never holds the privileges above.
-
-| Route                                                      | Action                            | Does                                                  |
-|------------------------------------------------------------|-----------------------------------|-------------------------------------------------------|
-| `POST /connectors/signer/app/certificates`                 | `signer:app:generate-certificate` | Generate a certificate for the user in `user_email`   |
-| `GET /connectors/signer/app/certificates`                  | `signer:app:generate-certificate` | The certificates this app requested                   |
-| `GET /connectors/signer/app/certificates/{serial}`         | `signer:app:generate-certificate` | One certificate this app requested                    |
-| `POST /connectors/signer/app/certificates/{serial}/revoke` | `signer:app:revoke-certificate`   | Revoke one this app requested, recorded under the app |
-
-Generate takes `user_email`, `public_key` and an optional `source_address`. Every certificate records `app/<key>` as who
-asked. The user must be active, have accepted the current user agreement, have signed in to Custos at least once, have
-allowed the app, and pass the same account and allocation checks as above. Besides the codes above, an app can get
-`user_not_found`, `consent_required`, `user_not_signed_in` and `app_not_authorized`.
+Service accounts can't use these routes. A person generates a certificate and hands it to the tool that needs it.
 
 ## Configuration
 

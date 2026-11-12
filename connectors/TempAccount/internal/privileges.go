@@ -27,5 +27,5 @@ const (
 
 func init() {
 	models.Register(AccountsRead, AccountsWrite)
-	models.AllowForApps(UsersCreate)
+	models.AllowForServiceAccounts(UsersCreate)
 }

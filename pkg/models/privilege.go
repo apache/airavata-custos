@@ -27,28 +27,28 @@ import (
 type PrivilegeKey string
 
 const (
-	ClustersRead       PrivilegeKey = "core:clusters:read"
-	ClustersWrite      PrivilegeKey = "core:clusters:write"
-	AllocationsRead    PrivilegeKey = "core:allocations:read"
-	AllocationsWrite   PrivilegeKey = "core:allocations:write"
-	ProjectsRead       PrivilegeKey = "core:projects:read"
-	ProjectsWrite      PrivilegeKey = "core:projects:write"
-	UsersRead          PrivilegeKey = "core:users:read"
-	UsersWrite         PrivilegeKey = "core:users:write"
-	OrganizationsRead  PrivilegeKey = "core:organizations:read"
-	OrganizationsWrite PrivilegeKey = "core:organizations:write"
-	TracesRead         PrivilegeKey = "core:traces:read"
-	PrivilegesGrant    PrivilegeKey = "core:privileges:grant"
-	RolesManage        PrivilegeKey = "core:roles:manage"
-	EventsManage       PrivilegeKey = "core:events:manage"
-	AgreementsRead     PrivilegeKey = "core:agreements:read"
-	AgreementsManage   PrivilegeKey = "core:agreements:manage"
-	AppsManage         PrivilegeKey = "core:apps:manage"
+	ClustersRead          PrivilegeKey = "core:clusters:read"
+	ClustersWrite         PrivilegeKey = "core:clusters:write"
+	AllocationsRead       PrivilegeKey = "core:allocations:read"
+	AllocationsWrite      PrivilegeKey = "core:allocations:write"
+	ProjectsRead          PrivilegeKey = "core:projects:read"
+	ProjectsWrite         PrivilegeKey = "core:projects:write"
+	UsersRead             PrivilegeKey = "core:users:read"
+	UsersWrite            PrivilegeKey = "core:users:write"
+	OrganizationsRead     PrivilegeKey = "core:organizations:read"
+	OrganizationsWrite    PrivilegeKey = "core:organizations:write"
+	TracesRead            PrivilegeKey = "core:traces:read"
+	PrivilegesGrant       PrivilegeKey = "core:privileges:grant"
+	RolesManage           PrivilegeKey = "core:roles:manage"
+	EventsManage          PrivilegeKey = "core:events:manage"
+	AgreementsRead        PrivilegeKey = "core:agreements:read"
+	AgreementsManage      PrivilegeKey = "core:agreements:manage"
+	ServiceAccountsManage PrivilegeKey = "core:service-accounts:manage"
 )
 
 // privilegeRules holds what we know about a privilege.
 type privilegeRules struct {
-	allowedForApps bool
+	allowedForServiceAccounts bool
 }
 
 var (
@@ -74,7 +74,7 @@ func init() {
 		EventsManage,
 		AgreementsRead,
 		AgreementsManage,
-		AppsManage,
+		ServiceAccountsManage,
 	)
 }
 
@@ -89,13 +89,13 @@ func Register(keys ...PrivilegeKey) {
 	}
 }
 
-// AllowForApps registers privileges that can be given to an app.
-// Never use it for privileges that manage user access, roles, privileges, or apps.
-func AllowForApps(keys ...PrivilegeKey) {
+// AllowForServiceAccounts registers privileges that can be given to a service account.
+// Never use it for privileges that manage user access, roles, privileges, or service accounts.
+func AllowForServiceAccounts(keys ...PrivilegeKey) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
 	for _, k := range keys {
-		registry[k] = privilegeRules{allowedForApps: true}
+		registry[k] = privilegeRules{allowedForServiceAccounts: true}
 	}
 }
 
@@ -104,9 +104,9 @@ func KnownPrivileges() []PrivilegeKey {
 	return registeredKeys(func(privilegeRules) bool { return true })
 }
 
-// AppPrivileges returns the privileges an app can hold, sorted.
-func AppPrivileges() []PrivilegeKey {
-	return registeredKeys(func(rules privilegeRules) bool { return rules.allowedForApps })
+// ServiceAccountPrivileges returns the privileges a service account can hold, sorted.
+func ServiceAccountPrivileges() []PrivilegeKey {
+	return registeredKeys(func(rules privilegeRules) bool { return rules.allowedForServiceAccounts })
 }
 
 func registeredKeys(include func(privilegeRules) bool) []PrivilegeKey {
@@ -122,11 +122,11 @@ func registeredKeys(include func(privilegeRules) bool) []PrivilegeKey {
 	return keys
 }
 
-// IsAppPrivilege reports whether an app can hold p.
-func IsAppPrivilege(p PrivilegeKey) bool {
+// IsServiceAccountPrivilege reports whether a service account can hold p.
+func IsServiceAccountPrivilege(p PrivilegeKey) bool {
 	registryMu.RLock()
 	defer registryMu.RUnlock()
-	return registry[p].allowedForApps
+	return registry[p].allowedForServiceAccounts
 }
 
 // IsKnownPrivilege reports whether p is registered.

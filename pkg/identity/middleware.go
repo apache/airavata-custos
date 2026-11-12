@@ -79,34 +79,34 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, public, withoutUs
 	})
 }
 
-// AppTokenPrefix marks a Custos issued app token (cak_ - custos app key).
-const AppTokenPrefix = "cak_"
+// ServiceAccountTokenPrefix marks a Custos issued service account token (csa_ - custos service account).
+const ServiceAccountTokenPrefix = "csa_"
 
-// AppMiddleware handles calls made with an app token. Other calls go to nonAppCalls.
-// An app always calls as itself, with its own privileges, never as a user.
-func AppMiddleware(apps AppResolver, next, nonAppCalls http.Handler) http.Handler {
+// ServiceAccountMiddleware handles calls made with a service account token. Other calls go to nonServiceAccountCalls.
+// A service account always calls as itself, with its own privileges, never as a user.
+func ServiceAccountMiddleware(accounts ServiceAccountResolver, next, nonServiceAccountCalls http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		rawToken, ok := bearer(req.Header.Get("Authorization"))
-		if !ok || !strings.HasPrefix(rawToken, AppTokenPrefix) {
-			nonAppCalls.ServeHTTP(w, req)
+		if !ok || !strings.HasPrefix(rawToken, ServiceAccountTokenPrefix) {
+			nonServiceAccountCalls.ServeHTTP(w, req)
 			return
 		}
-		app, err := apps.ResolveApp(req.Context(), rawToken)
-		if errors.Is(err, ErrInvalidAppToken) {
-			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid app token")
+		account, err := accounts.ResolveServiceAccount(req.Context(), rawToken)
+		if errors.Is(err, ErrInvalidServiceAccountToken) {
+			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid service account token")
 			return
 		}
-		if errors.Is(err, ErrAppDisabled) {
-			writeJSONError(w, http.StatusForbidden, "app_disabled", "App is disabled")
+		if errors.Is(err, ErrServiceAccountDisabled) {
+			writeJSONError(w, http.StatusForbidden, "service_account_disabled", "Service account is disabled")
 			return
 		}
 		if err != nil {
-			slog.ErrorContext(req.Context(), "app lookup failed", "error", err.Error())
+			slog.ErrorContext(req.Context(), "service account lookup failed", "error", err.Error())
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
-		ctx := WithCaller(req.Context(), &Caller{AppID: app.ID, AppKey: app.Key})
-		next.ServeHTTP(w, req.WithContext(withPrivileges(ctx, app.Privileges)))
+		ctx := WithCaller(req.Context(), &Caller{ServiceAccountID: account.ID, ServiceAccountKey: account.Key})
+		next.ServeHTTP(w, req.WithContext(withPrivileges(ctx, account.Privileges)))
 	})
 }
 
@@ -124,11 +124,11 @@ func NewRouter(mux *http.ServeMux) *Router {
 	return &Router{mux: mux, publicMux: http.NewServeMux(), withoutUserConsentMux: http.NewServeMux()}
 }
 
-// Routes without a privilege work on the caller's own data, so an app can't use them.
-func refuseApps(handler http.HandlerFunc) http.HandlerFunc {
+// Routes without a privilege work on the caller's own data, so a service account can't use them.
+func refuseServiceAccounts(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		if caller := CallerFromContext(req.Context()); caller != nil && caller.IsApp() {
-			writeJSONError(w, http.StatusForbidden, "app_not_allowed", "Apps cannot use this route")
+		if caller := CallerFromContext(req.Context()); caller != nil && caller.IsServiceAccount() {
+			writeJSONError(w, http.StatusForbidden, "service_account_not_allowed", "Service accounts cannot use this route")
 			return
 		}
 		handler(w, req)
@@ -156,7 +156,7 @@ func (r *Router) Public(pattern string, handler http.HandlerFunc) {
 // RequireAuth registers a handler that requires a verified caller but no
 // specific privilege. (e.g., caller looking up their own data).
 func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, refuseApps(handler))
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(handler))
 }
 
 // RequireScoped registers a route whose access depends on the specific
@@ -164,7 +164,7 @@ func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
 // and returns false to deny, or returns true to run handler. The policy is a
 // required argument, so a scoped route cannot be registered without one.
 func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, refuseApps(func(w http.ResponseWriter, req *http.Request) {
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(func(w http.ResponseWriter, req *http.Request) {
 		if !authorize(w, req) {
 			return
 		}
@@ -175,7 +175,7 @@ func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWrite
 // RequireAuthWithoutUserConsent registers a handler that signed-in callers
 // can reach before accepting the user agreement. Handlers read ClaimsFromContext.
 func (r *Router) RequireAuthWithoutUserConsent(pattern string, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, refuseApps(handler))
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(handler))
 	r.withoutUserConsentMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
 }
 

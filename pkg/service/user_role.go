@@ -307,14 +307,14 @@ func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Ro
 	role = &models.Role{
 		ID:          newID(),
 		Name:        models.SystemRoleAdmin,
-		Description: stringPtrOrNil("day-to-day administration, everything except grants, role management and apps"),
+		Description: stringPtrOrNil("day-to-day administration, everything except grants, role management and service accounts"),
 		IsSystem:    true,
 	}
 	if err := s.roles.Create(ctx, tx, role); err != nil {
 		return nil, fmt.Errorf("create admin role: %w", err)
 	}
 	for _, key := range models.KnownPrivileges() {
-		if key == models.PrivilegesGrant || key == models.RolesManage || key == models.AppsManage {
+		if key == models.PrivilegesGrant || key == models.RolesManage || key == models.ServiceAccountsManage {
 			continue
 		}
 		if err := s.roles.AddPrivilege(ctx, tx, role.ID, key); err != nil {

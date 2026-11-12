@@ -19,12 +19,12 @@ package models
 
 import "testing"
 
-// Make sure Register does not undo AllowForApps when both are called for the same key.
-func TestRegister_KeepsAppPermission(t *testing.T) {
+// Make sure Register does not undo AllowForServiceAccounts when both are called for the same key.
+func TestRegister_KeepsServiceAccountPermission(t *testing.T) {
 	const key PrivilegeKey = "test:items:create"
-	AllowForApps(key)
+	AllowForServiceAccounts(key)
 	Register(key)
-	if !IsAppPrivilege(key) {
-		t.Fatal("the key is no longer allowed for apps")
+	if !IsServiceAccountPrivilege(key) {
+		t.Fatal("the key is no longer allowed for service accounts")
 	}
 }

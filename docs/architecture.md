@@ -126,7 +126,7 @@ configuration.
 
 Inbound authentication is an OIDC bearer JWT. `pkg/identity/verifier.go` checks its signature, `iss` and `aud`.
 `iss` and `aud` must match `core.auth.oidc.{issuer,audience}`. The resolved caller is cached for `core.auth.cache_ttl`
-([CONFIG.md](../CONFIG.md#core-keys)). Apps authenticate differently, see [Apps](#apps).
+([CONFIG.md](../CONFIG.md#core-keys)). Service accounts authenticate differently, see [Service accounts](#service-accounts).
 
 Routes register through one of five router methods:
 
@@ -155,30 +155,30 @@ The middleware answers authentication failures with `{"code": ..., "message": ..
 | `403`  | `insufficient_privilege` | The route's privilege is missing                   |
 | `503`  | `auth_lookup_failed`     | Caller resolution failed                           |
 
-### Apps
+### Service accounts
 
-An app is a tool a super admin registers at `/apps` (`core:apps:manage`). It calls with
-`Authorization: Bearer cak_<key>.<secret>`, and `identity.AppMiddleware` handles those calls before the user path.
-An app always acts as itself, with the privileges the admin gave it. It never acts as a user.
+A service account is a tool a super admin registers at `/service-accounts` (`core:service-accounts:manage`). It calls
+with `Authorization: Bearer csa_<key>.<secret>`, and `identity.ServiceAccountMiddleware` handles those calls before the
+user path. A service account always acts as itself, with the privileges the admin gave it. It never acts as a user.
 
-Only keys registered with `models.AllowForApps(...)` can be given to an app.
+Only keys registered with `models.AllowForServiceAccounts(...)` can be given to a service account.
 
-| Method                                                          | App                      |
-|-----------------------------------------------------------------|--------------------------|
-| `Public`                                                        | Yes                      |
-| `RequirePrivilege`                                              | If the app holds the key |
-| `RequireAuth`, `RequireScoped`, `RequireAuthWithoutUserConsent` | No                       |
+| Method                                                          | Service account                      |
+|-----------------------------------------------------------------|--------------------------------------|
+| `Public`                                                        | Yes                                  |
+| `RequirePrivilege`                                              | If the service account holds the key |
+| `RequireAuth`, `RequireScoped`, `RequireAuthWithoutUserConsent` | No                                   |
 
-Extra codes on app calls:
+Extra codes on service account calls:
 
-| Status | `code`            | Cause                                     |
-|--------|-------------------|-------------------------------------------|
-| `401`  | `invalid_token`   | Unknown app or wrong secret               |
-| `403`  | `app_disabled`    | The app is disabled                       |
-| `403`  | `app_not_allowed` | The route has no privilege an app can use |
+| Status | `code`                        | Cause                                                 |
+|--------|-------------------------------|-------------------------------------------------------|
+| `401`  | `invalid_token`               | Unknown service account or wrong secret               |
+| `403`  | `service_account_disabled`    | The service account is disabled                       |
+| `403`  | `service_account_not_allowed` | The route has no privilege a service account can use |
 
-Who made a call is `Caller.Requester()`: `app/<key>` when an app called, otherwise `user/<id>`. Audit rows written
-during an app's call also carry `app_key`.
+Who made a call is `Caller.Requester()`: `service-account/<key>` when a service account called, otherwise
+`user/<id>`. Audit rows written during a service account's call also carry `service_account_key`.
 
 ### Privileges
 

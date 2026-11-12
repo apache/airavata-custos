@@ -40,41 +40,6 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
-  App:
-    properties:
-      created_at:
-        type: string
-      created_by:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      key:
-        type: string
-      name:
-        type: string
-      privileges:
-        items:
-          $ref: '#/definitions/PrivilegeKey'
-        type: array
-      secret_hint:
-        type: string
-      status:
-        $ref: '#/definitions/AppStatus'
-      updated_at:
-        type: string
-    type: object
-  AppStatus:
-    enum:
-    - ACTIVE
-    - DISABLED
-    - DELETED
-    type: string
-    x-enum-varnames:
-    - AppActive
-    - AppDisabled
-    - AppDeleted
   AuditEvent:
     properties:
       details:
@@ -692,7 +657,7 @@ definitions:
     - core:events:manage
     - core:agreements:read
     - core:agreements:manage
-    - core:apps:manage
+    - core:service-accounts:manage
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -711,7 +676,7 @@ definitions:
     - EventsManage
     - AgreementsRead
     - AgreementsManage
-    - AppsManage
+    - ServiceAccountsManage
   Project:
     properties:
       created_time:
@@ -823,6 +788,41 @@ definitions:
       name:
         type: string
     type: object
+  ServiceAccount:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/ServiceAccountStatus'
+      updated_at:
+        type: string
+    type: object
+  ServiceAccountStatus:
+    enum:
+    - ACTIVE
+    - DISABLED
+    - DELETED
+    type: string
+    x-enum-varnames:
+    - ServiceAccountActive
+    - ServiceAccountDisabled
+    - ServiceAccountDeleted
   SetupStatusResponse:
     properties:
       steps:
@@ -1145,33 +1145,6 @@ definitions:
       name:
         type: string
     type: object
-  appWithTokenView:
-    properties:
-      created_at:
-        type: string
-      created_by:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      key:
-        type: string
-      name:
-        type: string
-      privileges:
-        items:
-          $ref: '#/definitions/PrivilegeKey'
-        type: array
-      secret_hint:
-        type: string
-      status:
-        $ref: '#/definitions/AppStatus'
-      token:
-        type: string
-      updated_at:
-        type: string
-    type: object
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -1186,19 +1159,6 @@ definitions:
       pending:
         items:
           $ref: '#/definitions/UserAgreement'
-        type: array
-    type: object
-  createAppRequest:
-    properties:
-      description:
-        type: string
-      key:
-        type: string
-      name:
-        type: string
-      privileges:
-        items:
-          $ref: '#/definitions/PrivilegeKey'
         type: array
     type: object
   createComputeClusterUserRequest:
@@ -1216,6 +1176,19 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  createServiceAccountRequest:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
     type: object
   createUserRequest:
     properties:
@@ -1309,6 +1282,33 @@ definitions:
       privilege:
         $ref: '#/definitions/PrivilegeKey'
     type: object
+  serviceAccountWithTokenView:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/ServiceAccountStatus'
+      token:
+        type: string
+      updated_at:
+        type: string
+    type: object
   setAllocationResourcesRequest:
     properties:
       resource_ids:
@@ -1323,13 +1323,6 @@ definitions:
       resource_time:
         type: integer
     type: object
-  updateAppRequest:
-    properties:
-      description:
-        type: string
-      name:
-        type: string
-    type: object
   updateProjectRequest:
     properties:
       project_pi_id:
@@ -1338,6 +1331,13 @@ definitions:
         type: string
     type: object
   updateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  updateServiceAccountRequest:
     properties:
       description:
         type: string
@@ -1836,389 +1836,6 @@ paths:
       summary: Remove a published user agreement
       tags:
       - Agreements
-  /apps:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/App'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List apps
-      tags:
-      - Apps
-    post:
-      consumes:
-      - application/json
-      description: The token is returned only here.
-      parameters:
-      - description: App
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/createAppRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/appWithTokenView'
-        "400":
-          description: Bad Request
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "409":
-          description: That key or name is taken
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create an app
-      tags:
-      - Apps
-  /apps/{id}:
-    delete:
-      description: The key can never be used again.
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "409":
-          description: The app is not disabled
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete a disabled app
-      tags:
-      - Apps
-    get:
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/App'
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get an app
-      tags:
-      - Apps
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Name and description
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/updateAppRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/App'
-        "400":
-          description: Bad Request
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "409":
-          description: That name is taken
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Edit an app's name and description
-      tags:
-      - Apps
-  /apps/{id}/disable:
-    post:
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/App'
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Disable an app
-      tags:
-      - Apps
-  /apps/{id}/enable:
-    post:
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/App'
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Enable an app
-      tags:
-      - Apps
-  /apps/{id}/secret:
-    post:
-      description: The old token stops working at once. The new token is returned
-        only here.
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/appWithTokenView'
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Issue a new secret for an app
-      tags:
-      - Apps
-  /apps/privileges:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              type: string
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "403":
-          description: Caller lacks apps:manage
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List the privileges an app may hold
-      tags:
-      - Apps
   /audit/events:
     get:
       parameters:
@@ -4933,7 +4550,7 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
-        - core:apps:manage
+        - core:service-accounts:manage
         in: path
         name: key
         required: true
@@ -5592,7 +5209,7 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
-        - core:apps:manage
+        - core:service-accounts:manage
         in: path
         name: key
         required: true
@@ -5626,6 +5243,389 @@ paths:
       summary: Remove a privilege from a role
       tags:
       - Roles
+  /service-accounts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ServiceAccount'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List service accounts
+      tags:
+      - Service accounts
+    post:
+      consumes:
+      - application/json
+      description: The token is returned only here.
+      parameters:
+      - description: Service account
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/createServiceAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/serviceAccountWithTokenView'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That key or name is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a service account
+      tags:
+      - Service accounts
+  /service-accounts/{id}:
+    delete:
+      description: The key can never be used again.
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: The service account is not disabled
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a disabled service account
+      tags:
+      - Service accounts
+    get:
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a service account
+      tags:
+      - Service accounts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Name and description
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateServiceAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That name is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Edit a service account's name and description
+      tags:
+      - Service accounts
+  /service-accounts/{id}/disable:
+    post:
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Disable a service account
+      tags:
+      - Service accounts
+  /service-accounts/{id}/enable:
+    post:
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Enable a service account
+      tags:
+      - Service accounts
+  /service-accounts/{id}/secret:
+    post:
+      description: The old token stops working at once. The new token is returned
+        only here.
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/serviceAccountWithTokenView'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Issue a new secret for a service account
+      tags:
+      - Service accounts
+  /service-accounts/privileges:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the privileges a service account may hold
+      tags:
+      - Service accounts
   /user-identities:
     post:
       consumes:
@@ -6255,7 +6255,7 @@ paths:
         - core:events:manage
         - core:agreements:read
         - core:agreements:manage
-        - core:apps:manage
+        - core:service-accounts:manage
         in: path
         name: key
         required: true
