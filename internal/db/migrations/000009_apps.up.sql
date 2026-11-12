@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS apps
 CREATE TABLE IF NOT EXISTS app_privileges
 (
     app_id    VARCHAR(255) NOT NULL,
-    privilege VARCHAR(100) NOT NULL,
+    privilege VARCHAR(64)  NOT NULL,
     PRIMARY KEY (app_id, privilege),
     CONSTRAINT fk_app_privileges_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE RESTRICT
 );
