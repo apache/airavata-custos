@@ -509,19 +509,22 @@ type SetupStep struct {
 
 // SetupSteps returns the provisioning steps that apply to the user and when each was done.
 func (s *Service) SetupSteps(ctx context.Context, userID string) ([]SetupStep, error) {
-	registered, err := s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceComanage)
-	if err != nil {
-		return nil, fmt.Errorf("lookup registry identity: %w", err)
-	}
-	var registeredAt *time.Time
-	if registered != nil {
-		registeredAt = &registered.CreatedAt
-	}
-	steps := []SetupStep{{Key: "registry", DoneAt: registeredAt}}
-
 	accounts, err := s.clusterUsers.FindByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	steps := []SetupStep{}
+	// A user is registered only while a cluster account is provisioned.
+	if len(accounts) > 0 {
+		registered, err := s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceComanage)
+		if err != nil {
+			return nil, fmt.Errorf("lookup registry identity: %w", err)
+		}
+		var registeredAt *time.Time
+		if registered != nil {
+			registeredAt = &registered.CreatedAt
+		}
+		steps = append(steps, SetupStep{Key: "registry", DoneAt: registeredAt})
 	}
 	for _, a := range accounts {
 		cluster, err := s.GetComputeCluster(ctx, a.ComputeClusterID)
