@@ -48,7 +48,7 @@ const inline: Record<string, Record<string, (go: GoIndex) => Node>> = {
     "GET /roles/{id}": () =>
       literal({ role: ref("Role"), privileges: nullable(array(ref("PrivilegeKey"))) }),
     // A nil privilege set is replaced with an empty one.
-    "GET /user/privileges": () => literal({ privileges: array(ref("PrivilegeKey")) }),
+    "GET /me/privileges": () => literal({ privileges: array(ref("PrivilegeKey")) }),
   },
   amie: {
     // ListAuditsForPacket builds models.TraceEvent rows with make, id included.

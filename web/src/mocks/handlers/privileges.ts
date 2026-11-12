@@ -64,7 +64,7 @@ function effectivePrivileges(): Privilege[] {
 export { effectivePrivileges };
 
 export const privilegesHandlers = [
-  http.get("*/api/v1/user/privileges", () =>
+  http.get("*/api/v1/me/privileges", () =>
     HttpResponse.json({ privileges: effectivePrivileges() }),
   ),
 ];

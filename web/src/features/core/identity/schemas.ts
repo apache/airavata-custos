@@ -17,10 +17,10 @@
 
 import {
   zCallerRoleGrant,
+  zGetMePrivilegesResponse,
   zGetMeResponse,
   zGetRolesByIdResponse,
   zGetRolesResponse,
-  zGetUserPrivilegesResponse,
   zGetUsersByIdRolesResponse,
   zGetUsersByIdUserIdentitiesResponse,
   zRole,
@@ -42,7 +42,7 @@ export const roleWithPrivilegesSchema = z.object({
   grant: zUserRole,
 });
 
-export const privilegesResponseSchema = zGetUserPrivilegesResponse
+export const privilegesResponseSchema = zGetMePrivilegesResponse
   .extend({ privileges: z.array(privilegeKeySchema) })
   .transform((value) => value.privileges);
 

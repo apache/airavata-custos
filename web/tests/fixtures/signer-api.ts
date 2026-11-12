@@ -75,7 +75,7 @@ async function installSignerRoutes(context: BrowserContext) {
     const requestLabel = `${request.method()} ${url.pathname}${url.search}`;
     interceptedRequests.push(requestLabel);
 
-    if (request.method() === "GET" && url.pathname === "/api/v1/user/privileges") {
+    if (request.method() === "GET" && url.pathname === "/api/v1/me/privileges") {
       await json(route, { privileges: cookiePrivileges(route) });
       return;
     }

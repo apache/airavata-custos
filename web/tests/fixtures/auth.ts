@@ -28,7 +28,7 @@ import { encode } from "next-auth/jwt";
 export type Persona =   | "researcher" | "readOnlyAdmin" | "manager" | "signer-reader" | "admin";
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
-// gates resolve per persona. The MSW /user/privileges handler reads the
+// gates resolve per persona. The MSW /me/privileges handler reads the
 // matching test-privileges cookie set below.
 const PRIVILEGES: Record<Persona, string[]> = {
   researcher: [],
@@ -123,7 +123,7 @@ export async function signInAs(
       secure: false,
       sameSite: "Lax",
     },
-    // Non-httpOnly so the browser-context MSW /user/privileges handler can read
+    // Non-httpOnly so the browser-context MSW /me/privileges handler can read
     // it and scope abilities to this persona.
     {
       name: "custos.test-privileges",
