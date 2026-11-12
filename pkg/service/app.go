@@ -218,6 +218,8 @@ func (s *Service) ResolveApp(ctx context.Context, token string) (*models.App, er
 	if a.Status != models.AppActive {
 		return nil, identity.ErrAppDisabled
 	}
+	// A key taken off AllowForApps in a later release stops working for apps that were given it before.
+	a.Privileges = slices.DeleteFunc(a.Privileges, func(p models.PrivilegeKey) bool { return !models.IsAppPrivilege(p) })
 	return a, nil
 }
 

@@ -142,8 +142,24 @@ Other roles are site-defined through `/roles`.
 2. Declare it in the owning package:
     - Core: add a constant to `pkg/models/privilege.go` and to its `Register(...)` call.
     - Connector: add a constant to the connector's `privileges.go` and register it from that file's `init`.
+    - If apps may hold it, register it with `models.AllowForApps(...)` instead. Never do this for a key that manages
+      user access, roles, privileges or apps.
 3. Gate the route with `router.RequirePrivilege(pattern, KEY, handler)`.
 4. Add a row to the matching table above.
 
 `super_admin` picks up a new key at the next start with `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` set. The `admin` role does
 not. Add the key to it through `POST /roles/{id}/privileges`.
+
+## Changing or removing a privilege
+
+Grants are stored by key in `user_privileges`, `role_privileges` and `app_privileges`. Changing only the code leaves
+those rows behind, so add a new migration in the same change:
+
+| Change                                                     | Migration                             |
+|------------------------------------------------------------|---------------------------------------|
+| Rename a key                                               | Update the key in all three tables    |
+| Remove a key                                               | Delete its rows from all three tables |
+| Stop allowing a key for apps (`AllowForApps` → `Register`) | Delete its rows from `app_privileges` |
+
+If the migration is missed, an app still cannot use a key that is no longer allowed for apps, but the admin apps page
+keeps listing it until the rows are gone.

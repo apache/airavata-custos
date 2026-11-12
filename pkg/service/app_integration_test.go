@@ -95,6 +95,25 @@ func TestApp_TokenAuthenticatesAndSecretIsNotStored(t *testing.T) {
 	}
 }
 
+// Make sure an app no longer gets a stored privilege once that key is not allowed for apps.
+func TestApp_DropsPrivilegesNoLongerAllowedForApps(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	app, token := newTestApp(t, svc, seedAppAdmin(t, database))
+	// Stands in for a key that a later release took off AllowForApps.
+	if _, err := database.Exec(`INSERT INTO app_privileges (app_id, privilege) VALUES ($1, $2)`, app.ID, models.UsersWrite); err != nil {
+		t.Fatal(err)
+	}
+
+	resolved, err := svc.ResolveApp(ctx(), token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(resolved.Privileges, []models.PrivilegeKey{testAppPrivilege}) {
+		t.Fatalf("privileges = %v", resolved.Privileges)
+	}
+}
+
 // Make sure a token with a wrong or missing secret, or a malformed app key, is refused.
 func TestApp_BadTokenIsRefused(t *testing.T) {
 	database := setupTestDB(t)
