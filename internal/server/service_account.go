@@ -24,7 +24,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type serviceAccountWithTokenView struct {
+type serviceAccountTokenResponse struct {
 	models.ServiceAccount
 	Token string `json:"token"`
 }
@@ -85,7 +85,7 @@ func (s *Server) listServiceAccountPrivileges(w http.ResponseWriter, r *http.Req
 // @Accept	json
 // @Produce	json
 // @Param	request	body	createServiceAccountRequest	true	"Service account"
-// @Success	201	{object}	serviceAccountWithTokenView
+// @Success	201	{object}	serviceAccountTokenResponse
 // @Failure	400	{object}	object{error=string}
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks service-accounts:manage"
@@ -106,7 +106,7 @@ func (s *Server) createServiceAccount(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusCreated, serviceAccountWithTokenView{ServiceAccount: *a, Token: token})
+	common.WriteJSON(w, http.StatusCreated, serviceAccountTokenResponse{ServiceAccount: *a, Token: token})
 }
 
 // @Summary	Get a service account
@@ -215,7 +215,7 @@ func (s *Server) enableServiceAccount(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Service account ID"
-// @Success	200	{object}	serviceAccountWithTokenView
+// @Success	200	{object}	serviceAccountTokenResponse
 // @Failure	401	{object}	object{error=string}
 // @Failure	403	{object}	object{error=string}	"Caller lacks service-accounts:manage"
 // @Failure	404	{object}	object{error=string}
@@ -230,7 +230,7 @@ func (s *Server) issueServiceAccountSecret(w http.ResponseWriter, r *http.Reques
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, serviceAccountWithTokenView{ServiceAccount: *a, Token: token})
+	common.WriteJSON(w, http.StatusOK, serviceAccountTokenResponse{ServiceAccount: *a, Token: token})
 }
 
 func writeNoContent(w http.ResponseWriter, err error) {

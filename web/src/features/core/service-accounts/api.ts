@@ -17,12 +17,12 @@
 
 import { z } from "zod";
 import { privilegeKeySchema } from "@/features/core/identity/schemas";
-import { zServiceAccount, zServiceAccountWithTokenView } from "@/generated/core/zod.gen";
+import { zServiceAccount, zServiceAccountTokenResponse } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 
 const privilegesSchema = z.array(privilegeKeySchema).nullable();
 const serviceAccountSchema = zServiceAccount.extend({ privileges: privilegesSchema });
-const serviceAccountWithTokenSchema = zServiceAccountWithTokenView.extend({
+const serviceAccountWithTokenSchema = zServiceAccountTokenResponse.extend({
   privileges: privilegesSchema,
 });
 

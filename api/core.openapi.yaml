@@ -1282,7 +1282,7 @@ definitions:
       privilege:
         $ref: '#/definitions/PrivilegeKey'
     type: object
-  serviceAccountWithTokenView:
+  serviceAccountTokenResponse:
     properties:
       created_at:
         type: string
@@ -5290,7 +5290,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/serviceAccountWithTokenView'
+            $ref: '#/definitions/serviceAccountTokenResponse'
         "400":
           description: Bad Request
           schema:
@@ -5569,7 +5569,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/serviceAccountWithTokenView'
+            $ref: '#/definitions/serviceAccountTokenResponse'
         "401":
           description: Unauthorized
           schema:
