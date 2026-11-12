@@ -264,9 +264,14 @@ func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWrite
 
 // RequireAuthWithoutUserConsent registers a handler that signed-in callers
 // can reach before accepting the user agreement. Handlers read ClaimsFromContext.
-// A delegated app only gets here once the user has onboarded and accepted, so it cannot do either for them.
 func (r *Router) RequireAuthWithoutUserConsent(pattern string, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, refuseServiceApps(handler))
+	if strings.HasPrefix(pattern, http.MethodGet+" ") {
+		// A delegated app can read the user's profile here. A service app has no user, so it can't.
+		r.mux.HandleFunc(pattern, refuseServiceApps(handler))
+	} else {
+		// Only the user can accept an agreement or finish onboarding, never an app.
+		r.mux.HandleFunc(pattern, refuseApps(handler))
+	}
 	r.withoutUserConsentMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
 }
 

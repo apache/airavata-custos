@@ -60,6 +60,7 @@ type appCall struct {
 	apps      fakeApps
 	user      fakeUser
 	userToken string
+	method    string // GET when empty
 	path      string
 }
 
@@ -79,11 +80,16 @@ func serve(call appCall) (int, string) {
 	router.RequirePrivilege("GET /clusters", models.ClustersWrite, ok)
 	router.RequireAuth("GET /me/certificates", ok)
 	router.RequireAuthWithoutUserConsent("GET /me", ok)
+	router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", ok)
 	router.RequireAuthUsersOnly("GET /me/app-authorizations", ok)
 	nonAppCalls := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusTeapot) })
 	handler := AppMiddleware(call.apps, fakeAppsClient{}, call.user, router, nonAppCalls)
 
-	req := httptest.NewRequest(http.MethodGet, call.path, nil)
+	method := call.method
+	if method == "" {
+		method = http.MethodGet
+	}
+	req := httptest.NewRequest(method, call.path, nil)
 	req.Header.Set("Authorization", "Bearer "+AppTokenPrefix+"tool.secret")
 	if call.userToken != "" {
 		req.Header.Set(UserTokenHeader, call.userToken)
@@ -182,6 +188,14 @@ func TestDelegatedApp_CannotManageAppAuthorizations(t *testing.T) {
 	call.path = "/me/app-authorizations"
 	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "app_not_allowed" {
 		t.Errorf("app authorizations: got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a delegated app cannot accept a user agreement for the user, even though it can read the profile on the same kind of route.
+func TestDelegatedApp_CannotAcceptAgreement(t *testing.T) {
+	call := appCall{apps: fakeApps{app: delegatedApp(), allowed: true}, userToken: "user-token", method: http.MethodPost, path: "/me/agreements/a1/accept"}
+	if code, errorCode := serve(call); code != http.StatusForbidden || errorCode != "app_not_allowed" {
+		t.Fatalf("got %d %s", code, errorCode)
 	}
 }
 
