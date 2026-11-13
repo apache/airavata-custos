@@ -15,9 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// The administrative signer list supports limit/offset. Search and status
-// filters are intentionally applied to the loaded page in the portal.
+// The signer has no search or status filter, so those apply to the loaded page only.
 export type CertificateListParams = {
   limit?: number;
-  offset?: number;
+  cursor?: string | undefined;
+};
+
+export type CertificateListPaging = {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onPageSizeChange: (size: number) => void;
 };

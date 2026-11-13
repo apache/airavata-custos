@@ -216,3 +216,9 @@ connectors:
     logo_url: "${EMAIL_LOGO_URL}"
     # Optional. A directory with custom email templates.
     templates_dir: "${EMAIL_TEMPLATES_DIR}"
+
+  signer:
+    type: "signer"
+    enabled: true
+    base_url: "${SIGNER_BASE_URL}"
+    timeout_seconds: 10
