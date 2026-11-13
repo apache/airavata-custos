@@ -301,6 +301,7 @@ curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
 | HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                         |
 | HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                         |
 | Exits with "no CA key in vault"       | No CA at `vault.ca_key_path`                | Fix the path. A new CA is not trusted by the login nodes            |
+| Exits with "check-and-set parameter"  | The CA's latest version in Vault is deleted | Undelete that version. The signer never replaces an existing CA     |
 | HTTP 500 on every sign                | `certificate_serial_seq` is missing         | `CREATE SEQUENCE certificate_serial_seq`, then the `setval` above   |
 
 ## License

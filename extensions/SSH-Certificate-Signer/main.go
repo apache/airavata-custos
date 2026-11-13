@@ -210,8 +210,11 @@ func loadCA(ctx context.Context, vaultClient *vault.Client, createIfMissing bool
 			return "", err
 		}
 		fingerprint, err := cert.CAFingerprint(kp.PublicKey)
+		if err != nil {
+			return "", err
+		}
 		auditLogger.LogCACreated(ctx, fingerprint)
-		return fingerprint, err
+		return fingerprint, nil
 	}
 	if err != nil {
 		return "", err
