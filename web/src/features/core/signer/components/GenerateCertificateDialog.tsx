@@ -90,20 +90,28 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
         if (!generate.isPending) onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         {result ? (
           <>
             <DialogHeader>
               <DialogTitle>Your certificate is ready</DialogTitle>
               <DialogDescription>
-                {result.principal}, valid until {formatUnixSeconds(result.valid_before)}. It is shown
-                only now. If you lose it, generate another.
+                Certificate {result.serial_number} for {result.principal}, valid until{" "}
+                {formatUnixSeconds(result.valid_before)}. It is shown only now. If you lose it,
+                generate another.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 text-sm">
+            <div className="min-w-0 space-y-4 text-sm">
               <div className="space-y-1">
-                <p className="font-medium">Certificate</p>
-                <CopyValue value={result.certificate} label="certificate" explicit />
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Certificate</p>
+                  <CopyValue value={result.certificate} label="certificate" explicit>
+                    Copy
+                  </CopyValue>
+                </div>
+                <pre className="max-h-32 overflow-y-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-2 font-mono text-xs">
+                  {result.certificate}
+                </pre>
               </div>
               <ol className="list-decimal space-y-2 pl-5">
                 <li>
@@ -151,9 +159,7 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                 </p>
               </div>
               {generate.error ? (
-                <p className="text-sm text-[color:var(--custos-red-700)]">
-                  {refusalMessage(generate.error)}
-                </p>
+                <p className="text-sm text-destructive">{refusalMessage(generate.error)}</p>
               ) : null}
               <DialogFooter>
                 <Button

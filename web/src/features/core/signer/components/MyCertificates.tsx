@@ -32,7 +32,9 @@ import type { Certificate } from "../schemas";
 import {
   CERTIFICATE_STATUS_LABELS,
   type CertificateStatus,
+  formatUnixDate,
   formatUnixSeconds,
+  formatValidUntil,
   getCertificateStatus,
   statusBadgeVariantFromCertificateStatus,
 } from "../status";
@@ -62,18 +64,43 @@ export function MyCertificates() {
 
   const columns: Array<DataTableColumn<Certificate>> = [
     {
+      key: "serial",
+      header: "Serial",
+      cell: (row) => (
+        <Link
+          href={`/ssh-access/${row.serial_number}`}
+          className="font-mono font-medium text-foreground hover:underline"
+        >
+          {row.serial_number}
+        </Link>
+      ),
+    },
+    {
+      key: "key",
+      header: "Key",
+      cell: (row) => (
+        <span className="font-mono text-xs text-muted-foreground" title={row.public_key_fingerprint}>
+          {row.public_key_fingerprint.slice(0, 14)}…
+        </span>
+      ),
+    },
+    {
       key: "issued",
       header: "Issued",
       cell: (row) => (
-        <Link href={`/ssh-access/${row.serial_number}`} className="text-sm font-medium hover:underline">
-          {formatUnixSeconds(row.issued_at)}
-        </Link>
+        <span className="text-sm" title={formatUnixSeconds(row.issued_at)}>
+          {formatUnixDate(row.issued_at)}
+        </span>
       ),
     },
     {
       key: "validBefore",
       header: "Valid until",
-      cell: (row) => <span className="text-sm">{formatUnixSeconds(row.valid_before)}</span>,
+      cell: (row) => (
+        <span className="text-sm" title={formatUnixSeconds(row.valid_before)}>
+          {formatValidUntil(row)}
+        </span>
+      ),
     },
     {
       key: "status",
@@ -91,11 +118,14 @@ export function MyCertificates() {
     {
       key: "actions",
       header: "",
+      align: "right",
+      interactive: true,
       cell: (row) =>
         getCertificateStatus(row) === "active" ? (
           <Button
             variant="outline"
             size="sm"
+            aria-label={`Revoke certificate ${row.serial_number}`}
             onClick={() => {
               setRevokeError(null);
               setRevoking(row);
@@ -139,7 +169,7 @@ export function MyCertificates() {
       </div>
 
       {query.isLoading ? (
-        <TableSkeleton rows={4} columns={5} />
+        <TableSkeleton rows={4} columns={6} />
       ) : query.error ? (
         <ErrorState message={loadErrorMessage(query.error)} onRetry={() => query.refetch()} />
       ) : filtered.length === 0 ? (

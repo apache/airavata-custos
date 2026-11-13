@@ -61,6 +61,15 @@ export function formatUnixDate(seconds: number): string {
   });
 }
 
+// Time left on an active certificate, otherwise its end date. Certificates last at most a day.
+export function formatValidUntil(cert: Certificate, now: Date = new Date()): string {
+  if (getCertificateStatus(cert, now) !== "active") return formatUnixDate(cert.valid_before);
+  const left = cert.valid_before - Math.floor(now.getTime() / 1000);
+  if (left < 60) return "in less than a minute";
+  if (left < 3600) return `in ${Math.floor(left / 60)} min`;
+  return `in ${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m`;
+}
+
 export function formatCertificateLifetime(cert: Certificate): string {
   const seconds = Math.max(0, cert.valid_before - cert.valid_after);
   const hours = Math.floor(seconds / 3600);
