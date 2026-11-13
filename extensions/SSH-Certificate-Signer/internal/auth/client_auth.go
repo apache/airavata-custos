@@ -19,7 +19,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -34,42 +33,19 @@ func NewClientAuthenticator(db *store.DB) *ClientAuthenticator {
 	return &ClientAuthenticator{db: db}
 }
 
-// ParseClientID parses the X-Client-Id header value into tenant_id and client_id.
-// The header format is {tenant_id}:{client_id}, split on the first colon only.
-func ParseClientID(header string) (tenantID, clientID string, err error) {
-	if header == "" {
-		return "", "", fmt.Errorf("empty client ID header")
-	}
-	idx := strings.Index(header, ":")
-	if idx < 0 {
-		return "", "", fmt.Errorf("invalid client ID format: no colon separator")
-	}
-	tenantID = header[:idx]
-	clientID = header[idx+1:]
-	if tenantID == "" || clientID == "" {
-		return "", "", fmt.Errorf("invalid client ID format: empty tenant or client")
-	}
-	return tenantID, clientID, nil
-}
-
 type AuthResult struct {
 	Config *store.ClientConfig
 }
 
-func (a *ClientAuthenticator) Authenticate(ctx context.Context, clientIDHeader, secretHeader string) (*AuthResult, error) {
-	if clientIDHeader == "" {
+func (a *ClientAuthenticator) Authenticate(ctx context.Context, clientID, secretHeader string) (*AuthResult, error) {
+	if clientID == "" {
 		return nil, &AuthError{Code: "unauthorized", Message: "Missing X-Client-Id header", Status: 401}
 	}
 	if secretHeader == "" {
 		return nil, &AuthError{Code: "unauthorized", Message: "Missing X-Client-Secret header", Status: 401}
 	}
 
-	tenantID, clientID, err := ParseClientID(clientIDHeader)
-	if err != nil {
-		return nil, &AuthError{Code: "unauthorized", Message: err.Error(), Status: 401}
-	}
-
-	cfg, err := a.db.GetClientConfig(ctx, tenantID, clientID)
+	cfg, err := a.db.GetClientConfig(ctx, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("looking up client config: %w", err)
 	}

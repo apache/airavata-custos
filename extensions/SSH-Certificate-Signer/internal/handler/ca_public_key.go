@@ -51,10 +51,7 @@ func (h *CAPublicKeyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantID := clientCfg.TenantID
-	clientID := clientCfg.ClientID
-
-	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context(), tenantID, clientID)
+	currentKey, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
 		h.logger.Error("failed to get current CA key", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to retrieve CA key")

@@ -29,7 +29,7 @@
 set -uo pipefail
 
 SIGNER_URL="${SIGNER_URL:-http://localhost:8084}"
-CLIENT_ID="${CLIENT_ID:-custos:bench}"
+CLIENT_ID="${CLIENT_ID:-bench}"
 CLIENT_SECRET="${CLIENT_SECRET:-bench-secret}"
 SSH_PORT="${SSH_PORT:-2222}"
 PRINCIPAL="${PRINCIPAL:-testuser}"

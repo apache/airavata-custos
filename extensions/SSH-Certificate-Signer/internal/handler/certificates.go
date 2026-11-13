@@ -38,7 +38,6 @@ import (
 )
 
 type CertificateResponse struct {
-	TenantID             string   `json:"tenant_id"`
 	ClientID             string   `json:"client_id"`
 	SerialNumber         int64    `json:"serial_number"`
 	KeyID                string   `json:"key_id"`
@@ -135,7 +134,6 @@ func (h *CertificatesHandler) HandleList(w http.ResponseWriter, r *http.Request)
 	certs := make([]CertificateResponse, 0, len(result.Certificates))
 	for _, c := range result.Certificates {
 		cert := CertificateResponse{
-			TenantID:             c.TenantID,
 			ClientID:             c.ClientID,
 			SerialNumber:         c.SerialNumber,
 			KeyID:                c.KeyID,
@@ -418,7 +416,6 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func toCertificateResponse(c *store.CertificateWithStatus) CertificateResponse {
 	resp := CertificateResponse{
-		TenantID:             c.TenantID,
 		ClientID:             c.ClientID,
 		SerialNumber:         c.SerialNumber,
 		KeyID:                c.KeyID,

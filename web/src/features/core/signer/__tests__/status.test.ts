@@ -24,7 +24,6 @@ import {
 } from "../status";
 
 const base: Certificate = {
-  tenant_id: "tenant-1",
   client_id: "signer-client",
   serial_number: 1,
   key_id: "k",

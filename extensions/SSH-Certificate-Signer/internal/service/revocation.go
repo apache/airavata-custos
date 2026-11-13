@@ -101,7 +101,7 @@ func (s *RevocationService) Revoke(ctx context.Context, command RevokeCommand) (
 	keyID := certificate.KeyID
 	caFingerprint := certificate.CAFingerprint
 	event := &store.RevocationEvent{
-		TenantID: certificate.TenantID, ClientID: certificate.ClientID,
+		ClientID:     certificate.ClientID,
 		SerialNumber: &serial, KeyID: &keyID, CAFingerprint: &caFingerprint,
 		Reason: command.Reason, RevokedBy: command.RevokedBy,
 	}

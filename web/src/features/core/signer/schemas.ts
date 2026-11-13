@@ -22,7 +22,6 @@ import { z } from "zod";
 // Mirrors extensions/SSH-Certificate-Signer CertificateResponse. Unix-second
 // timestamps are passed through as numbers and formatted in the UI layer.
 export const certificateSchema = z.object({
-  tenant_id: z.string(),
   client_id: z.string(),
   serial_number: z.number().int(),
   key_id: z.string(),
