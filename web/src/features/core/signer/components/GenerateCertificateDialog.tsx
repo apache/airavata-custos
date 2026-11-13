@@ -61,14 +61,28 @@ function addressList(text: string): string {
     .join(",");
 }
 
-function grantSummary(result: GeneratedCertificate): string | null {
+function GrantSummary({ result }: { result: GeneratedCertificate }) {
   if (!result.granted_extensions) return null;
   const allowed = CERTIFICATE_OPTIONS.filter((o) => result.granted_extensions?.includes(o.name));
-  const allows =
-    allowed.length > 0
-      ? `Allows ${allowed.map((o) => o.label).join(", ")}.`
-      : "Allows no extra options.";
-  return result.force_command ? `${allows} Runs only ${result.force_command}.` : allows;
+  return (
+    <p className="text-muted-foreground">
+      {allowed.length > 0 ? "Allows " : "Allows no extra options."}
+      {allowed.map((o, i) => (
+        <React.Fragment key={o.name}>
+          {i > 0 ? ", " : null}
+          <span className="font-medium text-foreground">{o.label}</span>
+        </React.Fragment>
+      ))}
+      {allowed.length > 0 ? "." : null}
+      {result.force_command ? (
+        <>
+          {" "}
+          Runs only{" "}
+          <code className="font-mono text-xs text-foreground">{result.force_command}</code>.
+        </>
+      ) : null}
+    </p>
+  );
 }
 
 function OptionField({
@@ -155,7 +169,6 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
   const missingValue =
     (onlyAddresses && !addressList(addresses)) || (onlyCommand && !command.trim());
   const result = generate.data;
-  const summary = result ? grantSummary(result) : null;
 
   return (
     <Dialog
@@ -164,19 +177,26 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
         if (!generate.isPending) onOpenChange(next);
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className={`max-h-[90vh] overflow-y-auto ${result ? "sm:max-w-2xl" : "sm:max-w-lg"}`}
+      >
         {result ? (
           <>
             <DialogHeader>
               <DialogTitle>Your certificate is ready</DialogTitle>
               <DialogDescription>
-                Certificate {result.serial_number} for {result.principal}, valid until{" "}
-                {formatUnixSeconds(result.valid_before)}. It is shown only now. If you lose it,
-                generate another.
+                Certificate{" "}
+                <span className="font-medium text-foreground">{result.serial_number}</span> for{" "}
+                <span className="font-mono font-medium text-foreground">{result.principal}</span>,
+                valid until{" "}
+                <span className="font-medium text-foreground">
+                  {formatUnixSeconds(result.valid_before)}
+                </span>
+                . It is shown only now. If you lose it, generate another.
               </DialogDescription>
             </DialogHeader>
             <div className="min-w-0 space-y-4 text-sm">
-              {summary ? <p>{summary}</p> : null}
+              <GrantSummary result={result} />
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">Certificate</p>
@@ -184,7 +204,7 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                     Copy
                   </CopyValue>
                 </div>
-                <pre className="max-h-32 overflow-y-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-2 font-mono text-xs">
+                <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-3 font-mono text-xs leading-relaxed">
                   {result.certificate}
                 </pre>
               </div>
@@ -193,8 +213,16 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                   Save it next to your private key as{" "}
                   <code className="font-mono text-xs">{keyFile(result.certificate)}-cert.pub</code>
                 </li>
-                <li>
-                  Run <CopyValue value={sshCommand(result)} label="ssh command" explicit />
+                <li className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span>Run</span>
+                    <CopyValue value={sshCommand(result)} label="ssh command" explicit>
+                      Copy
+                    </CopyValue>
+                  </div>
+                  <pre className="whitespace-pre-wrap break-all rounded-md border bg-muted p-3 font-mono text-xs">
+                    {sshCommand(result)}
+                  </pre>
                 </li>
               </ol>
             </div>
@@ -254,11 +282,7 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                 </div>
               )}
 
-              <OptionField
-                id="lifetime"
-                label="Lifetime"
-                info="How long the certificate works."
-              >
+              <OptionField id="lifetime" label="Lifetime" info="How long the certificate works.">
                 <select
                   aria-labelledby="lifetime-label"
                   value={lifetime}
