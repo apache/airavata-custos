@@ -281,19 +281,37 @@ func (h *Handlers) generateCertificate(w http.ResponseWriter, r *http.Request) {
 	}
 	caller := identity.CallerFromContext(r.Context())
 	var req struct {
-		PublicKey     string `json:"public_key"`
-		SourceAddress string `json:"source_address"`
+		PublicKey         string   `json:"public_key"`
+		TTLSeconds        int      `json:"ttl_seconds"`
+		SourceAddress     string   `json:"source_address"`
+		ForceCommand      string   `json:"force_command"`
+		ExcludeExtensions []string `json:"exclude_extensions"`
 	}
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxRequestBytes)).Decode(&req); err != nil || req.PublicKey == "" {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxRequestBytes)).Decode(&req); err != nil {
+		refuse(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
+		return
+	}
+	if req.PublicKey == "" {
 		refuse(w, http.StatusBadRequest, "invalid_public_key", "A public key is required")
 		return
 	}
+	// The config value is the default and the longest a caller may ask for.
+	if req.TTLSeconds == 0 {
+		req.TTLSeconds = h.cfg.TTLSeconds
+	}
+	if req.TTLSeconds < 0 || req.TTLSeconds > h.cfg.TTLSeconds {
+		refuse(w, http.StatusBadRequest, "invalid_ttl", fmt.Sprintf("Lifetime must be between 1 and %d seconds", h.cfg.TTLSeconds))
+		return
+	}
 	h.issueCertificate(w, r, caller.UserID, map[string]any{
-		"public_key":     req.PublicKey,
-		"user_email":     caller.Email,
-		"user_sub":       claims.Sub,
-		"requested_by":   caller.Requester(),
-		"source_address": req.SourceAddress,
+		"public_key":         req.PublicKey,
+		"ttl_seconds":        req.TTLSeconds,
+		"user_email":         caller.Email,
+		"user_sub":           claims.Sub,
+		"requested_by":       caller.Requester(),
+		"source_address":     req.SourceAddress,
+		"force_command":      req.ForceCommand,
+		"exclude_extensions": req.ExcludeExtensions,
 	})
 }
 
@@ -314,8 +332,10 @@ func (h *Handlers) issueCertificate(w http.ResponseWriter, r *http.Request, user
 		return
 	}
 	sign["principal"] = username
-	sign["ttl_seconds"] = h.cfg.TTLSeconds
-	h.relayAndAudit(w, r, "/api/v1/sign", sign, AuditCertificateIssued, map[string]any{"user_id": userID, "principal": username, "requested_by": sign["requested_by"]})
+	h.relayAndAudit(w, r, "/api/v1/sign", sign, AuditCertificateIssued, map[string]any{
+		"user_id": userID, "principal": username, "requested_by": sign["requested_by"], "ttl_seconds": sign["ttl_seconds"],
+		"source_address": sign["source_address"], "force_command": sign["force_command"], "exclude_extensions": sign["exclude_extensions"],
+	})
 }
 
 // loginName returns the username to sign for.

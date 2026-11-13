@@ -223,5 +223,5 @@ connectors:
     base_url: "${SIGNER_BASE_URL}"
     service_token: "${SIGNER_SERVICE_TOKEN}"
     cluster_id: "${CUSTOS_CLUSTER_ID}"
-    certificate_ttl_seconds: 28800
+    certificate_ttl_seconds: 14400
     timeout_seconds: 10

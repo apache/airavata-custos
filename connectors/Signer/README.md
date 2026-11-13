@@ -45,9 +45,18 @@ an
 active allocation on that cluster. The username comes from the cluster account, and the email and subject from the
 caller's verified token, never from the request.
 
+Besides `public_key`, the caller may send options that only narrow the certificate:
+
+| Field                | Effect                                                                                     |
+|----------------------|--------------------------------------------------------------------------------------------|
+| `ttl_seconds`        | Shorter lifetime. Empty means `certificate_ttl_seconds`, which is also the longest allowed |
+| `source_address`     | Comma-separated IP addresses or CIDR blocks the certificate works from                     |
+| `force_command`      | The only command a login runs                                                              |
+| `exclude_extensions` | Standard options to leave out, such as `permit-port-forwarding`                            |
+
 A refusal has an `error` code: `user_not_active`, `no_cluster_account`, `cluster_account_not_ready`,
-`no_active_allocation`, `signer_unavailable`, or from the signer `reserved_username`, `invalid_public_key`,
-`key_type_not_allowed` and `too_many_certificates`.
+`no_active_allocation`, `invalid_ttl`, `signer_unavailable`, or from the signer `reserved_username`,
+`invalid_public_key`, `key_type_not_allowed`, `invalid_request` and `too_many_certificates`.
 
 Service accounts can't use these routes. A person generates a certificate and hands it to the tool that needs it.
 
@@ -61,5 +70,5 @@ setting is empty the connector skips loading and reports the gap on `GET /connec
 | `base_url`                | `SIGNER_BASE_URL`                | yes      | The signer's URL. Keep it off public networks. |
 | `service_token`           | `SIGNER_SERVICE_TOKEN`           | yes      | The same token set on the signer               |
 | `cluster_id`              | `CUSTOS_CLUSTER_ID`              | yes      | The cluster certificates log in to             |
-| `certificate_ttl_seconds` |                                  | no       | Certificate lifetime, default `28800`          |
+| `certificate_ttl_seconds` |                                  | no       | Longest certificate lifetime, default `14400`  |
 | `timeout_seconds`         |                                  | no       | Request timeout, default `10`                  |
