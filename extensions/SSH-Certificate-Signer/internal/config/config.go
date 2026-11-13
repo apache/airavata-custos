@@ -77,9 +77,15 @@ type CAConfig struct {
 }
 
 type PolicyConfig struct {
-	MaxTTLSeconds    int      `yaml:"max_ttl_seconds"`
-	AllowedKeyTypes  []string `yaml:"allowed_key_types"`
-	DeniedExtensions []string `yaml:"denied_extensions"`
+	MaxTTLSeconds    int                    `yaml:"max_ttl_seconds"`
+	AllowedKeyTypes  []string               `yaml:"allowed_key_types"`
+	DeniedExtensions []string               `yaml:"denied_extensions"`
+	CertificateLimit CertificateLimitConfig `yaml:"certificate_limit"`
+}
+
+type CertificateLimitConfig struct {
+	MaxPerUser    int `yaml:"max_per_user"`
+	WindowSeconds int `yaml:"window_seconds"`
 }
 
 type ValidationConfig struct {
@@ -121,8 +127,9 @@ func DefaultConfig() *Config {
 			ReservedUsernames: []string{"root"},
 			LoginPort:         22,
 			Policy: PolicyConfig{
-				MaxTTLSeconds:   86400,
-				AllowedKeyTypes: []string{"ed25519", "rsa", "ecdsa"},
+				MaxTTLSeconds:    86400,
+				AllowedKeyTypes:  []string{"ed25519", "rsa", "ecdsa"},
+				CertificateLimit: CertificateLimitConfig{MaxPerUser: 5, WindowSeconds: 3600},
 			},
 			Validation: ValidationConfig{
 				PrincipalValidator: "none",
@@ -167,6 +174,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Signer.LoginHost == "" {
 		return fmt.Errorf("login_host is required")
+	}
+	if limit := c.Signer.Policy.CertificateLimit; limit.MaxPerUser < 1 || limit.WindowSeconds < 1 {
+		return fmt.Errorf("certificate_limit max_per_user and window_seconds must be at least 1")
 	}
 	return nil
 }

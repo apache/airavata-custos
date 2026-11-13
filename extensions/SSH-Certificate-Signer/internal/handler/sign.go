@@ -67,10 +67,12 @@ type SignResponse struct {
 }
 
 type SignSettings struct {
-	ReservedUsernames []string
-	DeniedExtensions  []string
-	LoginHost         string
-	LoginPort         int
+	ReservedUsernames      []string
+	DeniedExtensions       []string
+	LoginHost              string
+	LoginPort              int
+	CertificateLimit       int
+	CertificateLimitWindow time.Duration
 }
 
 type SignHandler struct {
@@ -165,6 +167,19 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	extensionsMap := cert.ExtensionsToMap(grantedExts)
 	grantedExtNames := cert.ExtensionNames(grantedExts)
+
+	// Requests that arrive together can each pass this count, so a user can go a few over the limit.
+	issued, err := h.db.CountRecentCertificates(r.Context(), req.UserSub, h.settings.CertificateLimitWindow)
+	if err != nil {
+		h.logger.Error("failed to count recent certificates", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to check the certificate limit")
+		return
+	}
+	if issued >= h.settings.CertificateLimit {
+		h.logRefusal(&req, "too_many_certificates")
+		writeError(w, http.StatusTooManyRequests, "too_many_certificates", "Too many certificates for this user. Try again later.")
+		return
+	}
 
 	valResult, err := h.principalValidator.Validate(r.Context(), req.Principal, req.UserSub)
 	if err != nil {

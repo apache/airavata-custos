@@ -47,6 +47,17 @@ func (d *DB) NextSerial(ctx context.Context) (int64, error) {
 	return serial, nil
 }
 
+// CountRecentCertificates returns how many certificates the user was issued within the window.
+// The cutoff uses the database clock, the same one that stamps issued_at.
+func (d *DB) CountRecentCertificates(ctx context.Context, userSub string, window time.Duration) (int, error) {
+	var count int
+	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM certificate_issuance_logs WHERE user_sub = $1 AND issued_at > now() - make_interval(secs => $2)`,
+		userSub, window.Seconds()).Scan(&count); err != nil {
+		return 0, fmt.Errorf("counting certificates: %w", err)
+	}
+	return count, nil
+}
+
 // InsertIssuanceLog writes a certificate issuance entry. Fails on duplicate serial_number.
 func (d *DB) InsertIssuanceLog(ctx context.Context, log *IssuanceLog) error {
 	grantedExtensions := log.GrantedExtensions

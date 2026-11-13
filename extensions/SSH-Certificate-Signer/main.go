@@ -172,10 +172,12 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
 	signHandler := handler.NewSignHandler(policyEnforcer, principalValidator, vaultClient, db, auditLogger, handler.SignSettings{
-		ReservedUsernames: cfg.Signer.ReservedUsernames,
-		DeniedExtensions:  cfg.Signer.Policy.DeniedExtensions,
-		LoginHost:         cfg.Signer.LoginHost,
-		LoginPort:         cfg.Signer.LoginPort,
+		ReservedUsernames:      cfg.Signer.ReservedUsernames,
+		DeniedExtensions:       cfg.Signer.Policy.DeniedExtensions,
+		LoginHost:              cfg.Signer.LoginHost,
+		LoginPort:              cfg.Signer.LoginPort,
+		CertificateLimit:       cfg.Signer.Policy.CertificateLimit.MaxPerUser,
+		CertificateLimitWindow: time.Duration(cfg.Signer.Policy.CertificateLimit.WindowSeconds) * time.Second,
 	}, logger)
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
 	healthHandler := handler.NewHealthHandler(db, vaultClient)
