@@ -26,7 +26,7 @@ import (
 
 // CredentialFetcher abstracts Vault credential reads for validating.
 type CredentialFetcher interface {
-	GetValidationCredentials(ctx context.Context, clientID string) (*vault.ValidationCredentials, error)
+	GetValidationCredentials(ctx context.Context) (*vault.ValidationCredentials, error)
 }
 
 type cachedCreds struct {
@@ -35,24 +35,23 @@ type cachedCreds struct {
 	fetchedAt time.Time
 }
 
-// ValidatorDispatcher resolves the correct principal validator per client and
-// delegates to the appropriate source of truth validator (noop, ldap, comanage).
+// ValidatorDispatcher runs the deployment's principal validator (noop, ldap, comanage).
 type ValidatorDispatcher struct {
-	credFetcher    CredentialFetcher
-	ldapConnector  LDAPConnector
-	fallbackSource string
-	cacheTTL       time.Duration
-	negativeTTL    time.Duration
-	cache          map[string]*cachedCreds
-	validators     map[string]*LDAPValidator
-	mu             sync.RWMutex
-	logger         *slog.Logger
+	credFetcher   CredentialFetcher
+	ldapConnector LDAPConnector
+	source        string
+	cacheTTL      time.Duration
+	negativeTTL   time.Duration
+	cached        *cachedCreds
+	ldap          *LDAPValidator
+	mu            sync.RWMutex
+	logger        *slog.Logger
 }
 
 func NewValidatorDispatcher(
 	credFetcher CredentialFetcher,
 	ldapConnector LDAPConnector,
-	fallbackSource string,
+	source string,
 	cacheTTL time.Duration,
 	logger *slog.Logger,
 ) *ValidatorDispatcher {
@@ -60,29 +59,19 @@ func NewValidatorDispatcher(
 		cacheTTL = 5 * time.Minute
 	}
 	return &ValidatorDispatcher{
-		credFetcher:    credFetcher,
-		ldapConnector:  ldapConnector,
-		fallbackSource: fallbackSource,
-		cacheTTL:       cacheTTL,
-		negativeTTL:    30 * time.Second,
-		cache:          make(map[string]*cachedCreds),
-		validators:     make(map[string]*LDAPValidator),
-		logger:         logger,
+		credFetcher:   credFetcher,
+		ldapConnector: ldapConnector,
+		source:        source,
+		cacheTTL:      cacheTTL,
+		negativeTTL:   30 * time.Second,
+		logger:        logger,
 	}
 }
 
-// ValidateForClient dispatches principal validation based on the client's
-// configured principal_source. Called directly by the sign handler.
-func (d *ValidatorDispatcher) ValidateForClient(
-	ctx context.Context,
-	clientID, principal, identitySubject, principalSource string,
-) (*ValidationResult, error) {
-	source := principalSource
-	if source == "" {
-		source = d.fallbackSource
-	}
-
-	switch source {
+// ValidateForClient checks the principal with the deployment's validator.
+// Called directly by the sign handler.
+func (d *ValidatorDispatcher) ValidateForClient(ctx context.Context, clientID, principal, identitySubject string) (*ValidationResult, error) {
+	switch d.source {
 	case "noop", "":
 		return &ValidationResult{
 			Allowed:            true,
@@ -100,16 +89,16 @@ func (d *ValidatorDispatcher) ValidateForClient(
 
 	default:
 		return nil, &ValidationError{
-			Message:    "Unknown principal source: " + source,
+			Message:    "Unknown principal source: " + d.source,
 			ReasonCode: "UNKNOWN_PRINCIPAL_SOURCE",
 		}
 	}
 }
 
 func (d *ValidatorDispatcher) validateLDAP(ctx context.Context, clientID, principal, identitySubject string) (*ValidationResult, error) {
-	creds, err := d.fetchCredentials(ctx, clientID)
+	creds, err := d.fetchCredentials(ctx)
 	if err != nil {
-		d.logger.Error("failed to fetch validation credentials", "error", err, "client_id", clientID)
+		d.logger.Error("failed to fetch validation credentials", "error", err)
 		return nil, &ValidationError{
 			Message:    "Principal validation unavailable: credential fetch failed",
 			ReasonCode: "LDAP_UNAVAILABLE",
@@ -117,20 +106,20 @@ func (d *ValidatorDispatcher) validateLDAP(ctx context.Context, clientID, princi
 	}
 	if creds == nil {
 		return nil, &ValidationError{
-			Message:    "LDAP validation not configured for this client",
+			Message:    "LDAP validation not configured",
 			ReasonCode: "VALIDATION_NOT_CONFIGURED",
 		}
 	}
 
-	validator := d.getOrCreateValidator(clientID, creds)
+	validator := d.getOrCreateValidator(creds)
 	return validator.Validate(clientID, principal, identitySubject)
 }
 
-func (d *ValidatorDispatcher) getOrCreateValidator(clientID string, creds *vault.ValidationCredentials) *LDAPValidator {
+func (d *ValidatorDispatcher) getOrCreateValidator(creds *vault.ValidationCredentials) *LDAPValidator {
 	d.mu.RLock()
-	if v, ok := d.validators[clientID]; ok {
+	if d.ldap != nil {
 		d.mu.RUnlock()
-		return v
+		return d.ldap
 	}
 	d.mu.RUnlock()
 
@@ -150,20 +139,17 @@ func (d *ValidatorDispatcher) getOrCreateValidator(clientID string, creds *vault
 	}, d.ldapConnector)
 
 	d.mu.Lock()
+	defer d.mu.Unlock()
 	// Double-check after acquiring write lock
-	if v, ok := d.validators[clientID]; ok {
-		d.mu.Unlock()
-		return v
+	if d.ldap == nil {
+		d.ldap = validator
 	}
-	d.validators[clientID] = validator
-	d.mu.Unlock()
-
-	return validator
+	return d.ldap
 }
 
-func (d *ValidatorDispatcher) fetchCredentials(ctx context.Context, clientID string) (*vault.ValidationCredentials, error) {
+func (d *ValidatorDispatcher) fetchCredentials(ctx context.Context) (*vault.ValidationCredentials, error) {
 	d.mu.RLock()
-	if entry, ok := d.cache[clientID]; ok {
+	if entry := d.cached; entry != nil {
 		ttl := d.cacheTTL
 		if entry.err != nil {
 			ttl = d.negativeTTL
@@ -175,10 +161,10 @@ func (d *ValidatorDispatcher) fetchCredentials(ctx context.Context, clientID str
 	}
 	d.mu.RUnlock()
 
-	creds, err := d.credFetcher.GetValidationCredentials(ctx, clientID)
+	creds, err := d.credFetcher.GetValidationCredentials(ctx)
 
 	d.mu.Lock()
-	d.cache[clientID] = &cachedCreds{
+	d.cached = &cachedCreds{
 		creds:     creds,
 		err:       err,
 		fetchedAt: time.Now(),

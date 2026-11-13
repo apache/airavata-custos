@@ -59,7 +59,7 @@ signer:
       jwks_max_providers: 10
       timeout_seconds: 10
   validation:
-    principal_validator: noop          # fallback: "noop", "ldap", or "comanage"
+    principal_validator: noop          # "noop", "ldap", or "comanage"
     cache_ttl_seconds: 300            # Vault credential cache TTL for validators
 
 dev_mode:
