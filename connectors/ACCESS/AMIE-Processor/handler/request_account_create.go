@@ -161,28 +161,9 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 	if err != nil {
 		return nil, fmt.Errorf("ensure user organization: %w", err)
 	}
-	email, first, last := getString(body, "UserEmail"), getString(body, "UserFirstName"), getString(body, "UserLastName")
-	user, err := h.svc.GetUserByEmail(ctx, email)
-	switch {
-	case err == nil:
-		// A user added internally takes the organization and name from ACCESS.
-		user.OrganizationID, user.FirstName, user.LastName = org.ID, first, last
-		if err := h.svc.UpdateUser(ctx, user); err != nil {
-			return nil, fmt.Errorf("update user: %w", err)
-		}
-
-	case errors.Is(err, service.ErrNotFound):
-		user, err = h.svc.CreateUser(ctx, &models.User{
-			OrganizationID: org.ID,
-			FirstName:      first,
-			LastName:       last,
-			Email:          email,
-			Status:         models.UserPending,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("create user: %w", err)
-		}
-	default:
+	email := getString(body, "UserEmail")
+	user, err := ensureUserByEmail(ctx, h.svc, org.ID, email, getString(body, "UserFirstName"), getString(body, "UserLastName"))
+	if err != nil {
 		return nil, err
 	}
 	if _, err := h.svc.CreateUserIdentity(ctx, &models.UserIdentity{

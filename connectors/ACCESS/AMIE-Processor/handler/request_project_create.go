@@ -168,15 +168,9 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 		return nil, fmt.Errorf("ensure PI organization: %w", err)
 	}
 	email := getString(body, "PiEmail")
-	user, err := h.svc.CreateUser(ctx, &models.User{
-		OrganizationID: org.ID,
-		FirstName:      getString(body, "PiFirstName"),
-		LastName:       getString(body, "PiLastName"),
-		Email:          email,
-		Status:         models.UserPending,
-	})
+	user, err := ensureUserByEmail(ctx, h.svc, org.ID, email, getString(body, "PiFirstName"), getString(body, "PiLastName"))
 	if err != nil {
-		return nil, fmt.Errorf("create PI user: %w", err)
+		return nil, err
 	}
 	if _, err := h.svc.CreateUserIdentity(ctx, &models.UserIdentity{
 		UserID:     user.ID,
