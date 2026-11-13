@@ -166,7 +166,7 @@ func (s *Server) routes() {
 
 	// A caller reads their own profile; no privilege needed.
 	// These stay reachable before the caller has onboarded or consented.
-	s.router.RequireAuthWithoutUserConsent("GET /user/privileges", s.getCallerPrivileges)
+	s.router.RequireAuthWithoutUserConsent("GET /me/privileges", s.getCallerPrivileges)
 	s.router.RequireAuthWithoutUserConsent("GET /me", s.getCallerProfile)
 	s.router.RequireAuthWithoutUserConsent("GET /me/agreements/pending", s.listCallerPendingAgreements)
 	s.router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", s.acceptCallerAgreement)
@@ -199,6 +199,16 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /agreements/{id}/publish", models.AgreementsManage, s.publishUserAgreement)
 	s.router.RequirePrivilege("POST /agreements/{id}/remove", models.AgreementsManage, s.removeUserAgreement)
 	s.router.RequirePrivilege("GET /agreements/{id}/acceptances", models.AgreementsRead, s.listUserAgreementAcceptances)
+
+	s.router.RequirePrivilege("GET /service-accounts", models.ServiceAccountsManage, s.listServiceAccounts)
+	s.router.RequirePrivilege("POST /service-accounts", models.ServiceAccountsManage, s.createServiceAccount)
+	s.router.RequirePrivilege("GET /service-accounts/privileges", models.ServiceAccountsManage, s.listServiceAccountPrivileges)
+	s.router.RequirePrivilege("GET /service-accounts/{id}", models.ServiceAccountsManage, s.getServiceAccount)
+	s.router.RequirePrivilege("PUT /service-accounts/{id}", models.ServiceAccountsManage, s.updateServiceAccount)
+	s.router.RequirePrivilege("DELETE /service-accounts/{id}", models.ServiceAccountsManage, s.deleteServiceAccount)
+	s.router.RequirePrivilege("POST /service-accounts/{id}/disable", models.ServiceAccountsManage, s.disableServiceAccount)
+	s.router.RequirePrivilege("POST /service-accounts/{id}/enable", models.ServiceAccountsManage, s.enableServiceAccount)
+	s.router.RequirePrivilege("POST /service-accounts/{id}/secret", models.ServiceAccountsManage, s.issueServiceAccountSecret)
 
 	s.router.RequirePrivilege("GET /audit/traces", models.TracesRead, s.handleListTraces)
 	s.router.RequirePrivilege("GET /audit/traces/{trace_id}", models.TracesRead, s.handleGetTrace)

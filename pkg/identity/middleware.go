@@ -79,6 +79,37 @@ func Middleware(verifier TokenVerifier, resolver UserResolver, public, withoutUs
 	})
 }
 
+// ServiceAccountTokenPrefix marks a Custos issued service account token (csa_ - custos service account).
+const ServiceAccountTokenPrefix = "csa_"
+
+// ServiceAccountMiddleware handles calls made with a service account token. Other calls go to nonServiceAccountCalls.
+// A service account always calls as itself, with its own privileges, never as a user.
+func ServiceAccountMiddleware(accounts ServiceAccountResolver, next, nonServiceAccountCalls http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		rawToken, ok := bearer(req.Header.Get("Authorization"))
+		if !ok || !strings.HasPrefix(rawToken, ServiceAccountTokenPrefix) {
+			nonServiceAccountCalls.ServeHTTP(w, req)
+			return
+		}
+		account, err := accounts.ResolveServiceAccount(req.Context(), rawToken)
+		if errors.Is(err, ErrInvalidServiceAccountToken) {
+			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid service account token")
+			return
+		}
+		if errors.Is(err, ErrServiceAccountDisabled) {
+			writeJSONError(w, http.StatusForbidden, "service_account_disabled", "Service account is disabled")
+			return
+		}
+		if err != nil {
+			slog.ErrorContext(req.Context(), "service account lookup failed", "error", err.Error())
+			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
+			return
+		}
+		ctx := WithCaller(req.Context(), &Caller{ServiceAccountKey: account.Key})
+		next.ServeHTTP(w, req.WithContext(withPrivileges(ctx, account.Privileges)))
+	})
+}
+
 // Router is the only path that lets HTTP routes hit the mux. The mux
 // field is unexported on purpose: callers must go through RequirePrivilege,
 // RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, or Public.
@@ -91,6 +122,17 @@ type Router struct {
 // NewRouter wraps mux.
 func NewRouter(mux *http.ServeMux) *Router {
 	return &Router{mux: mux, publicMux: http.NewServeMux(), withoutUserConsentMux: http.NewServeMux()}
+}
+
+// Routes without a privilege work on the caller's own data, so a service account can't use them.
+func refuseServiceAccounts(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if caller := CallerFromContext(req.Context()); caller != nil && caller.IsServiceAccount() {
+			writeJSONError(w, http.StatusForbidden, "service_account_not_allowed", "Service accounts cannot use this route")
+			return
+		}
+		handler(w, req)
+	}
 }
 
 // RequirePrivilege registers an authenticated handler. The wrapper checks privilege
@@ -114,7 +156,7 @@ func (r *Router) Public(pattern string, handler http.HandlerFunc) {
 // RequireAuth registers a handler that requires a verified caller but no
 // specific privilege. (e.g., caller looking up their own data).
 func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, handler)
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(handler))
 }
 
 // RequireScoped registers a route whose access depends on the specific
@@ -122,18 +164,18 @@ func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
 // and returns false to deny, or returns true to run handler. The policy is a
 // required argument, so a scoped route cannot be registered without one.
 func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(func(w http.ResponseWriter, req *http.Request) {
 		if !authorize(w, req) {
 			return
 		}
 		handler(w, req)
-	})
+	}))
 }
 
 // RequireAuthWithoutUserConsent registers a handler that signed-in callers
 // can reach before accepting the user agreement. Handlers read ClaimsFromContext.
 func (r *Router) RequireAuthWithoutUserConsent(pattern string, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, handler)
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(handler))
 	r.withoutUserConsentMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
 }
 

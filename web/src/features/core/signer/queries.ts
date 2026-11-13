@@ -23,6 +23,7 @@ import {
   generateCertificate,
   getCertificate,
   getMyCertificate,
+  getUserEmail,
   listCertificates,
   listMyCertificates,
   revokeCertificate,
@@ -37,6 +38,17 @@ export const signerKeys = {
   myList: (params: CertificateListParams = {}) => [...signerKeys.all, "me", "list", params] as const,
   myDetail: (serial: number | string) => [...signerKeys.all, "me", "detail", String(serial)] as const,
 };
+
+export function useUserEmail(id: string | null): string | undefined {
+  const query = useQuery({
+    queryKey: ["user-email", id],
+    queryFn: () => getUserEmail(id ?? ""),
+    enabled: id !== null,
+    retry: false,
+    staleTime: 300_000,
+  });
+  return query.data;
+}
 
 export function useCursorPaging() {
   // The cursor of each page after the first, so Previous can walk back.

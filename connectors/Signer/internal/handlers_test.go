@@ -84,6 +84,10 @@ func (f *fakeCore) GetComputeAllocation(context.Context, string) (*models.Comput
 	return &f.allocation, nil
 }
 
+func (f *fakeCore) GetUser(_ context.Context, id string) (*models.User, error) {
+	return &models.User{ID: id, Email: "admin@example.edu", FirstName: "Site", LastName: "Admin"}, nil
+}
+
 // readyCore is a user who can generate certificates
 func readyCore() *fakeCore {
 	provisioned := time.Now().Add(-time.Hour)
@@ -95,16 +99,19 @@ func readyCore() *fakeCore {
 	}
 }
 
-func serveWith(core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
+func serveAs(caller *identity.Caller, claims *identity.Claims, core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
 	mux := http.NewServeMux()
 	NewHandlers(Config{BaseURL: baseURL, ServiceToken: "service-token", ClusterID: testClusterID, TTLSeconds: 3600, Timeout: 2 * time.Second}, core).RegisterRoutes(identity.NewRouter(mux))
 	r.Header.Set("Authorization", "Bearer user-token")
-	ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: "user-1"})
-	ctx = identity.WithClaims(ctx, &identity.Claims{Sub: testSub, Email: "jdoe@example.edu"})
+	ctx := identity.WithClaims(identity.WithCaller(r.Context(), caller), claims)
 	r = r.WithContext(identity.WithPrivilegesForTest(ctx, privs))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, r)
 	return rec
+}
+
+func serveWith(core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
+	return serveAs(&identity.Caller{UserID: "user-1", Email: "jdoe@example.edu"}, &identity.Claims{Sub: testSub, Email: "jdoe@example.edu"}, core, baseURL, r, privs...)
 }
 
 func serve(baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
@@ -219,24 +226,24 @@ func TestOwnRoutes_HideOtherUsersCertificates(t *testing.T) {
 	}
 }
 
-// Make sure a user can revoke their own certificate with no privilege, recorded as self.
-func TestRevokeOwn_RecordedAsSelf(t *testing.T) {
+// Make sure a user can revoke their own certificate with no privilege, recorded under their user ID.
+func TestRevokeOwn_RecordedAsTheUser(t *testing.T) {
 	srv, seen := mockSignerServer(t, http.StatusOK, `{"user_sub":"`+testSub+`"}`)
 
 	rec := serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates/42/revoke", strings.NewReader(`{}`)))
 
-	if rec.Code != http.StatusOK || seen.path != "/api/v1/certificates/42/revoke" || !strings.Contains(seen.body, `"revoked_by":"self"`) {
+	if rec.Code != http.StatusOK || seen.path != "/api/v1/certificates/42/revoke" || !strings.Contains(seen.body, `"revoked_by":"user/user-1"`) {
 		t.Fatalf("got %d, signer saw %+v", rec.Code, *seen)
 	}
 }
 
-// Make sure an admin revoke is recorded under the admin's email.
+// Make sure an admin revoke is recorded under the admin's user ID.
 func TestRevokeAny_RecordedAsTheAdmin(t *testing.T) {
 	srv, seen := mockSignerServer(t, http.StatusOK, `{}`)
 
 	serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/certificates/42/revoke", strings.NewReader(`{"reason":"lost laptop"}`)), CertificatesWrite)
 
-	if !strings.Contains(seen.body, `"revoked_by":"jdoe@example.edu"`) || !strings.Contains(seen.body, `"reason":"lost laptop"`) {
+	if !strings.Contains(seen.body, `"revoked_by":"user/user-1"`) || !strings.Contains(seen.body, `"reason":"lost laptop"`) {
 		t.Fatalf("signer got %s", seen.body)
 	}
 }
@@ -249,6 +256,15 @@ func TestRevoke_WithoutWritePrivilegeNeverReachesSigner(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden || seen.path != "" {
 		t.Fatalf("got %d, signer saw %q", rec.Code, seen.path)
+	}
+}
+
+// Make sure a certificate reader can see who revoked a certificate, getting the email and nothing else about that user.
+func TestUserEmail_ShowsOnlyTheEmail(t *testing.T) {
+	rec := serve("", httptest.NewRequest(http.MethodGet, "/connectors/signer/users/u-9", nil), CertificatesRead)
+
+	if rec.Code != http.StatusOK || rec.Body.String() != `{"email":"admin@example.edu","id":"u-9"}`+"\n" {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
 	}
 }
 

@@ -18,7 +18,7 @@
 package models
 
 import (
-	"sort"
+	"slices"
 	"sync"
 	"time"
 )
@@ -27,27 +27,33 @@ import (
 type PrivilegeKey string
 
 const (
-	ClustersRead       PrivilegeKey = "core:clusters:read"
-	ClustersWrite      PrivilegeKey = "core:clusters:write"
-	AllocationsRead    PrivilegeKey = "core:allocations:read"
-	AllocationsWrite   PrivilegeKey = "core:allocations:write"
-	ProjectsRead       PrivilegeKey = "core:projects:read"
-	ProjectsWrite      PrivilegeKey = "core:projects:write"
-	UsersRead          PrivilegeKey = "core:users:read"
-	UsersWrite         PrivilegeKey = "core:users:write"
-	OrganizationsRead  PrivilegeKey = "core:organizations:read"
-	OrganizationsWrite PrivilegeKey = "core:organizations:write"
-	TracesRead         PrivilegeKey = "core:traces:read"
-	PrivilegesGrant    PrivilegeKey = "core:privileges:grant"
-	RolesManage        PrivilegeKey = "core:roles:manage"
-	EventsManage       PrivilegeKey = "core:events:manage"
-	AgreementsRead     PrivilegeKey = "core:agreements:read"
-	AgreementsManage   PrivilegeKey = "core:agreements:manage"
+	ClustersRead          PrivilegeKey = "core:clusters:read"
+	ClustersWrite         PrivilegeKey = "core:clusters:write"
+	AllocationsRead       PrivilegeKey = "core:allocations:read"
+	AllocationsWrite      PrivilegeKey = "core:allocations:write"
+	ProjectsRead          PrivilegeKey = "core:projects:read"
+	ProjectsWrite         PrivilegeKey = "core:projects:write"
+	UsersRead             PrivilegeKey = "core:users:read"
+	UsersWrite            PrivilegeKey = "core:users:write"
+	OrganizationsRead     PrivilegeKey = "core:organizations:read"
+	OrganizationsWrite    PrivilegeKey = "core:organizations:write"
+	TracesRead            PrivilegeKey = "core:traces:read"
+	PrivilegesGrant       PrivilegeKey = "core:privileges:grant"
+	RolesManage           PrivilegeKey = "core:roles:manage"
+	EventsManage          PrivilegeKey = "core:events:manage"
+	AgreementsRead        PrivilegeKey = "core:agreements:read"
+	AgreementsManage      PrivilegeKey = "core:agreements:manage"
+	ServiceAccountsManage PrivilegeKey = "core:service-accounts:manage"
 )
+
+// privilegeRules holds what we know about a privilege.
+type privilegeRules struct {
+	allowedForServiceAccounts bool
+}
 
 var (
 	registryMu sync.RWMutex
-	registry   = map[PrivilegeKey]struct{}{}
+	registry   = map[PrivilegeKey]privilegeRules{}
 )
 
 func init() {
@@ -68,6 +74,7 @@ func init() {
 		EventsManage,
 		AgreementsRead,
 		AgreementsManage,
+		ServiceAccountsManage,
 	)
 }
 
@@ -76,20 +83,50 @@ func Register(keys ...PrivilegeKey) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
 	for _, k := range keys {
-		registry[k] = struct{}{}
+		if _, ok := registry[k]; !ok {
+			registry[k] = privilegeRules{}
+		}
+	}
+}
+
+// AllowForServiceAccounts registers privileges that can be given to a service account.
+// Never use it for privileges that manage user access, roles, privileges, or service accounts.
+func AllowForServiceAccounts(keys ...PrivilegeKey) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	for _, k := range keys {
+		registry[k] = privilegeRules{allowedForServiceAccounts: true}
 	}
 }
 
 // KnownPrivileges returns the registered keys, sorted.
 func KnownPrivileges() []PrivilegeKey {
+	return registeredKeys(func(privilegeRules) bool { return true })
+}
+
+// ServiceAccountPrivileges returns the privileges a service account can hold, sorted.
+func ServiceAccountPrivileges() []PrivilegeKey {
+	return registeredKeys(func(rules privilegeRules) bool { return rules.allowedForServiceAccounts })
+}
+
+func registeredKeys(include func(privilegeRules) bool) []PrivilegeKey {
 	registryMu.RLock()
 	defer registryMu.RUnlock()
-	keys := make([]PrivilegeKey, 0, len(registry))
-	for k := range registry {
-		keys = append(keys, k)
+	keys := []PrivilegeKey{} // not nil, so the API returns [] instead of null
+	for k, rules := range registry {
+		if include(rules) {
+			keys = append(keys, k)
+		}
 	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	slices.Sort(keys)
 	return keys
+}
+
+// IsServiceAccountPrivilege reports whether a service account can hold p.
+func IsServiceAccountPrivilege(p PrivilegeKey) bool {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	return registry[p].allowedForServiceAccounts
 }
 
 // IsKnownPrivilege reports whether p is registered.

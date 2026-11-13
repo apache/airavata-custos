@@ -30,6 +30,7 @@ import (
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -64,6 +65,7 @@ type Service struct {
 	agreements          store.UserAgreementStore
 	acceptances         store.UserAgreementAcceptanceStore
 	auditTraces         store.AuditTraceStore
+	serviceAccounts     store.ServiceAccountStore
 	identityCache       *identityCache
 }
 
@@ -98,6 +100,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		agreements:          store.NewUserAgreementStore(database),
 		acceptances:         store.NewUserAgreementAcceptanceStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
+		serviceAccounts:     store.NewServiceAccountStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -159,6 +162,7 @@ func NewWithStores(
 		agreements:          agreements,
 		acceptances:         acceptances,
 		auditTraces:         store.NewAuditTraceStore(database),
+		serviceAccounts:     store.NewServiceAccountStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -181,6 +185,10 @@ func (s *Service) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 }
 
 func (s *Service) writeAuditTx(ctx context.Context, tx *sql.Tx, entityType, eventType, entityID string, details map[string]any) error {
+	// Record the service account too when one made the request.
+	if caller := identity.CallerFromContext(ctx); caller != nil && caller.IsServiceAccount() {
+		details["service_account_key"] = caller.ServiceAccountKey
+	}
 	payload, err := json.Marshal(details)
 	if err != nil {
 		return fmt.Errorf("marshal audit details: %w", err)

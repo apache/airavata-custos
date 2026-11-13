@@ -134,7 +134,7 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 		if user, err = s.matchPendingByEmail(ctx, claims); err != nil {
 			return nil, nil, err
 		}
-		return &identity.Caller{UserID: user.ID, NeedsOnboarding: true, ConsentPending: true}, nil, nil
+		return &identity.Caller{UserID: user.ID, Email: user.Email, NeedsOnboarding: true, ConsentPending: true}, nil, nil
 	}
 	if err := refuseDisabled(user); err != nil {
 		return nil, nil, err
@@ -147,7 +147,7 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 	if err != nil {
 		return nil, nil, err
 	}
-	caller := &identity.Caller{UserID: user.ID, ConsentPending: len(pending) > 0}
+	caller := &identity.Caller{UserID: user.ID, Email: user.Email, ConsentPending: len(pending) > 0}
 	s.identityCache.set(claims.Sub, caller, privs, now)
 	return caller, privs, nil
 }

@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { z } from "zod";
 import { apiFetch } from "@/shared/api/client";
 import {
   type Certificate,
@@ -27,6 +28,13 @@ import {
   revokeResponseSchema,
 } from "./schemas";
 import type { CertificateListParams } from "./types";
+
+export async function getUserEmail(id: string): Promise<string> {
+  const user = z
+    .object({ email: z.string() })
+    .parse(await apiFetch(`/connectors/signer/users/${encodeURIComponent(id)}`));
+  return user.email;
+}
 
 async function fetchCertificateList(
   path: string,

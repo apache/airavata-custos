@@ -27,68 +27,73 @@ before you write a client. The generated OpenAPI specs give each request and res
 The specs are generated from swag annotations on the handlers. [`api/README.md`](../api/README.md) describes the
 build.
 
-| Spec | Scope |
-|---|---|
-| [`api/core.openapi.yaml`](../api/core.openapi.yaml) | Core endpoints |
-| [`connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml`](../connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml) | `/connectors/amie/*` |
-| [`connectors/Analytics/api/analytics.openapi.yaml`](../connectors/Analytics/api/analytics.openapi.yaml) | `/connectors/analytics/*` |
+| Spec                                                                                                                  | Scope                     |
+|-----------------------------------------------------------------------------------------------------------------------|---------------------------|
+| [`api/core.openapi.yaml`](../api/core.openapi.yaml)                                                                   | Core endpoints            |
+| [`connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml`](../connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml) | `/connectors/amie/*`      |
+| [`connectors/Analytics/api/analytics.openapi.yaml`](../connectors/Analytics/api/analytics.openapi.yaml)               | `/connectors/analytics/*` |
 
 The TempAccount and VAST-Provisioner routes have no spec. Their handlers are the reference.
 
 ## Conventions
 
-| Topic | Rule |
-|---|---|
-| Base URL | `http://<host>:<port>`. The port is `core.api.port` in `config/custos.yaml`, `8080` by default. |
-| Authentication | `Authorization: Bearer <OIDC JWT>` on all routes except `GET /healthz`. |
-| Authorization | Most routes require a privilege key. [`privileges.md`](privileges.md) maps each route to its key. |
-| Encoding | Requests and responses are `application/json` in UTF-8. |
-| Unknown fields | A request body with an unknown field gets `400`. |
-| Identifiers | `id` is a server-generated UUID when a create request omits it. `originated_id` is an optional ID from the source system, such as an ACCESS record ID, and must be unique per entity type. |
-| Timestamps | RFC 3339 with a time zone, such as `2026-05-16T12:34:56.789Z`. The server emits UTC. |
-| Paging | Paged list routes take `limit` (default 50, at most 200) and `offset`, and return `{"items": [...], "total": n}`. Other list routes return a JSON array. The spec gives each route's shape. |
+| Topic          | Rule                                                                                                                                                                                        |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Base URL       | `http://<host>:<port>`. The port is `core.api.port` in `config/custos.yaml`, `8080` by default.                                                                                             |
+| Authentication | `Authorization: Bearer <OIDC JWT>` on all routes except `GET /healthz`.                                                                                                                     |
+| Authorization  | Most routes require a privilege key. [`privileges.md`](privileges.md) maps each route to its key.                                                                                           |
+| Encoding       | Requests and responses are `application/json` in UTF-8.                                                                                                                                     |
+| Unknown fields | A request body with an unknown field gets `400`.                                                                                                                                            |
+| Identifiers    | `id` is a server-generated UUID when a create request omits it. `originated_id` is an optional ID from the source system, such as an ACCESS record ID, and must be unique per entity type.  |
+| Timestamps     | RFC 3339 with a time zone, such as `2026-05-16T12:34:56.789Z`. The server emits UTC.                                                                                                        |
+| Paging         | Paged list routes take `limit` (default 50, at most 200) and `offset`, and return `{"items": [...], "total": n}`. Other list routes return a JSON array. The spec gives each route's shape. |
 
 ## Errors
 
 Handler errors return a status code and a body with one field:
 
 ```json
-{ "error": "human-readable message" }
+{
+  "error": "human-readable message"
+}
 ```
 
-| Status | Meaning | Raised by |
-|---|---|---|
-| `400 Bad Request` | Malformed JSON, an unknown or missing field, or a reference to a missing record | Body decoding, `service.ErrInvalidInput`, a foreign-key or length violation |
-| `404 Not Found` | The record does not exist, or the caller may not see it | `service.ErrNotFound` |
-| `409 Conflict` | A duplicate email or `originated_id`, a change to a project's PI, or a record still in use | `service.ErrAlreadyExists`, `service.ErrPIChange`, `service.ErrInUse`, a unique violation |
-| `500 Internal Server Error` | An unexpected failure. The cause is logged; the body says only `internal server error` | Any other error |
+| Status                      | Meaning                                                                                    | Raised by                                                                                 |
+|-----------------------------|--------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `400 Bad Request`           | Malformed JSON, an unknown or missing field, or a reference to a missing record            | Body decoding, `service.ErrInvalidInput`, a foreign-key or length violation               |
+| `404 Not Found`             | The record does not exist, or the caller may not see it                                    | `service.ErrNotFound`                                                                     |
+| `409 Conflict`              | A duplicate email or `originated_id`, a change to a project's PI, or a record still in use | `service.ErrAlreadyExists`, `service.ErrPIChange`, `service.ErrInUse`, a unique violation |
+| `500 Internal Server Error` | An unexpected failure. The cause is logged; the body says only `internal server error`     | Any other error                                                                           |
 
 Authentication and authorization failures come from the middleware, before any handler, with a different body:
 
 ```json
-{ "code": "insufficient_privilege", "message": "Caller lacks required privilege" }
+{
+  "code": "insufficient_privilege",
+  "message": "Caller lacks required privilege"
+}
 ```
 
 The [architecture doc](architecture.md#identity-and-authentication) lists each `code`.
 
 ## Endpoint groups
 
-| Group | Paths | Notes |
-|---|---|---|
-| Health | `GET /healthz` | Public, returns `{"status": "ok"}` |
-| Caller | `/me`, `/me/agreements/*`, `/me/onboarding*`, `/user/privileges` | The caller's own profile, privileges, consent and onboarding |
-| Organizations | `/organizations*` | |
-| Users and identities | `/users*`, `/user-identities*` | `POST /users` onboards a researcher or an admin |
-| Projects | `/projects*` | Includes project members and status |
-| Clusters and cluster accounts | `/compute-clusters*`, `/compute-cluster-users*` | Cluster accounts are approved or denied with `POST /compute-cluster-users/{id}/approve` and `/deny` |
-| Allocations | `/compute-allocations*` | Includes the allocation's resources, memberships, diffs, change requests and usage |
-| Resources and rates | `/compute-allocation-resources*`, `/compute-allocation-resource-rates*` | |
-| Memberships and overrides | `/compute-allocation-memberships*`, `/compute-allocation-membership-resource-overrides*` | |
-| Diffs, change requests, usage | `/compute-allocation-diffs*`, `/compute-allocation-change-requests*`, `/compute-allocation-change-request-events*`, `/compute-allocation-usages*` | |
-| Privileges and roles | `/privileges/*`, `/roles*`, `/users/{id}/privileges*`, `/users/{id}/roles*` | |
-| User agreements | `/agreements*` | |
-| Audit and events | `/audit/*`, `/events/*` | Traces, audit rows, event deliveries and subscriptions |
-| Connectors | `GET /connectors`, `/connectors/<name>/*` | Load status, and each connector's own routes |
+| Group                         | Paths                                                                                                                                             | Notes                                                                                               |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| Health                        | `GET /healthz`                                                                                                                                    | Public, returns `{"status": "ok"}`                                                                  |
+| Caller                        | `/me`, `/me/privileges`, `/me/agreements/*`, `/me/onboarding*`                                                                                    | The caller's own profile, privileges, consent and onboarding                                        |
+| Organizations                 | `/organizations*`                                                                                                                                 |                                                                                                     |
+| Users and identities          | `/users*`, `/user-identities*`                                                                                                                    | `POST /users` onboards a researcher or an admin                                                     |
+| Projects                      | `/projects*`                                                                                                                                      | Includes project members and status                                                                 |
+| Clusters and cluster accounts | `/compute-clusters*`, `/compute-cluster-users*`                                                                                                   | Cluster accounts are approved or denied with `POST /compute-cluster-users/{id}/approve` and `/deny` |
+| Allocations                   | `/compute-allocations*`                                                                                                                           | Includes the allocation's resources, memberships, diffs, change requests and usage                  |
+| Resources and rates           | `/compute-allocation-resources*`, `/compute-allocation-resource-rates*`                                                                           |                                                                                                     |
+| Memberships and overrides     | `/compute-allocation-memberships*`, `/compute-allocation-membership-resource-overrides*`                                                          |                                                                                                     |
+| Diffs, change requests, usage | `/compute-allocation-diffs*`, `/compute-allocation-change-requests*`, `/compute-allocation-change-request-events*`, `/compute-allocation-usages*` |                                                                                                     |
+| Privileges and roles          | `/privileges/*`, `/roles*`, `/users/{id}/privileges*`, `/users/{id}/roles*`                                                                       |                                                                                                     |
+| User agreements               | `/agreements*`                                                                                                                                    |                                                                                                     |
+| Audit and events              | `/audit/*`, `/events/*`                                                                                                                           | Traces, audit rows, event deliveries and subscriptions                                              |
+| Connectors                    | `GET /connectors`, `/connectors/<name>/*`                                                                                                         | Load status, and each connector's own routes                                                        |
 
 The data behind the allocation groups is described in [`Allocation-Data-Models.md`](Allocation-Data-Models.md).
 

@@ -560,6 +560,17 @@ type UserAgreementStore interface {
 	CountPendingUsers(ctx context.Context, agreementID string) (int, error)
 }
 
+// ServiceAccountStore defines persistence operations for service accounts. Find methods return nil if not found.
+type ServiceAccountStore interface {
+	FindByID(ctx context.Context, id string) (*models.ServiceAccount, error)
+	FindByKey(ctx context.Context, key string) (*models.ServiceAccount, error)
+	// FindByIDTx returns the service account locked FOR UPDATE in tx.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ServiceAccount, error)
+	List(ctx context.Context) ([]models.ServiceAccount, error)
+	Create(ctx context.Context, tx *sql.Tx, a *models.ServiceAccount) error
+	Update(ctx context.Context, tx *sql.Tx, a *models.ServiceAccount) error
+}
+
 // UserAgreementAcceptanceStore defines persistence operations for the record of who accepted which agreement.
 type UserAgreementAcceptanceStore interface {
 	// FindTx returns the user's acceptance of the agreement inside tx, or nil.

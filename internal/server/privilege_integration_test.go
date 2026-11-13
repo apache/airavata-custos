@@ -35,7 +35,7 @@ import (
 func TestGetCallerPrivileges_NoCaller_401(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
-	srv.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/user/privileges", nil))
+	srv.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/me/privileges", nil))
 	// Route is router.RequireAuth, no privilege check. Without a caller on
 	// ctx, the handler's common.RequireCaller returns 401.
 	if rr.Code != http.StatusUnauthorized {
@@ -46,7 +46,7 @@ func TestGetCallerPrivileges_NoCaller_401(t *testing.T) {
 func TestGetCallerPrivileges_NoGrants_ReturnsEmpty(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
+	req := httptest.NewRequest(http.MethodGet, "/me/privileges", nil)
 	// Empty privilege set on ctx mirrors a caller the middleware resolved
 	// with no direct grants and no role-derived privileges.
 	req = withTestCaller(req, "u-1")
@@ -68,7 +68,7 @@ func TestGetCallerPrivileges_NoGrants_ReturnsEmpty(t *testing.T) {
 func TestGetCallerPrivileges_WithGrants(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
+	req := httptest.NewRequest(http.MethodGet, "/me/privileges", nil)
 	req = withTestCaller(req, "u-1", models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {

@@ -17,6 +17,7 @@
 
 import {
   Activity,
+  Blocks,
   Building2,
   ChartColumn,
   ClipboardList,
@@ -142,5 +143,12 @@ export const portalNav: NavItem[] = [
     icon: ScrollText,
     group: "admin",
     ability: { action: "read", subject: "Agreement" },
+  },
+  {
+    href: "/admin/service-accounts",
+    label: "Service accounts",
+    icon: Blocks,
+    group: "admin",
+    ability: { action: "manage", subject: "ServiceAccount" },
   },
 ];

@@ -48,6 +48,7 @@ type CoreAccounts interface {
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	GetComputeAllocation(ctx context.Context, id string) (*models.ComputeAllocation, error)
+	GetUser(ctx context.Context, id string) (*models.User, error)
 }
 
 type Config struct {
@@ -72,12 +73,13 @@ func NewHandlers(cfg Config, core CoreAccounts) *Handlers {
 func (h *Handlers) RegisterRoutes(router *identity.Router) {
 	router.RequirePrivilege("GET /connectors/signer/certificates", CertificatesRead, h.listAllCertificates)
 	router.RequirePrivilege("GET /connectors/signer/certificates/{serial}", CertificatesRead, h.getAnyCertificate)
-	router.RequirePrivilege("POST /connectors/signer/certificates/{serial}/revoke", CertificatesWrite, h.revokeAnyCertificate)
+	router.RequirePrivilege("POST /connectors/signer/certificates/{serial}/revoke", CertificatesWrite, h.revoke)
 	router.RequireAuth("GET /connectors/signer/me/certificates", h.listOwnCertificates)
 	router.RequireAuth("POST /connectors/signer/me/certificates", h.generateCertificate)
 	router.RequireAuth("GET /connectors/signer/me/certificates/{serial}", h.getOwnCertificate)
 	router.RequireAuth("POST /connectors/signer/me/certificates/{serial}/revoke", h.revokeOwnCertificate)
 	router.RequirePrivilege("GET /connectors/signer/status", CertificatesRead, h.status)
+	router.RequirePrivilege("GET /connectors/signer/users/{id}", CertificatesRead, h.getUserEmail)
 }
 
 func refuse(w http.ResponseWriter, status int, code, message string) {
@@ -95,7 +97,7 @@ func certificatePath(r *http.Request) string {
 // requireClaims writes the refusal and returns nil if the token does not say who the caller is.
 func requireClaims(w http.ResponseWriter, r *http.Request) *identity.Claims {
 	claims := identity.ClaimsFromContext(r.Context())
-	if claims == nil || claims.Sub == "" || claims.Email == "" {
+	if claims == nil || claims.Sub == "" {
 		refuse(w, http.StatusForbidden, "user_not_active", "Your account cannot do this")
 		return nil
 	}
@@ -157,14 +159,7 @@ func (h *Handlers) getAnyCertificate(w http.ResponseWriter, r *http.Request) {
 	h.relay(w, r, http.MethodGet, certificatePath(r), nil)
 }
 
-func (h *Handlers) revokeAnyCertificate(w http.ResponseWriter, r *http.Request) {
-	if claims := requireClaims(w, r); claims != nil {
-		h.revoke(w, r, claims.Email)
-	}
-}
-
-// revokedBy is the admin's email, or "self" when users revoke their own.
-func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, revokedBy string) {
+func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Reason string `json:"reason"`
 	}
@@ -172,6 +167,7 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, revokedBy stri
 		refuse(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
+	revokedBy := identity.CallerFromContext(r.Context()).Requester()
 	h.relay(w, r, http.MethodPost, certificatePath(r)+"/revoke", map[string]string{"reason": req.Reason, "revoked_by": revokedBy})
 }
 
@@ -185,8 +181,8 @@ func (h *Handlers) listOwnCertificates(w http.ResponseWriter, r *http.Request) {
 	h.relay(w, r, http.MethodGet, "/api/v1/certificates?"+query.Encode(), nil)
 }
 
-// fetchIfOwned extracts own certificate from the Signer and returns false if it is not the caller's.
-func (h *Handlers) fetchIfOwned(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+// fetchUsersCertificate gets the certificate from the signer and answers 404 when it is not the caller's.
+func (h *Handlers) fetchUsersCertificate(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 	claims := requireClaims(w, r)
 	if claims == nil {
 		return nil, false
@@ -220,18 +216,20 @@ func (h *Handlers) fetchIfOwned(w http.ResponseWriter, r *http.Request) ([]byte,
 	return body, true
 }
 
-func (h *Handlers) getOwnCertificate(w http.ResponseWriter, r *http.Request) {
-	body, ok := h.fetchIfOwned(w, r)
-	if !ok {
-		return
-	}
+func writeCertificate(w http.ResponseWriter, body []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)
 }
 
+func (h *Handlers) getOwnCertificate(w http.ResponseWriter, r *http.Request) {
+	if body, ok := h.fetchUsersCertificate(w, r); ok {
+		writeCertificate(w, body)
+	}
+}
+
 func (h *Handlers) revokeOwnCertificate(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.fetchIfOwned(w, r); ok {
-		h.revoke(w, r, "self")
+	if _, ok := h.fetchUsersCertificate(w, r); ok {
+		h.revoke(w, r)
 	}
 }
 
@@ -240,32 +238,42 @@ func (h *Handlers) generateCertificate(w http.ResponseWriter, r *http.Request) {
 	if claims == nil {
 		return
 	}
-	userID := identity.CallerFromContext(r.Context()).UserID
+	caller := identity.CallerFromContext(r.Context())
 	var req struct {
-		PublicKey string `json:"public_key"`
+		PublicKey     string `json:"public_key"`
+		SourceAddress string `json:"source_address"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxRequestBytes)).Decode(&req); err != nil || req.PublicKey == "" {
 		refuse(w, http.StatusBadRequest, "invalid_public_key", "A public key is required")
 		return
 	}
+	h.issueCertificate(w, r, caller.UserID, map[string]any{
+		"public_key":     req.PublicKey,
+		"user_email":     caller.Email,
+		"user_sub":       claims.Sub,
+		"requested_by":   caller.Requester(),
+		"source_address": req.SourceAddress,
+	})
+}
+
+func accountReadFailed(w http.ResponseWriter, err error) {
+	slog.Error("signer: reading the account failed", "error", err)
+	refuse(w, http.StatusInternalServerError, "internal_error", "Could not read the account")
+}
+
+func (h *Handlers) issueCertificate(w http.ResponseWriter, r *http.Request, userID string, sign map[string]any) {
 	username, code, err := h.loginName(r.Context(), userID)
 	if err != nil {
-		slog.Error("signer: reading the caller's account failed", "error", err)
-		refuse(w, http.StatusInternalServerError, "internal_error", "Could not read your account")
+		accountReadFailed(w, err)
 		return
 	}
 	if code != "" {
-		refuse(w, http.StatusForbidden, code, "Your account cannot generate a certificate")
+		refuse(w, http.StatusForbidden, code, "This account cannot generate a certificate")
 		return
 	}
-	h.relay(w, r, http.MethodPost, "/api/v1/sign", map[string]any{
-		"principal":    username,
-		"public_key":   req.PublicKey,
-		"ttl_seconds":  h.cfg.TTLSeconds,
-		"user_email":   claims.Email,
-		"user_sub":     claims.Sub,
-		"requested_by": "user/" + userID,
-	})
+	sign["principal"] = username
+	sign["ttl_seconds"] = h.cfg.TTLSeconds
+	h.relay(w, r, http.MethodPost, "/api/v1/sign", sign)
 }
 
 // loginName returns the username to sign for.
@@ -338,4 +346,19 @@ func (h *Handlers) status(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	err := h.CheckHealth(r.Context())
 	common.WriteJSON(w, http.StatusOK, statusResponse{Reachable: err == nil, LatencyMs: time.Since(start).Milliseconds()})
+}
+
+// getUserEmail lets a certificate reader see who generated or revoked a certificate.
+// Only the email, since the reader may not be allowed to read users.
+func (h *Handlers) getUserEmail(w http.ResponseWriter, r *http.Request) {
+	user, err := h.core.GetUser(r.Context(), r.PathValue("id"))
+	if errors.Is(err, service.ErrNotFound) {
+		refuse(w, http.StatusNotFound, "not_found", "User not found")
+		return
+	}
+	if err != nil {
+		accountReadFailed(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, map[string]string{"id": user.ID, "email": user.Email})
 }

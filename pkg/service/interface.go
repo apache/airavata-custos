@@ -321,6 +321,19 @@ type CoreService interface {
 	UserRoleService
 	UserAgreementService
 	UserConsentService
+	ServiceAccountService
+}
+
+type ServiceAccountService interface {
+	ListServiceAccounts(ctx context.Context) ([]models.ServiceAccount, error)
+	GetServiceAccount(ctx context.Context, id string) (*models.ServiceAccount, error)
+	DeleteServiceAccount(ctx context.Context, id, actorID string) error
+	CreateServiceAccount(ctx context.Context, key, name, description string, privileges []models.PrivilegeKey, actorID string) (*models.ServiceAccount, string, error)
+	UpdateServiceAccount(ctx context.Context, id, name, description, actorID string) (*models.ServiceAccount, error)
+	DisableServiceAccount(ctx context.Context, id, actorID string) (*models.ServiceAccount, error)
+	EnableServiceAccount(ctx context.Context, id, actorID string) (*models.ServiceAccount, error)
+	IssueServiceAccountSecret(ctx context.Context, id, actorID string) (*models.ServiceAccount, string, error)
+	ResolveServiceAccount(ctx context.Context, token string) (*models.ServiceAccount, error)
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

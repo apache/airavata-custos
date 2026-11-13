@@ -65,7 +65,7 @@ export function usePrivileges() {
   return useQuery({
     queryKey: identityKeys.privileges(),
     queryFn: async (): Promise<Privilege[]> => {
-      const raw = await apiFetch("/user/privileges");
+      const raw = await apiFetch("/me/privileges");
       return privilegesResponseSchema.parse(raw);
     },
     enabled: status === "authenticated",

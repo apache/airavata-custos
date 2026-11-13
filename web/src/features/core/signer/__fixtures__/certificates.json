@@ -1,6 +1,6 @@
 [
   {
-    "requested_by": "app/airavata",
+    "requested_by": "user/researcher",
     "user_email": "researcher@example.org",
     "user_sub": "sub-researcher",
     "serial_number": 42,
@@ -16,7 +16,7 @@
     "revoked": false
   },
   {
-    "requested_by": "app/airavata",
+    "requested_by": "user/researcher",
     "user_email": "researcher@example.org",
     "user_sub": "sub-researcher",
     "serial_number": 43,
@@ -32,7 +32,7 @@
     "revoked": false
   },
   {
-    "requested_by": "app/airavata",
+    "requested_by": "user/researcher",
     "user_email": "researcher@example.org",
     "user_sub": "sub-researcher",
     "serial_number": 44,

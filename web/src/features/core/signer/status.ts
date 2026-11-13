@@ -20,9 +20,8 @@ import type { Certificate } from "./schemas";
 
 export type CertificateStatus = "active" | "not-yet-valid" | "expired" | "revoked";
 
-// requested_by is "user/<id>" when the person generated it, or "app/<id>" for an app.
-export function requestingApp(cert: Certificate): string | undefined {
-  return cert.requested_by.startsWith("app/") ? cert.requested_by.slice("app/".length) : undefined;
+export function userIdOf(actor: string | undefined): string | null {
+  return actor?.startsWith("user/") ? actor.slice("user/".length) : null;
 }
 
 export const CERTIFICATE_STATUS_LABELS: Record<CertificateStatus, string> = {

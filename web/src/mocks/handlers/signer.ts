@@ -81,7 +81,7 @@ export const signerHandlers = [
     const now = Math.floor(Date.now() / 1000);
     found.revoked = true;
     found.revoked_at = now;
-    found.revoked_by = "self";
+    found.revoked_by = "user/msw-user";
     return HttpResponse.json({
       success: true,
       message: "Certificate revoked successfully",

@@ -158,7 +158,8 @@ func run() error {
 	// identity.Middleware sits in front of the router-backed server, so every
 	// gated route sees a verified caller + privilege set on ctx.
 	authed := identity.Middleware(verifier, svc, router.PublicRoutes(), router.WithoutUserConsentRoutes(), srv)
-	handler := server.LoggingMiddleware(tracing.Middleware(authed))
+	routed := identity.ServiceAccountMiddleware(svc, srv, authed)
+	handler := server.LoggingMiddleware(tracing.Middleware(routed))
 
 	httpServer := &http.Server{
 		Addr:              addr,

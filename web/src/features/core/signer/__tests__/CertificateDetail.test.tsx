@@ -50,6 +50,7 @@ vi.mock("sonner", () => ({ toast: { success: state.toastSuccess } }));
 vi.mock("../queries", () => ({
   useCertificate: () => state.query,
   useRevokeCertificate: () => ({ mutate: state.mutate, isPending: state.isPending }),
+  useUserEmail: (id: string | null) => (id === "admin-id" ? "site-admin@example.org" : undefined),
 }));
 
 import { CertificateDetail } from "../components/CertificateDetail";
@@ -77,14 +78,13 @@ describe("<CertificateDetail />", () => {
   it("renders complete issuance metadata", () => {
     render(<CertificateDetail serial="42" />);
     for (const value of [
-      "Self-service",
-      "admin@example.org",
       "key-42",
       "SHA256:pk",
       "SHA256:ca",
       "sub-admin",
       "permit-pty, permit-user-rc",
       "/usr/bin/id",
+      "admin@example.org",
     ]) {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
@@ -140,11 +140,11 @@ describe("<CertificateDetail />", () => {
       revoked: true,
       revoked_at: 1_700_500_000,
       revocation_reason: "original reason",
-      revoked_by: "admin-id",
+      revoked_by: "user/admin-id",
     };
     render(<CertificateDetail serial="42" />);
     expect(screen.getByText("original reason")).toBeInTheDocument();
-    expect(screen.getByText("admin-id")).toBeInTheDocument();
+    expect(screen.getByText("site-admin@example.org")).toBeInTheDocument();
   });
 
   it.each([

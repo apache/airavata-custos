@@ -62,6 +62,7 @@ A key exists only once it is registered with `models.Register(...)`. Grants and 
 | `core:roles:manage`        | `GET /roles`<br>`POST /roles`<br>`GET /roles/{id}`<br>`PUT /roles/{id}`<br>`DELETE /roles/{id}`<br>`POST /roles/{id}/privileges`<br>`DELETE /roles/{id}/privileges/{key}`<br>`GET /roles/{id}/holders`<br>`GET /users/{id}/roles`<br>`POST /users/{id}/roles`<br>`DELETE /users/{id}/roles/{roleId}`                                                                                                                                                                                                                                                                                                                                                                      |
 | `core:agreements:read`     | `GET /agreements`<br>`GET /agreements/{id}`<br>`GET /agreements/{id}/acceptances`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `core:agreements:manage`   | `POST /agreements`<br>`PUT /agreements/{id}`<br>`DELETE /agreements/{id}`<br>`POST /agreements/{id}/publish`<br>`POST /agreements/{id}/remove`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `core:service-accounts:manage` | `GET /service-accounts`<br>`POST /service-accounts`<br>`GET /service-accounts/privileges`<br>`GET /service-accounts/{id}`<br>`PUT /service-accounts/{id}`<br>`DELETE /service-accounts/{id}`<br>`POST /service-accounts/{id}/disable`<br>`POST /service-accounts/{id}/enable`<br>`POST /service-accounts/{id}/secret` |
 
 `POST /users` with `portal_admin` or `cluster_admin` set also requires `core:roles:manage`.
 
@@ -72,13 +73,15 @@ These routes need a verified caller but no key.
 | Router method                   | Routes                                                                                                                                                                                                                | Access                                                                                                                  |
 |---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
 | `Public`                        | `GET /healthz`                                                                                                                                                                                                        | Anyone, no token                                                                                                        |
-| `RequireAuthWithoutUserConsent` | `GET /me`<br>`GET /user/privileges`<br>`GET /me/agreements/pending`<br>`POST /me/agreements/{id}/accept`<br>`GET /me/onboarding/username`<br>`POST /me/onboarding`                                                    | The caller's own profile and onboarding, before consent                                                                 |
+| `RequireAuthWithoutUserConsent` | `GET /me`<br>`GET /me/privileges`<br>`GET /me/agreements/pending`<br>`POST /me/agreements/{id}/accept`<br>`GET /me/onboarding/username`<br>`POST /me/onboarding`                                                    | The caller's own profile and onboarding, before consent                                                                 |
 | `RequireAuth`                   | `GET /me/onboarding/status`                                                                                                                                                                                           | The caller's own status                                                                                                 |
 | `RequireAuth`                   | `GET /projects`<br>`GET /compute-allocations`                                                                                                                                                                         | All records with `core:projects:read` or `core:allocations:read`; otherwise the caller's own                            |
 | `RequireScoped`                 | `GET /projects/{id}`                                                                                                                                                                                                  | `core:projects:read`, or a participant in the project; `404` otherwise                                                  |
 | `RequireScoped`                 | `GET /compute-allocations/{id}`<br>`GET /compute-allocations/{id}/resources`<br>`GET /compute-allocations/{id}/memberships`<br>`GET /compute-allocations/{id}/usages`<br>`GET /compute-allocations/{id}/usages/total` | `core:allocations:read`, or a participant in the allocation; `404` otherwise                                            |
 | `RequireAuth`                   | `GET /connectors/analytics/contexts`<br>`GET /connectors/analytics/allocations/{id}/usage-summary`<br>`GET /connectors/analytics/allocations/{id}/jobs`                                                               | Decided by allocation role alone: PI, CO_PI and ALLOCATION_MANAGER see all members, plain members see their own records |
 | `RequireAuth`                   | `GET /connectors/signer/me/certificates`<br>`POST /connectors/signer/me/certificates`<br>`GET /connectors/signer/me/certificates/{serial}`<br>`POST /connectors/signer/me/certificates/{serial}/revoke`               | The caller's own certificates. Generating also needs a ready cluster account and an active allocation                   |
+
+How these routes treat service accounts is in [architecture.md](architecture.md#service-accounts).
 
 ## AMIE connector (`connectors/ACCESS/AMIE-Processor/server/privileges.go`)
 
@@ -97,13 +100,14 @@ These routes need a verified caller but no key.
 |-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `temp-account:accounts:read`  | `GET /connectors/temp-account/membership/{user_id}`                                                                                                                                                    |
 | `temp-account:accounts:write` | `POST /connectors/temp-account/create`<br>`POST /connectors/temp-account/assign-allocation`<br>`POST /connectors/temp-account/update-allocation`<br>`DELETE /connectors/temp-account/remove/{user_id}` |
+| `temp-account:users:create`   | `POST /connectors/temp-account/users`. Service accounts may hold this key.                                                                                                                             |
 
 ## Signer connector (`connectors/Signer/internal/privileges.go`)
 
-| Privilege                   | Routes it gates                                                                                                            |
-|-----------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `signer:certificates:read`  | `GET /connectors/signer/certificates`<br>`GET /connectors/signer/certificates/{serial}`<br>`GET /connectors/signer/status` |
-| `signer:certificates:write` | `POST /connectors/signer/certificates/{serial}/revoke`                                                                     |
+| Privilege                   | Routes it gates                                                                                                                                                                    |
+|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `signer:certificates:read`  | `GET /connectors/signer/certificates`<br>`GET /connectors/signer/certificates/{serial}`<br>`GET /connectors/signer/status`<br>`GET /connectors/signer/users/{id}` (the email only) |
+| `signer:certificates:write` | `POST /connectors/signer/certificates/{serial}/revoke`                                                                                                                             |
 
 ## Other connectors
 
@@ -114,10 +118,10 @@ no route on a key.
 
 Two roles are created by the server and marked `is_system`.
 
-| Role          | Privileges                                                                 | Created                                                                                                                          |
-|---------------|----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `super_admin` | All keys registered at startup, core and connector alike                   | At startup, for the user named by `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` ([CONFIG.md](../CONFIG.md#environment-variables-read-directly)) |
-| `admin`       | All registered keys except `core:privileges:grant` and `core:roles:manage` | The first time `POST /users` onboards a portal admin. Its keys are set only then                                                 |
+| Role          | Privileges                                                                                     | Created                                                                                                                          |
+|---------------|------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `super_admin` | All keys registered at startup, core and connector alike                                       | At startup, for the user named by `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` ([CONFIG.md](../CONFIG.md#environment-variables-read-directly)) |
+| `admin`       | All registered keys except `core:privileges:grant`, `core:roles:manage` and `core:service-accounts:manage` | The first time `POST /users` onboards a portal admin. Its keys are set only then                                                 |
 
 Two revoke paths guard against locking every administrator out:
 
@@ -136,8 +140,24 @@ Other roles are site-defined through `/roles`.
 2. Declare it in the owning package:
     - Core: add a constant to `pkg/models/privilege.go` and to its `Register(...)` call.
     - Connector: add a constant to the connector's `privileges.go` and register it from that file's `init`.
+    - If service accounts may hold it, register it with `models.AllowForServiceAccounts(...)` instead. Never do this
+      for a key that manages user access, roles, privileges or service accounts.
 3. Gate the route with `router.RequirePrivilege(pattern, KEY, handler)`.
 4. Add a row to the matching table above.
 
 `super_admin` picks up a new key at the next start with `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` set. The `admin` role does
 not. Add the key to it through `POST /roles/{id}/privileges`.
+
+## Changing or removing a privilege
+
+Grants are stored by key in `user_privileges`, `role_privileges` and `service_account_privileges`. Changing only the
+code leaves those rows behind, so add a new migration in the same change:
+
+| Change                                                                                     | Migration                                         |
+|--------------------------------------------------------------------------------------------|---------------------------------------------------|
+| Rename a key                                                                               | Update the key in all three tables                |
+| Remove a key                                                                               | Delete its rows from all three tables             |
+| Stop allowing a key for service accounts (`AllowForServiceAccounts` → `Register`)          | Delete its rows from `service_account_privileges` |
+
+If the migration is missed, a service account still cannot use a key that is no longer allowed for service accounts,
+but the admin service accounts page keeps listing it until the rows are gone.
