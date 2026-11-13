@@ -54,9 +54,6 @@ signer:
   login_port: 22
   ca:
     create_if_missing: false          # true creates a CA when none is stored.
-    rotation:
-      period_hours: 2160              # 90 days
-      overlap_hours: 2
   policy:
     max_ttl_seconds: 86400            # 24 hours
     allowed_key_types:

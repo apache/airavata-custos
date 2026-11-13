@@ -44,9 +44,6 @@ signer:
   login_port: 2222
   ca:
     create_if_missing: true
-    rotation:
-      period_hours: 2160
-      overlap_hours: 2
   policy:
     max_ttl_seconds: 86400
     allowed_key_types:

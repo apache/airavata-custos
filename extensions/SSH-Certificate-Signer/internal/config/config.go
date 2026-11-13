@@ -74,13 +74,7 @@ type SignerConfig struct {
 }
 
 type CAConfig struct {
-	CreateIfMissing bool           `yaml:"create_if_missing"`
-	Rotation        RotationConfig `yaml:"rotation"`
-}
-
-type RotationConfig struct {
-	PeriodHours  int `yaml:"period_hours"`
-	OverlapHours int `yaml:"overlap_hours"`
+	CreateIfMissing bool `yaml:"create_if_missing"`
 }
 
 type PolicyConfig struct {
@@ -132,12 +126,6 @@ func DefaultConfig() *Config {
 		Signer: SignerConfig{
 			ReservedUsernames: []string{"root"},
 			LoginPort:         22,
-			CA: CAConfig{
-				Rotation: RotationConfig{
-					PeriodHours:  2160,
-					OverlapHours: 2,
-				},
-			},
 			Policy: PolicyConfig{
 				MaxTTLSeconds:   86400,
 				AllowedKeyTypes: []string{"ed25519", "rsa", "ecdsa"},
