@@ -17,7 +17,6 @@
 
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Button } from "@/shared/ui/button";
@@ -79,14 +78,7 @@ export function CertificateList({
       header: "Serial",
       sortable: true,
       sortValue: (row) => row.serial_number,
-      cell: (row) => (
-        <Link
-          href={`/admin/signer/certificates/${row.serial_number}`}
-          className="font-mono font-medium text-foreground hover:underline"
-        >
-          {row.serial_number}
-        </Link>
-      ),
+      cell: (row) => <span className="font-mono font-medium">{row.serial_number}</span>,
     },
     {
       key: "principal",

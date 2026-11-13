@@ -20,8 +20,9 @@ import { describe, expect, it, vi } from "vitest";
 import { CertificateList } from "../components/CertificateList";
 import type { Certificate } from "../schemas";
 
+const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push }),
 }));
 
 const active: Certificate = {
@@ -64,10 +65,11 @@ function renderList(overrides: Partial<React.ComponentProps<typeof CertificateLi
 }
 
 describe("<CertificateList />", () => {
-  it("renders the serial as a link to the detail page", () => {
+  // Make sure clicking a row opens that certificate's detail page.
+  it("opens the certificate when its row is clicked", () => {
     renderList();
-    const link = screen.getByRole("link", { name: String(active.serial_number) });
-    expect(link).toHaveAttribute("href", `/admin/signer/certificates/${active.serial_number}`);
+    fireEvent.click(screen.getByText("dev-admin"));
+    expect(push).toHaveBeenCalledWith(`/admin/signer/certificates/${active.serial_number}`);
   });
 
   it("shows the empty state when no rows match the filters", () => {
@@ -83,9 +85,9 @@ describe("<CertificateList />", () => {
   it("filters client-side by status", () => {
     renderList({ rows: [active, revoked], statusFilter: "revoked" });
     expect(
-      screen.queryByRole("link", { name: String(active.serial_number) }),
+      screen.queryByRole("button", { name: String(active.serial_number) }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: String(revoked.serial_number) })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: String(revoked.serial_number) })).toBeInTheDocument();
   });
 
   it.each([
@@ -94,11 +96,11 @@ describe("<CertificateList />", () => {
   ])("filters the loaded page by %s", (_field, search) => {
     renderList({ rows: [active, revoked], search });
     const expected = search === "44" ? revoked.serial_number : active.serial_number;
-    expect(screen.getByRole("link", { name: String(expected) })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: String(expected) })).toBeInTheDocument();
     if (search === "44") {
-      expect(screen.queryByRole("link", { name: String(active.serial_number) })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: String(active.serial_number) })).not.toBeInTheDocument();
     } else {
-      expect(screen.queryByRole("link", { name: String(revoked.serial_number) })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: String(revoked.serial_number) })).not.toBeInTheDocument();
     }
   });
 
