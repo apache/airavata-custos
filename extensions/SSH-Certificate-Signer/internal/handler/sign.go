@@ -55,17 +55,16 @@ type SignRequest struct {
 }
 
 type SignResponse struct {
-	Certificate       string           `json:"certificate"`
-	SerialNumber      int64            `json:"serial_number"`
-	ValidAfter        int64            `json:"valid_after"`
-	ValidBefore       int64            `json:"valid_before"`
-	CAFingerprint     string           `json:"ca_fingerprint"`
-	LoginHost         string           `json:"login_host"`
-	LoginPort         int              `json:"login_port"`
-	Principal         string           `json:"principal"`
-	ForceCommand      string           `json:"force_command,omitempty"`
-	GrantedExtensions []string         `json:"granted_extensions"`
-	TimingMicros      map[string]int64 `json:"timing_micros,omitempty"`
+	Certificate       string   `json:"certificate"`
+	SerialNumber      int64    `json:"serial_number"`
+	ValidAfter        int64    `json:"valid_after"`
+	ValidBefore       int64    `json:"valid_before"`
+	CAFingerprint     string   `json:"ca_fingerprint"`
+	LoginHost         string   `json:"login_host"`
+	LoginPort         int      `json:"login_port"`
+	Principal         string   `json:"principal"`
+	ForceCommand      string   `json:"force_command,omitempty"`
+	GrantedExtensions []string `json:"granted_extensions"`
 }
 
 type SignSettings struct {
@@ -107,15 +106,6 @@ func NewSignHandler(
 
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	// Per-component timing for the response.
-	timings := map[string]int64{}
-	stageStart := startTime
-	mark := func(stage string) {
-		now := time.Now()
-		timings[stage] += now.Sub(stageStart).Microseconds()
-		stageStart = now
-	}
-
 	defer func() {
 		metrics.SignDurationSeconds.Observe(time.Since(startTime).Seconds())
 	}()
@@ -161,7 +151,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_public_key", "Invalid SSH public key format")
 		return
 	}
-	mark("parse_request_us")
 
 	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type()); err != nil {
 		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
@@ -172,7 +161,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Policy enforcement error")
 		return
 	}
-	mark("policy_enforcement_us")
 
 	grantedExts, err := cert.ResolveExtensions(h.settings.DeniedExtensions, req.ExcludeExtensions)
 	if err != nil {
@@ -195,7 +183,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Principal validation error")
 		return
 	}
-	mark("principal_validation_us")
 
 	validatedPrincipal := valResult.ValidatedPrincipal
 
@@ -208,7 +195,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
-	mark("vault_key_fetch_us")
 
 	serial, err := h.db.NextSerial(r.Context())
 	if err != nil {
@@ -217,7 +203,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
 	}
-	mark("serial_us")
 
 	criticalOpts := map[string]string{}
 	if req.ForceCommand != "" {
@@ -247,7 +232,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 		return
 	}
-	mark("cert_signing_us")
 
 	pubKeyFP := cert.SSHPublicKeyFingerprint(sshPubKey)
 
@@ -273,10 +257,8 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
 		return
 	}
-	mark("audit_log_us")
 
 	metrics.SignRequestsTotal.WithLabelValues("success").Inc()
-	timings["total_us"] = time.Since(startTime).Microseconds()
 
 	resp := SignResponse{
 		Certificate:       signResult.AuthorizedKey,
@@ -289,7 +271,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		Principal:         validatedPrincipal,
 		ForceCommand:      req.ForceCommand,
 		GrantedExtensions: grantedExtNames,
-		TimingMicros:      timings,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
