@@ -40,7 +40,7 @@ SSH public key and the principal. The principal is the Unix username the certifi
 
 | `principal_validator` | Principal check |
 |---|---|
-| `noop` | Accepts the principal |
+| `noop` | Accepts the principal. Allowed only in dev mode; the signer refuses to start with it otherwise. |
 | `ldap` | Finds the LDAP entry for the OIDC subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
 | `comanage` | Not implemented. Rejects every request with `COMANAGE_NOT_IMPLEMENTED`. |
 
@@ -225,7 +225,6 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 | `POST` | `/api/v1/revoke` | Client credentials | Revoke a certificate by `serial_number`, `key_id` or `ca_fingerprint` |
 | `GET` | `/api/v1/jwks` | Client credentials | CA public keys as JWKs |
 | `GET` | `/api/v1/ca-public-key` | Client credentials | CA public key |
-| `POST` | `/api/v1/admin/rotate-ca` | Client credentials | Rotate the CA keys |
 | `GET` | `/api/v1/certificates` | OIDC Bearer | Certificates of the signed-in user |
 | `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | One certificate |
 | `POST` | `/api/v1/certificates/{serial}/revoke` | OIDC Bearer | Revoke an owned active certificate, or any active certificate with `signer:certificates:write` |
@@ -293,14 +292,6 @@ curl -s -X POST http://localhost:8084/api/v1/revoke \
 
 ```bash
 curl -s http://localhost:8084/api/v1/jwks \
-  -H "X-Client-Id: webapp" \
-  -H "X-Client-Secret: your-secret" | jq .
-```
-
-**Rotate CA Keys**
-
-```bash
-curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
   -H "X-Client-Id: webapp" \
   -H "X-Client-Secret: your-secret" | jq .
 ```
