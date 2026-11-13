@@ -22,7 +22,7 @@
 Custos Signer is an SSH certificate authority. It issues short-lived OpenSSH user certificates.
 
 The signer is internal and has one trusted caller, the Custos server, through its
-[Signer connector](../../connectors/Signer/README.md). Users and apps talk to Custos, and Custos decides who may have a
+[Signer connector](../../connectors/Signer/README.md). Users talk to Custos, and Custos decides who may have a
 certificate. Do not expose the signer to the public. Whoever holds its service token can get a certificate for any user
 that is not reserved.
 
@@ -53,14 +53,17 @@ The certificate names who it is for. The CA signature covers all of it.
 | Key ID                                     | `<email>:<requested_by>`. sshd writes it to the login log. |
 | Extension `user-sub@custos.apache.org`     | The user's subject                                         |
 | Extension `user-email@custos.apache.org`   | The user's email                                           |
-| Extension `requested-by@custos.apache.org` | Who asked. Custos sends `user/<id>` or `app/<id>`.         |
+| Extension `requested-by@custos.apache.org` | Who asked. Custos sends `user/<id>`.                       |
 
 A request can also set `source_address`, a comma-separated list of IP addresses or CIDR blocks. It goes in the
 certificate's `source-address` critical option, and sshd then accepts the certificate only from those addresses.
 
 A deployment has one Ed25519 CA, stored in Vault in OpenSSH format, the same format `ssh-keygen -t ed25519` writes. The
-signer reads it at startup and refuses to start without it,
-unless `signer.ca.create_if_missing` is set, in which case it creates one and writes a `ca_created` audit log entry.
+signer reads it at startup and refuses to start without it, unless `signer.ca.create_if_missing` is set, in which case
+it creates one and writes a `ca_created` audit log entry. At startup, it also checks that the stored public key matches
+the private key.
+
+Serial numbers come from the PostgreSQL sequence `certificate_serial_seq`, so a serial is never handed out twice.
 
 ## Prerequisites
 
@@ -86,33 +89,31 @@ The rest of this section is the manual setup.
 ### Database
 
 ```sql
-CREATE
-    DATABASE custos_signer;
+CREATE DATABASE custos_signer;
 ```
 
-If using the project's Docker Compose, the `custos_signer` database is created automatically by
-`dev-ops/compose/dbinit/init-db.sh`.
-
-Migrations are managed separately from the server. Migrations are read from `migrations/`, so run the signer from
-this directory. Apply them explicitly:
+Migrations are read from `migrations/`, so run the signer from this directory:
 
 ```bash
 ./custos-signer migrate --config config.yaml
 ```
 
-This applies any pending migrations and exits. It's idempotent — safe to run repeatedly. The `migrate` subcommand tracks
-applied versions in a `schema_migrations` table and only applies what's new.
+It applies any pending migrations and exits, and is safe to run again. Applied versions are kept in
+`schema_migrations`.
 
-You can also apply SQL directly:
+The initial migration creates:
 
-```bash
-psql -U admin -d custos_signer < migrations/001_initial_schema.up.sql
+- `certificate_issuance_logs`, the record of every issued certificate
+- `revocation_events`, the record of every revocation
+- `certificate_serial_seq`, the sequence serial numbers come from
+
+After restoring the database from a backup, increase the serial counter before starting the signer. The backup
+does not have the serials issued after it was taken, so without this the signer would reuse them:
+
+```sql
+SELECT setval('certificate_serial_seq',
+              COALESCE((SELECT MAX(serial_number) FROM certificate_issuance_logs), 0) + 100000);
 ```
-
-The initial migration creates two tables:
-
-- `certificate_issuance_logs` — audit log for certificate issuances
-- `revocation_events` — audit log for certificate revocations
 
 ### Vault
 
@@ -121,11 +122,29 @@ vault secrets enable -path=ssh-ca kv-v2
 ```
 
 The path must match `vault.mount_path`. Store the CA key before starting the signer, or set
-`signer.ca.create_if_missing` to let it create one.
+`signer.ca.create_if_missing` to let it create one. The CA is one secret at `vault.ca_key_path` (default `ca/current`):
 
-Ensure the configured token has read/write access to `ssh-ca/data/*`.
+| Key           | Value                                                                    |
+|---------------|--------------------------------------------------------------------------|
+| `private_key` | The CA private key, `-----BEGIN OPENSSH PRIVATE KEY-----`. Ed25519 only. |
+| `public_key`  | The matching public key line, `ssh-ed25519 AAAA...`                      |
+| `created_at`  | Optional. When the CA was created, in RFC 3339 (`2026-11-12T10:00:00Z`). |
 
-For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`:
+```bash
+ssh-keygen -t ed25519 -f ca -N "" -C custos-ca
+vault kv put ssh-ca/ca/current private_key=@ca public_key=@ca.pub created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+```
+
+The signer's token only needs to read. Write is needed only while `create_if_missing` is on:
+
+```hcl
+path "ssh-ca/data/ca/current" { capabilities = ["read"] }
+```
+
+For a Vault served over TLS with a private CA, set `BAO_CACERT` (or `VAULT_CACERT`) to the CA certificate file.
+
+For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`, and give the token read on
+`ssh-ca/data/validation` too:
 
 | Key                                               | Value                                           |
 |---------------------------------------------------|-------------------------------------------------|
@@ -268,7 +287,7 @@ curl -s -X POST http://localhost:8084/api/v1/sign \
 curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SIGNER_SERVICE_TOKEN" \
-  -d '{"reason": "User deprovisioned", "revoked_by": "admin@example.edu"}' | jq .
+  -d '{"reason": "User deprovisioned", "revoked_by": "user/8f3a"}' | jq .
 ```
 
 ## Troubleshooting
@@ -281,6 +300,8 @@ curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
 | HTTP 401 on any route                 | Wrong service token                         | Set the same `SIGNER_SERVICE_TOKEN` on the signer and the caller    |
 | HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                         |
 | HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                         |
+| Exits with "no CA key in vault"       | No CA at `vault.ca_key_path`                | Fix the path. A new CA is not trusted by the login nodes            |
+| HTTP 500 on every sign                | `certificate_serial_seq` is missing         | `CREATE SEQUENCE certificate_serial_seq`, then the `setval` above   |
 
 ## License
 
