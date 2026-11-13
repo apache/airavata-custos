@@ -23,7 +23,7 @@ import {
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { CertificateList } from "@/features/core/signer/components/CertificateList";
-import { useCertificates } from "@/features/core/signer/queries";
+import { useCertificates, useCursorPaging } from "@/features/core/signer/queries";
 import type { CertificateStatus } from "@/features/core/signer/status";
 
 function statusFilterFromUrl(raw: string | null): CertificateStatus | "all" {
@@ -35,9 +35,7 @@ function statusFilterFromUrl(raw: string | null): CertificateStatus | "all" {
 
 export function CertificateListContainer() {
   const searchParams = useShallowSearchParams();
-  // The cursor of each page after the first, so Previous can walk back.
-  const [cursors, setCursors] = React.useState<string[]>([]);
-  const [pageSize, setPageSize] = React.useState(20);
+  const { params: pageParams, paging } = useCursorPaging();
 
   const search = searchParams.get("q") ?? "";
   const statusFilter = statusFilterFromUrl(searchParams.get("status"));
@@ -52,9 +50,8 @@ export function CertificateListContainer() {
     [searchParams],
   );
 
-  const query = useCertificates({ limit: pageSize, cursor: cursors.at(-1) });
+  const query = useCertificates(pageParams);
   const rows = query.data?.certificates ?? [];
-  const nextCursor = query.data?.next_cursor;
 
   return (
     <CertificateList
@@ -66,17 +63,7 @@ export function CertificateListContainer() {
       onSearchChange={(next) => updateParam("q", next)}
       statusFilter={statusFilter}
       onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
-      paging={{
-        page: cursors.length + 1,
-        pageSize,
-        hasNext: Boolean(nextCursor),
-        onNext: () => nextCursor && setCursors((prev) => [...prev, nextCursor]),
-        onPrevious: () => setCursors((prev) => prev.slice(0, -1)),
-        onPageSizeChange: (next) => {
-          setCursors([]);
-          setPageSize(next);
-        },
-      }}
+      paging={paging(query.data?.next_cursor)}
     />
   );
 }

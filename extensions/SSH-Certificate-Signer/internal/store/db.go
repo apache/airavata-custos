@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package store provides database access for client configs, issuance logs, and revocation events.
+// Package store provides database access for issuance logs and revocation events.
 package store
 
 import (

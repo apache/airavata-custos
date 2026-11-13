@@ -22,8 +22,7 @@ set -e
 # Fetching the CA public key also triggers CA creation on first run.
 echo "fetching CA public key from ${SIGNER_URL}..."
 until curl -sf \
-    -H "X-Client-Id: ${CLIENT_ID}" \
-    -H "X-Client-Secret: ${CLIENT_SECRET}" \
+    -H "Authorization: Bearer ${SIGNER_SERVICE_TOKEN}" \
     "${SIGNER_URL}/api/v1/ca-public-key" \
     -o /etc/ssh/trusted-user-ca-keys.pub; do
   sleep 2

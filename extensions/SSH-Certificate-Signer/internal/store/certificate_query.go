@@ -17,37 +17,38 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
 type CertificateWithStatus struct {
 	ID                   int64
-	ClientID             string
 	SerialNumber         int64
 	KeyID                string
 	Principal            string
 	UserEmail            string
+	UserSub              string
+	RequestedBy          string
 	PublicKeyFingerprint string
 	CAFingerprint        string
 	ValidAfter           time.Time
 	ValidBefore          time.Time
 	IssuedAt             time.Time
-	SourceIP             string
 	GrantedExtensions    []string
 	ForceCommand         *string
+	SourceAddress        *string
 	Revoked              bool
 	RevokedAt            *time.Time
 	RevocationReason     string
 	RevokedBy            string
 }
 
-type CertificateListResult struct {
-	Certificates []CertificateWithStatus
-	Total        int
+// CertificateFilter narrows a list. An empty field does not filter.
+type CertificateFilter struct {
+	UserSub     string
+	RequestedBy string
 }
 
 type CertificateCursor struct {
@@ -60,109 +61,11 @@ type CertificatePageResult struct {
 	NextCursor   *CertificateCursor
 }
 
-// ListCertificatesByEmail returns certificates issued to a user email, ordered by
-// issued_at descending (newest first). Includes revocation status via LEFT JOIN.
-func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, offset int) (*CertificateListResult, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	// Count total matching certificates
-	var total int
-	err := d.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM certificate_issuance_logs WHERE user_email = $1`,
-		email,
-	).Scan(&total)
-	if err != nil {
-		return nil, fmt.Errorf("counting certificates: %w", err)
-	}
-
-	// Fetch page with revocation status
-	rows, err := d.QueryContext(ctx,
-		`SELECT
-			c.id, c.client_id, c.serial_number, c.key_id,
-			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
-			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
-			c.granted_extensions, c.force_command,
-			CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS revoked,
-			r.revoked_at,
-			COALESCE(r.reason, '') AS revocation_reason,
-			COALESCE(r.revoked_by, '') AS revoked_by
-		 FROM certificate_issuance_logs c
-		 LEFT JOIN revocation_events r ON r.id = (
-			SELECT r2.id FROM revocation_events r2
-			WHERE r2.serial_number = c.serial_number
-			ORDER BY r2.revoked_at DESC, r2.id DESC LIMIT 1
-		 )
-		 WHERE c.user_email = $1
-		 ORDER BY c.issued_at DESC
-		 LIMIT $2 OFFSET $3`,
-		email, limit, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("querying certificates: %w", err)
-	}
-	defer rows.Close()
-
-	var certs []CertificateWithStatus
-	for rows.Next() {
-		var cert CertificateWithStatus
-		var revokedAt *time.Time
-		var grantedExtensionsJSON []byte
-		var forceCommand sql.NullString
-
-		if err := rows.Scan(
-			&cert.ID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
-			&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
-			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
-			&grantedExtensionsJSON, &forceCommand,
-			&cert.Revoked, &revokedAt, &cert.RevocationReason, &cert.RevokedBy,
-		); err != nil {
-			return nil, fmt.Errorf("scanning certificate row: %w", err)
-		}
-
-		if grantedExtensionsJSON != nil {
-			if err := json.Unmarshal(grantedExtensionsJSON, &cert.GrantedExtensions); err != nil {
-				return nil, fmt.Errorf("unmarshaling granted_extensions: %w", err)
-			}
-		}
-		if forceCommand.Valid {
-			cert.ForceCommand = &forceCommand.String
-		}
-		cert.RevokedAt = revokedAt
-		certs = append(certs, cert)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating certificate rows: %w", err)
-	}
-
-	return &CertificateListResult{
-		Certificates: certs,
-		Total:        total,
-	}, nil
-}
-
-// ListCertificates returns a deployment-wide keyset page for privileged administrators.
-func (d *DB) ListCertificates(ctx context.Context, limit int, cursor *CertificateCursor) (*CertificatePageResult, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-
-	query := `SELECT
-			c.id, c.client_id, c.serial_number, c.key_id,
-			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
-			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
-			c.granted_extensions, c.force_command,
+const certificateSelect = `SELECT
+			c.id, c.serial_number, c.key_id,
+			c.principal, c.user_email, c.user_sub, c.requested_by, c.public_key_fingerprint, c.ca_fingerprint,
+			c.valid_after, c.valid_before, c.issued_at,
+			c.granted_extensions, c.force_command, c.source_address,
 			CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS revoked,
 			r.revoked_at,
 			COALESCE(r.reason, '') AS revocation_reason,
@@ -173,18 +76,37 @@ func (d *DB) ListCertificates(ctx context.Context, limit int, cursor *Certificat
 			WHERE r2.serial_number = c.serial_number
 			ORDER BY r2.revoked_at DESC, r2.id DESC LIMIT 1
 		 )`
-	args := make([]any, 0, 4)
-	limitPlaceholder := "$1"
-	if cursor != nil {
-		query += `
-		 WHERE (c.issued_at < $1 OR (c.issued_at = $2 AND c.id < $3))`
-		args = append(args, cursor.IssuedAt, cursor.IssuedAt, cursor.ID)
-		limitPlaceholder = "$4"
+
+func (d *DB) ListCertificates(ctx context.Context, limit int, cursor *CertificateCursor, filter CertificateFilter) (*CertificatePageResult, error) {
+	if limit <= 0 {
+		limit = 20
 	}
-	query += `
-		 ORDER BY c.issued_at DESC, c.id DESC
-		 LIMIT ` + limitPlaceholder
-	args = append(args, limit+1)
+	if limit > 100 {
+		limit = 100
+	}
+
+	var conditions []string
+	var args []any
+	arg := func(value any) string {
+		args = append(args, value)
+		return fmt.Sprintf("$%d", len(args))
+	}
+	if filter.UserSub != "" {
+		conditions = append(conditions, "c.user_sub = "+arg(filter.UserSub))
+	}
+	if filter.RequestedBy != "" {
+		conditions = append(conditions, "c.requested_by = "+arg(filter.RequestedBy))
+	}
+	if cursor != nil {
+		issuedAtBefore, issuedAtSame, idBefore := arg(cursor.IssuedAt), arg(cursor.IssuedAt), arg(cursor.ID)
+		conditions = append(conditions, fmt.Sprintf("(c.issued_at < %s OR (c.issued_at = %s AND c.id < %s))", issuedAtBefore, issuedAtSame, idBefore))
+	}
+
+	query := certificateSelect
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+	query += " ORDER BY c.issued_at DESC, c.id DESC LIMIT " + arg(limit+1)
 
 	rows, err := d.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -217,12 +139,11 @@ func scanCertificates(rows certificateRows) ([]CertificateWithStatus, error) {
 		var cert CertificateWithStatus
 		var revokedAt *time.Time
 		var grantedExtensionsJSON []byte
-		var forceCommand sql.NullString
 		if err := rows.Scan(
-			&cert.ID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
-			&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
-			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
-			&grantedExtensionsJSON, &forceCommand,
+			&cert.ID, &cert.SerialNumber, &cert.KeyID,
+			&cert.Principal, &cert.UserEmail, &cert.UserSub, &cert.RequestedBy, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
+			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt,
+			&grantedExtensionsJSON, &cert.ForceCommand, &cert.SourceAddress,
 			&cert.Revoked, &revokedAt, &cert.RevocationReason, &cert.RevokedBy,
 		); err != nil {
 			return nil, fmt.Errorf("scanning certificate row: %w", err)
@@ -231,9 +152,6 @@ func scanCertificates(rows certificateRows) ([]CertificateWithStatus, error) {
 			if err := json.Unmarshal(grantedExtensionsJSON, &cert.GrantedExtensions); err != nil {
 				return nil, fmt.Errorf("unmarshaling granted_extensions: %w", err)
 			}
-		}
-		if forceCommand.Valid {
-			cert.ForceCommand = &forceCommand.String
 		}
 		cert.RevokedAt = revokedAt
 		certs = append(certs, cert)
@@ -245,51 +163,18 @@ func scanCertificates(rows certificateRows) ([]CertificateWithStatus, error) {
 }
 
 func (d *DB) GetCertificateBySerial(ctx context.Context, serial int64) (*CertificateWithStatus, error) {
-	var cert CertificateWithStatus
-	var revokedAt *time.Time
-	var grantedExtensionsJSON []byte
-	var forceCommand sql.NullString
-
-	err := d.QueryRowContext(ctx,
-		`SELECT
-			c.id, c.client_id, c.serial_number, c.key_id,
-			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
-			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
-			c.granted_extensions, c.force_command,
-			CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS revoked,
-			r.revoked_at,
-			COALESCE(r.reason, '') AS revocation_reason,
-			COALESCE(r.revoked_by, '') AS revoked_by
-		 FROM certificate_issuance_logs c
-		 LEFT JOIN revocation_events r ON r.id = (
-			SELECT r2.id FROM revocation_events r2
-			WHERE r2.serial_number = c.serial_number
-			ORDER BY r2.revoked_at DESC, r2.id DESC LIMIT 1
-		 )
-		 WHERE c.serial_number = $1`,
-		serial,
-	).Scan(
-		&cert.ID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
-		&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
-		&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
-		&grantedExtensionsJSON, &forceCommand,
-		&cert.Revoked, &revokedAt, &cert.RevocationReason, &cert.RevokedBy,
-	)
+	rows, err := d.QueryContext(ctx, certificateSelect+" WHERE c.serial_number = $1", serial)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrCertificateNotFound
-		}
 		return nil, fmt.Errorf("querying certificate: %w", err)
 	}
+	defer rows.Close()
 
-	if grantedExtensionsJSON != nil {
-		if err := json.Unmarshal(grantedExtensionsJSON, &cert.GrantedExtensions); err != nil {
-			return nil, fmt.Errorf("unmarshaling granted_extensions: %w", err)
-		}
+	certs, err := scanCertificates(rows)
+	if err != nil {
+		return nil, err
 	}
-	if forceCommand.Valid {
-		cert.ForceCommand = &forceCommand.String
+	if len(certs) == 0 {
+		return nil, ErrCertificateNotFound
 	}
-	cert.RevokedAt = revokedAt
-	return &cert, nil
+	return &certs[0], nil
 }

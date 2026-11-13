@@ -27,19 +27,16 @@ import (
 var ErrCertificateNotFound = errors.New("certificate not found")
 
 type RevocationEvent struct {
-	ClientID      string
-	SerialNumber  *int64
-	KeyID         *string
-	CAFingerprint *string
+	SerialNumber  int64
+	KeyID         string
+	CAFingerprint string
 	Reason        string
 	RevokedBy     string
 }
 
 type CertificateForRevocation struct {
-	ClientID      string
 	KeyID         string
 	CAFingerprint string
-	UserEmail     string
 	ValidAfter    time.Time
 	ValidBefore   time.Time
 }
@@ -47,32 +44,6 @@ type CertificateForRevocation struct {
 type ExistingRevocation struct {
 	RevokedAt time.Time
 	Reason    string
-}
-
-func (d *DB) InsertRevocationEvent(ctx context.Context, ev *RevocationEvent) error {
-	var serialNumber sql.NullInt64
-	if ev.SerialNumber != nil {
-		serialNumber = sql.NullInt64{Int64: *ev.SerialNumber, Valid: true}
-	}
-	var keyID sql.NullString
-	if ev.KeyID != nil {
-		keyID = sql.NullString{String: *ev.KeyID, Valid: true}
-	}
-	var caFingerprint sql.NullString
-	if ev.CAFingerprint != nil {
-		caFingerprint = sql.NullString{String: *ev.CAFingerprint, Valid: true}
-	}
-
-	_, err := d.ExecContext(ctx,
-		`INSERT INTO revocation_events
-		 (client_id, serial_number, key_id, ca_fingerprint, reason, revoked_by)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		ev.ClientID, serialNumber, keyID, caFingerprint, ev.Reason, ev.RevokedBy,
-	)
-	if err != nil {
-		return fmt.Errorf("inserting revocation event: %w", err)
-	}
-	return nil
 }
 
 type RevocationDBTX interface {
@@ -83,16 +54,13 @@ type RevocationDBTX interface {
 func GetCertificateForRevocation(ctx context.Context, db RevocationDBTX, serialNumber int64) (*CertificateForRevocation, error) {
 	var certificate CertificateForRevocation
 	err := db.QueryRowContext(ctx,
-		`SELECT client_id, key_id, ca_fingerprint, COALESCE(user_email, ''), valid_after, valid_before
+		`SELECT key_id, ca_fingerprint, valid_after, valid_before
 		 FROM certificate_issuance_logs
 		 WHERE serial_number = $1
 		 LIMIT 1
 		 FOR UPDATE`,
 		serialNumber,
-	).Scan(
-		&certificate.ClientID, &certificate.KeyID,
-		&certificate.CAFingerprint, &certificate.UserEmail, &certificate.ValidAfter, &certificate.ValidBefore,
-	)
+	).Scan(&certificate.KeyID, &certificate.CAFingerprint, &certificate.ValidAfter, &certificate.ValidBefore)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrCertificateNotFound
@@ -124,9 +92,9 @@ func GetLatestRevocation(ctx context.Context, db RevocationDBTX, serialNumber in
 func InsertRevocationEventAt(ctx context.Context, db RevocationDBTX, ev *RevocationEvent, revokedAt time.Time) error {
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO revocation_events
-		 (client_id, serial_number, key_id, ca_fingerprint, revoked_at, reason, revoked_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		ev.ClientID, ev.SerialNumber, ev.KeyID, ev.CAFingerprint, revokedAt, ev.Reason, ev.RevokedBy,
+		 (serial_number, key_id, ca_fingerprint, revoked_at, reason, revoked_by)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		ev.SerialNumber, ev.KeyID, ev.CAFingerprint, revokedAt, ev.Reason, ev.RevokedBy,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting revocation event: %w", err)

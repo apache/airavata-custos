@@ -221,4 +221,7 @@ connectors:
     type: "signer"
     enabled: true
     base_url: "${SIGNER_BASE_URL}"
+    service_token: "${SIGNER_SERVICE_TOKEN}"
+    cluster_id: "${CUSTOS_CLUSTER_ID}"
+    certificate_ttl_seconds: 28800
     timeout_seconds: 10

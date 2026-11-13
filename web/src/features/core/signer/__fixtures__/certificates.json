@@ -1,7 +1,8 @@
 [
   {
-    "client_id": "airavata",
+    "requested_by": "app/airavata",
     "user_email": "researcher@example.org",
+    "user_sub": "sub-researcher",
     "serial_number": 42,
     "key_id": "dev-admin@login.cluster.example.org-1700000000",
     "principal": "dev-admin",
@@ -10,14 +11,14 @@
     "valid_after": 1700000000,
     "valid_before": 4102444800,
     "issued_at": 1700000000,
-    "source_ip": "203.0.113.42",
     "granted_extensions": ["permit-pty", "permit-user-rc"],
     "force_command": null,
     "revoked": false
   },
   {
-    "client_id": "airavata",
+    "requested_by": "app/airavata",
     "user_email": "researcher@example.org",
+    "user_sub": "sub-researcher",
     "serial_number": 43,
     "key_id": "dev-admin@login.cluster.example.org-1576800000",
     "principal": "dev-admin",
@@ -26,14 +27,14 @@
     "valid_after": 1576800000,
     "valid_before": 1577836800,
     "issued_at": 1576800000,
-    "source_ip": "203.0.113.43",
     "granted_extensions": ["permit-pty"],
     "force_command": null,
     "revoked": false
   },
   {
-    "client_id": "airavata",
+    "requested_by": "app/airavata",
     "user_email": "researcher@example.org",
+    "user_sub": "sub-researcher",
     "serial_number": 44,
     "key_id": "dev-admin@login.cluster.example.org-1690000000",
     "principal": "dev-admin",
@@ -42,7 +43,6 @@
     "valid_after": 1690000000,
     "valid_before": 4102444800,
     "issued_at": 1690000000,
-    "source_ip": "203.0.113.44",
     "granted_extensions": ["permit-pty"],
     "force_command": null,
     "revoked": true,
@@ -51,8 +51,9 @@
     "revoked_by": "admin@example.org"
   },
   {
-    "client_id": "airavata",
     "user_email": "future@example.org",
+    "user_sub": "sub-future",
+    "requested_by": "user/future",
     "serial_number": 45,
     "key_id": "future@login.cluster.example.org-4102440000",
     "principal": "future-user",
@@ -61,7 +62,6 @@
     "valid_after": 4102440000,
     "valid_before": 4102444800,
     "issued_at": 1700000000,
-    "source_ip": "203.0.113.45",
     "granted_extensions": ["permit-pty"],
     "force_command": null,
     "revoked": false

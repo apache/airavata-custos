@@ -20,36 +20,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/apache/airavata-custos/signer/internal/httputil"
 )
-
-func TestExtractSourceIP_XForwardedFor(t *testing.T) {
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("X-Forwarded-For", "10.1.2.3, 192.168.1.1")
-	ip := extractSourceIP(req)
-	if ip != "10.1.2.3" {
-		t.Errorf("expected 10.1.2.3, got %s", ip)
-	}
-}
-
-func TestExtractSourceIP_RemoteAddr(t *testing.T) {
-	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "192.168.1.100:12345"
-	ip := extractSourceIP(req)
-	if ip != "192.168.1.100" {
-		t.Errorf("expected 192.168.1.100, got %s", ip)
-	}
-}
-
-func TestExtractSourceIP_IPv6(t *testing.T) {
-	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "[::1]:12345"
-	ip := extractSourceIP(req)
-	if ip != "::1" {
-		t.Errorf("expected ::1, got %s", ip)
-	}
-}
 
 func TestBodyLimitMiddleware_Rejection(t *testing.T) {
 	handler := BodyLimitMiddleware(100)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -103,22 +74,5 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 		if got != want {
 			t.Errorf("%s: expected %q, got %q", header, want, got)
 		}
-	}
-}
-
-func TestSourceIPMiddleware(t *testing.T) {
-	var extractedIP string
-	handler := SourceIPMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		extractedIP = httputil.SourceIPFromContext(r.Context())
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("X-Forwarded-For", "1.2.3.4")
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if extractedIP != "1.2.3.4" {
-		t.Errorf("expected 1.2.3.4, got %s", extractedIP)
 	}
 }

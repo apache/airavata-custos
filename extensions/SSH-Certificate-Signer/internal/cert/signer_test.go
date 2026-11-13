@@ -19,7 +19,6 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"testing"
 	"time"
@@ -70,7 +69,7 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 		CAPrivateKeyPEM: caPrivPEM,
 		Serial:          42,
 		Principal:       "testuser",
-		ClientID:        "webapp",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      7200,
 		Extensions:      exts,
 	})
@@ -133,64 +132,40 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 	}
 }
 
-func TestSignCertificate_UniqueNonces(t *testing.T) {
+// Make sure the signed certificate says who it is for and who asked, and that the key ID names both.
+func TestSignCertificate_CarriesUserAndRequester(t *testing.T) {
 	caPrivPEM, _ := generateTestEd25519CA(t)
-	userKey := generateTestEd25519UserKey(t)
-
-	var nonces [][]byte
-	for i := 0; i < 10; i++ {
-		result, err := SignCertificate(&SignRequest{
-			PublicKey:       userKey,
-			CAPrivateKeyPEM: caPrivPEM,
-			Serial:          uint64(i + 1),
-			Principal:       "user",
-			ClientID:        "c1",
-			TTLSeconds:      3600,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		parsedKey, _ := ssh.ParsePublicKey(result.CertBytes)
-		cert := parsedKey.(*ssh.Certificate)
-		nonces = append(nonces, cert.Nonce)
-	}
-
-	// Check all nonces are unique
-	for i := 0; i < len(nonces); i++ {
-		for j := i + 1; j < len(nonces); j++ {
-			if string(nonces[i]) == string(nonces[j]) {
-				t.Errorf("nonces %d and %d are identical", i, j)
-			}
-		}
-	}
-}
-
-func TestSignCertificate_KeyIDFormat(t *testing.T) {
-	caPrivPEM, _ := generateTestEd25519CA(t)
-	userKey := generateTestEd25519UserKey(t)
-
 	result, err := SignCertificate(&SignRequest{
-		PublicKey:       userKey,
+		PublicKey:       generateTestEd25519UserKey(t),
 		CAPrivateKeyPEM: caPrivPEM,
 		Serial:          1,
 		Principal:       "jdoe",
-		ClientID:        "webapp",
+		UserEmail:       "jdoe@example.edu",
+		UserSub:         "http://idp.example.edu/users/9",
+		RequestedBy:     "app/123",
 		TTLSeconds:      3600,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	parsedKey, _ := ssh.ParsePublicKey(result.CertBytes)
+	parsedKey, err := ssh.ParsePublicKey(result.CertBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
 	cert := parsedKey.(*ssh.Certificate)
 
-	// Key ID should match jdoe@webapp-{timestamp}
-	if len(cert.KeyId) < len("jdoe@webapp-") {
-		t.Errorf("key ID too short: %s", cert.KeyId)
+	if cert.KeyId != "jdoe@example.edu:app/123" {
+		t.Errorf("key ID: %s", cert.KeyId)
 	}
-	expected := "jdoe@webapp-"
-	if cert.KeyId[:len(expected)] != expected {
-		t.Errorf("key ID prefix: expected %s, got %s", expected, cert.KeyId[:len(expected)])
+	want := map[string]string{
+		ExtensionUserSub:     "http://idp.example.edu/users/9",
+		ExtensionUserEmail:   "jdoe@example.edu",
+		ExtensionRequestedBy: "app/123",
+	}
+	for name, value := range want {
+		if cert.Extensions[name] != value {
+			t.Errorf("extension %s = %q, want %q", name, cert.Extensions[name], value)
+		}
 	}
 }
 
@@ -203,7 +178,7 @@ func TestSignCertificate_WithCriticalOptions(t *testing.T) {
 		CAPrivateKeyPEM: caPrivPEM,
 		Serial:          1,
 		Principal:       "user",
-		ClientID:        "c1",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      3600,
 		CriticalOptions: map[string]string{"source-address": "10.0.0.0/8"},
 	})
@@ -216,33 +191,5 @@ func TestSignCertificate_WithCriticalOptions(t *testing.T) {
 
 	if v, ok := cert.Permissions.CriticalOptions["source-address"]; !ok || v != "10.0.0.0/8" {
 		t.Errorf("expected critical option source-address=10.0.0.0/8, got %v", cert.Permissions.CriticalOptions)
-	}
-}
-
-func TestSignCertificate_Base64Decodable(t *testing.T) {
-	caPrivPEM, _ := generateTestEd25519CA(t)
-	userKey := generateTestEd25519UserKey(t)
-
-	result, err := SignCertificate(&SignRequest{
-		PublicKey:       userKey,
-		CAPrivateKeyPEM: caPrivPEM,
-		Serial:          1,
-		Principal:       "user",
-		ClientID:        "c1",
-		TTLSeconds:      3600,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	encoded := base64.StdEncoding.EncodeToString(result.CertBytes)
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		t.Fatalf("base64 decode failed: %v", err)
-	}
-
-	_, err = ssh.ParsePublicKey(decoded)
-	if err != nil {
-		t.Fatalf("failed to parse decoded certificate: %v", err)
 	}
 }

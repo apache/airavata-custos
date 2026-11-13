@@ -18,14 +18,45 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getCertificate, listCertificates, revokeCertificate } from "./api";
-import type { CertificateListParams } from "./types";
+import * as React from "react";
+import {
+  generateCertificate,
+  getCertificate,
+  getMyCertificate,
+  listCertificates,
+  listMyCertificates,
+  revokeCertificate,
+  revokeMyCertificate,
+} from "./api";
+import type { CertificateListParams, CertificateListPaging } from "./types";
 
 export const signerKeys = {
   all: ["signer-certificates"] as const,
   list: (params: CertificateListParams = {}) => [...signerKeys.all, "list", params] as const,
   detail: (serial: number | string) => [...signerKeys.all, "detail", String(serial)] as const,
+  myList: (params: CertificateListParams = {}) => [...signerKeys.all, "me", "list", params] as const,
+  myDetail: (serial: number | string) => [...signerKeys.all, "me", "detail", String(serial)] as const,
 };
+
+export function useCursorPaging() {
+  // The cursor of each page after the first, so Previous can walk back.
+  const [cursors, setCursors] = React.useState<string[]>([]);
+  const [pageSize, setPageSize] = React.useState(20);
+  const paging = (nextCursor: string | undefined): CertificateListPaging => ({
+    page: cursors.length + 1,
+    pageSize,
+    hasNext: Boolean(nextCursor),
+    onNext: () => {
+      if (nextCursor) setCursors((prev) => [...prev, nextCursor]);
+    },
+    onPrevious: () => setCursors((prev) => prev.slice(0, -1)),
+    onPageSizeChange: (next) => {
+      setCursors([]);
+      setPageSize(next);
+    },
+  });
+  return { params: { limit: pageSize, cursor: cursors.at(-1) }, paging };
+}
 
 const DEFAULTS = {
   staleTime: 30_000,
@@ -50,6 +81,39 @@ export function useCertificate(serial: number | string | undefined) {
     queryFn: () => getCertificate(serial as number | string),
     enabled: serial !== undefined && serial !== "",
     ...DEFAULTS,
+  });
+}
+
+export function useMyCertificates(params: CertificateListParams = {}) {
+  return useQuery({
+    queryKey: signerKeys.myList(params),
+    queryFn: () => listMyCertificates(params),
+    ...DEFAULTS,
+  });
+}
+
+export function useMyCertificate(serial: string) {
+  return useQuery({
+    queryKey: signerKeys.myDetail(serial),
+    queryFn: () => getMyCertificate(serial),
+    ...DEFAULTS,
+  });
+}
+
+export function useGenerateCertificate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (publicKey: string) => generateCertificate(publicKey),
+    onSuccess: () => client.invalidateQueries({ queryKey: signerKeys.all }),
+  });
+}
+
+export function useRevokeMyCertificate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ serial, reason }: { serial: number; reason: string }) =>
+      revokeMyCertificate(serial, reason),
+    onSuccess: () => client.invalidateQueries({ queryKey: signerKeys.all }),
   });
 }
 

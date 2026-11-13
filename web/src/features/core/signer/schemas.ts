@@ -22,19 +22,20 @@ import { z } from "zod";
 // Mirrors extensions/SSH-Certificate-Signer CertificateResponse. Unix-second
 // timestamps are passed through as numbers and formatted in the UI layer.
 export const certificateSchema = z.object({
-  client_id: z.string(),
+  requested_by: z.string(),
   serial_number: z.number().int(),
   key_id: z.string(),
   principal: z.string(),
   user_email: z.string(),
+  user_sub: z.string(),
   public_key_fingerprint: z.string(),
   ca_fingerprint: z.string(),
   valid_after: z.number().int(),
   valid_before: z.number().int(),
   issued_at: z.number().int(),
-  source_ip: z.string().optional(),
   granted_extensions: z.array(z.string()).optional(),
   force_command: z.string().nullable().optional(),
+  source_address: z.string().nullable().optional(),
   revoked: z.boolean(),
   revoked_at: z.number().int().nullable().optional(),
   revocation_reason: z.string().optional(),
@@ -62,3 +63,13 @@ export const revokeResponseSchema = z.object({
   already_revoked: z.boolean().optional(),
 });
 export type RevokeResponse = z.infer<typeof revokeResponseSchema>;
+
+export const generatedCertificateSchema = z.object({
+  certificate: z.string(),
+  serial_number: z.number().int(),
+  principal: z.string(),
+  valid_before: z.number().int(),
+  login_host: z.string(),
+  login_port: z.number().int(),
+});
+export type GeneratedCertificate = z.infer<typeof generatedCertificateSchema>;

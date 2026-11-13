@@ -17,11 +17,19 @@ package cert
 
 import (
 	"crypto/rand"
-	"encoding/binary"
 	"fmt"
+	"maps"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
+)
+
+// These go in to the extensions of a certificate
+const (
+	ExtensionUserSub     = "user-sub@custos.apache.org"
+	ExtensionUserEmail   = "user-email@custos.apache.org"
+	ExtensionRequestedBy = "requested-by@custos.apache.org"
 )
 
 type SignRequest struct {
@@ -29,14 +37,17 @@ type SignRequest struct {
 	CAPrivateKeyPEM []byte
 	Serial          uint64
 	Principal       string
-	ClientID        string
+	UserEmail       string
+	UserSub         string
+	RequestedBy     string
 	TTLSeconds      uint64
 	Extensions      map[string]string
 	CriticalOptions map[string]string
 }
 
 type SignResult struct {
-	CertBytes     []byte // raw certificate bytes (for base64 encoding)
+	CertBytes     []byte // raw certificate bytes
+	AuthorizedKey string // the certificate as one OpenSSH line
 	Serial        uint64
 	ValidAfter    uint64
 	ValidBefore   uint64
@@ -59,12 +70,14 @@ func SignCertificate(req *SignRequest) (*SignResult, error) {
 	validAfter := uint64(now.Unix())
 	validBefore := uint64(now.Unix()) + req.TTLSeconds
 
-	keyID := fmt.Sprintf("%s@%s-%d", req.Principal, req.ClientID, now.Unix())
+	// sshd writes the key ID to the login log
+	keyID := req.UserEmail + ":" + req.RequestedBy
 
-	extensions := req.Extensions
-	if extensions == nil {
-		extensions = make(map[string]string)
-	}
+	extensions := make(map[string]string, len(req.Extensions)+3)
+	maps.Copy(extensions, req.Extensions)
+	extensions[ExtensionUserSub] = req.UserSub
+	extensions[ExtensionUserEmail] = req.UserEmail
+	extensions[ExtensionRequestedBy] = req.RequestedBy
 
 	cert := &ssh.Certificate{
 		Nonce:           nonce,
@@ -89,18 +102,11 @@ func SignCertificate(req *SignRequest) (*SignResult, error) {
 
 	return &SignResult{
 		CertBytes:     cert.Marshal(),
+		AuthorizedKey: strings.TrimSpace(string(ssh.MarshalAuthorizedKey(cert))),
 		Serial:        req.Serial,
 		ValidAfter:    validAfter,
 		ValidBefore:   validBefore,
 		CAFingerprint: caFingerprint,
 		KeyID:         keyID,
 	}, nil
-}
-
-func GenerateRandomSerial() (uint64, error) {
-	var b [8]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		return 0, err
-	}
-	return binary.BigEndian.Uint64(b[:]), nil
 }

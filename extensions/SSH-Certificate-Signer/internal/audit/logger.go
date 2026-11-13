@@ -38,37 +38,36 @@ func NewLogger(db *store.DB, baseLogger *slog.Logger) *Logger {
 }
 
 type IssuanceEntry struct {
-	ClientID             string
 	SerialNumber         int64
 	KeyID                string
 	Principal            string
 	UserEmail            string
+	UserSub              string
+	RequestedBy          string
 	PublicKeyFingerprint string
 	CAFingerprint        string
 	ValidAfter           time.Time
 	ValidBefore          time.Time
-	SourceIP             string
 	GrantedExtensions    []string
 	ForceCommand         *string
-	UserAccessTokenHash  string
-	CorrelationID        string
+	SourceAddress        *string
 }
 
 func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 	dbLog := &store.IssuanceLog{
-		ClientID:             entry.ClientID,
 		SerialNumber:         entry.SerialNumber,
 		KeyID:                entry.KeyID,
 		Principal:            entry.Principal,
 		UserEmail:            entry.UserEmail,
+		UserSub:              entry.UserSub,
+		RequestedBy:          entry.RequestedBy,
 		PublicKeyFingerprint: entry.PublicKeyFingerprint,
 		CAFingerprint:        entry.CAFingerprint,
 		ValidAfter:           entry.ValidAfter,
 		ValidBefore:          entry.ValidBefore,
-		SourceIP:             entry.SourceIP,
 		GrantedExtensions:    entry.GrantedExtensions,
 		ForceCommand:         entry.ForceCommand,
-		UserAccessTokenHash:  entry.UserAccessTokenHash,
+		SourceAddress:        entry.SourceAddress,
 	}
 
 	if err := l.db.InsertIssuanceLog(ctx, dbLog); err != nil {
@@ -78,68 +77,20 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 	l.slogger.InfoContext(ctx, "certificate issued",
 		"event_type", "certificate_issuance",
 		"timestamp", time.Now().UTC().Format(time.RFC3339),
-		"client_id", entry.ClientID,
 		"serial_number", entry.SerialNumber,
 		"key_id", entry.KeyID,
 		"principal", entry.Principal,
 		"user_email", entry.UserEmail,
+		"user_sub", entry.UserSub,
+		"requested_by", entry.RequestedBy,
 		"public_key_fingerprint", entry.PublicKeyFingerprint,
 		"ca_fingerprint", entry.CAFingerprint,
 		"valid_after", entry.ValidAfter.Unix(),
 		"valid_before", entry.ValidBefore.Unix(),
-		"source_ip", entry.SourceIP,
 		"granted_extensions", entry.GrantedExtensions,
 		"force_command", entry.ForceCommand,
-		"user_token_hash", entry.UserAccessTokenHash,
-		"correlation_id", entry.CorrelationID,
+		"source_address", entry.SourceAddress,
 	)
-
-	return nil
-}
-
-type RevocationEntry struct {
-	ClientID      string
-	SerialNumber  *int64
-	KeyID         *string
-	CAFingerprint *string
-	Reason        string
-	RevokedBy     string
-	CorrelationID string
-}
-
-func (l *Logger) LogRevocation(ctx context.Context, entry *RevocationEntry) error {
-	ev := &store.RevocationEvent{
-		ClientID:      entry.ClientID,
-		SerialNumber:  entry.SerialNumber,
-		KeyID:         entry.KeyID,
-		CAFingerprint: entry.CAFingerprint,
-		Reason:        entry.Reason,
-		RevokedBy:     entry.RevokedBy,
-	}
-
-	if err := l.db.InsertRevocationEvent(ctx, ev); err != nil {
-		return err
-	}
-
-	attrs := []any{
-		"event_type", "certificate_revocation",
-		"timestamp", time.Now().UTC().Format(time.RFC3339),
-		"client_id", entry.ClientID,
-		"reason", entry.Reason,
-		"revoked_by", entry.RevokedBy,
-		"correlation_id", entry.CorrelationID,
-	}
-	if entry.SerialNumber != nil {
-		attrs = append(attrs, "serial_number", *entry.SerialNumber)
-	}
-	if entry.KeyID != nil {
-		attrs = append(attrs, "key_id", *entry.KeyID)
-	}
-	if entry.CAFingerprint != nil {
-		attrs = append(attrs, "ca_fingerprint", *entry.CAFingerprint)
-	}
-
-	l.slogger.InfoContext(ctx, "certificate revoked", attrs...)
 
 	return nil
 }

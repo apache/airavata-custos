@@ -18,6 +18,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -29,11 +30,17 @@ import (
 	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
+)
+
+const (
+	testClusterID = "cluster-1"
+	testSub       = "sub-of-jdoe"
 )
 
 // signerCall is what the fake signer saw on its last request.
 type signerCall struct {
-	path, query, auth string
+	method, path, query, auth, body string
 }
 
 // mockSignerServer stands in for the signer. Health is always ok. Every other path gets the status and body the test gives it.
@@ -41,7 +48,8 @@ func mockSignerServer(t *testing.T, status int, body string) (*httptest.Server, 
 	t.Helper()
 	seen := &signerCall{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		*seen = signerCall{r.URL.Path, r.URL.RawQuery, r.Header.Get("Authorization")}
+		sent, _ := io.ReadAll(r.Body)
+		*seen = signerCall{r.Method, r.URL.Path, r.URL.RawQuery, r.Header.Get("Authorization"), string(sent)}
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/api/v1/health" {
 			w.Write([]byte(`{"status":"ok"}`))
@@ -54,27 +62,182 @@ func mockSignerServer(t *testing.T, status int, body string) (*httptest.Server, 
 	return srv, seen
 }
 
-func serve(baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
+// fakeCore stands in for core. The zero value is a user with no account.
+type fakeCore struct {
+	account     *models.ComputeClusterUser
+	memberships []models.ComputeAllocationMembership
+	allocation  models.ComputeAllocation
+}
+
+func (f *fakeCore) GetComputeClusterUserByPair(context.Context, string, string) (*models.ComputeClusterUser, error) {
+	if f.account == nil {
+		return nil, service.ErrNotFound
+	}
+	return f.account, nil
+}
+
+func (f *fakeCore) ListAllocationsForUser(context.Context, string) ([]models.ComputeAllocationMembership, error) {
+	return f.memberships, nil
+}
+
+func (f *fakeCore) GetComputeAllocation(context.Context, string) (*models.ComputeAllocation, error) {
+	return &f.allocation, nil
+}
+
+// readyCore is a user who can generate certificates
+func readyCore() *fakeCore {
+	provisioned := time.Now().Add(-time.Hour)
+	start, end := time.Now().Add(-time.Hour), time.Now().Add(time.Hour)
+	return &fakeCore{
+		account:     &models.ComputeClusterUser{LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountApproved, ProvisionedAt: &provisioned},
+		memberships: []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE, StartTime: start, EndTime: end}},
+		allocation:  models.ComputeAllocation{ComputeClusterID: testClusterID, Status: models.ACTIVE, StartTime: start, EndTime: end},
+	}
+}
+
+func serveWith(core CoreAccounts, baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
 	mux := http.NewServeMux()
-	NewHandlers(baseURL, 2*time.Second).RegisterRoutes(identity.NewRouter(mux))
+	NewHandlers(Config{BaseURL: baseURL, ServiceToken: "service-token", ClusterID: testClusterID, TTLSeconds: 3600, Timeout: 2 * time.Second}, core).RegisterRoutes(identity.NewRouter(mux))
 	r.Header.Set("Authorization", "Bearer user-token")
-	r = r.WithContext(identity.WithPrivilegesForTest(r.Context(), privs))
+	ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: "user-1"})
+	ctx = identity.WithClaims(ctx, &identity.Claims{Sub: testSub, Email: "jdoe@example.edu"})
+	r = r.WithContext(identity.WithPrivilegesForTest(ctx, privs))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, r)
 	return rec
 }
 
-// Make sure the caller's token and paging go to the signer, and the signer's answer comes back unchanged.
-func TestCertificates_ForwardsCallerTokenAndPaging(t *testing.T) {
-	srv, seen := mockSignerServer(t, http.StatusOK, `{"items":[],"next_cursor":"c2"}`)
+func serve(baseURL string, r *http.Request, privs ...models.PrivilegeKey) *httptest.ResponseRecorder {
+	return serveWith(readyCore(), baseURL, r, privs...)
+}
+
+func errorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
+	t.Helper()
+	var body struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("body %s: %v", rec.Body, err)
+	}
+	return body.Error
+}
+
+// Make sure the signer gets the service token.
+func TestCertificates_UsesServiceTokenAndPaging(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{"certificates":[],"next_cursor":"c2"}`)
 
 	rec := serve(srv.URL, httptest.NewRequest(http.MethodGet, "/connectors/signer/certificates?limit=20&cursor=c1", nil), CertificatesRead)
 
-	if seen.path != "/api/v1/admin/certificates" || seen.query != "limit=20&cursor=c1" || seen.auth != "Bearer user-token" {
+	if seen.path != "/api/v1/certificates" || seen.query != "limit=20&cursor=c1" || seen.auth != "Bearer service-token" {
 		t.Fatalf("signer got %+v", *seen)
 	}
-	if rec.Code != http.StatusOK || rec.Body.String() != `{"items":[],"next_cursor":"c2"}` {
+	if rec.Code != http.StatusOK || rec.Body.String() != `{"certificates":[],"next_cursor":"c2"}` {
 		t.Fatalf("got %d %s", rec.Code, rec.Body)
+	}
+}
+
+// Make sure the username comes from the cluster account and who it is for comes from the verified token.
+func TestGenerate_SignsForTheCallersOwnAccount(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{"certificate":"ssh-ed25519-cert-v01@openssh.com AAAA"}`)
+
+	body := `{"public_key":"ssh-ed25519 AAAA","principal":"root","user_email":"someone@example.edu","user_sub":"someone"}`
+	rec := serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(body)))
+
+	if rec.Code != http.StatusOK || seen.path != "/api/v1/sign" {
+		t.Fatalf("got %d, signer saw %+v", rec.Code, *seen)
+	}
+	var sent map[string]any
+	if err := json.Unmarshal([]byte(seen.body), &sent); err != nil {
+		t.Fatal(err)
+	}
+	if sent["principal"] != "jdoe" || sent["user_email"] != "jdoe@example.edu" || sent["user_sub"] != testSub || sent["ttl_seconds"] != float64(3600) {
+		t.Fatalf("signer got %v", sent)
+	}
+	if sent["requested_by"] != "user/user-1" {
+		t.Fatalf("requested_by = %v", sent["requested_by"])
+	}
+}
+
+// Only with an active account and allocation can generate certificates.
+func TestGenerate_RefusesWithoutAccountOrAllocation(t *testing.T) {
+	expired := func(core *fakeCore) { core.memberships[0].EndTime = time.Now().Add(-time.Minute) }
+	cases := []struct {
+		name   string
+		change func(*fakeCore)
+		code   string
+	}{
+		{"no cluster account", func(c *fakeCore) { c.account = nil }, "no_cluster_account"},
+		{"account not approved", func(c *fakeCore) { c.account.ApprovalStatus = models.ClusterAccountPending }, "cluster_account_not_ready"},
+		{"account not provisioned", func(c *fakeCore) { c.account.ProvisionedAt = nil }, "cluster_account_not_ready"},
+		{"no memberships", func(c *fakeCore) { c.memberships = nil }, "no_active_allocation"},
+		{"membership expired", expired, "no_active_allocation"},
+		{"allocation on another cluster", func(c *fakeCore) { c.allocation.ComputeClusterID = "other" }, "no_active_allocation"},
+		{"allocation inactive", func(c *fakeCore) { c.allocation.Status = models.INACTIVE }, "no_active_allocation"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv, seen := mockSignerServer(t, http.StatusOK, `{}`)
+			core := readyCore()
+			tc.change(core)
+
+			rec := serveWith(core, srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(`{"public_key":"k"}`)))
+
+			if rec.Code != http.StatusForbidden || errorCode(t, rec) != tc.code || seen.path != "" {
+				t.Fatalf("got %d %s, signer saw %q", rec.Code, rec.Body, seen.path)
+			}
+		})
+	}
+}
+
+// Make sure the own list is always filtered to the caller.
+func TestListOwn_AlwaysFiltersToTheCaller(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{"certificates":[]}`)
+
+	serve(srv.URL, httptest.NewRequest(http.MethodGet, "/connectors/signer/me/certificates?user_sub=someone-else&limit=5", nil))
+
+	if seen.query != "limit=5&user_sub="+testSub {
+		t.Fatalf("signer got query %q", seen.query)
+	}
+}
+
+// Make sure a user cannot see or revoke someone else's certificate and gets the same response when there's none existing.
+func TestOwnRoutes_HideOtherUsersCertificates(t *testing.T) {
+	requests := map[string]*http.Request{
+		"get":    httptest.NewRequest(http.MethodGet, "/connectors/signer/me/certificates/42", nil),
+		"revoke": httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates/42/revoke", strings.NewReader(`{}`)),
+	}
+	for name, r := range requests {
+		t.Run(name, func(t *testing.T) {
+			srv, seen := mockSignerServer(t, http.StatusOK, `{"user_sub":"someone-else"}`)
+
+			rec := serve(srv.URL, r)
+
+			if rec.Code != http.StatusNotFound || seen.method != http.MethodGet {
+				t.Fatalf("got %d, last signer call %+v", rec.Code, *seen)
+			}
+		})
+	}
+}
+
+// Make sure a user can revoke their own certificate with no privilege, recorded as self.
+func TestRevokeOwn_RecordedAsSelf(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{"user_sub":"`+testSub+`"}`)
+
+	rec := serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates/42/revoke", strings.NewReader(`{}`)))
+
+	if rec.Code != http.StatusOK || seen.path != "/api/v1/certificates/42/revoke" || !strings.Contains(seen.body, `"revoked_by":"self"`) {
+		t.Fatalf("got %d, signer saw %+v", rec.Code, *seen)
+	}
+}
+
+// Make sure an admin revoke is recorded under the admin's email.
+func TestRevokeAny_RecordedAsTheAdmin(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{}`)
+
+	serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/certificates/42/revoke", strings.NewReader(`{"reason":"lost laptop"}`)), CertificatesWrite)
+
+	if !strings.Contains(seen.body, `"revoked_by":"jdoe@example.edu"`) || !strings.Contains(seen.body, `"reason":"lost laptop"`) {
+		t.Fatalf("signer got %s", seen.body)
 	}
 }
 
@@ -99,7 +262,7 @@ func TestStatus_ReportsReachable(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
 		t.Fatal(err)
 	}
-	if !got.Reachable || got.BaseURL != srv.URL {
+	if !got.Reachable {
 		t.Fatalf("got %+v", got)
 	}
 	if seen.path != "/api/v1/health" || seen.auth != "" {
@@ -119,6 +282,18 @@ func TestForward_SignerServerErrorRecordsFailedCheck(t *testing.T) {
 	}
 }
 
+// Make sure a wrong service token shows as a failed check and the caller sees signer_unavailable.
+func TestForward_RefusedServiceTokenIsAnOutage(t *testing.T) {
+	srv, _ := mockSignerServer(t, http.StatusUnauthorized, `{"error":"unauthorized"}`)
+
+	rec := serve(srv.URL, httptest.NewRequest(http.MethodGet, "/connectors/signer/me/certificates", nil))
+
+	checks := health.For(Type)
+	if rec.Code != http.StatusBadGateway || errorCode(t, rec) != "signer_unavailable" || len(checks) != 1 || checks[0].OK {
+		t.Fatalf("got %d %s, checks %+v", rec.Code, rec.Body, checks)
+	}
+}
+
 // Make sure a signer that is down does not show its internal address to the caller.
 func TestForward_SignerDownHidesItsAddress(t *testing.T) {
 	srv, _ := mockSignerServer(t, http.StatusOK, `{}`)
@@ -126,7 +301,7 @@ func TestForward_SignerDownHidesItsAddress(t *testing.T) {
 
 	rec := serve(srv.URL, httptest.NewRequest(http.MethodGet, "/connectors/signer/me/certificates", nil))
 
-	if rec.Code != http.StatusBadGateway || strings.Contains(rec.Body.String(), srv.Listener.Addr().String()) {
+	if rec.Code != http.StatusBadGateway || errorCode(t, rec) != "signer_unavailable" || strings.Contains(rec.Body.String(), srv.Listener.Addr().String()) {
 		t.Fatalf("got %d %s", rec.Code, rec.Body)
 	}
 }

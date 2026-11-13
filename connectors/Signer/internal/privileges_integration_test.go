@@ -33,7 +33,7 @@ import (
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
-// Make sure the super admin holds the signer privileges and can grant read to another user, since the signer reads these keys from that user's /me.
+// Make sure the super admin holds the signer privileges and can grant read to another user.
 func TestSignerPrivileges_GrantableAndHeldBySuperAdmin(t *testing.T) {
 	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
 	if dsn == "" {

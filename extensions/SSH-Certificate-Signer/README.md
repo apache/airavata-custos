@@ -19,32 +19,46 @@
 
 # Custos Signer
 
-Custos Signer is an SSH certificate authority for science gateways.
-It issues short-lived OpenSSH user certificates bound to a user's OIDC identity.
-This README is for site operators and for developers of gateways that call it.
+Custos Signer is an SSH certificate authority. It issues short-lived OpenSSH user certificates.
+
+The signer is internal and has one trusted caller, the Custos server, through its
+[Signer connector](../../connectors/Signer/README.md). Users and apps talk to Custos, and Custos decides who may have a
+certificate. Do not expose the signer to the public. Whoever holds its service token can get a certificate for any user
+that is not reserved.
 
 The signer is a separate Go module (`github.com/apache/airavata-custos/signer`) and its own service.
 
 ## How it works
 
-A gateway calls `POST /api/v1/sign` with four inputs: its client credentials, the user's OIDC access token, the user's
-SSH public key and the principal. The principal is the Unix username the certificate is valid for.
+The caller sends `POST /api/v1/sign` with the principal, the user's SSH public key, the user's email and subject, and
+`requested_by`, which says who asked. The principal is the Unix username the certificate is valid for. The signer does
+not interpret `requested_by`.
 
-1. The signer authenticates the client against its row in the client table, `client_ssh_configs`. The secret is stored as a bcrypt hash.
-2. It validates the user's token with the issuer's JWKS. The issuer must be in `allowed_issuers`, unless that list is
-   empty.
-3. It enforces the client's policy: maximum TTL, allowed key types and source address. It grants the standard
-   extensions, minus those denied.
-4. It validates the principal with the validator set in `signer.validation.principal_validator`, below.
+1. The signer checks the service token.
+2. It refuses a username in `signer.reserved_usernames`, whichever validator is on.
+3. It enforces the deployment's maximum TTL and allowed key types, and grants the standard extensions minus those
+   denied.
+4. It runs the validator set in `signer.validation.principal_validator`, below.
 5. It signs with the CA key from Vault and logs the issuance in `certificate_issuance_logs`.
 
-| `principal_validator` | Principal check |
-|---|---|
-| `noop` | Accepts the principal. Allowed only in dev mode; the signer refuses to start with it otherwise. |
-| `ldap` | Finds the LDAP entry for the OIDC subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
-| `comanage` | Not implemented. Rejects every request with `COMANAGE_NOT_IMPLEMENTED`. |
+| `principal_validator` | Principal check                                                                                                                                        |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `none`                | Accepts the principal. The caller has already decided.                                                                                                 |
+| `ldap`                | A site's own extra check. Finds the LDAP entry for the subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
 
-A deployment has one Ed25519 CA, shared by all clients. It is generated in Vault by the first client route that reads it.
+The certificate names who it is for. The CA signature covers all of it.
+
+| Field                                      | Value                                                      |
+|--------------------------------------------|------------------------------------------------------------|
+| Key ID                                     | `<email>:<requested_by>`. sshd writes it to the login log. |
+| Extension `user-sub@custos.apache.org`     | The user's subject                                         |
+| Extension `user-email@custos.apache.org`   | The user's email                                           |
+| Extension `requested-by@custos.apache.org` | Who asked. Custos sends `user/<id>` or `app/<id>`.         |
+
+A request can also set `source_address`, a comma-separated list of IP addresses or CIDR blocks. It goes in the
+certificate's `source-address` critical option, and sshd then accepts the certificate only from those addresses.
+
+A deployment has one Ed25519 CA. It is generated in Vault by the first request that reads it.
 
 ## Prerequisites
 
@@ -56,13 +70,13 @@ A deployment has one Ed25519 CA, shared by all clients. It is generated in Vault
 
 ### Compose stack
 
-The dev compose stack runs the signer with everything it needs: PostgreSQL, OpenBao, Keycloak, OpenLDAP and a test
-login node. From the repository root:
+The dev compose stack runs the signer with everything it needs: PostgreSQL, OpenBao and a test login node. From the
+repository root:
 
 ```bash
 cd dev-ops/compose
-docker compose up -d db keycloak openldap openbao openbao-init signer signer-seed sshd-login
-./signer-e2e.sh    # token, sign, SSH login, and the negative checks
+docker compose up -d db openbao openbao-init signer sshd-login
+./signer-e2e.sh    # sign, SSH login, list, revoke, and the negative checks
 ```
 
 The rest of this section is the manual setup.
@@ -70,10 +84,12 @@ The rest of this section is the manual setup.
 ### Database
 
 ```sql
-CREATE DATABASE custos_signer;
+CREATE
+DATABASE custos_signer;
 ```
 
-If using the project's Docker Compose, the `custos_signer` database is created automatically by `dev-ops/compose/dbinit/init-db.sh`.
+If using the project's Docker Compose, the `custos_signer` database is created automatically by
+`dev-ops/compose/dbinit/init-db.sh`.
 
 Migrations are managed separately from the server. Migrations are read from `migrations/`, so run the signer from
 this directory. Apply them explicitly:
@@ -82,7 +98,8 @@ this directory. Apply them explicitly:
 ./custos-signer migrate --config config.yaml
 ```
 
-This applies any pending migrations and exits. It's idempotent — safe to run repeatedly. The `migrate` subcommand tracks applied versions in a `schema_migrations` table and only applies what's new.
+This applies any pending migrations and exits. It's idempotent — safe to run repeatedly. The `migrate` subcommand tracks
+applied versions in a `schema_migrations` table and only applies what's new.
 
 You can also apply SQL directly:
 
@@ -90,29 +107,10 @@ You can also apply SQL directly:
 psql -U admin -d custos_signer < migrations/001_initial_schema.up.sql
 ```
 
-The initial migration creates three tables:
-- `client_ssh_configs` — client configuration and credentials
+The initial migration creates two tables:
+
 - `certificate_issuance_logs` — audit log for certificate issuances
 - `revocation_events` — audit log for certificate revocations
-
-Register a client:
-
-```sql
-INSERT INTO client_ssh_configs
-  (client_id, client_secret, target_host, target_port,
-   max_ttl_seconds, allowed_key_types, enabled)
-VALUES
-  ('webapp', '$2a$10$<bcrypt_hash_of_secret>', 'login.example.org', 22,
-   86400, '["ed25519","rsa","ecdsa"]', TRUE);
-```
-
-Generate the bcrypt hash with:
-
-```bash
-htpasswd -nbBC 10 "" "your-secret" | cut -d: -f2
-```
-
-The table also holds `source_address_restriction` and `denied_extensions`.
 
 ### Vault
 
@@ -126,12 +124,12 @@ Ensure the configured token has read/write access to `ssh-ca/data/*`.
 
 For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`:
 
-| Key | Value |
-|---|---|
-| `type` | `ldap` |
-| `ldap_url`, `bind_dn`, `bind_password`, `base_dn` | LDAP connection and bind settings |
-| `search_filter` | Search filter. `%s` becomes the OIDC subject. |
-| `username_attribute` | Optional. Default `uid`. |
+| Key                                               | Value                                           |
+|---------------------------------------------------|-------------------------------------------------|
+| `type`                                            | `ldap`                                          |
+| `ldap_url`, `bind_dn`, `bind_password`, `base_dn` | LDAP connection and bind settings               |
+| `search_filter`                                   | Search filter. `%s` becomes the user's subject. |
+| `username_attribute`                              | Optional. Default `uid`.                        |
 
 ### Configuration
 
@@ -142,24 +140,22 @@ cp config.example.yaml config.yaml          # edit with your settings
 ```
 
 The service loads `config.yaml` by default. Override with `--config /path/to/config.yaml`.
-In [`config.example.yaml`](config.example.yaml), `vault.token` and `allowed_issuers` are samples. The built-in defaults are empty.
+In [`config.example.yaml`](config.example.yaml), `vault.token` is a sample. The signer refuses to start without a
+`service_token` of at least 32 characters, without `root` in `reserved_usernames`, and without a `login_host`.
 
 Environment variables take precedence over YAML values.
 
-| Env Var | Config Path | Description |
-|---------|------------|-------------|
-| `DB_HOST` | `database.host` | Database hostname |
-| `DB_PORT` | `database.port` | Database port |
-| `DB_NAME` | `database.name` | Database name |
-| `DB_USERNAME` | `database.username` | Database user |
-| `DB_PASSWORD` | `database.password` | Database password |
-| `VAULT_ADDRESS` | `vault.address` | Vault API address |
-| `VAULT_TOKEN` | `vault.token` | Vault authentication token |
-| `DEV_MODE` | `dev_mode.enabled` | Enable dev mode (disables OIDC validation) |
-| `DEV_DEFAULT_EMAIL` | `dev_mode.default_email` | Default email in dev mode |
-| `ALLOWED_ISSUERS` | `signer.auth.allowed_issuers` | Comma-separated list of allowed OIDC issuers |
-| `CORE_API_BASE_URL` | `signer.core_api_base_url` | Custos Core URL used to resolve administrator privileges |
-| `LOG_LEVEL` | `logging.level` | Log level: debug, info, warn, error |
+| Env Var                | Config Path            | Description                         |
+|------------------------|------------------------|-------------------------------------|
+| `DB_HOST`              | `database.host`        | Database hostname                   |
+| `DB_PORT`              | `database.port`        | Database port                       |
+| `DB_NAME`              | `database.name`        | Database name                       |
+| `DB_USERNAME`          | `database.username`    | Database user                       |
+| `DB_PASSWORD`          | `database.password`    | Database password                   |
+| `VAULT_ADDRESS`        | `vault.address`        | Vault API address                   |
+| `VAULT_TOKEN`          | `vault.token`          | Vault authentication token          |
+| `SIGNER_SERVICE_TOKEN` | `signer.service_token` | The caller's token                  |
+| `LOG_LEVEL`            | `logging.level`        | Log level: debug, info, warn, error |
 
 ## Running the service
 
@@ -212,6 +208,7 @@ docker run -p 8084:8084 \
 The image is a multi-stage build on an Alpine base, ships the migrations, and runs as a non-root user (UID 65534).
 
 The service handles SIGTERM and SIGINT for graceful shutdown:
+
 1. Stops accepting new connections.
 2. Drains in-flight requests (up to `shutdown_timeout_seconds`, default 30s).
 3. Closes database connection pool.
@@ -219,39 +216,23 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 
 ## API
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/v1/sign` | Client credentials and the user's OIDC token | Sign an SSH public key |
-| `POST` | `/api/v1/revoke` | Client credentials | Revoke a certificate by `serial_number`, `key_id` or `ca_fingerprint` |
-| `GET` | `/api/v1/jwks` | Client credentials | CA public keys as JWKs |
-| `GET` | `/api/v1/ca-public-key` | Client credentials | CA public key |
-| `GET` | `/api/v1/certificates` | OIDC Bearer | Certificates of the signed-in user |
-| `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | One certificate |
-| `POST` | `/api/v1/certificates/{serial}/revoke` | OIDC Bearer | Revoke an owned active certificate, or any active certificate with `signer:certificates:write` |
-| `GET` | `/api/v1/userinfo` | OIDC Bearer | The signed-in user's profile |
-| `GET` | `/api/v1/admin/certificates` | OIDC Bearer and `signer:certificates:read` | All certificates |
-| `GET` | `/api/v1/admin/certificates/{serial}` | OIDC Bearer and `signer:certificates:read` | Any certificate |
-| `GET` | `/api/v1/health` | None | Health check |
-| `GET` | `/metrics` | None | Prometheus metrics, when `metrics.enabled` |
+| Method | Path                                   | Description                                                                      |
+|--------|----------------------------------------|----------------------------------------------------------------------------------|
+| `POST` | `/api/v1/sign`                         | Sign an SSH public key                                                           |
+| `GET`  | `/api/v1/ca-public-key`                | CA public key                                                                    |
+| `GET`  | `/api/v1/certificates`                 | List certificates. Filters: `user_sub`, `requested_by`                           |
+| `GET`  | `/api/v1/certificates/{serial}`        | One certificate                                                                  |
+| `POST` | `/api/v1/certificates/{serial}/revoke` | Revoke an active certificate. `revoked_by` is required and `reason` can be empty |
+| `GET`  | `/api/v1/health`                       | Health check, no token                                                           |
+| `GET`  | `/metrics`                             | Prometheus metrics when `metrics.enabled`, no token                              |
 
-Client credentials go in the `X-Client-Id` and `X-Client-Secret` headers. OIDC Bearer
-routes take `Authorization: Bearer <token>`.
+Every route with a token takes `Authorization: Bearer <service token>`.
 
-The signer reads the caller's privileges from `GET /me` at `core_api_base_url`:
-
-| Action | Needs |
-|---|---|
-| Admin routes | `signer:certificates:read` |
-| Revoke another user's certificate | `signer:certificates:write` |
-| Revoke one's own certificate | No privilege |
-
-The Custos server registers the `signer:` privileges through its [Signer connector](../../connectors/Signer/README.md),
-which also forwards the certificate routes under `/connectors/signer` ([docs/privileges.md](../../docs/privileges.md#signer-connector-connectorssignerinternalprivilegesgo)).
-
-`GET /api/v1/admin/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
+`GET /api/v1/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
 It returns no total or offset.
 
-> **Revocation.** The signer records revocations. It does not generate or distribute OpenSSH KRLs, so login nodes still accept a revoked certificate.
+> **Revocation.** The signer records revocations. It does not generate or distribute OpenSSH KRLs, so login nodes still
+> accept a revoked certificate.
 
 ### Examples
 
@@ -268,47 +249,36 @@ ssh-keygen -t ed25519 -f /tmp/testkey -N ""
 
 curl -s -X POST http://localhost:8084/api/v1/sign \
   -H "Content-Type: application/json" \
-  -H "X-Client-Id: webapp" \
-  -H "X-Client-Secret: your-secret" \
+  -H "Authorization: Bearer $SIGNER_SERVICE_TOKEN" \
   -d '{
     "principal": "jdoe",
     "ttl_seconds": 3600,
     "public_key": "'"$(cat /tmp/testkey.pub)"'",
-    "user_access_token": "<oidc-access-token>"
+    "user_email": "jdoe@example.edu",
+    "user_sub": "http://idp.example.edu/users/9",
+    "requested_by": "user/8f3a"
   }' | jq .
 ```
 
 **Revoke a Certificate**
 
 ```bash
-curl -s -X POST http://localhost:8084/api/v1/revoke \
+curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
   -H "Content-Type: application/json" \
-  -H "X-Client-Id: webapp" \
-  -H "X-Client-Secret: your-secret" \
-  -d '{"serial_number": 42, "reason": "User deprovisioned"}' | jq .
-```
-
-**Get CA Public Keys (JWK format)**
-
-```bash
-curl -s http://localhost:8084/api/v1/jwks \
-  -H "X-Client-Id: webapp" \
-  -H "X-Client-Secret: your-secret" | jq .
+  -H "Authorization: Bearer $SIGNER_SERVICE_TOKEN" \
+  -d '{"reason": "User deprovisioned", "revoked_by": "admin@example.edu"}' | jq .
 ```
 
 ## Troubleshooting
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| "failed to connect to database" | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
-| "failed to create vault client" | Vault unreachable or bad token | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled |
-| Migrations not found | The working directory is not this one | Run the signer from `extensions/SSH-Certificate-Signer` |
-| HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is the client's `client_id`, check bcrypt hash matches |
-| HTTP 403 "Client is disabled" | Client row has `enabled=false` | Set `enabled=true` in `client_ssh_configs` |
-| HTTP 401 "Issuer not allowed" | OIDC issuer not in allowed list | Add issuer to `allowed_issuers`, or set to empty list to accept all |
-| HTTP 403 on admin routes | The caller lacks `signer:certificates:read` in the Custos server | See the privilege note under [API](#api) |
-| HTTP 503 "CA key storage unavailable" | Vault down during signing | Check Vault status and network connectivity |
-| Token validation errors in dev | No OIDC provider configured | Set `DEV_MODE=true` for development (returns default identity) |
+| Error                                 | Cause                                       | Fix                                                                 |
+|---------------------------------------|---------------------------------------------|---------------------------------------------------------------------|
+| "failed to connect to database"       | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
+| "failed to create vault client"       | Vault unreachable or bad token              | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled  |
+| Migrations not found                  | The working directory is not this one       | Run the signer from `extensions/SSH-Certificate-Signer`             |
+| HTTP 401 on any route                 | Wrong service token                         | Set the same `SIGNER_SERVICE_TOKEN` on the signer and the caller    |
+| HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                         |
+| HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                         |
 
 ## License
 

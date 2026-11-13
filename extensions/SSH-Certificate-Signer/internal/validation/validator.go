@@ -13,14 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package validation provides a pluggable PrincipalValidator interface.
 package validation
-
-type PrincipalValidator interface {
-	// Validate checks if the requested principal is authorized. The returned
-	// principal may differ from the requested one.
-	Validate(clientID, principal, identitySubject string) (*ValidationResult, error)
-}
 
 type ValidationResult struct {
 	Allowed            bool

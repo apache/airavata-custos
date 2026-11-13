@@ -38,39 +38,27 @@ vault:
   timeout_seconds: 10
 
 signer:
+  reserved_usernames:
+    - root
+  login_host: localhost
+  login_port: 2222
   ca:
     rotation:
       period_hours: 2160
       overlap_hours: 2
   policy:
-    defaults:
-      max_ttl_seconds: 86400
-      allowed_key_types:
-        - ed25519
-        - rsa
-        - ecdsa
-  auth:
-    allowed_issuers:
-      - http://keycloak:8080/realms/custos
-      - http://localhost:8081/realms/custos
-    oidc:
-      jwks_cache_ttl_seconds: 300
-      jwks_max_providers: 10
-      timeout_seconds: 10
+    max_ttl_seconds: 86400
+    allowed_key_types:
+      - ed25519
+      - rsa
+      - ecdsa
   validation:
-    principal_validator: ldap
+    principal_validator: none
     cache_ttl_seconds: 300
-
-dev_mode:
-  enabled: false
-
-cors:
-  enabled: false
 
 logging:
   level: info
   format: text
-  audit_level: info
 
 metrics:
   enabled: true

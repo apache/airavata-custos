@@ -23,20 +23,19 @@ import (
 )
 
 type IssuanceLog struct {
-	ClientID             string
 	SerialNumber         int64
 	KeyID                string
 	Principal            string
 	UserEmail            string
+	UserSub              string
+	RequestedBy          string
 	PublicKeyFingerprint string
 	CAFingerprint        string
 	ValidAfter           time.Time
 	ValidBefore          time.Time
-	SourceIP             string
 	GrantedExtensions    []string
 	ForceCommand         *string
-	UserAccessTokenHash  string
-	RequestMetadata      map[string]interface{}
+	SourceAddress        *string
 }
 
 // InsertIssuanceLog writes a certificate issuance entry. Fails on duplicate serial_number.
@@ -50,23 +49,14 @@ func (d *DB) InsertIssuanceLog(ctx context.Context, log *IssuanceLog) error {
 		return fmt.Errorf("marshaling granted_extensions: %w", err)
 	}
 
-	var metadataJSON []byte
-	if log.RequestMetadata != nil {
-		metadataJSON, err = json.Marshal(log.RequestMetadata)
-		if err != nil {
-			return fmt.Errorf("marshaling request_metadata: %w", err)
-		}
-	}
-
 	_, err = d.ExecContext(ctx,
 		`INSERT INTO certificate_issuance_logs
-		 (client_id, serial_number, key_id, principal, user_email, public_key_fingerprint,
-		  ca_fingerprint, valid_after, valid_before, source_ip, granted_extensions, force_command,
-		  user_access_token_hash, request_metadata)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-		log.ClientID, log.SerialNumber, log.KeyID, log.Principal,
-		log.UserEmail, log.PublicKeyFingerprint, log.CAFingerprint, log.ValidAfter, log.ValidBefore,
-		log.SourceIP, grantedExtensionsJSON, log.ForceCommand, log.UserAccessTokenHash, metadataJSON,
+		 (serial_number, key_id, principal, user_email, user_sub, requested_by, public_key_fingerprint,
+		  ca_fingerprint, valid_after, valid_before, granted_extensions, force_command, source_address)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		log.SerialNumber, log.KeyID, log.Principal,
+		log.UserEmail, log.UserSub, log.RequestedBy, log.PublicKeyFingerprint, log.CAFingerprint, log.ValidAfter, log.ValidBefore,
+		grantedExtensionsJSON, log.ForceCommand, log.SourceAddress,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting issuance log: %w", err)
