@@ -38,8 +38,10 @@ not interpret `requested_by`.
 2. It refuses a username in `signer.reserved_usernames`, whichever validator is on.
 3. It enforces the deployment's maximum TTL and allowed key types, and grants the standard extensions minus those
    denied.
-4. It runs the validator set in `signer.validation.principal_validator`, below.
-5. It signs with the CA key from Vault and logs the issuance in `certificate_issuance_logs`.
+4. It refuses a user who already has `certificate_limit.max_per_user` certificates in the last
+   `certificate_limit.window_seconds` (default 5 an hour).
+5. It runs the validator set in `signer.validation.principal_validator`, below.
+6. It signs with the CA key from Vault and logs the issuance in `certificate_issuance_logs`.
 
 | `principal_validator` | Principal check                                                                                                                                        |
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -299,6 +301,7 @@ curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
 | Migrations not found                  | The working directory is not this one       | Run the signer from `extensions/SSH-Certificate-Signer`             |
 | HTTP 401 on any route                 | Wrong service token                         | Set the same `SIGNER_SERVICE_TOKEN` on the signer and the caller    |
 | HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                         |
+| HTTP 429 `too_many_certificates`      | The user reached the per-user limit         | Wait for the window to pass, or raise `certificate_limit`           |
 | HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                         |
 | Exits with "no CA key in vault"       | No CA at `vault.ca_key_path`                | Fix the path. A new CA is not trusted by the login nodes            |
 | Exits with "check-and-set parameter"  | The CA's latest version in Vault is deleted | Undelete that version. The signer never replaces an existing CA     |

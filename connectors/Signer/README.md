@@ -26,16 +26,16 @@ to the signer. To offer the signer without the rest of Custos, enable only this 
 
 ## Routes
 
-| Route                                                     | Needs                       | Does                                                          |
-|-----------------------------------------------------------|-----------------------------|---------------------------------------------------------------|
-| `GET /connectors/signer/certificates`                     | `signer:certificates:read`  | All certificates                                              |
-| `GET /connectors/signer/certificates/{serial}`            | `signer:certificates:read`  | Any certificate                                               |
-| `POST /connectors/signer/certificates/{serial}/revoke`    | `signer:certificates:write` | Revoke any certificate, recorded as `user/<admin id>`         |
-| `GET /connectors/signer/me/certificates`                  | Signed in                   | The caller's own certificates                                 |
-| `POST /connectors/signer/me/certificates`                 | Signed in                   | Generate a certificate for the caller's account               |
-| `GET /connectors/signer/me/certificates/{serial}`         | Signed in                   | One of the caller's own certificates                          |
-| `POST /connectors/signer/me/certificates/{serial}/revoke` | Signed in                   | Revoke one of the caller's own, recorded as `user/<id>`       |
-| `GET /connectors/signer/status`                           | `signer:certificates:read`  | Whether the signer answers its health route, and how fast     |
+| Route                                                     | Needs                       | Does                                                      |
+|-----------------------------------------------------------|-----------------------------|-----------------------------------------------------------|
+| `GET /connectors/signer/certificates`                     | `signer:certificates:read`  | All certificates                                          |
+| `GET /connectors/signer/certificates/{serial}`            | `signer:certificates:read`  | Any certificate                                           |
+| `POST /connectors/signer/certificates/{serial}/revoke`    | `signer:certificates:write` | Revoke any certificate, recorded as `user/<admin id>`     |
+| `GET /connectors/signer/me/certificates`                  | Signed in                   | The caller's own certificates                             |
+| `POST /connectors/signer/me/certificates`                 | Signed in                   | Generate a certificate for the caller's account           |
+| `GET /connectors/signer/me/certificates/{serial}`         | Signed in                   | One of the caller's own certificates                      |
+| `POST /connectors/signer/me/certificates/{serial}/revoke` | Signed in                   | Revoke one of the caller's own, recorded as `user/<id>`   |
+| `GET /connectors/signer/status`                           | `signer:certificates:read`  | Whether the signer answers its health route, and how fast |
 
 The certificate lists are keyset-paged: pass `limit` and the last `next_cursor` as `cursor`. Someone else's certificate
 on a `me` route is a 404.
@@ -46,8 +46,8 @@ active allocation on that cluster. The username comes from the cluster account, 
 caller's verified token, never from the request.
 
 A refusal has an `error` code: `user_not_active`, `no_cluster_account`, `cluster_account_not_ready`,
-`no_active_allocation`, `signer_unavailable`, or from the signer `reserved_username`, `invalid_public_key` and
-`key_type_not_allowed`.
+`no_active_allocation`, `signer_unavailable`, or from the signer `reserved_username`, `invalid_public_key`,
+`key_type_not_allowed` and `too_many_certificates`.
 
 Service accounts can't use these routes. A person generates a certificate and hands it to the tool that needs it.
 

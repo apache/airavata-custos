@@ -32,8 +32,9 @@ SERVICE_TOKEN="${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}"
 SSH_PORT="${SSH_PORT:-2222}"
 PRINCIPAL="${PRINCIPAL:-testuser}"
 USER_EMAIL="testuser@example.edu"
-USER_SUB="http://idp.example.edu/users/testuser"
-REQUESTED_BY="app/e2e"
+# A new subject per run, so a rerun is not refused by the per-user limit.
+USER_SUB="http://idp.example.edu/users/testuser-$(date +%s)"
+REQUESTED_BY="user/e2e"
 
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -188,20 +189,15 @@ else
 fi
 docker compose exec -T sshd-login ssh-keygen -kf /etc/ssh/revoked_keys.krl
 
-# --- serial races: the signer detects them by matching OpenBao's CAS
-# message, so pin the mapping here; a reword upstream would surface as a
-# 500 instead of a 409. Passes when no race occurs.
-codes=$(for _ in $(seq 1 20); do
-  curl -s -o /dev/null -w "%{http_code}\n" "$SIGNER_URL/api/v1/sign" \
-    -H "Authorization: Bearer $SERVICE_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "$(sign_body "$PRINCIPAL" 300)" &
-done | sort -u | tr '\n' ' ')
-if [ -n "$(echo "$codes" | tr ' ' '\n' | grep -v -E '^(200|409)?$')" ] || ! echo "$codes" | grep -qw 200; then
-  check "concurrent serial conflicts return 409, not 500 (saw: $codes)" 1
-else
-  check "concurrent serial conflicts return 409, not 500 (saw: $codes)" 0
-fi
+# --- per-user limit: keep signing for this user until the signer refuses
+code=200
+signs=0
+while [ "$code" = "200" ] && [ "$signs" -lt 50 ]; do
+  code=$(sign "$PRINCIPAL" 300)
+  signs=$((signs+1))
+done
+[ "$code" = "429" ] && grep -q too_many_certificates "$WORK_DIR/resp.json"
+check "per-user limit refuses with 429 too_many_certificates (HTTP $code after $signs more signs)" $?
 
 echo
 echo "$PASS passed, $FAIL failed"

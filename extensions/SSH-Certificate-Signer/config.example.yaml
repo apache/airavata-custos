@@ -61,6 +61,9 @@ signer:
       - rsa
       - ecdsa
     denied_extensions: []             # any of the standard ssh extensions
+    certificate_limit:
+      max_per_user: 5                 # certificates one user can get in the window below
+      window_seconds: 3600
   validation:
     principal_validator: none          # "none", or "ldap" for the site's own check
     cache_ttl_seconds: 300            # Vault credential cache TTL for validators

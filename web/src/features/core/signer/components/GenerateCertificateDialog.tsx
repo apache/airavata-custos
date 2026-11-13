@@ -35,14 +35,15 @@ import type { GeneratedCertificate } from "../schemas";
 import { formatUnixSeconds } from "../status";
 
 const REFUSAL_MESSAGES: Record<string, string> = {
-  user_not_active: "Your account is not active. Contact your site admin.",
-  no_cluster_account: "You do not have an account on this cluster yet.",
-  cluster_account_not_ready: "Your cluster account is not ready yet. Try again once it is set up.",
-  no_active_allocation: "You need an active allocation to get a certificate.",
-  reserved_username: "Certificates cannot be issued for this username. Contact your site admin.",
-  invalid_public_key: "This does not look like an SSH public key. Paste the one line from your .pub file.",
-  key_type_not_allowed: "This site does not accept that key type.",
-  signer_unavailable: "Certificate service is not reachable. No certificate was issued. Try again in a minute.",
+    user_not_active: "Your account is not active. Contact your site admin.",
+    no_cluster_account: "You do not have an account on this cluster yet.",
+    cluster_account_not_ready: "Your cluster account is not ready yet. Try again once it is set up.",
+    no_active_allocation: "You need an active allocation to get a certificate.",
+    reserved_username: "Certificates cannot be issued for this username. Contact your site admin.",
+    invalid_public_key: "This does not look like an SSH public key. Paste the one line from your .pub file.",
+    key_type_not_allowed: "This site does not accept that key type.",
+    too_many_certificates: "You have generated as many certificates as allowed for now. Use one you already have, or try again later.",
+    signer_unavailable: "Certificate service is not reachable. No certificate was issued. Try again in a minute.",
 };
 
 function refusalMessage(error: unknown): string {
