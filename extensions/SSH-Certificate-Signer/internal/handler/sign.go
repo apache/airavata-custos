@@ -17,7 +17,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"net/netip"
@@ -27,13 +26,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/apache/airavata-custos/signer/internal/audit"
 	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/httputil"
 	"github.com/apache/airavata-custos/signer/internal/metrics"
 	"github.com/apache/airavata-custos/signer/internal/policy"
+	"github.com/apache/airavata-custos/signer/internal/store"
 	"github.com/apache/airavata-custos/signer/internal/validation"
 	vaultpkg "github.com/apache/airavata-custos/signer/internal/vault"
 )
@@ -81,6 +79,7 @@ type SignHandler struct {
 	policyEnforcer     *policy.Enforcer
 	principalValidator *validation.ValidatorDispatcher
 	vaultClient        *vaultpkg.Client
+	db                 *store.DB
 	auditLogger        *audit.Logger
 	settings           SignSettings
 	logger             *slog.Logger
@@ -90,6 +89,7 @@ func NewSignHandler(
 	policyEnforcer *policy.Enforcer,
 	principalValidator *validation.ValidatorDispatcher,
 	vaultClient *vaultpkg.Client,
+	db *store.DB,
 	auditLogger *audit.Logger,
 	settings SignSettings,
 	logger *slog.Logger,
@@ -98,6 +98,7 @@ func NewSignHandler(
 		policyEnforcer:     policyEnforcer,
 		principalValidator: principalValidator,
 		vaultClient:        vaultClient,
+		db:                 db,
 		auditLogger:        auditLogger,
 		settings:           settings,
 		logger:             logger,
@@ -106,8 +107,7 @@ func NewSignHandler(
 
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	// Per-component timing for the response. Accumulating lets the
-	// duplicate-serial retry path add into the same stages.
+	// Per-component timing for the response.
 	timings := map[string]int64{}
 	stageStart := startTime
 	mark := func(stage string) {
@@ -210,21 +210,14 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
 	mark("vault_key_fetch_us")
 
-	serial, err := h.vaultClient.IncrementSerialCounter(r.Context())
+	serial, err := h.db.NextSerial(r.Context())
 	if err != nil {
 		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
-		if errors.Is(err, vaultpkg.ErrSerialConflict) {
-			h.logger.Warn("serial counter conflict", "error", err)
-			writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
-			return
-		}
-		h.logger.Error("failed to increment serial counter", "error", err)
+		h.logger.Error("failed to allocate serial number", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
 	}
-	metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
-	mark("vault_serial_us")
+	mark("serial_us")
 
 	criticalOpts := map[string]string{}
 	if req.ForceCommand != "" {
@@ -274,60 +267,13 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		SourceAddress:        stringPtrIfNonEmpty(req.SourceAddress),
 	}
 
-	auditErr := h.auditLogger.LogIssuance(r.Context(), auditEntry)
-	mark("audit_log_us")
-	if err := auditErr; err != nil {
-		if !isDuplicateKeyError(err) {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			h.logger.Error("failed to write audit log", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
-			return
-		}
-
-		// Duplicate serial — retry with a fresh serial
-		h.logger.Warn("duplicate serial detected, retrying with fresh serial", "serial", serial)
-
-		retrySerial, err := h.vaultClient.IncrementSerialCounter(r.Context())
-		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
-			if errors.Is(err, vaultpkg.ErrSerialConflict) {
-				h.logger.Warn("serial counter conflict", "error", err)
-				writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
-				return
-			}
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
-			return
-		}
-		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
-		mark("vault_serial_us")
-
-		signReq.Serial = uint64(retrySerial)
-		retryResult, err := cert.SignCertificate(signReq)
-		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			h.logger.Error("failed to sign certificate on retry", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
-			return
-		}
-		mark("cert_signing_us")
-
-		serial = retrySerial
-		signResult = retryResult
-		auditEntry.SerialNumber = retrySerial
-		auditEntry.KeyID = retryResult.KeyID
-		auditEntry.CAFingerprint = retryResult.CAFingerprint
-		auditEntry.ValidAfter = time.Unix(int64(retryResult.ValidAfter), 0).UTC()
-		auditEntry.ValidBefore = time.Unix(int64(retryResult.ValidBefore), 0).UTC()
-
-		if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			h.logger.Error("failed to write audit log on retry", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
-			return
-		}
-		mark("audit_log_us")
+	if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
+		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logger.Error("failed to write audit log", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
+		return
 	}
+	mark("audit_log_us")
 
 	metrics.SignRequestsTotal.WithLabelValues("success").Inc()
 	timings["total_us"] = time.Since(startTime).Microseconds()
@@ -375,12 +321,6 @@ func validSourceAddress(list string) bool {
 		}
 	}
 	return true
-}
-
-// isDuplicateKeyError detects a unique-constraint violation (SQLSTATE 23505).
-func isDuplicateKeyError(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 func stringPtrIfNonEmpty(s string) *string {

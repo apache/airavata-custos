@@ -143,7 +143,7 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		runMigrate(cfg, logger)
 	}
 
-	vaultClient, err := vault.NewClient(cfg.Vault, cfg.Signer.CA.Rotation)
+	vaultClient, err := vault.NewClient(cfg.Vault)
 	if err != nil {
 		logger.Error("failed to create vault client", "error", err)
 		os.Exit(1)
@@ -171,7 +171,7 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		"source", cfg.Signer.Validation.PrincipalValidator,
 		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
-	signHandler := handler.NewSignHandler(policyEnforcer, principalValidator, vaultClient, auditLogger, handler.SignSettings{
+	signHandler := handler.NewSignHandler(policyEnforcer, principalValidator, vaultClient, db, auditLogger, handler.SignSettings{
 		ReservedUsernames: cfg.Signer.ReservedUsernames,
 		DeniedExtensions:  cfg.Signer.Policy.DeniedExtensions,
 		LoginHost:         cfg.Signer.LoginHost,

@@ -24,9 +24,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"path"
-	"strconv"
-	"strings"
 	"time"
 
 	vaultapi "github.com/openbao/openbao/api/v2"
@@ -35,23 +32,7 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
 
-// ErrSerialConflict marks a lost CAS race on the serial counter, not a store failure.
-var ErrSerialConflict = errors.New("serial counter conflict")
-
 var ErrCANotFound = errors.New("no CA key in vault")
-
-func isCASMismatch(err error) bool {
-	var respErr *vaultapi.ResponseError
-	if !errors.As(err, &respErr) {
-		return false
-	}
-	for _, msg := range respErr.Errors {
-		if strings.Contains(msg, "check-and-set parameter did not match") {
-			return true
-		}
-	}
-	return false
-}
 
 type CAKeyPair struct {
 	PrivateKey []byte // OpenSSH private key
@@ -59,23 +40,13 @@ type CAKeyPair struct {
 	CreatedAt  string // RFC 3339, empty when the stored CA has none
 }
 
-type CAMetadata struct {
-	SerialCounter   int64
-	LastRotationAt  string
-	NextRotationAt  string
-	RotationPeriodH int
-	OverlapHours    int
-}
-
 type Client struct {
-	client         *vaultapi.Client
-	mountPath      string
-	caKeyPath      string
-	caMetadataPath string
-	rotationCfg    config.RotationConfig
+	client    *vaultapi.Client
+	mountPath string
+	caKeyPath string
 }
 
-func NewClient(cfg config.VaultConfig, rotationCfg config.RotationConfig) (*Client, error) {
+func NewClient(cfg config.VaultConfig) (*Client, error) {
 	vaultCfg := vaultapi.DefaultConfig()
 	vaultCfg.Address = cfg.Address
 	vaultCfg.Timeout = time.Duration(cfg.TimeoutSeconds) * time.Second
@@ -90,9 +61,6 @@ func NewClient(cfg config.VaultConfig, rotationCfg config.RotationConfig) (*Clie
 		client:    client,
 		mountPath: cfg.MountPath,
 		caKeyPath: cfg.CAKeyPath,
-		// The serial counter and rotation settings stay next to the CA key.
-		caMetadataPath: path.Join(path.Dir(cfg.CAKeyPath), "metadata"),
-		rotationCfg:    rotationCfg,
 	}, nil
 }
 
@@ -151,142 +119,7 @@ func (c *Client) GenerateCAKey(ctx context.Context) (*CAKeyPair, error) {
 	if _, err := c.client.Logical().WriteWithContext(ctx, kvPath, data); err != nil {
 		return nil, fmt.Errorf("writing vault path %s: %w", kvPath, err)
 	}
-
-	if err := c.initMetadata(ctx); err != nil {
-		return nil, err
-	}
-
 	return kp, nil
-}
-
-// IncrementSerialCounter atomically reads, increments, and writes the serial
-// counter using Vault KV v2 CAS (Check-and-Set) to prevent lost updates.
-func (c *Client) IncrementSerialCounter(ctx context.Context) (int64, error) {
-	meta, version, err := c.readMetadataWithVersion(ctx)
-	if err != nil {
-		return 0, err
-	}
-	if meta == nil {
-		if err := c.initMetadata(ctx); err != nil {
-			return 0, err
-		}
-		return 1, nil
-	}
-
-	newSerial := meta.SerialCounter + 1
-	meta.SerialCounter = newSerial
-	if err := c.writeMetadataCAS(ctx, meta, version); err != nil {
-		return 0, err
-	}
-	return newSerial, nil
-}
-
-func (c *Client) readMetadataWithVersion(ctx context.Context) (*CAMetadata, int, error) {
-	path := c.kvPath(c.caMetadataPath)
-	secret, err := c.client.Logical().ReadWithContext(ctx, path)
-	if err != nil {
-		return nil, 0, fmt.Errorf("reading vault metadata: %w", err)
-	}
-	if secret == nil || secret.Data == nil {
-		return nil, 0, nil
-	}
-
-	// Extract KV v2 version from metadata.
-	// The Vault Go client decodes numbers as json.Number, not float64.
-	version := 0
-	if md, ok := secret.Data["metadata"].(map[string]interface{}); ok {
-		if v, ok := md["version"].(json.Number); ok {
-			if n, err := v.Int64(); err == nil {
-				version = int(n)
-			}
-		}
-	}
-
-	data, ok := secret.Data["data"].(map[string]interface{})
-	if !ok || data == nil {
-		return nil, 0, nil
-	}
-
-	meta := &CAMetadata{}
-	if v, ok := data["serial_counter"].(string); ok {
-		meta.SerialCounter, _ = strconv.ParseInt(v, 10, 64)
-	}
-	if v, ok := data["serial_counter"].(float64); ok {
-		meta.SerialCounter = int64(v)
-	}
-	if v, ok := data["last_rotation_at"].(string); ok {
-		meta.LastRotationAt = v
-	}
-	if v, ok := data["next_rotation_at"].(string); ok {
-		meta.NextRotationAt = v
-	}
-	if v, ok := data["rotation_period_hours"].(string); ok {
-		meta.RotationPeriodH, _ = strconv.Atoi(v)
-	}
-	if v, ok := data["rotation_period_hours"].(float64); ok {
-		meta.RotationPeriodH = int(v)
-	}
-	if v, ok := data["overlap_hours"].(string); ok {
-		meta.OverlapHours, _ = strconv.Atoi(v)
-	}
-	if v, ok := data["overlap_hours"].(float64); ok {
-		meta.OverlapHours = int(v)
-	}
-	return meta, version, nil
-}
-
-func (c *Client) writeMetadata(ctx context.Context, meta *CAMetadata) error {
-	kvPath := c.kvPath(c.caMetadataPath)
-	data := map[string]interface{}{
-		"data": map[string]interface{}{
-			"serial_counter":        strconv.FormatInt(meta.SerialCounter, 10),
-			"last_rotation_at":      meta.LastRotationAt,
-			"next_rotation_at":      meta.NextRotationAt,
-			"rotation_period_hours": strconv.Itoa(meta.RotationPeriodH),
-			"overlap_hours":         strconv.Itoa(meta.OverlapHours),
-		},
-	}
-	_, err := c.client.Logical().WriteWithContext(ctx, kvPath, data)
-	if err != nil {
-		return fmt.Errorf("writing vault metadata: %w", err)
-	}
-	return nil
-}
-
-func (c *Client) writeMetadataCAS(ctx context.Context, meta *CAMetadata, cas int) error {
-	kvPath := c.kvPath(c.caMetadataPath)
-	data := map[string]any{
-		"options": map[string]any{
-			"cas": cas,
-		},
-		"data": map[string]any{
-			"serial_counter":        strconv.FormatInt(meta.SerialCounter, 10),
-			"last_rotation_at":      meta.LastRotationAt,
-			"next_rotation_at":      meta.NextRotationAt,
-			"rotation_period_hours": strconv.Itoa(meta.RotationPeriodH),
-			"overlap_hours":         strconv.Itoa(meta.OverlapHours),
-		},
-	}
-	_, err := c.client.Logical().WriteWithContext(ctx, kvPath, data)
-	if err != nil {
-		if isCASMismatch(err) {
-			return fmt.Errorf("%w (CAS=%d): %v", ErrSerialConflict, cas, err)
-		}
-		return fmt.Errorf("writing vault metadata (CAS=%d): %w", cas, err)
-	}
-	return nil
-}
-
-func (c *Client) initMetadata(ctx context.Context) error {
-	now := time.Now().UTC()
-	meta := &CAMetadata{
-		SerialCounter:   0,
-		LastRotationAt:  now.Format(time.RFC3339),
-		NextRotationAt:  now.Add(time.Duration(c.rotationCfg.PeriodHours) * time.Hour).Format(time.RFC3339),
-		RotationPeriodH: c.rotationCfg.PeriodHours,
-		OverlapHours:    c.rotationCfg.OverlapHours,
-	}
-	return c.writeMetadata(ctx, meta)
 }
 
 func generateEd25519CAKey() (*CAKeyPair, error) {
