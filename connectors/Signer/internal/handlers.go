@@ -27,6 +27,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,16 +40,22 @@ import (
 
 const Type = "signer"
 
+const (
+	AuditCertificateIssued  = "SSH_CERTIFICATE_ISSUED"
+	AuditCertificateRevoked = "SSH_CERTIFICATE_REVOKED"
+)
+
 const maxRequestBytes = 16 << 10
 
 var errServiceTokenRefused = errors.New("signer refused the service token")
 
-// CoreAccounts is what the connector reads from core to decide who can generate.
+// CoreAccounts is what the connector needs from core, who can generate, and the audit log.
 type CoreAccounts interface {
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	GetComputeAllocation(ctx context.Context, id string) (*models.ComputeAllocation, error)
 	GetUser(ctx context.Context, id string) (*models.User, error)
+	CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
 }
 
 type Config struct {
@@ -151,6 +158,39 @@ func (h *Handlers) relay(w http.ResponseWriter, r *http.Request, method, path st
 	copyResponse(w, resp)
 }
 
+// relayAndAudit relays the call and records eventType in the audit log once the signer has done it.
+func (h *Handlers) relayAndAudit(w http.ResponseWriter, r *http.Request, path string, body any, eventType string, details map[string]any) {
+	resp, err := h.callSigner(r.Context(), http.MethodPost, path, body)
+	if err != nil {
+		signerUnavailable(w)
+		return
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		signerUnavailable(w)
+		return
+	}
+	if resp.StatusCode == http.StatusOK {
+		// The certificate is already issued or revoked by now, so a failed write is only logged, and the caller still gets the result.
+		var result struct {
+			SerialNumber int64 `json:"serial_number"`
+		}
+		err := json.Unmarshal(respBody, &result)
+		if err == nil {
+			payload, _ := json.Marshal(details)
+			_, err = h.core.CreateAuditEvent(r.Context(), &models.AuditEvent{EventType: eventType, EntityType: "ssh_certificate",
+				EntityID: strconv.FormatInt(result.SerialNumber, 10), Source: Type, Details: string(payload)})
+		}
+		if err != nil {
+			slog.Error("signer: writing the audit event failed", "event_type", eventType, "error", err)
+		}
+	}
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.WriteHeader(resp.StatusCode)
+	w.Write(respBody)
+}
+
 func (h *Handlers) listAllCertificates(w http.ResponseWriter, r *http.Request) {
 	h.relay(w, r, http.MethodGet, "/api/v1/certificates?"+r.URL.RawQuery, nil)
 }
@@ -168,7 +208,8 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	revokedBy := identity.CallerFromContext(r.Context()).Requester()
-	h.relay(w, r, http.MethodPost, certificatePath(r)+"/revoke", map[string]string{"reason": req.Reason, "revoked_by": revokedBy})
+	h.relayAndAudit(w, r, certificatePath(r)+"/revoke", map[string]string{"reason": req.Reason, "revoked_by": revokedBy},
+		AuditCertificateRevoked, map[string]any{"revoked_by": revokedBy, "reason": req.Reason})
 }
 
 func (h *Handlers) listOwnCertificates(w http.ResponseWriter, r *http.Request) {
@@ -268,12 +309,13 @@ func (h *Handlers) issueCertificate(w http.ResponseWriter, r *http.Request, user
 		return
 	}
 	if code != "" {
+		slog.Info("signer: certificate refused", "code", code, "user_id", userID, "requested_by", sign["requested_by"])
 		refuse(w, http.StatusForbidden, code, "This account cannot generate a certificate")
 		return
 	}
 	sign["principal"] = username
 	sign["ttl_seconds"] = h.cfg.TTLSeconds
-	h.relay(w, r, http.MethodPost, "/api/v1/sign", sign)
+	h.relayAndAudit(w, r, "/api/v1/sign", sign, AuditCertificateIssued, map[string]any{"user_id": userID, "principal": username, "requested_by": sign["requested_by"]})
 }
 
 // loginName returns the username to sign for.
