@@ -1,0 +1,44 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# LDAP Provisioner connector
+#
+# Loaded via internal/connectors/loader.go. Enable this in the top-level
+# connectors: map with type: ldap-identity-provisioner. Use ${VAR} to
+# take a value from the environment.
+#
+# Drop into the top-level config file under the "connectors:" map.
+
+# connectors:
+#   ldap-identity-provisioner:
+#     type: ldap-identity-provisioner
+#     enabled: true
+#
+#     directory:
+#       url: ldaps://directory.example.edu:636
+#       bind_dn: cn=custos-writer,ou=svc,dc=example,dc=edu
+#       bind_password: ${LDAP_BIND_PASSWORD}          # best from a secret store
+#       base_dn: ou=people,dc=example,dc=edu
+#       group_base_dn: ou=groups,dc=example,dc=edu    # optional; enables posixGroup provisioning
+#       verify_ssl: true                              # false for dev only
+#
+#     provisioning:
+#       custos_cluster_id: 00000000-0000-0000-0000-000000000000
+#       default_shell: /bin/bash
+#       homedir_prefix: /home/
+#       timeout: 30s                                   # connect and search timeout
+#       min_uid: 50000                                 # lowest uidNumber and gidNumber assigned
