@@ -551,16 +551,32 @@ func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 // to be processed again, since the merge deletes that account when the
 // survivor already has one on the same cluster.
 func TestRequestPersonMerge_ReprocessesPacketsHeldOnRetiringAccount(t *testing.T) {
+	mergeWithHeldPacket(t, func(s mergeTestUsers) string { return s.retiringID }, false, model.ProcessingStatusNew)
+}
+
+// Make sure a packet held on the survivor's account is processed again only if the merge drops it.
+func TestRequestPersonMerge_ReprocessesPacketsHeldOnDroppedSurvivorAccount(t *testing.T) {
+	survivor := func(s mergeTestUsers) string { return s.survivingID }
+	mergeWithHeldPacket(t, survivor, true, model.ProcessingStatusNew)
+	mergeWithHeldPacket(t, survivor, false, model.ProcessingStatusSucceeded)
+}
+
+func mergeWithHeldPacket(t *testing.T, holder func(mergeTestUsers) string, retiringProvisioned bool, want model.ProcessingStatus) {
 	database := setupTestDB(t)
 	seed := seedMergeUsers(t, database)
 
-	var retiringAccount string
-	if err := database.Get(&retiringAccount, "SELECT id FROM compute_cluster_users WHERE user_id = $1", seed.retiringID); err != nil {
-		t.Fatalf("read retiring cluster account: %v", err)
+	if retiringProvisioned {
+		if _, err := database.Exec("UPDATE compute_cluster_users SET provisioned_at = now() WHERE user_id = $1", seed.retiringID); err != nil {
+			t.Fatalf("provision retiring cluster account: %v", err)
+		}
+	}
+	var heldFor string
+	if err := database.Get(&heldFor, "SELECT id FROM compute_cluster_users WHERE user_id = $1", holder(seed)); err != nil {
+		t.Fatalf("read cluster account: %v", err)
 	}
 	held := insertPacket(t, database, "request_account_create", baseRACBody())
 	if _, err := database.Exec("UPDATE amie_packets SET status = $1, held_reply = '{}', held_for = $2 WHERE id = $3",
-		model.PacketStatusWaitingApproval, retiringAccount, held.ID); err != nil {
+		model.PacketStatusWaitingApproval, heldFor, held.ID); err != nil {
 		t.Fatalf("hold packet: %v", err)
 	}
 	eventID := uuid.NewString()
@@ -582,8 +598,8 @@ func TestRequestPersonMerge_ReprocessesPacketsHeldOnRetiringAccount(t *testing.T
 	if err := database.Get(&status, "SELECT status FROM amie_processing_events WHERE id = $1", eventID); err != nil {
 		t.Fatalf("read processing event: %v", err)
 	}
-	if status != model.ProcessingStatusNew {
-		t.Errorf("held packet's processing event: got %s, want %s", status, model.ProcessingStatusNew)
+	if status != want {
+		t.Errorf("held packet's processing event: got %s, want %s", status, want)
 	}
 }
 

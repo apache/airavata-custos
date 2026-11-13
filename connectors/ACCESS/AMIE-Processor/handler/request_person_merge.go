@@ -124,27 +124,22 @@ func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, pack
 		"retiring_id", retiring.ID,
 	)
 
-	retiringAccounts, err := h.svc.ListComputeClusterUsersByUser(ctx, retiring.ID)
+	dropped, err := h.svc.MergeUsersTx(ctx, tx, survivor.ID, retiring.ID)
 	if err != nil {
-		return fmt.Errorf("request_person_merge: list retiring cluster accounts: %w", err)
+		return fmt.Errorf("request_person_merge: merge: %w", err)
 	}
-	// The retiring person can have a request_account_create packet whose reply
-	// is held until their cluster account is approved. The merge moves that
-	// account to the survivor, or deletes it when the survivor already has one
-	// on the cluster. If it is deleted, the held reply waits on an account that
-	// no longer exists, so it would never be sent.
+	// Either person can have a request_account_create packet whose reply is held
+	// until their cluster account is approved. If the merge deletes that account,
+	// the reply waits on an account that no longer exists and is never sent.
 	//
 	// So those packets are processed again after the merge. The merge moves the
 	// retiring person's ACCESS identity to the survivor, so the handler finds the
 	// survivor's account. It replies at once if that account is approved, or
 	// holds the reply on it until an admin reviews it.
-	for _, account := range retiringAccounts {
+	for _, account := range dropped {
 		if err := h.eventStore.ReprocessPacketsHeldFor(ctx, tx, account.ID); err != nil {
 			return fmt.Errorf("request_person_merge: reprocess packets held for %s: %w", account.ID, err)
 		}
-	}
-	if _, err := h.svc.MergeUsersTx(ctx, tx, survivor.ID, retiring.ID); err != nil {
-		return fmt.Errorf("request_person_merge: merge: %w", err)
 	}
 	if err := h.userDNStore.ReassignUser(ctx, tx, retiring.ID, survivor.ID); err != nil {
 		return fmt.Errorf("request_person_merge: reassign DNs: %w", err)

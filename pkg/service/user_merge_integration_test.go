@@ -37,7 +37,8 @@ import (
 // Make sure a merge publishes the delete event only for the retiring user's
 // cluster account that it drops, which is the one on a cluster where the
 // survivor already has an account. An account that moves to the survivor is
-// not deleted, so it gets no event.
+// not deleted, so it gets no event. Where only the retiring user's account is
+// provisioned, the survivor's is dropped instead. Where both are, neither is.
 func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -63,10 +64,18 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 		}
 		return c
 	}
-	shared, onlyRetiring := cluster(), cluster()
+	shared, onlyRetiring, retiringProvisioned, bothProvisioned := cluster(), cluster(), cluster(), cluster()
 	account(survivor, shared)
 	dropped := account(retiring, shared)
 	moved := account(retiring, onlyRetiring)
+	droppedSurvivors := account(survivor, retiringProvisioned)
+	kept := account(retiring, retiringProvisioned)
+	left := account(retiring, bothProvisioned)
+	for _, cu := range []*models.ComputeClusterUser{kept, left, account(survivor, bothProvisioned)} {
+		if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+			t.Fatalf("mark provisioned: %v", err)
+		}
+	}
 
 	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
 		t.Fatalf("merge: %v", err)
@@ -76,15 +85,16 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}
-	if len(deliveries) != 1 || deliveries[0].Event.EventType != string(events.ComputeClusterUserDeleteEvent) {
-		t.Fatalf("expected one delivery of the delete event, got %+v", deliveries)
+	want := map[string]string{dropped.ID: dropped.LocalUsername, droppedSurvivors.ID: droppedSurvivors.LocalUsername}
+	if len(deliveries) != len(want) {
+		t.Fatalf("expected %d deliveries of the delete event, got %+v", len(want), deliveries)
 	}
-	var got models.ComputeClusterUser
-	if err := json.Unmarshal(deliveries[0].Event.Payload, &got); err != nil {
-		t.Fatalf("decode payload: %v", err)
-	}
-	if got.ID != dropped.ID || got.LocalUsername != dropped.LocalUsername {
-		t.Errorf("delete event is for %s (%s), want the dropped account %s (%s)", got.ID, got.LocalUsername, dropped.ID, dropped.LocalUsername)
+	for _, d := range deliveries {
+		var got models.ComputeClusterUser
+		if err := json.Unmarshal(d.Event.Payload, &got); err != nil || d.Event.EventType != string(events.ComputeClusterUserDeleteEvent) || want[got.ID] != got.LocalUsername {
+			t.Errorf("%s is for %s (%s), %v, want a delete event for a dropped account %v", d.Event.EventType, got.ID, got.LocalUsername, err, want)
+		}
+		delete(want, got.ID)
 	}
 
 	after, err := svc.GetComputeClusterUser(ctx(), moved.ID)
@@ -93,6 +103,11 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 	if after.UserID != survivor {
 		t.Errorf("moved account belongs to %s, want the survivor %s", after.UserID, survivor)
+	}
+	for id, owner := range map[string]string{kept.ID: survivor, left.ID: retiring} {
+		if after, err := svc.GetComputeClusterUser(ctx(), id); err != nil || after.UserID != owner {
+			t.Errorf("provisioned account %s: got %+v, %v, want owner %s", id, after, err, owner)
+		}
 	}
 }
 

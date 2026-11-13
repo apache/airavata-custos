@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -47,6 +48,24 @@ func TestRemoveClusterAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) 
 	}
 	if !hasAudit(core, "ComanageClusterAccountRemoved") {
 		t.Error("no ComanageClusterAccountRemoved audit event")
+	}
+}
+
+// Make sure the person is found through the account's primary group when the
+// user holds no stored person id, as a merged user does.
+func TestRemoveClusterAccount_FindsThePersonThroughThePrimaryGroup(t *testing.T) {
+	reg := &mockRegistry{account: "jdoe", userGroup: 55, members: []client.CoGroupMemberListOne{{CoGroupId: 55, Person: client.IdentifierParent{Id: 42}}}}
+	srv := mockComanageServer(t, reg)
+	defer srv.Close()
+	core := &fakeCore{user: &models.User{ID: "user-1"}}
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("RemoveClusterAccount: %v", err)
+	}
+
+	if len(reg.put) != 1 || strings.Contains(string(reg.put[0]), "jdoe") {
+		t.Errorf("expected one person update without jdoe, got %d: %s", len(reg.put), reg.put)
 	}
 }
 
