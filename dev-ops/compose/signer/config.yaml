@@ -57,7 +57,3 @@ signer:
 logging:
   level: info
   format: text
-
-metrics:
-  enabled: true
-  path: /metrics

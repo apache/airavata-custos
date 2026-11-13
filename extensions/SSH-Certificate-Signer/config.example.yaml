@@ -68,7 +68,3 @@ signer:
 logging:
   level: info                          # debug, info, warn, error
   format: json                         # json or text
-
-metrics:
-  enabled: true
-  path: /metrics

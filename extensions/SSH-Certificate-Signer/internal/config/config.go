@@ -34,7 +34,6 @@ type Config struct {
 	Vault    VaultConfig    `yaml:"vault"`
 	Signer   SignerConfig   `yaml:"signer"`
 	Logging  LoggingConfig  `yaml:"logging"`
-	Metrics  MetricsConfig  `yaml:"metrics"`
 }
 
 type ServerConfig struct {
@@ -93,11 +92,6 @@ type LoggingConfig struct {
 	Format string `yaml:"format"`
 }
 
-type MetricsConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	Path    string `yaml:"path"`
-}
-
 func DefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -138,10 +132,6 @@ func DefaultConfig() *Config {
 		Logging: LoggingConfig{
 			Level:  "info",
 			Format: "json",
-		},
-		Metrics: MetricsConfig{
-			Enabled: true,
-			Path:    "/metrics",
 		},
 	}
 }

@@ -17,11 +17,11 @@ package server
 
 import (
 	"crypto/subtle"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/apache/airavata-custos/signer/internal/httputil"
-	"github.com/apache/airavata-custos/signer/internal/metrics"
 )
 
 // ServiceTokenMiddleware admits only the one trusted caller.
@@ -30,7 +30,7 @@ func ServiceTokenMiddleware(token string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			got, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 			if !ok || subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
-				metrics.AuthFailuresTotal.WithLabelValues("invalid_token").Inc()
+				slog.Warn("request with an invalid service token", "path", r.URL.Path, "remote_addr", r.RemoteAddr)
 				httputil.WriteJSONError(w, http.StatusUnauthorized, "unauthorized", "Invalid service token")
 				return
 			}

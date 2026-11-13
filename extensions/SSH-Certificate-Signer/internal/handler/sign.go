@@ -29,7 +29,6 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/audit"
 	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/httputil"
-	"github.com/apache/airavata-custos/signer/internal/metrics"
 	"github.com/apache/airavata-custos/signer/internal/policy"
 	"github.com/apache/airavata-custos/signer/internal/store"
 	"github.com/apache/airavata-custos/signer/internal/validation"
@@ -105,66 +104,62 @@ func NewSignHandler(
 }
 
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	defer func() {
-		metrics.SignDurationSeconds.Observe(time.Since(startTime).Seconds())
-	}()
-
 	var req SignRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 
 	if !principalRegex.MatchString(req.Principal) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid principal format: must match ^[a-z_][a-z0-9_-]{0,31}$")
 		return
 	}
 	// Checked before the validator, so it holds whichever validator is on.
 	if slices.ContainsFunc(h.settings.ReservedUsernames, func(name string) bool { return strings.EqualFold(name, req.Principal) }) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "reserved_username")
 		writeError(w, http.StatusForbidden, "reserved_username", "This username cannot be signed for")
 		return
 	}
 
 	if req.UserEmail == "" || req.UserSub == "" || req.RequestedBy == "" {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: user_email, user_sub and requested_by")
 		return
 	}
 	if !validAttributes(&req) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "user_email, user_sub, requested_by or force_command is not valid")
 		return
 	}
 	if req.SourceAddress != "" && !validSourceAddress(req.SourceAddress) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "source_address must be a comma-separated list of IP addresses or CIDR blocks")
 		return
 	}
 
 	sshPubKey, err := cert.ParseSSHPublicKey(req.PublicKey)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_public_key")
 		writeError(w, http.StatusBadRequest, "invalid_public_key", "Invalid SSH public key format")
 		return
 	}
 
 	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type()); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		if policyErr, ok := err.(*policy.PolicyError); ok {
+			h.logRefusal(&req, policyErr.Code)
 			writeError(w, http.StatusBadRequest, policyErr.Code, policyErr.Message)
 			return
 		}
+		h.logger.Error("policy enforcement failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Policy enforcement error")
 		return
 	}
 
 	grantedExts, err := cert.ResolveExtensions(h.settings.DeniedExtensions, req.ExcludeExtensions)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
@@ -173,13 +168,14 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	valResult, err := h.principalValidator.Validate(r.Context(), req.Principal, req.UserSub)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		if valErr, ok := err.(*validation.ValidationError); ok {
+			h.logRefusal(&req, "principal_denied")
 			httputil.WriteJSONErrorWithExtra(w, http.StatusForbidden, "principal_denied", valErr.Message, map[string]string{
 				"reason_code": valErr.ReasonCode,
 			})
 			return
 		}
+		h.logger.Error("principal validation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Principal validation error")
 		return
 	}
@@ -188,17 +184,13 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	caKeyPair, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-		metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "error").Inc()
 		h.logger.Error("failed to get CA key", "error", err)
 		writeError(w, http.StatusServiceUnavailable, "internal_error", "CA key storage unavailable")
 		return
 	}
-	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
 
 	serial, err := h.db.NextSerial(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		h.logger.Error("failed to allocate serial number", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
@@ -227,7 +219,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	signResult, err := cert.SignCertificate(signReq)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		h.logger.Error("failed to sign certificate", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 		return
@@ -252,13 +243,10 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		h.logger.Error("failed to write audit log", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
 		return
 	}
-
-	metrics.SignRequestsTotal.WithLabelValues("success").Inc()
 
 	resp := SignResponse{
 		Certificate:       signResult.AuthorizedKey,
@@ -276,6 +264,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+// logRefusal records a turned-down request. Issued certificates are stored, refusals are not.
+func (h *SignHandler) logRefusal(req *SignRequest, code string) {
+	h.logger.Warn("sign request refused", "code", code, "principal", req.Principal, "user_sub", req.UserSub, "requested_by", req.RequestedBy)
 }
 
 // These values reach the key ID in the login log. A control character could forge
