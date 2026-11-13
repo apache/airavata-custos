@@ -144,7 +144,7 @@ type UserIdentityStore interface {
 type ProjectStore interface {
 	// FindByID returns the project with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.Project, error)
-	// FindByIDTx returns the project locked FOR UPDATE in tx, or nil if not found.
+	// FindByIDTx returns the project locked FOR NO KEY UPDATE in tx, or nil if not found.
 	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.Project, error)
 	// FindByOriginatedID returns the project matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
