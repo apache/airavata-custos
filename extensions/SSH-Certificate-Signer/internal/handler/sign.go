@@ -17,7 +17,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"net/netip"
@@ -27,13 +26,11 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/apache/airavata-custos/signer/internal/audit"
 	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/httputil"
-	"github.com/apache/airavata-custos/signer/internal/metrics"
 	"github.com/apache/airavata-custos/signer/internal/policy"
+	"github.com/apache/airavata-custos/signer/internal/store"
 	"github.com/apache/airavata-custos/signer/internal/validation"
 	vaultpkg "github.com/apache/airavata-custos/signer/internal/vault"
 )
@@ -57,17 +54,16 @@ type SignRequest struct {
 }
 
 type SignResponse struct {
-	Certificate       string           `json:"certificate"`
-	SerialNumber      int64            `json:"serial_number"`
-	ValidAfter        int64            `json:"valid_after"`
-	ValidBefore       int64            `json:"valid_before"`
-	CAFingerprint     string           `json:"ca_fingerprint"`
-	LoginHost         string           `json:"login_host"`
-	LoginPort         int              `json:"login_port"`
-	Principal         string           `json:"principal"`
-	ForceCommand      string           `json:"force_command,omitempty"`
-	GrantedExtensions []string         `json:"granted_extensions"`
-	TimingMicros      map[string]int64 `json:"timing_micros,omitempty"`
+	Certificate       string   `json:"certificate"`
+	SerialNumber      int64    `json:"serial_number"`
+	ValidAfter        int64    `json:"valid_after"`
+	ValidBefore       int64    `json:"valid_before"`
+	CAFingerprint     string   `json:"ca_fingerprint"`
+	LoginHost         string   `json:"login_host"`
+	LoginPort         int      `json:"login_port"`
+	Principal         string   `json:"principal"`
+	ForceCommand      string   `json:"force_command,omitempty"`
+	GrantedExtensions []string `json:"granted_extensions"`
 }
 
 type SignSettings struct {
@@ -81,6 +77,7 @@ type SignHandler struct {
 	policyEnforcer     *policy.Enforcer
 	principalValidator *validation.ValidatorDispatcher
 	vaultClient        *vaultpkg.Client
+	db                 *store.DB
 	auditLogger        *audit.Logger
 	settings           SignSettings
 	logger             *slog.Logger
@@ -90,6 +87,7 @@ func NewSignHandler(
 	policyEnforcer *policy.Enforcer,
 	principalValidator *validation.ValidatorDispatcher,
 	vaultClient *vaultpkg.Client,
+	db *store.DB,
 	auditLogger *audit.Logger,
 	settings SignSettings,
 	logger *slog.Logger,
@@ -98,6 +96,7 @@ func NewSignHandler(
 		policyEnforcer:     policyEnforcer,
 		principalValidator: principalValidator,
 		vaultClient:        vaultClient,
+		db:                 db,
 		auditLogger:        auditLogger,
 		settings:           settings,
 		logger:             logger,
@@ -105,78 +104,62 @@ func NewSignHandler(
 }
 
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	// Per-component timing for the response. Accumulating lets the
-	// duplicate-serial retry path add into the same stages.
-	timings := map[string]int64{}
-	stageStart := startTime
-	mark := func(stage string) {
-		now := time.Now()
-		timings[stage] += now.Sub(stageStart).Microseconds()
-		stageStart = now
-	}
-
-	defer func() {
-		metrics.SignDurationSeconds.Observe(time.Since(startTime).Seconds())
-	}()
-
 	var req SignRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 
 	if !principalRegex.MatchString(req.Principal) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid principal format: must match ^[a-z_][a-z0-9_-]{0,31}$")
 		return
 	}
 	// Checked before the validator, so it holds whichever validator is on.
 	if slices.ContainsFunc(h.settings.ReservedUsernames, func(name string) bool { return strings.EqualFold(name, req.Principal) }) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "reserved_username")
 		writeError(w, http.StatusForbidden, "reserved_username", "This username cannot be signed for")
 		return
 	}
 
 	if req.UserEmail == "" || req.UserSub == "" || req.RequestedBy == "" {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: user_email, user_sub and requested_by")
 		return
 	}
 	if !validAttributes(&req) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "user_email, user_sub, requested_by or force_command is not valid")
 		return
 	}
 	if req.SourceAddress != "" && !validSourceAddress(req.SourceAddress) {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "source_address must be a comma-separated list of IP addresses or CIDR blocks")
 		return
 	}
 
 	sshPubKey, err := cert.ParseSSHPublicKey(req.PublicKey)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_public_key")
 		writeError(w, http.StatusBadRequest, "invalid_public_key", "Invalid SSH public key format")
 		return
 	}
-	mark("parse_request_us")
 
 	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type()); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		if policyErr, ok := err.(*policy.PolicyError); ok {
+			h.logRefusal(&req, policyErr.Code)
 			writeError(w, http.StatusBadRequest, policyErr.Code, policyErr.Message)
 			return
 		}
+		h.logger.Error("policy enforcement failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Policy enforcement error")
 		return
 	}
-	mark("policy_enforcement_us")
 
 	grantedExts, err := cert.ResolveExtensions(h.settings.DeniedExtensions, req.ExcludeExtensions)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
@@ -185,46 +168,33 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	valResult, err := h.principalValidator.Validate(r.Context(), req.Principal, req.UserSub)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		if valErr, ok := err.(*validation.ValidationError); ok {
+			h.logRefusal(&req, "principal_denied")
 			httputil.WriteJSONErrorWithExtra(w, http.StatusForbidden, "principal_denied", valErr.Message, map[string]string{
 				"reason_code": valErr.ReasonCode,
 			})
 			return
 		}
+		h.logger.Error("principal validation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Principal validation error")
 		return
 	}
-	mark("principal_validation_us")
 
 	validatedPrincipal := valResult.ValidatedPrincipal
 
 	caKeyPair, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-		metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "error").Inc()
 		h.logger.Error("failed to get CA key", "error", err)
 		writeError(w, http.StatusServiceUnavailable, "internal_error", "CA key storage unavailable")
 		return
 	}
-	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
-	mark("vault_key_fetch_us")
 
-	serial, err := h.vaultClient.IncrementSerialCounter(r.Context())
+	serial, err := h.db.NextSerial(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
-		if errors.Is(err, vaultpkg.ErrSerialConflict) {
-			h.logger.Warn("serial counter conflict", "error", err)
-			writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
-			return
-		}
-		h.logger.Error("failed to increment serial counter", "error", err)
+		h.logger.Error("failed to allocate serial number", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
 	}
-	metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
-	mark("vault_serial_us")
 
 	criticalOpts := map[string]string{}
 	if req.ForceCommand != "" {
@@ -249,12 +219,10 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	signResult, err := cert.SignCertificate(signReq)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues("error").Inc()
 		h.logger.Error("failed to sign certificate", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 		return
 	}
-	mark("cert_signing_us")
 
 	pubKeyFP := cert.SSHPublicKeyFingerprint(sshPubKey)
 
@@ -274,63 +242,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		SourceAddress:        stringPtrIfNonEmpty(req.SourceAddress),
 	}
 
-	auditErr := h.auditLogger.LogIssuance(r.Context(), auditEntry)
-	mark("audit_log_us")
-	if err := auditErr; err != nil {
-		if !isDuplicateKeyError(err) {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			h.logger.Error("failed to write audit log", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
-			return
-		}
-
-		// Duplicate serial — retry with a fresh serial
-		h.logger.Warn("duplicate serial detected, retrying with fresh serial", "serial", serial)
-
-		retrySerial, err := h.vaultClient.IncrementSerialCounter(r.Context())
-		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
-			if errors.Is(err, vaultpkg.ErrSerialConflict) {
-				h.logger.Warn("serial counter conflict", "error", err)
-				writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
-				return
-			}
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
-			return
-		}
-		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
-		mark("vault_serial_us")
-
-		signReq.Serial = uint64(retrySerial)
-		retryResult, err := cert.SignCertificate(signReq)
-		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			h.logger.Error("failed to sign certificate on retry", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
-			return
-		}
-		mark("cert_signing_us")
-
-		serial = retrySerial
-		signResult = retryResult
-		auditEntry.SerialNumber = retrySerial
-		auditEntry.KeyID = retryResult.KeyID
-		auditEntry.CAFingerprint = retryResult.CAFingerprint
-		auditEntry.ValidAfter = time.Unix(int64(retryResult.ValidAfter), 0).UTC()
-		auditEntry.ValidBefore = time.Unix(int64(retryResult.ValidBefore), 0).UTC()
-
-		if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
-			metrics.SignRequestsTotal.WithLabelValues("error").Inc()
-			h.logger.Error("failed to write audit log on retry", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
-			return
-		}
-		mark("audit_log_us")
+	if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
+		h.logger.Error("failed to write audit log", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
+		return
 	}
-
-	metrics.SignRequestsTotal.WithLabelValues("success").Inc()
-	timings["total_us"] = time.Since(startTime).Microseconds()
 
 	resp := SignResponse{
 		Certificate:       signResult.AuthorizedKey,
@@ -343,12 +259,16 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		Principal:         validatedPrincipal,
 		ForceCommand:      req.ForceCommand,
 		GrantedExtensions: grantedExtNames,
-		TimingMicros:      timings,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+// logRefusal records a turned-down request. Issued certificates are stored, refusals are not.
+func (h *SignHandler) logRefusal(req *SignRequest, code string) {
+	h.logger.Warn("sign request refused", "code", code, "principal", req.Principal, "user_sub", req.UserSub, "requested_by", req.RequestedBy)
 }
 
 // These values reach the key ID in the login log. A control character could forge
@@ -375,12 +295,6 @@ func validSourceAddress(list string) bool {
 		}
 	}
 	return true
-}
-
-// isDuplicateKeyError detects a unique-constraint violation (SQLSTATE 23505).
-func isDuplicateKeyError(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 func stringPtrIfNonEmpty(s string) *string {

@@ -16,10 +16,11 @@
 package cert
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
+	"crypto/rsa"
 	"testing"
 	"time"
 
@@ -32,17 +33,11 @@ func generateTestEd25519CA(t *testing.T) ([]byte, ssh.PublicKey) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
-
 	sshPub, err := ssh.NewPublicKey(pub)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return privPEM, sshPub
+	return openSSHPrivateKey(t, priv), sshPub
 }
 
 func generateTestEd25519UserKey(t *testing.T) ssh.PublicKey {
@@ -191,5 +186,33 @@ func TestSignCertificate_WithCriticalOptions(t *testing.T) {
 
 	if v, ok := cert.Permissions.CriticalOptions["source-address"]; !ok || v != "10.0.0.0/8" {
 		t.Errorf("expected critical option source-address=10.0.0.0/8, got %v", cert.Permissions.CriticalOptions)
+	}
+}
+
+// Make sure the ed25519 CA still signs RSA and ECDSA user keys, since users may bring either.
+func TestSignCertificate_SignsRSAAndECDSAUserKeys(t *testing.T) {
+	caPrivPEM, _ := generateTestEd25519CA(t)
+	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	p256, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	p384, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	p521, _ := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+
+	for name, key := range map[string]any{
+		"rsa":        &rsaKey.PublicKey,
+		"ecdsa-p256": &p256.PublicKey,
+		"ecdsa-p384": &p384.PublicKey,
+		"ecdsa-p521": &p521.PublicKey,
+	} {
+		userKey, _ := ssh.NewPublicKey(key)
+		if _, err := SignCertificate(&SignRequest{
+			PublicKey:       userKey,
+			CAPrivateKeyPEM: caPrivPEM,
+			Serial:          10,
+			Principal:       "jdoe",
+			UserEmail:       "jdoe@example.edu",
+			TTLSeconds:      3600,
+		}); err != nil {
+			t.Errorf("%s user key: %v", name, err)
+		}
 	}
 }

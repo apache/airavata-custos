@@ -38,6 +38,15 @@ type IssuanceLog struct {
 	SourceAddress        *string
 }
 
+// NextSerial returns a new certificate serial. A serial is never handed out twice, even when signing fails.
+func (d *DB) NextSerial(ctx context.Context) (int64, error) {
+	var serial int64
+	if err := d.QueryRowContext(ctx, `SELECT nextval('certificate_serial_seq')`).Scan(&serial); err != nil {
+		return 0, fmt.Errorf("allocating serial: %w", err)
+	}
+	return serial, nil
+}
+
 // InsertIssuanceLog writes a certificate issuance entry. Fails on duplicate serial_number.
 func (d *DB) InsertIssuanceLog(ctx context.Context, log *IssuanceLog) error {
 	grantedExtensions := log.GrantedExtensions

@@ -17,20 +17,16 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func signError(t *testing.T, body string) (int, string) {
 	t.Helper()
-	h := NewSignHandler(nil, nil, nil, nil, SignSettings{ReservedUsernames: []string{"root"}}, slog.Default())
+	h := NewSignHandler(nil, nil, nil, nil, nil, SignSettings{ReservedUsernames: []string{"root"}}, slog.Default())
 	rec := httptest.NewRecorder()
 	h.Handle(rec, httptest.NewRequest(http.MethodPost, "/api/v1/sign", strings.NewReader(body)))
 	var got struct {
@@ -117,30 +113,6 @@ func TestPrincipalRegex(t *testing.T) {
 			got := principalRegex.MatchString(tt.input)
 			if got != tt.valid {
 				t.Errorf("principalRegex.MatchString(%q) = %v, want %v", tt.input, got, tt.valid)
-			}
-		})
-	}
-}
-
-func TestIsDuplicateKeyError(t *testing.T) {
-	tests := []struct {
-		name string
-		err  error
-		want bool
-	}{
-		{"nil error", nil, false},
-		{"generic error", errors.New("connection refused"), false},
-		{"unique violation", &pgconn.PgError{Code: "23505", Message: "duplicate key value violates unique constraint \"serial_number\""}, true},
-		{"wrapped unique violation", fmt.Errorf("failed to insert: %w", &pgconn.PgError{Code: "23505"}), true},
-		{"other pg error", &pgconn.PgError{Code: "23503", Message: "foreign key violation"}, false},
-		{"plain message no match", errors.New("duplicate key value violates unique constraint"), false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := isDuplicateKeyError(tt.err)
-			if got != tt.want {
-				t.Errorf("isDuplicateKeyError(%v) = %v, want %v", tt.err, got, tt.want)
 			}
 		})
 	}

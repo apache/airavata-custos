@@ -23,7 +23,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"strings"
 	"testing"
 
 	"golang.org/x/crypto/ssh"
@@ -116,141 +115,68 @@ func TestSSHPublicKeyFingerprint(t *testing.T) {
 	}
 }
 
-func TestParseCAPrivateKey_Ed25519(t *testing.T) {
+// openSSHPrivateKey encodes key the way ssh-keygen writes it.
+func openSSHPrivateKey(t *testing.T, key any) []byte {
+	t.Helper()
+	block, err := ssh.MarshalPrivateKey(key, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pem.EncodeToMemory(block)
+}
+
+// Make sure an ed25519 CA key in OpenSSH format, as ssh-keygen writes it, is accepted.
+func TestParseCAPrivateKey_AcceptsOpenSSHEd25519(t *testing.T) {
 	_, priv, _ := ed25519.GenerateKey(rand.Reader)
-	privBytes, _ := x509.MarshalPKCS8PrivateKey(priv)
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
-
-	signer, sshSigner, err := ParseCAPrivateKey(privPEM)
-	if err != nil {
+	if _, err := ParseCAPrivateKey(openSSHPrivateKey(t, priv)); err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	if signer == nil || sshSigner == nil {
-		t.Fatal("expected non-nil signers")
 	}
 }
 
-func TestParseCAPrivateKey_RSA(t *testing.T) {
+// Make sure a CA key in PEM format or of a type other than ed25519 is refused.
+func TestParseCAPrivateKey_RefusesOtherFormatsAndTypes(t *testing.T) {
+	_, ed25519Key, _ := ed25519.GenerateKey(rand.Reader)
+	pkcs8, _ := x509.MarshalPKCS8PrivateKey(ed25519Key)
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	privBytes, _ := x509.MarshalPKCS8PrivateKey(rsaKey)
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 
-	_, sshSigner, err := ParseCAPrivateKey(privPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if sshSigner == nil {
-		t.Fatal("expected non-nil SSH signer")
-	}
-}
-
-func TestParseCAPrivateKey_ECDSA(t *testing.T) {
-	ecKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	privBytes, _ := x509.MarshalPKCS8PrivateKey(ecKey)
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
-
-	_, sshSigner, err := ParseCAPrivateKey(privPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if sshSigner == nil {
-		t.Fatal("expected non-nil SSH signer")
+	for name, key := range map[string][]byte{
+		"ed25519 in PEM":   pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8}),
+		"rsa in OpenSSH":   openSSHPrivateKey(t, rsaKey),
+		"not a key at all": []byte("not a key"),
+	} {
+		if _, err := ParseCAPrivateKey(key); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
 	}
 }
 
-func TestParseCAPrivateKey_InvalidPEM(t *testing.T) {
-	_, _, err := ParseCAPrivateKey([]byte("not a PEM"))
-	if err == nil {
-		t.Error("expected error for invalid PEM")
-	}
-}
-
-func TestCAFingerprint(t *testing.T) {
+// Make sure the CA public key is read as an ed25519 OpenSSH line and a key of another type is refused.
+func TestParseCAPublicKey_NeedsEd25519Line(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(pub)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	fp, err := CAFingerprint(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if fp == "" || fp[:7] != "SHA256:" {
-		t.Errorf("expected SHA256: fingerprint, got %s", fp)
-	}
-}
-
-func TestPEMToOpenSSH_Ed25519(t *testing.T) {
-	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(pub)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	openssh, err := PEMToOpenSSH(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	sshPub, _ := ssh.NewPublicKey(pub)
+	if _, err := ParseCAPublicKey(ssh.MarshalAuthorizedKey(sshPub)); err != nil {
+		t.Errorf("ed25519 line: %v", err)
 	}
 
-	if !strings.HasPrefix(openssh, "ssh-ed25519 ") {
-		t.Errorf("expected ssh-ed25519 prefix, got %q", openssh)
-	}
-
-	// Should be parseable back
-	parsed, err := ParseSSHPublicKey(openssh)
-	if err != nil {
-		t.Fatalf("failed to re-parse OpenSSH key: %v", err)
-	}
-	if parsed.Type() != "ssh-ed25519" {
-		t.Errorf("expected ssh-ed25519, got %s", parsed.Type())
-	}
-}
-
-func TestPEMToOpenSSH_RSA(t *testing.T) {
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(&rsaKey.PublicKey)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	openssh, err := PEMToOpenSSH(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if !strings.HasPrefix(openssh, "ssh-rsa ") {
-		t.Errorf("expected ssh-rsa prefix, got %q", openssh)
+	rsaPub, _ := ssh.NewPublicKey(&rsaKey.PublicKey)
+	if _, err := ParseCAPublicKey(ssh.MarshalAuthorizedKey(rsaPub)); err == nil {
+		t.Error("rsa line: accepted")
 	}
 }
 
-func TestPEMToOpenSSH_ECDSA(t *testing.T) {
-	ecKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(&ecKey.PublicKey)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
+// Make sure the stored CA public key must belong to the private key.
+func TestCheckCAKeysMatch(t *testing.T) {
+	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
+	sshPub, _ := ssh.NewPublicKey(pub)
+	otherPub, _, _ := ed25519.GenerateKey(rand.Reader)
+	otherSSHPub, _ := ssh.NewPublicKey(otherPub)
+	privateKey := openSSHPrivateKey(t, priv)
 
-	openssh, err := PEMToOpenSSH(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err := CheckCAKeysMatch(privateKey, ssh.MarshalAuthorizedKey(sshPub)); err != nil {
+		t.Errorf("matching keys: %v", err)
 	}
-
-	if !strings.HasPrefix(openssh, "ecdsa-sha2-nistp256 ") {
-		t.Errorf("expected ecdsa-sha2-nistp256 prefix, got %q", openssh)
-	}
-}
-
-func TestPEMToOpenSSH_InvalidPEM(t *testing.T) {
-	_, err := PEMToOpenSSH([]byte("not valid PEM"))
-	if err == nil {
-		t.Error("expected error for invalid PEM")
-	}
-}
-
-func TestPEMToOpenSSH_NoTrailingNewline(t *testing.T) {
-	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	pubBytes, _ := x509.MarshalPKIXPublicKey(pub)
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-
-	openssh, err := PEMToOpenSSH(pubPEM)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if strings.HasSuffix(openssh, "\n") {
-		t.Error("PEMToOpenSSH should not include trailing newline")
+	if err := CheckCAKeysMatch(privateKey, ssh.MarshalAuthorizedKey(otherSSHPub)); err == nil {
+		t.Error("keys of different CAs: accepted")
 	}
 }

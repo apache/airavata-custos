@@ -43,9 +43,7 @@ signer:
   login_host: localhost
   login_port: 2222
   ca:
-    rotation:
-      period_hours: 2160
-      overlap_hours: 2
+    create_if_missing: true
   policy:
     max_ttl_seconds: 86400
     allowed_key_types:
@@ -59,7 +57,3 @@ signer:
 logging:
   level: info
   format: text
-
-metrics:
-  enabled: true
-  path: /metrics

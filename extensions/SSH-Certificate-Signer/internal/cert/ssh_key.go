@@ -17,12 +17,9 @@
 package cert
 
 import (
-	"crypto"
-	"crypto/rsa"
-	"crypto/x509"
+	"bytes"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"strings"
 
 	"golang.org/x/crypto/ssh"
@@ -58,108 +55,53 @@ func SSHPublicKeyFingerprint(key ssh.PublicKey) string {
 	return ssh.FingerprintSHA256(key)
 }
 
-func ParseCAPrivateKey(pemData []byte) (crypto.Signer, ssh.Signer, error) {
-	block, _ := pem.Decode(pemData)
-	if block == nil {
-		return nil, nil, fmt.Errorf("failed to decode PEM block")
+// ParseCAPrivateKey reads the CA private key. Only ed25519 keys in OpenSSH format are accepted.
+func ParseCAPrivateKey(data []byte) (ssh.Signer, error) {
+	if block, _ := pem.Decode(data); block == nil || block.Type != "OPENSSH PRIVATE KEY" {
+		return nil, fmt.Errorf("CA private key must be in OpenSSH format")
 	}
-
-	var signer crypto.Signer
-	switch block.Type {
-	case "PRIVATE KEY":
-		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing PKCS8 private key: %w", err)
-		}
-		var ok bool
-		signer, ok = key.(crypto.Signer)
-		if !ok {
-			return nil, nil, fmt.Errorf("private key does not implement crypto.Signer")
-		}
-	case "EC PRIVATE KEY":
-		key, err := x509.ParseECPrivateKey(block.Bytes)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing EC private key: %w", err)
-		}
-		signer = key
-	case "RSA PRIVATE KEY":
-		key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing RSA private key: %w", err)
-		}
-		signer = key
-	default:
-		return nil, nil, fmt.Errorf("unsupported PEM block type: %s", block.Type)
-	}
-
-	var sshSigner ssh.Signer
-	var err error
-
-	// For RSA keys, use SHA-256 signer
-	if _, ok := signer.(*rsa.PrivateKey); ok {
-		sshSigner, err = ssh.NewSignerFromKey(signer)
-		if err != nil {
-			return nil, nil, fmt.Errorf("creating SSH signer: %w", err)
-		}
-		// Wrap to use rsa-sha2-256 algorithm
-		algorithmSigner, ok := sshSigner.(ssh.AlgorithmSigner)
-		if ok {
-			sshSigner = &rsaSHA256Signer{inner: algorithmSigner}
-		}
-	} else {
-		sshSigner, err = ssh.NewSignerFromKey(signer)
-		if err != nil {
-			return nil, nil, fmt.Errorf("creating SSH signer: %w", err)
-		}
-	}
-
-	return signer, sshSigner, nil
-}
-
-// rsaSHA256Signer wraps an SSH AlgorithmSigner to always use rsa-sha2-256.
-type rsaSHA256Signer struct {
-	inner ssh.AlgorithmSigner
-}
-
-func (s *rsaSHA256Signer) PublicKey() ssh.PublicKey {
-	return s.inner.PublicKey()
-}
-
-func (s *rsaSHA256Signer) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
-	return s.inner.SignWithAlgorithm(rand, data, ssh.KeyAlgoRSASHA256)
-}
-
-func ParseCAPublicKey(pemData []byte) (ssh.PublicKey, error) {
-	block, _ := pem.Decode(pemData)
-	if block == nil {
-		return nil, fmt.Errorf("failed to decode PEM block")
-	}
-
-	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	signer, err := ssh.ParsePrivateKey(data)
 	if err != nil {
-		return nil, fmt.Errorf("parsing public key: %w", err)
+		return nil, fmt.Errorf("parsing CA private key: %w", err)
 	}
-
-	sshPub, err := ssh.NewPublicKey(pubKey)
-	if err != nil {
-		return nil, fmt.Errorf("converting to SSH public key: %w", err)
+	if signer.PublicKey().Type() != ssh.KeyAlgoED25519 {
+		return nil, fmt.Errorf("CA key must be ed25519, got %s", signer.PublicKey().Type())
 	}
-	return sshPub, nil
+	return signer, nil
 }
 
-// PEMToOpenSSH converts a PEM public key to OpenSSH format, suitable for trusted-user-ca-keys files.
-func PEMToOpenSSH(publicKeyPEM []byte) (string, error) {
-	sshPub, err := ParseCAPublicKey(publicKeyPEM)
+// ParseCAPublicKey reads the CA public key in OpenSSH format.
+func ParseCAPublicKey(data []byte) (ssh.PublicKey, error) {
+	pub, err := ParseSSHPublicKey(string(data))
+	if err != nil {
+		return nil, fmt.Errorf("parsing CA public key: %w", err)
+	}
+	if pub.Type() != ssh.KeyAlgoED25519 {
+		return nil, fmt.Errorf("CA key must be ed25519, got %s", pub.Type())
+	}
+	return pub, nil
+}
+
+// CheckCAKeysMatch returns an error unless publicKey belongs to privateKey.
+func CheckCAKeysMatch(privateKey, publicKey []byte) error {
+	signer, err := ParseCAPrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+	pub, err := ParseCAPublicKey(publicKey)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(signer.PublicKey().Marshal(), pub.Marshal()) {
+		return fmt.Errorf("CA public key does not match the private key")
+	}
+	return nil
+}
+
+func CAFingerprint(publicKey []byte) (string, error) {
+	pub, err := ParseCAPublicKey(publicKey)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(sshPub))), nil
-}
-
-func CAFingerprint(publicKeyPEM []byte) (string, error) {
-	sshPub, err := ParseCAPublicKey(publicKeyPEM)
-	if err != nil {
-		return "", err
-	}
-	return ssh.FingerprintSHA256(sshPub), nil
+	return ssh.FingerprintSHA256(pub), nil
 }

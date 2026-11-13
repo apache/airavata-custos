@@ -67,6 +67,12 @@ type fakeCore struct {
 	account     *models.ComputeClusterUser
 	memberships []models.ComputeAllocationMembership
 	allocation  models.ComputeAllocation
+	audited     []models.AuditEvent
+}
+
+func (f *fakeCore) CreateAuditEvent(_ context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
+	f.audited = append(f.audited, *e)
+	return e, nil
 }
 
 func (f *fakeCore) GetComputeClusterUserByPair(context.Context, string, string) (*models.ComputeClusterUser, error) {
@@ -162,6 +168,34 @@ func TestGenerate_SignsForTheCallersOwnAccount(t *testing.T) {
 	}
 	if sent["requested_by"] != "user/user-1" {
 		t.Fatalf("requested_by = %v", sent["requested_by"])
+	}
+}
+
+// Make sure each issued certificate leaves an audit row under its serial, naming who asked.
+func TestGenerate_RecordsTheIssueInTheAuditLog(t *testing.T) {
+	srv, _ := mockSignerServer(t, http.StatusOK, `{"serial_number":42}`)
+	core := readyCore()
+
+	serveWith(core, srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(`{"public_key":"k"}`)))
+
+	if len(core.audited) != 1 {
+		t.Fatalf("audited %d events", len(core.audited))
+	}
+	got := core.audited[0]
+	if got.EventType != AuditCertificateIssued || got.EntityID != "42" || !strings.Contains(got.Details, `"requested_by":"user/user-1"`) {
+		t.Fatalf("audited %+v", got)
+	}
+}
+
+// Make sure no audit row is written when the signer refuses to issue the certificate.
+func TestGenerate_SignerRefusalIsNotAudited(t *testing.T) {
+	srv, _ := mockSignerServer(t, http.StatusForbidden, `{"error":"principal_denied"}`)
+	core := readyCore()
+
+	rec := serveWith(core, srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(`{"public_key":"k"}`)))
+
+	if rec.Code != http.StatusForbidden || len(core.audited) != 0 {
+		t.Fatalf("got %d, audited %+v", rec.Code, core.audited)
 	}
 }
 

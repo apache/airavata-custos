@@ -19,7 +19,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
@@ -41,11 +40,6 @@ func NewRouter(cfg *config.Config, handlers Handlers) *chi.Mux {
 
 	// Health endpoint (no auth)
 	r.Get("/api/v1/health", handlers.Health)
-
-	// Metrics endpoint (no auth)
-	if cfg.Metrics.Enabled {
-		r.Handle(cfg.Metrics.Path, promhttp.Handler())
-	}
 
 	r.Group(func(r chi.Router) {
 		r.Use(ServiceTokenMiddleware(cfg.Signer.ServiceToken))

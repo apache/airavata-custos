@@ -56,7 +56,7 @@ type SignResult struct {
 }
 
 func SignCertificate(req *SignRequest) (*SignResult, error) {
-	_, sshSigner, err := ParseCAPrivateKey(req.CAPrivateKeyPEM)
+	sshSigner, err := ParseCAPrivateKey(req.CAPrivateKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("parsing CA key: %w", err)
 	}

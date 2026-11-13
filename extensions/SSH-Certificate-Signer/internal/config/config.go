@@ -34,7 +34,6 @@ type Config struct {
 	Vault    VaultConfig    `yaml:"vault"`
 	Signer   SignerConfig   `yaml:"signer"`
 	Logging  LoggingConfig  `yaml:"logging"`
-	Metrics  MetricsConfig  `yaml:"metrics"`
 }
 
 type ServerConfig struct {
@@ -59,6 +58,7 @@ type VaultConfig struct {
 	Address        string `yaml:"address"`
 	Token          string `yaml:"token"`
 	MountPath      string `yaml:"mount_path"`
+	CAKeyPath      string `yaml:"ca_key_path"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
 }
 
@@ -73,12 +73,7 @@ type SignerConfig struct {
 }
 
 type CAConfig struct {
-	Rotation RotationConfig `yaml:"rotation"`
-}
-
-type RotationConfig struct {
-	PeriodHours  int `yaml:"period_hours"`
-	OverlapHours int `yaml:"overlap_hours"`
+	CreateIfMissing bool `yaml:"create_if_missing"`
 }
 
 type PolicyConfig struct {
@@ -95,11 +90,6 @@ type ValidationConfig struct {
 type LoggingConfig struct {
 	Level  string `yaml:"level"`
 	Format string `yaml:"format"`
-}
-
-type MetricsConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	Path    string `yaml:"path"`
 }
 
 func DefaultConfig() *Config {
@@ -124,17 +114,12 @@ func DefaultConfig() *Config {
 			Address:        "http://localhost:8200",
 			Token:          "",
 			MountPath:      "ssh-ca",
+			CAKeyPath:      "ca/current",
 			TimeoutSeconds: 10,
 		},
 		Signer: SignerConfig{
 			ReservedUsernames: []string{"root"},
 			LoginPort:         22,
-			CA: CAConfig{
-				Rotation: RotationConfig{
-					PeriodHours:  2160,
-					OverlapHours: 2,
-				},
-			},
 			Policy: PolicyConfig{
 				MaxTTLSeconds:   86400,
 				AllowedKeyTypes: []string{"ed25519", "rsa", "ecdsa"},
@@ -147,10 +132,6 @@ func DefaultConfig() *Config {
 		Logging: LoggingConfig{
 			Level:  "info",
 			Format: "json",
-		},
-		Metrics: MetricsConfig{
-			Enabled: true,
-			Path:    "/metrics",
 		},
 	}
 }

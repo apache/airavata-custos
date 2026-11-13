@@ -35,6 +35,7 @@ vault:
   address: http://localhost:8200       # env: VAULT_ADDRESS
   token: root-token                    # env: VAULT_TOKEN
   mount_path: ssh-ca                   # KV v2 mount path
+  ca_key_path: ca/current              # secret with private_key, public_key and optional created_at
   timeout_seconds: 10
 
 signer:
@@ -52,9 +53,7 @@ signer:
   login_host: login.example.org        # returned with each certificate
   login_port: 22
   ca:
-    rotation:
-      period_hours: 2160              # 90 days
-      overlap_hours: 2
+    create_if_missing: false          # true creates a CA when none is stored.
   policy:
     max_ttl_seconds: 86400            # 24 hours
     allowed_key_types:
@@ -69,7 +68,3 @@ signer:
 logging:
   level: info                          # debug, info, warn, error
   format: json                         # json or text
-
-metrics:
-  enabled: true
-  path: /metrics
