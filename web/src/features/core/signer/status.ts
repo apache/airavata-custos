@@ -70,6 +70,26 @@ export function formatValidUntil(cert: Certificate, now: Date = new Date()): str
   return `in ${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m`;
 }
 
+// The standard options a certificate can carry, in display order.
+export const CERTIFICATE_OPTIONS: Array<{ name: string; label: string }> = [
+  { name: "permit-pty", label: "Terminal sessions" },
+  { name: "permit-port-forwarding", label: "Port forwarding" },
+  { name: "permit-agent-forwarding", label: "Agent forwarding" },
+  { name: "permit-X11-forwarding", label: "Graphical apps (X11)" },
+  { name: "permit-user-rc", label: "Run ~/.ssh/rc at login" },
+];
+
+// TODO: read the longest lifetime from the server. 4 hours matches the connector's default.
+export const LIFETIME_CHOICES: Array<{ seconds: number; label: string }> = [
+  { seconds: 3600, label: "1 hour" },
+  { seconds: 7200, label: "2 hours" },
+  { seconds: 14400, label: "4 hours" },
+];
+
+export function sshLoginCommand(principal: string, host: string, port: number): string {
+  return `ssh ${port === 22 ? "" : `-p ${port} `}${principal}@${host}`;
+}
+
 export function formatCertificateLifetime(cert: Certificate): string {
   const seconds = Math.max(0, cert.valid_before - cert.valid_after);
   const hours = Math.floor(seconds / 3600);

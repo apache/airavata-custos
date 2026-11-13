@@ -17,42 +17,26 @@
 
 "use client";
 
-import { Calendar, Fingerprint, UserSquare } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { ApiError } from "@/shared/api/client";
-import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
 import { useCertificate, useRevokeCertificate, useUserEmail } from "../queries";
-import type { Certificate } from "../schemas";
-import {
-  CERTIFICATE_STATUS_LABELS,
-  type CertificateStatus,
-  formatCertificateLifetime,
-  formatUnixSeconds,
-  getCertificateStatus,
-  userIdOf,
-} from "../status";
+import { userIdOf } from "../status";
+import { CertificateView } from "./CertificateView";
 import { RevokeCertificateDialog } from "./RevokeCertificateDialog";
 
 export type CertificateDetailProps = {
   serial: string;
 };
 
-const STATUS_TONE: Record<CertificateStatus, "success" | "warning" | "danger"> = {
-  active: "success",
-  "not-yet-valid": "warning",
-  expired: "warning",
-  revoked: "danger",
-};
-
 export function CertificateDetail({ serial }: CertificateDetailProps) {
   const ability = useAbility();
   const query = useCertificate(serial);
   const revoke = useRevokeCertificate();
+  const revokerEmail = useUserEmail(userIdOf(query.data?.revoked_by));
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [revokeError, setRevokeError] = React.useState<string | null>(null);
 
@@ -68,45 +52,19 @@ export function CertificateDetail({ serial }: CertificateDetailProps) {
   const cert = query.data;
   if (!cert) return null;
 
-  const status = getCertificateStatus(cert);
-  const canRevoke = ability.can("manage", "Signer") && status === "active";
+  const openRevoke = () => {
+    setRevokeError(null);
+    setDialogOpen(true);
+  };
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
-            Certificate {cert.serial_number}
-          </h1>
-          {canRevoke ? (
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setRevokeError(null);
-                setDialogOpen(true);
-              }}
-            >
-              Revoke
-            </Button>
-          ) : null}
-        </div>
-        <MetaRow>
-          <MetaItem
-            variant="status"
-            tone={STATUS_TONE[status]}
-            value={CERTIFICATE_STATUS_LABELS[status]}
-          />
-          <MetaItem icon={UserSquare} label="Principal" value={cert.principal} />
-          <MetaItem
-            icon={Calendar}
-            label="Valid until"
-            value={formatUnixSeconds(cert.valid_before)}
-          />
-          <MetaItem icon={Fingerprint} label="Lifetime" value={formatCertificateLifetime(cert)} />
-        </MetaRow>
-      </header>
-
-      <CertificateMetadata cert={cert} />
+    <>
+      <CertificateView
+        cert={cert}
+        admin
+        revokedBy={revokerEmail ?? cert.revoked_by ?? "unknown"}
+        {...(ability.can("manage", "Signer") ? { onRevoke: openRevoke } : {})}
+      />
 
       <RevokeCertificateDialog
         serialNumber={cert.serial_number}
@@ -130,63 +88,7 @@ export function CertificateDetail({ serial }: CertificateDetailProps) {
           );
         }}
       />
-    </section>
-  );
-}
-
-function CertificateMetadata({ cert }: { cert: Certificate }) {
-  const revokerId = userIdOf(cert.revoked_by);
-  const revokerEmail = useUserEmail(revokerId);
-  const items: Array<{ label: string; value: React.ReactNode }> = [
-    { label: "User email", value: cert.user_email || "—" },
-    { label: "Subject", value: <span className="break-all font-mono text-xs">{cert.user_sub}</span> },
-    { label: "Serial number", value: <span className="font-mono">{cert.serial_number}</span> },
-    { label: "Key ID", value: <span className="break-all font-mono text-xs">{cert.key_id}</span> },
-    { label: "Principal", value: cert.principal },
-    {
-      label: "Public key fingerprint",
-      value: <span className="break-all font-mono text-xs">{cert.public_key_fingerprint}</span>,
-    },
-    {
-      label: "CA fingerprint",
-      value: <span className="break-all font-mono text-xs">{cert.ca_fingerprint}</span>,
-    },
-    { label: "Issued at", value: formatUnixSeconds(cert.issued_at) },
-    { label: "Valid after", value: formatUnixSeconds(cert.valid_after) },
-    { label: "Valid before", value: formatUnixSeconds(cert.valid_before) },
-    {
-      label: "Granted extensions",
-      value: cert.granted_extensions?.length ? cert.granted_extensions.join(", ") : "—",
-    },
-    { label: "Force command", value: cert.force_command || "—" },
-    { label: "Source address", value: cert.source_address || "Any" },
-  ];
-
-  if (cert.revoked) {
-    items.push(
-      {
-        label: "Revoked at",
-        value: cert.revoked_at != null ? formatUnixSeconds(cert.revoked_at) : "—",
-      },
-      { label: "Revocation reason", value: cert.revocation_reason || "—" },
-      {
-        label: "Revoked by",
-        value: revokerEmail ?? cert.revoked_by ?? "—",
-      },
-    );
-  }
-
-  return (
-    <dl className="grid grid-cols-1 gap-x-8 gap-y-4 rounded-lg border bg-card p-5 sm:grid-cols-2">
-      {items.map((item) => (
-        <div key={item.label} className="space-y-1">
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {item.label}
-          </dt>
-          <dd className="text-sm text-foreground">{item.value}</dd>
-        </div>
-      ))}
-    </dl>
+    </>
   );
 }
 
