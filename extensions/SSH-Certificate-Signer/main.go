@@ -181,7 +181,7 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 	}, logger)
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
 	healthHandler := handler.NewHealthHandler(db, vaultClient)
-	certificatesHandler := handler.NewCertificatesHandler(db, signerservice.NewRevocationService(db), logger)
+	certificatesHandler := handler.NewCertificatesHandler(db, signerservice.NewRevocationService(db), cfg.Signer.LoginHost, cfg.Signer.LoginPort, logger)
 
 	handlers := server.Handlers{
 		Sign:              signHandler.Handle,

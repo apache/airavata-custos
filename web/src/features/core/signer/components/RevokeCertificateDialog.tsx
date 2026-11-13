@@ -102,7 +102,7 @@ export function RevokeCertificateDialog({
               <span>{Math.max(0, 255 - reasonLength)} remaining</span>
             </div>
           </div>
-          {error ? <p className="text-sm text-[color:var(--custos-red-700)]">{error}</p> : null}
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter>
             <Button
               type="button"

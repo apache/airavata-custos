@@ -36,12 +36,12 @@ test.describe("ssh certificates", () => {
     await signInAs(page, "admin");
     await page.goto("/admin/signer/certificates");
     await expect(page.getByRole("heading", { name: /^SSH Certificates$/ })).toBeVisible();
-    await page.getByRole("link", { name: "42" }).click();
+    await page.getByRole("button", { name: "42" }).click();
     await expect(page).toHaveURL(/\/admin\/signer\/certificates\/42/);
     await expect(page.getByRole("heading", { name: /^Certificate 42$/ })).toBeVisible();
     await expect(page.getByText("researcher@example.org")).toBeVisible();
     await expect(page.getByText("sub-researcher")).toBeVisible();
-    await expect(page.getByText(/permit-pty/)).toBeVisible();
+    await expect(page.getByLabel("Allowed: Terminal sessions")).toBeVisible();
   });
 
   test("search and status filters update URL state and filter the loaded page", async ({ page }) => {
@@ -49,8 +49,8 @@ test.describe("ssh certificates", () => {
     await page.goto("/admin/signer/certificates");
     await page.getByRole("searchbox", { name: /search certificates/i }).fill("44");
     await expect(page).toHaveURL(/[?&]q=44/);
-    await expect(page.getByRole("link", { name: "44" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "42" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "44" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "42" })).toHaveCount(0);
     await page.getByLabel(/filter by status/i).selectOption("revoked");
     await expect(page).toHaveURL(/[?&]status=revoked/);
   });
@@ -67,14 +67,14 @@ test.describe("ssh certificates", () => {
     signerApi.setScenario("paginated");
     await page.goto("/admin/signer/certificates");
     await expect(page.getByText("Page 1")).toBeVisible();
-    await expect(page.getByRole("link", { name: "100" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "100" })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Previous$/ })).toBeDisabled();
     await page.getByRole("button", { name: /^Next$/ }).click();
     await expect(page.getByText("Page 2")).toBeVisible();
-    await expect(page.getByRole("link", { name: "120" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "120" })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Next$/ })).toBeDisabled();
     await page.getByRole("button", { name: /^Previous$/ }).click();
-    await expect(page.getByRole("link", { name: "100" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "100" })).toBeVisible();
   });
 
   test("distinguishes no matches on a loaded page", async ({ page }) => {

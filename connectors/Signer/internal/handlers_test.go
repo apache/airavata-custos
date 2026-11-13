@@ -171,6 +171,35 @@ func TestGenerate_SignsForTheCallersOwnAccount(t *testing.T) {
 	}
 }
 
+// Make sure the options a member picks reach the signer: a shorter lifetime, addresses, a command, and dropped options.
+func TestGenerate_PassesTheMembersRestrictions(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{"serial_number":1}`)
+
+	body := `{"public_key":"k","ttl_seconds":600,"source_address":"192.0.2.10","force_command":"rsync --server","exclude_extensions":["permit-port-forwarding"]}`
+	serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(body)))
+
+	var sent map[string]any
+	if err := json.Unmarshal([]byte(seen.body), &sent); err != nil {
+		t.Fatal(err)
+	}
+	excluded, _ := sent["exclude_extensions"].([]any)
+	if sent["ttl_seconds"] != float64(600) || sent["source_address"] != "192.0.2.10" || sent["force_command"] != "rsync --server" ||
+		len(excluded) != 1 || excluded[0] != "permit-port-forwarding" {
+		t.Fatalf("signer got %v", sent)
+	}
+}
+
+// Make sure a lifetime longer than the site's longest is refused and never reaches the signer.
+func TestGenerate_LongerLifetimeIsRefused(t *testing.T) {
+	srv, seen := mockSignerServer(t, http.StatusOK, `{}`)
+
+	rec := serve(srv.URL, httptest.NewRequest(http.MethodPost, "/connectors/signer/me/certificates", strings.NewReader(`{"public_key":"k","ttl_seconds":7200}`)))
+
+	if rec.Code != http.StatusBadRequest || errorCode(t, rec) != "invalid_ttl" || seen.path != "" {
+		t.Fatalf("got %d %s, signer saw %q", rec.Code, rec.Body, seen.path)
+	}
+}
+
 // Make sure each issued certificate leaves an audit row under its serial, naming who asked.
 func TestGenerate_RecordsTheIssueInTheAuditLog(t *testing.T) {
 	srv, _ := mockSignerServer(t, http.StatusOK, `{"serial_number":42}`)

@@ -53,6 +53,8 @@ type CertificateResponse struct {
 	RevokedAt            *int64   `json:"revoked_at,omitempty"`
 	RevocationReason     string   `json:"revocation_reason,omitempty"`
 	RevokedBy            string   `json:"revoked_by,omitempty"`
+	LoginHost            string   `json:"login_host,omitempty"`
+	LoginPort            int      `json:"login_port,omitempty"`
 }
 
 type CertificateListResponse struct {
@@ -86,13 +88,15 @@ type CertificateRevoker interface {
 }
 
 type CertificatesHandler struct {
-	db      CertificateStore
-	revoker CertificateRevoker
-	logger  *slog.Logger
+	db        CertificateStore
+	revoker   CertificateRevoker
+	loginHost string
+	loginPort int
+	logger    *slog.Logger
 }
 
-func NewCertificatesHandler(db CertificateStore, revoker CertificateRevoker, logger *slog.Logger) *CertificatesHandler {
-	return &CertificatesHandler{db: db, revoker: revoker, logger: logger}
+func NewCertificatesHandler(db CertificateStore, revoker CertificateRevoker, loginHost string, loginPort int, logger *slog.Logger) *CertificatesHandler {
+	return &CertificatesHandler{db: db, revoker: revoker, loginHost: loginHost, loginPort: loginPort, logger: logger}
 }
 
 func (h *CertificatesHandler) HandleList(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +145,9 @@ func (h *CertificatesHandler) HandleGet(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to get certificate")
 		return
 	}
-	writeJSON(w, http.StatusOK, toCertificateResponse(certificate))
+	resp := toCertificateResponse(certificate)
+	resp.LoginHost, resp.LoginPort = h.loginHost, h.loginPort
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *CertificatesHandler) HandleRevoke(w http.ResponseWriter, r *http.Request) {

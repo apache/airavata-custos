@@ -62,7 +62,7 @@ export const signerHandlers = [
       certificate: "ssh-ed25519-cert-v01@openssh.com AAAAexample",
       serial_number: 50,
       principal: "dev-admin",
-      valid_before: Math.floor(Date.now() / 1000) + 28800,
+      valid_before: Math.floor(Date.now() / 1000) + 14400,
       login_host: "login.example.edu",
       login_port: 22,
     }),

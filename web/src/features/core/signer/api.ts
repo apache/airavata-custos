@@ -20,6 +20,7 @@ import { apiFetch } from "@/shared/api/client";
 import {
   type Certificate,
   type CertificateList,
+  type GenerateCertificateInput,
   type GeneratedCertificate,
   type RevokeResponse,
   certificateListSchema,
@@ -61,10 +62,12 @@ export async function getMyCertificate(serial: number | string): Promise<Certifi
   return certificateSchema.parse(raw);
 }
 
-export async function generateCertificate(publicKey: string): Promise<GeneratedCertificate> {
+export async function generateCertificate(
+  input: GenerateCertificateInput,
+): Promise<GeneratedCertificate> {
   const raw = await apiFetch("/connectors/signer/me/certificates", {
     method: "POST",
-    body: { public_key: publicKey },
+    body: input,
   });
   return generatedCertificateSchema.parse(raw);
 }

@@ -82,12 +82,13 @@ describe("<CertificateDetail />", () => {
       "SHA256:pk",
       "SHA256:ca",
       "sub-admin",
-      "permit-pty, permit-user-rc",
       "/usr/bin/id",
       "admin@example.org",
     ]) {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
+    expect(screen.getByLabelText("Allowed: Terminal sessions")).toBeInTheDocument();
+    expect(screen.getByLabelText("Blocked: Port forwarding")).toBeInTheDocument();
   });
 
   it("renders a loading skeleton", () => {

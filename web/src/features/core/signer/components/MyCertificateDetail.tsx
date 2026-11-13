@@ -21,20 +21,12 @@ import * as React from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/features/core/identity/queries";
 import { ApiError } from "@/shared/api/client";
-import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { useMyCertificate, useRevokeMyCertificate } from "../queries";
-import {
-  CERTIFICATE_STATUS_LABELS,
-  formatCertificateLifetime,
-  formatUnixSeconds,
-  getCertificateStatus,
-  statusBadgeVariantFromCertificateStatus,
-  userIdOf,
-} from "../status";
+import { userIdOf } from "../status";
 import { revokeErrorMessage } from "./CertificateDetail";
+import { CertificateView } from "./CertificateView";
 import { loadErrorMessage } from "./MyCertificates";
 import { RevokeCertificateDialog } from "./RevokeCertificateDialog";
 
@@ -55,66 +47,16 @@ export function MyCertificateDetail({ serial }: { serial: string }) {
   const cert = query.data;
   if (!cert) return null;
 
-  const status = getCertificateStatus(cert);
-  const items: Array<[string, React.ReactNode]> = [
-    ["Logs in as", <span key="principal" className="font-mono">{cert.principal}</span>],
-    ["Issued to", cert.user_email],
-    ["Key ID", <span key="key-id" className="break-all font-mono text-xs">{cert.key_id}</span>],
-    ["Key fingerprint", <span key="fingerprint" className="break-all font-mono text-xs">{cert.public_key_fingerprint}</span>],
-    ["Issued", formatUnixSeconds(cert.issued_at)],
-    ["Valid until", formatUnixSeconds(cert.valid_before)],
-    ["Lifetime", formatCertificateLifetime(cert)],
-    ["Options", cert.granted_extensions?.join(", ") || "None"],
-    ["Command", cert.force_command || "None"],
-    ["Can log in from", cert.source_address || "Any address"],
-  ];
-
   return (
-    <section className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-2">
-          <h1 className="font-display text-[28px] font-bold leading-tight">
-            Certificate <span className="font-mono">{cert.serial_number}</span>
-          </h1>
-          <StatusBadge
-            variant={statusBadgeVariantFromCertificateStatus(status)}
-            label={CERTIFICATE_STATUS_LABELS[status]}
-          />
-        </div>
-        {status === "active" ? (
-          <Button
-            variant="destructive"
-            onClick={() => {
-              setRevokeError(null);
-              setDialogOpen(true);
-            }}
-          >
-            Revoke
-          </Button>
-        ) : null}
-      </header>
-
-      {cert.revoked ? (
-        <div className="rounded-md border border-[color:var(--custos-red-700)] p-3 text-sm">
-          <p className="font-medium">
-            Revoked {cert.revoked_at != null ? formatUnixSeconds(cert.revoked_at) : ""} by{" "}
-            {userIdOf(cert.revoked_by) === user?.id ? "you" : "your site"}
-          </p>
-          <p>{cert.revocation_reason ? `Reason: ${cert.revocation_reason}` : "No reason given."}</p>
-          <p className="text-muted-foreground">
-            Login nodes still accept this certificate until it expires.
-          </p>
-        </div>
-      ) : null}
-
-      <dl className="grid grid-cols-1 gap-x-8 gap-y-4 rounded-lg border bg-card p-5 sm:grid-cols-2">
-        {items.map(([label, value]) => (
-          <div key={label} className="space-y-1">
-            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
-            <dd className="text-sm text-foreground">{value}</dd>
-          </div>
-        ))}
-      </dl>
+    <>
+      <CertificateView
+        cert={cert}
+        revokedBy={userIdOf(cert.revoked_by) === user?.id ? "you" : "your site"}
+        onRevoke={() => {
+          setRevokeError(null);
+          setDialogOpen(true);
+        }}
+      />
 
       <RevokeCertificateDialog
         serialNumber={cert.serial_number}
@@ -136,6 +78,6 @@ export function MyCertificateDetail({ serial }: { serial: string }) {
           );
         }}
       />
-    </section>
+    </>
   );
 }

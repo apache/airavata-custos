@@ -40,6 +40,8 @@ export const certificateSchema = z.object({
   revoked_at: z.number().int().nullable().optional(),
   revocation_reason: z.string().optional(),
   revoked_by: z.string().optional(),
+  login_host: z.string().optional(),
+  login_port: z.number().int().optional(),
 });
 export type Certificate = z.infer<typeof certificateSchema>;
 
@@ -73,3 +75,11 @@ export const generatedCertificateSchema = z.object({
   login_port: z.number().int(),
 });
 export type GeneratedCertificate = z.infer<typeof generatedCertificateSchema>;
+
+export type GenerateCertificateInput = {
+  public_key: string;
+  ttl_seconds: number;
+  source_address?: string;
+  force_command?: string;
+  exclude_extensions?: string[];
+};

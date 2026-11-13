@@ -29,6 +29,7 @@ import {
   revokeCertificate,
   revokeMyCertificate,
 } from "./api";
+import type { GenerateCertificateInput } from "./schemas";
 import type { CertificateListParams, CertificateListPaging } from "./types";
 
 export const signerKeys = {
@@ -115,7 +116,7 @@ export function useMyCertificate(serial: string) {
 export function useGenerateCertificate() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (publicKey: string) => generateCertificate(publicKey),
+    mutationFn: (input: GenerateCertificateInput) => generateCertificate(input),
     onSuccess: () => client.invalidateQueries({ queryKey: signerKeys.all }),
   });
 }

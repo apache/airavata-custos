@@ -17,7 +17,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
@@ -59,6 +59,7 @@ export function CertificateList({
   onStatusFilterChange,
   paging,
 }: CertificateListProps) {
+  const router = useRouter();
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -77,14 +78,7 @@ export function CertificateList({
       header: "Serial",
       sortable: true,
       sortValue: (row) => row.serial_number,
-      cell: (row) => (
-        <Link
-          href={`/admin/signer/certificates/${row.serial_number}`}
-          className="font-mono font-medium text-foreground hover:underline"
-        >
-          {row.serial_number}
-        </Link>
-      ),
+      cell: (row) => <span className="font-mono font-medium">{row.serial_number}</span>,
     },
     {
       key: "principal",
@@ -168,7 +162,12 @@ export function CertificateList({
           }
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => String(row.serial_number)} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => String(row.serial_number)}
+          onRowClick={(row) => router.push(`/admin/signer/certificates/${row.serial_number}`)}
+        />
       )}
       {paging && !isLoading && (error || rows.length > 0) && <CursorPager {...paging} />}
     </div>

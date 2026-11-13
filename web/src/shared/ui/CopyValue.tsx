@@ -27,11 +27,20 @@ export type CopyValueProps = {
   explicit?: boolean;
   className?: string;
   children?: React.ReactNode;
+  // Wrap a long value in full instead of cutting it off.
+  wrap?: boolean;
 };
 
 const COPIED_RESET_MS = 1100;
 
-export function CopyValue({ value, label, explicit = false, className, children }: CopyValueProps) {
+export function CopyValue({
+  value,
+  label,
+  explicit = false,
+  className,
+  children,
+  wrap = false,
+}: CopyValueProps) {
   const [copied, setCopied] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -62,11 +71,14 @@ export function CopyValue({ value, label, explicit = false, className, children 
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center gap-1.5 font-mono text-xs text-foreground",
+        "inline-flex max-w-full gap-1.5 font-mono text-xs text-foreground",
+        wrap ? "items-start" : "items-center",
         className,
       )}
     >
-      <span className="min-w-0 truncate">{children ?? value}</span>
+      <span className={cn("min-w-0", wrap ? "break-all" : "truncate")} title={value}>
+        {children ?? value}
+      </span>
       <button
         type="button"
         onClick={handleCopy}

@@ -53,7 +53,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, _ *events.Bus, core *service
 	}
 	ttl, err := cfg.GetIntField("certificate_ttl_seconds")
 	if err != nil {
-		ttl = 28800
+		ttl = 14400
 	}
 	handlers := internal.NewHandlers(internal.Config{
 		BaseURL:      settings["base_url"],
