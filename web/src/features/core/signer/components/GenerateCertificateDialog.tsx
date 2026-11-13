@@ -155,9 +155,22 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                 <p id="public-key-help" className="text-xs text-muted-foreground">
                   {isPrivateKey
                     ? "This is a private key. Keep it on your computer and paste the .pub file instead."
-                    : "Paste your .pub file, for example ~/.ssh/id_ed25519.pub. Never your private key. No key yet? Run ssh-keygen -t ed25519 on your computer."}
+                    : "Paste your .pub file, for example ~/.ssh/id_ed25519.pub. Never your private key."}
                 </p>
               </div>
+              {isPrivateKey ? null : (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p>No key yet? Run this on your computer:</p>
+                  <div className="rounded-md border bg-muted px-3 py-2">
+                    <CopyValue
+                      value="ssh-keygen -t ed25519"
+                      label="ssh-keygen command"
+                      explicit
+                      className="w-full justify-between"
+                    />
+                  </div>
+                </div>
+              )}
               {generate.error ? (
                 <p className="text-sm text-destructive">{refusalMessage(generate.error)}</p>
               ) : null}
