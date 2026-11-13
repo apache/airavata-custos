@@ -18,6 +18,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/shared/api/client";
@@ -49,6 +50,7 @@ export function loadErrorMessage(error: unknown): string {
 }
 
 export function MyCertificates() {
+  const router = useRouter();
   const { params, paging } = useCursorPaging();
   const query = useMyCertificates(params);
   const revoke = useRevokeMyCertificate();
@@ -182,7 +184,12 @@ export function MyCertificates() {
           }
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => String(row.serial_number)} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => String(row.serial_number)}
+          onRowClick={(row) => router.push(`/ssh-access/${row.serial_number}`)}
+        />
       )}
       {!query.isLoading && (query.error || rows.length > 0) ? (
         <CursorPager {...paging(query.data?.next_cursor)} />

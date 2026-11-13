@@ -18,6 +18,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
@@ -59,6 +60,7 @@ export function CertificateList({
   onStatusFilterChange,
   paging,
 }: CertificateListProps) {
+  const router = useRouter();
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -168,7 +170,12 @@ export function CertificateList({
           }
         />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => String(row.serial_number)} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => String(row.serial_number)}
+          onRowClick={(row) => router.push(`/admin/signer/certificates/${row.serial_number}`)}
+        />
       )}
       {paging && !isLoading && (error || rows.length > 0) && <CursorPager {...paging} />}
     </div>

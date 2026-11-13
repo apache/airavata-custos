@@ -73,8 +73,6 @@ export const generatedCertificateSchema = z.object({
   valid_before: z.number().int(),
   login_host: z.string(),
   login_port: z.number().int(),
-  force_command: z.string().optional(),
-  granted_extensions: z.array(z.string()).optional(),
 });
 export type GeneratedCertificate = z.infer<typeof generatedCertificateSchema>;
 

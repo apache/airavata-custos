@@ -17,7 +17,7 @@
 
 "use client";
 
-import { Info } from "lucide-react";
+import { Download, Info } from "lucide-react";
 import * as React from "react";
 import { ApiError } from "@/shared/api/client";
 import { Button } from "@/shared/ui/button";
@@ -59,30 +59,6 @@ function addressList(text: string): string {
     .split(/[\s,]+/)
     .filter(Boolean)
     .join(",");
-}
-
-function GrantSummary({ result }: { result: GeneratedCertificate }) {
-  if (!result.granted_extensions) return null;
-  const allowed = CERTIFICATE_OPTIONS.filter((o) => result.granted_extensions?.includes(o.name));
-  return (
-    <p className="text-muted-foreground">
-      {allowed.length > 0 ? "Allows " : "Allows no extra options."}
-      {allowed.map((o, i) => (
-        <React.Fragment key={o.name}>
-          {i > 0 ? ", " : null}
-          <span className="font-medium text-foreground">{o.label}</span>
-        </React.Fragment>
-      ))}
-      {allowed.length > 0 ? "." : null}
-      {result.force_command ? (
-        <>
-          {" "}
-          Runs only{" "}
-          <code className="font-mono text-xs text-foreground">{result.force_command}</code>.
-        </>
-      ) : null}
-    </p>
-  );
 }
 
 function OptionField({
@@ -135,6 +111,15 @@ function sshCommand(result: GeneratedCertificate): string {
   return `ssh -i ${keyFile(result.certificate)} ${port}${result.principal}@${result.login_host}`;
 }
 
+function downloadCertificate(certificate: string) {
+  const url = URL.createObjectURL(new Blob([`${certificate}\n`], { type: "text/plain" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${keyFile(certificate).replace("~/.ssh/", "")}-cert.pub`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export type GenerateCertificateDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -169,6 +154,18 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
   const missingValue =
     (onlyAddresses && !addressList(addresses)) || (onlyCommand && !command.trim());
   const result = generate.data;
+  // What the member narrowed, shown back with the certificate.
+  const restrictions: Array<{ label: string; value: string; mono: boolean }> = [];
+  if (onlyAddresses) {
+    restrictions.push({ label: "Log in from", value: addressList(addresses), mono: true });
+  }
+  if (onlyCommand) {
+    restrictions.push({ label: "Runs only", value: command.trim(), mono: true });
+  }
+  if (blocked.length > 0) {
+    const labels = CERTIFICATE_OPTIONS.filter((o) => blocked.includes(o.name)).map((o) => o.label);
+    restrictions.push({ label: "Blocked", value: labels.join(", "), mono: false });
+  }
 
   return (
     <Dialog
@@ -192,17 +189,47 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                 <span className="font-medium text-foreground">
                   {formatUnixSeconds(result.valid_before)}
                 </span>
-                . It is shown only now. If you lose it, generate another.
+                . Shown once.
               </DialogDescription>
             </DialogHeader>
             <div className="min-w-0 space-y-4 text-sm">
-              <GrantSummary result={result} />
+              <div className="rounded-md border p-3">
+                <p className="mb-2 font-medium">Restrictions</p>
+                {restrictions.length > 0 ? (
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                    {restrictions.map(({ label, value, mono }) => (
+                      <React.Fragment key={label}>
+                        <dt className="text-muted-foreground">{label}</dt>
+                        <dd
+                          className={`min-w-0 break-all font-medium ${mono ? "font-mono text-xs" : ""}`}
+                        >
+                          {value}
+                        </dd>
+                      </React.Fragment>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="text-muted-foreground">
+                    No restrictions: any address, normal login, all options allowed.
+                  </p>
+                )}
+              </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">Certificate</p>
-                  <CopyValue value={result.certificate} label="certificate" explicit>
-                    Copy
-                  </CopyValue>
+                  <div className="flex items-center gap-3">
+                    <CopyValue value={result.certificate} label="certificate" explicit>
+                      Copy
+                    </CopyValue>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadCertificate(result.certificate)}
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                      Download
+                    </Button>
+                  </div>
                 </div>
                 <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-3 font-mono text-xs leading-relaxed">
                   {result.certificate}
@@ -210,7 +237,7 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
               </div>
               <ol className="list-decimal space-y-2 pl-5">
                 <li>
-                  Save it next to your private key as{" "}
+                  Download it, or copy it, and save it next to your private key as{" "}
                   <code className="font-mono text-xs">{keyFile(result.certificate)}-cert.pub</code>
                 </li>
                 <li className="space-y-1">

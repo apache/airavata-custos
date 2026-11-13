@@ -20,6 +20,10 @@ import { describe, expect, it, vi } from "vitest";
 import { CertificateList } from "../components/CertificateList";
 import type { Certificate } from "../schemas";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 const active: Certificate = {
   user_sub: "sub-1",
   requested_by: "user/1",
