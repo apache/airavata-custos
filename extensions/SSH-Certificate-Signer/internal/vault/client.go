@@ -111,11 +111,15 @@ func (c *Client) GenerateCAKey(ctx context.Context) (*CAKeyPair, error) {
 	}
 
 	kvPath := c.kvPath(c.caKeyPath)
-	data := map[string]any{"data": map[string]any{
-		"private_key": string(kp.PrivateKey),
-		"public_key":  string(kp.PublicKey),
-		"created_at":  kp.CreatedAt,
-	}}
+	// cas 0 makes the write fail if anything is already stored, so an existing CA is never replaced.
+	data := map[string]any{
+		"options": map[string]any{"cas": 0},
+		"data": map[string]any{
+			"private_key": string(kp.PrivateKey),
+			"public_key":  string(kp.PublicKey),
+			"created_at":  kp.CreatedAt,
+		},
+	}
 	if _, err := c.client.Logical().WriteWithContext(ctx, kvPath, data); err != nil {
 		return nil, fmt.Errorf("writing vault path %s: %w", kvPath, err)
 	}
