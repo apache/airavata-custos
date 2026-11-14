@@ -28,6 +28,10 @@ export type PrivilegeRule = { action: string; subject: string };
 export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "core:clusters:read": [{ action: "read", subject: "Cluster" }],
   "core:clusters:write": [{ action: "manage", subject: "Cluster" }],
+  "core:storages:read": [{ action: "read", subject: "Storage" }],
+  "core:storages:manage": [{ action: "manage", subject: "Storage" }],
+  "core:storage-policies:read": [{ action: "read", subject: "StoragePolicy" }],
+  "core:storage-policies:manage": [{ action: "manage", subject: "StoragePolicy" }],
   "core:allocations:read": [{ action: "read", subject: "Allocation" }],
   "core:allocations:write": [{ action: "manage", subject: "Allocation" }],
   "core:projects:read": [{ action: "read", subject: "Project" }],

@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -166,7 +167,11 @@ func (c *Client) DeleteFolder(ctx context.Context, path string) error {
 			}
 		}
 	}
-	return c.do(ctx, token, http.MethodDelete, "folders/delete_folder/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil)
+	err = c.do(ctx, token, http.MethodDelete, "folders/delete_folder/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil)
+	if err != nil && errors.Is(c.do(ctx, token, http.MethodPost, "folders/stat_path/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil), errNotFound) {
+		return nil // already gone, as when a delete is delivered twice
+	}
+	return err
 }
 
 func (c *Client) create(ctx context.Context, path string, body map[string]any, exists func(token string) bool) error {
@@ -185,6 +190,8 @@ func (c *Client) login(ctx context.Context) (string, error) {
 	err := c.do(ctx, "", http.MethodPost, "token/", map[string]string{"username": c.username, "password": c.password}, &t)
 	return t.Access, err
 }
+
+var errNotFound = errors.New("vast: not found")
 
 func (c *Client) do(ctx context.Context, token, method, path string, body, out any) error {
 	var rdr io.Reader
@@ -210,7 +217,11 @@ func (c *Client) do(ctx context.Context, token, method, path string, body, out a
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
-		return fmt.Errorf("vast: %s %s: %d: %s", method, path, resp.StatusCode, msg)
+		err := fmt.Errorf("vast: %s %s: %d: %s", method, path, resp.StatusCode, msg)
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.Join(err, errNotFound)
+		}
+		return err
 	}
 	if out == nil {
 		return nil

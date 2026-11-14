@@ -23,6 +23,10 @@ import type { Privilege } from "@/features/core/identity/types";
 const ALL_PRIVILEGES: Privilege[] = [
   "core:clusters:read",
   "core:clusters:write",
+  "core:storages:read",
+  "core:storages:manage",
+  "core:storage-policies:read",
+  "core:storage-policies:manage",
   "core:allocations:read",
   "core:allocations:write",
   "core:projects:read",

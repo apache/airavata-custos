@@ -29,6 +29,10 @@ type PrivilegeKey string
 const (
 	ClustersRead          PrivilegeKey = "core:clusters:read"
 	ClustersWrite         PrivilegeKey = "core:clusters:write"
+	StoragesRead          PrivilegeKey = "core:storages:read"
+	StoragesManage        PrivilegeKey = "core:storages:manage"
+	StoragePoliciesRead   PrivilegeKey = "core:storage-policies:read"
+	StoragePoliciesManage PrivilegeKey = "core:storage-policies:manage"
 	AllocationsRead       PrivilegeKey = "core:allocations:read"
 	AllocationsWrite      PrivilegeKey = "core:allocations:write"
 	ProjectsRead          PrivilegeKey = "core:projects:read"
@@ -60,6 +64,10 @@ func init() {
 	Register(
 		ClustersRead,
 		ClustersWrite,
+		StoragesRead,
+		StoragesManage,
+		StoragePoliciesRead,
+		StoragePoliciesManage,
 		AllocationsRead,
 		AllocationsWrite,
 		ProjectsRead,
