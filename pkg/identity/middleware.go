@@ -112,7 +112,7 @@ func ServiceAccountMiddleware(accounts ServiceAccountResolver, next, nonServiceA
 
 // Router is the only path that lets HTTP routes hit the mux. The mux
 // field is unexported on purpose: callers must go through RequirePrivilege,
-// RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, or Public.
+// RequireServiceAccount, RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, or Public.
 type Router struct {
 	mux                   *http.ServeMux
 	publicMux             *http.ServeMux
@@ -141,6 +141,17 @@ func (r *Router) RequirePrivilege(pattern string, privilege models.PrivilegeKey,
 	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
 		if !HasPrivilege(req.Context(), privilege) {
 			writeJSONError(w, http.StatusForbidden, "insufficient_privilege", "Caller lacks required privilege")
+			return
+		}
+		handler(w, req)
+	})
+}
+
+// RequireServiceAccount registers a handler only a service account holding privilege can call.
+func (r *Router) RequireServiceAccount(pattern string, privilege models.PrivilegeKey, handler http.HandlerFunc) {
+	r.RequirePrivilege(pattern, privilege, func(w http.ResponseWriter, req *http.Request) {
+		if caller := CallerFromContext(req.Context()); caller == nil || !caller.IsServiceAccount() {
+			writeJSONError(w, http.StatusForbidden, "service_account_only", "Only service accounts can use this route")
 			return
 		}
 		handler(w, req)

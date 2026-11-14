@@ -1,12 +1,9 @@
 /**
  * What the portal states about the API beyond master's swag specs, read off master's handlers.
  * Responses a handler writes as a map literal carry every key, so each is listed with the Go value
- * behind it: nullable only where a nil slice or pointer can reach the encoder. The TempAccount
- * connector ships no spec, so its routes are added to core over the core models its handlers decode
- * and encode. Drift fails generation: a key set that no longer matches, or a route its handler lost.
+ * behind it: nullable only where a nil slice or pointer can reach the encoder. A changed key set
+ * fails generation.
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { type GoIndex, type Node, at, isNode } from "./go-presence.mts";
 
 const ref = (name: string) => ({ $ref: `#/definitions/${name}` });
@@ -141,35 +138,6 @@ function struct(go: GoIndex, name: string, properties: Node): Node {
   };
 }
 
-const userPath = [{ in: "path", name: "user_id", required: true, type: "string" }];
-const body = (name: string) => [{ in: "body", name: "body", required: true, schema: ref(name) }];
-const answers = (code: number, schema?: unknown) => ({
-  [code]: schema ? { description: "OK", schema } : { description: "No Content" },
-});
-const membership = {
-  parameters: body("ComputeAllocationMembership"),
-  responses: answers(200, ref("ComputeAllocationMembership")),
-};
-
-// connectors/TempAccount/internal/handlers.go: a VIRTUAL core user and its core memberships.
-const tempAccountRoutes: Record<string, Node> = {
-  "/connectors/temp-account/create": {
-    post: { parameters: body("User"), responses: answers(201, ref("User")) },
-  },
-  "/connectors/temp-account/assign-allocation": { post: membership },
-  "/connectors/temp-account/update-allocation": { post: membership },
-  "/connectors/temp-account/remove/{user_id}": {
-    delete: { parameters: userPath, responses: answers(204) },
-  },
-  // A user without memberships answers 404, so a 200 list is never nil.
-  "/connectors/temp-account/membership/{user_id}": {
-    get: {
-      parameters: userPath,
-      responses: answers(200, array(ref("ComputeAllocationMembership"))),
-    },
-  },
-};
-
 const success = (spec: Node, op: string) => {
   const [method = "", route = ""] = op.split(" ");
   return at(spec, "paths", route, method.toLowerCase(), "responses", "200");
@@ -201,7 +169,7 @@ export function settle(module: string, spec: Node): void {
 }
 
 /** Applies the supplement for one gen-api module to its parsed spec, in place. */
-export function supplement(module: string, spec: Node, go: GoIndex, repoRoot: string): void {
+export function supplement(module: string, spec: Node, go: GoIndex): void {
   for (const [op, [annotated, returned]] of Object.entries(retyped[module] ?? {})) {
     const response = success(spec, op);
     if (!isNode(response) || at(response, "schema", "items", "$ref") !== ref(annotated).$ref) {
@@ -222,21 +190,5 @@ export function supplement(module: string, spec: Node, go: GoIndex, repoRoot: st
       throw new Error(`spec-supplement: ${op} no longer answers ${keys(stated)}`);
     }
     Object.assign(response, { schema: stated });
-  }
-  if (module !== "core") return;
-  const handlers = readFileSync(
-    path.join(repoRoot, "connectors", "TempAccount", "internal", "handlers.go"),
-    "utf8",
-  );
-  const paths = at(spec, "paths");
-  if (!isNode(paths)) throw new Error("spec-supplement: the core spec has no paths");
-  for (const [route, item] of Object.entries(tempAccountRoutes)) {
-    for (const method of Object.keys(item)) {
-      const pattern = `"${method.toUpperCase()} ${route}"`;
-      if (!handlers.includes(pattern) || paths[route]) {
-        throw new Error(`spec-supplement: ${pattern} is gone from the handlers or now in the spec`);
-      }
-    }
-    paths[route] = item;
   }
 }

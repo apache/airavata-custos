@@ -103,7 +103,7 @@ shutdown the HTTP server gets 15 seconds to finish in-flight requests. The serve
 | `vast-storage-provisioner`      | `connectors/Storage/VAST-Provisioner`      | Creates directories, views and quotas on VAST                                         |
 | `email-notifier`                | `connectors/Notification/Email`            | Emails users about their cluster account requests                                     |
 | `analytics`                     | `connectors/Analytics`                     | Usage summaries and job lists for allocation participants                             |
-| `temp-account`                  | `connectors/TempAccount`                   | Creates temporary accounts and assigns them allocations                               |
+| `temp-account`                  | `connectors/TempAccount`                   | Lets a service account create temporary accounts                                      |
 | `signer`                        | `connectors/Signer`                        | Decides who may have an SSH certificate and calls the signer to issue and revoke them |
 
 `connectors/SLURM/Rest-Client` is the shared `slurmrestd` client library, not a connector. `GET /connectors` lists
@@ -128,7 +128,7 @@ Inbound authentication is an OIDC bearer JWT. `pkg/identity/verifier.go` checks 
 `iss` and `aud` must match `core.auth.oidc.{issuer,audience}`. The resolved caller is cached for `core.auth.cache_ttl`
 ([CONFIG.md](../CONFIG.md#core-keys)). Service accounts authenticate differently, see [Service accounts](#service-accounts).
 
-Routes register through one of five router methods:
+Routes register through one of six router methods:
 
 | Method                                      | Who gets through                                                       | Example                                     |
 |---------------------------------------------|------------------------------------------------------------------------|---------------------------------------------|
@@ -137,6 +137,7 @@ Routes register through one of five router methods:
 | `RequireAuth(pattern, h)`                   | A verified caller who has onboarded and accepted the current agreement | `GET /projects`, `GET /compute-allocations` |
 | `RequireScoped(pattern, authorize, h)`      | A verified caller whom `authorize` admits for that resource            | `GET /compute-allocations/{id}`             |
 | `RequirePrivilege(pattern, key, h)`         | A verified caller who holds `key`                                      | `POST /compute-clusters`                    |
+| `RequireServiceAccount(pattern, key, h)`    | A service account that holds `key`; never a user                       | `POST /connectors/temp-account/users`       |
 
 `GET /projects` and `GET /compute-allocations` return everything to a caller with the matching read privilege and
 only the caller's own records otherwise. `RequireScoped` routes admit the read privilege or a participant in that
@@ -153,6 +154,7 @@ The middleware answers authentication failures with `{"code": ..., "message": ..
 | `403`  | `onboarding_required`    | First sign-in; the user has not onboarded          |
 | `403`  | `consent_required`       | A newer user agreement waits for acceptance        |
 | `403`  | `insufficient_privilege` | The route's privilege is missing                   |
+| `403`  | `service_account_only`   | The route is for service accounts only             |
 | `503`  | `auth_lookup_failed`     | Caller resolution failed                           |
 
 ### Service accounts
@@ -167,6 +169,7 @@ Only keys registered with `models.AllowForServiceAccounts(...)` can be given to 
 |-----------------------------------------------------------------|--------------------------------------|
 | `Public`                                                        | Yes                                  |
 | `RequirePrivilege`                                              | If the service account holds the key |
+| `RequireServiceAccount`                                         | If it holds the key; users never     |
 | `RequireAuth`, `RequireScoped`, `RequireAuthWithoutUserConsent` | No                                   |
 
 Extra codes on service account calls:

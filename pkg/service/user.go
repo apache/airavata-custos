@@ -41,6 +41,10 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		}
 		return s.eventBus.Publish(ctx, tx, events.UserCreateEvent, user)
 	}); err != nil {
+		// Another create took the email after the check above.
+		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && pgErr.ConstraintName == "uq_users_email" {
+			return nil, fmt.Errorf("%w: user with email %q", ErrAlreadyExists, user.Email)
+		}
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 	return user, nil

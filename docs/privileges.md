@@ -96,11 +96,13 @@ How these routes treat service accounts is in [architecture.md](architecture.md#
 
 ## TempAccount connector (`connectors/TempAccount/internal/privileges.go`)
 
-| Privilege                     | Routes it gates                                                                                                                                                                                        |
-|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `temp-account:accounts:read`  | `GET /connectors/temp-account/membership/{user_id}`                                                                                                                                                    |
-| `temp-account:accounts:write` | `POST /connectors/temp-account/create`<br>`POST /connectors/temp-account/assign-allocation`<br>`POST /connectors/temp-account/update-allocation`<br>`DELETE /connectors/temp-account/remove/{user_id}` |
-| `temp-account:users:create`   | `POST /connectors/temp-account/users`. Service accounts may hold this key.                                                                                                                             |
+| Privilege                   | Routes it gates                       |
+|-----------------------------|---------------------------------------|
+| `temp-account:users:read`   | `GET /connectors/temp-account/users`  |
+| `temp-account:users:create` | `POST /connectors/temp-account/users` |
+
+Both routes use `RequireServiceAccount`: only a service account holding the key can call them. A user holding the key
+gets `403 service_account_only`.
 
 ## Signer connector (`connectors/Signer/internal/privileges.go`)
 
@@ -142,7 +144,8 @@ Other roles are site-defined through `/roles`.
     - Connector: add a constant to the connector's `privileges.go` and register it from that file's `init`.
     - If service accounts may hold it, register it with `models.AllowForServiceAccounts(...)` instead. Never do this
       for a key that manages user access, roles, privileges or service accounts.
-3. Gate the route with `router.RequirePrivilege(pattern, KEY, handler)`.
+3. Gate the route with `router.RequirePrivilege(pattern, KEY, handler)`, or `router.RequireServiceAccount(...)` when
+   only service accounts may call it.
 4. Add a row to the matching table above.
 
 `super_admin` picks up a new key at the next start with `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` set. The `admin` role does

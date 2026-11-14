@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -46,6 +47,7 @@ func serve(accounts fakeServiceAccounts, method, path string) (int, string) {
 	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 	router := NewRouter(http.NewServeMux())
 	router.RequirePrivilege("GET /clusters", models.ClustersWrite, ok)
+	router.RequireServiceAccount("GET /tools", models.ClustersWrite, ok)
 	router.RequireAuth("GET /me/certificates", ok)
 	router.RequireScoped("GET /projects/{id}", func(http.ResponseWriter, *http.Request) bool { return true }, ok)
 	router.RequireAuthWithoutUserConsent("GET /me", ok)
@@ -71,6 +73,21 @@ func TestServiceAccount_NeedsTheRoutePrivilege(t *testing.T) {
 	}
 	if code, errorCode := serve(accountWith(models.ClustersRead), http.MethodGet, "/clusters"); code != http.StatusForbidden || errorCode != "insufficient_privilege" {
 		t.Errorf("service account without the privilege: got %d %s", code, errorCode)
+	}
+}
+
+// Make sure a service-account-only route refuses a user who holds its privilege.
+func TestRequireServiceAccount_RefusesUsers(t *testing.T) {
+	if code, errorCode := serve(accountWith(models.ClustersWrite), http.MethodGet, "/tools"); code != http.StatusOK {
+		t.Errorf("service account with the privilege: got %d %s", code, errorCode)
+	}
+	router := NewRouter(http.NewServeMux())
+	router.RequireServiceAccount("GET /tools", models.ClustersWrite, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	ctx := withPrivileges(WithCaller(context.Background(), &Caller{UserID: "u1"}), []models.PrivilegeKey{models.ClustersWrite})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tools", nil).WithContext(ctx))
+	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "service_account_only") {
+		t.Errorf("user with the privilege: got %d %s", rec.Code, rec.Body)
 	}
 }
 
