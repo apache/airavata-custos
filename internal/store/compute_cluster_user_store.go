@@ -223,19 +223,9 @@ func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM compute_cluster_users
-		 WHERE user_id = $1
-		   AND compute_cluster_id IN (
-		       SELECT compute_cluster_id FROM (
-		           SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $2
-		       ) AS s
-		   )`,
-		fromUserID, toUserID); err != nil {
-		return err
-	}
 	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_cluster_users SET user_id = $1 WHERE user_id = $2`,
+		`UPDATE compute_cluster_users SET user_id = $1 WHERE user_id = $2
+		    AND compute_cluster_id NOT IN (SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $1)`,
 		toUserID, fromUserID)
 	return err
 }

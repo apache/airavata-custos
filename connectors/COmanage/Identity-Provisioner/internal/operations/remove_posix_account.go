@@ -45,13 +45,23 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		}
 	}()
 
-	user, err := o.core.GetUser(ctx, cu.UserID)
+	groupID, err := o.c.FindCoGroupByName(cu.LocalUsername)
 	if err != nil {
-		return fmt.Errorf("get Custos user: %w", err)
+		return fmt.Errorf("find primary group: %w", err)
 	}
-	personID, composite, err := o.findCoPerson(ctx, user)
+	// A user merge can leave the stored person id on another user, so the group's member comes first.
+	personID, composite, err := o.groupOwner(groupID)
 	if err != nil {
 		return err
+	}
+	if personID == "" {
+		user, err := o.core.GetUser(ctx, cu.UserID)
+		if err != nil {
+			return fmt.Errorf("get Custos user: %w", err)
+		}
+		if personID, composite, err = o.findCoPerson(ctx, user); err != nil {
+			return err
+		}
 	}
 	if personID != "" {
 		if err := o.removeAccountFromPerson(ctx, cu, personID, composite); err != nil {
@@ -60,10 +70,6 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 	}
 
 	// The account names this group as its primary group, so it goes last.
-	groupID, err := o.c.FindCoGroupByName(cu.LocalUsername)
-	if err != nil {
-		return fmt.Errorf("find primary group: %w", err)
-	}
 	if groupID != 0 {
 		if err := o.removeCoGroup(groupID); err != nil {
 			return err
@@ -72,6 +78,24 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 
 	o.audit(ctx, cu, "ComanageClusterAccountRemoved", fmt.Sprintf("comanage_id=%s username=%s", personID, cu.LocalUsername))
 	return nil
+}
+
+// groupOwner returns the person in an account's primary group, "" if there is none.
+func (o *Orchestrator) groupOwner(groupID int) (string, []byte, error) {
+	if groupID == 0 {
+		return "", nil, nil
+	}
+	// shortcut: takes the first member, a primary group has one unless provisioning was retried against another person.
+	members, err := o.c.ListCoGroupMembers(groupID)
+	if err != nil || len(members) == 0 {
+		return "", nil, err
+	}
+	personID, err := o.c.FindIdentifierValueOnPerson(members[0].Person.Id, o.c.Config().PersonIDType)
+	if err != nil || personID == "" {
+		return "", nil, err
+	}
+	composite, err := o.c.GetPersonComposite(personID)
+	return personID, composite, err
 }
 
 // removeAccountFromPerson takes the cluster account, its login name and the

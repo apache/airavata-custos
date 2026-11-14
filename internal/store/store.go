@@ -109,8 +109,7 @@ type ComputeClusterUserStore interface {
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.
 	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
-	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
-	// dropping fromUserID's rows on clusters where toUserID already has one.
+	// ReassignUser moves fromUserID's mappings to toUserID on clusters where toUserID has none.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a mapping by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
