@@ -30,6 +30,14 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// retiredTopicsQueued finds pending work the new handlers would drop: retired topics, and registry deletes that no longer resync groups.
+const retiredTopicsQueued = `SELECT EXISTS (SELECT 1 FROM event_deliveries d JOIN events e ON e.id = d.event_id
+	WHERE d.status = 'PENDING'
+	  AND EXISTS (SELECT 1 FROM event_subscriptions s WHERE s.subscriber = d.subscriber AND s.event_type = e.event_type)
+	  AND (e.event_type IN ('compute_allocation::create', 'compute_allocation::update', 'compute_cluster_user::provision',
+	                        'compute_allocation_membership::create', 'compute_allocation_membership::update', 'compute_allocation_membership::delete')
+	    OR (d.subscriber = 'comanage-identity-provisioner' AND e.event_type IN ('compute_cluster_user::approve', 'user::onboarded', 'compute_cluster_user::delete'))))`
+
 // MigrateEmbedded applies all pending migrations from the embedded
 // migrations/ directory against the supplied database.
 // Returns nil when there is nothing to apply.
@@ -49,6 +57,16 @@ func MigrateEmbedded(database *sqlx.DB) error {
 		return fmt.Errorf("create migrator: %w", err)
 	}
 
+	// Checked before Up, which marks a failed migration dirty and so stops the previous version from draining.
+	if v, dirty, err := m.Version(); err == nil && !dirty && v >= 7 && v < 10 {
+		var queued bool
+		if err := database.Get(&queued, retiredTopicsQueued); err != nil {
+			return fmt.Errorf("check retired topics: %w", err)
+		}
+		if queued {
+			return errors.New("connector deliveries are pending on topics migration 10 retires: let the running version finish them, then stop it and upgrade")
+		}
+	}
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("run migrations: %w", err)
 	}

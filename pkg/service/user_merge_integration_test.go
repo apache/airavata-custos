@@ -96,6 +96,31 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 }
 
+// Make sure a merge deactivates the retiring user's ready memberships and readies them for the survivor.
+func TestMergeUsers_ReReadiesMovedMemberships(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	subscribeAll(svc, events.ComputeAllocationMembershipReadyEvent, events.ComputeAllocationMembershipDeactivateEvent)
+	f := newReadyFixture(t, svc, database, 1)
+	retiring := f.users[0].UserID
+	survivor := seedUser(t, database, fmt.Sprintf("survivor-%s@example.edu", uuid.NewString()))
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: f.alloc.ComputeClusterID, UserID: survivor, LocalUsername: "merge-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create compute cluster user: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	d := published[models.ComputeAllocationMembership](t, svc, events.ComputeAllocationMembershipDeactivateEvent)
+	r := published[models.ComputeAllocationMembership](t, svc, events.ComputeAllocationMembershipReadyEvent)
+	if len(d) != 1 || d[0].UserID != retiring || len(r) == 0 || r[0].UserID != survivor {
+		t.Fatalf("deactivated %+v, latest ready %+v; want %s, then %s", d, r, retiring, survivor)
+	}
+}
+
 // Make sure a merge keeps the higher tag per project and that the survivor
 // holds no tag on a project it leads.
 func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {

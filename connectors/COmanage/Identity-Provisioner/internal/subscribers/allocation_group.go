@@ -34,13 +34,6 @@ func (s *Subscriber) handleComputeAllocationChanged(ctx context.Context, a model
 	return s.syncAllocation(ctx, a.ID)
 }
 
-func (s *Subscriber) handleMembershipChanged(ctx context.Context, m models.ComputeAllocationMembership) error {
-	ctx = audit.WithSource(ctx, "comanage")
-	ctx, span := tracing.Start(ctx, "comanage.membership_changed")
-	defer span.End()
-	return s.syncAllocation(ctx, m.ComputeAllocationID)
-}
-
 func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_deleted")
@@ -58,20 +51,11 @@ func (s *Subscriber) syncAllocation(ctx context.Context, allocationID string) er
 	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
-	if err != nil || a.ComputeClusterID != s.custosClusterID {
-		return err
-	}
-	return s.ops.EnsureAllocationGroup(ctx, a)
-}
-
-func (s *Subscriber) syncUserAllocations(ctx context.Context, userID string) error {
-	memberships, err := s.core.ListAllocationsForUser(ctx, userID)
 	if err != nil {
 		return err
 	}
-	var errs []error
-	for _, m := range memberships {
-		errs = append(errs, s.syncAllocation(ctx, m.ComputeAllocationID))
+	if a.ComputeClusterID != s.custosClusterID {
+		return s.core.MarkComputeAllocationGroupProvisioned(ctx, a.ID)
 	}
-	return errors.Join(errs...)
+	return s.ops.EnsureAllocationGroup(ctx, a)
 }

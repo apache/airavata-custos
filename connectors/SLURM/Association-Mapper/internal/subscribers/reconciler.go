@@ -125,10 +125,10 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			return
 		}
 		for _, membership := range memberships {
-			if membership.MembershipStatus != models.ACTIVE {
+			if membership.ReadyAt == nil {
 				continue
 			}
-			record, err := a.desiredAssociationForMembership(ctx, membership)
+			record, _, err := a.desiredAssociationForMembership(ctx, membership)
 			if errors.Is(err, errNotProvisioned) {
 				continue
 			}

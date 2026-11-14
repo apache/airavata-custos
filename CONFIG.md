@@ -124,7 +124,7 @@ At startup the server goes through the blocks:
 
 | Block                          | Behavior                                                                                                            |
 |--------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `enabled: false`               | Not loaded. Logs `connector is disabled` and stops keeping bus events for that type. The other keys are ignored.    |
+| `enabled: false`               | Not loaded. Logs `connector is disabled` and stops keeping bus events for that type. Core does its requests itself and drops its pending deliveries. The other keys are ignored. |
 | unknown `type`                 | Not loaded. Logs a warning. Startup continues.                                                                      |
 | enabled, required keys missing | The connector logs it, records it in its health status, and is skipped. The VAST provisioner fails startup instead. |
 | enabled, load error            | Startup fails.                                                                                                      |
