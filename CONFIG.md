@@ -140,9 +140,20 @@ At startup the server goes through the blocks:
 | `amie-processor`                | [AMIE Processor](connectors/ACCESS/AMIE-Processor/README.md#configuration)                        |
 | `email-notifier`                | [Email Notifier](connectors/Notification/Email/README.md#configuration)                           |
 | `temp-account`, `analytics`     | [Temporary accounts and analytics](#temporary-accounts-and-analytics), below                      |
+| `airavata`                      | [Airavata](#airavata), below                                                                      |
 
 To add a connector type, follow [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md).
 
 ### Temporary accounts and analytics
 
 The `temp-account` and `analytics` connectors take no keys beyond `type` and `enabled`.
+
+### Airavata
+
+| Key                | Purpose                                                                        |
+|--------------------|--------------------------------------------------------------------------------|
+| `url`              | The Airavata server                                                            |
+| `service_token`    | Token of an Airavata service account with `user:create` that manages the group |
+| `virtual_user_gid` | The Airavata group `VIRTUAL` users join                                        |
+
+The connector is skipped when any key is empty.
