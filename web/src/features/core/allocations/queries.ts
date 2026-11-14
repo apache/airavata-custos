@@ -45,6 +45,7 @@ import {
   listUserMemberships,
   rejectChangeRequest,
   setAllocationResources,
+  setAllocationStatus,
   submitChangeRequest,
   toggleMember,
 } from "./api";
@@ -132,6 +133,15 @@ export function useDeleteAllocation() {
     // Marks lists stale without refetching the deleted allocation's own queries.
     onSuccess: () =>
       client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
+  });
+}
+
+export function useSetAllocationStatus(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (status: ComputeAllocation["status"]) => setAllocationStatus(allocationId, status),
+    onError: (err) => toast.error(err.message),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
   });
 }
 

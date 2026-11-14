@@ -3244,6 +3244,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute allocation
@@ -3601,6 +3608,51 @@ paths:
       summary: Update a compute allocation -> resource mapping
       tags:
       - Compute Allocation Resources
+  /compute-allocations/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status patch
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            status:
+              $ref: '#/definitions/AllocationStatus'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocation'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a compute allocation's status
+      tags:
+      - Compute Allocations
   /compute-allocations/{id}/usages:
     get:
       description: Callers without the allocations read privilege must hold a membership

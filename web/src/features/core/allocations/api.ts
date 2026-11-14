@@ -89,6 +89,10 @@ export async function deleteAllocation(id: string): Promise<void> {
   await apiFetch(`/compute-allocations/${id}`, { method: "DELETE" });
 }
 
+export async function setAllocationStatus(id: string, status: ComputeAllocation["status"]) {
+  await apiFetch(`/compute-allocations/${id}/status`, { method: "PUT", body: { status } });
+}
+
 export async function setAllocationResources(id: string, resourceIds: string[]): Promise<void> {
   const body = { resource_ids: resourceIds };
   await apiFetch(`/compute-allocations/${id}/resources`, { method: "PUT", body });
