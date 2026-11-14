@@ -181,6 +181,7 @@ export function SetupProgress() {
   const username = profile.data?.onboarding?.username ?? "";
   const groups = groupSteps(steps ?? []);
   const ready = steps !== undefined && groups.every(isDone);
+  const hasAccount = steps === undefined || groups.some((g) => g.key === "cluster_account");
   const host = process.env.NEXT_PUBLIC_CLUSTER_LOGIN_HOST;
 
   const chosen = username ? (
@@ -193,7 +194,7 @@ export function SetupProgress() {
     </div>
   ) : null;
 
-  const connect = ready ? (
+  const connect = !hasAccount ? null : ready ? (
     <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card px-5 py-4 shadow-xs">
       <label htmlFor="ssh-command" className="flex items-center gap-2 font-semibold">
         <SquareTerminal aria-hidden="true" className="size-4" />
@@ -239,9 +240,11 @@ export function SetupProgress() {
           <h1 className="font-display text-[28px] font-bold leading-tight">
             {ready ? "Your account is ready" : "Setting up your account"}
           </h1>
-          <p className="text-muted-foreground">
-            {ready ? "Here is how to reach the cluster." : "This usually takes under a minute."}
-          </p>
+          {ready && !hasAccount ? null : (
+            <p className="text-muted-foreground">
+              {ready ? "Here is how to reach the cluster." : "This usually takes under a minute."}
+            </p>
+          )}
         </div>
         {error ? <ErrorState message={error.message} onRetry={() => refetch()} /> : null}
         {ready ? connect : chosen}

@@ -502,6 +502,9 @@ func TestSetupSteps_FollowProvisioning(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	user := seedPendingUserWithEmail(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || len(got) != 0 {
+		t.Fatalf("without a cluster account: got %+v, %v, want no steps", got, err)
+	}
 	cu := newClusterAccount(t, svc, user, "jdoe")
 	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
 	if err != nil {
