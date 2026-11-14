@@ -18,6 +18,7 @@
 package operations
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 )
@@ -89,6 +90,35 @@ func removeLogin(composite json.RawMessage, username string) ([]byte, bool, erro
 		return nil, false, fmt.Errorf("encode composite: %w", err)
 	}
 	return out, account || ident, nil
+}
+
+// deactivateAccount returns the person's record with the cluster account of this username deactivated.
+// It reports false when the person has no such account that is not already deactivated.
+func deactivateAccount(composite json.RawMessage, username string) ([]byte, bool, error) {
+	var top map[string]json.RawMessage
+	var person struct{ UnixClusterAccount []map[string]json.RawMessage }
+	if err := cmp.Or(json.Unmarshal(composite, &top), json.Unmarshal(composite, &person)); err != nil {
+		return nil, false, fmt.Errorf("decode composite: %w", err)
+	}
+	changed := false
+	for _, a := range person.UnixClusterAccount {
+		var name, status string
+		_ = json.Unmarshal(a["username"], &name)
+		_ = json.Unmarshal(a["status"], &status)
+		if name == username && status != "S" {
+			a["status"] = json.RawMessage(`"S"`)
+			changed = true
+		}
+	}
+	if !changed {
+		return nil, false, nil
+	}
+	top["UnixClusterAccount"], _ = json.Marshal(person.UnixClusterAccount)
+	out, err := json.Marshal(top)
+	if err != nil {
+		return nil, false, fmt.Errorf("encode composite: %w", err)
+	}
+	return out, true, nil
 }
 
 // dropEntries removes the matching entries of one composite array and reports

@@ -57,6 +57,7 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 		FirstName:      "Prov",
 		LastName:       "Target",
 		Email:          fmt.Sprintf("prov-%s@example.invalid", uuid.NewString()),
+		Status:         models.UserActive,
 	})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
@@ -496,5 +497,49 @@ func TestDeleteMembership_RefusedWhileActive(t *testing.T) {
 	}
 	if err := svc.DeleteComputeAllocationMembership(ctx(), m.ID); err != nil {
 		t.Fatalf("delete inactive membership: %v", err)
+	}
+}
+
+// Make sure a SUSPENDED or INACTIVE user's approved account loses provisioned_at, cannot regain it, and is approved again on reactivation.
+func TestUpdateUserStatus_DerivesClusterAccess(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	noop := func(context.Context, models.ComputeClusterUser) error { return nil }
+	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", noop)
+	svc.EventBus().SubscribeComputeClusterUserDeactivated("test-subscriber", noop)
+	cu := newClusterUser(t, svc, database)
+	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	provisioned := func() bool {
+		got, err := svc.GetComputeClusterUser(ctx(), cu.ID)
+		if err != nil {
+			t.Fatalf("get compute cluster user: %v", err)
+		}
+		return got.ProvisionedAt != nil
+	}
+	published := func(event string) int {
+		return countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = $1 AND payload->>'id' = $2", event, cu.ID)
+	}
+
+	for _, status := range []models.UserStatus{models.UserSuspended, models.UserInactive} {
+		if _, err := svc.UpdateUserStatus(ctx(), cu.UserID, status); err != nil {
+			t.Fatalf("set user %s: %v", status, err)
+		}
+	}
+	if provisioned() || published("compute_cluster_user::deactivate") != 1 {
+		t.Fatalf("provisioned=%v deactivations=%d, want false and 1", provisioned(), published("compute_cluster_user::deactivate"))
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil || provisioned() {
+		t.Fatalf("mark provisioned while inactive: err=%v provisioned=%v, want refused", err, provisioned())
+	}
+	if _, err := svc.UpdateUserStatus(ctx(), cu.UserID, models.UserActive); err != nil {
+		t.Fatalf("reactivate user: %v", err)
+	}
+	if n := published("compute_cluster_user::approve"); n != 2 {
+		t.Fatalf("approvals = %d, want 2", n)
 	}
 }

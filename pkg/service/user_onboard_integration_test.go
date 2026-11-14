@@ -501,7 +501,7 @@ func TestCompleteOnboarding_RegisteredUserKeepsUsername(t *testing.T) {
 func TestSetupSteps_FollowProvisioning(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	user := seedPendingUserWithEmail(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+	user := seedUser(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
 	cu := newClusterAccount(t, svc, user, "jdoe")
 	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
 	if err != nil {
