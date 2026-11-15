@@ -22,7 +22,7 @@ import { CornerDownRight, HardDrive, Pencil, Server, User } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { z } from "zod";
+import { type Storage, zGetStoragesResponse } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
@@ -34,31 +34,19 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { Label } from "@/shared/ui/label";
 import { UsageBar } from "@/shared/ui/UsageBar";
 
-const folderSchema = z.object({
-  id: z.string(),
-  cluster_id: z.string(),
-  path: z.string(),
-  owner_kind: z.enum(["cluster_user", "allocation"]),
-  owner_name: z.string(),
-  unix_owner: z.string(),
-  allocation_id: z.string().nullable(),
-  allocation_name: z.string().nullable(),
-  start_time: z.string().nullable(),
-  end_time: z.string().nullable(),
-  quota_until: z.string().nullable(),
-  status: z.enum(["active", "pending_deletion"]),
-  quota: z.object({ hard_limit: z.number(), used_capacity: z.number() }).nullable(),
-});
-type Folder = z.infer<typeof folderSchema> & { inherited: boolean };
+type Folder = Storage & { inherited: boolean };
 
 // Marks a folder without a quota inside a folder with one, whose quota it counts against.
-const nest = (folders: Array<z.infer<typeof folderSchema>>): Folder[] =>
+const nest = (folders: Storage[]): Folder[] =>
   folders.map((f) => ({
     ...f,
     inherited:
-      !f.quota &&
+      !f.quota_bytes &&
       folders.some(
-        (g) => g.quota && g.cluster_id === f.cluster_id && f.path.startsWith(`${g.path}/`),
+        (g) =>
+          g.quota_bytes &&
+          g.compute_cluster_id === f.compute_cluster_id &&
+          f.path.startsWith(`${g.path}/`),
       ),
   }));
 
@@ -137,24 +125,24 @@ const GIB = 1024 ** 3;
 // Sets a temporary hard limit on a folder's own quota; the change and its history are audited under cluster:path.
 function QuotaDialog({ folder, onClose }: { folder: Folder; onClose: () => void }) {
   const client = useQueryClient();
-  const [gib, setGib] = React.useState(String((folder.quota?.hard_limit ?? 0) / GIB));
+  const [gib, setGib] = React.useState(String(folder.quota_bytes / GIB));
   const [until, setUntil] = React.useState("");
   const [reason, setReason] = React.useState("");
   const latest = new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10);
   const save = useMutation({
     mutationFn: () =>
-      apiFetch(`/connectors/vast/folders/${folder.id}/quota`, {
+      apiFetch(`/storages/${folder.id}`, {
         method: "PUT",
         body: {
-          hard_limit: Math.round(Number(gib) * GIB),
-          until: new Date(`${until}T23:59:59`).toISOString(),
+          quota_bytes: Math.round(Number(gib) * GIB),
+          quota_until: new Date(`${until}T23:59:59`).toISOString(),
           reason,
         },
       }),
     onSuccess: () => {
       toast.success(`${folder.path} quota set until ${until}`);
       onClose();
-      return client.invalidateQueries({ queryKey: ["vast-folders"] });
+      return client.invalidateQueries({ queryKey: ["storages"] });
     },
     onError: (err) => toast.error(err.message),
   });
@@ -200,7 +188,7 @@ function QuotaDialog({ folder, onClose }: { folder: Folder; onClose: () => void 
           </div>
           <DialogFooter>
             <Link
-              href={`/admin/traces?q=${encodeURIComponent(`${folder.cluster_id}:${folder.path}`)}&source=vast`}
+              href={`/admin/traces?q=${encodeURIComponent(`${folder.compute_cluster_id}:${folder.path}`)}`}
               className="mr-auto self-center text-sm hover:underline"
             >
               History
@@ -218,17 +206,17 @@ function QuotaDialog({ folder, onClose }: { folder: Folder; onClose: () => void 
   );
 }
 
-// Folders Custos created on VAST. A deleted owner's folder stays here until an admin deletes it.
+// Folders a storage connector created. A deleted owner's folder stays here until an admin deletes it.
 export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined }) {
   const canManage = useAbility().can("manage", "Cluster");
   const [editing, setEditing] = React.useState<Folder | null>(null);
   const del = useDeleteColumn<Folder>(
-    "vast-folders",
+    "storages",
     "destructive",
     "Delete",
     (row) =>
       row.status === "pending_deletion" && {
-        path: `/connectors/vast/folders/${row.id}`,
+        path: `/storages/${row.id}`,
         done: `${row.path} deleted`,
       },
   );
@@ -260,7 +248,7 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
       cell: (row) => (
         <span
           className="flex items-center gap-3 whitespace-nowrap"
-          title={row.unix_owner.replace(/^0:/, "root:")}
+          title={`${row.owner}:${row.group}`.replace(/^0:/, "root:")}
         >
           {row.allocation_id ? (
             <Link
@@ -271,10 +259,10 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
               {row.allocation_name}
             </Link>
           ) : null}
-          {row.owner_kind === "cluster_user" ? (
+          {row.username ? (
             <span className="flex items-center gap-1">
               <User aria-hidden className="size-3.5 text-muted-foreground" />
-              {mono(row.owner_name)}
+              {mono(row.username)}
             </span>
           ) : null}
         </span>
@@ -299,9 +287,9 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
       width: "7rem",
       interactive: true,
       cell: (row) =>
-        row.quota ? (
+        row.quota_bytes ? (
           <span className="flex items-center gap-1 whitespace-nowrap">
-            {bytes(row.quota.hard_limit)}
+            {bytes(row.quota_bytes)}
             {row.quota_until && new Date(row.quota_until) > new Date() ? (
               <span className="text-xs text-muted-foreground">until {day(row.quota_until)}</span>
             ) : null}
@@ -325,12 +313,12 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
       header: "Used",
       width: "12rem",
       cell: (row) =>
-        row.quota ? (
+        row.quota_bytes && row.used_bytes !== undefined ? (
           <UsageBar
             size="sm"
-            value={row.quota.used_capacity}
-            max={row.quota.hard_limit}
-            label={bytes(row.quota.used_capacity)}
+            value={row.used_bytes}
+            max={row.quota_bytes}
+            label={bytes(row.used_bytes)}
             className="min-w-32"
           />
         ) : row.inherited ? (
@@ -342,13 +330,13 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
   return (
     <>
       <Listing
-        list="vast-folders"
-        path="/connectors/vast/folders"
-        parse={(data) => nest(z.array(folderSchema).parse(data))}
+        list="storages"
+        path="/storages"
+        parse={(data) => nest(zGetStoragesResponse.parse(data))}
         columns={columns}
         rowKey={(row) => row.id}
         rowClassName={(row) => (row.status === "active" ? undefined : DISPOSABLE)}
-        keep={(row) => row.cluster_id === clusterId}
+        keep={(row) => row.compute_cluster_id === clusterId}
         empty="No folders recorded."
       />
       {editing ? <QuotaDialog folder={editing} onClose={() => setEditing(null)} /> : null}

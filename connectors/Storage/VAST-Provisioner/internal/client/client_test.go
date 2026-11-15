@@ -177,3 +177,25 @@ func TestDeleteFolder(t *testing.T) {
 		t.Fatalf("err=%v deleted=%v, want %v", err, deleted, want)
 	}
 }
+
+// Make sure a refused delete succeeds only when VAST says the folder is gone, as when a delete is delivered twice.
+func TestDeleteFolderAlreadyGone(t *testing.T) {
+	for stat, gone := range map[int]bool{http.StatusNotFound: true, http.StatusServiceUnavailable: false} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.URL.Path == "/api/token/":
+				_, _ = w.Write([]byte(`{"access":"fresh"}`))
+			case r.Method == http.MethodGet:
+				_, _ = w.Write([]byte(`[]`))
+			case r.Method == http.MethodDelete:
+				w.WriteHeader(http.StatusBadRequest)
+			default:
+				w.WriteHeader(stat)
+			}
+		}))
+		if err := New(srv.URL, "u", "p", 1).DeleteFolder(context.Background(), "/gone"); (err == nil) != gone {
+			t.Errorf("stat %d: got %v, want success=%v", stat, err, gone)
+		}
+		srv.Close()
+	}
+}

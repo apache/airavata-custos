@@ -73,6 +73,47 @@ core:
       - podman
       - linux
       - pgadmin
+  storage:
+    clusters:
+      - id: "${CUSTOS_CLUSTER_ID}"
+        targets:
+          user_home:
+            path: "/home/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 107374182400      # 100 GiB
+            hard_limit_inodes: 1000000
+          user_scratch:
+            path: "/scratch/{user}"
+            owner: "{user}"
+            group: "{user}"
+            mode: "0700"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 10000000
+          project:
+            path: "/project/{allocation}"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2750"
+            hard_limit_size: 10995116277760    # 10 TiB
+            hard_limit_inodes: 300000000
+          project_shared:
+            path: "/project/{allocation}/shared"
+            owner: "0"
+            group: "{allocation}"
+            mode: "2770"
+          project_user:
+            path: "/project/{allocation}/{user}"
+            owner: "{user}"
+            group: "{allocation}"
+            mode: "2700"
+          trial_home:
+            path: "/trial-home/{name}"
+            owner: "${TRIAL_HOME_OWNER:-0}"
+            group: "${TRIAL_HOME_GROUP:-0}"
+            mode: "0700"
+            hard_limit_size: 10737418240       # 10 GiB
 
 connectors:
   slurm-mapper:
@@ -135,40 +176,15 @@ connectors:
           username: "${VAST_API_USER}"
           password: "${VAST_API_PASSWORD}"
           tenant_id: ${VAST_TENANT_ID}
-          # Used by targets with `view: true`. When the connector is enabled, Custos does not start if VMS has no policy by this name.
+          views:
+            user_home: false
+            user_scratch: true
+            project: true
+            project_shared: true
+            project_user: true
+            trial_home: false
           view_policy: "${VAST_VIEW_POLICY}"
           view_protocols: "${VAST_VIEW_PROTOCOLS}"    # comma-separated, such as NFS,NFS4
-        targets:
-          - path: "/home/{user}"
-            owner: "{user}"
-            group: "{user}"
-            mode: "0700"
-            hard_limit_size: 107374182400      # 100 GiB
-            hard_limit_inodes: 1000000
-          - path: "/scratch/{user}"
-            owner: "{user}"
-            group: "{user}"
-            mode: "0700"
-            hard_limit_size: 10995116277760    # 10 TiB
-            hard_limit_inodes: 10000000
-            view: true
-          - path: "/project/{allocation}"
-            owner: "0"
-            group: "{allocation}"
-            mode: "2750"
-            hard_limit_size: 10995116277760    # 10 TiB
-            hard_limit_inodes: 300000000
-            view: true
-          - path: "/project/{allocation}/shared"
-            owner: "0"
-            group: "{allocation}"
-            mode: "2770"
-            view: true
-          - path: "/project/{allocation}/{user}"
-            owner: "{user}"
-            group: "{allocation}"
-            mode: "2700"
-            view: true
 
   amie-processor:
     type: "amie-processor"

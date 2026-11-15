@@ -42,6 +42,7 @@ import (
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -128,6 +129,13 @@ func run() error {
 		return err
 	}
 	svc := service.New(database, eventBus)
+	targets := map[string]map[models.StorageType]models.StorageTarget{}
+	for _, c := range cfg.Core.Storage.Clusters {
+		targets[c.ID] = c.Targets
+	}
+	if err := svc.SetStorageTargets(targets); err != nil {
+		return err
+	}
 
 	tryBootstrap(ctx, svc)
 

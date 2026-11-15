@@ -116,6 +116,9 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 			if !survivorClusters[cu.ComputeClusterID] {
 				continue
 			}
+			if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID}); err != nil {
+				return err
+			}
 			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
 				return err
 			}
@@ -133,10 +136,10 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 			return err
 		}
 		retiring.Status = models.UserMerged
-		if err := s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
+		if err := s.publishUserTx(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, survivor)
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, survivor)
 	}(); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)
 	}

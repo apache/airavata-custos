@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -120,27 +121,26 @@ func (c *Client) ViewPolicyID(ctx context.Context, name string) (int, error) {
 type Quota struct {
 	HardLimit       int64 `json:"hard_limit"`
 	HardLimitInodes int64 `json:"hard_limit_inodes"`
-	Used            int64 `json:"used_capacity"`
 }
 
-// Quotas returns the tenant's quotas by path.
-func (c *Client) Quotas(ctx context.Context) (map[string]Quota, error) {
+// Used returns the bytes used under each of the tenant's quota paths, as VMS reports them now.
+func (c *Client) Used(ctx context.Context) (map[string]int64, error) {
 	token, err := c.login(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var found []struct {
 		Path string
-		Quota
+		Used int64 `json:"used_capacity"`
 	}
 	if err := c.do(ctx, token, http.MethodGet, fmt.Sprintf("quotas/?tenant_id=%d", c.tenantID), nil, &found); err != nil {
 		return nil, err
 	}
-	byPath := make(map[string]Quota, len(found))
+	used := make(map[string]int64, len(found))
 	for _, q := range found {
-		byPath[q.Path] = q.Quota
+		used[q.Path] = q.Used
 	}
-	return byPath, nil
+	return used, nil
 }
 
 // DeleteFolder deletes the views and quotas on path and under it, then moves path to VAST's trash.
@@ -166,7 +166,11 @@ func (c *Client) DeleteFolder(ctx context.Context, path string) error {
 			}
 		}
 	}
-	return c.do(ctx, token, http.MethodDelete, "folders/delete_folder/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil)
+	err = c.do(ctx, token, http.MethodDelete, "folders/delete_folder/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil)
+	if err != nil && errors.Is(c.do(ctx, token, http.MethodPost, "folders/stat_path/", map[string]any{"path": path, "tenant_id": c.tenantID}, nil), errNotFound) {
+		return nil // already gone, as when a delete is delivered twice
+	}
+	return err
 }
 
 func (c *Client) create(ctx context.Context, path string, body map[string]any, exists func(token string) bool) error {
@@ -185,6 +189,8 @@ func (c *Client) login(ctx context.Context) (string, error) {
 	err := c.do(ctx, "", http.MethodPost, "token/", map[string]string{"username": c.username, "password": c.password}, &t)
 	return t.Access, err
 }
+
+var errNotFound = errors.New("vast: not found")
 
 func (c *Client) do(ctx context.Context, token, method, path string, body, out any) error {
 	var rdr io.Reader
@@ -210,7 +216,11 @@ func (c *Client) do(ctx context.Context, token, method, path string, body, out a
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
-		return fmt.Errorf("vast: %s %s: %d: %s", method, path, resp.StatusCode, msg)
+		err := fmt.Errorf("vast: %s %s: %d: %s", method, path, resp.StatusCode, msg)
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.Join(err, errNotFound)
+		}
+		return err
 	}
 	if out == nil {
 		return nil

@@ -81,6 +81,16 @@ func TestExpandEnvVars(t *testing.T) {
 		assert.Equal(t, "url: ", output)
 	})
 
+	t.Run("expands unset vars to their default", func(t *testing.T) {
+		os.Setenv("SET_VAR", "value")
+		defer os.Unsetenv("SET_VAR")
+		os.Setenv("EMPTY_VAR", "")
+		defer os.Unsetenv("EMPTY_VAR")
+		os.Unsetenv("UNDEFINED_VAR")
+		output := expandEnvVars("a: ${SET_VAR:-0}\nb: ${EMPTY_VAR:-0}\nc: ${UNDEFINED_VAR:-0}")
+		assert.Equal(t, "a: value\nb: 0\nc: 0", output)
+	})
+
 	t.Run("expands multiple variables", func(t *testing.T) {
 		os.Setenv("VAR1", "value1")
 		os.Setenv("VAR2", "value2")
