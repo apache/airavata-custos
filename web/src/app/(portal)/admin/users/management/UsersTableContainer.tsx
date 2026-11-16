@@ -43,6 +43,7 @@ import {
   replaceShallowSearchParams,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { useUrlSearch } from "@/shared/hooks/useUrlSearch";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
@@ -66,7 +67,17 @@ export function UsersTableContainer() {
   const params = useShallowSearchParams();
   const filter = canReadAccounts ? toAccountStatus(params.get("status")) : "ALL";
   const byStatus = filter !== "ALL";
+  const search = useUrlSearch();
   const [page, setPage] = React.useState(1);
+  const roleId = canManageRoles ? params.get("role") : null;
+  const identitySource = params.get("identity");
+  const directoryFilter = {
+    ...(search.settledQuery ? { q: search.settledQuery } : {}),
+    ...(roleId ? { role_id: roleId } : {}),
+    ...(identitySource ? { identity_source: identitySource } : {}),
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addError, setAddError] = React.useState<string | null>(null);
   const [review, setReview] = React.useState<{
@@ -89,16 +100,9 @@ export function UsersTableContainer() {
       setAddError(err instanceof Error ? err.message : "Failed to add user");
     }
   }
-  const usersQuery = useUsers(
-    { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE },
-    { enabled: canReadUsers && !byStatus },
-  );
+  const usersQuery = useUsers(directoryFilter, { enabled: canReadUsers && !byStatus });
   const accountsQuery = useClusterAccounts(
-    {
-      ...(filter === "ALL" ? {} : { approval_status: filter }),
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
-    },
+    { ...directoryFilter, ...(filter === "ALL" ? {} : { approval_status: filter }) },
     { enabled: canReadUsers && byStatus },
   );
   const accountUsers = useUsersById(
@@ -164,6 +168,11 @@ export function UsersTableContainer() {
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={canReadDirectPrivileges}
         canReadAllocations={ability.can("read", "Allocation")}
+        search={search.text}
+        onSearchChange={(text) => {
+          search.setText(text);
+          setPage(1);
+        }}
         page={page}
         pageSize={PAGE_SIZE}
         total={listQuery.data?.total ?? 0}

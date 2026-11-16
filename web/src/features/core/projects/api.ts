@@ -46,6 +46,7 @@ export async function listProjects(params: ProjectListParams = {}): Promise<Proj
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   if (params.pi_id) search.set("pi_id", params.pi_id);
   if (params.status) search.set("status", params.status);
+  if (params.origination) search.set("origination", params.origination);
   if (params.q) search.set("q", params.q);
   const qs = search.toString();
   const raw = await apiFetch(`/projects${qs ? `?${qs}` : ""}`);

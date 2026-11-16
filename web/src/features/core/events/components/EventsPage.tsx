@@ -75,9 +75,10 @@ export function EventsPage() {
   const canRetry = ability.can("manage", "EventDelivery");
 
   // One query per tab, so every tab shows its count.
-  const all = useDeliveries();
-  const waiting = useDeliveries("PENDING");
-  const failed = useDeliveries("FAILED");
+  const subscriber = connector || undefined;
+  const all = useDeliveries(undefined, subscriber);
+  const waiting = useDeliveries("PENDING", subscriber);
+  const failed = useDeliveries("FAILED", subscriber);
   const byView: Record<DeliveryView, typeof all> = { all, waiting, failed };
   const current = byView[view];
 
@@ -91,11 +92,19 @@ export function EventsPage() {
     return [...new Set(names)];
   }, [subscriptions.data]);
 
+  // Listeners too, since the deliveries shown are only the picked connector's.
   const connectors = React.useMemo(
-    () => [...new Set((all.data ?? []).map((d) => d.subscriber))].sort(),
-    [all.data],
+    () =>
+      [
+        ...new Set([
+          ...(subscriptions.data ?? []).map((s) => s.subscriber),
+          ...(all.data ?? []).map((d) => d.subscriber),
+          ...(connector ? [connector] : []),
+        ]),
+      ].sort(),
+    [subscriptions.data, all.data, connector],
   );
-  const rows = (current.data ?? []).filter((d) => !connector || d.subscriber === connector);
+  const rows = current.data ?? [];
 
   const detail = useDelivery(openId);
   const retry = useRetryDelivery();

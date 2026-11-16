@@ -46,7 +46,7 @@ func runWorkerUntil(t *testing.T, bus *events.Bus, status models.EventDeliverySt
 	go bus.Run(ctx)
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		rows, err := bus.ListDeliveries(context.Background(), status, 10)
+		rows, err := bus.ListDeliveries(context.Background(), status, "", 10)
 		if err != nil {
 			t.Fatalf("list deliveries: %v", err)
 		}

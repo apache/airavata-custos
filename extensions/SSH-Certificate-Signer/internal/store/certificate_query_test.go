@@ -92,6 +92,20 @@ func TestListCertificatesFiltersByUserAndRequester(t *testing.T) {
 	}
 }
 
+func TestListCertificatesFiltersBySearchAndStatus(t *testing.T) {
+	db, mock := newMockDB(t)
+	mock.ExpectQuery(`WHERE \(c.serial_number::text ILIKE \$1 OR c.principal ILIKE \$1 OR c.user_email ILIKE \$1 OR c.key_id ILIKE \$1\) AND \(r.id IS NOT NULL\) ORDER BY`).
+		WithArgs("%ali%", 21).
+		WillReturnRows(certificateQueryRow())
+
+	if _, err := db.ListCertificates(context.Background(), 0, nil, CertificateFilter{Query: "ali", Status: "revoked"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestListCertificatesDeploymentWideUsesCursorAndTimestampTieBreaker(t *testing.T) {
 	db, mock := newMockDB(t)
 	issued := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)

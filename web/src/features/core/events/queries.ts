@@ -30,8 +30,8 @@ import {
 
 export const eventKeys = {
   all: ["events"] as const,
-  deliveries: (status?: EventDeliveryStatus) =>
-    [...eventKeys.all, "deliveries", status ?? "ALL"] as const,
+  deliveries: (status?: EventDeliveryStatus, subscriber?: string) =>
+    [...eventKeys.all, "deliveries", status ?? "ALL", subscriber ?? ""] as const,
   delivery: (id: string) => [...eventKeys.all, "delivery", id] as const,
   subscriptions: () => [...eventKeys.all, "subscriptions"] as const,
   graph: () => [...eventKeys.all, "graph"] as const,
@@ -47,10 +47,10 @@ export function useUserName(id: string) {
   });
 }
 
-export function useDeliveries(status?: EventDeliveryStatus) {
+export function useDeliveries(status?: EventDeliveryStatus, subscriber?: string) {
   return useQuery({
-    queryKey: eventKeys.deliveries(status),
-    queryFn: () => listDeliveries(status),
+    queryKey: eventKeys.deliveries(status, subscriber),
+    queryFn: () => listDeliveries(status, subscriber),
     refetchOnWindowFocus: false,
   });
 }

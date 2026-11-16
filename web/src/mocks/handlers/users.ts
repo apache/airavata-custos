@@ -21,12 +21,30 @@ import { http, HttpResponse } from "msw";
 
 const roles = Object.values(fixture.roleDetails).map((detail) => detail.role);
 
+// Mirrors the server's role_id and identity_source filters; only the signed-in user has grants.
+export function matchesDirectoryFilter(userId: string, params: URLSearchParams): boolean {
+  const isFixtureUser = userId === fixture.user.id;
+  const roleId = params.get("role_id");
+  const source = params.get("identity_source");
+  return (
+    (!roleId || (isFixtureUser && fixture.roles.some((r) => r.role_id === roleId))) &&
+    (!source || (isFixtureUser && fixture.identities.some((i) => i.source === source)))
+  );
+}
+
 export const usersHandlers = [
   http.get("*/api/v1/users", ({ request }) => {
     const url = new URL(request.url);
     const limit = Number(url.searchParams.get("limit") ?? 25);
     const offset = Number(url.searchParams.get("offset") ?? 0);
-    const users = [fixture.user];
+    const q = url.searchParams.get("q")?.toLowerCase() ?? "";
+    // Mirrors the server's q filter.
+    const users = [fixture.user].filter(
+      (u) =>
+        [u.email, u.first_name, u.last_name, `${u.first_name} ${u.last_name}`].some((field) =>
+          field.toLowerCase().includes(q),
+        ) && matchesDirectoryFilter(u.id, url.searchParams),
+    );
     return HttpResponse.json({
       items: users.slice(offset, offset + limit),
       total: users.length,

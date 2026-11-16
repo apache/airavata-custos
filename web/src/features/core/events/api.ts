@@ -29,9 +29,13 @@ import type { Delivery, DeliveryDetail, EventGraph, Subscription } from "./types
 // The backend caps one page at 200 rows and has no paging yet.
 export const DELIVERY_PAGE_SIZE = 200;
 
-export async function listDeliveries(status?: EventDeliveryStatus): Promise<Delivery[]> {
+export async function listDeliveries(
+  status?: EventDeliveryStatus,
+  subscriber?: string,
+): Promise<Delivery[]> {
   const params = new URLSearchParams({ limit: String(DELIVERY_PAGE_SIZE) });
   if (status) params.set("status", status);
+  if (subscriber) params.set("subscriber", subscriber);
   const raw = await apiFetch(`/events/deliveries?${params.toString()}`);
   return deliveryListSchema.parse(raw).items;
 }

@@ -37,7 +37,6 @@ import { PacketStatusBadge } from "./PacketStatusBadge";
 export type PacketFilters = {
   status: PacketStatus | "all";
   type: string;
-  source: string;
   q: string;
 };
 
@@ -261,24 +260,11 @@ export function PacketInboxTable({
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="amie-source">Source</Label>
-          <select
-            id="amie-source"
-            value={filters.source}
-            onChange={(e) => onFiltersChange({ ...filters, source: e.currentTarget.value })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All sources</option>
-            <option value="access">access</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
           <Label htmlFor="amie-search">Search</Label>
           <Input
             id="amie-search"
             type="search"
-            placeholder="amie id, packet id, entity"
+            placeholder="Packet ID or AMIE ID"
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.currentTarget.value)}
             className="w-56"

@@ -17,10 +17,12 @@
 
 "use client";
 
+import { clusterAccountKeys } from "@/features/core/cluster-accounts/queries";
 import { identityKeys } from "@/features/core/identity/queries";
 import type { Role, User, UserRole } from "@/generated/core/zod.gen";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import {
+  keepPreviousData,
   skipToken,
   useMutation,
   useQueries,
@@ -151,6 +153,7 @@ export function useUsers(params: UserListParams = {}, options: { enabled?: boole
   return useQuery({
     queryKey: userKeys.list(params),
     queryFn: () => listUsers(params),
+    placeholderData: keepPreviousData,
     enabled: options.enabled ?? true,
     ...DEFAULTS,
   });
@@ -283,6 +286,9 @@ export function useUpdateUserRoles() {
     onSettled: (_data, _error, variables) =>
       Promise.all([
         client.invalidateQueries({ queryKey: userKeys.roles(variables.userId) }),
+        // Lists filtered by role must drop or add this user.
+        client.invalidateQueries({ queryKey: [...userKeys.all, "list"] }),
+        client.invalidateQueries({ queryKey: clusterAccountKeys.all }),
         client.invalidateQueries({ queryKey: identityKeys.privileges() }),
         client.invalidateQueries({ queryKey: identityKeys.access(variables.userId) }),
       ]).then(() => undefined),

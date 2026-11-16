@@ -15,10 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// The signer has no search or status filter, so those apply to the loaded page only.
+import type { CertificateStatus } from "./status";
+
 export type CertificateListParams = {
   limit?: number;
   cursor?: string | undefined;
+  q?: string;
+  status?: CertificateStatus;
 };
 
 export type CertificateListPaging = {

@@ -23,9 +23,10 @@ import { useProjects } from "@/features/core/projects/queries";
 import type { ProjectStatus } from "@/generated/core/zod.gen";
 import { usePermissions } from "@/shared/casl/permissions";
 import {
-  replaceShallowSearchParams,
+  replaceShallowSearchParam,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
+import { useUrlSearch } from "@/shared/hooks/useUrlSearch";
 import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
@@ -37,20 +38,15 @@ export function ProjectsListContainer() {
   const can = usePermissions();
   const searchParams = useShallowSearchParams();
 
-  const search = searchParams.get("q") ?? "";
+  const search = useUrlSearch();
   const statusFilter = statusFilterFromUrl(searchParams.get("status"));
 
-  const updateParam = React.useCallback(
-    (key: string, value: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (!value) params.delete(key);
-      else params.set(key, value);
-      replaceShallowSearchParams(params);
-    },
-    [searchParams],
-  );
-
-  const query = useProjects({});
+  const origination = searchParams.get("origination");
+  const query = useProjects({
+    ...(search.settledQuery ? { q: search.settledQuery } : {}),
+    ...(statusFilter === "all" ? {} : { status: statusFilter }),
+    ...(origination ? { origination } : {}),
+  });
   const rows = query.data?.items ?? [];
   const [creating, setCreating] = React.useState(false);
 
@@ -60,11 +56,13 @@ export function ProjectsListContainer() {
       isLoading={query.isLoading}
       error={query.error}
       onRetry={() => query.refetch()}
-      search={search}
-      onSearchChange={(next) => updateParam("q", next)}
+      search={search.text}
+      onSearchChange={search.setText}
       statusFilter={statusFilter}
-      origination={searchParams.get("origination")}
-      onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
+      origination={origination}
+      onStatusFilterChange={(next) =>
+        replaceShallowSearchParam("status", next === "all" ? null : next)
+      }
       headerCta={
         <>
           <NewProjectCta canCreate={can.projectsWrite} onClick={() => setCreating(true)} />

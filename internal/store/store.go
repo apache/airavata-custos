@@ -25,6 +25,13 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+// UserListFilter narrows a user listing; an empty field matches every user.
+type UserListFilter struct {
+	Query          string // substring of the email, first, last or full name
+	RoleID         string // users granted this role
+	IdentitySource string // users with an external identity from this source
+}
+
 // UserStore defines persistence operations for users.
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
@@ -34,7 +41,7 @@ type UserStore interface {
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	// List returns a page of users ordered by email, plus the total count.
-	List(ctx context.Context, query string, limit, offset int) ([]models.User, int, error)
+	List(ctx context.Context, filter UserListFilter, limit, offset int) ([]models.User, int, error)
 	// GetUserByOIDCSub returns the user owning the user_identities row whose
 	// oidc_sub matches or nil if no row links the given subject.
 	GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error)
@@ -99,8 +106,8 @@ type ComputeClusterUserStore interface {
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
 	// FindByUserTx returns the user's mappings locked FOR UPDATE in tx, ordered by compute_cluster_id.
 	FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error)
-	// ListByApprovalStatus returns mappings joined with the user, cluster and allocation, plus the total. Empty status or query matches all.
-	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
+	// ListByApprovalStatus returns mappings joined with the user, cluster and allocation, plus the total. Empty status or filter fields match all.
+	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
 	// Create inserts a new mapping within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// Review records the admin's decision on the mapping within the provided transaction.
@@ -171,11 +178,12 @@ type ProjectStore interface {
 
 // ProjectListFilter selects which projects ProjectStore.ListWithPI returns.
 type ProjectListFilter struct {
-	PIID   string
-	Status string
-	Query  string
-	Limit  int
-	Offset int
+	PIID        string
+	Status      string
+	Origination string // case-insensitive, e.g. access matches ACCESS
+	Query       string
+	Limit       int
+	Offset      int
 }
 
 // ComputeAllocationStore defines persistence operations for compute allocations.
@@ -474,8 +482,8 @@ type EventDeliveryStore interface {
 	// FindDueDeliveries returns pending deliveries for the given subscribers
 	// whose next_run_at is at or before now, oldest first, each with its event.
 	FindDueDeliveries(ctx context.Context, now time.Time, subscribers []string, limit int) ([]models.PendingDelivery, error)
-	// ListDeliveries returns deliveries newest first, each with its event. An empty status means any status.
-	ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error)
+	// ListDeliveries returns deliveries newest first, each with its event. An empty status or subscriber means any.
+	ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, subscriber string, limit int) ([]models.PendingDelivery, error)
 	// CountDeliveriesBySubscriber returns how many deliveries each subscriber has in status.
 	CountDeliveriesBySubscriber(ctx context.Context, status models.EventDeliveryStatus) (map[string]int, error)
 	// MarkDeliverySucceeded records a successful delivery within the provided transaction.

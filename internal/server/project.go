@@ -162,7 +162,8 @@ func (s *Server) deleteProject(w http.ResponseWriter, r *http.Request) {
 // @Produce	json
 // @Param	pi_id	query	string	false	"Filter by PI user ID"
 // @Param	status	query	string	false	"Filter by status"
-// @Param	q	query	string	false	"Search title / originated_id"
+// @Param	origination	query	string	false	"Filter by origination, case-insensitive"
+// @Param	q	query	string	false	"Search title, originated_id or ref"
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
 // @Success	200	{object}	ProjectListResponse
@@ -189,11 +190,12 @@ func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit, offset := common.Paged(q)
 	f := store.ProjectListFilter{
-		PIID:   q.Get("pi_id"),
-		Status: q.Get("status"),
-		Query:  q.Get("q"),
-		Limit:  limit,
-		Offset: offset,
+		PIID:        q.Get("pi_id"),
+		Status:      q.Get("status"),
+		Origination: q.Get("origination"),
+		Query:       q.Get("q"),
+		Limit:       limit,
+		Offset:      offset,
 	}
 	rows, total, err := s.svc.ListProjectsWithPI(r.Context(), f)
 	if err != nil {

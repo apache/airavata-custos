@@ -48,7 +48,6 @@ function filterPackets(url: URL): {
 } {
   const status = url.searchParams.get("status");
   const type = url.searchParams.get("type");
-  const source = url.searchParams.get("source");
   const q = url.searchParams.get("q")?.toLowerCase() ?? "";
   const limit = Number(url.searchParams.get("limit") ?? "100");
   const offset = Number(url.searchParams.get("offset") ?? "0");
@@ -56,10 +55,9 @@ function filterPackets(url: URL): {
   let filtered = allPackets;
   if (status) filtered = filtered.filter((p) => p.status === status);
   if (type) filtered = filtered.filter((p) => p.type === type);
-  if (source) filtered = filtered.filter((p) => p.source === source);
   if (q) {
     filtered = filtered.filter((p) => {
-      const hay = `${p.amie_id} ${p.id} ${p.linked_entity?.display_id ?? ""}`.toLowerCase();
+      const hay = `${p.amie_id} ${p.id}`.toLowerCase();
       return hay.includes(q);
     });
   }

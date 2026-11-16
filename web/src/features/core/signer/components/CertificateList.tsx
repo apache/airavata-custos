@@ -18,7 +18,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -60,18 +59,7 @@ export function CertificateList({
   paging,
 }: CertificateListProps) {
   const router = useRouter();
-  const filtered = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (statusFilter !== "all" && getCertificateStatus(row) !== statusFilter) return false;
-      if (needle) {
-        const hay = `${row.serial_number} ${row.principal}`.toLowerCase();
-        if (!hay.includes(needle)) return false;
-      }
-      return true;
-    });
-  }, [rows, search, statusFilter]);
-
+  const filtersActive = search.trim() !== "" || statusFilter !== "all";
   const columns: Array<DataTableColumn<Certificate>> = [
     {
       key: "serial",
@@ -143,28 +131,25 @@ export function CertificateList({
           <option value="expired">Expired</option>
           <option value="revoked">Revoked</option>
         </select>
-        <span className="text-xs text-muted-foreground sm:ml-auto">
-          Search and status filters apply to this page.
-        </span>
       </div>
 
       {isLoading ? (
         <TableSkeleton rows={6} columns={4} />
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          heading={rows.length === 0 ? "No certificates yet" : "No matches on this page"}
-          description={
-            rows.length === 0
-              ? "The signer has not issued any certificates."
-              : "No certificates on the loaded page match the current filters."
-          }
-        />
+      ) : rows.length === 0 ? (
+        filtersActive ? (
+          <EmptyState heading="No matches" description="No certificates match these filters." />
+        ) : (
+          <EmptyState
+            heading="No certificates yet"
+            description="The signer has not issued any certificates."
+          />
+        )
       ) : (
         <DataTable
           columns={columns}
-          rows={filtered}
+          rows={rows}
           rowKey={(row) => String(row.serial_number)}
           onRowClick={(row) => router.push(`/admin/signer/certificates/${row.serial_number}`)}
         />

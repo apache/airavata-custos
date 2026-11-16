@@ -40,16 +40,6 @@ const active: Certificate = {
   revoked: false,
 };
 
-const revoked: Certificate = {
-  ...active,
-  serial_number: 44,
-  key_id: "k-revoked",
-  principal: "revoked-user",
-  revoked: true,
-  revoked_at: 1_700_500_000,
-  revocation_reason: "Key compromised",
-};
-
 function renderList(overrides: Partial<React.ComponentProps<typeof CertificateList>> = {}) {
   const props = {
     rows: [active],
@@ -77,31 +67,9 @@ describe("<CertificateList />", () => {
     expect(screen.getByRole("heading", { name: /no certificates yet/i })).toBeInTheDocument();
   });
 
-  it("distinguishes no matches on a loaded page from no certificates", () => {
-    renderList({ rows: [active], search: "not-present" });
-    expect(screen.getByRole("heading", { name: /no matches on this page/i })).toBeInTheDocument();
-  });
-
-  it("filters client-side by status", () => {
-    renderList({ rows: [active, revoked], statusFilter: "revoked" });
-    expect(
-      screen.queryByRole("button", { name: String(active.serial_number) }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: String(revoked.serial_number) })).toBeInTheDocument();
-  });
-
-  it.each([
-    ["serial", "44"],
-    ["principal", "DEV-ADMIN"],
-  ])("filters the loaded page by %s", (_field, search) => {
-    renderList({ rows: [active, revoked], search });
-    const expected = search === "44" ? revoked.serial_number : active.serial_number;
-    expect(screen.getByRole("button", { name: String(expected) })).toBeInTheDocument();
-    if (search === "44") {
-      expect(screen.queryByRole("button", { name: String(active.serial_number) })).not.toBeInTheDocument();
-    } else {
-      expect(screen.queryByRole("button", { name: String(revoked.serial_number) })).not.toBeInTheDocument();
-    }
+  it("tells no matches apart from no certificates", () => {
+    renderList({ rows: [], search: "not-present" });
+    expect(screen.getByRole("heading", { name: /no matches/i })).toBeInTheDocument();
   });
 
   it("reports search and status control changes", () => {
@@ -137,12 +105,6 @@ describe("<CertificateList />", () => {
     renderList({ paging: { ...paging, page: 2, hasNext: false } });
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /previous/i })).toBeEnabled();
-  });
-
-  // Make sure a filter that empties the page can still move to the next page.
-  it("keeps the pager when no row on the page matches", () => {
-    renderList({ rows: [active], search: "not-present", paging });
-    expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
   });
 
   it("surfaces an error state with a retry callback", () => {

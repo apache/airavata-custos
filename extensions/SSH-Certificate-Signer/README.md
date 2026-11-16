@@ -244,13 +244,14 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 |--------|----------------------------------------|----------------------------------------------------------------------------------|
 | `POST` | `/api/v1/sign`                         | Sign an SSH public key                                                           |
 | `GET`  | `/api/v1/ca-public-key`                | CA public key                                                                    |
-| `GET`  | `/api/v1/certificates`                 | List certificates. Filters: `user_sub`, `requested_by`                           |
+| `GET`  | `/api/v1/certificates`                 | List certificates. Filters: `user_sub`, `requested_by`, `q`, `status`            |
 | `GET`  | `/api/v1/certificates/{serial}`        | One certificate, with the `login_host` and `login_port` to use it on             |
 | `POST` | `/api/v1/certificates/{serial}/revoke` | Revoke an active certificate. `revoked_by` is required and `reason` can be empty |
 | `GET`  | `/api/v1/health`                       | Health check, no token                                                           |
 
 Every route with a token takes `Authorization: Bearer <service token>`.
 
+`q` matches the serial, principal, email or key ID. `status` is `active`, `not-yet-valid`, `expired` or `revoked`.
 `GET /api/v1/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
 It returns no total or offset.
 

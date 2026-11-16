@@ -27,6 +27,7 @@ import {
 } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
+import { matchesDirectoryFilter } from "./users";
 
 const clusters = z.array(zComputeCluster).parse(clustersFixture);
 const clusterUsers = z.array(zComputeClusterUser).parse(clusterUsersFixture);
@@ -41,6 +42,7 @@ export const clustersHandlers = [
     const q = url.searchParams.get("q")?.toLowerCase() ?? "";
     const rows = clusterAccounts.filter((a) => {
       if (status && a.approval_status !== status) return false;
+      if (!matchesDirectoryFilter(a.user_id, url.searchParams)) return false;
       const title = projects.find((p) => p.id === a.project_id)?.title ?? "";
       const hay = [a.display_name, a.email, a.local_username, a.allocation_name, title];
       return hay.join(" ").toLowerCase().includes(q);

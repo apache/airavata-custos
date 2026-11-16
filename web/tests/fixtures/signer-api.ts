@@ -5,6 +5,7 @@
 
 import { expect, test as base, type BrowserContext, type Route } from "@playwright/test";
 import certificatesFixture from "../../src/features/core/signer/__fixtures__/certificates.json";
+import { filterCertificates } from "../../src/features/core/signer/__fixtures__/filterCertificates";
 import type { Certificate } from "../../src/features/core/signer/schemas";
 
 export type SignerScenario =
@@ -131,12 +132,14 @@ async function installSignerRoutes(context: BrowserContext) {
       request.method() === "GET" &&
       url.pathname === "/api/v1/connectors/signer/certificates"
     ) {
-      const source =
+      const source = filterCertificates(
         scenario === "empty"
           ? []
           : scenario === "paginated"
             ? paginatedCertificates(certificates)
-            : certificates;
+            : certificates,
+        url.searchParams,
+      );
       const limit = Number(url.searchParams.get("limit") ?? source.length);
       const start = Number(url.searchParams.get("cursor") ?? 0);
       const end = start + limit;

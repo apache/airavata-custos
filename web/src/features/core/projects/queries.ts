@@ -17,7 +17,13 @@
 
 "use client";
 
-import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   addProjectMember,
   createProject,
@@ -53,6 +59,7 @@ export function useProjects(params: ProjectListParams = {}) {
   return useQuery({
     queryKey: projectKeys.list(params),
     queryFn: () => listProjects(params),
+    placeholderData: keepPreviousData,
     ...DEFAULTS,
   });
 }

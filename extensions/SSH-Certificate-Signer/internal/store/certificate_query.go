@@ -49,6 +49,22 @@ type CertificateWithStatus struct {
 type CertificateFilter struct {
 	UserSub     string
 	RequestedBy string
+	Query       string // substring of the serial, principal, email or key ID
+	Status      string // a key of certificateStatusConditions; empty matches all
+}
+
+// certificateStatusConditions maps each status to its SQL condition; revocation takes precedence over validity.
+var certificateStatusConditions = map[string]string{
+	"revoked":       "r.id IS NOT NULL",
+	"not-yet-valid": "r.id IS NULL AND c.valid_after > now()",
+	"expired":       "r.id IS NULL AND c.valid_after <= now() AND c.valid_before <= now()",
+	"active":        "r.id IS NULL AND c.valid_after <= now() AND c.valid_before > now()",
+}
+
+// IsCertificateStatus reports whether status is one the list can filter by.
+func IsCertificateStatus(status string) bool {
+	_, ok := certificateStatusConditions[status]
+	return ok
 }
 
 type CertificateCursor struct {
@@ -96,6 +112,14 @@ func (d *DB) ListCertificates(ctx context.Context, limit int, cursor *Certificat
 	}
 	if filter.RequestedBy != "" {
 		conditions = append(conditions, "c.requested_by = "+arg(filter.RequestedBy))
+	}
+	if filter.Query != "" {
+		pattern := arg("%" + filter.Query + "%")
+		conditions = append(conditions, fmt.Sprintf(
+			"(c.serial_number::text ILIKE %[1]s OR c.principal ILIKE %[1]s OR c.user_email ILIKE %[1]s OR c.key_id ILIKE %[1]s)", pattern))
+	}
+	if condition, ok := certificateStatusConditions[filter.Status]; ok {
+		conditions = append(conditions, "("+condition+")")
 	}
 	if cursor != nil {
 		issuedAtBefore, issuedAtSame, idBefore := arg(cursor.IssuedAt), arg(cursor.IssuedAt), arg(cursor.ID)

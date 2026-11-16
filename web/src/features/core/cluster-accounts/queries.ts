@@ -19,7 +19,13 @@
 
 import { useClusters } from "@/features/core/clusters/queries";
 import type { ClusterAccountResponse, User } from "@/generated/core/zod.gen";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   approveClusterAccount,
   denyClusterAccount,
@@ -48,6 +54,7 @@ export function useClusterAccounts(
   return useQuery({
     queryKey: clusterAccountKeys.list(params),
     queryFn: () => listClusterAccounts(params),
+    placeholderData: keepPreviousData,
     enabled: options.enabled ?? true,
     ...DEFAULTS,
   });

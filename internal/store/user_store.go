@@ -65,16 +65,20 @@ func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string, loc
 	return &r, nil
 }
 
-func (s *pgUserStore) List(ctx context.Context, query string, limit, offset int) ([]models.User, int, error) {
-	const from = ` FROM users WHERE email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1`
-	pattern := "%" + query + "%"
+func (s *pgUserStore) List(ctx context.Context, filter UserListFilter, limit, offset int) ([]models.User, int, error) {
+	const from = ` FROM users
+	 WHERE (email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1 OR first_name || ' ' || last_name ILIKE $1)
+	   AND ($2 = '' OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = users.id AND r.role_id = $2))
+	   AND ($3 = '' OR EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = users.id AND i.source = $3))`
+	pattern := "%" + filter.Query + "%"
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+from, pattern); err != nil {
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+from, pattern, filter.RoleID, filter.IdentitySource); err != nil {
 		return nil, 0, err
 	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userColumns+from+` ORDER BY email LIMIT $2 OFFSET $3`, pattern, limit, offset); err != nil {
+		`SELECT `+userColumns+from+` ORDER BY email LIMIT $4 OFFSET $5`,
+		pattern, filter.RoleID, filter.IdentitySource, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

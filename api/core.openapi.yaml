@@ -3714,6 +3714,14 @@ paths:
         in: query
         name: q
         type: string
+      - description: Only users granted this role
+        in: query
+        name: role_id
+        type: string
+      - description: Only users with an external identity from this source
+        in: query
+        name: identity_source
+        type: string
       - description: Page size
         in: query
         name: limit
@@ -4113,6 +4121,10 @@ paths:
       - description: PENDING | SUCCEEDED | FAILED
         in: query
         name: status
+        type: string
+      - description: Only deliveries to this connector
+        in: query
+        name: subscriber
         type: string
       - description: Page size (default 50, max 200)
         in: query
@@ -4647,7 +4659,11 @@ paths:
         in: query
         name: status
         type: string
-      - description: Search title / originated_id
+      - description: Filter by origination, case-insensitive
+        in: query
+        name: origination
+        type: string
+      - description: Search title, originated_id or ref
         in: query
         name: q
         type: string
@@ -5844,9 +5860,17 @@ paths:
         in: query
         name: offset
         type: integer
-      - description: Email or name substring
+      - description: Email, first, last or full name substring
         in: query
         name: q
+        type: string
+      - description: Only users granted this role
+        in: query
+        name: role_id
+        type: string
+      - description: Only users with an external identity from this source
+        in: query
+        name: identity_source
         type: string
       produces:
       - application/json

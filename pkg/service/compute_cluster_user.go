@@ -123,13 +123,14 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	return cu, nil
 }
 
-func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
+func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ClusterAccountApproval, filter store.UserListFilter, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
 	switch status {
 	case "", models.ClusterAccountPending, models.ClusterAccountApproved, models.ClusterAccountDenied:
 	default:
 		return nil, 0, fmt.Errorf("%w: unknown approval status %q", ErrInvalidInput, status)
 	}
-	rows, total, err := s.clusterUsers.ListByApprovalStatus(ctx, status, strings.TrimSpace(query), limit, offset)
+	filter.Query = strings.TrimSpace(filter.Query)
+	rows, total, err := s.clusterUsers.ListByApprovalStatus(ctx, status, filter, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list compute cluster users by approval: %w", err)
 	}

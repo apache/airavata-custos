@@ -42,7 +42,6 @@ import type {
 export type PacketListParams = {
   status?: PacketStatus | "all" | string | undefined;
   type?: string | undefined;
-  source?: string | undefined;
   q?: string | undefined;
   from?: string;
   to?: string;
