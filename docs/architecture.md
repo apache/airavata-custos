@@ -103,7 +103,7 @@ shutdown the HTTP server gets 15 seconds to finish in-flight requests. The serve
 | `vast-storage-provisioner`      | `connectors/Storage/VAST-Provisioner`      | Creates directories, views and quotas on VAST                                         |
 | `email-notifier`                | `connectors/Notification/Email`            | Emails users about their cluster account requests                                     |
 | `analytics`                     | `connectors/Analytics`                     | Usage summaries and job lists for allocation participants                             |
-| `temp-account`                  | `connectors/TempAccount`                   | Creates temporary accounts and assigns them allocations                               |
+| `temp-account`                  | `connectors/TempAccount`                   | Creates virtual users and looks up users by email                                     |
 | `signer`                        | `connectors/Signer`                        | Decides who may have an SSH certificate and calls the signer to issue and revoke them |
 | `airavata`                      | `connectors/Airavata`                      | Registers users in Airavata and adds `VIRTUAL` users to one Airavata group            |
 
