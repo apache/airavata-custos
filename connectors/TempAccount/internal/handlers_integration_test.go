@@ -61,8 +61,10 @@ func TestHandlers_CreateVirtualUserIsIdempotent(t *testing.T) {
 	if code, again := create(body); code != http.StatusOK || again.ID != first.ID {
 		t.Fatalf("repeat create: status %d, user %+v, want 200 and %s", code, again, first.ID)
 	}
-	regular, _ := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, Email: uuid.NewString() + "@example.edu"})
-	if code, _ := create(strings.Replace(body, first.Email, regular.Email, 1)); code != http.StatusConflict {
-		t.Fatalf("create over a regular user: status %d, want 409", code)
+	for _, typ := range []models.UserType{models.UserTypeClusterLocal, models.UserTypeSystem} {
+		other, _ := svc.CreateUser(ctx, &models.User{OrganizationID: org.ID, Email: uuid.NewString() + "@example.edu", Type: typ})
+		if code, _ := create(strings.Replace(body, first.Email, other.Email, 1)); code != http.StatusConflict {
+			t.Fatalf("create over a %s user: status %d, want 409", typ, code)
+		}
 	}
 }

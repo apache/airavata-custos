@@ -37,8 +37,8 @@ func NewHandlers(coreService *service.Service) *Handlers {
 
 // RegisterRoutes attaches the TempAccount connector's HTTP endpoints to router.
 func (h *Handlers) RegisterRoutes(router *identity.Router) {
-	router.RequireServiceAccount("POST /connectors/temp-account/users", UsersCreate, h.createVirtualUser)
-	router.RequireServiceAccount("GET /connectors/temp-account/users", UsersRead, h.getUserByEmail)
+	router.RequirePrivilege("POST /connectors/temp-account/users", UsersCreate, h.createVirtualUser)
+	router.RequirePrivilege("GET /connectors/temp-account/users", UsersRead, h.getUserByEmail)
 }
 
 func (h *Handlers) createVirtualUser(w http.ResponseWriter, r *http.Request) {

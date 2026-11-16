@@ -98,8 +98,8 @@ How these routes treat service accounts is in [architecture.md](architecture.md#
 
 | Privilege                     | Routes it gates                                                                                                                                                                                        |
 |-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `temp-account:users:read`     | `GET /connectors/temp-account/users`                                                                                                                                                                   |
 | `temp-account:users:create`   | `POST /connectors/temp-account/users`                                                                                                                                                                  |
+| `temp-account:users:read`     | `GET /connectors/temp-account/users`                                                                                                                                                                   |
 
 ## Signer connector (`connectors/Signer/internal/privileges.go`)
 
