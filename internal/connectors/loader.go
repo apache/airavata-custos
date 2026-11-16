@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
+	"github.com/apache/airavata-custos/connectors/Airavata/pkg/airavata"
 	"github.com/apache/airavata-custos/connectors/Analytics/pkg/analytics"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
 	"github.com/apache/airavata-custos/connectors/Notification/Email/pkg/email"
@@ -53,6 +54,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		vast.Type:        vast.LoadConnector,
 		email.Type:       email.LoadConnector,
 		signer.Type:      signer.LoadConnector,
+		airavata.Type:    airavata.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {

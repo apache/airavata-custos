@@ -105,6 +105,7 @@ shutdown the HTTP server gets 15 seconds to finish in-flight requests. The serve
 | `analytics`                     | `connectors/Analytics`                     | Usage summaries and job lists for allocation participants                             |
 | `temp-account`                  | `connectors/TempAccount`                   | Creates temporary accounts and assigns them allocations                               |
 | `signer`                        | `connectors/Signer`                        | Decides who may have an SSH certificate and calls the signer to issue and revoke them |
+| `airavata`                      | `connectors/Airavata`                      | Registers users in Airavata and adds `VIRTUAL` users to one Airavata group            |
 
 `connectors/SLURM/Rest-Client` is the shared `slurmrestd` client library, not a connector. `GET /connectors` lists
 the configured connectors with their load status and requires `core:clusters:read`.
