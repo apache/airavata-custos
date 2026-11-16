@@ -187,7 +187,7 @@ func newClusterUser(t *testing.T, svc *Service, database *sqlx.DB) *models.Compu
 
 func countDeliveries(t *testing.T, svc *Service) int {
 	t.Helper()
-	rows, err := svc.EventBus().ListDeliveries(ctx(), "", 10)
+	rows, err := svc.EventBus().ListDeliveries(ctx(), "", "", 10)
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}

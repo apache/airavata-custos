@@ -61,7 +61,6 @@ const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_FILTERS: PacketFilters = {
   status: "all",
   type: "all",
-  source: "all",
   q: "",
 };
 
@@ -84,7 +83,6 @@ export function PacketInboxContainer({ initialPacketId }: { initialPacketId?: st
   const packetsQuery = usePackets({
     status: filters.status !== "all" ? filters.status : undefined,
     type: filters.type !== "all" ? filters.type : undefined,
-    source: filters.source !== "all" ? filters.source : undefined,
     q: filters.q || undefined,
     limit: DEFAULT_PAGE_SIZE,
     offset: (page - 1) * DEFAULT_PAGE_SIZE,

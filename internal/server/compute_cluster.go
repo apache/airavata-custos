@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -195,6 +196,8 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 // @Produce	json
 // @Param	approval_status	query	string	false	"PENDING | APPROVED | DENIED"
 // @Param	q	query	string	false	"Matches name, email, username, allocation, or project"
+// @Param	role_id	query	string	false	"Only users granted this role"
+// @Param	identity_source	query	string	false	"Only users with an external identity from this source"
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
 // @Success	200	{object}	ClusterAccountListResponse
@@ -204,7 +207,11 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	status := models.ClusterAccountApproval(q.Get("approval_status"))
 	limit, offset := common.Paged(q)
-	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, q.Get("q"), limit, offset)
+	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, store.UserListFilter{
+		Query:          q.Get("q"),
+		RoleID:         q.Get("role_id"),
+		IdentitySource: q.Get("identity_source"),
+	}, limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

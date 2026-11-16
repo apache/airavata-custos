@@ -30,9 +30,13 @@ export const eventsHandlers = [
   http.get("/api/v1/events/graph", () => HttpResponse.json(graphFixture)),
 
   http.get("/api/v1/events/deliveries", ({ request }) => {
-    const status = new URL(request.url).searchParams.get("status");
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+    const subscriber = url.searchParams.get("subscriber");
     const items = deliveries
-      .filter((d) => !status || d.status === status)
+      .filter(
+        (d) => (!status || d.status === status) && (!subscriber || d.subscriber === subscriber),
+      )
       .map(({ history: _history, ...row }) => row);
     return HttpResponse.json({ items });
   }),

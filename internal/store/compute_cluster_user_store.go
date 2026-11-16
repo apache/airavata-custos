@@ -169,9 +169,11 @@ const clusterAccountListFrom = `
 	        ORDER BY m.created_at DESC
 	        LIMIT 1) a ON true
 	 WHERE ($1 = '' OR cu.approval_status = $1)
-	   AND ($2 = '' OR CONCAT_WS(' ', u.first_name, u.last_name, u.email, cu.local_username, a.name, a.title) ILIKE '%' || $2 || '%')`
+	   AND ($2 = '' OR CONCAT_WS(' ', u.first_name, u.last_name, u.email, cu.local_username, a.name, a.title) ILIKE '%' || $2 || '%')
+	   AND ($3 = '' OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = cu.user_id AND ur.role_id = $3))
+	   AND ($4 = '' OR EXISTS (SELECT 1 FROM user_identities ui WHERE ui.user_id = cu.user_id AND ui.source = $4))`
 
-func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, query string, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
+func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
 	// Pending is worked one allocation at a time, so its rows come grouped.
 	order := `cu.created_at DESC, cu.id`
 	if status == models.ClusterAccountPending {
@@ -186,13 +188,13 @@ func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, st
 		        a.id AS allocation_id, a.name AS allocation_name, a.project_id`+
 			clusterAccountListFrom+`
 		  ORDER BY `+order+`
-		  LIMIT $3 OFFSET $4`,
-		status, query, limit, offset)
+		  LIMIT $5 OFFSET $6`,
+		status, filter.Query, filter.RoleID, filter.IdentitySource, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+clusterAccountListFrom, status, query); err != nil {
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+clusterAccountListFrom, status, filter.Query, filter.RoleID, filter.IdentitySource); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

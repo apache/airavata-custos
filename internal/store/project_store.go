@@ -173,10 +173,16 @@ func (s *pgProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([
 		where = append(where, `p.status = ?`)
 		args = append(args, f.Status)
 	}
+	if f.Origination != "" {
+		where = append(where, `lower(p.origination) = lower(?)`)
+		args = append(args, f.Origination)
+	}
 	if f.Query != "" {
-		where = append(where, `(p.title ILIKE ? OR p.originated_id ILIKE ?)`)
+		// The last arm is posix.ProjectRef in SQL, so a search for a ref such as access-bio130000 matches.
+		where = append(where, `(p.title ILIKE ? OR p.originated_id ILIKE ? OR
+			lower(p.origination) || '-' || regexp_replace(lower(COALESCE(NULLIF(p.originated_id, ''), left(p.id::text, 8))), '[^a-z0-9]', '', 'g') ILIKE ?)`)
 		q := "%" + f.Query + "%"
-		args = append(args, q, q)
+		args = append(args, q, q, q)
 	}
 	clause := ""
 	if len(where) > 0 {

@@ -45,11 +45,13 @@ function filterProjects(url: URL): ProjectResponse[] {
   const q = url.searchParams.get("q")?.toLowerCase() ?? "";
   const status = url.searchParams.get("status");
   const piId = url.searchParams.get("pi_id");
+  const origination = url.searchParams.get("origination")?.toLowerCase();
   return projects.filter((p) => {
     if (status && p.status !== status) return false;
     if (piId && p.project_pi_id !== piId) return false;
+    if (origination && p.origination.toLowerCase() !== origination) return false;
     if (q) {
-      const hay = `${p.title} ${p.originated_id}`.toLowerCase();
+      const hay = `${p.title} ${p.originated_id} ${p.ref}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;

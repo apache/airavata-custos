@@ -64,30 +64,6 @@ describe("<ProjectsList />", () => {
     expect(screen.getByText("No projects match the current filters.")).toBeInTheDocument();
   });
 
-  it("filters by status", () => {
-    const inactive: ProjectResponse = {
-      ...project,
-      id: "project-002",
-      title: "Archived Project",
-      status: "INACTIVE",
-    };
-    renderList({ rows: [project, inactive], statusFilter: "INACTIVE" });
-    expect(screen.queryByRole("link", { name: project.title })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: inactive.title })).toBeInTheDocument();
-  });
-
-  it("filters by origination, ignoring case", () => {
-    const nairr: ProjectResponse = {
-      ...project,
-      id: "project-003",
-      title: "NAIRR Project",
-      origination: "NAIRR",
-    };
-    renderList({ rows: [project, nairr], origination: "nairr" });
-    expect(screen.queryByRole("link", { name: project.title })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: nairr.title })).toBeInTheDocument();
-  });
-
   it("surfaces an error state with a retry callback", () => {
     const onRetry = vi.fn();
     renderList({ error: new Error("boom"), onRetry });

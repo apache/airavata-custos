@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import {
   generateCertificate,
@@ -51,9 +51,16 @@ export function useUserEmail(id: string | null): string | undefined {
   return query.data;
 }
 
-export function useCursorPaging() {
+// Pages through a cursor list; a change of `filters` starts again at the first page.
+export function useCursorPaging(filters: Omit<CertificateListParams, "limit" | "cursor">) {
   // The cursor of each page after the first, so Previous can walk back.
   const [cursors, setCursors] = React.useState<string[]>([]);
+  const filterKey = JSON.stringify(filters);
+  const [pagedFilterKey, setPagedFilterKey] = React.useState(filterKey);
+  if (pagedFilterKey !== filterKey) {
+    setPagedFilterKey(filterKey);
+    setCursors([]);
+  }
   const [pageSize, setPageSize] = React.useState(20);
   const paging = (nextCursor: string | undefined): CertificateListPaging => ({
     page: cursors.length + 1,
@@ -68,7 +75,7 @@ export function useCursorPaging() {
       setPageSize(next);
     },
   });
-  return { params: { limit: pageSize, cursor: cursors.at(-1) }, paging };
+  return { params: { ...filters, limit: pageSize, cursor: cursors.at(-1) }, paging };
 }
 
 const DEFAULTS = {
@@ -81,6 +88,7 @@ export function useCertificates(params: CertificateListParams = {}) {
   return useQuery({
     queryKey: signerKeys.list(params),
     queryFn: () => listCertificates(params),
+    placeholderData: keepPreviousData,
     ...DEFAULTS,
   });
 }
@@ -101,6 +109,7 @@ export function useMyCertificates(params: CertificateListParams = {}) {
   return useQuery({
     queryKey: signerKeys.myList(params),
     queryFn: () => listMyCertificates(params),
+    placeholderData: keepPreviousData,
     ...DEFAULTS,
   });
 }

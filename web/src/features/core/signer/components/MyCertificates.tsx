@@ -50,18 +50,17 @@ export function loadErrorMessage(error: unknown): string {
 
 export function MyCertificates() {
   const router = useRouter();
-  const { params, paging } = useCursorPaging();
+  const [statusFilter, setStatusFilter] = React.useState<CertificateStatus | "all">("all");
+  const { params, paging } = useCursorPaging(
+    statusFilter === "all" ? {} : { status: statusFilter },
+  );
   const query = useMyCertificates(params);
   const revoke = useRevokeMyCertificate();
   const [generateOpen, setGenerateOpen] = React.useState(false);
-  const [statusFilter, setStatusFilter] = React.useState<CertificateStatus | "all">("all");
   const [revoking, setRevoking] = React.useState<Certificate | null>(null);
   const [revokeError, setRevokeError] = React.useState<string | null>(null);
 
   const rows = query.data?.certificates ?? [];
-  const filtered = rows.filter(
-    (row) => statusFilter === "all" || getCertificateStatus(row) === statusFilter,
-  );
 
   const columns: Array<DataTableColumn<Certificate>> = [
     {
@@ -159,26 +158,25 @@ export function MyCertificates() {
           <option value="expired">Expired</option>
           <option value="revoked">Revoked</option>
         </select>
-        <span className="text-xs text-muted-foreground">Status filter applies to this page.</span>
       </div>
 
       {query.isLoading ? (
         <TableSkeleton rows={4} columns={6} />
       ) : query.error ? (
         <ErrorState message={loadErrorMessage(query.error)} onRetry={() => query.refetch()} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          heading={rows.length === 0 ? "No certificates yet" : "No matches on this page"}
-          description={
-            rows.length === 0
-              ? "Generate a certificate to log in to the cluster."
-              : "No certificates on this page have that status."
-          }
-        />
+      ) : rows.length === 0 ? (
+        statusFilter === "all" ? (
+          <EmptyState
+            heading="No certificates yet"
+            description="Generate a certificate to log in to the cluster."
+          />
+        ) : (
+          <EmptyState heading="No matches" description="No certificates have that status." />
+        )
       ) : (
         <DataTable
           columns={columns}
-          rows={filtered}
+          rows={rows}
           rowKey={(row) => String(row.serial_number)}
           onRowClick={(row) => router.push(`/ssh-access/${row.serial_number}`)}
         />

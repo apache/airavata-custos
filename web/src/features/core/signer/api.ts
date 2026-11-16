@@ -44,6 +44,8 @@ async function fetchCertificateList(
   const search = new URLSearchParams();
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (params.cursor) search.set("cursor", params.cursor);
+  if (params.q) search.set("q", params.q);
+  if (params.status) search.set("status", params.status);
   const qs = search.toString();
   const raw = await apiFetch(`${path}${qs ? `?${qs}` : ""}`);
   return certificateListSchema.parse(raw);

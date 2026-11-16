@@ -112,7 +112,17 @@ func (h *CertificatesHandler) HandleList(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, "invalid_cursor", "Invalid certificate cursor")
 		return
 	}
-	filter := store.CertificateFilter{UserSub: r.URL.Query().Get("user_sub"), RequestedBy: r.URL.Query().Get("requested_by")}
+	params := r.URL.Query()
+	filter := store.CertificateFilter{
+		UserSub:     params.Get("user_sub"),
+		RequestedBy: params.Get("requested_by"),
+		Query:       params.Get("q"),
+		Status:      params.Get("status"),
+	}
+	if filter.Status != "" && !store.IsCertificateStatus(filter.Status) {
+		writeError(w, http.StatusBadRequest, "invalid_status", "Unknown certificate status")
+		return
+	}
 	result, err := h.db.ListCertificates(r.Context(), limit, cursor, filter)
 	if err != nil {
 		h.logger.Error("failed to list certificates", "error", err)

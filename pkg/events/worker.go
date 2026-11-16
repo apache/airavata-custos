@@ -212,9 +212,9 @@ func (b *Bus) deliver(ctx context.Context, row models.PendingDelivery) {
 	}
 }
 
-// ListDeliveries returns deliveries newest first. An empty status means any status.
-func (b *Bus) ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, limit int) ([]models.PendingDelivery, error) {
-	return b.store.ListDeliveries(ctx, status, limit)
+// ListDeliveries returns deliveries newest first. An empty status or subscriber means any.
+func (b *Bus) ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, subscriber string, limit int) ([]models.PendingDelivery, error) {
+	return b.store.ListDeliveries(ctx, status, subscriber, limit)
 }
 
 // CountDeliveriesBySubscriber returns how many deliveries each subscriber has in status.

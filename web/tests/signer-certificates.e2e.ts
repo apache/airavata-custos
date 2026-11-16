@@ -81,7 +81,7 @@ test.describe("ssh certificates", () => {
     await signInAs(page, "admin");
     await page.goto("/admin/signer/certificates");
     await page.getByRole("searchbox", { name: /search certificates/i }).fill("not-present");
-    await expect(page.getByRole("heading", { name: /no matches on this page/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /no matches/i })).toBeVisible();
   });
 
   test("renders active, future, expired, and revoked details correctly", async ({ page }) => {

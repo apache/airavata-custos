@@ -40,6 +40,7 @@ const (
 // @Security	BearerAuth
 // @Produce	json
 // @Param	status	query	string	false	"PENDING | SUCCEEDED | FAILED"
+// @Param	subscriber	query	string	false	"Only deliveries to this connector"
 // @Param	limit	query	integer	false	"Page size (default 50, max 200)"
 // @Success	200	{object}	object{items=[]models.PendingDelivery}
 // @Failure	400	{object}	object{error=string}	"Invalid status or limit"
@@ -57,7 +58,7 @@ func (s *Server) listEventDeliveries(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, fmt.Errorf("limit must be between 1 and %d", maxDeliveryLimit))
 		return
 	}
-	rows, err := s.svc.EventBus().ListDeliveries(r.Context(), status, limit)
+	rows, err := s.svc.EventBus().ListDeliveries(r.Context(), status, r.URL.Query().Get("subscriber"), limit)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

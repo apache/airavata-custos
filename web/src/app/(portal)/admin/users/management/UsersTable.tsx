@@ -87,6 +87,8 @@ export function UsersTable({
   canManageRoles,
   canReadDirectPrivileges,
   canReadAllocations,
+  search,
+  onSearchChange,
   page,
   pageSize,
   total,
@@ -101,6 +103,8 @@ export function UsersTable({
   canManageRoles: boolean;
   canReadDirectPrivileges: boolean;
   canReadAllocations: boolean;
+  search: string;
+  onSearchChange: (text: string) => void;
   page: number;
   pageSize: number;
   total: number;
@@ -114,7 +118,6 @@ export function UsersTable({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const expandedRow = useExpandableRow();
   const searchParams = useShallowSearchParams();
-  const search = searchParams.get("q") ?? "";
   const roleFilter = searchParams.get("role") ?? "all";
   const identityFilter = searchParams.get("identity") ?? "all";
   const filtersActive =
@@ -140,44 +143,13 @@ export function UsersTable({
     if (!value || value === "all") params.delete(key);
     else params.set(key, value);
     replaceShallowSearchParams(params);
-    if (key !== "q") {
-      resetSelection();
-      onPageChange(1);
-    }
+    resetSelection();
+    onPageChange(1);
   }
 
   function isCurrentUser(row: UserManagementRow): boolean {
     return Boolean(currentUserEmail) && row.email === currentUserEmail;
   }
-
-  const filteredUsers = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return users.filter((user) => {
-      if (needle) {
-        const haystack = `${fullNameFor(user)} ${user.email}`.toLowerCase();
-        if (!haystack.includes(needle)) return false;
-      }
-      if (canManageRoles && roleFilter !== "all") {
-        if (
-          !user.rolesLoading &&
-          !user.rolesError &&
-          !user.roles.some((role) => role.id === roleFilter)
-        ) {
-          return false;
-        }
-      }
-      if (identityFilter !== "all") {
-        if (
-          !user.identitiesLoading &&
-          !user.identitiesError &&
-          !user.identities.some((identity) => identity.source === identityFilter)
-        ) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [users, search, roleFilter, identityFilter, canManageRoles]);
 
   const columns: Array<DataTableColumn<UserAccountRow>> = [
     {
@@ -264,15 +236,15 @@ export function UsersTable({
       <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
         <Input
           type="search"
-          placeholder="Search this page by username or email"
+          placeholder="Search by name or email"
           value={search}
-          onChange={(event) => updateFilterParam("q", event.target.value)}
-          aria-label="Search users on this page"
+          onChange={(event) => onSearchChange(event.target.value)}
+          aria-label="Search users"
           className="sm:w-72"
         />
         {canManageRoles ? (
           <Select value={roleFilter} onValueChange={(value) => updateFilterParam("role", value)}>
-            <SelectTrigger aria-label="Filter this page by role" className="h-9 w-36 px-3">
+            <SelectTrigger aria-label="Filter by role" className="h-9 w-36 px-3">
               <SelectValue>{(value: string) => roleLabelFor(value)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -289,10 +261,7 @@ export function UsersTable({
           value={identityFilter}
           onValueChange={(value) => updateFilterParam("identity", value)}
         >
-          <SelectTrigger
-            aria-label="Filter this page by external identity"
-            className="h-9 w-56 px-3"
-          >
+          <SelectTrigger aria-label="Filter by external identity" className="h-9 w-56 px-3">
             <SelectValue>{(value: string) => identityLabelFor(value)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -327,39 +296,30 @@ export function UsersTable({
       </div>
 
       {placeholder ?? (
-        <>
-          {filtersActive ? (
-            <p className="text-sm text-muted-foreground">
-              Showing {filteredUsers.length} match{filteredUsers.length === 1 ? "" : "es"} on this
-              page; {total} users total.
-            </p>
-          ) : null}
-
-          <DataTable
-            columns={columns}
-            rows={filteredUsers}
-            rowKey={(row) => row.id}
-            onRowClick={(row) => {
-              expandedRow.collapseUnless(row.id);
-              setSelectedId((previous) => (previous === row.id ? null : row.id));
-            }}
-            rowClassName={(row) =>
-              isCurrentUser(row)
-                ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
-                : undefined
-            }
-            empty={filtersActive ? "No users match on this page." : "No users found."}
-            pagination={{
-              page,
-              pageSize,
-              total,
-              onPageChange: (nextPage) => {
-                resetSelection();
-                onPageChange(nextPage);
-              },
-            }}
-          />
-        </>
+        <DataTable
+          columns={columns}
+          rows={users}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => {
+            expandedRow.collapseUnless(row.id);
+            setSelectedId((previous) => (previous === row.id ? null : row.id));
+          }}
+          rowClassName={(row) =>
+            isCurrentUser(row)
+              ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
+              : undefined
+          }
+          empty={filtersActive ? "No users match these filters." : "No users found."}
+          pagination={{
+            page,
+            pageSize,
+            total,
+            onPageChange: (nextPage) => {
+              resetSelection();
+              onPageChange(nextPage);
+            },
+          }}
+        />
       )}
       <PermissionsDrawer
         key={selectedUser?.id ?? "closed"}

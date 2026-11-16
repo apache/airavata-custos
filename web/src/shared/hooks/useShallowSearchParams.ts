@@ -64,3 +64,11 @@ export function replaceShallowSearchParams(next: URLSearchParams): void {
   window.history.replaceState(window.history.state, "", url);
   window.dispatchEvent(new Event(SHALLOW_EVENT));
 }
+
+/** Set or clear one search param, keeping the rest. */
+export function replaceShallowSearchParam(key: string, value: string | null): void {
+  const next = readCurrent();
+  if (value) next.set(key, value);
+  else next.delete(key);
+  replaceShallowSearchParams(next);
+}

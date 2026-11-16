@@ -17,14 +17,14 @@
 
 "use client";
 
-import * as React from "react";
 import {
-  replaceShallowSearchParams,
+  replaceShallowSearchParam,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
 import { CertificateList } from "@/features/core/signer/components/CertificateList";
 import { useCertificates, useCursorPaging } from "@/features/core/signer/queries";
 import type { CertificateStatus } from "@/features/core/signer/status";
+import { useUrlSearch } from "@/shared/hooks/useUrlSearch";
 
 function statusFilterFromUrl(raw: string | null): CertificateStatus | "all" {
   if (raw === "active" || raw === "not-yet-valid" || raw === "expired" || raw === "revoked") {
@@ -35,20 +35,12 @@ function statusFilterFromUrl(raw: string | null): CertificateStatus | "all" {
 
 export function CertificateListContainer() {
   const searchParams = useShallowSearchParams();
-  const { params: pageParams, paging } = useCursorPaging();
-
-  const search = searchParams.get("q") ?? "";
+  const search = useUrlSearch();
   const statusFilter = statusFilterFromUrl(searchParams.get("status"));
-
-  const updateParam = React.useCallback(
-    (key: string, value: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (!value) params.delete(key);
-      else params.set(key, value);
-      replaceShallowSearchParams(params);
-    },
-    [searchParams],
-  );
+  const { params: pageParams, paging } = useCursorPaging({
+    ...(search.settledQuery ? { q: search.settledQuery } : {}),
+    ...(statusFilter === "all" ? {} : { status: statusFilter }),
+  });
 
   const query = useCertificates(pageParams);
   const rows = query.data?.certificates ?? [];
@@ -59,10 +51,12 @@ export function CertificateListContainer() {
       isLoading={query.isLoading}
       error={(query.error as Error | null) ?? null}
       onRetry={() => query.refetch()}
-      search={search}
-      onSearchChange={(next) => updateParam("q", next)}
+      search={search.text}
+      onSearchChange={search.setText}
       statusFilter={statusFilter}
-      onStatusFilterChange={(next) => updateParam("status", next === "all" ? null : next)}
+      onStatusFilterChange={(next) =>
+        replaceShallowSearchParam("status", next === "all" ? null : next)
+      }
       paging={paging(query.data?.next_cursor)}
     />
   );

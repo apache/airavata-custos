@@ -68,6 +68,7 @@ const row: UserAccountRow = {
 function renderTable(canManageRoles: boolean, users: UserAccountRow[] = [row]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const onPageChange = vi.fn();
+  const onSearchChange = vi.fn();
   const view = render(
     <QueryClientProvider client={client}>
       <UsersTable
@@ -78,6 +79,8 @@ function renderTable(canManageRoles: boolean, users: UserAccountRow[] = [row]) {
         canReadDirectPrivileges={false}
         canReadAllocations={false}
         clusterAccounts={undefined}
+        search=""
+        onSearchChange={onSearchChange}
         page={1}
         pageSize={25}
         total={users.length}
@@ -85,7 +88,7 @@ function renderTable(canManageRoles: boolean, users: UserAccountRow[] = [row]) {
       />
     </QueryClientProvider>,
   );
-  return { ...view, onPageChange };
+  return { ...view, onPageChange, onSearchChange };
 }
 
 describe("UsersTable", () => {
@@ -130,13 +133,14 @@ describe("UsersTable", () => {
   });
 
   it("keeps the permissions drawer open while typing in search", () => {
-    const { onPageChange } = renderTable(true);
+    const { onPageChange, onSearchChange } = renderTable(true);
     fireEvent.click(screen.getByText("Example User"));
     expect(screen.getByText("Edit roles")).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "exam" } });
 
     expect(screen.getByText("Edit roles")).toBeInTheDocument();
+    expect(onSearchChange).toHaveBeenCalledWith("exam");
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });

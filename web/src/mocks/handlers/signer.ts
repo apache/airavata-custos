@@ -17,6 +17,7 @@
 
 import { http, HttpResponse } from "msw";
 import certificatesFixture from "@/features/core/signer/__fixtures__/certificates.json";
+import { filterCertificates } from "@/features/core/signer/__fixtures__/filterCertificates";
 import type { Certificate } from "@/features/core/signer/schemas";
 import { effectivePrivileges } from "./privileges";
 
@@ -53,9 +54,10 @@ function paginatedCertificates(): Certificate[] {
 }
 
 export const signerHandlers = [
-  http.get("*/api/v1/connectors/signer/me/certificates", () =>
-    HttpResponse.json({ certificates, limit: certificates.length }),
-  ),
+  http.get("*/api/v1/connectors/signer/me/certificates", ({ request }) => {
+    const matched = filterCertificates(certificates, new URL(request.url).searchParams);
+    return HttpResponse.json({ certificates: matched, limit: matched.length });
+  }),
 
   http.post("*/api/v1/connectors/signer/me/certificates", () =>
     HttpResponse.json({
@@ -96,7 +98,10 @@ export const signerHandlers = [
   http.get("*/api/v1/connectors/signer/certificates", ({ request }) => {
     const url = new URL(request.url);
     const scenario = signerScenario();
-    const source = scenario === "empty" ? [] : scenario === "paginated" ? paginatedCertificates() : certificates;
+    const source = filterCertificates(
+      scenario === "empty" ? [] : scenario === "paginated" ? paginatedCertificates() : certificates,
+      url.searchParams,
+    );
     const limit = Number(url.searchParams.get("limit") ?? source.length);
     const start = Number(url.searchParams.get("cursor") ?? 0);
     const end = start + limit;

@@ -25,7 +25,7 @@ import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import * as React from "react";
+import type * as React from "react";
 import { ProjectCard } from "./ProjectCard";
 
 function statusLabelFor(value: string): string {
@@ -66,19 +66,6 @@ export function ProjectsList({
   onStatusFilterChange,
   headerCta,
 }: ProjectsListProps) {
-  const filtered = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (origination && row.origination.toLowerCase() !== origination.toLowerCase()) return false;
-      if (needle) {
-        const hay = `${row.title} ${row.ref}`.toLowerCase();
-        if (!hay.includes(needle)) return false;
-      }
-      return true;
-    });
-  }, [rows, search, statusFilter, origination]);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -124,11 +111,11 @@ export function ProjectsList({
         <TableSkeleton rows={6} columns={4} />
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
-      ) : filtered.length === 0 ? (
+      ) : rows.length === 0 ? (
         <EmptyState heading="No projects match the current filters." />
       ) : (
         <div className="space-y-4">
-          {filtered.map((project) => (
+          {rows.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>

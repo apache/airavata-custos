@@ -72,7 +72,7 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 		t.Fatalf("merge: %v", err)
 	}
 
-	deliveries, err := svc.EventBus().ListDeliveries(ctx(), "", 10)
+	deliveries, err := svc.EventBus().ListDeliveries(ctx(), "", "", 10)
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}

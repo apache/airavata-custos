@@ -54,7 +54,6 @@ describe("amie api", () => {
     await listPackets({
       status: "FAILED",
       type: "request_project_create",
-      source: "access",
       q: "BIO130001",
       from: "2026-05-01",
       to: "2026-05-22",
@@ -65,7 +64,6 @@ describe("amie api", () => {
     expect(url).toContain("/api/v1/connectors/amie/packets");
     expect(url).toContain("status=FAILED");
     expect(url).toContain("type=request_project_create");
-    expect(url).toContain("source=access");
     expect(url).toContain("q=BIO130001");
     expect(url).toContain("limit=10");
     expect(url).toContain("offset=20");
