@@ -489,7 +489,7 @@ func (s *Service) renameClusterAccountsTx(ctx context.Context, tx *sql.Tx, user 
 
 // UsernameEditable is false once the registry knows the user, since the name may already be on the cluster.
 func (s *Service) UsernameEditable(ctx context.Context, user *models.User, accounts []models.ComputeClusterUser) (bool, error) {
-	if user.Type != models.UserTypeClusterLocal || len(accounts) == 0 {
+	if !usesRegistry(user, accounts) {
 		return false, nil
 	}
 	registered, err := s.userIdentities.FindByUserAndSource(ctx, user.ID, identitySourceComanage)
@@ -507,8 +507,17 @@ type SetupStep struct {
 	DoneAt *time.Time `json:"done_at,omitempty"`
 }
 
+// usesRegistry holds for a cluster-local user with a cluster account; virtual and system users skip the registry.
+func usesRegistry(user *models.User, accounts []models.ComputeClusterUser) bool {
+	return user.Type == models.UserTypeClusterLocal && len(accounts) > 0
+}
+
 // SetupSteps returns the provisioning steps that apply to the user and when each was done.
 func (s *Service) SetupSteps(ctx context.Context, userID string) ([]SetupStep, error) {
+	user, err := s.GetUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	registered, err := s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceComanage)
 	if err != nil {
 		return nil, fmt.Errorf("lookup registry identity: %w", err)
@@ -522,6 +531,9 @@ func (s *Service) SetupSteps(ctx context.Context, userID string) ([]SetupStep, e
 	accounts, err := s.clusterUsers.FindByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	if !usesRegistry(user, accounts) {
+		steps = steps[:0]
 	}
 	for _, a := range accounts {
 		cluster, err := s.GetComputeCluster(ctx, a.ComputeClusterID)

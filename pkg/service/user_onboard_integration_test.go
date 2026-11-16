@@ -530,6 +530,35 @@ func TestSetupSteps_FollowProvisioning(t *testing.T) {
 	}
 }
 
+// Make sure a user without a cluster account has no setup steps.
+func TestSetupSteps_NoneWithoutClusterAccount(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedUser(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || len(got) != 0 {
+		t.Fatalf("got %+v, %v, want no steps", got, err)
+	}
+}
+
+// Make sure a virtual user's setup skips the registry, even with a cluster account.
+func TestSetupSteps_VirtualUserSkipsRegistry(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedPendingUserWithEmail(t, database, "temp-"+uuid.NewString()[:8]+"@example.edu")
+	if _, err := database.Exec("UPDATE users SET type = $1 WHERE id = $2", models.UserTypeVirtual, user); err != nil {
+		t.Fatalf("make user virtual: %v", err)
+	}
+	cu := newClusterAccount(t, svc, user, "temp")
+	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
+	if err != nil {
+		t.Fatalf("get cluster: %v", err)
+	}
+	want := []SetupStep{{Key: "cluster_account", Name: cluster.Name}}
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || !slices.Equal(got, want) {
+		t.Fatalf("got %+v, %v, want %+v", got, err, want)
+	}
+}
+
 // Make sure only a pending user without a bound sub can change email.
 func TestUpdatePendingUserEmail(t *testing.T) {
 	database := setupTestDB(t)
