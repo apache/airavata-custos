@@ -262,8 +262,10 @@ A revoke writes a row, then the signer rebuilds the OpenSSH revocation list (KRL
 has not expired and writes it to `signer.krl.path`, the file the login nodes' `RevokedKeys` points at, on storage they
 share with the signer. It writes a temp file next to it and renames, so the file is never missing or half written. The
 same bytes are served at `/api/v1/krl` for a node without that storage. The list is rebuilt every `refresh_seconds`
-too, so expired serials drop out and a failed write is retried. Login nodes see a new list once their NFS attribute
-cache refreshes, about a minute.
+too, so expired serials drop out, a failed write is retried and a file that went missing is written again. Login nodes
+see a new list once their NFS attribute cache refreshes, about a minute.
+
+sshd checks the list only at login. A session that is already open stays open after its certificate is revoked.
 
 The list names serials only, under any CA, since serials never repeat across CA rotations. Never delete the file or
 leave it empty: a missing file makes sshd refuse every key and certificate login, and a zero-byte file revokes nothing.
