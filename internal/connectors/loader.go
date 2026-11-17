@@ -32,6 +32,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/Signer/pkg/signer"
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/pkg/vast"
 	"github.com/apache/airavata-custos/connectors/TempAccount/pkg/tempaccount"
+	"github.com/apache/airavata-custos/connectors/UserActivity/pkg/useractivity"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -45,16 +46,17 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 	router.RequirePrivilege("GET /connectors", models.ClustersRead, listStatus(cfg.Connectors, eventBus))
 
 	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *identity.Router, *config.ConnectorConfig) error{
-		smapper.Type:     smapper.LoadConnector,
-		amie.Type:        amie.LoadConnector,
-		comanage.Type:    comanage.LoadConnector,
-		monitor.Type:     monitor.LoadConnector,
-		tempaccount.Type: tempaccount.LoadConnector,
-		analytics.Type:   analytics.LoadConnector,
-		vast.Type:        vast.LoadConnector,
-		email.Type:       email.LoadConnector,
-		signer.Type:      signer.LoadConnector,
-		airavata.Type:    airavata.LoadConnector,
+		smapper.Type:      smapper.LoadConnector,
+		amie.Type:         amie.LoadConnector,
+		comanage.Type:     comanage.LoadConnector,
+		monitor.Type:      monitor.LoadConnector,
+		tempaccount.Type:  tempaccount.LoadConnector,
+		analytics.Type:    analytics.LoadConnector,
+		useractivity.Type: useractivity.LoadConnector,
+		vast.Type:         vast.LoadConnector,
+		email.Type:        email.LoadConnector,
+		signer.Type:       signer.LoadConnector,
+		airavata.Type:     airavata.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {

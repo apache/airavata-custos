@@ -44,6 +44,7 @@ const (
 	UserUpdateEvent    EventType = "user::update"
 	UserDeleteEvent    EventType = "user::delete"
 	UserOnboardedEvent EventType = "user::onboarded"
+	PortalLoginEvent   EventType = "user::portal_login"
 )
 
 // Organization lifecycle message types.

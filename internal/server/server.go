@@ -168,6 +168,7 @@ func (s *Server) routes() {
 	// These stay reachable before the caller has onboarded or consented.
 	s.router.RequireAuthWithoutUserConsent("GET /me/privileges", s.getCallerPrivileges)
 	s.router.RequireAuthWithoutUserConsent("GET /me", s.getCallerProfile)
+	s.router.RequireAuthWithoutUserConsent("POST /me/login-events", s.recordLoginEvent)
 	s.router.RequireAuthWithoutUserConsent("GET /me/agreements/pending", s.listCallerPendingAgreements)
 	s.router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", s.acceptCallerAgreement)
 	s.router.RequireAuthWithoutUserConsent("GET /me/onboarding/username", s.checkOnboardingUsername)

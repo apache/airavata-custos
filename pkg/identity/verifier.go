@@ -32,6 +32,11 @@ type Claims struct {
 	Sub           string `json:"sub"`
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
+	Issuer        string `json:"iss"`
+	TokenID       string `json:"jti"`
+	IssuedAt      int64  `json:"iat"`
+	SessionID     string `json:"sid"`
+	AuthTime      int64  `json:"auth_time"`
 }
 
 // NewJWTVerifier resolves the provider's discovery doc and builds a verifier
@@ -53,6 +58,12 @@ func (j *JWTVerifier) Verify(ctx context.Context, rawToken string) (*Claims, err
 	var claims Claims
 	if err := token.Claims(&claims); err != nil {
 		return nil, err
+	}
+	if claims.Issuer == "" {
+		claims.Issuer = token.Issuer
+	}
+	if claims.IssuedAt == 0 {
+		claims.IssuedAt = token.IssuedAt.Unix()
 	}
 	return &claims, nil
 }
