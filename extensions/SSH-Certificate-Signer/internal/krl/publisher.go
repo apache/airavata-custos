@@ -81,7 +81,7 @@ func (p *Publisher) Run(ctx context.Context, refresh time.Duration) {
 }
 
 // Publish rebuilds the KRL from every revoked certificate that has not expired.
-// Nothing is written when the set is unchanged.
+// Nothing is written when the set is unchanged and the file is still there.
 func (p *Publisher) Publish(ctx context.Context) error {
 	now := time.Now().UTC()
 	// Keep serials an hour past expiry, for safety.
@@ -93,7 +93,10 @@ func (p *Publisher) Publish(ctx context.Context) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.current.Bytes != nil && slices.Equal(serials, p.serials) {
-		return nil
+		// A file that went missing is written again.
+		if _, err := os.Stat(p.path); err == nil {
+			return nil
+		}
 	}
 	// Two builds in the same second must not share a version, or a node takes a 304 for new content.
 	version := max(uint64(now.Unix()), p.current.Version+1)
