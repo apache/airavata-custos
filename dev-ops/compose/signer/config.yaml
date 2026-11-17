@@ -53,6 +53,8 @@ signer:
   validation:
     principal_validator: none
     cache_ttl_seconds: 300
+  krl:
+    path: /var/lib/custos-signer/revoked_keys
 
 logging:
   level: info

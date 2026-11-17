@@ -87,16 +87,21 @@ type CertificateRevoker interface {
 	Revoke(context.Context, signerservice.RevokeCommand) (*signerservice.RevokedCertificate, error)
 }
 
+type KRLPublisher interface {
+	Trigger()
+}
+
 type CertificatesHandler struct {
 	db        CertificateStore
 	revoker   CertificateRevoker
+	krl       KRLPublisher
 	loginHost string
 	loginPort int
 	logger    *slog.Logger
 }
 
-func NewCertificatesHandler(db CertificateStore, revoker CertificateRevoker, loginHost string, loginPort int, logger *slog.Logger) *CertificatesHandler {
-	return &CertificatesHandler{db: db, revoker: revoker, loginHost: loginHost, loginPort: loginPort, logger: logger}
+func NewCertificatesHandler(db CertificateStore, revoker CertificateRevoker, krl KRLPublisher, loginHost string, loginPort int, logger *slog.Logger) *CertificatesHandler {
+	return &CertificatesHandler{db: db, revoker: revoker, krl: krl, loginHost: loginHost, loginPort: loginPort, logger: logger}
 }
 
 func (h *CertificatesHandler) HandleList(w http.ResponseWriter, r *http.Request) {
@@ -204,6 +209,9 @@ func (h *CertificatesHandler) HandleRevoke(w http.ResponseWriter, r *http.Reques
 	message := "Certificate revoked successfully"
 	if result.AlreadyRevoked {
 		message = "Certificate was already revoked"
+	}
+	if !result.AlreadyRevoked {
+		h.krl.Trigger()
 	}
 	writeJSON(w, http.StatusOK, CertificateRevokeResponse{
 		Success: true, Message: message, SerialNumber: result.SerialNumber, Revoked: true,

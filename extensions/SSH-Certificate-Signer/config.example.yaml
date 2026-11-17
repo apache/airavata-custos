@@ -67,6 +67,9 @@ signer:
   validation:
     principal_validator: none          # "none", or "ldap" for the site's own check
     cache_ttl_seconds: 300            # Vault credential cache TTL for validators
+  krl:
+    path: /var/lib/custos-signer/revoked_keys   # the login nodes' RevokedKeys file, required
+    refresh_seconds: 300               # rebuild to drop expired serials and retry a failed write
 
 logging:
   level: info                          # debug, info, warn, error
