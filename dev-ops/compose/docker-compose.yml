@@ -32,7 +32,7 @@ services:
     volumes:
       - ./dbinit:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d custos"]
+      test: [ "CMD-SHELL", "pg_isready -U admin -d custos" ]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -42,7 +42,7 @@ services:
     container_name: custos_keycloak
     image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
-    command: ["start-dev", "--import-realm"]
+    command: [ "start-dev", "--import-realm" ]
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
@@ -63,7 +63,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3" ]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -114,7 +114,7 @@ services:
       - openbao-data:/openbao/file
     healthcheck:
       # sealed/uninitialized also count as up; the init job handles both
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8200/v1/sys/health?sealedcode=204&uninitcode=204&standbyok=true"]
+      test: [ "CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8200/v1/sys/health?sealedcode=204&uninitcode=204&standbyok=true" ]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -128,7 +128,7 @@ services:
         condition: service_healthy
     environment:
       BAO_ADDR: http://openbao:8200
-    entrypoint: ["/bin/sh", "/init/openbao-init.sh"]
+    entrypoint: [ "/bin/sh", "/init/openbao-init.sh" ]
     volumes:
       - ./openbao/init:/init:ro
       - ./openbao/keys:/keys
@@ -138,7 +138,7 @@ services:
     container_name: custos_ldap
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://127.0.0.1", "-b", "dc=custos,dc=example", "-s", "base"]
+      test: [ "CMD", "ldapsearch", "-x", "-H", "ldap://127.0.0.1", "-b", "dc=custos,dc=example", "-s", "base" ]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -154,13 +154,14 @@ services:
       SIGNER_SERVICE_TOKEN: ${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}
     volumes:
       - ./signer/config.yaml:/app/config.yaml:ro
+      - krl:/var/lib/custos-signer
     depends_on:
       db:
         condition: service_healthy
       openbao-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8084/api/v1/health"]
+      test: [ "CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8084/api/v1/health" ]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -174,9 +175,13 @@ services:
     environment:
       SIGNER_URL: http://signer:8084
       SIGNER_SERVICE_TOKEN: ${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}
+    volumes:
+      # The signer writes the revocation list here, the login node only reads it.
+      - krl:/etc/ssh/krl:ro
     depends_on:
       signer:
         condition: service_healthy
 
 volumes:
   openbao-data:
+  krl:
