@@ -73,3 +73,58 @@ describe("jwt callback at sign-in", () => {
     expect(token.idToken).toBe(ID_TOKEN);
   });
 });
+
+const jwtExpiringAt = (exp: number) =>
+  `h.${Buffer.from(JSON.stringify({ exp })).toString("base64url")}.s`;
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+
+async function laterRequest(token: JWT): Promise<JWT> {
+  const jwt = authConfig.callbacks?.jwt;
+  if (!jwt) throw new Error("jwt callback missing");
+  return (await jwt({ token } as Parameters<typeof jwt>[0])) as JWT;
+}
+
+describe("jwt callback on later requests", () => {
+  it("leaves a live bearer alone", async () => {
+    const token = await laterRequest({ idToken: "x", expiresAt: nowSeconds() + 3600 });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(token.error).toBeUndefined();
+  });
+
+  it("refreshes an expiring bearer at the discovered token endpoint", async () => {
+    const exp = nowSeconds() + 3600;
+    const fresh = jwtExpiringAt(exp);
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ token_endpoint: "https://idp.example.org/token" })),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id_token: fresh })));
+    const token = await laterRequest({
+      idToken: "old",
+      refreshToken: "refresh-1",
+      expiresAt: nowSeconds() + 10,
+    });
+    const [url, init] = fetchMock.mock.calls[1] ?? [];
+    expect(url).toBe("https://idp.example.org/token");
+    expect(String(init?.body)).toContain("grant_type=refresh_token&refresh_token=refresh-1");
+    expect(token.idToken).toBe(fresh);
+    expect(token.refreshToken).toBe("refresh-1");
+    expect(token.expiresAt).toBe(exp);
+    expect(token.error).toBeUndefined();
+  });
+
+  it("flags the session when the bearer expires with no refresh token", async () => {
+    const token = await laterRequest({ idToken: "old", expiresAt: nowSeconds() - 1 });
+    expect(token.error).toBe("RefreshAccessTokenError");
+  });
+
+  it("flags the session when the issuer refuses the refresh", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ token_endpoint: "https://idp.example.org/token" })),
+      )
+      .mockResolvedValueOnce(new Response("{}", { status: 400 }));
+    const token = await laterRequest({ refreshToken: "r", expiresAt: nowSeconds() - 1 });
+    expect(token.error).toBe("RefreshAccessTokenError");
+  });
+});

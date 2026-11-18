@@ -25,6 +25,7 @@ declare module "next-auth" {
     custosUserId?: string;
     needsOnboarding?: boolean;
     consentPending?: boolean;
+    error?: "RefreshAccessTokenError";
   }
 }
 
@@ -32,6 +33,10 @@ declare module "next-auth/jwt" {
   interface JWT {
     accessToken?: string;
     idToken?: string;
+    refreshToken?: string;
+    // Unix seconds when the backend bearer expires.
+    expiresAt?: number;
+    error?: "RefreshAccessTokenError";
     custosUserId?: string;
     needsOnboarding?: boolean;
     consentPending?: boolean;

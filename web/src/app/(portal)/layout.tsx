@@ -24,7 +24,8 @@ import { redirect } from "next/navigation";
 
 export default async function PortalRoutesLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user) redirect("/sign-in");
+  // A failed refresh leaves a dead bearer, so sign in again.
+  if (!session?.user || session.error) redirect("/sign-in");
   if (session.needsOnboarding) return <OnboardingGate />;
   if (session.consentPending) return <PolicyUpdateGate />;
   // A user with no privileges gets in, since their pages are limited by membership.
