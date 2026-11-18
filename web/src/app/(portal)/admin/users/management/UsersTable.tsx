@@ -64,6 +64,17 @@ type ClusterAccountActions = ClusterAccountsView & {
   onStatusChange: (status: AccountStatusFilter) => void;
 };
 
+const AGO = new Intl.RelativeTimeFormat("en");
+
+function createdAgo(iso: string): string {
+  const minutes = Math.floor((Date.now() - Date.parse(iso)) / 60_000);
+  if (minutes < 1) return "a few seconds ago";
+  if (minutes < 60) return AGO.format(-minutes, "minute");
+  if (minutes < 1440) return AGO.format(-Math.floor(minutes / 60), "hour");
+  if (minutes < 10080) return AGO.format(-Math.floor(minutes / 1440), "day");
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+}
+
 function fullNameFor(user: UserManagementRow): string {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
   return name || user.email;
@@ -96,6 +107,7 @@ export function UsersTable({
   toolbarAction,
   clusterAccounts,
   placeholder,
+  sort,
 }: {
   users: UserAccountRow[];
   rolesCatalog: Role[];
@@ -114,6 +126,7 @@ export function UsersTable({
   clusterAccounts: ClusterAccountActions | undefined;
   // Shown in place of the table, under the toolbar, while rows load or fail.
   placeholder?: React.ReactNode;
+  sort?: string | undefined;
 }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const expandedRow = useExpandableRow();
@@ -155,24 +168,25 @@ export function UsersTable({
     {
       key: "name",
       header: "Name",
+      sortable: true,
       cell: (row) => (
-        <span className="inline-flex items-center gap-2 font-medium text-foreground">
+        <span className="inline-flex items-center gap-2">
           <StatusIcon
             icon={UserRound}
             active={row.status === "ACTIVE"}
             label={userStatusLabel(row.status)}
           />
-          {fullNameFor(row)}
-          {isCurrentUser(row) ? (
-            <span className="ml-1.5 font-normal text-muted-foreground">(You)</span>
-          ) : null}
+          <span>
+            <span className="block font-medium text-foreground">
+              {fullNameFor(row)}
+              {isCurrentUser(row) ? (
+                <span className="ml-1.5 font-normal text-muted-foreground">(You)</span>
+              ) : null}
+            </span>
+            <span className="block text-xs text-muted-foreground">{row.email}</span>
+          </span>
         </span>
       ),
-    },
-    {
-      key: "email",
-      header: "Email",
-      cell: (row) => <span className="text-muted-foreground">{row.email}</span>,
     },
   ];
 
@@ -221,6 +235,17 @@ export function UsersTable({
           expanded={row.id === expandedRow.expandedId}
           onToggleExpand={() => expandedRow.toggle(row.id)}
         />
+      ),
+    },
+    {
+      key: "created_at",
+      width: "150px",
+      header: "Created at",
+      sortable: true,
+      cell: (row) => (
+        <span className="whitespace-nowrap text-muted-foreground">
+          {createdAgo(row.created_at)}
+        </span>
       ),
     },
     {
@@ -308,6 +333,17 @@ export function UsersTable({
             isCurrentUser(row)
               ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
               : undefined
+          }
+          sort={
+            sort === undefined
+              ? undefined
+              : { key: sort.replace(/^-/, ""), direction: sort.startsWith("-") ? "desc" : "asc" }
+          }
+          onSortChange={
+            sort === undefined
+              ? undefined
+              : ({ key, direction }) =>
+                  updateFilterParam("sort", `${direction === "desc" ? "-" : ""}${key}`)
           }
           empty={filtersActive ? "No users match these filters." : "No users found."}
           pagination={{

@@ -40,8 +40,8 @@ type UserStore interface {
 	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
-	// List returns a page of users ordered by email, plus the total count.
-	List(ctx context.Context, filter UserListFilter, limit, offset int) ([]models.User, int, error)
+	// List returns a page of users ordered by sort, plus the total count.
+	List(ctx context.Context, filter UserListFilter, sort string, limit, offset int) ([]models.User, int, error)
 	// GetUserByOIDCSub returns the user owning the user_identities row whose
 	// oidc_sub matches or nil if no row links the given subject.
 	GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error)

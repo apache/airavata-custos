@@ -100,7 +100,8 @@ export function UsersTableContainer() {
       setAddError(err instanceof Error ? err.message : "Failed to add user");
     }
   }
-  const usersQuery = useUsers(directoryFilter, { enabled: canReadUsers && !byStatus });
+  const sort = params.get("sort") ?? "-created_at";
+  const usersQuery = useUsers({ ...directoryFilter, sort }, { enabled: canReadUsers && !byStatus });
   const accountsQuery = useClusterAccounts(
     { ...directoryFilter, ...(filter === "ALL" ? {} : { approval_status: filter }) },
     { enabled: canReadUsers && byStatus },
@@ -177,6 +178,7 @@ export function UsersTableContainer() {
         pageSize={PAGE_SIZE}
         total={listQuery.data?.total ?? 0}
         onPageChange={setPage}
+        sort={byStatus ? undefined : sort}
         placeholder={
           listQuery.isLoading || accountUsers.isLoading ? (
             <TableSkeleton rows={8} columns={canManageRoles ? 7 : 6} />

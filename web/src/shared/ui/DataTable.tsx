@@ -35,13 +35,13 @@ export type DataTableColumn<T> = {
   // checkbox, a button, a link). The DataTable will then skip wrapping the cell
   // in its keyboard-activation <button>, which would otherwise nest controls.
   interactive?: boolean;
-  // Mark the column header as a sort toggle. Requires `sortValue`. The toggle
-  // cycles none → asc → desc → none.
+  // Mark the column header as a sort toggle. Requires `sortValue`, or `onSortChange` on the
+  // table for rows sorted elsewhere. The local toggle cycles none → asc → desc → none.
   sortable?: boolean;
   sortValue?: (row: T) => DataTableSortValue;
 };
 
-type SortState = { key: string; direction: "asc" | "desc" } | null;
+export type DataTableSort = { key: string; direction: "asc" | "desc" };
 
 export type DataTablePagination = {
   page: number;
@@ -67,6 +67,9 @@ export type DataTableProps<T> = {
   className?: string;
   // Groups rows under a full-width header row, in order of first appearance; sorting applies within each group.
   groupBy?: { key: (row: T) => string; header: (row: T) => React.ReactNode };
+  // Rows arrive sorted by `sort`; header toggles request a new one.
+  sort?: DataTableSort | undefined;
+  onSortChange?: ((sort: DataTableSort) => void) | undefined;
 };
 
 function compareSortable(
@@ -101,8 +104,11 @@ export function DataTable<T>({
   pagination,
   className,
   groupBy,
+  sort,
+  onSortChange,
 }: DataTableProps<T>) {
-  const [sortState, setSortState] = React.useState<SortState>(null);
+  const [localSort, setLocalSort] = React.useState<DataTableSort | null>(null);
+  const sortState = onSortChange ? (sort ?? null) : localSort;
 
   const sortedRows = React.useMemo(() => {
     if (!sortState) return rows;
@@ -139,7 +145,12 @@ export function DataTable<T>({
   };
 
   const cycleSort = (key: string) => {
-    setSortState((prev) => {
+    if (onSortChange) {
+      const flip = sortState?.key === key && sortState.direction === "asc";
+      onSortChange({ key, direction: flip ? "desc" : "asc" });
+      return;
+    }
+    setLocalSort((prev) => {
       if (!prev || prev.key !== key) return { key, direction: "asc" };
       if (prev.direction === "asc") return { key, direction: "desc" };
       return null;
@@ -176,7 +187,7 @@ export function DataTable<T>({
                       col.align === "center" && "text-center",
                     )}
                   >
-                    {col.sortable && col.sortValue ? (
+                    {col.sortable && (col.sortValue || onSortChange) ? (
                       <button
                         type="button"
                         onClick={() => cycleSort(col.key)}
