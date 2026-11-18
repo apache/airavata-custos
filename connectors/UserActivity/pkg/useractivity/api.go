@@ -154,7 +154,8 @@ func (c *Connector) readAnalytics(ctx context.Context, userID string, window int
 		COUNT(DISTINCT a.entity_id) AS active_users, COUNT(*) AS login_count
 	FROM audit_events a JOIN pop p ON p.id = a.entity_id
 	WHERE a.event_type = 'PORTAL_LOGIN' AND a.entity_type = 'user'
-		AND a.event_time >= ?::date - (?::int - 1) AND a.event_time < ?::date + 1
+		AND a.event_time >= ((?::date - (?::int - 1))::timestamp AT TIME ZONE 'UTC')
+		AND a.event_time < ((?::date + 1)::timestamp AT TIME ZONE 'UTC')
 	GROUP BY date ORDER BY date`
 	var found []TrendPoint
 	tArgs := append(append([]any{}, args...), today, window, today)
