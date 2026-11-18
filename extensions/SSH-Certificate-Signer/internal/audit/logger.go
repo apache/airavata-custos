@@ -102,3 +102,13 @@ func (l *Logger) LogCACreated(ctx context.Context, caFingerprint string) {
 		"ca_fingerprint", caFingerprint,
 	)
 }
+
+func (l *Logger) LogKRLPublished(ctx context.Context, version uint64, serials int, path string) {
+	l.slogger.InfoContext(ctx, "KRL published",
+		"event_type", "krl_published",
+		"timestamp", time.Now().UTC().Format(time.RFC3339),
+		"krl_version", version,
+		"serials", serials,
+		"path", path,
+	)
+}

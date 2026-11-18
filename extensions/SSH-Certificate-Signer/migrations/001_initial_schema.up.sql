@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS revocation_events
     revoked_at     TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     reason         VARCHAR(255)   NOT NULL,
     revoked_by     VARCHAR(255)   NOT NULL,
+    valid_before   TIMESTAMPTZ(6) NOT NULL,
 
     PRIMARY KEY (id)
 );
@@ -64,3 +65,4 @@ CREATE INDEX IF NOT EXISTS idx_revocation_serial ON revocation_events (serial_nu
 CREATE INDEX IF NOT EXISTS idx_revocation_keyid ON revocation_events (key_id);
 CREATE INDEX IF NOT EXISTS idx_revocation_ca_fingerprint ON revocation_events (ca_fingerprint);
 CREATE INDEX IF NOT EXISTS idx_revocation_revoked_at ON revocation_events (revoked_at);
+CREATE INDEX IF NOT EXISTS idx_revocation_valid_before ON revocation_events (valid_before);

@@ -70,6 +70,13 @@ type SignerConfig struct {
 	CA                CAConfig         `yaml:"ca"`
 	Policy            PolicyConfig     `yaml:"policy"`
 	Validation        ValidationConfig `yaml:"validation"`
+	KRL               KRLConfig        `yaml:"krl"`
+}
+
+// KRLConfig says where the revocation list is written and how often it is rebuilt.
+type KRLConfig struct {
+	Path           string `yaml:"path"`
+	RefreshSeconds int    `yaml:"refresh_seconds"`
 }
 
 type CAConfig struct {
@@ -135,6 +142,7 @@ func DefaultConfig() *Config {
 				PrincipalValidator: "none",
 				CacheTTLSeconds:    300, // 5 minutes cache
 			},
+			KRL: KRLConfig{RefreshSeconds: 300},
 		},
 		Logging: LoggingConfig{
 			Level:  "info",
@@ -177,6 +185,12 @@ func (c *Config) Validate() error {
 	}
 	if limit := c.Signer.Policy.CertificateLimit; limit.MaxPerUser < 1 || limit.WindowSeconds < 1 {
 		return fmt.Errorf("certificate_limit max_per_user and window_seconds must be at least 1")
+	}
+	if c.Signer.KRL.Path == "" {
+		return fmt.Errorf("krl path is required")
+	}
+	if c.Signer.KRL.RefreshSeconds < 1 {
+		return fmt.Errorf("krl refresh_seconds must be at least 1")
 	}
 	return nil
 }

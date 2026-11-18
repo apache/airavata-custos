@@ -29,7 +29,6 @@ until curl -sf \
 done
 echo "CA key installed: $(cut -c1-40 /etc/ssh/trusted-user-ca-keys.pub)..."
 
-[ -s /etc/ssh/revoked_keys.krl ] || ssh-keygen -kf /etc/ssh/revoked_keys.krl
 ssh-keygen -A
 
 exec /usr/sbin/sshd -D -e

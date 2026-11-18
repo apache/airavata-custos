@@ -34,14 +34,14 @@ func testRouter() *chi.Mux {
 	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 	cfg := &config.Config{}
 	cfg.Signer.ServiceToken = testServiceToken
-	return NewRouter(cfg, Handlers{Sign: ok, CAPublicKey: ok, Health: ok, Certificates: ok, CertificateDetail: ok, CertificateRevoke: ok})
+	return NewRouter(cfg, Handlers{Sign: ok, CAPublicKey: ok, Health: ok, Certificates: ok, CertificateDetail: ok, CertificateRevoke: ok, KRL: ok})
 }
 
-// Make sure every route except health needs the service token since nothing else protects the signer.
+// Make sure every route except health and the revocation list needs the service token since nothing else protects the signer.
 func TestEveryRouteNeedsTheServiceToken(t *testing.T) {
 	router := testRouter()
 	err := chi.Walk(router, func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
-		if route == "/api/v1/health" {
+		if route == "/api/v1/health" || route == "/api/v1/krl" {
 			return nil
 		}
 		for _, header := range []string{"", "Bearer wrong-token"} {

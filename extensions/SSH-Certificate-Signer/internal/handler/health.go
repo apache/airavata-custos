@@ -28,6 +28,13 @@ import (
 type HealthResponse struct {
 	Status string                        `json:"status"`
 	Checks map[string]*HealthCheckResult `json:"checks"`
+	KRL    KRLStatus                     `json:"krl"`
+}
+
+type KRLStatus struct {
+	Version     uint64 `json:"version"`
+	PublishedAt string `json:"published_at"`
+	Serials     int    `json:"serials"`
 }
 
 type HealthCheckResult struct {
@@ -39,12 +46,14 @@ type HealthCheckResult struct {
 type HealthHandler struct {
 	db          *store.DB
 	vaultClient *vaultpkg.Client
+	krl         KRLSource
 }
 
-func NewHealthHandler(db *store.DB, vaultClient *vaultpkg.Client) *HealthHandler {
+func NewHealthHandler(db *store.DB, vaultClient *vaultpkg.Client, krl KRLSource) *HealthHandler {
 	return &HealthHandler{
 		db:          db,
 		vaultClient: vaultClient,
+		krl:         krl,
 	}
 }
 
@@ -72,9 +81,11 @@ func (h *HealthHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		httpStatus = http.StatusServiceUnavailable
 	}
 
+	s := h.krl.Snapshot()
 	resp := HealthResponse{
 		Status: status,
 		Checks: checks,
+		KRL:    KRLStatus{Version: s.Version, PublishedAt: s.At.Format(time.RFC3339), Serials: s.Serials},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
