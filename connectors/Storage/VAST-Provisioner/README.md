@@ -106,11 +106,6 @@ when:
 
 The connector looks up the policy once, at startup.
 
-## Upgrading
-
-Move this connector's folders into core with the SQL in the [changelog](../../../CHANGELOG.md). They arrive without a
-mode. The next sweep sets it from the cluster's targets.
-
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
