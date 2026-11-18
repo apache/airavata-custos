@@ -19,7 +19,7 @@ import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { responseBodyForStatus } from "../proxy-response";
-import { pickBackendBearer } from "@/shared/auth/session";
+import { freshBackendBearer } from "@/shared/auth/session";
 
 vi.mock("@/lib/env", () => ({
   serverEnv: {
@@ -28,8 +28,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 vi.mock("@/shared/auth/session", () => ({
-  getPortalSession: vi.fn(async () => ({ user: { email: "admin@custos.local" } })),
-  pickBackendBearer: vi.fn(() => "access-token-abc"),
+  freshBackendBearer: vi.fn(async () => "access-token-abc"),
 }));
 
 import { GET, POST } from "../route";
@@ -41,7 +40,7 @@ const ctx = { params: Promise.resolve({ path: ["roles", "role-1", "privileges"] 
 
 afterEach(() => {
   fetchMock.mockReset();
-  vi.mocked(pickBackendBearer).mockReturnValue("access-token-abc");
+  vi.mocked(freshBackendBearer).mockResolvedValue("access-token-abc");
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
@@ -120,7 +119,7 @@ describe("api v1 proxy route", () => {
   });
 
   it("rejects unauthenticated requests before contacting an upstream", async () => {
-    vi.mocked(pickBackendBearer).mockReturnValueOnce(null);
+    vi.mocked(freshBackendBearer).mockResolvedValueOnce(undefined);
 
     const response = await GET(
       new NextRequest("http://localhost:3000/api/v1/roles/role-1/privileges"),

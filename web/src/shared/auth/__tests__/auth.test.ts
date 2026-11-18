@@ -128,3 +128,21 @@ describe("jwt callback on later requests", () => {
     expect(token.error).toBe("RefreshAccessTokenError");
   });
 });
+
+describe("session callback", () => {
+  it("keeps tokens out of the browser-visible session", async () => {
+    const session = authConfig.callbacks?.session;
+    if (!session) throw new Error("session callback missing");
+    const result = await session({
+      session: { user: {}, expires: "" },
+      token: {
+        accessToken: "h.access.s",
+        idToken: ID_TOKEN,
+        refreshToken: "r",
+        custosUserId: "u-1",
+      },
+    } as Parameters<typeof session>[0]);
+    expect(JSON.stringify(result)).not.toMatch(/h\.access\.s|h\.id\.s|"r"/);
+    expect(result).toMatchObject({ custosUserId: "u-1" });
+  });
+});

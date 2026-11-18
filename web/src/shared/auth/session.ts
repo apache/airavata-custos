@@ -15,26 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// Server-side reads of the session cookie; its tokens never reach browser JS.
 import "server-only";
-import { auth } from "./auth";
+import { serverEnv } from "@/lib/env";
+import { type JWT, getToken } from "next-auth/jwt";
+import { backendBearerOf, refreshIfDue, sessionCookieName } from "./auth";
 
-export type PortalSession = {
-  accessToken?: string | null;
-  idToken?: string | null;
-  userId?: string | null;
-} | null;
-
-export async function getPortalSession(): Promise<PortalSession> {
-  const session = await auth();
-  if (!session) return null;
-  return {
-    accessToken: session.accessToken ?? null,
-    idToken: session.idToken ?? null,
-    userId: session.user?.id ?? null,
-  };
+export function readSessionCookie(request: Request): Promise<JWT | null> {
+  return getToken({
+    req: request,
+    secret: serverEnv.NEXTAUTH_SECRET,
+    cookieName: sessionCookieName,
+  });
 }
 
-// The session keeps an access token only when it is the backend's JWT bearer; otherwise the id_token is.
-export function pickBackendBearer(session: PortalSession): string | null {
-  return session?.accessToken ?? session?.idToken ?? null;
+export async function freshBackendBearer(request: Request): Promise<string | undefined> {
+  const token = await readSessionCookie(request);
+  return token ? backendBearerOf(await refreshIfDue(token)) : undefined;
 }

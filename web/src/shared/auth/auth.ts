@@ -30,14 +30,8 @@ const meTokenSchema = z.object({
   consent: z.object({ pending: z.array(z.unknown()) }),
 });
 
-function looksLikeJwt(token: string | null | undefined): boolean {
+function looksLikeJwt(token: string | null | undefined): token is string {
   return typeof token === "string" && token.split(".").length === 3;
-}
-
-// Some IdPs hand out opaque access tokens; use the JWT-shaped
-// bearer for the backend call so the verifier accepts it.
-function backendBearer(accessToken?: string, idToken?: string): string | undefined {
-  return looksLikeJwt(accessToken) ? accessToken : (idToken ?? accessToken);
 }
 
 const tokenSetSchema = z.object({
@@ -58,19 +52,16 @@ function jwtExpiry(jwt: string): number | undefined {
 
 // The cookie keeps only the backend bearer, the id_token (the logout hint) and the refresh token;
 // an opaque access token the backend never sees would only push response headers past proxy limits.
-function storeTokens(token: JWT, set: TokenSet): string | undefined {
-  const bearer = backendBearer(set.access_token, set.id_token);
+function storeTokens(token: JWT, issued: TokenSet): void {
   delete token.accessToken;
-  if (bearer && bearer !== set.id_token) token.accessToken = bearer;
-  if (set.id_token) token.idToken = set.id_token;
-  if (set.refresh_token) token.refreshToken = set.refresh_token;
+  if (looksLikeJwt(issued.access_token)) token.accessToken = issued.access_token;
+  if (issued.id_token) token.idToken = issued.id_token;
+  if (issued.refresh_token) token.refreshToken = issued.refresh_token;
+  const bearer = backendBearerOf(token);
   const expiresAt = bearer && jwtExpiry(bearer);
   if (expiresAt) token.expiresAt = expiresAt;
-  return bearer;
 }
 
-// shortcut: a refresh inside a server render or API call cannot rewrite the cookie; the session poll
-// lands inside the refresh window first, so those repeats stay rare unless the tab was asleep.
 async function refreshTokens(token: JWT): Promise<JWT> {
   const failed: JWT = { ...token, error: "RefreshAccessTokenError" };
   if (!token.refreshToken) return failed;
@@ -89,10 +80,10 @@ async function refreshTokens(token: JWT): Promise<JWT> {
       cache: "no-store",
     });
     if (!res.ok) return failed;
-    const set = tokenSetSchema.parse(await res.json());
+    const issued = tokenSetSchema.parse(await res.json());
     // Without a new JWT bearer the old id_token would be sent after it expired.
-    if (!set.id_token && !looksLikeJwt(set.access_token)) return failed;
-    storeTokens(token, set);
+    if (!issued.id_token && !looksLikeJwt(issued.access_token)) return failed;
+    storeTokens(token, issued);
     return token;
   } catch {
     return failed;
@@ -116,12 +107,27 @@ async function loadProfile(token: JWT, bearer: string | undefined) {
 }
 
 const isProduction = serverEnv.NODE_ENV === "production";
-const sessionCookieName = isProduction ? "__Secure-custos.session-token" : "custos.session-token";
+export const sessionCookieName = isProduction
+  ? "__Secure-custos.session-token"
+  : "custos.session-token";
 
 // Refresh tokens keep the bearer alive; the IdP's refresh-token lifetime ends the session sooner.
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 // Twice the session poll interval in Providers.tsx, so a poll persists the refresh.
 const REFRESH_BEFORE_EXPIRY_SECONDS = 120;
+
+// The bearer the backend accepts: the JWT access token when the IdP issues one, else the id_token.
+export function backendBearerOf(token: JWT): string | undefined {
+  return token.accessToken ?? token.idToken;
+}
+
+// shortcut: a refresh outside the session poll cannot rewrite the cookie, so it repeats until a poll persists it.
+export async function refreshIfDue(token: JWT): Promise<JWT> {
+  const refreshDue =
+    token.expiresAt !== undefined &&
+    Date.now() / 1000 >= token.expiresAt - REFRESH_BEFORE_EXPIRY_SECONDS;
+  return refreshDue && !token.error ? refreshTokens(token) : token;
+}
 
 export const authConfig: NextAuthConfig = {
   trustHost: true,
@@ -152,21 +158,16 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, account, trigger }) {
       if (account) {
         console.info("OIDC sign-in", { refreshTokenIssued: Boolean(account.refresh_token) });
-        await loadProfile(token, storeTokens(token, account));
+        storeTokens(token, account);
+        await loadProfile(token, backendBearerOf(token));
         return token;
       }
-      const refreshDue =
-        token.expiresAt !== undefined &&
-        Date.now() / 1000 >= token.expiresAt - REFRESH_BEFORE_EXPIRY_SECONDS;
-      const current = refreshDue && !token.error ? await refreshTokens(token) : token;
-      if (trigger === "update") {
-        await loadProfile(current, current.accessToken ?? current.idToken);
-      }
+      const current = await refreshIfDue(token);
+      if (trigger === "update") await loadProfile(current, backendBearerOf(current));
       return current;
     },
+    // Tokens stay in the encrypted cookie; the session reaches browser JS through /api/auth/session.
     async session({ session, token }) {
-      if (token.accessToken) session.accessToken = token.accessToken;
-      if (token.idToken) session.idToken = token.idToken;
       if (token.error) session.error = token.error;
       if (token.custosUserId) session.custosUserId = token.custosUserId;
       session.needsOnboarding = token.needsOnboarding === true;

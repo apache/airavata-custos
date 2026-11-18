@@ -18,8 +18,8 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/shared/auth/auth", () => ({
-  auth: vi.fn(async () => ({ idToken: "id-token-abc" })),
+vi.mock("@/shared/auth/session", () => ({
+  readSessionCookie: vi.fn(async () => ({ idToken: "id-token-abc" })),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -29,7 +29,6 @@ vi.mock("@/lib/env", () => ({
     NEXTAUTH_URL: "https://portal.example.org",
   },
 }));
-
 
 const fetchMock = vi.fn<typeof fetch>();
 vi.stubGlobal("fetch", fetchMock);

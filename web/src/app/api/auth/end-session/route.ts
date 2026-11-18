@@ -16,7 +16,7 @@
 // under the License.
 
 import { serverEnv } from "@/lib/env";
-import { auth } from "@/shared/auth/auth";
+import { readSessionCookie } from "@/shared/auth/session";
 import { discoverOidcEndpoints } from "@/shared/auth/oidc";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -47,8 +47,7 @@ export async function GET(request: NextRequest) {
   const base = new URL("/", origin);
   const postLogout = (resolved.origin === base.origin ? resolved : base).toString();
 
-  const session = await auth();
-  const idToken = session?.idToken ?? null;
+  const idToken = (await readSessionCookie(request))?.idToken;
   // Some issuers have no end-session endpoint.
   const endpoint = (await discoverOidcEndpoints())?.end_session_endpoint;
 

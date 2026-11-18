@@ -16,7 +16,7 @@
 // under the License.
 
 import { serverEnv } from "@/lib/env";
-import { getPortalSession, pickBackendBearer } from "@/shared/auth/session";
+import { freshBackendBearer } from "@/shared/auth/session";
 import { type NextRequest, NextResponse } from "next/server";
 import { responseBodyForStatus } from "./proxy-response";
 
@@ -30,8 +30,7 @@ async function proxy(request: NextRequest, ctx: Context) {
   const upstreamUrl = new URL(upstreamPath, serverEnv.CUSTOS_CORE_API_BASE_URL);
   upstreamUrl.search = request.nextUrl.search;
 
-  const session = await getPortalSession();
-  const bearer = pickBackendBearer(session);
+  const bearer = await freshBackendBearer(request);
   if (!bearer) {
     return NextResponse.json(
       { code: "missing_bearer", message: "Not authenticated" },

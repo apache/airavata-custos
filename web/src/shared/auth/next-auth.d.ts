@@ -19,8 +19,6 @@ import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
-    accessToken?: string | null;
-    idToken?: string | null;
     // Unset when the sign-in matches no Custos user.
     custosUserId?: string;
     needsOnboarding?: boolean;
