@@ -30,11 +30,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useGenerateCertificate } from "../queries";
 import type { GeneratedCertificate } from "../schemas";
-import { CERTIFICATE_OPTIONS, LIFETIME_CHOICES, formatUnixSeconds } from "../status";
+import { CERTIFICATE_OPTIONS, formatUnixSeconds, LIFETIME_CHOICES } from "../status";
 
 const REFUSAL_MESSAGES: Record<string, string> = {
     user_not_active: "Your account is not active. Contact your site admin.",
@@ -51,7 +52,7 @@ const REFUSAL_MESSAGES: Record<string, string> = {
     principal_denied: "Your cluster account cannot log in yet. Contact your site admin.",
 };
 
-const LONGEST_LIFETIME = Math.max(...LIFETIME_CHOICES.map((choice) => choice.seconds));
+const LONGEST = LIFETIME_CHOICES.reduce((a, b) => (b.seconds > a.seconds ? b : a));
 
 // The signer takes a comma-separated list with no spaces.
 function addressList(text: string): string {
@@ -128,7 +129,9 @@ export type GenerateCertificateDialogProps = {
 export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertificateDialogProps) {
   const generate = useGenerateCertificate();
   const [publicKey, setPublicKey] = React.useState("");
-  const [lifetime, setLifetime] = React.useState(LONGEST_LIFETIME);
+  const [lifetimeChoice, setLifetimeChoice] = React.useState<number | "custom">(LONGEST.seconds);
+  const [hours, setHours] = React.useState("");
+  const [minutes, setMinutes] = React.useState("");
   const [onlyAddresses, setOnlyAddresses] = React.useState(false);
   const [addresses, setAddresses] = React.useState("");
   const [onlyCommand, setOnlyCommand] = React.useState(false);
@@ -139,7 +142,9 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
   React.useEffect(() => {
     if (!open) {
       setPublicKey("");
-      setLifetime(LONGEST_LIFETIME);
+      setLifetimeChoice(LONGEST.seconds);
+      setHours("");
+      setMinutes("");
       setOnlyAddresses(false);
       setAddresses("");
       setOnlyCommand(false);
@@ -151,8 +156,15 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
 
   // Checked here so a pasted private key is never sent anywhere.
   const isPrivateKey = publicKey.includes("PRIVATE KEY") || publicKey.includes("PuTTY-User-Key-File");
+  const lifetime =
+    lifetimeChoice === "custom" ? Number(hours) * 3600 + Number(minutes) * 60 : lifetimeChoice;
+  let lifetimeError = "";
+  if (lifetimeChoice === "custom") {
+    if (!(lifetime > 0)) lifetimeError = "Enter at least one minute.";
+    else if (lifetime > LONGEST.seconds) lifetimeError = `The longest allowed is ${LONGEST.label}.`;
+  }
   const missingValue =
-    (onlyAddresses && !addressList(addresses)) || (onlyCommand && !command.trim());
+    (onlyAddresses && !addressList(addresses)) || (onlyCommand && !command.trim()) || !!lifetimeError;
   const result = generate.data;
   // What the member narrowed, shown back with the certificate.
   const restrictions: Array<{ label: string; value: string; mono: boolean }> = [];
@@ -312,8 +324,12 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
               <OptionField id="lifetime" label="Lifetime" info="How long the certificate works.">
                 <select
                   aria-labelledby="lifetime-label"
-                  value={lifetime}
-                  onChange={(e) => setLifetime(Number(e.target.value))}
+                  value={lifetimeChoice}
+                  onChange={(e) =>
+                    setLifetimeChoice(
+                      e.target.value === "custom" ? "custom" : Number(e.target.value),
+                    )
+                  }
                   disabled={generate.isPending}
                   className="h-9 w-full rounded-md border bg-background px-3 text-sm"
                 >
@@ -322,7 +338,50 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
                       {choice.label}
                     </option>
                   ))}
+                  <option value="custom">Other</option>
                 </select>
+                {lifetimeChoice === "custom" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="lifetime-hours" className="text-xs text-muted-foreground">
+                          Hours
+                        </Label>
+                        <Input
+                          id="lifetime-hours"
+                          type="number"
+                          min={0}
+                          max={Math.floor(LONGEST.seconds / 3600)}
+                          value={hours}
+                          onChange={(e) => setHours(e.target.value)}
+                          aria-invalid={!!lifetimeError}
+                          aria-describedby="lifetime-help"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="lifetime-minutes" className="text-xs text-muted-foreground">
+                          Minutes
+                        </Label>
+                        <Input
+                          id="lifetime-minutes"
+                          type="number"
+                          min={0}
+                          max={59}
+                          value={minutes}
+                          onChange={(e) => setMinutes(e.target.value)}
+                          aria-invalid={!!lifetimeError}
+                          aria-describedby="lifetime-help"
+                        />
+                      </div>
+                    </div>
+                    <p
+                      id="lifetime-help"
+                      className={`text-xs ${lifetimeError && (hours || minutes) ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                      {(hours || minutes) && lifetimeError ? lifetimeError : `Up to ${LONGEST.label}.`}
+                    </p>
+                  </>
+                ) : null}
               </OptionField>
 
               <OptionField
