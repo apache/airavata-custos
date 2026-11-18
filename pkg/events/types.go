@@ -69,6 +69,13 @@ const (
 	ComputeClusterUserProvisionEvent EventType = "compute_cluster_user::provision"
 )
 
+// Storage lifecycle message types.
+const (
+	StorageCreateEvent EventType = "storage::create"
+	StorageUpdateEvent EventType = "storage::update"
+	StorageDeleteEvent EventType = "storage::delete"
+)
+
 // ClusterAccount lifecycle message types.
 const (
 	ClusterAccountCreateEvent EventType = "cluster_account::create"

@@ -22,9 +22,12 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // IdentityCacheMaxTTL caps how long the caller resolver may hold a verified
@@ -46,6 +49,14 @@ type CoreConfig struct {
 	LogLevel string         `yaml:"log_level"`
 	Auth     AuthConfig     `yaml:"auth"`
 	Users    UsersConfig    `yaml:"users"`
+	Storage  StorageConfig  `yaml:"storage"`
+}
+
+type StorageConfig struct {
+	Clusters []struct {
+		ID      string                                      `yaml:"id"`
+		Targets map[models.StorageType]models.StorageTarget `yaml:"targets"`
+	} `yaml:"clusters"`
 }
 
 type UsersConfig struct {
@@ -119,7 +130,11 @@ func applyAuthDefaults(a *AuthConfig) error {
 func expandEnvVars(input string) string {
 	re := regexp.MustCompile(`\$\{([^}]+)\}`)
 	return re.ReplaceAllStringFunc(input, func(match string) string {
-		return os.Getenv(match[2 : len(match)-1])
+		name, fallback, _ := strings.Cut(match[2:len(match)-1], ":-")
+		if value := os.Getenv(name); value != "" {
+			return value
+		}
+		return fallback
 	})
 }
 

@@ -33,7 +33,7 @@ build.
 | [`connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml`](../connectors/ACCESS/AMIE-Processor/api/amie.openapi.yaml) | `/connectors/amie/*`      |
 | [`connectors/Analytics/api/analytics.openapi.yaml`](../connectors/Analytics/api/analytics.openapi.yaml)               | `/connectors/analytics/*` |
 
-The TempAccount and VAST-Provisioner routes have no spec. Their handlers are the reference.
+The TempAccount routes have no spec. Their handlers are the reference.
 
 ## Conventions
 
@@ -86,6 +86,7 @@ The [architecture doc](architecture.md#identity-and-authentication) lists each `
 | Users and identities          | `/users*`, `/user-identities*`                                                                                                                    | `POST /users` onboards a researcher or an admin                                                     |
 | Projects                      | `/projects*`                                                                                                                                      | Includes project members and status                                                                 |
 | Clusters and cluster accounts | `/compute-clusters*`, `/compute-cluster-users*`                                                                                                   | Cluster accounts are approved or denied with `POST /compute-cluster-users/{id}/approve` and `/deny` |
+| Storages                      | `/storages*`                                                                                                                                      | Storages core decides each owner gets on a cluster                                                  |
 | Allocations                   | `/compute-allocations*`                                                                                                                           | Includes the allocation's resources, memberships, diffs, change requests and usage                  |
 | Resources and rates           | `/compute-allocation-resources*`, `/compute-allocation-resource-rates*`                                                                           |                                                                                                     |
 | Memberships and overrides     | `/compute-allocation-memberships*`, `/compute-allocation-membership-resource-overrides*`                                                          |                                                                                                     |

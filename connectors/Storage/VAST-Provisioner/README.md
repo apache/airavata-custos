@@ -41,32 +41,22 @@ folder that needs it. Otherwise files in it do not inherit the allocation's grou
 
 ## How it works
 
-Each cluster has a `targets` list of directories, set under [Configuration](#configuration). An entry's `path`,
-`owner` and `group` are templates over two placeholders:
+Core decides each storage; see [Storage](../../../docs/storage.md). This connector applies core's storage events:
 
-| Placeholder | Value |
+| Event | Action |
 |---|---|
-| `{user}` | The account's username |
-| `{allocation}` | The allocation's group |
+| Create | Makes the folder, its view and its quota. |
+| Update | Sets the quota. |
+| Delete | Removes the view and quota, then moves the folder to VAST's trash. |
 
-The placeholders decide which event creates the entry:
+At startup, then once per `reconcile_interval`, it has core create the cluster's missing storages, makes every active
+storage again so one missing on VAST comes back.
 
-| Trigger | Runs |
-|---|---|
-| `compute_cluster_user::provision` | The account's directories, then its directory in each of its projects |
-| `compute_allocation::group_provision` | The project's directories and each provisioned member's, once the group's first member puts it on the cluster |
-| `compute_allocation_membership::create` and `::update` | That member's project directory, once their account is provisioned |
-| `compute_cluster_user::delete` | Marks the account's directories for deletion, including its directory in each project |
-| `compute_allocation::delete` | Marks the project's directories, and its members' directories inside them, for deletion |
-| Startup, then once per `reconcile_interval` | Everything, for each provisioned account and each allocation on each cluster |
-
-Each event creates only its own entries, so a failed delivery retries alone.
-
-An entry with `hard_limit_size` also gets a quota named after its path. An entry with `view: true` also becomes a view,
+A storage with a quota gets one named after its path. A storage whose type is `true` in `vast.views` also becomes a view,
 nested under the view that holds it. The view uses the cluster's `vast.view_policy` and `vast.view_protocols`. The
 directory comes first, because VMS ignores owner fields on a view.
 
-The connector leaves existing directories, views and quotas alone. A quota whose limits differ from the configuration is
+The connector leaves existing directories, views and quotas alone. A quota whose limits differ from the storage's is
 recreated.
 
 ## Configuration
@@ -85,20 +75,15 @@ Settings are in the `connectors.vast-provisioner` block of [`config/custos.yaml`
           username: "${VAST_API_USER}"
           password: "${VAST_API_PASSWORD}"
           tenant_id: ${VAST_TENANT_ID}
+          views:
+            user_home: false
+            user_scratch: true
+            project: true
+            project_shared: true
+            project_user: true
+            trial_home: false
           view_policy: "${VAST_VIEW_POLICY}"
           view_protocols: "${VAST_VIEW_PROTOCOLS}"   # comma-separated, such as NFS,NFS4
-        targets:
-          - path: "/home/{user}"
-            owner: "{user}"
-            group: "{user}"
-            mode: "0700"
-            hard_limit_size: 107374182400      # 100 GiB
-            hard_limit_inodes: 1000000
-          - path: "/project/{allocation}/{user}"
-            owner: "{user}"
-            group: "{allocation}"
-            mode: "2700"
-            view: true
 ```
 
 | Key | Purpose |
@@ -106,37 +91,20 @@ Settings are in the `connectors.vast-provisioner` block of [`config/custos.yaml`
 | `reconcile_interval` | Sweep interval, a positive Go duration. Default `5m`. |
 | `clusters[].id` | Custos compute cluster ID. Events for clusters not listed are ignored. |
 | `clusters[].vast.url`, `username`, `password`, `tenant_id` | VMS endpoint, service account and tenant |
-| `clusters[].vast.view_policy` | View policy for targets with `view: true` |
+| `clusters[].vast.views` | Whether each [storage type](../../../docs/storage.md#targets) with a target is a view |
+| `clusters[].vast.view_policy` | View policy for those views |
 | `clusters[].vast.view_protocols` | Protocols for those views, comma-separated, such as `NFS,NFS4` |
-| `clusters[].targets[].path`, `owner`, `group` | Templates over `{user}` and `{allocation}`. Targets are created in list order. |
-| `clusters[].targets[].mode` | Octal permission bits, such as `2770` |
-| `clusters[].targets[].hard_limit_size`, `hard_limit_inodes` | Optional quota, in bytes and inodes. A quota is created when `hard_limit_size` is set. |
-| `clusters[].targets[].view` | `true` also exports the directory as a view |
 
 Unlike other connectors, a bad configuration stops the server instead of skipping the connector. Custos does not start
 when:
 
 - no cluster is listed
-- a cluster lacks `id`, a `vast` setting or `targets`
-- a `mode` is not octal
+- a cluster lacks `id`, a `vast` setting or core storage `targets`
 - `reconcile_interval` is not a positive duration
-- a cluster has `view: true` targets without `view_policy` and `view_protocols`, or VMS has no such policy
+- a cluster's `views` does not say, for exactly its target types, whether each is a view
+- a cluster has views without `view_policy` and `view_protocols`, or VMS has no such policy
 
 The connector looks up the policy once, at startup.
-
-## Operations
-
-Deleting an account or allocation marks its folders `pending_deletion` for an administrator to review. It deletes
-nothing.
-
-| Route | Privilege | Purpose |
-|---|---|---|
-| `GET /connectors/vast/folders` | `core:clusters:read` | List folders with each one's quota and use |
-| `DELETE /connectors/vast/folders/{id}` | `core:clusters:write` | Remove a folder's views and quotas and move it to VAST's trash, once every folder under it is pending deletion |
-| `PUT /connectors/vast/folders/{id}/quota` | `core:clusters:write` | Set a temporary hard limit with `hard_limit`, `until` (at most 90 days ahead) and `reason` |
-
-A temporary limit is audited under `<cluster>:<path>`, so the record outlives the folder. After `until`, the sweep
-restores the configured limit.
 
 ## Troubleshooting
 
@@ -151,9 +119,6 @@ restores the configured limit.
 
 [`dev-ops/local-vast`](../../../dev-ops/local-vast/README.md) stands in for the VMS REST API, for end-to-end tests
 without VAST.
-
-The folder registry's integration test needs `CORE_TEST_DATABASE_DSN` ([CONTRIBUTING.md](../../../CONTRIBUTING.md)) and
-skips without it.
 
 ```bash
 go test ./connectors/Storage/VAST-Provisioner/...

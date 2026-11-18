@@ -621,6 +621,31 @@ type ComputeAllocationUsageStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// StorageStore keeps each cluster's storages.
+type StorageStore interface {
+	// List returns every cluster's storages, pending ones first.
+	List(ctx context.Context) ([]models.Storage, error)
+	// Lock runs storage writes one at a time, so none acts on a storage another changes between its reads and writes.
+	Lock(ctx context.Context, tx *sql.Tx) error
+	// AccountHolders returns the scope's provisioned accounts.
+	AccountHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
+	// AllocationHolders returns the scope's active allocations with a provisioned group.
+	AllocationHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
+	// MemberHolders returns the scope's active memberships whose account and allocation both qualify.
+	MemberHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
+	// Users returns every user, or the one with userID, oldest first.
+	Users(ctx context.Context, tx *sql.Tx, userID string) ([]models.User, error)
+	// Retire marks the scope's active storages on the clusters pending deletion, except desired ones and kept types.
+	Retire(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error
+	// Upsert makes or updates and activates each storage at its path, keeping an administrator's live quota and another
+	// user's storage. It returns those it made or changed, a parent first.
+	Upsert(ctx context.Context, tx *sql.Tx, desired []models.Storage) ([]models.Storage, error)
+	// SetQuota replaces the quota of a storage that has one of its own, and returns the storage and its old quota; nil without one.
+	SetQuota(ctx context.Context, tx *sql.Tx, id string, bytes int64, until time.Time) (*models.Storage, int64, error)
+	// Delete drops a pending storage and those under it once all of them are pending, and returns the storage.
+	Delete(ctx context.Context, tx *sql.Tx, id string) (*models.Storage, error)
+}
+
 // execOnce runs an update and reports whether it changed exactly one row.
 func execOnce(ctx context.Context, tx *sql.Tx, query string, args ...any) (bool, error) {
 	res, err := tx.ExecContext(ctx, query, args...)

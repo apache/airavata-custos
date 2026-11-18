@@ -289,7 +289,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 			}
 		}
 
-		if err := s.eventBus.Publish(ctx, tx, events.UserCreateEvent, created); err != nil {
+		if err := s.publishUserTx(ctx, tx, events.UserCreateEvent, created); err != nil {
 			return err
 		}
 		if needsCluster {
