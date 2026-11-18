@@ -67,8 +67,8 @@ export function RevokeCertificateDialog({
         <DialogHeader>
           <DialogTitle>Revoke certificate?</DialogTitle>
           <DialogDescription>
-            This revokes certificate serial {serialNumber} and cannot be undone. Login nodes still
-            accept it until it expires.
+            This revokes certificate serial {serialNumber} and cannot be undone. Login nodes refuse
+            it at once.
           </DialogDescription>
         </DialogHeader>
         <form

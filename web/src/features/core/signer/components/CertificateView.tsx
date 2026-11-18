@@ -104,14 +104,14 @@ export function CertificateView({
             Reason: <span>{cert.revocation_reason || "None given"}</span>
           </p>
           <p className="text-muted-foreground">
-            Login nodes still accept this certificate until it expires.
+            Login nodes refuse this certificate.
           </p>
         </div>
       ) : status === "active" ? (
         <div className="space-y-2 rounded-lg border bg-card p-4 text-sm">
           {command ? <CopyValue value={command} label="ssh command" explicit wrap /> : null}
           <p className="text-muted-foreground">
-            A revoked certificate is still accepted by login nodes until it expires.
+            Login nodes refuse a revoked certificate at once.
           </p>
         </div>
       ) : (
