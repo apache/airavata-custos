@@ -107,8 +107,8 @@ describe("<ProjectMembersTab />", () => {
     expect(toggle.mutateAsync).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await screen.findByText("Cira Member: add to Beta");
-    expect(screen.getByText("Cira Member: remove from Alpha")).toBeInTheDocument();
+    await screen.findByText("Cira Member: activate in Beta");
+    expect(screen.getByText("Cira Member: deactivate in Alpha")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Apply changes" }));
 
     await waitFor(() => expect(toggle.mutateAsync).toHaveBeenCalledTimes(2));

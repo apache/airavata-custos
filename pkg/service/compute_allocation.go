@@ -224,7 +224,7 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 		return ErrNotFound
 	}
 	if alloc.Status == models.ACTIVE {
-		return fmt.Errorf("%w: compute allocation %q is active, set it INACTIVE first", ErrInUse, id)
+		return fmt.Errorf("%w: compute allocation %q is active, deactivate it first", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.allocs.Delete(ctx, tx, id); err != nil {

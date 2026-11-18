@@ -228,7 +228,7 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 		return ErrNotFound
 	}
 	if existing.MembershipStatus == models.ACTIVE {
-		return fmt.Errorf("%w: compute allocation membership %q is active, set it INACTIVE first", ErrInUse, id)
+		return fmt.Errorf("%w: compute allocation membership %q is active, deactivate it first", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {

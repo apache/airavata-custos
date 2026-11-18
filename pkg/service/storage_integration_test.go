@@ -171,7 +171,7 @@ func TestStorageLifecycle(t *testing.T) {
 	_, err = svc.UpdateUserStatus(ctx(), user, models.UserInactive)
 	if _, e := svc.UpdateComputeAllocationStatus(ctx(), sibling.ID, models.INACTIVE); errors.Join(err, e) != nil ||
 		byPath()["/home/jdoe"].Status != "pending_deletion" || byPath()[siblingPath].Status != "pending_deletion" {
-		t.Fatalf("suspending the user and deactivating the allocation: err=%v left=%+v, want theirs retired", errors.Join(err, e), byPath())
+		t.Fatalf("deactivating the user and the allocation: err=%v left=%+v, want theirs retired", errors.Join(err, e), byPath())
 	}
 	err = errors.Join(svc.DeleteComputeClusterUser(ctx(), cu.ID), svc.DeleteComputeAllocation(ctx(), sibling.ID))
 	if got := byPath(); err != nil || got["/home/jdoe"].Status != "pending_deletion" || got[siblingPath].Status != "pending_deletion" ||

@@ -32,13 +32,13 @@ import (
 // place. The retiring user is flipped to status=MERGED, and a PENDING survivor
 // of an ACTIVE user becomes ACTIVE. All work happens in a single transaction.
 //
-// Moved to survivor (duplicates on the retiring user are dropped first):
+// Moved to survivor (duplicates on the retiring user are deleted first):
 //   - user_identities
 //   - compute_cluster_users
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //
-// A dropped cluster account publishes compute_cluster_user::delete, so it is
+// A deleted cluster account publishes compute_cluster_user::delete, so it is
 // also removed outside Custos.
 //
 // Left in place (who actually did the thing):

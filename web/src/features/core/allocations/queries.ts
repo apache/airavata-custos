@@ -235,7 +235,7 @@ export function useMembershipsByAllocation(allocationIds: string[]) {
   });
 }
 
-// Reactivates or deactivates an existing membership, or adds one for the allocation's remaining term.
+// Activates or deactivates an existing membership, or adds one for the allocation's remaining term.
 export function useToggleAllocationAccess() {
   const client = useQueryClient();
   return useMutation({

@@ -35,10 +35,10 @@ import (
 )
 
 // Make sure a merge publishes the delete event only for the retiring user's
-// cluster account that it drops, which is the one on a cluster where the
+// cluster account that it deletes, which is the one on a cluster where the
 // survivor already has an account. An account that moves to the survivor is
 // not deleted, so it gets no event.
-func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
+func TestMergeUsers_PublishesDeleteForTheDeletedClusterAccount(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	svc.EventBus().SubscribeComputeClusterUserDeleted("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
@@ -65,7 +65,7 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 	shared, onlyRetiring := cluster(), cluster()
 	account(survivor, shared)
-	dropped := account(retiring, shared)
+	deleted := account(retiring, shared)
 	moved := account(retiring, onlyRetiring)
 
 	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
@@ -83,8 +83,8 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	if err := json.Unmarshal(deliveries[0].Event.Payload, &got); err != nil {
 		t.Fatalf("decode payload: %v", err)
 	}
-	if got.ID != dropped.ID || got.LocalUsername != dropped.LocalUsername {
-		t.Errorf("delete event is for %s (%s), want the dropped account %s (%s)", got.ID, got.LocalUsername, dropped.ID, dropped.LocalUsername)
+	if got.ID != deleted.ID || got.LocalUsername != deleted.LocalUsername {
+		t.Errorf("delete event is for %s (%s), want the deleted account %s (%s)", got.ID, got.LocalUsername, deleted.ID, deleted.LocalUsername)
 	}
 
 	after, err := svc.GetComputeClusterUser(ctx(), moved.ID)
@@ -238,6 +238,6 @@ func TestMergeUsers_ActivatesPendingSurvivorOfActiveUser(t *testing.T) {
 		t.Errorf("moved account: got %+v, %v, want the survivor's and provisioned", after, err)
 	}
 	if _, err := svc.UpdateUserStatus(ctx(), retiring, models.UserActive); !errors.Is(err, ErrInvalidInput) {
-		t.Errorf("reactivating the merged user: got %v, want ErrInvalidInput", err)
+		t.Errorf("activating the merged user: got %v, want ErrInvalidInput", err)
 	}
 }

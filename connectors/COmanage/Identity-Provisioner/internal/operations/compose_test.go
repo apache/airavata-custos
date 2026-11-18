@@ -255,9 +255,9 @@ func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
       "UnixClusterAccount": []
     }`
 
-	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	got, changed, err := deleteUnixClusterAccount(json.RawMessage(person), "jdoe")
 	if err != nil {
-		t.Fatalf("removeLogin: %v", err)
+		t.Fatalf("deleteUnixClusterAccount: %v", err)
 	}
 	if !changed {
 		t.Fatal("expected the person to be reported as changed")
@@ -275,9 +275,9 @@ func TestRemoveLogin_LeavesAnotherPersonUntouched(t *testing.T) {
       "Identifier": [{"identifier": "asmith", "type": "uid", "login": false, "status": "A"}],
       "UnixClusterAccount": [{"username": "asmith", "uid": 2000094, "unix_cluster_id": 1}]
     }`
-	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	got, changed, err := deleteUnixClusterAccount(json.RawMessage(person), "jdoe")
 	if err != nil {
-		t.Fatalf("removeLogin: %v", err)
+		t.Fatalf("deleteUnixClusterAccount: %v", err)
 	}
 	if changed || !sameJSON(t, got, json.RawMessage(person)) {
 		t.Errorf("expected no change, got changed=%v body=%s", changed, got)

@@ -31,11 +31,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// RemoveClusterAccount removes what provisioning created for a cluster account:
+// DeleteClusterAccount deletes what provisioning created for a cluster account:
 // the account and login name on the person, the admin group membership, and
 // the account's primary group. The person stays in the registry. It is safe
-// to run again, anything already removed is skipped.
-func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
+// to run again, anything already deleted is skipped.
+func (o *Orchestrator) DeleteClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
 	ctx, span := tracing.Start(ctx, "comanage.remove_posix_account")
 	defer span.End()
 	span.SetAttributes(attribute.String("comanage.cluster_user_id", cu.ID))
@@ -55,7 +55,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		return err
 	}
 	if personID != "" {
-		if err := o.removeAccountFromPerson(ctx, cu, personID, composite, removeLogin); err != nil {
+		if err := o.updateUnixClusterAccount(ctx, cu, personID, composite, deleteUnixClusterAccount); err != nil {
 			return err
 		}
 	}
@@ -75,9 +75,9 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 	return nil
 }
 
-// removeAccountFromPerson applies edit to the person's cluster account and
+// updateUnixClusterAccount applies edit to the person's cluster account and
 // takes the admin group membership off the person. The person record itself stays.
-func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte,
+func (o *Orchestrator) updateUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte,
 	edit func(json.RawMessage, string) ([]byte, bool, error)) error {
 	body, changed, err := edit(composite, cu.LocalUsername)
 	if err != nil {
@@ -124,7 +124,7 @@ func (o *Orchestrator) DeactivateClusterAccount(ctx context.Context, cu *models.
 	if err != nil || personID == "" {
 		return err
 	}
-	if err := o.removeAccountFromPerson(ctx, cu, personID, composite, deactivateUnixClusterAccount); err != nil {
+	if err := o.updateUnixClusterAccount(ctx, cu, personID, composite, deactivateUnixClusterAccount); err != nil {
 		return err
 	}
 	o.audit(ctx, cu, "ComanageClusterAccountUpdated", fmt.Sprintf("comanage_id=%s username=%s status=S", personID, cu.LocalUsername))

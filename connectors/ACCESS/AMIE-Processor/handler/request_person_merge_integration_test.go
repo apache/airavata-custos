@@ -255,7 +255,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 
 	// compute_allocation_memberships: retiring's membership row reassigned to
 	// surviving. UNIQUE(allocation_id, user_id) means the duplicate row is
-	// dropped, but the survivor's existing row remains, so the surviving user
+	// deleted, but the survivor's existing row remains, so the surviving user
 	// ends with exactly one membership on that allocation.
 	var membershipsOnRetiring int
 	if err := database.Get(&membershipsOnRetiring,
