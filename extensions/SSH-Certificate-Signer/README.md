@@ -155,6 +155,18 @@ For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`,
 | `search_filter`                                   | Search filter. `%s` becomes the user's subject. |
 | `username_attribute`                              | Optional. Default `uid`.                        |
 
+### Login nodes
+
+Each login node's sshd needs two lines, usually in a drop-in under `/etc/ssh/sshd_config.d/`:
+
+```
+TrustedUserCAKeys /storage/keystore/custos/ssh/ca.pub
+RevokedKeys       /storage/keystore/custos/ssh/revoked_keys
+```
+
+`ca.pub` is the CA public key from `GET /api/v1/ca-public-key`. `revoked_keys` is the file the signer writes at
+`signer.krl.path`. The signer writes it, the login nodes read it, so both point at one file on shared storage.
+
 ### Configuration
 
 ```bash
