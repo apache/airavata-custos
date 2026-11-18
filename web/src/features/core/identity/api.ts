@@ -36,7 +36,7 @@ import type {
 import type { Privilege } from "./types";
 
 export async function getPrivileges(): Promise<Privilege[]> {
-  const raw = await apiFetch("/user/privileges");
+  const raw = await apiFetch("/me/privileges");
   return privilegesResponseSchema.parse(raw);
 }
 

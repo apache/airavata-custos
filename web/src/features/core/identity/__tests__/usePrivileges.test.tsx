@@ -28,7 +28,7 @@ vi.mock("next-auth/react", () => ({
 import { usePrivileges } from "../queries";
 
 const server = setupServer(
-  http.get("*/api/v1/user/privileges", () =>
+  http.get("*/api/v1/me/privileges", () =>
     HttpResponse.json({ privileges: ["core:allocations:read", "amie:packets:read"] }),
   ),
 );

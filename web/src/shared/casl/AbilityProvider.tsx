@@ -26,7 +26,7 @@ import { type AppAbility, defineAbilitiesFor } from "./abilities";
 export function AbilityProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
   const { data: privileges } = usePrivileges();
-  // /user/privileges wins once it arrives; until then drive abilities from the
+  // /me/privileges wins once it arrives; until then drive abilities from the
   // session-embedded list so the sidebar doesn't flicker empty on first paint.
   const effective = privileges ?? session?.privileges ?? [];
   const ability = useMemo(() => defineAbilitiesFor(effective), [effective]);
