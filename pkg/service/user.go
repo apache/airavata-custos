@@ -84,9 +84,9 @@ func (s *Service) checkNewUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-// ListUsers returns a page of users matching filter plus the total count.
-func (s *Service) ListUsers(ctx context.Context, filter store.UserListFilter, limit, offset int) ([]models.User, int, error) {
-	rows, total, err := s.users.List(ctx, filter, limit, offset)
+// ListUsers returns a page of users matching filter ordered by sort, plus the total count.
+func (s *Service) ListUsers(ctx context.Context, filter store.UserListFilter, sort string, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, filter, sort, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
@@ -188,6 +188,7 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.Type == "" {
 		user.Type = existing.Type
 	}
+	user.CreatedAt = existing.CreatedAt
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.users.Update(ctx, tx, user); err != nil {

@@ -37,7 +37,7 @@ func NewUserStore(db *sqlx.DB) UserStore {
 	return &pgUserStore{db: db}
 }
 
-const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type`
+const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type, created_at`
 
 func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
@@ -65,7 +65,18 @@ func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string, loc
 	return &r, nil
 }
 
-func (s *pgUserStore) List(ctx context.Context, filter UserListFilter, limit, offset int) ([]models.User, int, error) {
+var userListOrderBy = map[string]string{
+	"name":        "first_name, last_name, id",
+	"-name":       "first_name DESC, last_name DESC, id",
+	"created_at":  "created_at, id",
+	"-created_at": "created_at DESC, id",
+}
+
+func (s *pgUserStore) List(ctx context.Context, filter UserListFilter, sort string, limit, offset int) ([]models.User, int, error) {
+	orderBy, ok := userListOrderBy[sort]
+	if !ok {
+		orderBy = "email"
+	}
 	const from = ` FROM users
 	 WHERE (email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1 OR first_name || ' ' || last_name ILIKE $1)
 	   AND ($2 = '' OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = users.id AND r.role_id = $2))
@@ -77,7 +88,7 @@ func (s *pgUserStore) List(ctx context.Context, filter UserListFilter, limit, of
 	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userColumns+from+` ORDER BY email LIMIT $4 OFFSET $5`,
+		`SELECT `+userColumns+from+` ORDER BY `+orderBy+` LIMIT $4 OFFSET $5`,
 		pattern, filter.RoleID, filter.IdentitySource, limit, offset); err != nil {
 		return nil, 0, err
 	}
@@ -140,11 +151,11 @@ func (s *pgUserStore) FindByOrganization(ctx context.Context, organizationID str
 }
 
 func (s *pgUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
-	_, err := tx.ExecContext(ctx,
+	return tx.QueryRowContext(ctx,
 		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type)
-	return err
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		 RETURNING created_at`,
+		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type).Scan(&u.CreatedAt)
 }
 
 func (s *pgUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User) error {

@@ -49,6 +49,7 @@ export async function listUsers(params: UserListParams = {}): Promise<UserListRe
   if (params.q) search.set("q", params.q);
   if (params.role_id) search.set("role_id", params.role_id);
   if (params.identity_source) search.set("identity_source", params.identity_source);
+  if (params.sort) search.set("sort", params.sort);
   if (typeof params.limit === "number") search.set("limit", String(params.limit));
   if (typeof params.offset === "number") search.set("offset", String(params.offset));
   const query = search.toString();
