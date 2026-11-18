@@ -53,7 +53,10 @@ export function UserActivityDrawer({
       }}
       direction="right"
     >
-      <DrawerContent className="w-[min(94vw,760px)] overflow-y-auto sm:max-w-[760px]">
+      <DrawerContent
+        className="overflow-y-auto"
+        style={{ width: "min(94vw, 760px)", maxWidth: "760px" }}
+      >
         <DrawerHeader className="border-b pr-16">
           <DrawerTitle>{reviewAccess ? "Review access" : "User engagement audit"}</DrawerTitle>
           <DrawerDescription>

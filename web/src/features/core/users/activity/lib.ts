@@ -54,15 +54,15 @@ export const statusMeta = {
   never: { label: "Never signed in", color: "var(--custos-red-500)" },
 } as const;
 
-/** Fill calendar-date gaps without interpreting user-local bucket labels in the browser timezone. */
+/** Fill calendar-date gaps in UTC, matching the current backend. */
 export function completeActivityTrend(analytics: UserActivityAnalytics) {
   const points = new Map(analytics.trend.map((point) => [point.date, point]));
   const end = new Date(analytics.generated_at);
   end.setUTCHours(0, 0, 0, 0);
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - analytics.window_days + 1);
-  // Mixed user timezones can produce boundary dates outside the nominal UTC window.
-  // Preserve every server bucket instead of clipping real activity at either edge.
+  // Preserve every server bucket, including dates outside the nominal window if
+  // future backends add per-user timezone support.
   for (const point of analytics.trend) {
     const date = new Date(`${point.date}T00:00:00Z`);
     if (date < start) start.setTime(date.getTime());

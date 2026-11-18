@@ -126,8 +126,8 @@ function ActivityDashboard() {
             />
           </div>
           <p className="max-w-sm text-xs text-muted-foreground">
-            Active means a sign-in within the last {windowDays} user-local calendar days, including
-            today. Statuses and charts follow this window; All time is lifetime activity.
+            Active means a sign-in within the last {windowDays} UTC calendar days, including today.
+            Statuses and charts follow this window; All time is lifetime activity.
           </p>
         </CardContent>
       </Card>

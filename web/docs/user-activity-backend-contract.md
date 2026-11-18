@@ -2,7 +2,7 @@
 
 This is the current frontend baseline for User Activity. Apache [PR #573](https://github.com/apache/airavata-custos/pull/573) is a historical snapshot of the first frontend-only draft. Keep that PR closed; later work stays on the `aimee-RH` fork until frontend and backend are both ready, then one complete PR can go upstream.
 
-The backend, migrations, and OpenAPI generation are **not** in this change. Production data still requires the follow-up backend. Local preview uses MSW (`NEXT_PUBLIC_PORTAL_USE_MSW=true`).
+The backend, migrations, and OpenAPI generation are **not** in this frontend branch. The [fork backend branch](https://github.com/aimee-RH/airavata-custos/tree/feature/user-activity-audit-backend) implements Audit-backed capture and reads. Its first version uses UTC calendar days; per-user timezones remain an open requirement. Local preview uses MSW (`NEXT_PUBLIC_PORTAL_USE_MSW=true`).
 
 ## Access and population
 
@@ -10,14 +10,14 @@ All activity reads require `core:users:activity:read`. The UI hides the Activity
 
 ## One window, three disjoint groups
 
-The dashboard defaults to 30 days, with 7/30/90 presets and a custom integer from 1 to 365. The selected window includes today and the previous N−1 user-local calendar dates.
+The dashboard defaults to 30 days, with 7/30/90 presets and a custom integer from 1 to 365. The current backend window includes today and the previous N−1 UTC calendar dates.
 
 - `active`: has logged in and `inactive_days < N`
 - `dormant`: has logged in and `inactive_days >= N`
 - `never`: no recorded login
 - `all`: union of those three groups
 
-Never is excluded from Dormant. Do not substitute the old `/users/inactive` behavior (which included Never). User-local calendar boundaries, including DST and time-zone fallback, must be consistent between list filtering, row `inactive_days`, and aggregate counts.
+Never is excluded from Dormant. Do not substitute the old `/users/inactive` behavior (which included Never). UTC calendar boundaries must be consistent between list filtering, row `inactive_days`, and aggregate counts. If per-user local dates become required, update all three together.
 
 Summary cards and charts describe the full authorized population. Search and status filters affect only the audit table. Lifetime values are labelled All time / Lifetime. Displayed timestamps are UTC; relative day labels use the backend's `inactive_days`.
 
@@ -62,13 +62,13 @@ Required: `generated_at`, `window_days`, `total_users`, `users_ever_logged_in`, 
 
 Optional supplemental fields, all nullable:
 
-- `prior_active_users`: distinct OIDC users with a daily fact in the immediately preceding equal-length local-calendar window
-- `dormant_over_90_days`: dormant users in the selected window whose inactivity is strictly greater than 90 local days
+- `prior_active_users`: distinct OIDC users with a daily fact in the immediately preceding equal-length UTC-calendar window
+- `dormant_over_90_days`: dormant users in the selected window whose inactivity is strictly greater than 90 UTC days
 - `oldest_never_created_at`: earliest account creation among OIDC users with zero recorded logins
 
 These are aggregate server statistics. Missing or `null` fields hide supplemental copy; they must not become invented zeros. The UI shows “vs prior N days” and “oldest account created N days ago” using UTC calendar-day difference from `generated_at`. The “over 90 days” subcount is hidden when it is zero, or when the selected window is 90 days or longer (it would duplicate the Dormant total).
 
-Cards derive Active from `active_users`, Dormant from `users_ever_logged_in - active_users`, and Never from `total_users - users_ever_logged_in`. Trend dates are user-local date buckets. The frontend fills missing calendar dates with zeros, using the UTC date of `generated_at` for the nominal range, and preserves returned boundary dates.
+Cards derive Active from `active_users`, Dormant from `users_ever_logged_in - active_users`, and Never from `total_users - users_ever_logged_in`. Trend dates are UTC date buckets in the current backend. The frontend fills missing calendar dates with zeros, using the UTC date of `generated_at` for the nominal range, and preserves returned boundary dates.
 
 The drawer starts on the dashboard window, then allows an independent 1–365-day range. Invalid windows return 400, unauthorized reads 403, absent users 404.
 
@@ -86,6 +86,6 @@ Run `pnpm exec msw init public --save` once after installing dependencies, then 
 
 From `web/`: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm gen:api:check`, `pnpm build`, and `pnpm exec playwright test tests/admin-user-activity.e2e.ts --workers=1`.
 
-Mock checks do not prove live backend or OIDC capture. Do not mark this ready for Apache until the backend implements this contract and live integration passes.
+Mock checks alone do not prove live backend or OIDC capture. The fork frontend and backend passed a local Keycloak browser smoke test; reconcile the timezone requirement and generated API documentation before an upstream PR.
 
 ![Desktop activity dashboard](images/user-activity-desktop.png)
