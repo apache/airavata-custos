@@ -32,9 +32,9 @@ import (
 // place. The retiring user is flipped to status=MERGED, and a PENDING survivor
 // of an ACTIVE user becomes ACTIVE. All work happens in a single transaction.
 //
-// Moved to survivor (the unprovisioned duplicate is dropped first):
+// Moved to survivor (the unprovisioned duplicate is deleted first):
 //   - user_identities
-//   - compute_cluster_users (on a shared cluster the provisioned one wins; if both are, the retiring one stays, deprovisioned)
+//   - compute_cluster_users (on a shared cluster the provisioned one wins; if both are, the retiring one stays, deactivated)
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //

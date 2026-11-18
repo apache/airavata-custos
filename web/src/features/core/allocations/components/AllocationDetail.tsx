@@ -82,7 +82,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
             onClick={() => statusMutation.mutate(!active)}
             disabled={statusMutation.isPending}
           >
-            {active ? "Deactivate" : "Reactivate"}
+            {active ? "Deactivate" : "Activate"}
           </GuardedButton>
           <DeleteButton
             noun="Allocation"
@@ -91,7 +91,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
             mutation={remove}
             redirectTo="/allocations"
             allowed={can.allocationsWrite && !active}
-            reason={can.allocationsWrite ? "Set it inactive first" : requires("allocationsWrite")}
+            reason={can.allocationsWrite ? "Deactivate it first" : requires("allocationsWrite")}
           >
             Its members, resources and usage records are deleted with it. This cannot be undone.
           </DeleteButton>

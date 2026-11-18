@@ -551,32 +551,32 @@ func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 // to be processed again, since the merge deletes that account when the
 // survivor already has one on the same cluster.
 func TestRequestPersonMerge_ReprocessesPacketsHeldOnRetiringAccount(t *testing.T) {
-	testReprocessesPacketsHeldOnDroppedAccount(t, false)
+	testReprocessesPacketsHeldOnDeletedAccount(t, false)
 }
 
-// Make sure the survivor's held packet is processed again when the merge drops its account for the retiring one, which is provisioned.
+// Make sure the survivor's held packet is processed again when the merge deletes its account for the retiring one, which is provisioned.
 func TestRequestPersonMerge_ReprocessesPacketsHeldOnSurvivorAccount(t *testing.T) {
-	testReprocessesPacketsHeldOnDroppedAccount(t, true)
+	testReprocessesPacketsHeldOnDeletedAccount(t, true)
 }
 
-func testReprocessesPacketsHeldOnDroppedAccount(t *testing.T, retiringProvisioned bool) {
+func testReprocessesPacketsHeldOnDeletedAccount(t *testing.T, retiringProvisioned bool) {
 	database := setupTestDB(t)
 	seed := seedMergeUsers(t, database)
 
-	droppedOwner := seed.retiringID
+	deletedOwner := seed.retiringID
 	if retiringProvisioned {
-		droppedOwner = seed.survivingID
+		deletedOwner = seed.survivingID
 		if _, err := database.Exec("UPDATE compute_cluster_users SET provisioned_at = now() WHERE user_id = $1", seed.retiringID); err != nil {
 			t.Fatalf("provision retiring cluster account: %v", err)
 		}
 	}
-	var droppedAccount string
-	if err := database.Get(&droppedAccount, "SELECT id FROM compute_cluster_users WHERE user_id = $1", droppedOwner); err != nil {
-		t.Fatalf("read dropped cluster account: %v", err)
+	var deletedAccount string
+	if err := database.Get(&deletedAccount, "SELECT id FROM compute_cluster_users WHERE user_id = $1", deletedOwner); err != nil {
+		t.Fatalf("read deleted cluster account: %v", err)
 	}
 	held := insertPacket(t, database, "request_account_create", baseRACBody())
 	if _, err := database.Exec("UPDATE amie_packets SET status = $1, held_reply = '{}', held_for = $2 WHERE id = $3",
-		model.PacketStatusWaitingApproval, droppedAccount, held.ID); err != nil {
+		model.PacketStatusWaitingApproval, deletedAccount, held.ID); err != nil {
 		t.Fatalf("hold packet: %v", err)
 	}
 	eventID := uuid.NewString()

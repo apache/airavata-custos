@@ -47,7 +47,7 @@ type Subscriber struct {
 // provisioner is what the subscriber needs from the orchestrator.
 type provisioner interface {
 	EnsureClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
-	RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
+	DeleteClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
 	DeactivateClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
 	EnsureClusterAdminMembership(ctx context.Context, cu *models.ComputeClusterUser) error
 	EnsureAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
@@ -137,7 +137,7 @@ func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.Com
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_deleted")
 	defer span.End()
-	if err := s.ops.RemoveClusterAccount(ctx, &cu); err != nil {
+	if err := s.ops.DeleteClusterAccount(ctx, &cu); err != nil {
 		slog.ErrorContext(ctx, "comanage subscriber: RemovePOSIXAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}

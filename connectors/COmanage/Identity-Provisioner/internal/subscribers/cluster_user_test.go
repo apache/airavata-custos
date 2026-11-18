@@ -37,7 +37,7 @@ func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClus
 	f.provisioned = append(f.provisioned, cu.ID)
 	return nil
 }
-func (f *fakeOps) RemoveClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
+func (f *fakeOps) DeleteClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
 func (f *fakeOps) DeactivateClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.deactivated = append(f.deactivated, cu.ID)
 	return nil
