@@ -32,7 +32,7 @@ import (
 const (
 	lookupCertificateQuery  = "SELECT key_id, ca_fingerprint.*WHERE serial_number = \\$1"
 	existingRevocationQuery = "SELECT revoked_at, reason.*WHERE serial_number = \\$1"
-	insertRevocationQuery   = "INSERT INTO revocation_events.*VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6\\)"
+	insertRevocationQuery   = "INSERT INTO revocation_events.*VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6, \\$7\\)"
 )
 
 func newRevocationService(t *testing.T, now time.Time) (*RevocationService, sqlmock.Sqlmock) {
@@ -66,7 +66,7 @@ func TestRevocationService_RevokeActive(t *testing.T) {
 	mock.ExpectQuery(existingRevocationQuery).WithArgs(int64(42)).WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(insertRevocationQuery).WithArgs(
 		int64(42), "key-1", "SHA256:ca", now,
-		"compromised", "subject-1",
+		"compromised", "subject-1", now.Add(time.Hour),
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 

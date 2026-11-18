@@ -48,6 +48,7 @@ const row: UserAccountRow = {
   organization_id: "org-1",
   status: "ACTIVE",
   type: "CLUSTER_LOCAL",
+  created_at: "2026-01-01T00:00:00Z",
   roles: [adminRole],
   identities: [
     {
@@ -85,6 +86,7 @@ function renderTable(canManageRoles: boolean, users: UserAccountRow[] = [row]) {
         pageSize={25}
         total={users.length}
         onPageChange={onPageChange}
+        sort="-created_at"
       />
     </QueryClientProvider>,
   );
@@ -130,6 +132,16 @@ describe("UsersTable", () => {
     expect(screen.getByText("Example User")).toBeInTheDocument();
     expect(screen.getByText("Loading roles…")).toBeInTheDocument();
     expect(screen.getByText("Identities unavailable")).toBeInTheDocument();
+  });
+
+  it("sorts by the clicked header", () => {
+    renderTable(true);
+    fireEvent.click(screen.getByRole("button", { name: "Created at" }));
+    fireEvent.click(screen.getByRole("button", { name: "Name" }));
+    expect(searchParamMocks.replace.mock.calls.map(([params]) => String(params))).toEqual([
+      "sort=created_at",
+      "sort=name",
+    ]);
   });
 
   it("keeps the permissions drawer open while typing in search", () => {

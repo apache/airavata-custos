@@ -28,6 +28,7 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/config"
 	"github.com/apache/airavata-custos/signer/internal/handler"
+	"github.com/apache/airavata-custos/signer/internal/krl"
 	"github.com/apache/airavata-custos/signer/internal/policy"
 	"github.com/apache/airavata-custos/signer/internal/server"
 	signerservice "github.com/apache/airavata-custos/signer/internal/service"
@@ -179,9 +180,16 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		CertificateLimit:       cfg.Signer.Policy.CertificateLimit.MaxPerUser,
 		CertificateLimitWindow: time.Duration(cfg.Signer.Policy.CertificateLimit.WindowSeconds) * time.Second,
 	}, logger)
+	krlPublisher := krl.NewPublisher(db, cfg.Signer.KRL.Path, auditLogger, logger)
+	if err := krlPublisher.Publish(context.Background()); err != nil {
+		logger.Error("failed to publish KRL", "error", err)
+		os.Exit(1)
+	}
+	go krlPublisher.Run(context.Background(), time.Duration(cfg.Signer.KRL.RefreshSeconds)*time.Second)
+
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
-	healthHandler := handler.NewHealthHandler(db, vaultClient)
-	certificatesHandler := handler.NewCertificatesHandler(db, signerservice.NewRevocationService(db), cfg.Signer.LoginHost, cfg.Signer.LoginPort, logger)
+	healthHandler := handler.NewHealthHandler(db, vaultClient, krlPublisher)
+	certificatesHandler := handler.NewCertificatesHandler(db, signerservice.NewRevocationService(db), krlPublisher, cfg.Signer.LoginHost, cfg.Signer.LoginPort, logger)
 
 	handlers := server.Handlers{
 		Sign:              signHandler.Handle,
@@ -190,6 +198,7 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		Certificates:      certificatesHandler.HandleList,
 		CertificateDetail: certificatesHandler.HandleGet,
 		CertificateRevoke: certificatesHandler.HandleRevoke,
+		KRL:               handler.NewKRLHandler(krlPublisher).Handle,
 	}
 
 	router := server.NewRouter(cfg, handlers)

@@ -155,6 +155,18 @@ For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`,
 | `search_filter`                                   | Search filter. `%s` becomes the user's subject. |
 | `username_attribute`                              | Optional. Default `uid`.                        |
 
+### Login nodes
+
+Each login node's sshd needs two lines, usually in a drop-in under `/etc/ssh/sshd_config.d/`:
+
+```
+TrustedUserCAKeys /storage/keystore/custos/ssh/ca.pub
+RevokedKeys       /storage/keystore/custos/ssh/revoked_keys
+```
+
+`ca.pub` is the CA public key from `GET /api/v1/ca-public-key`. `revoked_keys` is the file the signer writes at
+`signer.krl.path`. The signer writes it, the login nodes read it, so both point at one file on shared storage.
+
 ### Configuration
 
 ```bash
@@ -248,6 +260,7 @@ The service handles SIGTERM and SIGINT for graceful shutdown:
 | `GET`  | `/api/v1/certificates/{serial}`        | One certificate, with the `login_host` and `login_port` to use it on             |
 | `POST` | `/api/v1/certificates/{serial}/revoke` | Revoke an active certificate. `revoked_by` is required and `reason` can be empty |
 | `GET`  | `/api/v1/health`                       | Health check, no token                                                           |
+| `GET`  | `/api/v1/krl`                          | The revocation list for `RevokedKeys`, no token. `ETag` is its version           |
 
 Every route with a token takes `Authorization: Bearer <service token>`.
 
@@ -255,8 +268,20 @@ Every route with a token takes `Authorization: Bearer <service token>`.
 `GET /api/v1/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
 It returns no total or offset.
 
-> **Revocation.** The signer records revocations. It does not generate or distribute OpenSSH KRLs, so login nodes still
-> accept a revoked certificate.
+### Revocation
+
+A revoke writes a row, then the signer rebuilds the OpenSSH revocation list (KRL) from every revoked certificate that
+has not expired and writes it to `signer.krl.path`, the file the login nodes' `RevokedKeys` points at, on storage they
+share with the signer. It writes a temp file next to it and renames, so the file is never missing or half written. The
+same bytes are served at `/api/v1/krl` for a node without that storage. The list is rebuilt every `refresh_seconds`
+too, so expired serials drop out, a failed write is retried and a file that went missing is written again. Login nodes
+see a new list once their NFS attribute cache refreshes, about a minute.
+
+sshd checks the list only at login. A session that is already open stays open after its certificate is revoked.
+
+The list names serials only, under any CA, since serials never repeat across CA rotations. Never delete the file or
+leave it empty: a missing file makes sshd refuse every key and certificate login, and a zero-byte file revokes nothing.
+To reset one by hand, write an empty real list with `ssh-keygen -k -f revoked_keys`.
 
 ### Examples
 
@@ -295,18 +320,20 @@ curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
 
 ## Troubleshooting
 
-| Error                                 | Cause                                       | Fix                                                                 |
-|---------------------------------------|---------------------------------------------|---------------------------------------------------------------------|
-| "failed to connect to database"       | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
-| "failed to create vault client"       | Vault unreachable or bad token              | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled  |
-| Migrations not found                  | The working directory is not this one       | Run the signer from `extensions/SSH-Certificate-Signer`             |
-| HTTP 401 on any route                 | Wrong service token                         | Set the same `SIGNER_SERVICE_TOKEN` on the signer and the caller    |
-| HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                         |
-| HTTP 429 `too_many_certificates`      | The user reached the per-user limit         | Wait for the window to pass, or raise `certificate_limit`           |
-| HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                         |
-| Exits with "no CA key in vault"       | No CA at `vault.ca_key_path`                | Fix the path. A new CA is not trusted by the login nodes            |
-| Exits with "check-and-set parameter"  | The CA's latest version in Vault is deleted | Undelete that version. The signer never replaces an existing CA     |
-| HTTP 500 on every sign                | `certificate_serial_seq` is missing         | `CREATE SEQUENCE certificate_serial_seq`, then the `setval` above   |
+| Error                                 | Cause                                       | Fix                                                                                    |
+|---------------------------------------|---------------------------------------------|----------------------------------------------------------------------------------------|
+| "failed to connect to database"       | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists                    |
+| "failed to create vault client"       | Vault unreachable or bad token              | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled                     |
+| Migrations not found                  | The working directory is not this one       | Run the signer from `extensions/SSH-Certificate-Signer`                                |
+| HTTP 401 on any route                 | Wrong service token                         | Set the same `SIGNER_SERVICE_TOKEN` on the signer and the caller                       |
+| HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                                            |
+| HTTP 429 `too_many_certificates`      | The user reached the per-user limit         | Wait for the window to pass, or raise `certificate_limit`                              |
+| HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                                            |
+| Exits with "no CA key in vault"       | No CA at `vault.ca_key_path`                | Fix the path. A new CA is not trusted by the login nodes                               |
+| Exits with "check-and-set parameter"  | The CA's latest version in Vault is deleted | Undelete that version. The signer never replaces an existing CA                        |
+| HTTP 500 on every sign                | `certificate_serial_seq` is missing         | `CREATE SEQUENCE certificate_serial_seq`, then the `setval` above                      |
+| Exits with "failed to publish KRL"    | `signer.krl.path` is not writable           | Check the service user owns the folder and the share is mounted rw                     |
+| Revoked certificate still logs in     | The list did not reach the node             | `ssh-keygen -Q -l -f revoked_keys` on the node, compare `/api/v1/health` `krl.version` |
 
 ## License
 

@@ -32,6 +32,7 @@ const user: User = {
   organization_id: "org-1",
   status: "ACTIVE",
   type: "CLUSTER_LOCAL",
+  created_at: "2026-01-01T00:00:00Z",
 };
 
 let putBody: unknown;

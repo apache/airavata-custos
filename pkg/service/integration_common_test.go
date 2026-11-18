@@ -60,6 +60,7 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"user_identities",
 		"users",
 		"organizations",
+		"storages",
 	}
 	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
 		t.Fatalf("truncate: %v", err)

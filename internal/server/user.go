@@ -87,6 +87,7 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 // @Param	q	query	string	false	"Email, first, last or full name substring"
 // @Param	role_id	query	string	false	"Only users granted this role"
 // @Param	identity_source	query	string	false	"Only users with an external identity from this source"
+// @Param	sort	query	string	false	"Accepts signed field names"
 // @Success	200	{object}	UserListResponse
 // @Router	/users [get]
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +97,7 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 		Query:          q.Get("q"),
 		RoleID:         q.Get("role_id"),
 		IdentitySource: q.Get("identity_source"),
-	}, limit, offset)
+	}, q.Get("sort"), limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

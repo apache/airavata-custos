@@ -154,6 +154,7 @@ services:
       SIGNER_SERVICE_TOKEN: ${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}
     volumes:
       - ./signer/config.yaml:/app/config.yaml:ro
+      - krl:/var/lib/custos-signer
     depends_on:
       db:
         condition: service_healthy
@@ -174,9 +175,13 @@ services:
     environment:
       SIGNER_URL: http://signer:8084
       SIGNER_SERVICE_TOKEN: ${SIGNER_SERVICE_TOKEN:-dev-service-token-not-for-production}
+    volumes:
+      # The signer writes the revocation list here, the login node only reads it.
+      - krl:/etc/ssh/krl:ro
     depends_on:
       signer:
         condition: service_healthy
 
 volumes:
   openbao-data:
+  krl:

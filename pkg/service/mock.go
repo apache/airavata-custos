@@ -172,6 +172,9 @@ var _ CoreService = &CoreServiceMock{}
 //			EnsureProjectMembershipFunc: func(ctx context.Context, projectID string, userID string, role string) error {
 //				panic("mock out the EnsureProjectMembership method")
 //			},
+//			EnsureStoragesFunc: func(ctx context.Context, clusterID string) ([]models.Storage, error) {
+//				panic("mock out the EnsureStorages method")
+//			},
 //			GetAuditEventFunc: func(ctx context.Context, id string) (*models.AuditEvent, error) {
 //				panic("mock out the GetAuditEvent method")
 //			},
@@ -670,6 +673,9 @@ type CoreServiceMock struct {
 
 	// EnsureProjectMembershipFunc mocks the EnsureProjectMembership method.
 	EnsureProjectMembershipFunc func(ctx context.Context, projectID string, userID string, role string) error
+
+	// EnsureStoragesFunc mocks the EnsureStorages method.
+	EnsureStoragesFunc func(ctx context.Context, clusterID string) ([]models.Storage, error)
 
 	// GetAuditEventFunc mocks the GetAuditEvent method.
 	GetAuditEventFunc func(ctx context.Context, id string) (*models.AuditEvent, error)
@@ -1414,6 +1420,13 @@ type CoreServiceMock struct {
 			UserID string
 			// Role is the role argument value.
 			Role string
+		}
+		// EnsureStorages holds details about calls to the EnsureStorages method.
+		EnsureStorages []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
 		}
 		// GetAuditEvent holds details about calls to the GetAuditEvent method.
 		GetAuditEvent []struct {
@@ -2344,6 +2357,7 @@ type CoreServiceMock struct {
 	lockEffectivePrivileges                                    sync.RWMutex
 	lockEnableServiceAccount                                   sync.RWMutex
 	lockEnsureProjectMembership                                sync.RWMutex
+	lockEnsureStorages                                         sync.RWMutex
 	lockGetAuditEvent                                          sync.RWMutex
 	lockGetComputeAllocation                                   sync.RWMutex
 	lockGetComputeAllocationChangeRequest                      sync.RWMutex
@@ -4357,6 +4371,42 @@ func (mock *CoreServiceMock) EnsureProjectMembershipCalls() []struct {
 	mock.lockEnsureProjectMembership.RLock()
 	calls = mock.calls.EnsureProjectMembership
 	mock.lockEnsureProjectMembership.RUnlock()
+	return calls
+}
+
+// EnsureStorages calls EnsureStoragesFunc.
+func (mock *CoreServiceMock) EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error) {
+	if mock.EnsureStoragesFunc == nil {
+		panic("CoreServiceMock.EnsureStoragesFunc: method is nil but CoreService.EnsureStorages was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+	}
+	mock.lockEnsureStorages.Lock()
+	mock.calls.EnsureStorages = append(mock.calls.EnsureStorages, callInfo)
+	mock.lockEnsureStorages.Unlock()
+	return mock.EnsureStoragesFunc(ctx, clusterID)
+}
+
+// EnsureStoragesCalls gets all the calls that were made to EnsureStorages.
+// Check the length with:
+//
+//	len(mockedCoreService.EnsureStoragesCalls())
+func (mock *CoreServiceMock) EnsureStoragesCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+	}
+	mock.lockEnsureStorages.RLock()
+	calls = mock.calls.EnsureStorages
+	mock.lockEnsureStorages.RUnlock()
 	return calls
 }
 

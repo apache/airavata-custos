@@ -32,6 +32,7 @@ type RevocationEvent struct {
 	CAFingerprint string
 	Reason        string
 	RevokedBy     string
+	ValidBefore   time.Time
 }
 
 type CertificateForRevocation struct {
@@ -92,12 +93,30 @@ func GetLatestRevocation(ctx context.Context, db RevocationDBTX, serialNumber in
 func InsertRevocationEventAt(ctx context.Context, db RevocationDBTX, ev *RevocationEvent, revokedAt time.Time) error {
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO revocation_events
-		 (serial_number, key_id, ca_fingerprint, revoked_at, reason, revoked_by)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		ev.SerialNumber, ev.KeyID, ev.CAFingerprint, revokedAt, ev.Reason, ev.RevokedBy,
+		 (serial_number, key_id, ca_fingerprint, revoked_at, reason, revoked_by, valid_before)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		ev.SerialNumber, ev.KeyID, ev.CAFingerprint, revokedAt, ev.Reason, ev.RevokedBy, ev.ValidBefore,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting revocation event: %w", err)
 	}
 	return nil
+}
+
+// ListRevokedSerialsValidAfter lists the revoked certificates that are still valid after t.
+func (d *DB) ListRevokedSerialsValidAfter(ctx context.Context, t time.Time) ([]int64, error) {
+	rows, err := d.QueryContext(ctx, `SELECT serial_number FROM revocation_events WHERE valid_before > $1 ORDER BY serial_number`, t)
+	if err != nil {
+		return nil, fmt.Errorf("listing revoked serials: %w", err)
+	}
+	defer rows.Close()
+	var serials []int64
+	for rows.Next() {
+		var serial int64
+		if err := rows.Scan(&serial); err != nil {
+			return nil, fmt.Errorf("listing revoked serials: %w", err)
+		}
+		serials = append(serials, serial)
+	}
+	return serials, rows.Err()
 }

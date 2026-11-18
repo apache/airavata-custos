@@ -40,7 +40,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		if err := s.users.Create(ctx, tx, user); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserCreateEvent, user)
+		return s.publishUserTx(ctx, tx, events.UserCreateEvent, user)
 	}); err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -84,9 +84,9 @@ func (s *Service) checkNewUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-// ListUsers returns a page of users matching filter plus the total count.
-func (s *Service) ListUsers(ctx context.Context, filter store.UserListFilter, limit, offset int) ([]models.User, int, error) {
-	rows, total, err := s.users.List(ctx, filter, limit, offset)
+// ListUsers returns a page of users matching filter ordered by sort, plus the total count.
+func (s *Service) ListUsers(ctx context.Context, filter store.UserListFilter, sort string, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, filter, sort, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
@@ -188,12 +188,13 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.Type == "" {
 		user.Type = existing.Type
 	}
+	user.CreatedAt = existing.CreatedAt
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.users.Update(ctx, tx, user); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, user)
 	}); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
@@ -221,7 +222,7 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, existing)
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
@@ -267,7 +268,7 @@ func (s *Service) UpdatePendingUserEmail(ctx context.Context, actorID, id, email
 			return err
 		}
 		updated = user
-		return s.eventBus.Publish(ctx, tx, events.UserUpdateEvent, user)
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, user)
 	})
 	if err != nil {
 		if aerr := audit(userAuditEmailChangeFailed, map[string]any{"actor_id": actorID, "error": err.Error()}); aerr != nil {
@@ -291,10 +292,11 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.users.Delete(ctx, tx, id); err != nil {
+		// Retires first: deleting the user unlinks their storages.
+		if err := s.publishUserTx(ctx, tx, events.UserDeleteEvent, existing); err != nil {
 			return err
 		}
-		return s.eventBus.Publish(ctx, tx, events.UserDeleteEvent, existing)
+		return s.users.Delete(ctx, tx, id)
 	}); err != nil {
 		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && pgErr.Code == "23503" {
 			return fmt.Errorf("%w: user %q is referenced by records that must stay", ErrInUse, id)

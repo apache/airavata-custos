@@ -25,6 +25,7 @@ import (
 func TestValidate_RefusesWeakServiceToken(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Signer.LoginHost = "login.example.edu"
+	cfg.Signer.KRL.Path = "/var/lib/custos-signer/revoked_keys"
 	if err := cfg.Validate(); err == nil {
 		t.Error("started without a service token")
 	}

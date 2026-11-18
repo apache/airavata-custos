@@ -30,6 +30,7 @@ type Handlers struct {
 	Certificates      http.HandlerFunc
 	CertificateDetail http.HandlerFunc
 	CertificateRevoke http.HandlerFunc
+	KRL               http.HandlerFunc
 }
 
 func NewRouter(cfg *config.Config, handlers Handlers) *chi.Mux {
@@ -38,8 +39,9 @@ func NewRouter(cfg *config.Config, handlers Handlers) *chi.Mux {
 	r.Use(SecurityHeadersMiddleware)
 	r.Use(BodyLimitMiddleware(1 << 20)) // 1 MB
 
-	// Health endpoint (no auth)
+	// No token needed for health and the revocation list endpoints
 	r.Get("/api/v1/health", handlers.Health)
+	r.Get("/api/v1/krl", handlers.KRL)
 
 	r.Group(func(r chi.Router) {
 		r.Use(ServiceTokenMiddleware(cfg.Signer.ServiceToken))

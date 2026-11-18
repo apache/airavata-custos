@@ -175,19 +175,28 @@ else
   check "expired certificate rejected" 0
 fi
 
-# --- revoked serial: sign, revoke via KRL on the login node, must fail, then reset
+# --- revoked serial: revoke through the API, the signer publishes the list the login node reads, login must fail
 code=$(sign "$PRINCIPAL" 300)
 [ "$code" = "200" ]
 check "sign certificate to revoke (HTTP $code)" $?
 write_cert
+SERIAL=$(json_get serial_number < "$WORK_DIR/resp.json")
 
-docker compose exec -T sshd-login sh -c 'cat > /tmp/revoke-cert.pub && ssh-keygen -kuf /etc/ssh/revoked_keys.krl /tmp/revoke-cert.pub' < "$WORK_DIR/key-cert.pub"
+code=$(curl -s -o "$WORK_DIR/resp.json" -w "%{http_code}" -X POST "$SIGNER_URL/api/v1/certificates/$SERIAL/revoke" \
+  -H "Authorization: Bearer $SERVICE_TOKEN" -H "Content-Type: application/json" \
+  -d '{"reason":"e2e","revoked_by":"user/e2e"}')
+[ "$code" = "200" ]
+check "revoke through the API (HTTP $code)" $?
+
+for _ in $(seq 1 10); do
+  ssh "${SSH_OPTS[@]}" "$PRINCIPAL@127.0.0.1" true 2>/dev/null || break
+  sleep 2
+done
 if ssh "${SSH_OPTS[@]}" "$PRINCIPAL@127.0.0.1" true 2>/dev/null; then
-  check "revoked certificate rejected" 1
+  check "revoked certificate rejected once the list is published" 1
 else
-  check "revoked certificate rejected" 0
+  check "revoked certificate rejected once the list is published" 0
 fi
-docker compose exec -T sshd-login ssh-keygen -kf /etc/ssh/revoked_keys.krl
 
 # --- per-user limit: keep signing for this user until the signer refuses
 code=200

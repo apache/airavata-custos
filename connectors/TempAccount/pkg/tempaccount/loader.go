@@ -19,12 +19,14 @@ package tempaccount
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/apache/airavata-custos/connectors/TempAccount/internal"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
@@ -35,5 +37,9 @@ const Type = "temp-account"
 func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	handlers := internal.NewHandlers(coreService)
 	handlers.RegisterRoutes(router)
+	coreService.ClaimStorageHolders("trial_home", func(u models.User) (string, bool) {
+		virtualUsername, _, _ := strings.Cut(u.Email, "@")
+		return virtualUsername, u.Type == models.UserTypeVirtual && (u.Status == models.UserPending || u.Status == models.UserActive)
+	})
 	return nil
 }

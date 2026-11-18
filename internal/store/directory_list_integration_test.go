@@ -54,9 +54,9 @@ func seedDirectory(t *testing.T) {
 	}
 }
 
-func userEmails(t *testing.T, filter UserListFilter) []string {
+func userEmails(t *testing.T, filter UserListFilter, sort string) []string {
 	t.Helper()
-	rows, total, err := NewUserStore(setupTestDB(t)).List(context.Background(), filter, 50, 0)
+	rows, total, err := NewUserStore(setupTestDB(t)).List(context.Background(), filter, sort, 50, 0)
 	if err != nil {
 		t.Fatalf("list users: %v", err)
 	}
@@ -86,9 +86,26 @@ func TestUserListFilters(t *testing.T) {
 		{"none", UserListFilter{}, []string{"jdoe@example.edu", "jroe@example.edu", "mmajor@example.edu"}},
 	}
 	for _, c := range cases {
-		got := userEmails(t, c.filter)
+		got := userEmails(t, c.filter, "")
 		if !slices.Equal(got, c.want) {
 			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// The user list orders by name or by creation time, then id.
+func TestUserListOrder(t *testing.T) {
+	seedDirectory(t)
+	if _, err := setupTestDB(t).Exec(`UPDATE users SET created_at = created_at - interval '1 day' WHERE id = 'u-mary'`); err != nil {
+		t.Fatalf("age user: %v", err)
+	}
+	for sort, want := range map[string][]string{
+		"created_at":  {"mmajor@example.edu", "jdoe@example.edu", "jroe@example.edu"},
+		"-created_at": {"jdoe@example.edu", "jroe@example.edu", "mmajor@example.edu"},
+		"-name":       {"mmajor@example.edu", "jroe@example.edu", "jdoe@example.edu"},
+	} {
+		if got := userEmails(t, UserListFilter{}, sort); !slices.Equal(got, want) {
+			t.Errorf("%s: got %v, want %v", sort, got, want)
 		}
 	}
 }

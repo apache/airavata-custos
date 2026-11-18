@@ -90,7 +90,7 @@ func (s *RevocationService) Revoke(ctx context.Context, command RevokeCommand) (
 
 	event := &store.RevocationEvent{
 		SerialNumber: command.SerialNumber, KeyID: certificate.KeyID, CAFingerprint: certificate.CAFingerprint,
-		Reason: command.Reason, RevokedBy: command.RevokedBy,
+		Reason: command.Reason, RevokedBy: command.RevokedBy, ValidBefore: certificate.ValidBefore,
 	}
 	if err := store.InsertRevocationEventAt(ctx, tx, event, now); err != nil {
 		return nil, err

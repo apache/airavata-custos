@@ -839,6 +839,50 @@ definitions:
       name:
         type: string
     type: object
+  Storage:
+    properties:
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      compute_cluster_user_id:
+        type: string
+      end_time:
+        type: string
+      group:
+        type: string
+      id:
+        type: string
+      mode:
+        type: string
+      owner:
+        type: string
+      path:
+        type: string
+      quota_bytes:
+        type: integer
+      quota_inodes:
+        type: integer
+      quota_until:
+        description: Set while an administrator's quota stands in for the target's.
+        type: string
+      start_time:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      used_bytes:
+        description: Read from the storage connector.
+        type: integer
+      user_id:
+        type: string
+      username:
+        description: Read from the holder when listed.
+        type: string
+    type: object
   Subscription:
     properties:
       created_at:
@@ -940,6 +984,8 @@ definitions:
     type: object
   User:
     properties:
+      created_at:
+        type: string
       email:
         type: string
       first_name:
@@ -1342,6 +1388,15 @@ definitions:
       description:
         type: string
       name:
+        type: string
+    type: object
+  updateStorageRequest:
+    properties:
+      quota_bytes:
+        type: integer
+      quota_until:
+        type: string
+      reason:
         type: string
     type: object
   userAgreementDetail:
@@ -5670,6 +5725,85 @@ paths:
       summary: List the privileges a service account may hold
       tags:
       - Service accounts
+  /storages:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Storage'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List storages
+      tags:
+      - Storages
+  /storages/{id}:
+    delete:
+      description: It goes with the storages under it, once all are pending.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a pending storage
+      tags:
+      - Storages
+    put:
+      consumes:
+      - application/json
+      description: Sets its temporary quota, which lasts until a date at most 90 days
+        ahead.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Storage update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateStorageRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a storage
+      tags:
+      - Storages
   /user-identities:
     post:
       consumes:
@@ -5871,6 +6005,10 @@ paths:
       - description: Only users with an external identity from this source
         in: query
         name: identity_source
+        type: string
+      - description: Accepts signed field names
+        in: query
+        name: sort
         type: string
       produces:
       - application/json

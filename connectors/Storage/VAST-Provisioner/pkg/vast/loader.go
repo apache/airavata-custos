@@ -23,8 +23,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,48 +30,48 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
-	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/folders"
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
-	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // Type is the connector type in the config file and the subscriber name on the bus.
 const Type = "vast-storage-provisioner"
 
-func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
-	if err := db.MigrateConnectorFS(database, folders.Migrations, "migrations", "vast"); err != nil {
-		return err
-	}
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	entries, _ := connectorConfig.Config["clusters"].([]interface{})
 	clusters := map[string]subscribers.Cluster{}
-	registry := folders.New(database, func(clusterID string) (folders.VMS, error) {
-		c, ok := clusters[clusterID]
-		if !ok {
-			return nil, fmt.Errorf("vast provisioner: cluster %q is not configured", clusterID)
-		}
-		return c.VMS, nil
-	}, coreService)
 	for _, e := range entries {
 		cluster, _ := e.(map[string]interface{})
 		vms, _ := cluster["vast"].(map[string]interface{})
 		vmsURL, username, password := setting(vms, "url"), setting(vms, "username"), setting(vms, "password")
 		tenantID, _ := vms["tenant_id"].(int)
 		clusterID := setting(cluster, "id")
-		targets, _ := cluster["targets"].([]interface{})
-		if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" || len(targets) == 0 {
-			return fmt.Errorf("vast provisioner: cluster %q needs id, vast.url, vast.username, vast.password, vast.tenant_id and targets", clusterID)
+		if vmsURL == "" || username == "" || password == "" || tenantID == 0 || clusterID == "" {
+			return fmt.Errorf("vast provisioner: cluster %q needs id, vast.url, vast.username, vast.password and vast.tenant_id", clusterID)
 		}
-		mounts, err := parseMounts(targets)
-		if err != nil {
-			return err
+		c := subscribers.Cluster{VMS: client.New(vmsURL, username, password, tenantID), Views: map[models.StorageType]bool{}}
+		targets := coreService.ClaimStorageTargets(clusterID, c.VMS.Used)
+		if len(targets) == 0 {
+			return fmt.Errorf("vast provisioner: cluster %s has no core.storage targets", clusterID)
 		}
-		c := subscribers.Cluster{ID: clusterID, VMS: client.New(vmsURL, username, password, tenantID), Mounts: mounts, Folders: registry}
+		views, _ := vms["views"].(map[string]interface{})
+		if len(views) != len(targets) {
+			return fmt.Errorf("vast provisioner: cluster %s needs vast.views to say, for each core.storage target type, whether it is a view", clusterID)
+		}
+		hasViews := false
+		for typ := range targets {
+			view, ok := views[string(typ)].(bool)
+			if !ok {
+				return fmt.Errorf("vast provisioner: cluster %s needs vast.views.%s to be true or false", clusterID, typ)
+			}
+			c.Views[typ], hasViews = view, hasViews || view
+		}
 		// Verify that view policy is set otherwise stop the startup instead of failing every create request.
-		if slices.ContainsFunc(mounts, func(m subscribers.Mount) bool { return m.View }) {
+		if hasViews {
 			policy := setting(vms, "view_policy")
 			for p := range strings.SplitSeq(setting(vms, "view_protocols"), ",") {
 				if p = strings.TrimSpace(p); p != "" {
@@ -83,6 +81,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 			if policy == "" || len(c.ViewProtocols) == 0 {
 				return fmt.Errorf("vast provisioner: cluster %s has view targets, so vast.view_policy and vast.view_protocols are required", clusterID)
 			}
+			var err error
 			if c.ViewPolicyID, err = c.VMS.ViewPolicyID(ctx, policy); err != nil {
 				return fmt.Errorf("vast provisioner: cluster %s: %w", clusterID, err)
 			}
@@ -101,7 +100,6 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 		}
 		interval = d
 	}
-	registry.RegisterRoutes(router)
 	subscriber := subscribers.NewStorageSubscriber(eventBus, coreService, clusters)
 	subscriber.RegisterSubscribers(Type)
 	wg.Add(1)
@@ -115,22 +113,4 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 func setting(m map[string]interface{}, key string) string {
 	s, _ := m[key].(string)
 	return s
-}
-
-func parseMounts(storage []interface{}) ([]subscribers.Mount, error) {
-	var mounts []subscribers.Mount
-	for i, e := range storage {
-		m, _ := e.(map[string]interface{})
-		str := func(k string) string { v, _ := m[k].(string); return v }
-		hardLimit, _ := m["hard_limit_size"].(int)
-		hardLimitInodes, _ := m["hard_limit_inodes"].(int)
-		view, _ := m["view"].(bool)
-		mode, err := strconv.ParseInt(str("mode"), 8, 32)
-		if err != nil {
-			return nil, fmt.Errorf("vast provisioner: targets[%d].mode must be octal, such as \"0700\": %w", i, err)
-		}
-		mounts = append(mounts, subscribers.Mount{Path: str("path"), Owner: str("owner"), Group: str("group"),
-			Mode: int(mode), HardLimit: int64(hardLimit), HardLimitInodes: int64(hardLimitInodes), View: view})
-	}
-	return mounts, nil
 }
