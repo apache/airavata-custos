@@ -54,7 +54,6 @@ export function useCurrentUser() {
         id: session.user.id ?? session.user.email ?? "",
         email: session.user.email ?? "",
         name: session.user.name ?? session.user.email ?? "",
-        privileges: session.privileges ?? [],
       }
     : null;
   return { user, status };

@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { privilegeKeySchema } from "@/features/core/identity/schemas";
 import { zUser } from "@/generated/core/zod.gen";
 import { serverEnv } from "@/lib/env";
 import NextAuth, { type NextAuthConfig } from "next-auth";
@@ -26,7 +25,6 @@ import { z } from "zod";
 // Only what the token keeps from GET /me.
 const meTokenSchema = z.object({
   user: zUser.pick({ id: true }).nullable(),
-  privileges: z.array(privilegeKeySchema),
   onboarding: z.object({ required: z.boolean() }),
   consent: z.object({ pending: z.array(z.unknown()) }),
 });
@@ -50,7 +48,6 @@ async function loadProfile(token: JWT, bearer: string | undefined) {
     if (!res.ok) return;
     const body = meTokenSchema.parse(await res.json());
     if (body.user) token.custosUserId = body.user.id;
-    token.privileges = body.privileges;
     token.needsOnboarding = body.onboarding.required;
     token.consentPending = body.consent.pending.length > 0;
   } catch {
@@ -92,22 +89,21 @@ export const authConfig: NextAuthConfig = {
   ],
   callbacks: {
     async jwt({ token, account, trigger }) {
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
-        await loadProfile(token, backendBearer(account.access_token, account.id_token));
+      if (account) {
+        // The cookie keeps only the backend bearer and the id_token (the logout hint); an opaque
+        // access token the backend never sees would only push the response headers past proxy limits.
+        const bearer = backendBearer(account.access_token, account.id_token);
+        if (bearer && bearer !== account.id_token) token.accessToken = bearer;
+        if (account.id_token) token.idToken = account.id_token;
+        await loadProfile(token, bearer);
       } else if (trigger === "update") {
         await loadProfile(token, backendBearer(token.accessToken, token.idToken));
-      }
-      if (account?.id_token) {
-        // Needed for the Keycloak end-session endpoint's id_token_hint.
-        token.idToken = account.id_token;
       }
       return token;
     },
     async session({ session, token }) {
       if (token.accessToken) session.accessToken = token.accessToken;
       if (token.idToken) session.idToken = token.idToken;
-      session.privileges = token.privileges ?? [];
       if (token.custosUserId) session.custosUserId = token.custosUserId;
       session.needsOnboarding = token.needsOnboarding === true;
       session.consentPending = token.consentPending === true;
@@ -115,7 +111,6 @@ export const authConfig: NextAuthConfig = {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.
         session.user.id = token.custosUserId ?? token.sub ?? session.user.id;
-        session.user.privileges = token.privileges ?? [];
       }
       return session;
     },

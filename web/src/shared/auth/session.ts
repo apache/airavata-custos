@@ -34,15 +34,7 @@ export async function getPortalSession(): Promise<PortalSession> {
   };
 }
 
-// Some IdPs hand out opaque access tokens while their id_tokens are JWTs;
-// the backend only verifies JWTs, so prefer whichever bearer has the JWT shape.
+// The session keeps an access token only when it is the backend's JWT bearer; otherwise the id_token is.
 export function pickBackendBearer(session: PortalSession): string | null {
-  if (!session) return null;
-  if (looksLikeJwt(session.accessToken)) return session.accessToken ?? null;
-  if (looksLikeJwt(session.idToken)) return session.idToken ?? null;
-  return session.accessToken ?? session.idToken ?? null;
-}
-
-function looksLikeJwt(token: string | null | undefined): boolean {
-  return typeof token === "string" && token.split(".").length === 3;
+  return session?.accessToken ?? session?.idToken ?? null;
 }
