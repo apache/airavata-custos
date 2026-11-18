@@ -30,5 +30,7 @@ export default async function PortalRoutesLayout({ children }: { children: React
   // A user with no privileges gets in, since their pages are limited by membership.
   // A sign-in with no Custos user sees the notice here, as a redirect would loop.
   const hasAccess = Boolean(session.custosUserId);
-  return <PortalLayout>{hasAccess ? children : <NoAccessNotice />}</PortalLayout>;
+  return (
+    <PortalLayout user={session.user}>{hasAccess ? children : <NoAccessNotice />}</PortalLayout>
+  );
 }
