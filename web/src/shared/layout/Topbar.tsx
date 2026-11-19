@@ -22,7 +22,7 @@ import { Button } from "@/shared/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "./Breadcrumbs";
-import { UserPill } from "./UserPill";
+import { type SignedInUser, UserPill } from "./UserPill";
 import { useNavHistory } from "./useNavHistory";
 
 function NavArrows() {
@@ -57,7 +57,7 @@ function NavArrows() {
   );
 }
 
-export function Topbar() {
+export function Topbar({ user }: { user: SignedInUser }) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-background px-8">
       <div className="flex items-center gap-4">
@@ -66,7 +66,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <UserPill />
+        <UserPill user={user} />
       </div>
     </header>
   );

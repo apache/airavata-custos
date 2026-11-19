@@ -28,21 +28,20 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { LogOut, Settings } from "lucide-react";
-import { useSession } from "next-auth/react";
 
-export function UserPill() {
-  const { data: session, status } = useSession();
+export type SignedInUser = { name?: string | null; email?: string | null };
+
+// The user comes from the server render, so a failed client session fetch cannot show it as signed out.
+export function UserPill({ user }: { user: SignedInUser }) {
   const { signOut, isPending } = useSignOut();
-  const loading = status === "loading";
-  const user = session?.user;
-  const name = user?.name ?? user?.email ?? "Signed out";
-  const email = user?.email ?? "no session";
-  const initial = (user?.email ?? name).slice(0, 1).toUpperCase();
+  const name = user.name ?? user.email ?? "";
+  const email = user.email ?? "";
+  const initial = (user.email ?? name).slice(0, 1).toUpperCase();
 
   return (
     <div className="flex items-center gap-3">
       <div className="flex flex-col items-end leading-tight">
-        <span className="text-sm font-semibold text-foreground">{loading ? "..." : name}</span>
+        <span className="text-sm font-semibold text-foreground">{name}</span>
         <span className="text-xs text-muted-foreground">{email}</span>
       </div>
       <DropdownMenu>

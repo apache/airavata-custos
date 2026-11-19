@@ -16,9 +16,9 @@
 // under the License.
 
 import { serverEnv } from "@/lib/env";
-import { auth } from "@/shared/auth/auth";
+import { readSessionCookie } from "@/shared/auth/session";
+import { discoverOidcEndpoints } from "@/shared/auth/oidc";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
 export const runtime = "nodejs";
 
@@ -39,22 +39,6 @@ function clearAuthCookies(request: NextRequest, res: NextResponse) {
   }
 }
 
-const discoverySchema = z.object({ end_session_endpoint: z.string() });
-
-// Discover the end-session endpoint; some issuers don't have one.
-async function discoverEndSessionEndpoint(issuer: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${issuer.replace(/\/$/, "")}/.well-known/openid-configuration`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const doc = discoverySchema.safeParse(await res.json());
-    return doc.success ? doc.data.end_session_endpoint : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function GET(request: NextRequest) {
   const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/";
   // Behind a reverse proxy request.nextUrl.origin is the internal address.
@@ -63,9 +47,9 @@ export async function GET(request: NextRequest) {
   const base = new URL("/", origin);
   const postLogout = (resolved.origin === base.origin ? resolved : base).toString();
 
-  const session = await auth();
-  const idToken = session?.idToken ?? null;
-  const endpoint = await discoverEndSessionEndpoint(serverEnv.OIDC_ISSUER_URL);
+  const idToken = (await readSessionCookie(request))?.idToken;
+  // Some issuers have no end-session endpoint.
+  const endpoint = (await discoverOidcEndpoints())?.end_session_endpoint;
 
   let redirectTo = postLogout;
   if (endpoint) {

@@ -29,7 +29,8 @@ import { QueryProvider } from "./QueryProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
+    // Only the session request can rewrite the cookie, so it polls to persist refreshed tokens.
+    <SessionProvider refetchInterval={60}>
       <ThemeProvider
         attribute="class"
         defaultTheme="light"

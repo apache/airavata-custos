@@ -16,10 +16,10 @@
 // under the License.
 
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/shared/auth/auth", () => ({
-  auth: vi.fn(async () => ({ idToken: "id-token-abc" })),
+vi.mock("@/shared/auth/session", () => ({
+  readSessionCookie: vi.fn(async () => ({ idToken: "id-token-abc" })),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -29,8 +29,6 @@ vi.mock("@/lib/env", () => ({
     NEXTAUTH_URL: "https://portal.example.org",
   },
 }));
-
-import { GET } from "../route";
 
 const fetchMock = vi.fn<typeof fetch>();
 vi.stubGlobal("fetch", fetchMock);
@@ -44,6 +42,13 @@ function request() {
   // come from NEXTAUTH_URL, never from here.
   return new NextRequest("http://localhost:3000/api/auth/end-session?callbackUrl=/sign-in");
 }
+
+// Fresh modules per test, so the cached discovery document never carries over.
+let GET: typeof import("../route").GET;
+beforeEach(async () => {
+  vi.resetModules();
+  ({ GET } = await import("../route"));
+});
 
 afterEach(() => {
   fetchMock.mockReset();

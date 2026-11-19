@@ -15,30 +15,79 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { privilegeKeySchema } from "@/features/core/identity/schemas";
 import { zUser } from "@/generated/core/zod.gen";
 import { serverEnv } from "@/lib/env";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Keycloak from "next-auth/providers/keycloak";
 import { z } from "zod";
+import { discoverOidcEndpoints } from "./oidc";
 
 // Only what the token keeps from GET /me.
 const meTokenSchema = z.object({
   user: zUser.pick({ id: true }).nullable(),
-  privileges: z.array(privilegeKeySchema),
   onboarding: z.object({ required: z.boolean() }),
   consent: z.object({ pending: z.array(z.unknown()) }),
 });
 
-function looksLikeJwt(token: string | null | undefined): boolean {
+function looksLikeJwt(token: string | null | undefined): token is string {
   return typeof token === "string" && token.split(".").length === 3;
 }
 
-// Some IdPs hand out opaque access tokens; use the JWT-shaped
-// bearer for the backend call so the verifier accepts it.
-function backendBearer(accessToken?: string, idToken?: string): string | undefined {
-  return looksLikeJwt(accessToken) ? accessToken : (idToken ?? accessToken);
+const tokenSetSchema = z.object({
+  access_token: z.string().optional(),
+  id_token: z.string().optional(),
+  refresh_token: z.string().optional(),
+});
+type TokenSet = z.infer<typeof tokenSetSchema>;
+
+function jwtExpiry(jwt: string): number | undefined {
+  try {
+    const { exp } = JSON.parse(Buffer.from(jwt.split(".")[1] ?? "", "base64url").toString());
+    return typeof exp === "number" ? exp : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// The cookie keeps only the backend bearer, the id_token (the logout hint) and the refresh token;
+// an opaque access token the backend never sees would only push response headers past proxy limits.
+function storeTokens(token: JWT, issued: TokenSet): void {
+  delete token.accessToken;
+  if (looksLikeJwt(issued.access_token)) token.accessToken = issued.access_token;
+  if (issued.id_token) token.idToken = issued.id_token;
+  if (issued.refresh_token) token.refreshToken = issued.refresh_token;
+  const bearer = backendBearerOf(token);
+  const expiresAt = bearer && jwtExpiry(bearer);
+  if (expiresAt) token.expiresAt = expiresAt;
+}
+
+async function refreshTokens(token: JWT): Promise<JWT> {
+  const failed: JWT = { ...token, error: "RefreshAccessTokenError" };
+  if (!token.refreshToken) return failed;
+  const endpoint = (await discoverOidcEndpoints())?.token_endpoint;
+  if (!endpoint) return failed;
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken,
+        client_id: serverEnv.OIDC_CLIENT_ID,
+        client_secret: serverEnv.OIDC_CLIENT_SECRET,
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) return failed;
+    const issued = tokenSetSchema.parse(await res.json());
+    // Without a new JWT bearer the old id_token would be sent after it expired.
+    if (!issued.id_token && !looksLikeJwt(issued.access_token)) return failed;
+    storeTokens(token, issued);
+    return token;
+  } catch {
+    return failed;
+  }
 }
 
 async function loadProfile(token: JWT, bearer: string | undefined) {
@@ -50,7 +99,6 @@ async function loadProfile(token: JWT, bearer: string | undefined) {
     if (!res.ok) return;
     const body = meTokenSchema.parse(await res.json());
     if (body.user) token.custosUserId = body.user.id;
-    token.privileges = body.privileges;
     token.needsOnboarding = body.onboarding.required;
     token.consentPending = body.consent.pending.length > 0;
   } catch {
@@ -59,11 +107,27 @@ async function loadProfile(token: JWT, bearer: string | undefined) {
 }
 
 const isProduction = serverEnv.NODE_ENV === "production";
-const sessionCookieName = isProduction ? "__Secure-custos.session-token" : "custos.session-token";
+export const sessionCookieName = isProduction
+  ? "__Secure-custos.session-token"
+  : "custos.session-token";
 
-// Match the access_token's natural lifetime; without refresh-token handling a
-// longer session is misleading — the inner bearer dies first.
-const SESSION_MAX_AGE_SECONDS = 60 * 60;
+// Refresh tokens keep the bearer alive; the IdP's refresh-token lifetime ends the session sooner.
+const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+// Twice the session poll interval in Providers.tsx, so a poll persists the refresh.
+const REFRESH_BEFORE_EXPIRY_SECONDS = 120;
+
+// The bearer the backend accepts: the JWT access token when the IdP issues one, else the id_token.
+export function backendBearerOf(token: JWT): string | undefined {
+  return token.accessToken ?? token.idToken;
+}
+
+// shortcut: a refresh outside the session poll cannot rewrite the cookie, so it repeats until a poll persists it.
+export async function refreshIfDue(token: JWT): Promise<JWT> {
+  const refreshDue =
+    token.expiresAt !== undefined &&
+    Date.now() / 1000 >= token.expiresAt - REFRESH_BEFORE_EXPIRY_SECONDS;
+  return refreshDue && !token.error ? refreshTokens(token) : token;
+}
 
 export const authConfig: NextAuthConfig = {
   trustHost: true,
@@ -92,22 +156,19 @@ export const authConfig: NextAuthConfig = {
   ],
   callbacks: {
     async jwt({ token, account, trigger }) {
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
-        await loadProfile(token, backendBearer(account.access_token, account.id_token));
-      } else if (trigger === "update") {
-        await loadProfile(token, backendBearer(token.accessToken, token.idToken));
+      if (account) {
+        console.info("OIDC sign-in", { refreshTokenIssued: Boolean(account.refresh_token) });
+        storeTokens(token, account);
+        await loadProfile(token, backendBearerOf(token));
+        return token;
       }
-      if (account?.id_token) {
-        // Needed for the Keycloak end-session endpoint's id_token_hint.
-        token.idToken = account.id_token;
-      }
-      return token;
+      const current = await refreshIfDue(token);
+      if (trigger === "update") await loadProfile(current, backendBearerOf(current));
+      return current;
     },
+    // Tokens stay in the encrypted cookie; the session reaches browser JS through /api/auth/session.
     async session({ session, token }) {
-      if (token.accessToken) session.accessToken = token.accessToken;
-      if (token.idToken) session.idToken = token.idToken;
-      session.privileges = token.privileges ?? [];
+      if (token.error) session.error = token.error;
       if (token.custosUserId) session.custosUserId = token.custosUserId;
       session.needsOnboarding = token.needsOnboarding === true;
       session.consentPending = token.consentPending === true;
@@ -115,7 +176,6 @@ export const authConfig: NextAuthConfig = {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.
         session.user.id = token.custosUserId ?? token.sub ?? session.user.id;
-        session.user.privileges = token.privileges ?? [];
       }
       return session;
     },

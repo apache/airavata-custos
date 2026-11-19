@@ -143,7 +143,7 @@ export function MyCertificates() {
       </div>
 
       <p className="rounded-md border bg-card p-3 text-sm text-muted-foreground">
-        A revoked certificate is still accepted by login nodes until it expires.
+        Login nodes refuse a revoked certificate at once.
       </p>
 
       <div className="flex items-center gap-3">
