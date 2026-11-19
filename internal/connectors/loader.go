@@ -26,6 +26,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/Airavata/pkg/airavata"
 	"github.com/apache/airavata-custos/connectors/Analytics/pkg/analytics"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
+	"github.com/apache/airavata-custos/connectors/LDAP/Provisioner/pkg/ldap"
 	"github.com/apache/airavata-custos/connectors/Notification/Email/pkg/email"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
@@ -48,6 +49,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		smapper.Type:     smapper.LoadConnector,
 		amie.Type:        amie.LoadConnector,
 		comanage.Type:    comanage.LoadConnector,
+		ldap.Type:        ldap.LoadConnector,
 		monitor.Type:     monitor.LoadConnector,
 		tempaccount.Type: tempaccount.LoadConnector,
 		analytics.Type:   analytics.LoadConnector,
