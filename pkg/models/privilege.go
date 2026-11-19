@@ -34,6 +34,7 @@ const (
 	ProjectsRead          PrivilegeKey = "core:projects:read"
 	ProjectsWrite         PrivilegeKey = "core:projects:write"
 	UsersRead             PrivilegeKey = "core:users:read"
+	UsersActivityRead     PrivilegeKey = "core:users:activity:read"
 	UsersWrite            PrivilegeKey = "core:users:write"
 	OrganizationsRead     PrivilegeKey = "core:organizations:read"
 	OrganizationsWrite    PrivilegeKey = "core:organizations:write"
@@ -65,6 +66,7 @@ func init() {
 		ProjectsRead,
 		ProjectsWrite,
 		UsersRead,
+		UsersActivityRead,
 		UsersWrite,
 		OrganizationsRead,
 		OrganizationsWrite,

@@ -223,6 +223,10 @@ connectors:
     type: "analytics"
     enabled: true
 
+  user-activity:
+    type: "user-activity"
+    enabled: true
+
   email-notifier:
     type: "email-notifier"
     enabled: true
