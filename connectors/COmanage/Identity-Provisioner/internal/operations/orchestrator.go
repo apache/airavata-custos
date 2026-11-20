@@ -54,9 +54,9 @@ func New(c *client.Client, core *service.Service) *Orchestrator {
 	return &Orchestrator{c: c, core: core}
 }
 
-// EnsureUnixClusterAccount creates the UnixClusterAccount in the registry. An account
+// ProvisionUnixClusterAccount creates the UnixClusterAccount in the registry. An account
 // that is not approved is skipped, whichever event asked for it.
-func (o *Orchestrator) EnsureUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+func (o *Orchestrator) ProvisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
 	if cu.ApprovalStatus != models.ComputeClusterUserApproved {
 		return nil
 	}
@@ -67,7 +67,7 @@ func (o *Orchestrator) EnsureUnixClusterAccount(ctx context.Context, cu *models.
 		attribute.String("comanage.user_id", cu.UserID),
 		attribute.Int("comanage.co_id", o.c.Config().COID),
 	)
-	if err := o.ensureUnixClusterAccountImpl(ctx, cu); err != nil {
+	if err := o.provisionUnixClusterAccountImpl(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err

@@ -24,8 +24,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// RemoveAllocationGroup unbinds a deleted allocation's CoGroup from the UnixCluster, then deletes it.
-func (o *Orchestrator) RemoveAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
+// DeprovisionAllocationGroup unbinds a deleted allocation's CoGroup from the UnixCluster, then deletes it.
+func (o *Orchestrator) DeprovisionAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
 	if a.PosixGroup == nil {
 		return nil
 	}
@@ -33,7 +33,7 @@ func (o *Orchestrator) RemoveAllocationGroup(ctx context.Context, a *models.Comp
 	if err != nil || groupID == 0 {
 		return err
 	}
-	if err := o.removeCoGroup(groupID); err != nil {
+	if err := o.deleteCoGroup(groupID); err != nil {
 		return err
 	}
 	o.auditAllocation(ctx, a, "ComanageAllocationGroupDeleted", fmt.Sprintf("group=%s co_group_id=%d", *a.PosixGroup, groupID))

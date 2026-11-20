@@ -102,14 +102,14 @@ func (s *pgRoleStore) ListPrivileges(ctx context.Context, roleID string) ([]mode
 	return keys, nil
 }
 
-func (s *pgRoleStore) AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
+func (s *pgRoleStore) GrantPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO role_privileges (role_id, privilege) VALUES ($1, $2)`,
 		roleID, privilege)
 	return err
 }
 
-func (s *pgRoleStore) RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
+func (s *pgRoleStore) RevokePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error {
 	_, err := tx.ExecContext(ctx,
 		`DELETE FROM role_privileges WHERE role_id = $1 AND privilege = $2`,
 		roleID, privilege)

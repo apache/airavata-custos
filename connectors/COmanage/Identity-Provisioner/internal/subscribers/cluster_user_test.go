@@ -33,25 +33,25 @@ type fakeOps struct {
 	deactivated []string
 }
 
-func (f *fakeOps) EnsureUnixClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) ProvisionUnixClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.provisioned = append(f.provisioned, cu.ID)
 	return nil
 }
-func (f *fakeOps) DeleteUnixClusterAccount(context.Context, *models.ComputeClusterUser) error {
+func (f *fakeOps) DeprovisionUnixClusterAccount(context.Context, *models.ComputeClusterUser) error {
 	return nil
 }
 func (f *fakeOps) DeactivateUnixClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.deactivated = append(f.deactivated, cu.ID)
 	return nil
 }
-func (f *fakeOps) EnsureUnixClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) ProvisionAdminGroupMembership(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.admins = append(f.admins, cu.ID)
 	return nil
 }
-func (f *fakeOps) EnsureAllocationGroup(context.Context, *models.ComputeAllocation) error {
+func (f *fakeOps) ProvisionAllocationGroup(context.Context, *models.ComputeAllocation) error {
 	return nil
 }
-func (f *fakeOps) RemoveAllocationGroup(context.Context, *models.ComputeAllocation) error {
+func (f *fakeOps) DeprovisionAllocationGroup(context.Context, *models.ComputeAllocation) error {
 	return nil
 }
 

@@ -70,15 +70,15 @@ func (h *DataAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 	user, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, personGlobalID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
-			slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence and UserIdentity upsert",
+			slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence and findOrCreateUserIdentity",
 				"personGlobalID", personGlobalID)
 		} else {
 			return fmt.Errorf("data_account_create: resolve user: %w", err)
 		}
 	}
 	if user != nil {
-		if err := ensureUserIdentity(ctx, h.svc, user.ID, personGlobalID); err != nil {
-			return fmt.Errorf("data_account_create: ensure user identity: %w", err)
+		if err := findOrCreateUserIdentity(ctx, h.svc, user.ID, personGlobalID); err != nil {
+			return fmt.Errorf("data_account_create: find or create user identity: %w", err)
 		}
 		dns := getDNList(body)
 		if len(dns) > 0 {

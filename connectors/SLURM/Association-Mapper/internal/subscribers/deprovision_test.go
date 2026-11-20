@@ -214,7 +214,7 @@ func TestReconcilerRemovesStaleAssociation(t *testing.T) {
 
 // Guard: an empty desired set almost always means a failed lookup, so the
 // sweep must not read it as "revoke everyone".
-func TestReconcilerDoesNotPruneWhenNothingIsDesired(t *testing.T) {
+func TestReconcilerDoesNotDeprovisionWhenNothingIsDesired(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		memberships:   nil, // nobody entitled to anything
@@ -260,13 +260,13 @@ func TestReconcilerLeavesAccountLevelAssociationsAlone(t *testing.T) {
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
 	if n := len(slurm.allDeletes()); n != 0 {
-		t.Fatalf("account-level associations must not be pruned, got %d deletes", n)
+		t.Fatalf("account-level associations must not be deprovisioned, got %d deletes", n)
 	}
 }
 
 // A member inside the provisioning grace is still entitled, so their fresh
-// association must not be pruned just because the sweep is not writing it yet.
-func TestReconcilerDoesNotPruneAssociationsInsideGrace(t *testing.T) {
+// association must not be deprovisioned just because the sweep is not writing it yet.
+func TestReconcilerDoesNotDeprovisionAssociationsInsideGrace(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Second),
 		memberships:   []models.ComputeAllocationMembership{testMembership()},

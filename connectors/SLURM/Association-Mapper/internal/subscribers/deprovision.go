@@ -29,11 +29,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// removeAssociationsForMembership revokes one member's access to one
+// deprovisionAssociationsForMembership deprovisions one member's associations on one
 // allocation, for when their membership is deactivated or deleted. Their
 // access to other allocations, and everyone else's access to this one, is
 // untouched.
-func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) deprovisionAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if errors.Is(err, service.ErrNotFound) {
 		return leftToCleanup(membership, "allocation")
@@ -75,9 +75,9 @@ func leftToCleanup(membership models.ComputeAllocationMembership, missing string
 	return nil
 }
 
-// removeAssociationsForAllocation drops every member's access to an allocation
+// deprovisionAssociationsForAllocation deprovisions every member's associations on an allocation
 // at once, for when the allocation itself stops being usable.
-func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
+func (a *AssociationSubscriber) deprovisionAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
 		return fmt.Errorf("get compute cluster: %w", err)
@@ -94,8 +94,8 @@ func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Cont
 	return nil
 }
 
-// removeUserFromCluster deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
-func (a *AssociationSubscriber) removeUserFromCluster(ctx context.Context, csu models.ComputeClusterUser) error {
+// deprovisionSlurmUser deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
+func (a *AssociationSubscriber) deprovisionSlurmUser(ctx context.Context, csu models.ComputeClusterUser) error {
 	cluster, err := a.coreService.GetComputeCluster(ctx, csu.ComputeClusterID)
 	if err != nil {
 		return fmt.Errorf("get compute cluster: %w", err)
@@ -138,7 +138,7 @@ func (a *AssociationSubscriber) activateAssociationsForAllocation(ctx context.Co
 		if member.MembershipStatus != models.ACTIVE {
 			continue
 		}
-		if err := a.upsertAssociationsForMembership(ctx, member.ComputeAllocationMembership); err != nil {
+		if err := a.provisionAssociationsForMembership(ctx, member.ComputeAllocationMembership); err != nil {
 			if errors.Is(err, errNotProvisioned) {
 				continue
 			}

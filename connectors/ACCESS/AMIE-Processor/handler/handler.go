@@ -111,12 +111,12 @@ func getResourceList(body map[string]any) []string {
 	return result
 }
 
-// ensureUserIdentity is the idempotent upsert used by data_project_create
+// findOrCreateUserIdentity finds or creates the AMIE UserIdentity for data_project_create
 // and data_account_create. It is a no-op when the user already has an AMIE
 // UserIdentity row for this globalID; creates one otherwise. Pre-existing
 // rows are NOT touched here, attribute updates (org / orgCode / nsfStatus)
 // are owned by request_user_modify.
-func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
+func findOrCreateUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
 	if existing, err := svc.GetUserIdentityBySourceAndExternalID(ctx, amieIdentitySource, globalID); err == nil {
 		if existing.UserID == userID {
 			return nil
@@ -202,9 +202,9 @@ func transactionSuccessReply(message string) map[string]any {
 	}
 }
 
-// ensureClusterUser returns the user's existing cluster mapping or
-// provisions a new one via the POSIX allocator.
-func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
+// findOrCreateClusterUser returns the user's existing cluster mapping or
+// creates a new one via the POSIX allocator.
+func findOrCreateClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
 	existing, err := svc.ListComputeClusterUsersByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list compute cluster users: %w", err)
@@ -217,9 +217,9 @@ func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, use
 	return allocateAndCreateClusterUser(ctx, svc, clusterID, userID)
 }
 
-// ensureUserByEmail returns the user with email, creating a PENDING one if none exists.
+// findOrCreateUserByEmail returns the user with email, creating a PENDING one if none exists.
 // An existing user, added internally, takes the organization and name from ACCESS.
-func ensureUserByEmail(ctx context.Context, svc *service.Service, orgID, email, first, last string) (*models.User, error) {
+func findOrCreateUserByEmail(ctx context.Context, svc *service.Service, orgID, email, first, last string) (*models.User, error) {
 	user, err := svc.GetUserByEmail(ctx, email)
 	switch {
 	case err == nil:
@@ -245,10 +245,10 @@ func ensureUserByEmail(ctx context.Context, svc *service.Service, orgID, email, 
 	}
 }
 
-// ensureOrganization looks up an Organization by its originated_id (the
+// findOrCreateOrganization looks up an Organization by its originated_id (the
 // AMIE-side org code such as "TEST123"); creates one if missing, using the
 // human-readable organization name from the packet.
-func ensureOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
+func findOrCreateOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
 	if code == "" {
 		return nil, fmt.Errorf("organization code is empty")
 	}
