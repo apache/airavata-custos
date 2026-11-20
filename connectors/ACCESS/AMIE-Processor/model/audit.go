@@ -25,7 +25,6 @@ const (
 	AuditPacketFailed         AuditAction = "PACKET_FAILED"
 	AuditCreatePerson         AuditAction = "CREATE_PERSON"
 	AuditUpdatePerson         AuditAction = "UPDATE_PERSON"
-	AuditDeletePerson         AuditAction = "DELETE_PERSON"
 	AuditMergePersons         AuditAction = "MERGE_PERSONS"
 	AuditCreateAccount        AuditAction = "CREATE_ACCOUNT"
 	AuditCreateProject        AuditAction = "CREATE_PROJECT"
