@@ -28,7 +28,7 @@ import {
 } from "../components/ReviewClusterAccountDialog";
 
 const [pending] = zComputeClusterUserResponse.array().parse(fixture);
-if (!pending) throw new Error("no cluster account fixture");
+if (!pending) throw new Error("no compute cluster user fixture");
 
 const server = setupServer(...projectsHandlers);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

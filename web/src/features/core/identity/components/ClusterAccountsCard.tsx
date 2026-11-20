@@ -27,14 +27,14 @@ export function ClusterAccountsCard({ accounts }: { accounts: CallerComputeClust
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="px-6 pt-5 pb-4">
-        <CardTitle>Cluster accounts</CardTitle>
+        <CardTitle>Compute cluster users</CardTitle>
         <CardDescription>
           The clusters you can sign in to, and your username on each.
         </CardDescription>
       </CardHeader>
       {accounts.length === 0 ? (
         <p className="border-t border-border px-6 py-6 text-sm text-muted-foreground">
-          No cluster accounts yet.
+          No compute cluster users yet.
         </p>
       ) : (
         <ul className="divide-y divide-border border-t border-border">

@@ -54,7 +54,7 @@ import { type AccountStatusFilter, UsersTable, toAccountStatus } from "./UsersTa
 
 const PAGE_SIZE = 25;
 
-// All pages through users; a status pages through cluster accounts in that status, grouped by user.
+// All pages through users; a status pages through compute cluster users in that status, grouped by user.
 export function UsersTableContainer() {
   const ability = useAbility();
   const canReadUsers = ability.can("read", "User");
@@ -146,7 +146,7 @@ export function UsersTableContainer() {
       if (action === "approve") await approve.mutateAsync(account.id);
       else await deny.mutateAsync({ id: account.id, note });
       toast.success(
-        `Cluster account ${action === "approve" ? "approved" : "denied"} for ${account.local_username} on ${account.cluster_name}`,
+        `Compute cluster user ${action === "approve" ? "approved" : "denied"} for ${account.local_username} on ${account.cluster_name}`,
       );
       setReview(null);
     } catch (err) {

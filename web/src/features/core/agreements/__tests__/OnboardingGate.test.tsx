@@ -90,8 +90,8 @@ describe("<OnboardingGate />", () => {
     expect(await screen.findByText("Available")).toBeInTheDocument();
   });
 
-  // Checks that a user with no cluster account sees no username field and can continue when no agreement is published.
-  it("lets a user without a cluster account continue", async () => {
+  // Checks that a user with no compute cluster user sees no username field and can continue when no agreement is published.
+  it("lets a user without a compute cluster user continue", async () => {
     server.use(
       http.get("*/api/v1/me", () =>
         HttpResponse.json({

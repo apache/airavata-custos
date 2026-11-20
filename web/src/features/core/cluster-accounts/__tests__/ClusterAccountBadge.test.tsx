@@ -45,7 +45,7 @@ function decisionsFor(id: string): string[] {
   return names;
 }
 
-describe("cluster accounts", () => {
+describe("compute cluster users", () => {
   // Make sure an approved account reads as provisioning until it exists on
   // the cluster, so the admin can tell approval from a working login.
   it("tells approved from active by provisioned_at", () => {
