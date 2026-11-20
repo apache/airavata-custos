@@ -20,7 +20,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"go.opentelemetry.io/otel/codes"
@@ -44,7 +43,7 @@ func NewRequestAccountCreateHandler(svc *service.Service, clusterID string, amie
 
 func (h *RequestAccountCreateHandler) SupportsType() string { return "request_account_create" }
 
-// Handle finds or creates the User (with UserIdentity), looks up the Project (which
+// Handle finds the User by UserIdentity or email or creates it, looks up the Project (which
 // must already exist from a prior request_project_create), provisions a
 // ComputeClusterUser on the configured cluster, and attaches a
 // ComputeAllocationMembership against the project's allocation. Replies with
@@ -70,20 +69,37 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err := requireText(getString(body, "GrantNumber"), "GrantNumber"); err != nil {
 		return err
 	}
-	userGlobalID := getString(body, "UserGlobalID")
-	if err := requireText(userGlobalID, "UserGlobalID"); err != nil {
+	person := getPerson(body, "User")
+	if err := requireText(person.GlobalID, "UserGlobalID"); err != nil {
 		return err
 	}
-	if err := requireText(getString(body, "UserEmail"), "UserEmail"); err != nil {
+	if err := requireText(person.Email, "UserEmail"); err != nil {
 		return err
 	}
 	if h.clusterID == "" {
 		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}
 
-	user, err := h.findOrCreateUser(ctx, body, userGlobalID)
+	user, match, err := findPersonUser(ctx, h.svc, person)
 	if err != nil {
-		return fmt.Errorf("request_account_create: find or create user: %w", err)
+		return fmt.Errorf("request_account_create: find user: %w", err)
+	}
+	if match != personBound {
+		org, err := findOrCreateOrganization(ctx, h.svc, person.OrgCode, person.OrgName)
+		if err != nil {
+			return fmt.Errorf("request_account_create: find or create user organization: %w", err)
+		}
+		if match == personNew {
+			user, err = createPersonUser(ctx, h.svc, org.ID, person)
+		} else {
+			err = changeUserOrganizationAndName(ctx, h.svc, user, org.ID, person)
+		}
+		if err != nil {
+			return fmt.Errorf("request_account_create: %w", err)
+		}
+		if err := createPersonUserIdentity(ctx, h.svc, user.ID, person); err != nil {
+			return fmt.Errorf("request_account_create: %w", err)
+		}
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreatePerson, "user", user.ID, ""); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_PERSON: %w", err)
@@ -121,9 +137,20 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 
 	role := normalizeAMIERole(normalizeRole(getString(body, "UserRole")))
-	membership, err := h.findOrCreateMembership(ctx, tx, &allocation, user.ID)
+	membership, err := findAllocationMembership(ctx, h.svc, allocation.ID, user.ID)
 	if err != nil {
-		return fmt.Errorf("request_account_create: find or create membership: %w", err)
+		return fmt.Errorf("request_account_create: find membership: %w", err)
+	}
+	switch {
+	case membership == nil:
+		if membership, err = createAllocationMembership(ctx, h.svc, &allocation, user.ID); err != nil {
+			return fmt.Errorf("request_account_create: create membership: %w", err)
+		}
+	// The spec says a create packet for a known member activates it, unless its project is inactive.
+	case allocation.Status == models.ACTIVE && membership.MembershipStatus != models.ACTIVE:
+		if membership, err = h.svc.UpdateMembershipStatusTx(ctx, tx, membership.ID, models.ACTIVE); err != nil {
+			return fmt.Errorf("request_account_create: activate membership: %w", err)
+		}
 	}
 	if err := h.svc.SetProjectRole(ctx, project.ID, user.ID, role); err != nil {
 		return fmt.Errorf("request_account_create: set project role: %w", err)
@@ -148,56 +175,6 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: %w", err)
 	}
 	return nil
-}
-
-func (h *RequestAccountCreateHandler) findOrCreateUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
-	if u, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, globalID); err == nil {
-		return u, nil
-	} else if !errors.Is(err, service.ErrNotFound) {
-		return nil, err
-	}
-
-	org, err := findOrCreateOrganization(ctx, h.svc, getString(body, "UserOrgCode"), getString(body, "UserOrganization"))
-	if err != nil {
-		return nil, fmt.Errorf("find or create user organization: %w", err)
-	}
-	email := getString(body, "UserEmail")
-	user, err := findOrCreateUserByEmail(ctx, h.svc, org.ID, email, getString(body, "UserFirstName"), getString(body, "UserLastName"))
-	if err != nil {
-		return nil, err
-	}
-	if _, err := h.svc.CreateUserIdentity(ctx, &models.UserIdentity{
-		UserID:     user.ID,
-		Source:     amieIdentitySource,
-		ExternalID: globalID,
-		Email:      email,
-	}); err != nil {
-		return nil, fmt.Errorf("create user identity: %w", err)
-	}
-	return user, nil
-}
-
-// findOrCreateMembership finds or creates the user's membership, reactivating a known member only while the allocation is active.
-// On an inactive project the member stays inactive, as the spec says.
-func (h *RequestAccountCreateHandler) findOrCreateMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, userID string) (*models.ComputeAllocationMembership, error) {
-	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
-	if err != nil {
-		return nil, fmt.Errorf("list memberships: %w", err)
-	}
-	for _, m := range existing {
-		if m.UserID == userID {
-			if allocation.Status != models.ACTIVE {
-				return &m.ComputeAllocationMembership, nil
-			}
-			return reactivate(ctx, tx, h.svc, m.ComputeAllocationMembership)
-		}
-	}
-	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
-		ComputeAllocationID: allocation.ID,
-		UserID:              userID,
-		StartTime:           allocation.StartTime,
-		EndTime:             allocation.EndTime,
-	})
 }
 
 // normalizeAMIERole maps the AMIE role enum to the persisted project role

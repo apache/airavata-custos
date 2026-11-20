@@ -60,7 +60,20 @@ func (o *Orchestrator) provisionUnixClusterAccountImpl(ctx context.Context, cu *
 		o.audit(ctx, cu, "ComanageCoPersonCreated", fmt.Sprintf("comanage_id=%s email=%s", personID, user.Email))
 	}
 
-	if err := o.storePersonID(ctx, cu.UserID, personID); err != nil {
+	storeCtx, storeSpan := tracing.Start(ctx, "comanage.store_person_id")
+	identity, err := o.findCoPersonUserIdentity(storeCtx, cu.UserID)
+	if err == nil && identity == nil {
+		err = o.createCoPersonUserIdentity(storeCtx, cu.UserID, personID)
+	}
+	if err != nil {
+		storeSpan.RecordError(err)
+		storeSpan.SetStatus(codes.Error, err.Error())
+	} else if identity != nil {
+		identity.ExternalID = personID
+		err = o.core.UpdateUserIdentity(storeCtx, identity)
+	}
+	storeSpan.End()
+	if err != nil {
 		log.WarnContext(ctx, "comanage: failed to store CoPerson id", "err", err)
 	}
 
