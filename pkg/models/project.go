@@ -23,11 +23,10 @@ import "time"
 type UserStatus string
 
 const (
-	UserPending   UserStatus = "PENDING"
-	UserActive    UserStatus = "ACTIVE"
-	UserInactive  UserStatus = "INACTIVE"
-	UserSuspended UserStatus = "SUSPENDED"
-	UserMerged    UserStatus = "MERGED"
+	UserPending  UserStatus = "PENDING"
+	UserActive   UserStatus = "ACTIVE"
+	UserInactive UserStatus = "INACTIVE"
+	UserMerged   UserStatus = "MERGED"
 )
 
 // ProjectStatus enumerates the lifecycle states a Project may occupy.

@@ -30,6 +30,7 @@ import (
 type fakeOps struct {
 	provisioned []string
 	admins      []string
+	deactivated []string
 }
 
 func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
@@ -37,6 +38,10 @@ func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClus
 	return nil
 }
 func (f *fakeOps) RemoveClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
+func (f *fakeOps) DeactivateClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
+	f.deactivated = append(f.deactivated, cu.ID)
+	return nil
+}
 func (f *fakeOps) EnsureClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.admins = append(f.admins, cu.ID)
 	return nil
@@ -46,6 +51,10 @@ func (f *fakeOps) EnsureAllocationGroup(context.Context, *models.ComputeAllocati
 }
 func (f *fakeOps) RemoveAllocationGroup(context.Context, *models.ComputeAllocation) error {
 	return nil
+}
+
+func activeUser(_ context.Context, id string) (*models.User, error) {
+	return &models.User{ID: id, Status: models.UserActive}, nil
 }
 
 func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.AuditEvent) {
@@ -58,6 +67,7 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 			return e, nil
 		},
 		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+		GetUserFunc:                activeUser,
 	}
 	ops := &fakeOps{}
 	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
@@ -98,6 +108,7 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 				return &models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: approval}, nil
 			},
 			ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+			GetUserFunc:                activeUser,
 		}
 		ops := &fakeOps{}
 		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
@@ -118,5 +129,51 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 	// An admin account still awaiting approval does not.
 	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountPending); len(ops.admins) != 0 {
 		t.Fatalf("pending admin account: admin group calls = %v, want none", ops.admins)
+	}
+}
+
+// Make sure an account provisioned while its user left ACTIVE is suspended again.
+func TestClusterUserApproved_SuspendsWhenUserLeftActiveDuringProvisioning(t *testing.T) {
+	reads := 0
+	core := &service.CoreServiceMock{
+		GetOIDCIdentityFunc: func(context.Context, string) (*models.UserIdentity, error) {
+			return &models.UserIdentity{OIDCSub: "sub-1"}, nil
+		},
+		CreateAuditEventFunc:       func(_ context.Context, e *models.AuditEvent) (*models.AuditEvent, error) { return e, nil },
+		ListAllocationsForUserFunc: func(context.Context, string) ([]models.ComputeAllocationMembership, error) { return nil, nil },
+		GetUserFunc: func(_ context.Context, id string) (*models.User, error) {
+			reads++
+			if reads > 1 {
+				return &models.User{ID: id, Status: models.UserInactive}, nil
+			}
+			return activeUser(context.Background(), id)
+		},
+	}
+	ops := &fakeOps{}
+	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
+	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
+		t.Fatal(err)
+	}
+	if len(ops.provisioned) != 1 || len(ops.deactivated) != 1 {
+		t.Fatalf("provisioned = %v, deactivated = %v, want one of each", ops.provisioned, ops.deactivated)
+	}
+}
+
+// Make sure an approve event for a user who is not ACTIVE suspends the account, so a retry finishes a failed suspend.
+func TestClusterUserApproved_SuspendsWhenUserIsNotActive(t *testing.T) {
+	core := &service.CoreServiceMock{
+		GetUserFunc: func(_ context.Context, id string) (*models.User, error) {
+			return &models.User{ID: id, Status: models.UserInactive}, nil
+		},
+	}
+	ops := &fakeOps{}
+	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
+	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
+		t.Fatal(err)
+	}
+	if len(ops.provisioned) != 0 || len(ops.deactivated) != 1 {
+		t.Fatalf("provisioned = %v, deactivated = %v, want only a suspend", ops.provisioned, ops.deactivated)
 	}
 }

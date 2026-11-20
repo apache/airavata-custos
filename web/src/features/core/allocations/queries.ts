@@ -44,8 +44,9 @@ import {
   listChangeRequests,
   listUserMemberships,
   rejectChangeRequest,
-  removeMember,
+  setAllocationActive,
   setAllocationResources,
+  setMemberActive,
   submitChangeRequest,
 } from "./api";
 import type {
@@ -135,6 +136,15 @@ export function useDeleteAllocation() {
   });
 }
 
+export function useSetAllocationActive(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (active: boolean) => setAllocationActive(allocationId, active),
+    onError: (err) => toast.error(err.message),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
+  });
+}
+
 export function useSetAllocationResources(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
@@ -199,10 +209,11 @@ export function useAddMember(allocationId: string) {
   });
 }
 
-export function useRemoveMember(allocationId: string) {
+export function useSetMemberActive(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => removeMember(id),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      setMemberActive(id, active),
     onSuccess: () => invalidateMembers(client, allocationId),
   });
 }
@@ -224,7 +235,7 @@ export function useMembershipsByAllocation(allocationIds: string[]) {
   });
 }
 
-// Revokes access by deleting the membership, or grants it for the allocation's remaining term.
+// Reactivates or deactivates an existing membership, or adds one for the allocation's remaining term.
 export function useToggleAllocationAccess() {
   const client = useQueryClient();
   return useMutation({
@@ -238,7 +249,7 @@ export function useToggleAllocationAccess() {
       membership: AllocationMembership | undefined;
     }) =>
       membership
-        ? removeMember(membership.id)
+        ? setMemberActive(membership.id, membership.membership_status !== "ACTIVE")
         : addMember({
             compute_allocation_id: allocation.id,
             user_id: userId,

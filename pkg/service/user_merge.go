@@ -29,8 +29,8 @@ import (
 
 // MergeUsers consolidates the retiring user into the surviving user. All
 // identity-forward state moves to the survivor; historical truth stays in
-// place. The retiring user is flipped to status=MERGED. All work happens in a
-// single transaction.
+// place. The retiring user is flipped to status=MERGED, and a PENDING survivor
+// of an ACTIVE user becomes ACTIVE. All work happens in a single transaction.
 //
 // Moved to survivor (duplicates on the retiring user are dropped first):
 //   - user_identities
@@ -132,11 +132,21 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		if err := s.projMemberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project memberships: %w", err)
 		}
+		// The survivor takes the retiring user's sign-in identity, so it is ACTIVE if either was.
+		if retiring.Status == models.UserActive && survivor.Status != models.UserActive {
+			if err := s.users.UpdateStatus(ctx, tx, survivingID, models.UserActive); err != nil {
+				return err
+			}
+			survivor.Status = models.UserActive
+		}
 		if err := s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged); err != nil {
 			return err
 		}
 		retiring.Status = models.UserMerged
 		if err := s.publishUserTx(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
+			return err
+		}
+		if err := s.setUserAccountsActiveTx(ctx, tx, survivingID, survivor.Status == models.UserActive); err != nil {
 			return err
 		}
 		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, survivor)
@@ -149,7 +159,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 
 // canBeMerged returns true for the user statuses eligible for merging:
 // ACTIVE (already linked) or PENDING (provisioned upstream, not yet linked).
-// INACTIVE, SUSPENDED, and MERGED are intentionally excluded.
+// INACTIVE and MERGED are intentionally excluded.
 func canBeMerged(s models.UserStatus) bool {
 	return s == models.UserActive || s == models.UserPending
 }

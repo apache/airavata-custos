@@ -158,6 +158,8 @@ func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
 			_, _ = io.WriteString(w, `{"ResponseType":"CoGroups","Version":"1.0","CoGroups":[`+strings.Join(groups, ",")+`]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_groups.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroup","Id":"55"}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/identifiers.json") && r.URL.Query().Has("copersonid"):
+			_, _ = io.WriteString(w, `{"ResponseType":"Identifiers","Version":"1.0","Identifiers":[{"Identifier":"Person100099","Type":"comanage_id"}]}`)
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/identifiers.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"Identifiers","Version":"1.0","Identifiers":[]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/identifiers.json"):

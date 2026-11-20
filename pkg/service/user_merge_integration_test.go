@@ -205,3 +205,39 @@ func TestDeleteUser_RefusesAUserStillReferenced(t *testing.T) {
 		t.Fatalf("delete a project PI: %v, want ErrInUse", err)
 	}
 }
+
+// Make sure a PENDING survivor of an ACTIVE user becomes ACTIVE and keeps the moved account provisioned, and a merged user's status stays MERGED.
+func TestMergeUsers_ActivatesPendingSurvivorOfActiveUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	survivor := seedUser(t, database, fmt.Sprintf("survivor-%s@example.edu", uuid.NewString()))
+	retiring := seedUser(t, database, fmt.Sprintf("retiring-%s@example.edu", uuid.NewString()))
+	if _, err := database.Exec(`UPDATE users SET status = $1 WHERE id = $2`, models.UserPending, survivor); err != nil {
+		t.Fatalf("set survivor PENDING: %v", err)
+	}
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "merge-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	moved, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: retiring,
+		LocalUsername: "merge-" + uuid.NewString()[:8], ApprovalStatus: models.ClusterAccountApproved, ReviewedBy: &retiring})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), moved.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	if after, err := svc.GetUser(ctx(), survivor); err != nil || after.Status != models.UserActive {
+		t.Errorf("survivor: got %+v, %v, want ACTIVE", after, err)
+	}
+	if after, err := svc.GetComputeClusterUser(ctx(), moved.ID); err != nil || after.UserID != survivor || after.ProvisionedAt == nil {
+		t.Errorf("moved account: got %+v, %v, want the survivor's and provisioned", after, err)
+	}
+	if _, err := svc.UpdateUserStatus(ctx(), retiring, models.UserActive); !errors.Is(err, ErrInvalidInput) {
+		t.Errorf("reactivating the merged user: got %v, want ErrInvalidInput", err)
+	}
+}
