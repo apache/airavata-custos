@@ -18,7 +18,7 @@
 "use client";
 
 import { useProject } from "@/features/core/projects/queries";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -35,7 +35,7 @@ import { AllocationRef } from "./AllocationRef";
 export type ReviewAction = "approve" | "deny";
 
 export type ReviewClusterAccountDialogProps = {
-  accounts: ClusterAccountResponse[];
+  accounts: ComputeClusterUserResponse[];
   action: ReviewAction;
   bulk?: boolean;
   onOpenChange: (open: boolean) => void;

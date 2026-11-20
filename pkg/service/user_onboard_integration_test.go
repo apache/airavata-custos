@@ -395,7 +395,7 @@ func TestOnboardUser_RejectsLongUsername(t *testing.T) {
 	}
 }
 
-func newClusterAccount(t *testing.T, svc *Service, userID, name string) *models.ComputeClusterUser {
+func newComputeClusterUser(t *testing.T, svc *Service, userID, name string) *models.ComputeClusterUser {
 	t.Helper()
 	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "onb-" + uuid.NewString()[:8]})
 	if err != nil {
@@ -418,7 +418,7 @@ func TestCompleteOnboarding_HappyPath(t *testing.T) {
 	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
 	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
 	user := seedPendingUserWithEmail(t, database, email)
-	newClusterAccount(t, svc, user, "custos-jdoe")
+	newComputeClusterUser(t, svc, user, "custos-jdoe")
 	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
 
 	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
@@ -454,7 +454,7 @@ func TestCompleteOnboarding_MissingAcceptance(t *testing.T) {
 	seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
 	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
 	user := seedPendingUserWithEmail(t, database, email)
-	newClusterAccount(t, svc, user, "custos-jdoe")
+	newComputeClusterUser(t, svc, user, "custos-jdoe")
 	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
 
 	_, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe"})
@@ -483,7 +483,7 @@ func TestCompleteOnboarding_RegisteredUserKeepsUsername(t *testing.T) {
 	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
 	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
 	user := seedPendingUserWithEmail(t, database, email)
-	newClusterAccount(t, svc, user, "custos-jdoe")
+	newComputeClusterUser(t, svc, user, "custos-jdoe")
 	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: user, Source: "comanage", ExternalID: "100001"}); err != nil {
 		t.Fatalf("create comanage identity: %v", err)
 	}
@@ -502,7 +502,7 @@ func TestSetupSteps_FollowProvisioning(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	user := seedUser(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
-	cu := newClusterAccount(t, svc, user, "jdoe")
+	cu := newComputeClusterUser(t, svc, user, "jdoe")
 	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
 	if err != nil {
 		t.Fatalf("get cluster: %v", err)
@@ -531,7 +531,7 @@ func TestSetupSteps_FollowProvisioning(t *testing.T) {
 }
 
 // Make sure a user without a cluster account has no setup steps.
-func TestSetupSteps_NoneWithoutClusterAccount(t *testing.T) {
+func TestSetupSteps_NoneWithoutComputeClusterUser(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	user := seedUser(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
@@ -548,7 +548,7 @@ func TestSetupSteps_VirtualUserSkipsRegistry(t *testing.T) {
 	if _, err := database.Exec("UPDATE users SET type = $1 WHERE id = $2", models.UserTypeVirtual, user); err != nil {
 		t.Fatalf("make user virtual: %v", err)
 	}
-	cu := newClusterAccount(t, svc, user, "temp")
+	cu := newComputeClusterUser(t, svc, user, "temp")
 	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
 	if err != nil {
 		t.Fatalf("get cluster: %v", err)

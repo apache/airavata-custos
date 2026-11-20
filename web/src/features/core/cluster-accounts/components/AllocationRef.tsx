@@ -19,13 +19,13 @@
 
 import { ProjectRef } from "@/features/core/projects/components/ProjectRef";
 import { useProject } from "@/features/core/projects/queries";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 
 export function AllocationRef({
   account,
   withTitle = false,
 }: {
-  account: ClusterAccountResponse;
+  account: ComputeClusterUserResponse;
   withTitle?: boolean;
 }) {
   const { data: project } = useProject(account.project_id);

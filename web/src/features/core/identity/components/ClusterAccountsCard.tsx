@@ -18,12 +18,12 @@
 "use client";
 
 import { clusterAccountStatus } from "@/features/core/cluster-accounts/components/ClusterAccountBadge";
-import type { CallerClusterAccount } from "@/generated/core/zod.gen";
+import type { CallerComputeClusterUser } from "@/generated/core/zod.gen";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { HardDrive } from "lucide-react";
 
-export function ClusterAccountsCard({ accounts }: { accounts: CallerClusterAccount[] }) {
+export function ClusterAccountsCard({ accounts }: { accounts: CallerComputeClusterUser[] }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="px-6 pt-5 pb-4">

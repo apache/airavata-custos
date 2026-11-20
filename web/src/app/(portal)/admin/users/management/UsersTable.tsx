@@ -32,7 +32,7 @@ import type {
   UserAccountRow,
   UserManagementRow,
 } from "@/features/core/users/types";
-import type { ClusterAccountApproval, Role } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserApproval, Role } from "@/generated/core/zod.gen";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
@@ -47,7 +47,7 @@ import * as React from "react";
 import { IdentitiesCell } from "./IdentitiesCell";
 import { RolesCell } from "./RolesCell";
 
-export type AccountStatusFilter = ClusterAccountApproval | "ALL";
+export type AccountStatusFilter = ComputeClusterUserApproval | "ALL";
 
 const ACCOUNT_STATUS_LABELS: Record<AccountStatusFilter, string> = {
   ALL: "All statuses",

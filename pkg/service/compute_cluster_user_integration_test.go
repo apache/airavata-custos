@@ -202,7 +202,7 @@ func TestCreateComputeClusterUser_WaitsForApproval(t *testing.T) {
 	svc := newTestService(database)
 
 	cu := newClusterUser(t, svc, database)
-	if cu.ApprovalStatus != models.ClusterAccountPending || cu.ReviewedBy != nil {
+	if cu.ApprovalStatus != models.ComputeClusterUserPending || cu.ReviewedBy != nil {
 		t.Fatalf("expected a pending row with no reviewer, got %+v", cu)
 	}
 }
@@ -224,13 +224,13 @@ func TestCreateComputeClusterUser_ApprovedByAdminStartsProvisioning(t *testing.T
 		ComputeClusterID: cluster.ID,
 		UserID:           member,
 		LocalUsername:    "appr-" + uuid.NewString()[:8],
-		ApprovalStatus:   models.ClusterAccountApproved,
+		ApprovalStatus:   models.ComputeClusterUserApproved,
 		ReviewedBy:       &admin,
 	})
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if cu.ApprovalStatus != models.ClusterAccountApproved || cu.ReviewedAt == nil {
+	if cu.ApprovalStatus != models.ComputeClusterUserApproved || cu.ReviewedAt == nil {
 		t.Fatalf("expected an approved row with a review time, got %+v", cu)
 	}
 	if n := countDeliveries(t, svc); n != 1 {
@@ -251,7 +251,7 @@ func TestApproveComputeClusterUser_PublishesApproveEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if got.ApprovalStatus != models.ClusterAccountApproved || got.ReviewedBy == nil || *got.ReviewedBy != admin || got.ReviewedAt == nil {
+	if got.ApprovalStatus != models.ComputeClusterUserApproved || got.ReviewedBy == nil || *got.ReviewedBy != admin || got.ReviewedAt == nil {
 		t.Fatalf("expected an approved row reviewed by %s, got %+v", admin, got)
 	}
 	if n := countDeliveries(t, svc); n != 1 {
@@ -277,7 +277,7 @@ func TestDenyComputeClusterUser_PublishesDenyEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("deny: %v", err)
 	}
-	if got.ApprovalStatus != models.ClusterAccountDenied || got.ReviewNote == nil || *got.ReviewNote != "not on the collaborator list" {
+	if got.ApprovalStatus != models.ComputeClusterUserDenied || got.ReviewNote == nil || *got.ReviewNote != "not on the collaborator list" {
 		t.Fatalf("expected a denied row with the note, got %+v", got)
 	}
 	if n := countDeliveries(t, svc); n != 1 {
@@ -302,7 +302,7 @@ func TestDenyComputeClusterUser_RequiresReason(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	if got.ApprovalStatus != models.ClusterAccountPending {
+	if got.ApprovalStatus != models.ComputeClusterUserPending {
 		t.Fatalf("expected the account to stay pending, got %s", got.ApprovalStatus)
 	}
 }
@@ -331,7 +331,7 @@ func TestReviewComputeClusterUser_ApprovalIsFinal(t *testing.T) {
 
 // Make sure a cluster user created through onboarding is approved by the
 // onboarding admin and provisioning starts at once, since adding the user by hand is the approval.
-func TestOnboardUser_ClusterAccountIsApproved(t *testing.T) {
+func TestOnboardUser_ComputeClusterUserIsApproved(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	svc.EventBus().SubscribeComputeClusterUserApproved("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
@@ -353,7 +353,7 @@ func TestOnboardUser_ClusterAccountIsApproved(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cluster user: %v", err)
 	}
-	if cu.ApprovalStatus != models.ClusterAccountApproved || cu.ReviewedBy == nil || *cu.ReviewedBy != onboarder {
+	if cu.ApprovalStatus != models.ComputeClusterUserApproved || cu.ReviewedBy == nil || *cu.ReviewedBy != onboarder {
 		t.Fatalf("expected approval by the onboarding admin, got %+v", cu)
 	}
 	if n := countDeliveries(t, svc); n != 1 {
@@ -361,7 +361,7 @@ func TestOnboardUser_ClusterAccountIsApproved(t *testing.T) {
 	}
 }
 
-func TestListMembersForAllocation_CarriesTheClusterAccount(t *testing.T) {
+func TestListMembersForAllocation_CarriesTheComputeClusterUser(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "grp-" + uuid.NewString()[:8]})

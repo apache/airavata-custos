@@ -18,7 +18,7 @@
 "use client";
 
 import { useClusters } from "@/features/core/clusters/queries";
-import type { ClusterAccountResponse, User } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse, User } from "@/generated/core/zod.gen";
 import {
   keepPreviousData,
   useMutation,
@@ -73,7 +73,7 @@ export function useUserClusterAccounts(users: User[], enabled: boolean) {
     })),
     combine: (results) =>
       new Map(
-        users.map((user, i): [string, ClusterAccountResponse[]] => [
+        users.map((user, i): [string, ComputeClusterUserResponse[]] => [
           user.id,
           (results[i]?.data ?? []).map((a) => ({
             ...a,

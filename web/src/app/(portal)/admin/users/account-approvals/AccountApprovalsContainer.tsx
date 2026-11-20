@@ -28,7 +28,10 @@ import {
   useClusterAccounts,
   useDenyClusterAccount,
 } from "@/features/core/cluster-accounts/queries";
-import type { ClusterAccountApproval, ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type {
+  ComputeClusterUserApproval,
+  ComputeClusterUserResponse,
+} from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
@@ -49,9 +52,9 @@ const PAGE_SIZE = 25;
 // Pending is not paged so Approve all covers a whole allocation.
 const PENDING_LIMIT = 200;
 
-type Filter = ClusterAccountApproval | "ALL";
+type Filter = ComputeClusterUserApproval | "ALL";
 
-type Review = { accounts: ClusterAccountResponse[]; action: ReviewAction; bulk: boolean };
+type Review = { accounts: ComputeClusterUserResponse[]; action: ReviewAction; bulk: boolean };
 
 const FILTERS: Array<{ value: Filter; label: string; empty: string }> = [
   { value: "PENDING", label: "Pending approval", empty: "Nothing waiting for approval." },
@@ -109,19 +112,19 @@ export function AccountApprovalsContainer() {
   }
 
   function openReview(action: ReviewAction) {
-    return (account: ClusterAccountResponse) => {
+    return (account: ComputeClusterUserResponse) => {
       setReviewError(null);
       setReview({ accounts: [account], action, bulk: false });
     };
   }
 
-  function openApproveAll(accounts: ClusterAccountResponse[]) {
+  function openApproveAll(accounts: ComputeClusterUserResponse[]) {
     setReviewError(null);
     setFailures({});
     setReview({ accounts, action: "approve", bulk: true });
   }
 
-  async function handleApproveAll(accounts: ClusterAccountResponse[]) {
+  async function handleApproveAll(accounts: ComputeClusterUserResponse[]) {
     const results = await approveMany.mutateAsync(accounts.map((a) => a.id));
     const failed: Record<string, string> = {};
     results.forEach((result, i) => {

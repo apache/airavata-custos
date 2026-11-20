@@ -103,7 +103,7 @@ func TestStorageLifecycle(t *testing.T) {
 		return countRows(t, database, storageCreates) - before
 	}
 	user := seedUser(t, database, uuid.NewString()+"@example.edu")
-	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: user, LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountApproved, ReviewedBy: &user})
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: user, LocalUsername: "jdoe", ApprovalStatus: models.ComputeClusterUserApproved, ReviewedBy: &user})
 	if err == nil {
 		err = svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID)
 	}

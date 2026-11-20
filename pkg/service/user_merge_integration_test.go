@@ -39,7 +39,7 @@ import (
 // survivor already has an account. An account that moves to the survivor is
 // not deleted, so it gets no delete event. A lone provisioned account wins; if
 // both are, both stay and the retiring one is deactivated.
-func TestMergeUsers_PublishesDeleteForTheDeletedClusterAccount(t *testing.T) {
+func TestMergeUsers_PublishesDeleteForTheDeletedComputeClusterUser(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	svc.EventBus().SubscribeComputeClusterUserDeleted("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
@@ -51,7 +51,7 @@ func TestMergeUsers_PublishesDeleteForTheDeletedClusterAccount(t *testing.T) {
 			ComputeClusterID: cluster.ID,
 			UserID:           userID,
 			LocalUsername:    "merge-" + uuid.NewString()[:8],
-			ApprovalStatus:   models.ClusterAccountApproved,
+			ApprovalStatus:   models.ComputeClusterUserApproved,
 			ReviewedBy:       &userID,
 		})
 		if err != nil {
@@ -238,7 +238,7 @@ func TestMergeUsers_ActivatesPendingSurvivorOfActiveUser(t *testing.T) {
 		t.Fatalf("create cluster: %v", err)
 	}
 	moved, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: retiring,
-		LocalUsername: "merge-" + uuid.NewString()[:8], ApprovalStatus: models.ClusterAccountApproved, ReviewedBy: &retiring})
+		LocalUsername: "merge-" + uuid.NewString()[:8], ApprovalStatus: models.ComputeClusterUserApproved, ReviewedBy: &retiring})
 	if err != nil {
 		t.Fatalf("create account: %v", err)
 	}

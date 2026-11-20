@@ -80,7 +80,7 @@ func TestEnsureUnixClusterAccount_EmitsComanageSpanTree(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
 	if err := orch.EnsureUnixClusterAccount(ctx, cu); err != nil {
 		t.Fatalf("EnsureUnixClusterAccount: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestEnsureUnixClusterAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	defer root.End()
 	wantTrace := root.SpanContext().TraceID()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx", ApprovalStatus: models.ClusterAccountApproved}
+	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx", ApprovalStatus: models.ComputeClusterUserApproved}
 	if err := orch.EnsureUnixClusterAccount(ctx, cu); err == nil {
 		t.Fatalf("expected EnsureUnixClusterAccount to fail under 500")
 	}
@@ -216,7 +216,7 @@ func TestEnsureUnixClusterAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest", ApprovalStatus: models.ClusterAccountApproved}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
 	if err := orch.EnsureUnixClusterAccount(ctx, cu); err != nil {
 		t.Fatalf("EnsureUnixClusterAccount: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestEnsureUnixClusterAccount_CreatesOIDCLinkage(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
 	if err := orch.EnsureUnixClusterAccount(ctx, cu); err != nil {
 		t.Fatalf("EnsureUnixClusterAccount: %v", err)
 	}
@@ -309,7 +309,7 @@ func TestEnsureUnixClusterAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) 
 	core := &fakeCore{user: &models.User{ID: "user-1", FirstName: "Jane", LastName: "Doe", Email: "jdoe@example.edu"}}
 	orch := newOrchestratorForTest(t, srv, core, "")
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountPending}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ComputeClusterUserPending}
 	if err := orch.EnsureUnixClusterAccount(context.Background(), cu); err != nil {
 		t.Fatalf("EnsureUnixClusterAccount: %v", err)
 	}

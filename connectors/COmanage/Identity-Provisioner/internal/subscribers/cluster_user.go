@@ -131,7 +131,7 @@ func (s *Subscriber) isUserActive(ctx context.Context, userID string) (bool, err
 // handleComputeClusterUserDeleted removes the account from the registry.
 // An account that was never approved was never sent there, so it is skipped.
 func (s *Subscriber) handleComputeClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
-	if cu.ComputeClusterID != s.computeClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
+	if cu.ComputeClusterID != s.computeClusterID || cu.ApprovalStatus != models.ComputeClusterUserApproved {
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")
@@ -171,7 +171,7 @@ func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) 
 		slog.ErrorContext(ctx, "comanage subscriber: EnsureUnixClusterAccount failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
 		return err
 	}
-	if cu.AccessLevel == models.ClusterAccessAdmin && cu.ApprovalStatus == models.ClusterAccountApproved {
+	if cu.AccessLevel == models.ClusterAccessAdmin && cu.ApprovalStatus == models.ComputeClusterUserApproved {
 		if err := s.ops.EnsureUnixClusterAdminMembership(ctx, cu); err != nil {
 			span.RecordError(err)
 			slog.ErrorContext(ctx, "comanage subscriber: EnsureUnixClusterAdminMembership failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
