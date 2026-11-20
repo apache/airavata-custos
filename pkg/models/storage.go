@@ -34,7 +34,7 @@ type StorageTarget struct {
 }
 
 // Storage is one owner's storage on a cluster, as a storage connector makes it. ComputeClusterUserID, AllocationID and
-// UserID say who it is for; a retired storage keeps none once its holder is deleted. A zero quota means none of its own.
+// UserID say who it is for; a deactivated storage keeps none once its holder is deleted. A zero quota means none of its own.
 type Storage struct {
 	ID                   string      `json:"id"                      db:"id"`
 	ComputeClusterID     string      `json:"compute_cluster_id"      db:"compute_cluster_id"`

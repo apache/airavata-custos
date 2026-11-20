@@ -146,7 +146,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		if err := s.publishUserTx(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
 			return err
 		}
-		if err := s.setUserAccountsActiveTx(ctx, tx, survivingID, survivor.Status == models.UserActive); err != nil {
+		if err := s.syncComputeClusterAccessTx(ctx, tx, survivingID, survivor.Status == models.UserActive); err != nil {
 			return err
 		}
 		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, survivor)

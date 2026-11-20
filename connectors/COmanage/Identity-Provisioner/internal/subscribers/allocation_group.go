@@ -45,7 +45,7 @@ func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a model
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_deleted")
 	defer span.End()
-	if a.ComputeClusterID != s.custosClusterID {
+	if a.ComputeClusterID != s.computeClusterID {
 		return nil
 	}
 	return s.ops.RemoveAllocationGroup(ctx, &a)
@@ -58,7 +58,7 @@ func (s *Subscriber) syncAllocation(ctx context.Context, allocationID string) er
 	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
-	if err != nil || a.ComputeClusterID != s.custosClusterID {
+	if err != nil || a.ComputeClusterID != s.computeClusterID {
 		return err
 	}
 	return s.ops.EnsureAllocationGroup(ctx, a)

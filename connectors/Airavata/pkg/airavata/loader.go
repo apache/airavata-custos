@@ -70,7 +70,7 @@ type registrar struct {
 }
 
 func (r *registrar) register(ctx context.Context, created models.UserIdentity) error {
-	// Only CILogon registers, since registering overwrites the user and would undo a suspension.
+	// Only CILogon registers, since registering overwrites the user and would undo a deactivation.
 	// ".../users/12345" becomes "cilogon:12345".
 	sub := created.OIDCSub
 	i := strings.LastIndexByte(sub, '/')

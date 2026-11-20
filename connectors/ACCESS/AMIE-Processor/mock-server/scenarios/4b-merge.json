@@ -1,5 +1,5 @@
 {
   "merges": [
-    { "keep": "person1", "retire": "person1-alt" }
+    { "keep": "person1", "deactivate": "person1-alt" }
   ]
 }

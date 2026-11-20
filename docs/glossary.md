@@ -55,4 +55,4 @@ connector (`connectors/ACCESS/AMIE-Processor/`).
 - **AMIE packet** — One unit of state in the AMIE protocol. Carries a transaction type (e.g. `request_project_create`, `request_account_create`).
 - **Packet families (`request_*`, `data_*`, `notify_*`, `inform_*`)** — AMIE groups packets by intent. `request_*` is "do this" (mutating). `data_*` carries supplementary detail for a prior request (e.g. DNs created in a peer system). `notify_*` is a reply confirming a `request_*` succeeded. `inform_*` carries terminal state, e.g. `inform_transaction_complete` ends a multi-packet exchange.
 - **Site code** — Identifier for one ACCESS-CI participating site (e.g. `TESTSITE`).
-- **Person merge (survivor / retiree)** — When two AMIE person records turn out to be the same human, AMIE sends a `request_person_merge` packet that names a survivor (the record to keep) and a retiree (the record to fold into the survivor).
+- **Person merge (survivor / retiring user)** — When two AMIE person records turn out to be the same human, AMIE sends a `request_person_merge` packet that names a survivor (the record to keep) and a retiring user (the record to fold into the survivor).

@@ -124,11 +124,11 @@ func activeAllocation(allocation models.ComputeAllocation) bool {
 	return allocation.Status == models.ACTIVE
 }
 
-// restoreAssociationsForAllocation re-grants every active member of an
+// activateAssociationsForAllocation re-grants every active member of an
 // allocation, for when the allocation becomes usable again. Members whose
 // account is not provisioned yet are left to the reconciler, the same as on
 // first membership.
-func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
+func (a *AssociationSubscriber) activateAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
 	members, err := a.coreService.ListMembersForAllocation(ctx, allocation.ID)
 	if err != nil {
 		return fmt.Errorf("list members for allocation: %w", err)
@@ -143,13 +143,13 @@ func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Con
 				continue
 			}
 			failed++
-			slog.ErrorContext(ctx, "Failed to restore association for member",
+			slog.ErrorContext(ctx, "Failed to activate association for member",
 				"membership_id", member.ID, "allocation_id", allocation.ID, "error", err)
 		}
 	}
 	if failed > 0 {
-		return fmt.Errorf("%d of %d members could not be restored", failed, len(members))
+		return fmt.Errorf("%d of %d members could not be activated", failed, len(members))
 	}
-	slog.InfoContext(ctx, "Restored associations for allocation", "account", allocation.Name, "members", len(members))
+	slog.InfoContext(ctx, "Activated associations for allocation", "account", allocation.Name, "members", len(members))
 	return nil
 }

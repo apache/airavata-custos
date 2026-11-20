@@ -225,7 +225,7 @@ func TestMergeIdentifier_KeepsEveryPropertyOfThePerson(t *testing.T) {
 	}
 }
 
-// Make sure removing a login takes only the cluster account and the uid
+// Make sure removing a login takes only the UnixClusterAccount and the uid
 // identifier with that username, since the composite PUT deletes anything the
 // body leaves out and the rest of the attributes of the person must survive.
 func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
@@ -255,9 +255,9 @@ func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
       "UnixClusterAccount": []
     }`
 
-	got, changed, err := deleteUnixClusterAccount(json.RawMessage(person), "jdoe")
+	got, changed, err := dropUnixClusterAccount(json.RawMessage(person), "jdoe")
 	if err != nil {
-		t.Fatalf("deleteUnixClusterAccount: %v", err)
+		t.Fatalf("dropUnixClusterAccount: %v", err)
 	}
 	if !changed {
 		t.Fatal("expected the person to be reported as changed")
@@ -275,9 +275,9 @@ func TestRemoveLogin_LeavesAnotherPersonUntouched(t *testing.T) {
       "Identifier": [{"identifier": "asmith", "type": "uid", "login": false, "status": "A"}],
       "UnixClusterAccount": [{"username": "asmith", "uid": 2000094, "unix_cluster_id": 1}]
     }`
-	got, changed, err := deleteUnixClusterAccount(json.RawMessage(person), "jdoe")
+	got, changed, err := dropUnixClusterAccount(json.RawMessage(person), "jdoe")
 	if err != nil {
-		t.Fatalf("deleteUnixClusterAccount: %v", err)
+		t.Fatalf("dropUnixClusterAccount: %v", err)
 	}
 	if changed || !sameJSON(t, got, json.RawMessage(person)) {
 		t.Errorf("expected no change, got changed=%v body=%s", changed, got)

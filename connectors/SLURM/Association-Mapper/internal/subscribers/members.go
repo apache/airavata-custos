@@ -155,7 +155,7 @@ func (a *AssociationSubscriber) handleComputeAllocationMembershipUpdated(ctx con
 					"membership_id", membership.ID)
 				return nil
 			}
-			slog.ErrorContext(ctx, "Failed to upsert association for reactivated membership", "error", err)
+			slog.ErrorContext(ctx, "Failed to upsert association for activated membership", "error", err)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())

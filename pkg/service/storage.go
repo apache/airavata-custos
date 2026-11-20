@@ -156,7 +156,7 @@ func (s *Service) DeleteStorage(ctx context.Context, id string) error {
 	})
 }
 
-// ensureStoragesTx makes the storages the claimed clusters' targets give the scope's holders, retires the scope's
+// ensureStoragesTx makes the storages the claimed clusters' targets give the scope's holders, deactivates the scope's
 // others, and publishes each one made or changed, a parent first.
 func (s *Service) ensureStoragesTx(ctx context.Context, tx *sql.Tx, scope store.StorageScope) error {
 	s.claimedMu.RLock()
@@ -181,7 +181,7 @@ func (s *Service) ensureStoragesTx(ctx context.Context, tx *sql.Tx, scope store.
 			}
 		}
 	}
-	if err := s.storages.Retire(ctx, tx, scope, claimedClusterIDs, unclaimedTypes, desired); err != nil {
+	if err := s.storages.Deactivate(ctx, tx, scope, claimedClusterIDs, unclaimedTypes, desired); err != nil {
 		return err
 	}
 	changed, err := s.storages.Upsert(ctx, tx, desired)
@@ -284,7 +284,7 @@ func (s *Service) publishUserTx(ctx context.Context, tx *sql.Tx, topic events.Ev
 		return nil
 	}
 	if topic == events.UserDeleteEvent {
-		return s.storages.Retire(ctx, tx, store.StorageScope{UserID: u.ID}, claimedClusterIDs, nil, nil)
+		return s.storages.Deactivate(ctx, tx, store.StorageScope{UserID: u.ID}, claimedClusterIDs, nil, nil)
 	}
 	return s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: u.ID})
 }
