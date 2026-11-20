@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS storages
     PRIMARY KEY (id),
     CONSTRAINT chk_storages_status CHECK (status IN ('active', 'pending_deletion')),
     CONSTRAINT uq_storages_path UNIQUE (compute_cluster_id, path),
-    -- A retired storage outlives its holder for an administrator to review.
+    -- A deactivated storage outlives its holder for an administrator to review.
     CONSTRAINT fk_storages_cluster_user FOREIGN KEY (compute_cluster_user_id) REFERENCES compute_cluster_users (id) ON DELETE SET NULL,
     CONSTRAINT fk_storages_allocation FOREIGN KEY (allocation_id) REFERENCES compute_allocations (id) ON DELETE SET NULL,
     CONSTRAINT fk_storages_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL

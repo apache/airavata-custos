@@ -102,7 +102,7 @@ func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (
 type mockRegistry struct {
 	adminGroup  int    // CoGroup id returned for adminGroupName, 0 = not in the registry
 	adminMember bool   // person 42 is already in the admin group
-	account     string // username of the cluster account person 42 has, "" = none
+	account     string // username of the UnixClusterAccount person 42 has, "" = none
 	userGroup   int    // CoGroup id of that account's primary group, 0 = not in the registry
 	posted      []client.CoGroupMemberCreateOne
 	put         [][]byte // bodies of the person PUTs
@@ -199,16 +199,16 @@ func mockComanageServer(t *testing.T, reg *mockRegistry) *httptest.Server {
 func newOrchestratorForTest(t *testing.T, srv *httptest.Server, core CoreService, adminGroup string) *Orchestrator {
 	t.Helper()
 	c := client.New(client.Config{
-		RegistryURL:       srv.URL,
-		COID:              2,
-		APIUser:           "co_2.test",
-		APIKey:            "k",
-		PersonIDType:      "comanage_id",
-		UnixClusterID:     1,
-		ClusterAdminGroup: adminGroup,
-		DefaultShell:      "/bin/bash",
-		HomedirPrefix:     "/home/",
-		HTTPTimeout:       5 * time.Second,
+		RegistryURL:           srv.URL,
+		COID:                  2,
+		APIUser:               "co_2.test",
+		APIKey:                "k",
+		PersonIDType:          "comanage_id",
+		UnixClusterID:         1,
+		UnixClusterAdminGroup: adminGroup,
+		DefaultShell:          "/bin/bash",
+		HomedirPrefix:         "/home/",
+		HTTPTimeout:           5 * time.Second,
 	})
 	return &Orchestrator{c: c, core: core}
 }

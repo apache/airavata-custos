@@ -34,7 +34,7 @@ import (
 //
 // Moved to survivor (the unprovisioned duplicate is deleted first):
 //   - user_identities
-//   - compute_cluster_users (on a shared cluster the provisioned one wins; if both are, the retiring one stays, deactivated)
+//   - compute_cluster_users (on a shared cluster the provisioned one wins; if both are, the retiring user's stays, unprovisioned)
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //
@@ -152,10 +152,10 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 		if err := s.publishUserTx(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
 			return err
 		}
-		if err := s.setUserAccountsActiveTx(ctx, tx, retiringID, false); err != nil {
+		if err := s.syncComputeClusterAccessTx(ctx, tx, retiringID, false); err != nil {
 			return err
 		}
-		if err := s.setUserAccountsActiveTx(ctx, tx, survivingID, survivor.Status == models.UserActive); err != nil {
+		if err := s.syncComputeClusterAccessTx(ctx, tx, survivingID, survivor.Status == models.UserActive); err != nil {
 			return err
 		}
 		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, survivor)

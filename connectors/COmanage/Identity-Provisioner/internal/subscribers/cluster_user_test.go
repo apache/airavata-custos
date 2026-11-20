@@ -33,16 +33,18 @@ type fakeOps struct {
 	deactivated []string
 }
 
-func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) EnsureUnixClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.provisioned = append(f.provisioned, cu.ID)
 	return nil
 }
-func (f *fakeOps) DeleteClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
-func (f *fakeOps) DeactivateClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) DeleteUnixClusterAccount(context.Context, *models.ComputeClusterUser) error {
+	return nil
+}
+func (f *fakeOps) DeactivateUnixClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.deactivated = append(f.deactivated, cu.ID)
 	return nil
 }
-func (f *fakeOps) EnsureClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) EnsureUnixClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.admins = append(f.admins, cu.ID)
 	return nil
 }
@@ -70,15 +72,15 @@ func approveWith(t *testing.T, oidc *models.UserIdentity) (*fakeOps, []models.Au
 		GetUserFunc:                activeUser,
 	}
 	ops := &fakeOps{}
-	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+	s := &Subscriber{ops: ops, core: core, computeClusterID: "c1"}
 	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
-	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
+	if err := s.handleComputeClusterUserApproved(context.Background(), cu); err != nil {
 		t.Fatal(err)
 	}
 	return ops, audits
 }
 
-func TestClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
+func TestComputeClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
 	ops, audits := approveWith(t, nil)
 	if len(ops.provisioned) != 0 {
 		t.Fatalf("provisioned before first sign-in: %v", ops.provisioned)
@@ -94,7 +96,7 @@ func TestClusterUserApproved_SkipsWithoutOIDCIdentity(t *testing.T) {
 	}
 }
 
-func TestClusterUserApproved_RunsWithOIDCIdentity(t *testing.T) {
+func TestComputeClusterUserApproved_RunsWithOIDCIdentity(t *testing.T) {
 	ops, _ := approveWith(t, &models.UserIdentity{Source: "oidc", OIDCSub: "sub-1"})
 	if len(ops.provisioned) != 1 || ops.provisioned[0] != "cu1" {
 		t.Fatalf("provisioned = %v, want [cu1]", ops.provisioned)
@@ -111,14 +113,14 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 			GetUserFunc:                activeUser,
 		}
 		ops := &fakeOps{}
-		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+		s := &Subscriber{ops: ops, core: core, computeClusterID: "c1"}
 		if err := s.handleUserOnboarded(context.Background(), models.User{ID: "u1", Status: models.UserActive}); err != nil {
 			t.Fatal(err)
 		}
 		return ops
 	}
 
-	// An admin account joins the cluster admin group on first sign-in.
+	// An admin account joins the unix cluster admin group on first sign-in.
 	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountApproved); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
 		t.Fatalf("admin account: admin group calls = %v, want [cu1]", ops.admins)
 	}
@@ -133,7 +135,7 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 }
 
 // Make sure an account provisioned while its user left ACTIVE is suspended again.
-func TestClusterUserApproved_SuspendsWhenUserLeftActiveDuringProvisioning(t *testing.T) {
+func TestComputeClusterUserApproved_SuspendsWhenUserLeftActiveDuringProvisioning(t *testing.T) {
 	reads := 0
 	core := &service.CoreServiceMock{
 		GetOIDCIdentityFunc: func(context.Context, string) (*models.UserIdentity, error) {
@@ -150,9 +152,9 @@ func TestClusterUserApproved_SuspendsWhenUserLeftActiveDuringProvisioning(t *tes
 		},
 	}
 	ops := &fakeOps{}
-	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+	s := &Subscriber{ops: ops, core: core, computeClusterID: "c1"}
 	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
-	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
+	if err := s.handleComputeClusterUserApproved(context.Background(), cu); err != nil {
 		t.Fatal(err)
 	}
 	if len(ops.provisioned) != 1 || len(ops.deactivated) != 1 {
@@ -161,16 +163,16 @@ func TestClusterUserApproved_SuspendsWhenUserLeftActiveDuringProvisioning(t *tes
 }
 
 // Make sure an approve event for a user who is not ACTIVE suspends the account, so a retry finishes a failed suspend.
-func TestClusterUserApproved_SuspendsWhenUserIsNotActive(t *testing.T) {
+func TestComputeClusterUserApproved_SuspendsWhenUserIsNotActive(t *testing.T) {
 	core := &service.CoreServiceMock{
 		GetUserFunc: func(_ context.Context, id string) (*models.User, error) {
 			return &models.User{ID: id, Status: models.UserInactive}, nil
 		},
 	}
 	ops := &fakeOps{}
-	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+	s := &Subscriber{ops: ops, core: core, computeClusterID: "c1"}
 	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
-	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
+	if err := s.handleComputeClusterUserApproved(context.Background(), cu); err != nil {
 		t.Fatal(err)
 	}
 	if len(ops.provisioned) != 0 || len(ops.deactivated) != 1 {

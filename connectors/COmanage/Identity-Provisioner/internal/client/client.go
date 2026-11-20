@@ -42,13 +42,13 @@ type Config struct {
 	// Types). Required value.
 	PersonIDType  string
 	UnixClusterID int
-	// ClusterAdminGroup is the CoGroup that gives sudo access on the cluster.
+	// UnixClusterAdminGroup is the CoGroup that gives sudo access on the unix cluster.
 	// An operator creates it, the connector only adds members.
-	ClusterAdminGroup string
-	CustosClusterID   string
-	DefaultShell      string
-	HomedirPrefix     string
-	HTTPTimeout       time.Duration
+	UnixClusterAdminGroup string
+	ComputeClusterID      string
+	DefaultShell          string
+	HomedirPrefix         string
+	HTTPTimeout           time.Duration
 }
 
 type Client struct {

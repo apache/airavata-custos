@@ -108,7 +108,7 @@ func (s *pgStorageStore) Users(ctx context.Context, tx *sql.Tx, userID string) (
 	return
 }
 
-func (s *pgStorageStore) Retire(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error {
+func (s *pgStorageStore) Deactivate(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error {
 	var desiredClusterIDs, desiredPaths []string
 	for _, st := range desired {
 		desiredClusterIDs, desiredPaths = append(desiredClusterIDs, st.ComputeClusterID), append(desiredPaths, st.Path)

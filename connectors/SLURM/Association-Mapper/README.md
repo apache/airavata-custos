@@ -30,7 +30,7 @@ Events apply each change as it happens. A periodic sweep applies any change an e
 | Event | Action |
 |---|---|
 | `compute_allocation::create` | Create the SLURM account, named after the allocation in lowercase, under its organization |
-| `compute_allocation::update` | Remove all members' associations when the allocation leaves `ACTIVE`, restore them when it returns |
+| `compute_allocation::update` | Remove all members' associations when the allocation leaves `ACTIVE`, activate them when it returns |
 | `compute_allocation::delete` | Remove all members' associations. The account stays, so its job history remains attributable. |
 | `compute_allocation_resource_mapping::create` | Set the account's `GrpTRES` and `GrpTRESMins` from the mapped resource amount and time |
 | `compute_allocation_membership::create` | Write the member's association |

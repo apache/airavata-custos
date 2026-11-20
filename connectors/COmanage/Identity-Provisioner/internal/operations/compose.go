@@ -56,7 +56,7 @@ func mergeUnixClusterAccount(composite json.RawMessage, block UnixClusterAccount
 	return out, nil
 }
 
-// deleteUnixClusterAccount returns the person's record without the cluster account and the
+// dropUnixClusterAccount returns the person's record without the cluster account and the
 // uid identifier of this username. Everything else on the person is kept.
 //
 // This is how the two are deleted in the registry. The caller sends the
@@ -64,7 +64,7 @@ func mergeUnixClusterAccount(composite json.RawMessage, block UnixClusterAccount
 // entry the record no longer has. The person itself is not deleted.
 //
 // It reports false when the person has neither, so there is nothing to send.
-func deleteUnixClusterAccount(composite json.RawMessage, username string) ([]byte, bool, error) {
+func dropUnixClusterAccount(composite json.RawMessage, username string) ([]byte, bool, error) {
 	var top map[string]json.RawMessage
 	if err := json.Unmarshal(composite, &top); err != nil {
 		return nil, false, fmt.Errorf("decode composite: %w", err)

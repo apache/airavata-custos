@@ -636,8 +636,8 @@ type StorageStore interface {
 	MemberHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
 	// Users returns every user, or the one with userID, oldest first.
 	Users(ctx context.Context, tx *sql.Tx, userID string) ([]models.User, error)
-	// Retire marks the scope's active storages on the clusters pending deletion, except desired ones and kept types.
-	Retire(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error
+	// Deactivate marks the scope's active storages on the clusters pending deletion, except desired ones and kept types.
+	Deactivate(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error
 	// Upsert makes or updates and activates each storage at its path, keeping an administrator's live quota and another
 	// user's storage. It returns those it made or changed, a parent first.
 	Upsert(ctx context.Context, tx *sql.Tx, desired []models.Storage) ([]models.Storage, error)

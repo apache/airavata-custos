@@ -125,7 +125,7 @@ func (a *AssociationSubscriber) handleComputeAllocationDeleted(ctx context.Conte
 
 // handleComputeAllocationUpdated keeps cluster access in sync with the
 // allocation. An allocation that stops being active loses every association,
-// and one that becomes active again has them restored.
+// and one that becomes active again has them activated.
 func (a *AssociationSubscriber) handleComputeAllocationUpdated(ctx context.Context, computeAllocation models.ComputeAllocation) error {
 	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
@@ -136,14 +136,14 @@ func (a *AssociationSubscriber) handleComputeAllocationUpdated(ctx context.Conte
 	defer cancel()
 
 	if activeAllocation(computeAllocation) {
-		if err := a.restoreAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
-			slog.ErrorContext(ctx, "Failed to restore associations for reactivated allocation", "error", err)
+		if err := a.activateAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+			slog.ErrorContext(ctx, "Failed to activate associations for activated allocation", "error", err)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to restore associations. Error: "+err.Error())
+			a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to activate associations. Error: "+err.Error())
 			return err
 		}
-		a.recordAuditEvent(ctx, "ComputeAllocationProvisioned", "compute_allocation", computeAllocation.ID, "Restored cluster associations for the active allocation.")
+		a.recordAuditEvent(ctx, "ComputeAllocationProvisioned", "compute_allocation", computeAllocation.ID, "Activated cluster associations for the active allocation.")
 		return nil
 	}
 

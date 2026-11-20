@@ -31,11 +31,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// DeleteClusterAccount deletes what provisioning created for a cluster account:
+// DeleteUnixClusterAccount deletes what provisioning created for a ComputeClusterUser:
 // the account and login name on the person, the admin group membership, and
 // the account's primary group. The person stays in the registry. It is safe
 // to run again, anything already deleted is skipped.
-func (o *Orchestrator) DeleteClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
+func (o *Orchestrator) DeleteUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
 	ctx, span := tracing.Start(ctx, "comanage.remove_posix_account")
 	defer span.End()
 	span.SetAttributes(attribute.String("comanage.cluster_user_id", cu.ID))
@@ -55,7 +55,7 @@ func (o *Orchestrator) DeleteClusterAccount(ctx context.Context, cu *models.Comp
 		return err
 	}
 	if personID != "" {
-		if err := o.updateUnixClusterAccount(ctx, cu, personID, composite, deleteUnixClusterAccount); err != nil {
+		if err := o.updateUnixClusterAccount(ctx, cu, personID, composite, dropUnixClusterAccount); err != nil {
 			return err
 		}
 	}
@@ -94,7 +94,7 @@ func (o *Orchestrator) updateUnixClusterAccount(ctx context.Context, cu *models.
 	if cu.AccessLevel != models.ClusterAccessAdmin {
 		return nil
 	}
-	adminGroupID, err := o.c.FindCoGroupByName(o.c.Config().ClusterAdminGroup)
+	adminGroupID, err := o.c.FindCoGroupByName(o.c.Config().UnixClusterAdminGroup)
 	if err != nil {
 		return fmt.Errorf("find cluster admin group: %w", err)
 	}
@@ -118,8 +118,8 @@ func (o *Orchestrator) updateUnixClusterAccount(ctx context.Context, cu *models.
 	return nil
 }
 
-// DeactivateClusterAccount sets the person's cluster account status to "S" and takes them out of the admin group; the account stays.
-func (o *Orchestrator) DeactivateClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+// DeactivateUnixClusterAccount sets the person's cluster account status to "S" and takes them out of the admin group; the account stays.
+func (o *Orchestrator) DeactivateUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
 	personID, composite, err := o.findAccountCoPerson(ctx, cu)
 	if err != nil || personID == "" {
 		return err

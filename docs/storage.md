@@ -57,15 +57,15 @@ Core makes or changes storages and publishes `storage::create` for each, a paren
 
 | When | Then |
 |---|---|
-| A user leaves `ACTIVE` | Retires their accounts' `{user}` and member storages |
-| An allocation or membership is set `INACTIVE` | Retires the storages it gave |
-| An unprovisioned account, or an `INACTIVE` allocation, is deleted | Its retired storages stay `pending_deletion`, unlinked |
-| An `INACTIVE` membership is deleted | Its retired storages stay `pending_deletion` |
-| A user is deleted, or a connector stops holding them | Retires their `{name}` storages |
+| A user leaves `ACTIVE` | Deactivates their accounts' `{user}` and member storages |
+| An allocation or membership is set `INACTIVE` | Deactivates the storages it gave |
+| An unprovisioned account, or an `INACTIVE` allocation, is deleted | Its deactivated storages stay `pending_deletion`, unlinked |
+| An `INACTIVE` membership is deleted | Its deactivated storages stay `pending_deletion` |
+| A user is deleted, or a connector stops holding them | Deactivates their `{name}` storages |
 
-Making storages also retires those of the same holders the targets no longer give, so a sweep retires every storage
+Making storages also deactivates those of the same holders the targets no longer give, so a sweep deactivates every storage
 left without a holder. Retiring marks storages `pending_deletion` for an administrator to review, and a provision or
-sweep restores them.
+sweep activates them.
 
 | Route | Privilege | Purpose |
 |---|---|---|
@@ -79,7 +79,7 @@ next sweep restores the target's quota. A storage without a quota of its own cou
 ## Connector holders
 
 A connector holds users for a `{name}` type with `ClaimStorageHolders`. It says which users hold a storage and the
-name each fills in; core makes, retires and sweeps them like the rest. Until a connector claims the type, core leaves
+name each fills in; core makes, deactivates and sweeps them like the rest. Until a connector claims the type, core leaves
 its storages as they are. The [temp account connector](../connectors/TempAccount) holds `trial_home` for each pending
 or active trial user, named by their email's local part. Two users with the same name share no storage: the first keeps
 it. A name that is empty, `.`, `..` or holds `/` gives no storage.
