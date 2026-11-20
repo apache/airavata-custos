@@ -37,7 +37,7 @@ import (
 // replyWhenAccountApproved replies to ACCESS only if the cluster account is
 // approved. Otherwise, the reply is held and sent once an admin approves it.
 func replyWhenAccountApproved(ctx context.Context, tx *sql.Tx, client AmieClient, auditSvc AuditService, packet *model.Packet, eventID string, account *models.ComputeClusterUser, reply map[string]any) error {
-	if account.ApprovalStatus == models.ClusterAccountApproved {
+	if account.ApprovalStatus == models.ComputeClusterUserApproved {
 		if err := client.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 			return fmt.Errorf("sending reply: %w", err)
 		}

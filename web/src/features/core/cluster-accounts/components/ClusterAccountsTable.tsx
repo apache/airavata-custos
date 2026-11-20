@@ -18,7 +18,7 @@
 "use client";
 
 import { useProject } from "@/features/core/projects/queries";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
@@ -45,12 +45,12 @@ type ColumnOptions = {
   grouped: boolean;
   piId?: string | undefined;
   canReview: boolean;
-  onApprove: (row: ClusterAccountResponse) => void;
-  onDeny: (row: ClusterAccountResponse) => void;
+  onApprove: (row: ComputeClusterUserResponse) => void;
+  onDeny: (row: ComputeClusterUserResponse) => void;
 };
 
 function buildColumns({ grouped, piId, canReview, onApprove, onDeny }: ColumnOptions) {
-  const columns: Array<DataTableColumn<ClusterAccountResponse> | false> = [
+  const columns: Array<DataTableColumn<ComputeClusterUserResponse> | false> = [
     {
       key: "user",
       header: "User",
@@ -142,8 +142,8 @@ function buildColumns({ grouped, piId, canReview, onApprove, onDeny }: ColumnOpt
 }
 
 type GroupProps = Omit<ColumnOptions, "grouped" | "piId"> & {
-  rows: ClusterAccountResponse[];
-  onApproveAll: (rows: ClusterAccountResponse[]) => void;
+  rows: ComputeClusterUserResponse[];
+  onApproveAll: (rows: ComputeClusterUserResponse[]) => void;
 };
 
 function ApprovalGroup({ rows, onApproveAll, ...options }: GroupProps) {
@@ -151,7 +151,7 @@ function ApprovalGroup({ rows, onApproveAll, ...options }: GroupProps) {
   const head = rows[0];
   const { data: project } = useProject(head?.project_id);
   const piId = project?.project_pi_id;
-  const isPi = (row: ClusterAccountResponse) => Number(row.user_id === piId);
+  const isPi = (row: ComputeClusterUserResponse) => Number(row.user_id === piId);
   const sorted = [...rows].sort((a, b) => isPi(b) - isPi(a));
   const canApproveAll = options.canReview && Boolean(head?.allocation_id) && rows.length >= 2;
   return (
@@ -181,20 +181,20 @@ function ApprovalGroup({ rows, onApproveAll, ...options }: GroupProps) {
 }
 
 export type ClusterAccountsTableProps = {
-  rows: ClusterAccountResponse[];
+  rows: ComputeClusterUserResponse[];
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
   canReview: boolean;
-  onApprove: (row: ClusterAccountResponse) => void;
-  onDeny: (row: ClusterAccountResponse) => void;
+  onApprove: (row: ComputeClusterUserResponse) => void;
+  onDeny: (row: ComputeClusterUserResponse) => void;
   page: number;
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
   emptyHeading: string;
   grouped?: boolean;
-  onApproveAll: (rows: ClusterAccountResponse[]) => void;
+  onApproveAll: (rows: ComputeClusterUserResponse[]) => void;
 };
 
 export function ClusterAccountsTable({

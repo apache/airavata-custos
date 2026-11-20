@@ -38,7 +38,7 @@ import (
 // cluster account that it deletes, which is the one on a cluster where the
 // survivor already has an account. An account that moves to the survivor is
 // not deleted, so it gets no event.
-func TestMergeUsers_PublishesDeleteForTheDeletedClusterAccount(t *testing.T) {
+func TestMergeUsers_PublishesDeleteForTheDeletedComputeClusterUser(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	svc.EventBus().SubscribeComputeClusterUserDeleted("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
@@ -220,7 +220,7 @@ func TestMergeUsers_ActivatesPendingSurvivorOfActiveUser(t *testing.T) {
 		t.Fatalf("create cluster: %v", err)
 	}
 	moved, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: retiring,
-		LocalUsername: "merge-" + uuid.NewString()[:8], ApprovalStatus: models.ClusterAccountApproved, ReviewedBy: &retiring})
+		LocalUsername: "merge-" + uuid.NewString()[:8], ApprovalStatus: models.ComputeClusterUserApproved, ReviewedBy: &retiring})
 	if err != nil {
 		t.Fatalf("create account: %v", err)
 	}

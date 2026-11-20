@@ -17,7 +17,7 @@
 
 import type { PostComputeClusterUsersByIdDenyData } from "@/generated/core/types.gen";
 import {
-  type ClusterAccountListResponse,
+  type ComputeClusterUserListResponse,
   type ComputeClusterUser,
   zGetComputeClusterUsersResponse,
   zGetUsersByIdComputeClusterUsersResponse,
@@ -29,7 +29,7 @@ import type { ClusterAccountListParams } from "./types";
 
 export async function listClusterAccounts(
   params: ClusterAccountListParams = {},
-): Promise<ClusterAccountListResponse> {
+): Promise<ComputeClusterUserListResponse> {
   const search = new URLSearchParams();
   if (params.approval_status) search.set("approval_status", params.approval_status);
   if (params.q) search.set("q", params.q);

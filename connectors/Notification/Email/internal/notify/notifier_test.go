@@ -79,7 +79,7 @@ func testNotifier(core service.CoreService, relay Sender) *Notifier {
 }
 
 func pendingAccount() models.ComputeClusterUser {
-	return models.ComputeClusterUser{ID: "cu-1", UserID: "u-1", ComputeClusterID: "hpc", LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountPending}
+	return models.ComputeClusterUser{ID: "cu-1", UserID: "u-1", ComputeClusterID: "hpc", LocalUsername: "jdoe", ApprovalStatus: models.ComputeClusterUserPending}
 }
 
 // Make sure only a pending account gets the request received email. The admin directly added
@@ -89,7 +89,7 @@ func TestRequestReceived_OnlyForPendingAccounts(t *testing.T) {
 	n := testNotifier(mockCore("jdoe@example.edu"), relay)
 
 	approved := pendingAccount()
-	approved.ApprovalStatus = models.ClusterAccountApproved
+	approved.ApprovalStatus = models.ComputeClusterUserApproved
 	if err := n.requestReceived(context.Background(), approved); err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestRequestDenied_CarriesTheReason(t *testing.T) {
 	n := testNotifier(mockCore("jdoe@example.edu"), relay)
 	cu := pendingAccount()
 	reason := "We could not confirm your allocation."
-	cu.ApprovalStatus, cu.ReviewNote = models.ClusterAccountDenied, &reason
+	cu.ApprovalStatus, cu.ReviewNote = models.ComputeClusterUserDenied, &reason
 
 	if err := n.requestDenied(context.Background(), cu); err != nil {
 		t.Fatal(err)

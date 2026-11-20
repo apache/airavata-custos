@@ -246,7 +246,7 @@ func (s *Service) syncComputeClusterAccessTx(ctx context.Context, tx *sql.Tx, us
 		return err
 	}
 	for _, cu := range computeClusterUsers {
-		if cu.ApprovalStatus != models.ClusterAccountApproved {
+		if cu.ApprovalStatus != models.ComputeClusterUserApproved {
 			continue
 		}
 		if !userActive {

@@ -253,7 +253,7 @@ func TestUpdateUser_RequiresPrivilege(t *testing.T) {
 	}
 }
 
-func TestListClusterAccounts_NegativePagingClamps(t *testing.T) {
+func TestListComputeClusterUsers_NegativePagingClamps(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
 	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/compute-cluster-users?approval_status=PENDING&limit=-1&offset=-1", nil), "u-1", models.ClustersRead)
