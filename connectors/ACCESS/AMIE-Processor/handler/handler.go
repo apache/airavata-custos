@@ -111,12 +111,12 @@ func getResourceList(body map[string]any) []string {
 	return result
 }
 
-// ensureUserIdentity is the idempotent upsert used by data_project_create
+// findOrCreateUserIdentity finds or creates the AMIE UserIdentity for data_project_create
 // and data_account_create. It is a no-op when the user already has an AMIE
 // UserIdentity row for this globalID; creates one otherwise. Pre-existing
 // rows are NOT touched here, attribute updates (org / orgCode / nsfStatus)
 // are owned by request_user_modify.
-func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
+func findOrCreateUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
 	if existing, err := svc.GetUserIdentityBySourceAndExternalID(ctx, amieIdentitySource, globalID); err == nil {
 		if existing.UserID == userID {
 			return nil
@@ -135,13 +135,28 @@ func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globa
 	return nil
 }
 
-// reactivate sets an existing membership back to active. The spec says a
-// create packet for a known account also reactivates it.
-func reactivate(ctx context.Context, tx *sql.Tx, svc *service.Service, m models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error) {
-	if m.MembershipStatus == models.ACTIVE {
-		return &m, nil
+// findAllocationMembership returns the user's membership on the allocation, or nil.
+func findAllocationMembership(ctx context.Context, svc *service.Service, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
+	members, err := svc.ListMembersForAllocation(ctx, allocationID)
+	if err != nil {
+		return nil, fmt.Errorf("list memberships: %w", err)
 	}
-	return svc.UpdateMembershipStatusTx(ctx, tx, m.ID, models.ACTIVE)
+	for _, m := range members {
+		if m.UserID == userID {
+			return &m.ComputeAllocationMembership, nil
+		}
+	}
+	return nil, nil
+}
+
+// createAllocationMembership creates the user's membership on the allocation, over the allocation's dates.
+func createAllocationMembership(ctx context.Context, svc *service.Service, allocation *models.ComputeAllocation, userID string) (*models.ComputeAllocationMembership, error) {
+	return svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
+		ComputeAllocationID: allocation.ID,
+		UserID:              userID,
+		StartTime:           allocation.StartTime,
+		EndTime:             allocation.EndTime,
+	})
 }
 
 // flipUserMemberships flips every ComputeAllocationMembership the user holds
@@ -202,9 +217,9 @@ func transactionSuccessReply(message string) map[string]any {
 	}
 }
 
-// ensureClusterUser returns the user's existing cluster mapping or
-// provisions a new one via the POSIX allocator.
-func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
+// findOrCreateClusterUser returns the user's existing cluster mapping or
+// creates a new one via the POSIX allocator.
+func findOrCreateClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
 	existing, err := svc.ListComputeClusterUsersByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list compute cluster users: %w", err)
@@ -217,38 +232,85 @@ func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, use
 	return allocateAndCreateClusterUser(ctx, svc, clusterID, userID)
 }
 
-// ensureUserByEmail returns the user with email, creating a PENDING one if none exists.
-// An existing user, added internally, takes the organization and name from ACCESS.
-func ensureUserByEmail(ctx context.Context, svc *service.Service, orgID, email, first, last string) (*models.User, error) {
-	user, err := svc.GetUserByEmail(ctx, email)
-	switch {
-	case err == nil:
-		user.OrganizationID, user.FirstName, user.LastName = orgID, first, last
-		if err := svc.UpdateUser(ctx, user); err != nil {
-			return nil, fmt.Errorf("update user: %w", err)
-		}
-		return user, nil
-	case errors.Is(err, service.ErrNotFound):
-		user, err = svc.CreateUser(ctx, &models.User{
-			OrganizationID: orgID,
-			FirstName:      first,
-			LastName:       last,
-			Email:          email,
-			Status:         models.UserPending,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("create user: %w", err)
-		}
-		return user, nil
-	default:
-		return nil, err
+// amiePerson is the person a packet names in the fields with one prefix, "User" or "Pi".
+type amiePerson struct {
+	GlobalID, Email, FirstName, LastName, OrgCode, OrgName string
+}
+
+// personMatch says which Custos user, if any, a packet's person already is.
+type personMatch int
+
+const (
+	personNew     personMatch = iota // no user yet
+	personByEmail                    // a user added internally, with the person's email
+	personBound                      // the user bound to the person's AMIE identity
+)
+
+// getPerson reads the person from the packet fields with the prefix.
+func getPerson(body map[string]any, prefix string) amiePerson {
+	return amiePerson{
+		GlobalID:  getString(body, prefix+"GlobalID"),
+		Email:     getString(body, prefix+"Email"),
+		FirstName: getString(body, prefix+"FirstName"),
+		LastName:  getString(body, prefix+"LastName"),
+		OrgCode:   getString(body, prefix+"OrgCode"),
+		OrgName:   getString(body, prefix+"Organization"),
 	}
 }
 
-// ensureOrganization looks up an Organization by its originated_id (the
+// findPersonUser returns the user bound to the person's AMIE identity, or else the user with the person's email.
+func findPersonUser(ctx context.Context, svc *service.Service, p amiePerson) (*models.User, personMatch, error) {
+	if user, err := svc.GetUserByUserIdentity(ctx, amieIdentitySource, p.GlobalID); !errors.Is(err, service.ErrNotFound) {
+		return user, personBound, err
+	}
+	user, err := svc.GetUserByEmail(ctx, p.Email)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil, personNew, nil
+	}
+	return user, personByEmail, err
+}
+
+// createPersonUser creates a PENDING user for the person.
+func createPersonUser(ctx context.Context, svc *service.Service, orgID string, p amiePerson) (*models.User, error) {
+	user, err := svc.CreateUser(ctx, &models.User{
+		OrganizationID: orgID,
+		FirstName:      p.FirstName,
+		LastName:       p.LastName,
+		Email:          p.Email,
+		Status:         models.UserPending,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+	return user, nil
+}
+
+// changeUserOrganizationAndName gives a user added internally the person's organization and name from ACCESS.
+func changeUserOrganizationAndName(ctx context.Context, svc *service.Service, user *models.User, orgID string, p amiePerson) error {
+	user.OrganizationID, user.FirstName, user.LastName = orgID, p.FirstName, p.LastName
+	if err := svc.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+	return nil
+}
+
+// createPersonUserIdentity binds the person's AMIE identity to the user.
+func createPersonUserIdentity(ctx context.Context, svc *service.Service, userID string, p amiePerson) error {
+	if _, err := svc.CreateUserIdentity(ctx, &models.UserIdentity{
+		UserID:     userID,
+		Source:     amieIdentitySource,
+		ExternalID: p.GlobalID,
+		Email:      p.Email,
+	}); err != nil {
+		return fmt.Errorf("create user identity: %w", err)
+	}
+	return nil
+}
+
+// findOrCreateOrganization looks up an Organization by its originated_id (the
 // AMIE-side org code such as "TEST123"); creates one if missing, using the
 // human-readable organization name from the packet.
-func ensureOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
+func findOrCreateOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
 	if code == "" {
 		return nil, fmt.Errorf("organization code is empty")
 	}

@@ -27,16 +27,16 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// Make sure removing an account takes it off the person and deletes its primary group, binding first.
-func TestRemoveClusterAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) {
+// Make sure deleting an account takes it off the person and deletes its primary group, binding first.
+func TestDeprovisionUnixClusterAccount_DeletesTheAccountAndItsPrimaryGroup(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", userGroup: 55}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := adminCore()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, core, adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemoveClusterAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeprovisionUnixClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeprovisionUnixClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 1 || strings.Contains(string(reg.put[0]), "jdoe") {
@@ -51,15 +51,15 @@ func TestRemoveClusterAccount_RemovesTheAccountAndItsPrimaryGroup(t *testing.T) 
 	}
 }
 
-// Make sure removing an admin's account also takes the person out of the admin group.
-func TestRemoveClusterAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
+// Make sure deleting an admin's account also takes the person out of the admin group.
+func TestDeprovisionUnixClusterAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", adminGroup: adminGroupID, adminMember: true}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", AccessLevel: models.ClusterAccessAdmin}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemoveClusterAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).DeprovisionUnixClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeprovisionUnixClusterAccount: %v", err)
 	}
 
 	if !slices.Contains(reg.deleted, "/co_group_members/9.json") {
@@ -68,14 +68,14 @@ func TestRemoveClusterAccount_TakesAnAdminOutOfTheAdminGroup(t *testing.T) {
 }
 
 // Make sure a second run, with nothing left in the registry, writes nothing and does not fail.
-func TestRemoveClusterAccount_SecondRunChangesNothing(t *testing.T) {
+func TestDeprovisionUnixClusterAccount_SecondRunChangesNothing(t *testing.T) {
 	reg := &mockRegistry{}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).RemoveClusterAccount(context.Background(), cu); err != nil {
-		t.Fatalf("RemoveClusterAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).DeprovisionUnixClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeprovisionUnixClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 0 || len(reg.deleted) != 0 {
@@ -84,15 +84,15 @@ func TestRemoveClusterAccount_SecondRunChangesNothing(t *testing.T) {
 }
 
 // Make sure deactivating suspends the account, keeps it and its group, and takes an admin out of the admin group.
-func TestDeactivateClusterAccount_SuspendsTheAccount(t *testing.T) {
+func TestDeactivateUnixClusterAccount_SuspendsTheAccount(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", userGroup: 55, adminGroup: adminGroupID, adminMember: true}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := adminCore()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", AccessLevel: models.ClusterAccessAdmin}
-	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeactivateClusterAccount(context.Background(), cu); err != nil {
-		t.Fatalf("DeactivateClusterAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeactivateUnixClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeactivateUnixClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 1 || !strings.Contains(string(reg.put[0]), `"username":"jdoe"`) || !strings.Contains(string(reg.put[0]), `"status":"S"`) {
@@ -108,15 +108,15 @@ func TestDeactivateClusterAccount_SuspendsTheAccount(t *testing.T) {
 
 // Make sure the person is found through the account's primary group when the
 // user holds no stored person id, as the retiring user of a merge does.
-func TestDeactivateClusterAccount_FindsThePersonThroughThePrimaryGroup(t *testing.T) {
+func TestDeactivateUnixClusterAccount_FindsThePersonThroughThePrimaryGroup(t *testing.T) {
 	reg := &mockRegistry{account: "jdoe", userGroup: 55, members: []client.CoGroupMemberListOne{{CoGroupId: 55, Person: client.IdentifierParent{Id: 42}}}}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := &fakeCore{user: &models.User{ID: "user-1"}}
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
-	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeactivateClusterAccount(context.Background(), cu); err != nil {
-		t.Fatalf("DeactivateClusterAccount: %v", err)
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeactivateUnixClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeactivateUnixClusterAccount: %v", err)
 	}
 
 	if len(reg.put) != 1 || !strings.Contains(string(reg.put[0]), `"status":"S"`) {

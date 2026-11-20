@@ -88,14 +88,14 @@ func addMember(t *testing.T, svc *service.Service, allocationID, userID string) 
 	}
 }
 
-func listClusterAccounts(t *testing.T, srv *Server, admin, query string) ClusterAccountListResponse {
+func listComputeClusterUsers(t *testing.T, srv *Server, admin, query string) ComputeClusterUserListResponse {
 	t.Helper()
 	rr := httptest.NewRecorder()
 	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/compute-cluster-users?"+query, nil), admin, models.ClustersRead))
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200: %s", rr.Code, rr.Body.String())
 	}
-	var body ClusterAccountListResponse
+	var body ComputeClusterUserListResponse
 	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -104,7 +104,7 @@ func listClusterAccounts(t *testing.T, srv *Server, admin, query string) Cluster
 
 // Make sure a request shows the user's allocation on the same cluster, not one on another
 // cluster, since the account only gives access to its own cluster.
-func TestListClusterAccounts_ShowsAllocationOnSameCluster(t *testing.T) {
+func TestListComputeClusterUsers_ShowsAllocationOnSameCluster(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 	clusterID := seedCluster(t, svc)
@@ -114,7 +114,7 @@ func TestListClusterAccounts_ShowsAllocationOnSameCluster(t *testing.T) {
 	elsewhere := seedAllocation(t, database, svc, seedCluster(t, svc), "Other cluster work")
 	addMember(t, svc, elsewhere.ID, cu.UserID)
 
-	body := listClusterAccounts(t, srv, admin, "approval_status=PENDING")
+	body := listComputeClusterUsers(t, srv, admin, "approval_status=PENDING")
 	if len(body.Items) != 1 {
 		t.Fatalf("expected one account, got %+v", body)
 	}
@@ -126,7 +126,7 @@ func TestListClusterAccounts_ShowsAllocationOnSameCluster(t *testing.T) {
 
 // Make sure pending requests come grouped by project and allocation with unlinked ones last,
 // even when they arrived interleaved, so a page never splits one allocation's rows apart.
-func TestListClusterAccounts_GroupsPendingByAllocation(t *testing.T) {
+func TestListComputeClusterUsers_GroupsPendingByAllocation(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 	clusterID := seedCluster(t, svc)
@@ -139,7 +139,7 @@ func TestListClusterAccounts_GroupsPendingByAllocation(t *testing.T) {
 		addMember(t, svc, alloc.ID, cu.UserID)
 	}
 
-	body := listClusterAccounts(t, srv, admin, "approval_status=PENDING")
+	body := listComputeClusterUsers(t, srv, admin, "approval_status=PENDING")
 	var got []string
 	for _, item := range body.Items {
 		id := "none"
@@ -155,7 +155,7 @@ func TestListClusterAccounts_GroupsPendingByAllocation(t *testing.T) {
 }
 
 // Make sure search matches the allocation name, so an admin can find every request for one allocation.
-func TestListClusterAccounts_SearchesByAllocation(t *testing.T) {
+func TestListComputeClusterUsers_SearchesByAllocation(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 	clusterID := seedCluster(t, svc)
@@ -164,7 +164,7 @@ func TestListClusterAccounts_SearchesByAllocation(t *testing.T) {
 	addMember(t, svc, alloc.ID, member.UserID)
 	seedClusterUserOn(t, database, svc, clusterID)
 
-	body := listClusterAccounts(t, srv, admin, "q="+alloc.Name)
+	body := listComputeClusterUsers(t, srv, admin, "q="+alloc.Name)
 	if body.Total != 1 || len(body.Items) != 1 || body.Items[0].ID != member.ID {
 		t.Fatalf("expected only the member of %s, got %+v", alloc.Name, body)
 	}
@@ -172,7 +172,7 @@ func TestListClusterAccounts_SearchesByAllocation(t *testing.T) {
 
 // Make sure the list can be narrowed to the accounts waiting for approval and
 // carries the user's name, email and the cluster name the admin needs.
-func TestListClusterAccounts_FiltersByApprovalStatus(t *testing.T) {
+func TestListComputeClusterUsers_FiltersByApprovalStatus(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 	pending := seedClusterUser(t, database, svc)
@@ -187,7 +187,7 @@ func TestListClusterAccounts_FiltersByApprovalStatus(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200: %s", rr.Code, rr.Body.String())
 	}
-	var body ClusterAccountListResponse
+	var body ComputeClusterUserListResponse
 	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestListClusterAccounts_FiltersByApprovalStatus(t *testing.T) {
 }
 
 // Make sure approving through the API records the caller as the reviewer.
-func TestApproveClusterAccount_RecordsCaller(t *testing.T) {
+func TestApproveComputeClusterUser_RecordsCaller(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	admin := seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))
 	cu := seedClusterUser(t, database, svc)
@@ -215,13 +215,13 @@ func TestApproveClusterAccount_RecordsCaller(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if got.ApprovalStatus != models.ClusterAccountApproved || got.ReviewedBy == nil || *got.ReviewedBy != admin {
+	if got.ApprovalStatus != models.ComputeClusterUserApproved || got.ReviewedBy == nil || *got.ReviewedBy != admin {
 		t.Fatalf("expected approval by the caller, got %+v", got)
 	}
 }
 
 // Make sure the read privilege is not enough to approve or deny an account.
-func TestReviewClusterAccount_RequiresClustersWrite(t *testing.T) {
+func TestReviewComputeClusterUser_RequiresClustersWrite(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	for _, action := range []string{"approve", "deny"} {
 		rr := httptest.NewRecorder()

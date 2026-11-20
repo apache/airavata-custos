@@ -56,7 +56,7 @@ func (n *Notifier) RegisterSubscribers(bus *events.Bus, subscriber string) {
 
 // requestReceived emails that Custos received a cluster account creation request and it is pending on an admin.
 func (n *Notifier) requestReceived(ctx context.Context, cu models.ComputeClusterUser) error {
-	if cu.ApprovalStatus != models.ClusterAccountPending {
+	if cu.ApprovalStatus != models.ComputeClusterUserPending {
 		return nil
 	}
 	return n.send(ctx, RequestReceived, cu)

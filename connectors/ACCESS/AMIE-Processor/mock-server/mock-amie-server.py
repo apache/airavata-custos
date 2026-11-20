@@ -735,8 +735,8 @@ def gen_from_file(name):
         packets.append(make_packet("request_person_merge", {
             "KeepGlobalID": f"e2e-{merge['keep']}",
             "KeepPersonID": f"e2e-{merge['keep']}-person",
-            "DeleteGlobalID": f"e2e-{merge['retire']}",
-            "DeletePersonID": f"e2e-{merge['retire']}-person",
+            "DeleteGlobalID": f"e2e-{merge['deactivate']}",
+            "DeletePersonID": f"e2e-{merge['deactivate']}-person",
             "MergeReason": "Duplicate person records",
         }))
     return packets

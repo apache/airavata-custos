@@ -18,23 +18,23 @@
 "use client";
 
 import { clusterAccountStatus } from "@/features/core/cluster-accounts/components/ClusterAccountBadge";
-import type { CallerClusterAccount } from "@/generated/core/zod.gen";
+import type { CallerComputeClusterUser } from "@/generated/core/zod.gen";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { HardDrive } from "lucide-react";
 
-export function ClusterAccountsCard({ accounts }: { accounts: CallerClusterAccount[] }) {
+export function ClusterAccountsCard({ accounts }: { accounts: CallerComputeClusterUser[] }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="px-6 pt-5 pb-4">
-        <CardTitle>Cluster accounts</CardTitle>
+        <CardTitle>Compute cluster users</CardTitle>
         <CardDescription>
           The clusters you can sign in to, and your username on each.
         </CardDescription>
       </CardHeader>
       {accounts.length === 0 ? (
         <p className="border-t border-border px-6 py-6 text-sm text-muted-foreground">
-          No cluster accounts yet.
+          No compute cluster users yet.
         </p>
       ) : (
         <ul className="divide-y divide-border border-t border-border">

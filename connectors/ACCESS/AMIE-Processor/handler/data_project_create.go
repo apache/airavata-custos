@@ -70,15 +70,15 @@ func (h *DataProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 	user, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, piGlobalID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
-			slog.WarnContext(ctx, "data_project_create: PI user not found; skipping DN persistence and UserIdentity upsert",
+			slog.WarnContext(ctx, "data_project_create: PI user not found; skipping DN persistence and findOrCreateUserIdentity",
 				"piGlobalID", piGlobalID)
 		} else {
 			return fmt.Errorf("data_project_create: resolve PI user: %w", err)
 		}
 	}
 	if user != nil {
-		if err := ensureUserIdentity(ctx, h.svc, user.ID, piGlobalID); err != nil {
-			return fmt.Errorf("data_project_create: ensure user identity: %w", err)
+		if err := findOrCreateUserIdentity(ctx, h.svc, user.ID, piGlobalID); err != nil {
+			return fmt.Errorf("data_project_create: find or create user identity: %w", err)
 		}
 		dns := getDNList(body)
 		if len(dns) > 0 {

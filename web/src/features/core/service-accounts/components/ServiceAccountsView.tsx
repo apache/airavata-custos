@@ -88,7 +88,7 @@ export function ServiceAccountsView() {
         account.status === "ACTIVE" ? (
           <StatusBadge variant="active" />
         ) : (
-          <StatusBadge variant="inactive" label="Disabled" />
+          <StatusBadge variant="inactive" label="Inactive" />
         ),
     },
     {
@@ -113,7 +113,7 @@ export function ServiceAccountsView() {
           </Button>
           {account.status === "ACTIVE" ? (
             <Button size="sm" variant="outline" onClick={() => setDisabling(account)}>
-              Disable
+              Deactivate
             </Button>
           ) : (
             <>
@@ -125,7 +125,7 @@ export function ServiceAccountsView() {
                   enable.mutate(account.id, { onError: (error) => toast.error(error.message) })
                 }
               >
-                Enable
+                Activate
               </Button>
               <Button size="sm" variant="destructive" onClick={() => setDeleting(account)}>
                 Delete
@@ -181,15 +181,15 @@ export function ServiceAccountsView() {
         onOpenChange={(open) => {
           if (!open) setDisabling(null);
         }}
-        title={`Disable ${disabling?.name ?? "service account"}?`}
-        confirmLabel="Disable"
+        title={`Deactivate ${disabling?.name ?? "service account"}?`}
+        confirmLabel="Deactivate"
         pending={disable.isPending}
         error={disable.error}
         onConfirm={() => {
           if (disabling) disable.mutate(disabling.id, { onSuccess: () => setDisabling(null) });
         }}
       >
-        Its token stops working at once. You can enable it again, or delete it.
+        Its token stops working at once. You can activate it again, or delete it.
       </ConfirmDialog>
     </div>
   );

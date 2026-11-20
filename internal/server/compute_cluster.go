@@ -115,7 +115,7 @@ func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request
 		ComputeClusterID: req.ComputeClusterID,
 		UserID:           req.UserID,
 		LocalUsername:    req.LocalUsername,
-		ApprovalStatus:   models.ClusterAccountApproved,
+		ApprovalStatus:   models.ComputeClusterUserApproved,
 		ReviewedBy:       &caller.UserID,
 	})
 	if err != nil {
@@ -190,7 +190,7 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// @Summary	List cluster accounts by approval status
+// @Summary	List compute cluster users by approval status
 // @Description	Cluster users with their user, cluster, and the user's newest allocation on that cluster. PENDING comes grouped by allocation, the rest newest first. Every status unless one is given.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
@@ -201,12 +201,12 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 // @Param	identity_source	query	string	false	"Only users with an external identity from this source"
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
-// @Success	200	{object}	ClusterAccountListResponse
+// @Success	200	{object}	ComputeClusterUserListResponse
 // @Failure	400	{object}	object{error=string}
 // @Router	/compute-cluster-users [get]
-func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
+func (s *Server) listComputeClusterUsers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	status := models.ClusterAccountApproval(q.Get("approval_status"))
+	status := models.ComputeClusterUserApproval(q.Get("approval_status"))
 	limit, offset := common.Paged(q)
 	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, store.UserListFilter{
 		Query:          q.Get("q"),
@@ -217,9 +217,9 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	items := make([]ClusterAccountResponse, 0, len(rows))
+	items := make([]ComputeClusterUserResponse, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, ClusterAccountResponse{
+		items = append(items, ComputeClusterUserResponse{
 			ComputeClusterUser: row.ComputeClusterUser,
 			RequestedAt:        row.RequestedAt,
 			DisplayName:        strings.TrimSpace(row.FirstName + " " + row.LastName),
@@ -231,10 +231,10 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 			ProjectID:          row.ProjectID,
 		})
 	}
-	common.WriteJSON(w, http.StatusOK, ClusterAccountListResponse{Items: items, Total: total})
+	common.WriteJSON(w, http.StatusOK, ComputeClusterUserListResponse{Items: items, Total: total})
 }
 
-// @Summary	Approve a cluster account
+// @Summary	Approve a compute cluster user
 // @Description	Records the caller as the approver and starts creating the account on the cluster.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
@@ -244,7 +244,7 @@ func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
 // @Failure	404	{object}	object{error=string}
 // @Failure	409	{object}	object{error=string}	"Already approved"
 // @Router	/compute-cluster-users/{id}/approve [post]
-func (s *Server) approveClusterAccount(w http.ResponseWriter, r *http.Request) {
+func (s *Server) approveComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
@@ -257,29 +257,29 @@ func (s *Server) approveClusterAccount(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, cu)
 }
 
-type denyClusterAccountRequest struct {
+type denyComputeClusterUserRequest struct {
 	Note string `json:"note"`
 }
 
-// @Summary	Deny a cluster account
+// @Summary	Deny a compute cluster user
 // @Description	Records the caller's decision and the reason. No account is created on the cluster, and the reason is passed on to whoever requested the account. The user keeps portal access.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster user ID"
-// @Param	request	body	denyClusterAccountRequest	true	"Reason for the denial"
+// @Param	request	body	denyComputeClusterUserRequest	true	"Reason for the denial"
 // @Success	200	{object}	models.ComputeClusterUser
 // @Failure	400	{object}	object{error=string}	"Reason missing"
 // @Failure	404	{object}	object{error=string}
 // @Failure	409	{object}	object{error=string}	"Already approved or denied"
 // @Router	/compute-cluster-users/{id}/deny [post]
-func (s *Server) denyClusterAccount(w http.ResponseWriter, r *http.Request) {
+func (s *Server) denyComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
-	var req denyClusterAccountRequest
+	var req denyComputeClusterUserRequest
 	if err := common.DecodeJSON(r, &req); err != nil {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return

@@ -178,7 +178,7 @@ function describe(change: Change, changes: Change[]): string {
     }`;
   }
   if (change.kind === "role") return `${change.row.name}: role → ${ROLE_LABELS[change.to]}`;
-  return `${change.row.name}: ${change.membership?.membership_status === "ACTIVE" ? "remove from" : "add to"} ${change.allocation.name}`;
+  return `${change.row.name}: ${change.membership?.membership_status === "ACTIVE" ? "deactivate in" : "activate in"} ${change.allocation.name}`;
 }
 
 export function ProjectMembersTab({

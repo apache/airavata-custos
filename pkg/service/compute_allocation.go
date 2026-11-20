@@ -171,7 +171,7 @@ func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, all
 		if err := s.allocs.Update(ctx, tx, alloc); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{AllocationID: alloc.ID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{AllocationID: alloc.ID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationUpdateEvent, alloc)
@@ -202,7 +202,7 @@ func (s *Service) markGroupProvisionedTx(ctx context.Context, tx *sql.Tx, alloc 
 		return err
 	}
 	alloc.GroupProvisionedAt = &now
-	if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{AllocationID: alloc.ID}); err != nil {
+	if err := s.syncStoragesTx(ctx, tx, store.StorageScope{AllocationID: alloc.ID}); err != nil {
 		return err
 	}
 	if err := s.eventBus.Publish(ctx, tx, events.ComputeAllocationGroupProvisionEvent, alloc); err != nil {
@@ -224,13 +224,13 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 		return ErrNotFound
 	}
 	if alloc.Status == models.ACTIVE {
-		return fmt.Errorf("%w: compute allocation %q is active, set it INACTIVE first", ErrInUse, id)
+		return fmt.Errorf("%w: compute allocation %q is active, deactivate it first", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.allocs.Delete(ctx, tx, id); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: alloc.ComputeClusterID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{ClusterID: alloc.ComputeClusterID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationDeleteEvent, alloc)

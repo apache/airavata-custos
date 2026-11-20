@@ -28,7 +28,10 @@ import {
   useClusterAccounts,
   useDenyClusterAccount,
 } from "@/features/core/cluster-accounts/queries";
-import type { ClusterAccountApproval, ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type {
+  ComputeClusterUserApproval,
+  ComputeClusterUserResponse,
+} from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/shared/api/client";
 import { useAbility } from "@/shared/casl/AbilityProvider";
@@ -49,15 +52,15 @@ const PAGE_SIZE = 25;
 // Pending is not paged so Approve all covers a whole allocation.
 const PENDING_LIMIT = 200;
 
-type Filter = ClusterAccountApproval | "ALL";
+type Filter = ComputeClusterUserApproval | "ALL";
 
-type Review = { accounts: ClusterAccountResponse[]; action: ReviewAction; bulk: boolean };
+type Review = { accounts: ComputeClusterUserResponse[]; action: ReviewAction; bulk: boolean };
 
 const FILTERS: Array<{ value: Filter; label: string; empty: string }> = [
   { value: "PENDING", label: "Pending approval", empty: "Nothing waiting for approval." },
   { value: "APPROVED", label: "Approved", empty: "No approved accounts yet." },
   { value: "DENIED", label: "Denied", empty: "No denied accounts." },
-  { value: "ALL", label: "All", empty: "No cluster accounts yet." },
+  { value: "ALL", label: "All", empty: "No compute cluster users yet." },
 ];
 
 function readFilter(params: URLSearchParams): Filter {
@@ -109,19 +112,19 @@ export function AccountApprovalsContainer() {
   }
 
   function openReview(action: ReviewAction) {
-    return (account: ClusterAccountResponse) => {
+    return (account: ComputeClusterUserResponse) => {
       setReviewError(null);
       setReview({ accounts: [account], action, bulk: false });
     };
   }
 
-  function openApproveAll(accounts: ClusterAccountResponse[]) {
+  function openApproveAll(accounts: ComputeClusterUserResponse[]) {
     setReviewError(null);
     setFailures({});
     setReview({ accounts, action: "approve", bulk: true });
   }
 
-  async function handleApproveAll(accounts: ClusterAccountResponse[]) {
+  async function handleApproveAll(accounts: ComputeClusterUserResponse[]) {
     const results = await approveMany.mutateAsync(accounts.map((a) => a.id));
     const failed: Record<string, string> = {};
     results.forEach((result, i) => {
@@ -136,7 +139,7 @@ export function AccountApprovalsContainer() {
     if (failedAccounts.length === 0) {
       const n = accounts.length;
       toast.success(
-        `Approved ${n} cluster account${n === 1 ? "" : "s"} on ${accounts[0]?.cluster_name}.`,
+        `Approved ${n} compute cluster user${n === 1 ? "" : "s"} on ${accounts[0]?.cluster_name}.`,
       );
       setReview(null);
       return;
@@ -158,12 +161,12 @@ export function AccountApprovalsContainer() {
       if (review.action === "approve") {
         await approve.mutateAsync(account.id);
         toast.success(
-          `Cluster account approved for ${account.local_username} on ${account.cluster_name}`,
+          `Compute cluster user approved for ${account.local_username} on ${account.cluster_name}`,
         );
       } else {
         await deny.mutateAsync({ id: account.id, note });
         toast.success(
-          `Cluster account denied for ${account.local_username} on ${account.cluster_name}`,
+          `Compute cluster user denied for ${account.local_username} on ${account.cluster_name}`,
         );
       }
       setReview(null);
@@ -173,7 +176,7 @@ export function AccountApprovalsContainer() {
   }
 
   if (!canRead) {
-    return <ErrorState heading="Not permitted" message="You cannot view cluster accounts." />;
+    return <ErrorState heading="Not permitted" message="You cannot view compute cluster users." />;
   }
 
   const emptyHeading =

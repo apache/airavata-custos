@@ -132,15 +132,15 @@ function OverviewTab({ packet }: { packet: Packet }) {
       </dl>
       {packet.status === "WAITING_APPROVAL" ? (
         <div className="rounded-md bg-[color:var(--tone-warn-bg)] p-3 text-sm text-[color:var(--tone-warn-fg)]">
-          The reply to ACCESS is held until an admin reviews the cluster account.{" "}
+          The reply to ACCESS is held until an admin reviews the compute cluster user.{" "}
           <Link href="/admin/users/account-approvals" className="font-medium underline">
-            Review cluster accounts
+            Review compute cluster users
           </Link>
         </div>
       ) : null}
       {packet.status === "REFUSED" ? (
         <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-          An admin denied the cluster account. ACCESS was sent a failure with the reason.
+          An admin denied the compute cluster user. ACCESS was sent a failure with the reason.
         </div>
       ) : null}
       {packet.last_error ? (

@@ -190,7 +190,7 @@ export function TraceFilterStrip({ value, onChange, sourceOptions }: TraceFilter
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search trace, user, cluster account, packet"
+          placeholder="Search trace, user, compute cluster user, packet"
           aria-label="Search traces"
           className={cn(
             "h-[38px] w-full rounded-md border bg-card pl-9 pr-3 text-[13.5px] text-foreground outline-none",

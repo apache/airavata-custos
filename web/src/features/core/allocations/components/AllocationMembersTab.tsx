@@ -183,10 +183,10 @@ export function AllocationMembersTab({
                   { onError: (err) => toast.error(err.message) },
                 )
               }
-              aria-label={`${isActive(row) ? "Deactivate" : "Reactivate"} ${row.display_name ?? row.user_id}`}
+              aria-label={`${isActive(row) ? "Deactivate" : "Activate"} ${row.display_name ?? row.user_id}`}
               disabled={statusMutation.isPending}
             >
-              {isActive(row) ? "Deactivate" : "Reactivate"}
+              {isActive(row) ? "Deactivate" : "Activate"}
             </GuardedButton>
           </div>
         ) : null,

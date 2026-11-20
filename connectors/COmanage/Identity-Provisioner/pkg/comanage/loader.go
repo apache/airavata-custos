@@ -56,9 +56,9 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		}
 	}
 	httpClient := client.New(cfg)
-	subscribers.NewSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
+	subscribers.NewSubscriber(httpClient, eventBus, coreService, cfg.ComputeClusterID).RegisterSubscribers(Type)
 	slog.Info("comanage provisioner: subscriber registered",
-		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.CustosClusterID)
+		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.ComputeClusterID)
 	// Custos is the source of truth: CoPerson and UnixClusterAccount records
 	// for users provisioned via this connector must not be edited directly in
 	// COmanage. There is no drift reconciliation; out-of-band edits will be
@@ -71,7 +71,7 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		return client.Config{}, false
 	}
 
-	var registryURL, apiUser, apiKey, personIDType, custosCluster, defaultShell, homedirPrefix string
+	var registryURL, apiUser, apiKey, personIDType, computeClusterID, defaultShell, homedirPrefix string
 	var adminGroup string
 	var coID, unixClusterID int
 	timeout := 30 * time.Second
@@ -104,7 +104,7 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 	// Load provisioning config
 	if provisioning, err := connectorConfig.GetNestedConfig("provisioning"); err == nil {
 		if id, ok := provisioning["custos_cluster_id"].(string); ok {
-			custosCluster = id
+			computeClusterID = id
 		}
 		if shell, ok := provisioning["default_shell"].(string); ok {
 			defaultShell = shell
@@ -119,7 +119,7 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		}
 	}
 
-	if registryURL == "" || coID == 0 || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterID == 0 || custosCluster == "" {
+	if registryURL == "" || coID == 0 || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterID == 0 || computeClusterID == "" {
 		return client.Config{}, false
 	}
 
@@ -131,17 +131,17 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 	}
 
 	return client.Config{
-		RegistryURL:       registryURL,
-		COID:              coID,
-		APIUser:           apiUser,
-		APIKey:            apiKey,
-		PersonIDType:      personIDType,
-		UnixClusterID:     unixClusterID,
-		ClusterAdminGroup: adminGroup,
-		CustosClusterID:   custosCluster,
-		DefaultShell:      defaultShell,
-		HomedirPrefix:     homedirPrefix,
-		HTTPTimeout:       timeout,
+		RegistryURL:           registryURL,
+		COID:                  coID,
+		APIUser:               apiUser,
+		APIKey:                apiKey,
+		PersonIDType:          personIDType,
+		UnixClusterID:         unixClusterID,
+		UnixClusterAdminGroup: adminGroup,
+		ComputeClusterID:      computeClusterID,
+		DefaultShell:          defaultShell,
+		HomedirPrefix:         homedirPrefix,
+		HTTPTimeout:           timeout,
 	}, true
 }
 
@@ -166,9 +166,9 @@ func loadConfigFromEnv() (client.Config, bool) {
 	personIDType := os.Getenv("COMANAGE_PERSON_ID_TYPE")
 	unixClusterStr := os.Getenv("COMANAGE_UNIX_CLUSTER_ID")
 	adminGroup := os.Getenv("COMANAGE_CLUSTER_ADMIN_GROUP")
-	custosCluster := os.Getenv("CUSTOS_CLUSTER_ID")
+	computeClusterID := os.Getenv("CUSTOS_CLUSTER_ID")
 
-	if registryURL == "" || coIDStr == "" || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterStr == "" || custosCluster == "" {
+	if registryURL == "" || coIDStr == "" || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterStr == "" || computeClusterID == "" {
 		return client.Config{}, false
 	}
 	coID, err := strconv.Atoi(coIDStr)
@@ -199,16 +199,16 @@ func loadConfigFromEnv() (client.Config, bool) {
 	}
 
 	return client.Config{
-		RegistryURL:       registryURL,
-		COID:              coID,
-		APIUser:           apiUser,
-		APIKey:            apiKey,
-		PersonIDType:      personIDType,
-		UnixClusterID:     unixClusterID,
-		ClusterAdminGroup: adminGroup,
-		CustosClusterID:   custosCluster,
-		DefaultShell:      defaultShell,
-		HomedirPrefix:     homedirPrefix,
-		HTTPTimeout:       timeout,
+		RegistryURL:           registryURL,
+		COID:                  coID,
+		APIUser:               apiUser,
+		APIKey:                apiKey,
+		PersonIDType:          personIDType,
+		UnixClusterID:         unixClusterID,
+		UnixClusterAdminGroup: adminGroup,
+		ComputeClusterID:      computeClusterID,
+		DefaultShell:          defaultShell,
+		HomedirPrefix:         homedirPrefix,
+		HTTPTimeout:           timeout,
 	}, true
 }

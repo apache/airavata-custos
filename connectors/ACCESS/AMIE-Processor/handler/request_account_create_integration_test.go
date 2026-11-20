@@ -566,10 +566,10 @@ func TestRequestAccountCreate_UnknownProject(t *testing.T) {
 
 	// No half-state: the project lookup is supposed to happen before any
 	// membership/cluster-user writes. Identity rows MAY have been created
-	// before the project lookup (the handler's `ensureUser` runs first), but
+	// before the project lookup (the user lookup runs first), but
 	// no allocation- or cluster-bound state should be present.
 	//
-	// The project lookup happens AFTER ensureUser in the current handler, so
+	// The project lookup happens AFTER the user lookup in the current handler, so
 	// user + identity rows may persist on this failure path. That is OK from a
 	// spec standpoint: the retry will find the existing rows and proceed once
 	// the project arrives.

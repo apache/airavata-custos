@@ -37,45 +37,39 @@ const comanageIdentitySource = "comanage"
 func (o *Orchestrator) findStoredPersonID(ctx context.Context, userID string) (string, error) {
 	ctx, span := tracing.Start(ctx, "comanage.find_stored_person_id")
 	defer span.End()
-	idents, err := o.core.ListUserIdentitiesForUser(ctx, userID)
+	identity, err := o.findCoPersonUserIdentity(ctx, userID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return "", fmt.Errorf("list user identities: %w", err)
 	}
-	for _, id := range idents {
-		if id.Source == comanageIdentitySource && id.ExternalID != "" {
-			return id.ExternalID, nil
-		}
+	if identity == nil {
+		return "", nil
 	}
-	return "", nil
+	return identity.ExternalID, nil
 }
 
-// storePersonID writes or repoints the COmanage CoPerson identifier in user_identities.
-func (o *Orchestrator) storePersonID(ctx context.Context, userID, personID string) error {
-	ctx, span := tracing.Start(ctx, "comanage.store_person_id")
-	defer span.End()
-	if idents, err := o.core.ListUserIdentitiesForUser(ctx, userID); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		for _, id := range idents {
-			if id.Source == comanageIdentitySource && id.ExternalID != "" {
-				id.ExternalID = personID
-				return o.core.UpdateUserIdentity(ctx, &id)
-			}
+// findCoPersonUserIdentity returns the user's COmanage user identity, or nil.
+func (o *Orchestrator) findCoPersonUserIdentity(ctx context.Context, userID string) (*models.UserIdentity, error) {
+	idents, err := o.core.ListUserIdentitiesForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range idents {
+		if id.Source == comanageIdentitySource && id.ExternalID != "" {
+			return &id, nil
 		}
 	}
+	return nil, nil
+}
+
+// createCoPersonUserIdentity records the user's CoPerson identifier as a COmanage user identity.
+func (o *Orchestrator) createCoPersonUserIdentity(ctx context.Context, userID, personID string) error {
 	_, err := o.core.CreateUserIdentity(ctx, &models.UserIdentity{
 		UserID:     userID,
 		Source:     comanageIdentitySource,
 		ExternalID: personID,
 	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-	}
 	return err
 }
 

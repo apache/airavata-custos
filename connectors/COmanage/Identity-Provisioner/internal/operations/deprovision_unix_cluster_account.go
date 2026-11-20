@@ -31,11 +31,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// RemoveClusterAccount removes what provisioning created for a cluster account:
+// DeprovisionUnixClusterAccount deletes what provisioning created for a ComputeClusterUser:
 // the account and login name on the person, the admin group membership, and
 // the account's primary group. The person stays in the registry. It is safe
-// to run again, anything already removed is skipped.
-func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
+// to run again, anything already deleted is skipped.
+func (o *Orchestrator) DeprovisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
 	ctx, span := tracing.Start(ctx, "comanage.remove_posix_account")
 	defer span.End()
 	span.SetAttributes(attribute.String("comanage.cluster_user_id", cu.ID))
@@ -55,7 +55,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		return err
 	}
 	if personID != "" {
-		if err := o.removeAccountFromPerson(ctx, cu, personID, composite, removeLogin); err != nil {
+		if err := o.updateUnixClusterAccount(ctx, cu, personID, composite, withoutUnixClusterAccount); err != nil {
 			return err
 		}
 	}
@@ -66,7 +66,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		return fmt.Errorf("find primary group: %w", err)
 	}
 	if groupID != 0 {
-		if err := o.removeCoGroup(groupID); err != nil {
+		if err := o.deleteCoGroup(groupID); err != nil {
 			return err
 		}
 	}
@@ -75,9 +75,9 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 	return nil
 }
 
-// removeAccountFromPerson applies edit to the person's cluster account and
-// takes the admin group membership off the person. The person record itself stays.
-func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte,
+// updateUnixClusterAccount applies edit to the CoPerson's UnixClusterAccount and takes the CoPerson
+// out of the admin CoGroup. The CoPerson itself stays.
+func (o *Orchestrator) updateUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte,
 	edit func(json.RawMessage, string) ([]byte, bool, error)) error {
 	body, changed, err := edit(composite, cu.LocalUsername)
 	if err != nil {
@@ -85,7 +85,7 @@ func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.C
 	}
 	if changed {
 		if err := o.updatePerson(ctx, personID, body); err != nil {
-			return fmt.Errorf("remove account from person: %w", err)
+			return fmt.Errorf("update person: %w", err)
 		}
 	}
 
@@ -94,7 +94,7 @@ func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.C
 	if cu.AccessLevel != models.ClusterAccessAdmin {
 		return nil
 	}
-	adminGroupID, err := o.c.FindCoGroupByName(o.c.Config().ClusterAdminGroup)
+	adminGroupID, err := o.c.FindCoGroupByName(o.c.Config().UnixClusterAdminGroup)
 	if err != nil {
 		return fmt.Errorf("find cluster admin group: %w", err)
 	}
@@ -118,13 +118,13 @@ func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.C
 	return nil
 }
 
-// DeactivateClusterAccount sets the person's cluster account status to "S" and takes them out of the admin group; the account stays.
-func (o *Orchestrator) DeactivateClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+// DeactivateUnixClusterAccount sets the CoPerson's UnixClusterAccount status to "S" and leaves the admin CoGroup; the UnixClusterAccount stays.
+func (o *Orchestrator) DeactivateUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
 	personID, composite, err := o.findAccountCoPerson(ctx, cu)
 	if err != nil || personID == "" {
 		return err
 	}
-	if err := o.removeAccountFromPerson(ctx, cu, personID, composite, deactivateUnixClusterAccount); err != nil {
+	if err := o.updateUnixClusterAccount(ctx, cu, personID, composite, deactivateUnixClusterAccount); err != nil {
 		return err
 	}
 	o.audit(ctx, cu, "ComanageClusterAccountUpdated", fmt.Sprintf("comanage_id=%s username=%s status=S", personID, cu.LocalUsername))
@@ -170,8 +170,8 @@ func ignoreNotFound(err error) error {
 	return err
 }
 
-// removeCoGroup unbinds a group from the UnixCluster, then deletes it.
-func (o *Orchestrator) removeCoGroup(groupID int) error {
+// deleteCoGroup unbinds a group from the UnixCluster, then deletes it.
+func (o *Orchestrator) deleteCoGroup(groupID int) error {
 	bindingID, err := o.c.FindUnixClusterGroup(groupID)
 	if err != nil {
 		return fmt.Errorf("find cluster group binding: %w", err)

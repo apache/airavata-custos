@@ -73,7 +73,7 @@ func (a *AssociationSubscriber) handleComputeAllocationMembershipCreated(ctx con
 	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
 
 	// Every path writes through the same function, so a member's record is always built the same way.
-	if err := a.upsertAssociationsForMembership(fetchCtx, membership); err != nil {
+	if err := a.provisionAssociationsForMembership(fetchCtx, membership); err != nil {
 		if errors.Is(err, errNotProvisioned) {
 			// Expected on a first-time account: provisioning is still in
 			// flight. The reconciler writes it once the account lands.
@@ -117,7 +117,7 @@ func (a *AssociationSubscriber) handleComputeAllocationMembershipResourceOverrid
 	// Same single writer as the membership path: it re-reads every override
 	// for this membership, so the record carries the full limit set rather
 	// than only this override's slice.
-	if err := a.upsertAssociationsForMembership(ctx, *membership); err != nil {
+	if err := a.provisionAssociationsForMembership(ctx, *membership); err != nil {
 		if errors.Is(err, errNotProvisioned) {
 			slog.InfoContext(ctx, "Cluster account not provisioned yet, leaving the association to the reconciler",
 				"membership_id", membership.ID, "override_id", override.ID)
@@ -149,13 +149,13 @@ func (a *AssociationSubscriber) handleComputeAllocationMembershipUpdated(ctx con
 	defer cancel()
 
 	if membership.MembershipStatus == models.ACTIVE {
-		if err := a.upsertAssociationsForMembership(fetchCtx, membership); err != nil {
+		if err := a.provisionAssociationsForMembership(fetchCtx, membership); err != nil {
 			if errors.Is(err, errNotProvisioned) {
 				slog.InfoContext(ctx, "Cluster account not provisioned yet, leaving the association to the reconciler",
 					"membership_id", membership.ID)
 				return nil
 			}
-			slog.ErrorContext(ctx, "Failed to upsert association for reactivated membership", "error", err)
+			slog.ErrorContext(ctx, "Failed to upsert association for activated membership", "error", err)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())
@@ -164,7 +164,7 @@ func (a *AssociationSubscriber) handleComputeAllocationMembershipUpdated(ctx con
 		return nil
 	}
 
-	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
+	if err := a.deprovisionAssociationsForMembership(fetchCtx, membership); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove associations for deactivated membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -189,7 +189,7 @@ func (a *AssociationSubscriber) handleComputeAllocationMembershipDeleted(ctx con
 	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
 	defer cancel()
 
-	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
+	if err := a.deprovisionAssociationsForMembership(fetchCtx, membership); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove associations for deleted membership", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

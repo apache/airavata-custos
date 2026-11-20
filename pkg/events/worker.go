@@ -62,7 +62,7 @@ const (
 // subscriptions the loaded connectors no longer handle, then delivers due
 // events until ctx is canceled.
 func (b *Bus) Run(ctx context.Context) {
-	b.pruneSubscriptionsOnStart(ctx)
+	b.deleteStaleSubscriptionsOnStart(ctx)
 
 	slog.Info("event delivery worker started", "interval", pollInterval)
 	ticker := time.NewTicker(pollInterval)
@@ -80,11 +80,11 @@ func (b *Bus) Run(ctx context.Context) {
 	}
 }
 
-// pruneSubscriptionsOnStart removes the subscriptions a loaded subscriber no
+// deleteStaleSubscriptionsOnStart deletes the subscriptions a loaded subscriber no
 // longer has a handler for, which happens when a handler function is dropped
 // from the connector's code and the system restarts. A subscriber that did
 // not load (could be due to an issue) is skipped, so its events keep queuing.
-func (b *Bus) pruneSubscriptionsOnStart(ctx context.Context) {
+func (b *Bus) deleteStaleSubscriptionsOnStart(ctx context.Context) {
 	loaded := make(map[string]struct{})
 	for _, name := range b.loadedSubscribers() {
 		loaded[name] = struct{}{}

@@ -70,7 +70,7 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Create(ctx, tx, m); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipCreateEvent, m)
@@ -166,7 +166,7 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Update(ctx, tx, m); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, m)
@@ -205,7 +205,7 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 		if err := s.memberships.Update(ctx, tx, existing); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, existing)
@@ -228,7 +228,7 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 		return ErrNotFound
 	}
 	if existing.MembershipStatus == models.ACTIVE {
-		return fmt.Errorf("%w: compute allocation membership %q is active, set it INACTIVE first", ErrInUse, id)
+		return fmt.Errorf("%w: compute allocation membership %q is active, deactivate it first", ErrInUse, id)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {

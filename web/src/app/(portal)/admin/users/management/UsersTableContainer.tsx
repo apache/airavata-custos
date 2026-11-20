@@ -37,7 +37,7 @@ import {
   useUsersById,
 } from "@/features/core/users/queries";
 import type { CreateUserPayload } from "@/features/core/users/schemas";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
@@ -54,7 +54,7 @@ import { type AccountStatusFilter, UsersTable, toAccountStatus } from "./UsersTa
 
 const PAGE_SIZE = 25;
 
-// All pages through users; a status pages through cluster accounts in that status, grouped by user.
+// All pages through users; a status pages through compute cluster users in that status, grouped by user.
 export function UsersTableContainer() {
   const ability = useAbility();
   const canReadUsers = ability.can("read", "User");
@@ -81,7 +81,7 @@ export function UsersTableContainer() {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addError, setAddError] = React.useState<string | null>(null);
   const [review, setReview] = React.useState<{
-    account: ClusterAccountResponse;
+    account: ComputeClusterUserResponse;
     action: ReviewAction;
   } | null>(null);
   const [reviewError, setReviewError] = React.useState<string | null>(null);
@@ -132,7 +132,7 @@ export function UsersTableContainer() {
   }
 
   function openReview(action: ReviewAction) {
-    return (account: ClusterAccountResponse) => {
+    return (account: ComputeClusterUserResponse) => {
       setReviewError(null);
       setReview({ account, action });
     };
@@ -146,7 +146,7 @@ export function UsersTableContainer() {
       if (action === "approve") await approve.mutateAsync(account.id);
       else await deny.mutateAsync({ id: account.id, note });
       toast.success(
-        `Cluster account ${action === "approve" ? "approved" : "denied"} for ${account.local_username} on ${account.cluster_name}`,
+        `Compute cluster user ${action === "approve" ? "approved" : "denied"} for ${account.local_username} on ${account.cluster_name}`,
       );
       setReview(null);
     } catch (err) {

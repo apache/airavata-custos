@@ -26,7 +26,7 @@ ACCESS sends account changes over AMIE (Account Management Information Exchange)
 an awarded project, an added user or a merged person. The connector applies each packet to Custos users, projects and
 allocations, then replies to ACCESS.
 
-The [glossary](../../../docs/glossary.md) defines domain terms such as PI, DN, site code, survivor and retiree.
+The [glossary](../../../docs/glossary.md) defines domain terms such as PI, DN, site code, survivor and retiring user.
 
 ## How it works
 

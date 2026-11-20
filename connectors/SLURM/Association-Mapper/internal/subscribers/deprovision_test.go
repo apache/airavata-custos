@@ -56,7 +56,7 @@ func TestMembershipDeactivationRemovesAssociations(t *testing.T) {
 }
 
 // Flipping back to ACTIVE re-grants access rather than leaving the member cut off.
-func TestMembershipReactivationRestoresAssociations(t *testing.T) {
+func TestMembershipActivationActivatesAssociations(t *testing.T) {
 	core := coreMock(mockOpts{provisionedAt: ago(time.Minute)})
 	slurm := &fakeSlurmClient{}
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).
@@ -66,7 +66,7 @@ func TestMembershipReactivationRestoresAssociations(t *testing.T) {
 		t.Fatalf("an active membership must not be deprovisioned, got %d deletes", n)
 	}
 	if n := len(slurm.all()); n != 1 {
-		t.Fatalf("expected the association to be restored, got %d writes", n)
+		t.Fatalf("expected the association to be activated, got %d writes", n)
 	}
 }
 
@@ -133,9 +133,9 @@ func TestAllocationDeactivationRemovesAllAssociations(t *testing.T) {
 	}
 }
 
-// An allocation coming back to ACTIVE restores its members here and now,
+// An allocation coming back to ACTIVE activates its members here and now,
 // rather than leaving them without access until the next reconciler pass.
-func TestAllocationReactivationRestoresMemberAssociations(t *testing.T) {
+func TestAllocationActivationActivatesMemberAssociations(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		memberships:   []models.ComputeAllocationMembership{testMembership()},
@@ -151,12 +151,12 @@ func TestAllocationReactivationRestoresMemberAssociations(t *testing.T) {
 		t.Fatalf("an active allocation must not be deprovisioned, got %d deletes", n)
 	}
 	if n := len(slurm.all()); n != 1 {
-		t.Fatalf("expected the active member's association to be restored, got %d writes", n)
+		t.Fatalf("expected the active member's association to be activated, got %d writes", n)
 	}
 }
 
 // Members whose account is not provisioned yet stay with the reconciler.
-func TestAllocationReactivationSkipsUnprovisionedMembers(t *testing.T) {
+func TestAllocationActivationSkipsUnprovisionedMembers(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: nil,
 		memberships:   []models.ComputeAllocationMembership{testMembership()},
@@ -214,7 +214,7 @@ func TestReconcilerRemovesStaleAssociation(t *testing.T) {
 
 // Guard: an empty desired set almost always means a failed lookup, so the
 // sweep must not read it as "revoke everyone".
-func TestReconcilerDoesNotPruneWhenNothingIsDesired(t *testing.T) {
+func TestReconcilerDoesNotDeprovisionWhenNothingIsDesired(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Minute),
 		memberships:   nil, // nobody entitled to anything
@@ -260,13 +260,13 @@ func TestReconcilerLeavesAccountLevelAssociationsAlone(t *testing.T) {
 	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
 
 	if n := len(slurm.allDeletes()); n != 0 {
-		t.Fatalf("account-level associations must not be pruned, got %d deletes", n)
+		t.Fatalf("account-level associations must not be deprovisioned, got %d deletes", n)
 	}
 }
 
 // A member inside the provisioning grace is still entitled, so their fresh
-// association must not be pruned just because the sweep is not writing it yet.
-func TestReconcilerDoesNotPruneAssociationsInsideGrace(t *testing.T) {
+// association must not be deprovisioned just because the sweep is not writing it yet.
+func TestReconcilerDoesNotDeprovisionAssociationsInsideGrace(t *testing.T) {
 	core := coreMock(mockOpts{
 		provisionedAt: ago(time.Second),
 		memberships:   []models.ComputeAllocationMembership{testMembership()},

@@ -229,7 +229,7 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 			return err
 		}
 		if nowActive := status == models.UserActive; nowActive != wasActive {
-			return s.setUserAccountsActiveTx(ctx, tx, id, nowActive)
+			return s.syncComputeClusterAccessTx(ctx, tx, id, nowActive)
 		}
 		return nil
 	}); err != nil {
@@ -239,17 +239,17 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	return existing, nil
 }
 
-// setUserAccountsActiveTx republishes the user's approved accounts, unprovisioned unless active, and ensures their storages.
-func (s *Service) setUserAccountsActiveTx(ctx context.Context, tx *sql.Tx, userID string, active bool) error {
-	accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, userID)
+// syncComputeClusterAccessTx republishes the user's approved compute cluster users, unprovisioned unless userActive, and syncs their storages.
+func (s *Service) syncComputeClusterAccessTx(ctx context.Context, tx *sql.Tx, userID string, userActive bool) error {
+	computeClusterUsers, err := s.clusterUsers.FindByUserTx(ctx, tx, userID)
 	if err != nil {
 		return err
 	}
-	for _, cu := range accounts {
-		if cu.ApprovalStatus != models.ClusterAccountApproved {
+	for _, cu := range computeClusterUsers {
+		if cu.ApprovalStatus != models.ComputeClusterUserApproved {
 			continue
 		}
-		if !active {
+		if !userActive {
 			if err := s.clusterUsers.ClearProvisioned(ctx, tx, cu.ID); err != nil {
 				return err
 			}
@@ -259,7 +259,7 @@ func (s *Service) setUserAccountsActiveTx(ctx context.Context, tx *sql.Tx, userI
 			return err
 		}
 	}
-	return s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: userID})
+	return s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: userID})
 }
 
 const (
@@ -324,7 +324,7 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		// Retires first: deleting the user unlinks their storages.
+		// Deactivates first: deleting the user unlinks their storages.
 		if err := s.publishUserTx(ctx, tx, events.UserDeleteEvent, existing); err != nil {
 			return err
 		}

@@ -28,7 +28,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) {
+func TestProvisionAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) {
 	name := "proj-grant"
 	alloc := &models.ComputeAllocation{ID: "alloc-1", Status: models.ACTIVE, PosixGroup: &name}
 	row := func(id, person int) client.CoGroupMemberListOne {
@@ -42,7 +42,7 @@ func TestEnsureAllocationGroup_RemovesExtraAndDuplicateMemberRows(t *testing.T) 
 	core.members = []store.MembershipWithUser{
 		{ComputeAllocationMembership: models.ComputeAllocationMembership{UserID: "user-1", MembershipStatus: models.ACTIVE}, ProvisionedAt: &provisioned},
 	}
-	if err := newOrchestratorForTest(t, srv, core, "").EnsureAllocationGroup(context.Background(), alloc); err != nil {
+	if err := newOrchestratorForTest(t, srv, core, "").ProvisionAllocationGroup(context.Background(), alloc); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 	if !slices.Equal(reg.deleted, []string{"/co_group_members/10.json", "/co_group_members/11.json"}) || len(reg.posted) != 0 {

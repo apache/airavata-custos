@@ -44,7 +44,7 @@ describe("UsersNav", () => {
   });
 
   // Make sure cluster readers see how many accounts wait for approval.
-  it("counts pending cluster accounts on Account Approvals for cluster readers", () => {
+  it("counts pending compute cluster users on Account Approvals for cluster readers", () => {
     currentPrivileges = ["core:users:read", "core:clusters:read"];
     pendingMocks.total = 3;
     render(<UsersNav />);

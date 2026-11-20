@@ -45,23 +45,23 @@ func (s *Subscriber) handleComputeAllocationDeleted(ctx context.Context, a model
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.compute_allocation_deleted")
 	defer span.End()
-	if a.ComputeClusterID != s.custosClusterID {
+	if a.ComputeClusterID != s.computeClusterID {
 		return nil
 	}
-	return s.ops.RemoveAllocationGroup(ctx, &a)
+	return s.ops.DeprovisionAllocationGroup(ctx, &a)
 }
 
 // syncAllocation reloads the allocation, since a stale payload could undo a
-// newer change, and ensures its group.
+// newer change, and provisions its group.
 func (s *Subscriber) syncAllocation(ctx context.Context, allocationID string) error {
 	a, err := s.core.GetComputeAllocation(ctx, allocationID)
 	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
-	if err != nil || a.ComputeClusterID != s.custosClusterID {
+	if err != nil || a.ComputeClusterID != s.computeClusterID {
 		return err
 	}
-	return s.ops.EnsureAllocationGroup(ctx, a)
+	return s.ops.ProvisionAllocationGroup(ctx, a)
 }
 
 func (s *Subscriber) syncUserAllocations(ctx context.Context, userID string) error {

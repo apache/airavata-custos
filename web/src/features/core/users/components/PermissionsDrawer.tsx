@@ -116,7 +116,7 @@ export function PermissionsDrawer({
   onClose,
 }: {
   user: UserAccountRow | null;
-  // Present when the viewer can read cluster accounts.
+  // Present when the viewer can read compute cluster users.
   clusterAccounts: ClusterAccountsView | undefined;
   rolesCatalog: Role[];
   canManageRoles: boolean;
@@ -210,7 +210,7 @@ export function PermissionsDrawer({
 
           {clusterAccounts ? (
             <section>
-              <h3 className={HEADING}>Cluster accounts</h3>
+              <h3 className={HEADING}>Compute cluster users</h3>
               <DrawerTable
                 headers={["Cluster", "Username", "Created on", ""]}
                 empty={clusterAccounts.clusters.length === 0 ? "No clusters" : null}
