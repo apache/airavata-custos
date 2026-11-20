@@ -57,9 +57,10 @@ Core makes or changes storages and publishes `storage::create` for each, a paren
 
 | When | Then |
 |---|---|
+| A user leaves `ACTIVE` | Retires their accounts' `{user}` and member storages |
 | An allocation or membership is set `INACTIVE` | Retires the storages it gave |
-| An account is deleted | Retires its `{user}` and member storages |
-| An allocation is deleted | Retires its `{allocation}` and member storages |
+| An unprovisioned account, or an `INACTIVE` allocation, is deleted | Its retired storages stay `pending_deletion`, unlinked |
+| An `INACTIVE` membership is deleted | Its retired storages stay `pending_deletion` |
 | A user is deleted, or a connector stops holding them | Retires their `{name}` storages |
 
 Making storages also retires those of the same holders the targets no longer give, so a sweep retires every storage

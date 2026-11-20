@@ -132,6 +132,15 @@ export const allocationsHandlers = [
     return HttpResponse.json(found);
   }),
 
+  http.put<{ id: string }, Pick<ComputeAllocation, "status">>(
+    "*/api/v1/compute-allocations/:id/status",
+    async ({ params, request }) => {
+      const found = allocations.find((a) => a.id === String(params.id));
+      if (!found) return HttpResponse.json({ error: "allocation not found" }, { status: 404 });
+      found.status = (await request.json()).status;
+      return HttpResponse.json(found);
+    },
+  ),
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id/resources", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(resourcesByAlloc[id] ?? []);
@@ -190,6 +199,16 @@ export const allocationsHandlers = [
     }
     return HttpResponse.json({ error: "membership not found" }, { status: 404 });
   }),
+  http.put<{ id: string }, Pick<AllocationMembership, "membership_status">>(
+    "*/api/v1/compute-allocation-memberships/:id/status",
+    async ({ params, request }) => {
+      const all = Object.values(membersByAlloc).flat();
+      const member = all.find((m) => m.id === String(params.id));
+      if (!member) return HttpResponse.json({ error: "membership not found" }, { status: 404 });
+      member.membership_status = (await request.json()).membership_status;
+      return HttpResponse.json(member);
+    },
+  ),
 
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id/change-requests", ({ params }) => {
     const id = String(params.id);

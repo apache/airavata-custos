@@ -180,6 +180,7 @@ func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request
 // @Param	id	path	string	true	"Compute cluster user ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/compute-cluster-users/{id} [delete]
 func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {

@@ -160,9 +160,9 @@ func (s *pgUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) er
 
 func (s *pgUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE users SET organization_id = $1, first_name = $2, last_name = $3, middle_name = $4, email = $5, status = $6, type = $7
-		 WHERE id = $8`,
-		u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type, u.ID)
+		`UPDATE users SET organization_id = $1, first_name = $2, last_name = $3, middle_name = $4, email = $5, type = $6
+		 WHERE id = $7`,
+		u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Type, u.ID)
 	return err
 }
 

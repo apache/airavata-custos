@@ -20,7 +20,6 @@ import { StatusBadge, type StatusBadgeVariant } from "@/shared/ui/StatusBadge";
 const USER_STATUSES: Record<string, { variant: StatusBadgeVariant; label: string }> = {
   ACTIVE: { variant: "active", label: "Active" },
   PENDING: { variant: "pending", label: "Awaiting sign-in" },
-  SUSPENDED: { variant: "warning", label: "Suspended" },
   INACTIVE: { variant: "inactive", label: "Inactive" },
   MERGED: { variant: "inactive", label: "Merged" },
 };

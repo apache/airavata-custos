@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -79,5 +80,46 @@ func TestRemoveClusterAccount_SecondRunChangesNothing(t *testing.T) {
 
 	if len(reg.put) != 0 || len(reg.deleted) != 0 {
 		t.Errorf("expected no writes, got %d updates and deletes %v", len(reg.put), reg.deleted)
+	}
+}
+
+// Make sure deactivating suspends the account, keeps it and its group, and takes an admin out of the admin group.
+func TestDeactivateClusterAccount_SuspendsTheAccount(t *testing.T) {
+	reg := &mockRegistry{account: "jdoe", userGroup: 55, adminGroup: adminGroupID, adminMember: true}
+	srv := mockComanageServer(t, reg)
+	defer srv.Close()
+	core := adminCore()
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", AccessLevel: models.ClusterAccessAdmin}
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeactivateClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeactivateClusterAccount: %v", err)
+	}
+
+	if len(reg.put) != 1 || !strings.Contains(string(reg.put[0]), `"username":"jdoe"`) || !strings.Contains(string(reg.put[0]), `"status":"S"`) {
+		t.Errorf("expected one person update suspending jdoe, got %d: %s", len(reg.put), reg.put)
+	}
+	if want := []string{"/co_group_members/9.json"}; !slices.Equal(reg.deleted, want) {
+		t.Errorf("deleted = %v, want %v", reg.deleted, want)
+	}
+	if !hasAudit(core, "ComanageClusterAccountUpdated") {
+		t.Error("no ComanageClusterAccountUpdated audit event")
+	}
+}
+
+// Make sure the person is found through the account's primary group when the
+// user holds no stored person id, as the retiring user of a merge does.
+func TestDeactivateClusterAccount_FindsThePersonThroughThePrimaryGroup(t *testing.T) {
+	reg := &mockRegistry{account: "jdoe", userGroup: 55, members: []client.CoGroupMemberListOne{{CoGroupId: 55, Person: client.IdentifierParent{Id: 42}}}}
+	srv := mockComanageServer(t, reg)
+	defer srv.Close()
+	core := &fakeCore{user: &models.User{ID: "user-1"}}
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe"}
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).DeactivateClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("DeactivateClusterAccount: %v", err)
+	}
+
+	if len(reg.put) != 1 || !strings.Contains(string(reg.put[0]), `"status":"S"`) {
+		t.Errorf("expected one person update suspending jdoe, got %d: %s", len(reg.put), reg.put)
 	}
 }

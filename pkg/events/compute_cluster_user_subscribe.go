@@ -59,3 +59,9 @@ func (b *Bus) SubscribeComputeClusterUserProvisioned(subscriber string, handler 
 func (b *Bus) SubscribeComputeClusterUserDeleted(subscriber string, handler ComputeClusterUserHandler) {
 	subscribeTyped(b, subscriber, ComputeClusterUserDeleteEvent, handler)
 }
+
+// SubscribeComputeClusterUserUpdated registers a typed handler invoked
+// whenever a compute_cluster_user::update event is published.
+func (b *Bus) SubscribeComputeClusterUserUpdated(subscriber string, handler ComputeClusterUserHandler) {
+	subscribeTyped(b, subscriber, ComputeClusterUserUpdateEvent, handler)
+}

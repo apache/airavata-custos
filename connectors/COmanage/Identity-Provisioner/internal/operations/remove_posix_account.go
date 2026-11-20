@@ -19,6 +19,7 @@ package operations
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -54,7 +55,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		return err
 	}
 	if personID != "" {
-		if err := o.removeAccountFromPerson(ctx, cu, personID, composite); err != nil {
+		if err := o.removeAccountFromPerson(ctx, cu, personID, composite, removeLogin); err != nil {
 			return err
 		}
 	}
@@ -74,10 +75,11 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 	return nil
 }
 
-// removeAccountFromPerson takes the cluster account, its login name and the
-// admin group membership off the person. The person record itself stays.
-func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte) error {
-	body, changed, err := removeLogin(composite, cu.LocalUsername)
+// removeAccountFromPerson applies edit to the person's cluster account and
+// takes the admin group membership off the person. The person record itself stays.
+func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte,
+	edit func(json.RawMessage, string) ([]byte, bool, error)) error {
+	body, changed, err := edit(composite, cu.LocalUsername)
 	if err != nil {
 		return err
 	}
@@ -114,6 +116,50 @@ func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.C
 		return fmt.Errorf("delete cluster admin membership: %w", err)
 	}
 	return nil
+}
+
+// DeactivateClusterAccount sets the person's cluster account status to "S" and takes them out of the admin group; the account stays.
+func (o *Orchestrator) DeactivateClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+	personID, composite, err := o.findAccountCoPerson(ctx, cu)
+	if err != nil || personID == "" {
+		return err
+	}
+	if err := o.removeAccountFromPerson(ctx, cu, personID, composite, deactivateUnixClusterAccount); err != nil {
+		return err
+	}
+	o.audit(ctx, cu, "ComanageClusterAccountUpdated", fmt.Sprintf("comanage_id=%s username=%s status=S", personID, cu.LocalUsername))
+	return nil
+}
+
+// findAccountCoPerson returns the person holding the account, "" if none.
+// A merge moves the stored person id off the retiring user, so the member of the account's primary group comes first.
+func (o *Orchestrator) findAccountCoPerson(ctx context.Context, cu *models.ComputeClusterUser) (string, []byte, error) {
+	groupID, err := o.c.FindCoGroupByName(cu.LocalUsername)
+	if err != nil {
+		return "", nil, fmt.Errorf("find primary group: %w", err)
+	}
+	if groupID != 0 {
+		// A primary group has one member unless provisioning was retried against another person.
+		members, err := o.c.ListCoGroupMembers(groupID)
+		if err != nil {
+			return "", nil, err
+		}
+		if len(members) > 0 {
+			personID, err := o.c.FindIdentifierValueOnPerson(members[0].Person.Id, o.c.Config().PersonIDType)
+			if err != nil {
+				return "", nil, err
+			}
+			if personID != "" {
+				composite, err := o.c.GetPersonComposite(personID)
+				return personID, composite, err
+			}
+		}
+	}
+	user, err := o.core.GetUser(ctx, cu.UserID)
+	if err != nil {
+		return "", nil, fmt.Errorf("get Custos user: %w", err)
+	}
+	return o.findCoPerson(ctx, user)
 }
 
 // ignoreNotFound treats a delete of something already deleted as done.

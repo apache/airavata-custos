@@ -35,7 +35,7 @@ as a diff.
 ## Users, organizations and projects
 
 A **User** belongs to an **Organization** and is identified by name and email. A user's `status` is `PENDING`,
-`ACTIVE`, `INACTIVE`, `SUSPENDED` or `MERGED`.
+`ACTIVE`, `INACTIVE` or `MERGED`.
 
 A **Project** groups one or more compute allocations (and, in the future, storage allocations) under a single umbrella. Projects carry an `Origination` field indicating the source system (ACCESS, NAIRR, XRAS, etc.) and a corresponding `OriginatedID` for cross-referencing. A project's `status` is `ACTIVE`, `INACTIVE` or `DELETED`.
 
