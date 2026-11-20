@@ -40,7 +40,7 @@ import { CERTIFICATE_OPTIONS, formatUnixSeconds, LIFETIME_CHOICES } from "../sta
 const REFUSAL_MESSAGES: Record<string, string> = {
     user_not_active: "Your account is not active. Contact your site admin.",
     no_cluster_account: "You do not have an account on this cluster yet.",
-    cluster_account_not_ready: "Your cluster account is not ready yet. Try again once it is set up.",
+    cluster_account_not_ready: "Your compute cluster user is not ready yet. Try again once it is set up.",
     no_active_allocation: "You need an active allocation to get a certificate.",
     reserved_username: "Certificates cannot be issued for this username. Contact your site admin.",
     invalid_public_key: "This does not look like an SSH public key. Paste the one line from your .pub file.",
@@ -49,7 +49,7 @@ const REFUSAL_MESSAGES: Record<string, string> = {
     signer_unavailable: "Certificate service is not reachable. No certificate was issued. Try again in a minute.",
     invalid_ttl: "That lifetime is longer than this site allows.",
     invalid_request: "Check the addresses. Use addresses like 192.0.2.10 or ranges like 192.0.2.0/24.",
-    principal_denied: "Your cluster account cannot log in yet. Contact your site admin.",
+    principal_denied: "Your compute cluster user cannot log in yet. Contact your site admin.",
 };
 
 const LONGEST = LIFETIME_CHOICES.reduce((a, b) => (b.seconds > a.seconds ? b : a));
@@ -273,7 +273,7 @@ export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertif
           <>
             <DialogHeader>
               <DialogTitle>Generate certificate</DialogTitle>
-              <DialogDescription>Logs in with your own cluster account.</DialogDescription>
+              <DialogDescription>Logs in as your own compute cluster user.</DialogDescription>
             </DialogHeader>
             <form
               className="space-y-4"

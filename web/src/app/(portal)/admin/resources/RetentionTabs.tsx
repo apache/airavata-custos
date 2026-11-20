@@ -223,7 +223,7 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
   const columns: Array<DataTableColumn<Folder>> = [
     {
       key: "path",
-      header: "Folder",
+      header: "Storage",
       cell: (row) => {
         const Icon = row.inherited ? CornerDownRight : HardDrive;
         return (
@@ -337,7 +337,7 @@ export function StorageFoldersTab({ clusterId }: { clusterId: string | undefined
         rowKey={(row) => row.id}
         rowClassName={(row) => (row.status === "active" ? undefined : DISPOSABLE)}
         keep={(row) => row.compute_cluster_id === clusterId}
-        empty="No folders recorded."
+        empty="No storage recorded."
       />
       {editing ? <QuotaDialog folder={editing} onClose={() => setEditing(null)} /> : null}
     </>

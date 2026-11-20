@@ -47,7 +47,7 @@ export type UpdateUserRolesInput = {
 
 export type UserAccountRow = UserManagementRow & { accounts: ComputeClusterUserResponse[] };
 
-// What the details drawer needs to list cluster accounts; review handlers are absent without the privilege.
+// What the details drawer needs to list compute cluster users; review handlers are absent without the privilege.
 export type ClusterAccountsView = {
   clusters: Array<{ id: string; name: string }>;
   onApprove: ((account: ComputeClusterUserResponse) => void) | undefined;

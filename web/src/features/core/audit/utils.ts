@@ -147,7 +147,7 @@ const PLAIN_NAMES: Record<string, string> = {
   EVENT_DELIVERY_RETRIED: "Delivery retried by an admin",
   ComanageProvisioningStarted: "Provisioning started",
   ComanageProvisioningFailed: "Provisioning failed",
-  ComanageClusterAccountAttached: "Cluster account attached",
+  ComanageClusterAccountAttached: "Unix cluster account attached",
   PosixUsernameBuildFailed: "Username could not be built",
 };
 
@@ -807,7 +807,7 @@ const ENTITY_KINDS: Record<string, { kind: string; href: ((id: string) => string
     href: (id) => `/allocations/${encodeURIComponent(id)}`,
   },
   compute_allocation_membership: { kind: "Membership", href: null },
-  compute_cluster_user: { kind: "Cluster account", href: null },
+  compute_cluster_user: { kind: "Compute cluster user", href: null },
   user: { kind: "User", href: null },
   organization: { kind: "Organization", href: null },
 };

@@ -48,7 +48,7 @@ const account = {
 
 afterEach(() => fetchMock.mockReset());
 
-describe("cluster accounts API", () => {
+describe("compute cluster users API", () => {
   // Make sure the status filter reaches the backend and a null provisioned_at
   // is accepted, since a pending account has no provisioned time yet.
   it("lists accounts by approval status", async () => {
