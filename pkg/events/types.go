@@ -76,13 +76,6 @@ const (
 	StorageDeleteEvent EventType = "storage::delete"
 )
 
-// ClusterAccount lifecycle message types.
-const (
-	ClusterAccountCreateEvent EventType = "cluster_account::create"
-	ClusterAccountUpdateEvent EventType = "cluster_account::update"
-	ClusterAccountDeleteEvent EventType = "cluster_account::delete"
-)
-
 // ComputeAllocation lifecycle message types.
 const (
 	ComputeAllocationCreateEvent         EventType = "compute_allocation::create"
