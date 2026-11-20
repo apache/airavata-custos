@@ -33,7 +33,7 @@ func TestGrantRoleToUser_HappyPath(t *testing.T) {
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilege(t, database, granter, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
+	_ = svc.GrantPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
 
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, "ops"); err != nil {
 		t.Fatalf("GrantRoleToUser: %v", err)
@@ -68,7 +68,7 @@ func TestRevokeRoleFromUser_HappyPath(t *testing.T) {
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilege(t, database, granter, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
+	_ = svc.GrantPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {
 	}
 	// Grant role with hpc:read
 	role, _ := svc.CreateRole(ctx(), "hpc-viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
+	_ = svc.GrantPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("role grant: %v", err)
 	}
@@ -154,21 +154,21 @@ func TestUpdateRolePrivileges_PropagatesToHolders(t *testing.T) {
 	}
 	// Target holds the role but no privilege yet.
 	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || has {
-		t.Errorf("pre-add HasPrivilege: has=%v err=%v", has, err)
+		t.Errorf("pre-grant HasPrivilege: has=%v err=%v", has, err)
 	}
-	// Add a privilege to the role — target should gain it transparently.
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter); err != nil {
-		t.Fatalf("add: %v", err)
+	// Grant a privilege to the role — target should gain it transparently.
+	if err := svc.GrantPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter); err != nil {
+		t.Fatalf("grant: %v", err)
 	}
 	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || !has {
-		t.Errorf("post-add HasPrivilege: has=%v err=%v", has, err)
+		t.Errorf("post-grant HasPrivilege: has=%v err=%v", has, err)
 	}
-	// Remove it — target loses it transparently.
-	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.ClustersRead, granter); err != nil {
-		t.Fatalf("remove: %v", err)
+	// Revoke it — target loses it transparently.
+	if err := svc.RevokePrivilegeFromRole(ctx(), role.ID, models.ClustersRead, granter); err != nil {
+		t.Fatalf("revoke: %v", err)
 	}
 	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || has {
-		t.Errorf("post-remove HasPrivilege: has=%v err=%v", has, err)
+		t.Errorf("post-revoke HasPrivilege: has=%v err=%v", has, err)
 	}
 }
 

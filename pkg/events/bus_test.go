@@ -310,9 +310,9 @@ func TestUnsubscribeStopsNewDeliveries(t *testing.T) {
 	}
 }
 
-// Make sure the prune drops a topic a loaded subscriber no longer handles and
+// Make sure deleting stale subscriptions drops a topic a loaded subscriber no longer handles and
 // keeps every topic of a subscriber that did not load.
-func TestPruneKeepsSubscriptionsOfSubscribersThatDidNotLoad(t *testing.T) {
+func TestDeleteStaleKeepsSubscriptionsOfSubscribersThatDidNotLoad(t *testing.T) {
 	database := setupTestDB(t)
 	noop := func(context.Context, models.ComputeClusterUser) error { return nil }
 	earlier := newBus(t, database)
@@ -323,7 +323,7 @@ func TestPruneKeepsSubscriptionsOfSubscribersThatDidNotLoad(t *testing.T) {
 	// A fresh process where "loaded" dropped the delete topic and "absent" did not start.
 	bus := newBus(t, database)
 	bus.SubscribeComputeClusterUserCreated("loaded", noop)
-	bus.pruneSubscriptionsOnStart(context.Background())
+	bus.deleteStaleSubscriptionsOnStart(context.Background())
 
 	subs, err := bus.store.ListSubscriptions(context.Background())
 	if err != nil {

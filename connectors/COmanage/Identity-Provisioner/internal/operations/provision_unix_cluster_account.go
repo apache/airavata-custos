@@ -35,7 +35,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func (o *Orchestrator) ensureUnixClusterAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
+func (o *Orchestrator) provisionUnixClusterAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
 	log := slog.With("correlation_id", cu.ID, "custos_user_id", cu.UserID, "unix_cluster_id", o.c.Config().UnixClusterID)
 
 	user, err := o.core.GetUser(ctx, cu.UserID)
@@ -94,7 +94,7 @@ func (o *Orchestrator) ensureUnixClusterAccountImpl(ctx context.Context, cu *mod
 		return fmt.Errorf("extract CoPerson.meta.id: %w", err)
 	}
 
-	if err := o.ensureOIDCLinkage(ctx, cu, personID, composite, sub); err != nil {
+	if err := o.provisionOIDCLinkage(ctx, cu, personID, composite, sub); err != nil {
 		return err
 	}
 
@@ -187,10 +187,10 @@ func (o *Orchestrator) findOrCreateCoGroup(ctx context.Context, name string) (in
 	return id, nil
 }
 
-// ensureOIDCLinkage puts the `sub` on the person as an oidcsub identifier, which
+// provisionOIDCLinkage puts the `sub` on the person as an oidcsub identifier, which
 // is what the COmanage registry exports for ssh login matching.
 // A person provisioned before their first sign-in has no sub yet, so it is added here.
-func (o *Orchestrator) ensureOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite json.RawMessage, sub string) error {
+func (o *Orchestrator) provisionOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite json.RawMessage, sub string) error {
 	ctx, span := tracing.Start(ctx, "comanage.ensure_oidc_linkage")
 	defer span.End()
 

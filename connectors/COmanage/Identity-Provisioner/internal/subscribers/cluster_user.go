@@ -46,12 +46,12 @@ type Subscriber struct {
 
 // provisioner is what the subscriber needs from the orchestrator.
 type provisioner interface {
-	EnsureUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
-	DeleteUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
+	ProvisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
+	DeprovisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
 	DeactivateUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error
-	EnsureUnixClusterAdminMembership(ctx context.Context, cu *models.ComputeClusterUser) error
-	EnsureAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
-	RemoveAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
+	ProvisionAdminGroupMembership(ctx context.Context, cu *models.ComputeClusterUser) error
+	ProvisionAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
+	DeprovisionAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error
 }
 
 func NewSubscriber(c *client.Client, bus *events.Bus, core *service.Service, computeClusterID string) *Subscriber {
@@ -108,9 +108,9 @@ func (s *Subscriber) handleComputeClusterUserUpdated(ctx context.Context, req mo
 	return s.syncUserAllocations(ctx, cu.UserID)
 }
 
-// ensureUnixClusterAccount provisions the account, then suspends it if its user left ACTIVE meanwhile.
-func (s *Subscriber) ensureUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
-	if err := s.ops.EnsureUnixClusterAccount(ctx, cu); err != nil {
+// provisionUnixClusterAccount provisions the account, then suspends it if its user left ACTIVE meanwhile.
+func (s *Subscriber) provisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
+	if err := s.ops.ProvisionUnixClusterAccount(ctx, cu); err != nil {
 		return err
 	}
 	if active, err := s.isUserActive(ctx, cu.UserID); err != nil || active {
@@ -137,8 +137,8 @@ func (s *Subscriber) handleComputeClusterUserDeleted(ctx context.Context, cu mod
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_deleted")
 	defer span.End()
-	if err := s.ops.DeleteUnixClusterAccount(ctx, &cu); err != nil {
-		slog.ErrorContext(ctx, "comanage subscriber: DeleteUnixClusterAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+	if err := s.ops.DeprovisionUnixClusterAccount(ctx, &cu); err != nil {
+		slog.ErrorContext(ctx, "comanage subscriber: DeprovisionUnixClusterAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
 	return s.syncUserAllocations(ctx, cu.UserID)
@@ -165,16 +165,16 @@ func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) 
 	if active, err := s.isUserActive(ctx, user.ID); err != nil || !active {
 		return err
 	}
-	if err := s.ensureUnixClusterAccount(ctx, cu); err != nil {
+	if err := s.provisionUnixClusterAccount(ctx, cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		slog.ErrorContext(ctx, "comanage subscriber: EnsureUnixClusterAccount failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: ProvisionUnixClusterAccount failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
 		return err
 	}
 	if cu.AccessLevel == models.ClusterAccessAdmin && cu.ApprovalStatus == models.ComputeClusterUserApproved {
-		if err := s.ops.EnsureUnixClusterAdminMembership(ctx, cu); err != nil {
+		if err := s.ops.ProvisionAdminGroupMembership(ctx, cu); err != nil {
 			span.RecordError(err)
-			slog.ErrorContext(ctx, "comanage subscriber: EnsureUnixClusterAdminMembership failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
+			slog.ErrorContext(ctx, "comanage subscriber: ProvisionAdminGroupMembership failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
 			return err
 		}
 	}
@@ -223,18 +223,18 @@ func (s *Subscriber) handleComputeClusterUserApproved(ctx context.Context, cu mo
 	})
 	// TODO: move to a transactional scope. In-process delivery loses events
 	// if the process crashes between the core commit and subscriber pickup.
-	if err := s.ensureUnixClusterAccount(ctx, &cu); err != nil {
+	if err := s.provisionUnixClusterAccount(ctx, &cu); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		slog.ErrorContext(ctx, "comanage subscriber: EnsureUnixClusterAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: ProvisionUnixClusterAccount failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 		return err
 	}
 	// A failed group join returns the error so the bus retries. The account
 	// already works without sudo in the meantime.
 	if cu.AccessLevel == models.ClusterAccessAdmin {
-		if err := s.ops.EnsureUnixClusterAdminMembership(ctx, &cu); err != nil {
+		if err := s.ops.ProvisionAdminGroupMembership(ctx, &cu); err != nil {
 			span.RecordError(err)
-			slog.ErrorContext(ctx, "comanage subscriber: EnsureUnixClusterAdminMembership failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
+			slog.ErrorContext(ctx, "comanage subscriber: ProvisionAdminGroupMembership failed", "compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 			return err
 		}
 	}

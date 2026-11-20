@@ -25,11 +25,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// EnsureProjectMembership sets the user's project role. The PI lives in
+// SetProjectRole sets the user's project role. The PI lives in
 // projects.project_pi_id and cannot be changed or edited: PI for anyone else,
 // or any other role for the PI, returns ErrPIChange. MEMBER (or "") removes
 // the role row; the user stays a member through compute_allocation_memberships.
-func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error {
+func (s *Service) SetProjectRole(ctx context.Context, projectID, userID, role string) error {
 	if projectID == "" {
 		return fmt.Errorf("%w: project_id is required", ErrInvalidInput)
 	}
@@ -58,7 +58,7 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 	}
 
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projMemberships.Upsert(ctx, tx, &models.ProjectMembership{
+		return s.projMemberships.SetRole(ctx, tx, &models.ProjectMembership{
 			ProjectID: projectID, UserID: userID, Role: pr, AddedTime: nowUTC(),
 		})
 	})

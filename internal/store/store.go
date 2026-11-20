@@ -384,8 +384,8 @@ type ProjectMembershipStore interface {
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
 	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	// Upsert inserts the (project, user) row or sets its role.
-	Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
+	// SetRole inserts the (project, user) row or sets its role.
+	SetRole(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
 	// Delete removes the (project, user) row.
 	Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error
 	// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag
@@ -507,8 +507,8 @@ type RoleStore interface {
 	Update(ctx context.Context, tx *sql.Tx, r *models.Role) error
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 	ListPrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
-	AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
-	RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	GrantPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	RevokePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
 	HasPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) (bool, error)
 	CountRolesGrantingPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
 }
@@ -639,9 +639,9 @@ type StorageStore interface {
 	Users(ctx context.Context, tx *sql.Tx, userID string) ([]models.User, error)
 	// Deactivate marks the scope's active storages on the clusters pending deletion, except desired ones and kept types.
 	Deactivate(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error
-	// Upsert makes or updates and activates each storage at its path, keeping an administrator's live quota and another
+	// Activate makes or updates and activates each storage at its path, keeping an administrator's live quota and another
 	// user's storage. It returns those it made or changed, a parent first.
-	Upsert(ctx context.Context, tx *sql.Tx, desired []models.Storage) ([]models.Storage, error)
+	Activate(ctx context.Context, tx *sql.Tx, desired []models.Storage) ([]models.Storage, error)
 	// SetQuota replaces the quota of a storage that has one of its own, and returns the storage and its old quota; nil without one.
 	SetQuota(ctx context.Context, tx *sql.Tx, id string, bytes int64, until time.Time) (*models.Storage, int64, error)
 	// Delete drops a pending storage and those under it once all of them are pending, and returns the storage.

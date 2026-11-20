@@ -120,7 +120,7 @@ func (s *pgStorageStore) Deactivate(ctx context.Context, tx *sql.Tx, scope Stora
 	return err
 }
 
-func (s *pgStorageStore) Upsert(ctx context.Context, tx *sql.Tx, desired []models.Storage) (changed []models.Storage, err error) {
+func (s *pgStorageStore) Activate(ctx context.Context, tx *sql.Tx, desired []models.Storage) (changed []models.Storage, err error) {
 	if len(desired) == 0 {
 		return nil, nil
 	}

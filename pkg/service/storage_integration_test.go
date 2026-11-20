@@ -78,7 +78,7 @@ func newStorageAllocation(t *testing.T, svc *Service, database *sqlx.DB, cluster
 	return alloc
 }
 
-// Make sure a storage is made from its target for its owner, a deactivated owner's is active again once ensured, a storage
+// Make sure a storage is made from its target for its owner, a deactivated owner's is active again once synced, a storage
 // is deleted only once everything under it is pending, and deleting an owner unlinks its deactivated storages.
 func TestStorageLifecycle(t *testing.T) {
 	database := setupTestDB(t)
@@ -95,10 +95,10 @@ func TestStorageLifecycle(t *testing.T) {
 	a := allocation("")
 	sibling := allocation(a.ProjectID)
 	projectPath, siblingPath := "/project/"+*a.PosixGroup, "/project/"+*sibling.PosixGroup
-	ensure := func() int {
+	sync := func() int {
 		before := countRows(t, database, storageCreates)
-		if _, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil {
-			t.Fatalf("ensure: %v", err)
+		if _, err := svc.SyncStorages(ctx(), cluster.ID); err != nil {
+			t.Fatalf("sync: %v", err)
 		}
 		return countRows(t, database, storageCreates) - before
 	}
@@ -127,14 +127,14 @@ func TestStorageLifecycle(t *testing.T) {
 	if used := byPath()["/home/jdoe"].UsedBytes; used == nil || *used != 7 {
 		t.Errorf("home use: got %v, want 7 from the storage connector", used)
 	}
-	// setAllocationStatus sets the first allocation's status, ensures, and returns how many storages that made or changed.
+	// setAllocationStatus sets the first allocation's status, syncs, and returns how many storages that made or changed.
 	setAllocationStatus := func(status models.AllocationStatus) int {
 		before := countRows(t, database, storageCreates)
 		a.Status = status
 		if err := svc.UpdateComputeAllocation(ctx(), a); err != nil {
 			t.Fatalf("set allocation %s: %v", status, err)
 		}
-		ensure()
+		sync()
 		return countRows(t, database, storageCreates) - before
 	}
 
@@ -142,8 +142,8 @@ func TestStorageLifecycle(t *testing.T) {
 		t.Fatalf("member storage: %+v", m)
 	}
 	until := time.Now().Add(time.Hour)
-	if err := svc.UpdateStorage(ctx(), byPath()["/home/jdoe"].ID, 500, &until, "", "admin"); err != nil || ensure() != 0 || byPath()["/home/jdoe"].QuotaBytes != 500 {
-		t.Fatalf("administrator's quota: err=%v, want it to stand and nothing to change when storages are ensured again", err)
+	if err := svc.UpdateStorage(ctx(), byPath()["/home/jdoe"].ID, 500, &until, "", "admin"); err != nil || sync() != 0 || byPath()["/home/jdoe"].QuotaBytes != 500 {
+		t.Fatalf("administrator's quota: err=%v, want it to stand and nothing to change when storages are synced again", err)
 	}
 
 	setAllocationStatus(models.INACTIVE)
@@ -151,7 +151,7 @@ func TestStorageLifecycle(t *testing.T) {
 		t.Fatalf("after retiring: %+v", got)
 	}
 	if back := setAllocationStatus(models.ACTIVE); back != 2 {
-		t.Fatalf("ensuring deactivated storages: made %d, want the project's and the member's active again", back)
+		t.Fatalf("syncing deactivated storages: made %d, want the project's and the member's active again", back)
 	}
 	if err := svc.DeleteStorage(ctx(), byPath()[projectPath].ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("delete over an active storage: got %v, want ErrNotFound", err)
@@ -221,8 +221,8 @@ func TestStoragesFollowProvisioning(t *testing.T) {
 	err = svc.MarkComputeClusterUserProvisioned(ctx(), late.ID)
 	member := join(late)
 	check("a provisioned account joining", err, "/home/early", "/home/late", projectPath, projectPath+"/early", projectPath+"/late")
-	if desired, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil || len(desired) != 5 || countRows(t, database, storageCreates) != 5 {
-		t.Fatalf("ensuring again: err=%v desired=%d, want the five storages and nothing made or changed", err, len(desired))
+	if desired, err := svc.SyncStorages(ctx(), cluster.ID); err != nil || len(desired) != 5 || countRows(t, database, storageCreates) != 5 {
+		t.Fatalf("syncing again: err=%v desired=%d, want the five storages and nothing made or changed", err, len(desired))
 	}
 	var deactivated []string
 	_, err = svc.UpdateMembershipStatus(ctx(), member.ID, models.INACTIVE)
@@ -251,7 +251,7 @@ func TestMemberStorageSurvivesConcurrentProvisioning(t *testing.T) {
 			if err := svc.memberships.Create(ctx(), tx, m); err != nil {
 				return err
 			}
-			return svc.ensureStoragesTx(ctx(), tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID})
+			return svc.syncStoragesTx(ctx(), tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID})
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -342,8 +342,8 @@ func TestClaimedStorageHolders(t *testing.T) {
 			t.Fatalf("after %q: %s, want %s", step.status, got, step.want)
 		}
 	}
-	if _, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil {
-		t.Fatalf("ensure: %v", err)
+	if _, err := svc.SyncStorages(ctx(), cluster.ID); err != nil {
+		t.Fatalf("sync: %v", err)
 	}
 	if got, _ := storage("/unclaimed/x"); got != "active" {
 		t.Fatalf("unclaimed: %s, want active", got)

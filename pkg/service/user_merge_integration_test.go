@@ -111,7 +111,7 @@ func TestMergeUsers_KeepsHigherTagAndPIHoldsNoTag(t *testing.T) {
 			t.Fatalf("create project: %v", err)
 		}
 		for u, role := range tags {
-			if err := svc.EnsureProjectMembership(ctx(), p.ID, u, role); err != nil {
+			if err := svc.SetProjectRole(ctx(), p.ID, u, role); err != nil {
 				t.Fatalf("tag %s: %v", role, err)
 			}
 		}

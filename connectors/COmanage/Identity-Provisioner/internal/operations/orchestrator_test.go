@@ -69,7 +69,7 @@ func installRecorder(t *testing.T) *recordingProcessor {
 	return rec
 }
 
-func TestEnsureUnixClusterAccount_EmitsComanageSpanTree(t *testing.T) {
+func TestProvisionUnixClusterAccount_EmitsComanageSpanTree(t *testing.T) {
 	rec := installRecorder(t)
 	srv := mockComanageServer(t, &mockRegistry{})
 	defer srv.Close()
@@ -81,8 +81,8 @@ func TestEnsureUnixClusterAccount_EmitsComanageSpanTree(t *testing.T) {
 	defer root.End()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
-	if err := orch.EnsureUnixClusterAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsureUnixClusterAccount: %v", err)
+	if err := orch.ProvisionUnixClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("ProvisionUnixClusterAccount: %v", err)
 	}
 
 	wantSpans := []string{
@@ -109,7 +109,7 @@ func TestEnsureUnixClusterAccount_EmitsComanageSpanTree(t *testing.T) {
 	}
 }
 
-func TestEnsureUnixClusterAccount_DlqAuditCarriesTraceID(t *testing.T) {
+func TestProvisionUnixClusterAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	installRecorder(t)
 
 	// Server fails CreatePerson with 500, exhausting retries — triggers dlq.
@@ -134,8 +134,8 @@ func TestEnsureUnixClusterAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	wantTrace := root.SpanContext().TraceID()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx", ApprovalStatus: models.ComputeClusterUserApproved}
-	if err := orch.EnsureUnixClusterAccount(ctx, cu); err == nil {
-		t.Fatalf("expected EnsureUnixClusterAccount to fail under 500")
+	if err := orch.ProvisionUnixClusterAccount(ctx, cu); err == nil {
+		t.Fatalf("expected ProvisionUnixClusterAccount to fail under 500")
 	}
 
 	if len(core.auditEvents) == 0 {
@@ -159,7 +159,7 @@ func contains(haystack []string, needle string) bool {
 	return false
 }
 
-func TestEnsureUnixClusterAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
+func TestProvisionUnixClusterAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	installRecorder(t)
 
 	var peoplePutBody string
@@ -217,8 +217,8 @@ func TestEnsureUnixClusterAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	defer root.End()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
-	if err := orch.EnsureUnixClusterAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsureUnixClusterAccount: %v", err)
+	if err := orch.ProvisionUnixClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("ProvisionUnixClusterAccount: %v", err)
 	}
 
 	if !strings.Contains(peoplePutBody, `"identifier":"cluster-e2etest"`) {
@@ -232,7 +232,7 @@ func TestEnsureUnixClusterAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	}
 }
 
-func TestEnsureUnixClusterAccount_CreatesOIDCLinkage(t *testing.T) {
+func TestProvisionUnixClusterAccount_CreatesOIDCLinkage(t *testing.T) {
 	installRecorder(t)
 
 	var oidcPutBody string
@@ -281,8 +281,8 @@ func TestEnsureUnixClusterAccount_CreatesOIDCLinkage(t *testing.T) {
 	defer root.End()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
-	if err := orch.EnsureUnixClusterAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsureUnixClusterAccount: %v", err)
+	if err := orch.ProvisionUnixClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("ProvisionUnixClusterAccount: %v", err)
 	}
 
 	if oidcPutBody == "" {
@@ -301,7 +301,7 @@ func TestEnsureUnixClusterAccount_CreatesOIDCLinkage(t *testing.T) {
 }
 
 // Make sure an account that is still waiting for admin approval is not sent to the registry.
-func TestEnsureUnixClusterAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
+func TestProvisionUnixClusterAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
 	defer srv.Close()
@@ -310,8 +310,8 @@ func TestEnsureUnixClusterAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) 
 	orch := newOrchestratorForTest(t, srv, core, "")
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ComputeClusterUserPending}
-	if err := orch.EnsureUnixClusterAccount(context.Background(), cu); err != nil {
-		t.Fatalf("EnsureUnixClusterAccount: %v", err)
+	if err := orch.ProvisionUnixClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("ProvisionUnixClusterAccount: %v", err)
 	}
 
 	if calls != 0 {

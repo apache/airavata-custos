@@ -103,13 +103,13 @@ func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error
 
 // The event handlers use this. An event means something changed, so the
 // record is written without checking the cluster first.
-func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) provisionAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
 	association, err := a.desiredAssociationForMembership(ctx, membership)
 	if err != nil || association == nil {
 		return err
 	}
 	if err := a.writeAssociation(*association); err != nil {
-		return fmt.Errorf("upsert association: %w", err)
+		return fmt.Errorf("write association: %w", err)
 	}
 	slog.InfoContext(ctx, "Upserted association", "association", *association)
 	return nil

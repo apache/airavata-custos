@@ -46,15 +46,15 @@ func hasAudit(core *fakeCore, eventType string) bool {
 }
 
 // Make sure all the members are added as plain members without making them owners.
-func TestEnsureUnixClusterAdminMembership_JoinsAsPlainMember(t *testing.T) {
+func TestProvisionAdminGroupMembership_JoinsAsPlainMember(t *testing.T) {
 	reg := &mockRegistry{adminGroup: adminGroupID}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := adminCore()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", AccessLevel: models.ClusterAccessAdmin}
-	if err := newOrchestratorForTest(t, srv, core, adminGroupName).EnsureUnixClusterAdminMembership(context.Background(), cu); err != nil {
-		t.Fatalf("EnsureUnixClusterAdminMembership: %v", err)
+	if err := newOrchestratorForTest(t, srv, core, adminGroupName).ProvisionAdminGroupMembership(context.Background(), cu); err != nil {
+		t.Fatalf("ProvisionAdminGroupMembership: %v", err)
 	}
 
 	want := client.CoGroupMemberCreateOne{
@@ -73,14 +73,14 @@ func TestEnsureUnixClusterAdminMembership_JoinsAsPlainMember(t *testing.T) {
 }
 
 // Make sure a second run does not add a duplicate membership.
-func TestEnsureUnixClusterAdminMembership_SecondRunAddsNothing(t *testing.T) {
+func TestProvisionAdminGroupMembership_SecondRunAddsNothing(t *testing.T) {
 	reg := &mockRegistry{adminGroup: adminGroupID, adminMember: true}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", AccessLevel: models.ClusterAccessAdmin}
-	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).EnsureUnixClusterAdminMembership(context.Background(), cu); err != nil {
-		t.Fatalf("EnsureUnixClusterAdminMembership: %v", err)
+	if err := newOrchestratorForTest(t, srv, adminCore(), adminGroupName).ProvisionAdminGroupMembership(context.Background(), cu); err != nil {
+		t.Fatalf("ProvisionAdminGroupMembership: %v", err)
 	}
 	if len(reg.posted) != 0 {
 		t.Fatalf("posted %d memberships for an existing member, want 0", len(reg.posted))
@@ -88,14 +88,14 @@ func TestEnsureUnixClusterAdminMembership_SecondRunAddsNothing(t *testing.T) {
 }
 
 // Make sure nothing is written when the user has no stored CoPerson.
-func TestEnsureUnixClusterAdminMembership_NoStoredPersonWritesNothing(t *testing.T) {
+func TestProvisionAdminGroupMembership_NoStoredPersonWritesNothing(t *testing.T) {
 	reg := &mockRegistry{adminGroup: adminGroupID}
 	srv := mockComanageServer(t, reg)
 	defer srv.Close()
 	core := &fakeCore{user: &models.User{ID: "user-1", Email: "admin@example.edu"}}
 
 	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", AccessLevel: models.ClusterAccessAdmin}
-	err := newOrchestratorForTest(t, srv, core, adminGroupName).EnsureUnixClusterAdminMembership(context.Background(), cu)
+	err := newOrchestratorForTest(t, srv, core, adminGroupName).ProvisionAdminGroupMembership(context.Background(), cu)
 	if err == nil || !strings.Contains(err.Error(), "no stored CoPerson") {
 		t.Fatalf("err = %v, want no stored CoPerson", err)
 	}
@@ -108,7 +108,7 @@ func TestEnsureUnixClusterAdminMembership_NoStoredPersonWritesNothing(t *testing
 }
 
 // Make sure nothing is written when the admin group is not configured or not in the registry.
-func TestEnsureUnixClusterAdminMembership_MissingGroupWritesNothing(t *testing.T) {
+func TestProvisionAdminGroupMembership_MissingGroupWritesNothing(t *testing.T) {
 	tests := []struct {
 		name      string
 		groupName string
@@ -126,7 +126,7 @@ func TestEnsureUnixClusterAdminMembership_MissingGroupWritesNothing(t *testing.T
 			core := adminCore()
 
 			cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", AccessLevel: models.ClusterAccessAdmin}
-			err := newOrchestratorForTest(t, srv, core, tt.groupName).EnsureUnixClusterAdminMembership(context.Background(), cu)
+			err := newOrchestratorForTest(t, srv, core, tt.groupName).ProvisionAdminGroupMembership(context.Background(), cu)
 			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 				t.Fatalf("err = %v, want it to contain %q", err, tt.wantErr)
 			}

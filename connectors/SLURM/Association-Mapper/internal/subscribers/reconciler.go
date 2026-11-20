@@ -121,7 +121,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 		if err != nil {
 			slog.ErrorContext(ctx, "Association reconciler: failed to list memberships", "user_id", csu.UserID, "error", err)
 			// Without this user's memberships the desired set is incomplete,
-			// so pruning could revoke access that is actually valid.
+			// so deprovisioning could end access that is actually valid.
 			return
 		}
 		for _, membership := range memberships {
@@ -137,13 +137,13 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 					"membership_id", membership.ID, "error", err)
 				return
 			}
-			// Memberships span clusters; each cluster's pass writes and prunes its own.
+			// Memberships span clusters; each cluster's pass provisions and deprovisions its own.
 			if record == nil || record.Cluster != cluster.Name {
 				continue
 			}
 			desired[keyOf(*record)] = struct{}{}
 			// The grace only holds back the write. The association is still
-			// desired, so a member provisioned moments ago is never pruned.
+			// desired, so a member provisioned moments ago is never deprovisioned.
 			if !a.readyForAssociation(csu) {
 				continue
 			}
@@ -153,7 +153,7 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 				continue
 			}
 			if err := a.writeAssociation(*record); err != nil {
-				slog.ErrorContext(ctx, "Association reconciler: failed to upsert association",
+				slog.ErrorContext(ctx, "Association reconciler: failed to provision association",
 					"membership_id", membership.ID, "error", err)
 				continue
 			}
@@ -161,16 +161,16 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 		}
 	}
 
-	removed := a.pruneStaleAssociations(ctx, cluster, existing, desired)
+	removed := a.deprovisionStaleAssociations(ctx, cluster, existing, desired)
 	slog.DebugContext(ctx, "Association reconciler pass complete",
 		"cluster", cluster.Name, "written", written, "removed", removed)
 }
 
-// pruneStaleAssociations removes member associations the allocations no longer
+// deprovisionStaleAssociations deprovisions member associations the allocations no longer
 // call for. Two things are never touched: associations on accounts Custos does
 // not manage, and the account-level records that carry an allocation's own
 // limits rather than a member's access.
-func (a *AssociationSubscriber) pruneStaleAssociations(ctx context.Context, cluster models.ComputeCluster, existing map[assocKey]client.Association, desired map[assocKey]struct{}) int {
+func (a *AssociationSubscriber) deprovisionStaleAssociations(ctx context.Context, cluster models.ComputeCluster, existing map[assocKey]client.Association, desired map[assocKey]struct{}) int {
 	if len(existing) == 0 {
 		return 0
 	}

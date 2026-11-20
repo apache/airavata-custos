@@ -49,7 +49,7 @@ func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amie
 
 func (h *RequestProjectCreateHandler) SupportsType() string { return "request_project_create" }
 
-// Handle ensures the PI user (resolving the organization from PiOrgCode +
+// Handle finds or creates the PI user (resolving the organization from PiOrgCode +
 // PiOrganization), creates (or finds) the Project, and creates a
 // ComputeAllocation populated from the packet body's ServiceUnitsAllocated,
 // StartDate and EndDate.
@@ -89,17 +89,17 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	// TODO verify whether GrantNumber should be promoted to a first-class column on `projects`
 	projectOriginatedID := grantNumber
 
-	pi, err := h.ensurePIUser(ctx, body, piGlobalID)
+	pi, err := h.findOrCreatePIUser(ctx, body, piGlobalID)
 	if err != nil {
-		return fmt.Errorf("request_project_create: ensure PI: %w", err)
+		return fmt.Errorf("request_project_create: find or create PI: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreatePerson, "user", pi.ID, "PI"); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_PERSON: %w", err)
 	}
 
-	piClusterUser, err := ensureClusterUser(ctx, h.svc, h.clusterID, pi.ID)
+	piClusterUser, err := findOrCreateClusterUser(ctx, h.svc, h.clusterID, pi.ID)
 	if err != nil {
-		return fmt.Errorf("request_project_create: ensure PI cluster user: %w", err)
+		return fmt.Errorf("request_project_create: find or create PI cluster user: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "compute_cluster_user", piClusterUser.ID, piClusterUser.LocalUsername); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_ACCOUNT (PI): %w", err)
@@ -109,32 +109,32 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if title == "" {
 		title = grantNumber
 	}
-	project, err := h.ensureProject(ctx, tx, projectOriginatedID, title, pi.ID)
+	project, err := h.findOrCreateProject(ctx, tx, projectOriginatedID, title, pi.ID)
 	if err != nil {
-		return fmt.Errorf("request_project_create: ensure project: %w", err)
+		return fmt.Errorf("request_project_create: find or create project: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateProject, "project", project.ID, ""); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_PROJECT: %w", err)
 	}
 
-	allocation, err := h.ensureAllocation(ctx, tx, body, project.ID, grantNumber)
+	allocation, err := h.createOrChangeAllocation(ctx, tx, body, project.ID, grantNumber)
 	if err != nil {
-		return fmt.Errorf("request_project_create: ensure allocation: %w", err)
+		return fmt.Errorf("request_project_create: create or change allocation: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAllocation, "compute_allocation", allocation.ID, ""); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_ALLOCATION: %w", err)
 	}
 
-	if err := h.ensureResourceMappings(ctx, tx, body, allocation, packet, eventID); err != nil {
-		return fmt.Errorf("request_project_create: ensure resource mappings: %w", err)
+	if err := h.attachResources(ctx, tx, body, allocation, packet, eventID); err != nil {
+		return fmt.Errorf("request_project_create: attach resources: %w", err)
 	}
 
-	piMembership, created, err := h.ensurePIMembership(ctx, tx, allocation, pi.ID)
+	piMembership, created, err := h.findOrCreatePIMembership(ctx, tx, allocation, pi.ID)
 	if err != nil {
-		return fmt.Errorf("request_project_create: ensure PI membership: %w", err)
+		return fmt.Errorf("request_project_create: find or create PI membership: %w", err)
 	}
-	if err := h.svc.EnsureProjectMembership(ctx, project.ID, pi.ID, "PI"); err != nil {
-		return fmt.Errorf("request_project_create: ensure PI project membership: %w", err)
+	if err := h.svc.SetProjectRole(ctx, project.ID, pi.ID, "PI"); err != nil {
+		return fmt.Errorf("request_project_create: set PI project role: %w", err)
 	}
 	if created {
 		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", piMembership.ID, "PI"); err != nil {
@@ -157,18 +157,18 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	return sendReply(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, "request_project_create", reply)
 }
 
-func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
+func (h *RequestProjectCreateHandler) findOrCreatePIUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
 	if u, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, globalID); err == nil {
 		return u, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return nil, err
 	}
-	org, err := ensureOrganization(ctx, h.svc, getString(body, "PiOrgCode"), getString(body, "PiOrganization"))
+	org, err := findOrCreateOrganization(ctx, h.svc, getString(body, "PiOrgCode"), getString(body, "PiOrganization"))
 	if err != nil {
-		return nil, fmt.Errorf("ensure PI organization: %w", err)
+		return nil, fmt.Errorf("find or create PI organization: %w", err)
 	}
 	email := getString(body, "PiEmail")
-	user, err := ensureUserByEmail(ctx, h.svc, org.ID, email, getString(body, "PiFirstName"), getString(body, "PiLastName"))
+	user, err := findOrCreateUserByEmail(ctx, h.svc, org.ID, email, getString(body, "PiFirstName"), getString(body, "PiLastName"))
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 	return user, nil
 }
 
-func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, tx *sql.Tx, originatedID, title, piID string) (*models.Project, error) {
+func (h *RequestProjectCreateHandler) findOrCreateProject(ctx context.Context, tx *sql.Tx, originatedID, title, piID string) (*models.Project, error) {
 	if p, err := h.svc.GetProjectByOriginatedID(ctx, originatedID); err == nil {
 		// The spec says a project packet for an inactive project reactivates it.
 		if p.Status != models.ProjectActive {
@@ -201,8 +201,8 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, tx *sql
 	})
 }
 
-// ensureAllocation also changes the allocation when the project already has one.
-func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+// createOrChangeAllocation creates the project's allocation, or changes it when the project already has one.
+func (h *RequestProjectCreateHandler) createOrChangeAllocation(ctx context.Context, tx *sql.Tx, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
 	su, err := getNumber(body, "ServiceUnitsAllocated")
 	if err != nil {
 		return nil, err
@@ -238,11 +238,11 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, tx *
 	})
 }
 
-// ensureResourceMappings grants the allocation each packet resource found in
+// attachResources attaches to the allocation each packet resource found in
 // the cluster's catalog. AMIE expresses the grant only in service units,
 // already stored on the allocation, so mappings carry no native caps;
 // unregistered names are skipped rather than failing the packet.
-func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
+func (h *RequestProjectCreateHandler) attachResources(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
 	for _, packetName := range getResourceList(body) {
 		// One packet resource can stand for several catalog resources, such as two GPU partitions with their own rates.
 		names, ok := h.resourceAliases[packetName]
@@ -281,11 +281,11 @@ func (h *RequestProjectCreateHandler) attachResource(ctx context.Context, tx *sq
 	return nil
 }
 
-// ensurePIMembership asserts the PI as a role=PI membership on the allocation.
+// findOrCreatePIMembership asserts the PI as a role=PI membership on the allocation.
 // Returns (membership, created=true) when it inserted a new row, or
 // (existing, created=false) on redelivery. The service rejects a second
 // distinct PI on the same allocation.
-func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
+func (h *RequestProjectCreateHandler) findOrCreatePIMembership(ctx context.Context, tx *sql.Tx, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
 	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
 	if err != nil {
 		return nil, false, fmt.Errorf("list memberships: %w", err)

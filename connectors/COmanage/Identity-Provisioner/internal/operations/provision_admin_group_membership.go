@@ -29,9 +29,9 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// EnsureUnixClusterAdminMembership adds an ADMIN compute cluster user to the group that gives sudo access.
+// ProvisionAdminGroupMembership adds an ADMIN compute cluster user to the group that gives sudo access.
 // The group is created by an operator, so a missing one is an error.
-func (o *Orchestrator) EnsureUnixClusterAdminMembership(ctx context.Context, cu *models.ComputeClusterUser) error {
+func (o *Orchestrator) ProvisionAdminGroupMembership(ctx context.Context, cu *models.ComputeClusterUser) error {
 	ctx, span := tracing.Start(ctx, "comanage.ensure_cluster_admin_membership")
 	defer span.End()
 	span.SetAttributes(attribute.String("comanage.cluster_user_id", cu.ID))
@@ -57,7 +57,7 @@ func (o *Orchestrator) EnsureUnixClusterAdminMembership(ctx context.Context, cu 
 		return fail("cluster_admin_group_missing", fmt.Errorf("cluster admin group %q is not in the registry", name))
 	}
 
-	// Set by EnsureUnixClusterAccount, which runs first.
+	// Set by ProvisionUnixClusterAccount, which runs first.
 	personID, err := o.findStoredPersonID(ctx, cu.UserID)
 	if err != nil {
 		return fail("cluster_admin_find_person", err)

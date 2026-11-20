@@ -239,7 +239,7 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	return existing, nil
 }
 
-// syncComputeClusterAccessTx republishes the user's approved compute cluster users, unprovisioned unless userActive, and ensures their storages.
+// syncComputeClusterAccessTx republishes the user's approved compute cluster users, unprovisioned unless userActive, and syncs their storages.
 func (s *Service) syncComputeClusterAccessTx(ctx context.Context, tx *sql.Tx, userID string, userActive bool) error {
 	computeClusterUsers, err := s.clusterUsers.FindByUserTx(ctx, tx, userID)
 	if err != nil {
@@ -259,7 +259,7 @@ func (s *Service) syncComputeClusterAccessTx(ctx context.Context, tx *sql.Tx, us
 			return err
 		}
 	}
-	return s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: userID})
+	return s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: userID})
 }
 
 const (

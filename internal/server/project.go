@@ -251,7 +251,7 @@ func (s *Server) updateProjectMember(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role is required"))
 		return
 	}
-	if err := s.svc.EnsureProjectMembership(r.Context(), r.PathValue("id"), r.PathValue("userId"), req.Role); err != nil {
+	if err := s.svc.SetProjectRole(r.Context(), r.PathValue("id"), r.PathValue("userId"), req.Role); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}

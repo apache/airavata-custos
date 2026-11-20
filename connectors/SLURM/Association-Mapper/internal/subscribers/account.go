@@ -112,7 +112,7 @@ func (a *AssociationSubscriber) handleComputeAllocationDeleted(ctx context.Conte
 	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+	if err := a.deprovisionAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove associations for deleted allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -147,7 +147,7 @@ func (a *AssociationSubscriber) handleComputeAllocationUpdated(ctx context.Conte
 		return nil
 	}
 
-	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+	if err := a.deprovisionAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove associations for deactivated allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -258,7 +258,7 @@ func (a *AssociationSubscriber) handleComputeClusterUserDeleted(ctx context.Cont
 	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
 	defer cancel()
 
-	if err := a.removeUserFromCluster(fetchCtx, csu); err != nil {
+	if err := a.deprovisionSlurmUser(fetchCtx, csu); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove Slurm user for deleted cluster account", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
