@@ -57,6 +57,7 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 		FirstName:      "Prov",
 		LastName:       "Target",
 		Email:          fmt.Sprintf("prov-%s@example.invalid", uuid.NewString()),
+		Status:         models.UserActive,
 	})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
@@ -479,5 +480,53 @@ func TestDenyComputeClusterUser_ConcurrentDenialsRecordOnce(t *testing.T) {
 	wg.Wait()
 	if n := countAuditEventsOfType(t, database, clusterUserAuditDenied, cu.ID); n != 1 {
 		t.Fatalf("denial audits: got %d, want 1", n)
+	}
+}
+
+// Make sure an INACTIVE user's approved account loses provisioned_at, cannot regain it, and is updated again once the user is ACTIVE.
+func TestUpdateUserStatus_DerivesClusterAccess(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	svc.EventBus().SubscribeComputeClusterUserUpdated("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })
+	cu := newClusterUser(t, svc, database)
+	if _, err := svc.ApproveComputeClusterUser(ctx(), cu.ID, seedUser(t, database, fmt.Sprintf("admin-%s@example.edu", uuid.NewString()))); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	provisioned := func() bool {
+		return countRows(t, database, "SELECT COUNT(*) FROM compute_cluster_users WHERE id = $1 AND provisioned_at IS NOT NULL", cu.ID) == 1
+	}
+	published := func(event string) int {
+		return countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = $1 AND payload->>'id' = $2", event, cu.ID)
+	}
+
+	for range 2 {
+		if _, err := svc.UpdateUserStatus(ctx(), cu.UserID, models.UserInactive); err != nil {
+			t.Fatalf("set user INACTIVE: %v", err)
+		}
+	}
+	if provisioned() || published("compute_cluster_user::update") != 1 {
+		t.Fatalf("provisioned=%v updates=%d, want false and 1", provisioned(), published("compute_cluster_user::update"))
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil || provisioned() {
+		t.Fatalf("mark provisioned while inactive: err=%v provisioned=%v, want refused", err, provisioned())
+	}
+	if _, err := svc.UpdateUserStatus(ctx(), cu.UserID, models.UserActive); err != nil {
+		t.Fatalf("set user ACTIVE: %v", err)
+	}
+	if n := published("compute_cluster_user::update"); n != 2 {
+		t.Fatalf("updates = %d, want 2", n)
+	}
+}
+
+// Make sure the status endpoint refuses MERGED, which only a merge sets.
+func TestUpdateUserStatus_RefusesMerged(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedUser(t, database, uuid.NewString()+"@example.edu")
+	if _, err := svc.UpdateUserStatus(ctx(), user, models.UserMerged); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("set MERGED: %v, want ErrInvalidInput", err)
 	}
 }

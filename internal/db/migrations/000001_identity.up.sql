@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS users
     updated_at      TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     CONSTRAINT uq_users_email UNIQUE (email),
-    CONSTRAINT fk_users_organization FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE RESTRICT
+    CONSTRAINT fk_users_organization FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE RESTRICT,
+    CONSTRAINT chk_users_status CHECK (status IN ('PENDING', 'ACTIVE', 'INACTIVE', 'MERGED'))
 );
 CREATE INDEX IF NOT EXISTS idx_users_organization_id ON users (organization_id);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);

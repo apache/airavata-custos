@@ -220,24 +220,21 @@ func (s *pgComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c *m
 	return err
 }
 
+// MarkProvisioned locks the user FOR SHARE, so a concurrent user status update cannot miss the stamp.
 func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error) {
-	return execOnce(ctx, tx, `UPDATE compute_cluster_users SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL`, at, id)
+	return execOnce(ctx, tx, `UPDATE compute_cluster_users cu SET provisioned_at = $1 WHERE id = $2 AND provisioned_at IS NULL
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = cu.user_id AND u.status = 'ACTIVE' FOR SHARE)`, at, id)
+}
+
+func (s *pgComputeClusterUserStore) ClearProvisioned(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET provisioned_at = NULL WHERE id = $1`, id)
+	return err
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM compute_cluster_users
-		 WHERE user_id = $1
-		   AND compute_cluster_id IN (
-		       SELECT compute_cluster_id FROM (
-		           SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $2
-		       ) AS s
-		   )`,
-		fromUserID, toUserID); err != nil {
-		return err
-	}
 	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_cluster_users SET user_id = $1 WHERE user_id = $2`,
+		`UPDATE compute_cluster_users SET user_id = $1 WHERE user_id = $2
+		    AND compute_cluster_id NOT IN (SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $1)`,
 		toUserID, fromUserID)
 	return err
 }

@@ -69,3 +69,36 @@ func TestSetAllocationResources_ReplacesTheSet(t *testing.T) {
 		t.Errorf("attached: got %v, want %s and %s", got, b, c)
 	}
 }
+
+// Make sure deleting an active membership or allocation is refused until it is INACTIVE.
+func TestDeleteAllocationAndMembership_RefusedWhileActive(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	_, allocID := newClusterAllocation(t, svc, seedUser(t, database, uuid.NewString()+"@example.edu"))
+	m, _ := svc.CreateComputeAllocationMembership(ctx(), &models.ComputeAllocationMembership{ComputeAllocationID: allocID, UserID: seedUser(t, database, uuid.NewString()+"@example.edu"), MembershipStatus: models.ACTIVE})
+	if err := svc.DeleteComputeAllocationMembership(ctx(), m.ID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete active membership: %v, want ErrInUse", err)
+	}
+	if err := svc.DeleteComputeAllocation(ctx(), allocID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete active allocation: %v, want ErrInUse", err)
+	}
+}
+
+// Make sure an admin status change records one diff, and setting the same status records none.
+func TestUpdateComputeAllocationStatus_RecordsDiff(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	_, allocID := newClusterAllocation(t, svc, seedUser(t, database, uuid.NewString()+"@example.edu"))
+	for range 2 {
+		if _, err := svc.UpdateComputeAllocationStatus(ctx(), allocID, models.INACTIVE); err != nil {
+			t.Fatalf("update status: %v", err)
+		}
+	}
+	diffs, err := svc.ListDiffsForAllocation(ctx(), allocID)
+	if err != nil || len(diffs) != 1 || diffs[0].DiffType != "ALLOCATION_STATUS_CHANGE" || diffs[0].Status != models.INACTIVE {
+		t.Fatalf("diffs: %+v, %v; want one INACTIVE ALLOCATION_STATUS_CHANGE", diffs, err)
+	}
+	if _, err := svc.UpdateComputeAllocationStatus(ctx(), allocID, models.DELETED); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("status DELETED: %v, want ErrInvalidInput", err)
+	}
+}

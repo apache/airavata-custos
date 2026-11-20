@@ -395,6 +395,9 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 	if cu == nil {
 		return ErrNotFound
 	}
+	if cu.ProvisionedAt != nil {
+		return fmt.Errorf("%w: compute cluster user %q is provisioned, set its user INACTIVE first", ErrInUse, id)
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err

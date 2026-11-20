@@ -37,7 +37,8 @@ import (
 // Make sure a merge publishes the delete event only for the retiring user's
 // cluster account that it drops, which is the one on a cluster where the
 // survivor already has an account. An account that moves to the survivor is
-// not deleted, so it gets no event.
+// not deleted, so it gets no delete event. A lone provisioned account wins; if
+// both are, both stay and the retiring one is deprovisioned.
 func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -50,6 +51,8 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 			ComputeClusterID: cluster.ID,
 			UserID:           userID,
 			LocalUsername:    "merge-" + uuid.NewString()[:8],
+			ApprovalStatus:   models.ClusterAccountApproved,
+			ReviewedBy:       &userID,
 		})
 		if err != nil {
 			t.Fatalf("create compute cluster user: %v", err)
@@ -63,10 +66,18 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 		}
 		return c
 	}
-	shared, onlyRetiring := cluster(), cluster()
+	shared, onlyRetiring, retiringProvisioned, bothProvisioned := cluster(), cluster(), cluster(), cluster()
 	account(survivor, shared)
 	dropped := account(retiring, shared)
 	moved := account(retiring, onlyRetiring)
+	droppedSurvivor := account(survivor, retiringProvisioned)
+	kept := account(retiring, retiringProvisioned)
+	keptDeprovisioned := account(retiring, bothProvisioned)
+	for _, cu := range []*models.ComputeClusterUser{kept, keptDeprovisioned, account(survivor, bothProvisioned)} {
+		if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+			t.Fatalf("mark provisioned: %v", err)
+		}
+	}
 
 	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
 		t.Fatalf("merge: %v", err)
@@ -76,15 +87,16 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}
-	if len(deliveries) != 1 || deliveries[0].Event.EventType != string(events.ComputeClusterUserDeleteEvent) {
-		t.Fatalf("expected one delivery of the delete event, got %+v", deliveries)
+	want := map[string]string{dropped.ID: dropped.LocalUsername, droppedSurvivor.ID: droppedSurvivor.LocalUsername}
+	if len(deliveries) != len(want) {
+		t.Fatalf("expected %d deliveries of the delete event, got %+v", len(want), deliveries)
 	}
-	var got models.ComputeClusterUser
-	if err := json.Unmarshal(deliveries[0].Event.Payload, &got); err != nil {
-		t.Fatalf("decode payload: %v", err)
-	}
-	if got.ID != dropped.ID || got.LocalUsername != dropped.LocalUsername {
-		t.Errorf("delete event is for %s (%s), want the dropped account %s (%s)", got.ID, got.LocalUsername, dropped.ID, dropped.LocalUsername)
+	for _, d := range deliveries {
+		var got models.ComputeClusterUser
+		if err := json.Unmarshal(d.Event.Payload, &got); err != nil || d.Event.EventType != string(events.ComputeClusterUserDeleteEvent) || want[got.ID] != got.LocalUsername {
+			t.Errorf("%s is for %s (%s), %v, want a delete event for a dropped account %v", d.Event.EventType, got.ID, got.LocalUsername, err, want)
+		}
+		delete(want, got.ID)
 	}
 
 	after, err := svc.GetComputeClusterUser(ctx(), moved.ID)
@@ -93,6 +105,12 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 	if after.UserID != survivor {
 		t.Errorf("moved account belongs to %s, want the survivor %s", after.UserID, survivor)
+	}
+	for id, owner := range map[string]string{kept.ID: survivor, keptDeprovisioned.ID: retiring} {
+		after, err := svc.GetComputeClusterUser(ctx(), id)
+		if err != nil || after.UserID != owner || (after.ProvisionedAt == nil) != (owner == retiring) {
+			t.Errorf("provisioned account %s: got %+v, %v, want owner %s, provisioned only if kept by the survivor", id, after, err, owner)
+		}
 	}
 }
 
@@ -203,5 +221,41 @@ func TestDeleteUser_RefusesAUserStillReferenced(t *testing.T) {
 	newClusterAllocation(t, svc, pi)
 	if err := svc.DeleteUser(ctx(), pi); !errors.Is(err, ErrInUse) {
 		t.Fatalf("delete a project PI: %v, want ErrInUse", err)
+	}
+}
+
+// Make sure a PENDING survivor of an ACTIVE user becomes ACTIVE and keeps the moved account provisioned, and a merged user's status stays MERGED.
+func TestMergeUsers_ActivatesPendingSurvivorOfActiveUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	survivor := seedUser(t, database, fmt.Sprintf("survivor-%s@example.edu", uuid.NewString()))
+	retiring := seedUser(t, database, fmt.Sprintf("retiring-%s@example.edu", uuid.NewString()))
+	if _, err := database.Exec(`UPDATE users SET status = $1 WHERE id = $2`, models.UserPending, survivor); err != nil {
+		t.Fatalf("set survivor PENDING: %v", err)
+	}
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "merge-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	moved, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: retiring,
+		LocalUsername: "merge-" + uuid.NewString()[:8], ApprovalStatus: models.ClusterAccountApproved, ReviewedBy: &retiring})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), moved.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	if after, err := svc.GetUser(ctx(), survivor); err != nil || after.Status != models.UserActive {
+		t.Errorf("survivor: got %+v, %v, want ACTIVE", after, err)
+	}
+	if after, err := svc.GetComputeClusterUser(ctx(), moved.ID); err != nil || after.UserID != survivor || after.ProvisionedAt == nil {
+		t.Errorf("moved account: got %+v, %v, want the survivor's and provisioned", after, err)
+	}
+	if _, err := svc.UpdateUserStatus(ctx(), retiring, models.UserActive); !errors.Is(err, ErrInvalidInput) {
+		t.Errorf("reactivating the merged user: got %v, want ErrInvalidInput", err)
 	}
 }
