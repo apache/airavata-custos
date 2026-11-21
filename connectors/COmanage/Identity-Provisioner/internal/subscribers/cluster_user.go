@@ -34,9 +34,9 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// Subscriber drives the orchestrator from three events,
-// ComputeClusterUserApproveEvent, ComputeClusterUserDeleteEvent, and UserOnboardedEvent.
-// Both are ignored if the user doesn't have a cluster account on `CustosClusterID`.
+// Subscriber drives the orchestrator from four events, ComputeClusterUserApproveEvent,
+// ComputeClusterUserDeleteEvent, UserOnboardedEvent, and UserUpdateEvent.
+// Each is ignored if the user doesn't have a cluster account on `CustosClusterID`.
 type Subscriber struct {
 	ops             provisioner
 	bus             *events.Bus
@@ -69,6 +69,7 @@ func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
 	s.bus.SubscribeUserOnboarded(subscriber, s.handleUserOnboarded)
+	s.bus.SubscribeUserUpdated(subscriber, s.handleUserUpdated)
 
 	s.bus.SubscribeComputeAllocationCreated(subscriber, s.handleComputeAllocationChanged)
 	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.handleComputeAllocationChanged)
@@ -92,6 +93,21 @@ func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.Com
 		return err
 	}
 	return s.syncUserAllocations(ctx, cu.UserID)
+}
+
+// handleUserUpdated re-sends a provisioned account, whose registry status follows the user's.
+func (s *Subscriber) handleUserUpdated(ctx context.Context, user models.User) error {
+	cu, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, user.ID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil || cu.ProvisionedAt == nil {
+		return err
+	}
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.user_updated")
+	defer span.End()
+	return s.ops.EnsureClusterAccount(ctx, cu)
 }
 
 // handleUserOnboarded re-runs provisioning once the `User` has a `sub`.

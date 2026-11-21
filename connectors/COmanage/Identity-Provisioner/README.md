@@ -33,6 +33,7 @@ The connector subscribes to core events for one cluster, `provisioning.custos_cl
 |---|---|
 | `compute_cluster_user::approve` | Provision the account, join the admin group for an `ADMIN` account, then sync the user's allocation groups |
 | `user::onboarded` | Provision again once the user has signed in, so the registry gets their OIDC `sub` |
+| `user::update` | Send a provisioned account again, suspended unless the user is `ACTIVE` |
 | `compute_cluster_user::delete` | Remove an approved account from the registry, then sync the user's allocation groups |
 | `compute_allocation::create` and `::update`; `compute_allocation_membership::create`, `::update` and `::delete` | Sync the allocation's group |
 | `compute_allocation::delete` | Delete the allocation's group |

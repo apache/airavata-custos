@@ -21,6 +21,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -118,5 +119,23 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 	// An admin account still awaiting approval does not.
 	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountPending); len(ops.admins) != 0 {
 		t.Fatalf("pending admin account: admin group calls = %v, want none", ops.admins)
+	}
+}
+
+func TestUserUpdated_ResendsOnlyAProvisionedAccount(t *testing.T) {
+	for _, provisionedAt := range []*time.Time{nil, new(time.Time)} {
+		core := &service.CoreServiceMock{
+			GetComputeClusterUserByPairFunc: func(context.Context, string, string) (*models.ComputeClusterUser, error) {
+				return &models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ProvisionedAt: provisionedAt}, nil
+			},
+		}
+		ops := &fakeOps{}
+		s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
+		if err := s.handleUserUpdated(context.Background(), models.User{ID: "u1", Status: models.UserInactive}); err != nil {
+			t.Fatal(err)
+		}
+		if sent := len(ops.provisioned) == 1; sent != (provisionedAt != nil) {
+			t.Errorf("provisioned_at %v: ensure calls = %v", provisionedAt, ops.provisioned)
+		}
 	}
 }
