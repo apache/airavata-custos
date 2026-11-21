@@ -29,8 +29,8 @@ import (
 
 // MergeUsers consolidates the retiring user into the surviving user. All
 // identity-forward state moves to the survivor; historical truth stays in
-// place. The retiring user is flipped to status=MERGED. All work happens in a
-// single transaction.
+// place. The retiring user is flipped to status=MERGED, and a PENDING survivor
+// of an ACTIVE user becomes ACTIVE. All work happens in a single transaction.
 //
 // Moved to survivor (duplicates on the retiring user are dropped first):
 //   - user_identities
@@ -106,6 +106,13 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	}
 
 	if err := func() error {
+		// The survivor takes the retiring user's sign-in identity, so it is ACTIVE if either was.
+		if retiring.Status == models.UserActive && survivor.Status != models.UserActive {
+			if err := s.users.UpdateStatus(ctx, tx, survivingID, models.UserActive); err != nil {
+				return err
+			}
+			survivor.Status = models.UserActive
+		}
 		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user identities: %w", err)
 		}

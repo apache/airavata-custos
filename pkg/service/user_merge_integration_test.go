@@ -205,3 +205,16 @@ func TestDeleteUser_RefusesAUserStillReferenced(t *testing.T) {
 		t.Fatalf("delete a project PI: %v, want ErrInUse", err)
 	}
 }
+
+func TestMergeUsers_ActivatesPendingSurvivorOfActiveUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	survivor := seedPendingUserWithEmail(t, database, "survivor@example.edu")
+	retiring := seedUser(t, database, "retiring@example.edu")
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	if after, err := svc.GetUser(ctx(), survivor); err != nil || after.Status != models.UserActive {
+		t.Errorf("survivor: got %+v, %v, want ACTIVE", after, err)
+	}
+}
