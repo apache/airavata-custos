@@ -31,6 +31,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -376,5 +377,48 @@ func TestClaimedStorageNames(t *testing.T) {
 	}
 	if n := countRows(t, database, `SELECT COUNT(*) FROM storages WHERE path IN ('/trial-home/', '/trial-home/..', '/trial-home/a/b')`); n != 0 {
 		t.Fatalf("bad names gave %d storages, want none", n)
+	}
+}
+
+// Make sure a provisioned account's home is active only while its user is ACTIVE, including after onboarding and a merge.
+func TestStorages_ActiveOnlyWhileUserIsActive(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cluster := newStorageCluster(t, svc, homeProjectMember)
+	home := func() string {
+		list, err := svc.ListStorages(ctx())
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		for _, st := range list {
+			if st.Path == "/home/jdoe" {
+				return st.Status
+			}
+		}
+		return ""
+	}
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	pending := seedPendingUserWithEmail(t, database, email)
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: pending, LocalUsername: "custos-jdoe"})
+	if err == nil {
+		err = svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID)
+	}
+	if err != nil {
+		t.Fatalf("provision account: %v", err)
+	}
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
+	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil || home() != "active" {
+		t.Fatalf("onboarding: err=%v home=%q, want active", err, home())
+	}
+
+	survivor := seedPendingUserWithEmail(t, database, "survivor-"+uuid.NewString()[:8]+"@example.edu")
+	if _, err := svc.MergeUsers(ctx(), survivor, pending); err != nil || home() != "active" {
+		t.Fatalf("merging into a PENDING survivor: err=%v home=%q, want active", err, home())
+	}
+	for _, status := range []models.UserStatus{models.UserInactive, models.UserActive} {
+		if _, err := svc.UpdateUserStatus(ctx(), survivor, status); err != nil || (home() == "active") != (status == models.UserActive) {
+			t.Fatalf("setting the user %s: err=%v home=%q, want it active only while ACTIVE", status, err, home())
+		}
 	}
 }

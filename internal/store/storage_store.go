@@ -51,6 +51,8 @@ const (
 	allocationHolderColumns = `a.compute_cluster_id, a.id AS allocation_id, a.posix_group`
 	// allocationGivesStorage holds for an active allocation a with a provisioned group.
 	allocationGivesStorage = `a.status = 'ACTIVE' AND a.posix_group IS NOT NULL AND a.group_provisioned_at IS NOT NULL`
+	// userHasAccess holds for a user u whose provisioned accounts reach the cluster.
+	userHasAccess = `u.status = 'ACTIVE'`
 )
 
 // storageInScope matches storage s to the scope's cluster $1, user $2 and allocation $3.
@@ -83,7 +85,8 @@ func (s *pgStorageStore) Lock(ctx context.Context, tx *sql.Tx) error {
 
 func (s *pgStorageStore) AccountHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) (holders []StorageHolder, err error) {
 	err = (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).SelectContext(ctx, &holders, `SELECT compute_cluster_id, id AS compute_cluster_user_id, local_username AS username FROM compute_cluster_users
-		WHERE provisioned_at IS NOT NULL AND ($1 = '' OR compute_cluster_id = $1) AND ($2 = '' OR user_id = $2)`, scope.ClusterID, scope.UserID)
+		WHERE provisioned_at IS NOT NULL AND ($1 = '' OR compute_cluster_id = $1) AND ($2 = '' OR user_id = $2)
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = compute_cluster_users.user_id AND `+userHasAccess+`)`, scope.ClusterID, scope.UserID)
 	return
 }
 
@@ -98,6 +101,7 @@ func (s *pgStorageStore) MemberHolders(ctx context.Context, tx *sql.Tx, scope St
 		FROM compute_allocation_memberships m
 		JOIN compute_allocations a ON a.id = m.compute_allocation_id AND `+allocationGivesStorage+`
 		JOIN compute_cluster_users cu ON cu.compute_cluster_id = a.compute_cluster_id AND cu.user_id = m.user_id AND cu.provisioned_at IS NOT NULL
+		JOIN users u ON u.id = m.user_id AND `+userHasAccess+`
 		WHERE m.membership_status = 'ACTIVE' AND ($1 = '' OR a.compute_cluster_id = $1) AND ($2 = '' OR m.user_id = $2) AND ($3 = '' OR a.id = $3)`,
 		scope.ClusterID, scope.UserID, scope.AllocationID)
 	return
