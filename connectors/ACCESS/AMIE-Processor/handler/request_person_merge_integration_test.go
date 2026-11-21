@@ -549,16 +549,34 @@ func TestRequestPersonMerge_ReplyFailurePropagates(t *testing.T) {
 
 // Make sure a packet held on the retiring person is answered with the survivor's
 // account, once the merge deletes the retiring person's account on that cluster.
-func TestRequestPersonMerge_HeldPacketIsAnsweredWithSurvivorAccount(t *testing.T) {
+func TestRequestPersonMerge_RetiringPersonsHeldPacketIsAnsweredWithSurvivorAccount(t *testing.T) {
 	database := setupTestDB(t)
 	seed := seedMergeUsers(t, database)
 	if _, err := database.Exec("UPDATE compute_cluster_users SET approval_status = $1, reviewed_by = user_id WHERE user_id = $2",
 		models.ComputeClusterUserApproved, seed.survivingID); err != nil {
 		t.Fatalf("approve survivor's account: %v", err)
 	}
+	answerHeldPacketAfterMerge(t, database, seed, seed.retiringGlobal, "psurvivor")
+}
+
+// Make sure the survivor's held packet is answered with the retiring person's
+// provisioned account, once the merge deletes the survivor's account for it.
+func TestRequestPersonMerge_SurvivorsHeldPacketIsAnsweredWithProvisionedAccount(t *testing.T) {
+	database := setupTestDB(t)
+	seed := seedMergeUsers(t, database)
+	if _, err := database.Exec("UPDATE compute_cluster_users SET approval_status = $1, reviewed_by = user_id, provisioned_at = now() WHERE user_id = $2",
+		models.ComputeClusterUserApproved, seed.retiringID); err != nil {
+		t.Fatalf("approve and provision retiring account: %v", err)
+	}
+	answerHeldPacketAfterMerge(t, database, seed, seed.survivingGlobal, "pretiring")
+}
+
+// answerHeldPacketAfterMerge holds a packet on the person heldOn, merges, and checks the reply carries the survivor and login.
+func answerHeldPacketAfterMerge(t *testing.T, database *sqlx.DB, seed mergeTestUsers, heldOn, login string) {
+	t.Helper()
 	held := insertPacket(t, database, "request_account_create", baseRACBody())
 	if _, err := database.Exec("UPDATE amie_packets SET status = $1, held_for = $2 WHERE id = $3",
-		model.PacketStatusWaitingApproval, seed.retiringGlobal, held.ID); err != nil {
+		model.PacketStatusWaitingApproval, heldOn, held.ID); err != nil {
 		t.Fatalf("hold packet: %v", err)
 	}
 
@@ -578,8 +596,8 @@ func TestRequestPersonMerge_HeldPacketIsAnsweredWithSurvivorAccount(t *testing.T
 		t.Fatalf("answer: %v", err)
 	}
 	reply := amie.lastReplyBody()
-	if amie.lastReplyType() != "notify_account_create" || reply["UserPersonID"] != seed.survivingID || reply["UserRemoteSiteLogin"] != "psurvivor" {
-		t.Errorf("reply: got %s %v, want notify_account_create for the survivor's account", amie.lastReplyType(), reply)
+	if amie.lastReplyType() != "notify_account_create" || reply["UserPersonID"] != seed.survivingID || reply["UserRemoteSiteLogin"] != login {
+		t.Errorf("reply: got %s %v, want notify_account_create for the survivor with login %s", amie.lastReplyType(), reply, login)
 	}
 	if got := packetStatus(t, database, held.ID); got != model.PacketStatusProcessed {
 		t.Errorf("held packet status: got %s, want %s", got, model.PacketStatusProcessed)
