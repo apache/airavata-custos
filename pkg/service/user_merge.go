@@ -149,7 +149,6 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 
 // canBeMerged returns true for the user statuses eligible for merging:
 // ACTIVE (already linked) or PENDING (provisioned upstream, not yet linked).
-// INACTIVE, SUSPENDED, and MERGED are intentionally excluded.
 func canBeMerged(s models.UserStatus) bool {
 	return s == models.UserActive || s == models.UserPending
 }

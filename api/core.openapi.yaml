@@ -1134,14 +1134,12 @@ definitions:
     - PENDING
     - ACTIVE
     - INACTIVE
-    - SUSPENDED
     - MERGED
     type: string
     x-enum-varnames:
     - UserPending
     - UserActive
     - UserInactive
-    - UserSuspended
     - UserMerged
   UserType:
     enum:

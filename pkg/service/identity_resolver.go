@@ -154,7 +154,7 @@ func (s *Service) ResolveCaller(ctx context.Context, claims *identity.Claims) (*
 
 func refuseDisabled(user *models.User) error {
 	switch user.Status {
-	case models.UserSuspended, models.UserInactive, models.UserMerged:
+	case models.UserInactive, models.UserMerged:
 		return fmt.Errorf("%w: status=%s", identity.ErrUserDisabled, user.Status)
 	}
 	return nil

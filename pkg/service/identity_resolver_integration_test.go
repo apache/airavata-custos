@@ -110,8 +110,8 @@ func TestResolveCaller_PendingUserSignInLinksNoSub(t *testing.T) {
 		t.Errorf("audit IDENTITY_LINKED: got %d, want 0", got)
 	}
 
-	if _, err := database.Exec("UPDATE users SET status = $1 WHERE id = $2", models.UserSuspended, user); err != nil {
-		t.Fatalf("suspend: %v", err)
+	if _, err := database.Exec("UPDATE users SET status = $1 WHERE id = $2", models.UserInactive, user); err != nil {
+		t.Fatalf("deactivate: %v", err)
 	}
 	if _, _, err := svc.ResolveCaller(ctx(), claims); !errors.Is(err, identity.ErrUserDisabled) {
 		t.Errorf("second resolve: got %v, want ErrUserDisabled", err)
@@ -308,7 +308,7 @@ func TestResolveCaller_RefusesDisabledUser(t *testing.T) {
 	}
 	unbound := seedPendingUserWithEmail(t, database, "unbound@example.edu")
 
-	for _, status := range []models.UserStatus{models.UserSuspended, models.UserInactive, models.UserMerged} {
+	for _, status := range []models.UserStatus{models.UserInactive, models.UserMerged} {
 		for _, id := range []string{bound, unbound} {
 			if _, err := svc.UpdateUserStatus(ctx(), id, status); err != nil {
 				t.Fatalf("set %s: %v", status, err)
