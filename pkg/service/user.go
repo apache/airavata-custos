@@ -210,15 +210,22 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	if status == "" {
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
-	existing, err := s.users.FindByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("lookup user: %w", err)
+	// MERGED is set and kept only by a merge.
+	if status == models.UserMerged {
+		return nil, fmt.Errorf("%w: status MERGED is set only by a merge", ErrInvalidInput)
 	}
-	if existing == nil {
-		return nil, ErrNotFound
-	}
-	existing.Status = status
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	var existing *models.User
+	if err := s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		if existing, err = s.users.FindByIDTx(ctx, tx, id, store.NoKeyUpdateLock); err != nil {
+			return fmt.Errorf("lookup user: %w", err)
+		}
+		if existing == nil {
+			return ErrNotFound
+		}
+		if existing.Status == models.UserMerged {
+			return fmt.Errorf("%w: user %q is merged", ErrInvalidInput, id)
+		}
+		existing.Status = status
 		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}

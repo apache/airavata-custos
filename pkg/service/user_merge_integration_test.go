@@ -196,6 +196,21 @@ func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	}
 }
 
+func TestUpdateUserStatus_RefusesMergedUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	survivor := seedUser(t, database, "survivor@example.edu")
+	retiring := seedUser(t, database, "retiring@example.edu")
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	for _, status := range []models.UserStatus{models.UserMerged, models.UserActive} {
+		if _, err := svc.UpdateUserStatus(ctx(), retiring, status); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("set %q on a merged user: got %v, want ErrInvalidInput", status, err)
+		}
+	}
+}
+
 func TestDeleteUser_RefusesAUserStillReferenced(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
