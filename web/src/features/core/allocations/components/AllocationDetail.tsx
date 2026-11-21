@@ -26,6 +26,7 @@ import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
 import { useSession } from "next-auth/react";
 import { useAllocation, useAllocationMembers, useDeleteAllocation } from "../queries";
+import { isActiveMembership } from "../schemas";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
@@ -59,7 +60,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const allocation = allocationQuery.data;
   if (!allocation) return null;
 
-  const memberCount = membersQuery.data?.length ?? 0;
+  const memberCount = membersQuery.data?.filter(isActiveMembership).length ?? 0;
 
   return (
     <section className="space-y-6">

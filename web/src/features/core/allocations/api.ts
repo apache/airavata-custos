@@ -125,8 +125,11 @@ export async function addMember(
   return zPostComputeAllocationMembershipsResponse.parse(raw);
 }
 
-export async function removeMember(id: string): Promise<void> {
-  await apiFetch(`/compute-allocation-memberships/${id}`, { method: "DELETE" });
+export async function setMemberStatus(id: string, status: "ACTIVE" | "INACTIVE") {
+  await apiFetch(`/compute-allocation-memberships/${id}/status`, {
+    method: "PUT",
+    body: { membership_status: status },
+  });
 }
 
 export async function listChangeRequests(

@@ -44,8 +44,8 @@ import {
   listChangeRequests,
   listUserMemberships,
   rejectChangeRequest,
-  removeMember,
   setAllocationResources,
+  setMemberStatus,
   submitChangeRequest,
 } from "./api";
 import type {
@@ -54,6 +54,7 @@ import type {
   CreateChangeRequestPayload,
   CreateMembershipPayload,
 } from "./schemas";
+import { isActiveMembership } from "./schemas";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
 
 export const allocationKeys = {
@@ -199,10 +200,11 @@ export function useAddMember(allocationId: string) {
   });
 }
 
-export function useRemoveMember(allocationId: string) {
+export function useSetMemberStatus(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => removeMember(id),
+    mutationFn: ({ id, status }: { id: string; status: "ACTIVE" | "INACTIVE" }) =>
+      setMemberStatus(id, status),
     onSuccess: () => invalidateMembers(client, allocationId),
   });
 }
@@ -224,7 +226,7 @@ export function useMembershipsByAllocation(allocationIds: string[]) {
   });
 }
 
-// Revokes access by deleting the membership, or grants it for the allocation's remaining term.
+// Reactivates or deactivates an existing membership, or adds one for the allocation's remaining term.
 export function useToggleAllocationAccess() {
   const client = useQueryClient();
   return useMutation({
@@ -238,7 +240,7 @@ export function useToggleAllocationAccess() {
       membership: AllocationMembership | undefined;
     }) =>
       membership
-        ? removeMember(membership.id)
+        ? setMemberStatus(membership.id, isActiveMembership(membership) ? "INACTIVE" : "ACTIVE")
         : addMember({
             compute_allocation_id: allocation.id,
             user_id: userId,
