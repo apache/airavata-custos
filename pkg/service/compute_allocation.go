@@ -236,3 +236,33 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 	}
 	return nil
 }
+
+// UpdateComputeAllocationStatus sets an allocation's status and records a diff; INACTIVE ends its members' access.
+func (s *Service) UpdateComputeAllocationStatus(ctx context.Context, id string, status models.AllocationStatus) (alloc *models.ComputeAllocation, err error) {
+	if status != models.ACTIVE && status != models.INACTIVE {
+		return nil, fmt.Errorf("%w: status must be ACTIVE or INACTIVE", ErrInvalidInput)
+	}
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		if alloc, err = s.allocs.FindByIDTx(ctx, tx, id, store.UpdateLock); err != nil {
+			return err
+		}
+		if alloc == nil {
+			return ErrNotFound
+		}
+		if alloc.Status == status {
+			return nil
+		}
+		alloc.Status = status
+		if err = s.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
+			return err
+		}
+		_, err = s.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
+			ComputeAllocationID: id,
+			DiffType:            "ALLOCATION_STATUS_CHANGE",
+			Status:              status,
+			Description:         "Set by an admin",
+		})
+		return err
+	})
+	return
+}

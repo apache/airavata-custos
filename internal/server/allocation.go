@@ -85,6 +85,33 @@ func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	Update a compute allocation's status
+// @Tags	Compute Allocations
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	request	body	object{status=models.AllocationStatus}	true	"Status patch"
+// @Success	200	{object}	models.ComputeAllocation
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/status [put]
+func (s *Server) updateComputeAllocationStatus(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Status models.AllocationStatus `json:"status"`
+	}
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	updated, err := s.svc.UpdateComputeAllocationStatus(r.Context(), r.PathValue("id"), body.Status)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, updated)
+}
+
 // @Summary	Create a compute allocation diff
 // @Description	Records a discrete change against a compute allocation (e.g. USAGE_UPDATE or ALLOCATION_STATUS_CHANGE).
 // @Tags	Compute Allocation Diffs

@@ -31,6 +31,7 @@ import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
 import { AllocationMembersTab } from "./AllocationMembersTab";
 import { AllocationOverviewTab } from "./AllocationOverviewTab";
+import { AllocationStatusButton } from "./AllocationStatusButton";
 import { AllocationUsageTab } from "./AllocationUsageTab";
 
 export type AllocationDetailProps = {
@@ -65,17 +66,20 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <AllocationDetailHeader allocation={allocation} memberCount={memberCount} />
-        <DeleteButton
-          noun="Allocation"
-          id={allocation.id}
-          name={allocation.name}
-          mutation={remove}
-          redirectTo="/allocations"
-          allowed={can.allocationsWrite}
-          reason={requires("allocationsWrite")}
-        >
-          Its members, resources and usage records are deleted with it. This cannot be undone.
-        </DeleteButton>
+        <div className="flex gap-2">
+          <AllocationStatusButton allocation={allocation} />
+          <DeleteButton
+            noun="Allocation"
+            id={allocation.id}
+            name={allocation.name}
+            mutation={remove}
+            redirectTo="/allocations"
+            allowed={can.allocationsWrite}
+            reason={requires("allocationsWrite")}
+          >
+            Its members, resources and usage records are deleted with it. This cannot be undone.
+          </DeleteButton>
+        </div>
       </div>
       <TabsRouter
         defaultValue="overview"

@@ -129,6 +129,10 @@ export async function removeMember(id: string): Promise<void> {
   await apiFetch(`/compute-allocation-memberships/${id}`, { method: "DELETE" });
 }
 
+export async function setAllocationStatus(id: string, status: "ACTIVE" | "INACTIVE") {
+  await apiFetch(`/compute-allocations/${id}/status`, { method: "PUT", body: { status } });
+}
+
 export async function listChangeRequests(
   params: ChangeRequestListParams = {},
 ): Promise<ChangeRequest[]> {

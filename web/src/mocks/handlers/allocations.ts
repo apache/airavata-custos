@@ -132,6 +132,16 @@ export const allocationsHandlers = [
     return HttpResponse.json(found);
   }),
 
+  http.put<{ id: string }, Pick<ComputeAllocation, "status">>(
+    "*/api/v1/compute-allocations/:id/status",
+    async ({ params, request }) => {
+      const found = allocations.find((a) => a.id === String(params.id));
+      if (!found) return HttpResponse.json({ error: "allocation not found" }, { status: 404 });
+      found.status = (await request.json()).status;
+      return HttpResponse.json(found);
+    },
+  ),
+
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id/resources", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(resourcesByAlloc[id] ?? []);

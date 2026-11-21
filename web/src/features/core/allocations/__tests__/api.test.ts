@@ -31,6 +31,7 @@ import {
   removeMember,
   submitChangeRequest,
 } from "../api";
+import { setAllocationStatus } from "../api";
 
 const fetchMock = vi.fn<typeof fetch>();
 vi.stubGlobal("fetch", fetchMock);
@@ -182,6 +183,16 @@ describe("removeMember", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await removeMember("mem-001");
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
+  });
+});
+
+describe("setAllocationStatus", () => {
+  it("PUTs INACTIVE to deactivate the allocation", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, {}));
+    await setAllocationStatus("alloc-001", "INACTIVE");
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toMatch(/\/compute-allocations\/alloc-001\/status$/);
+    expect(init).toMatchObject({ method: "PUT", body: '{"status":"INACTIVE"}' });
   });
 });
 
