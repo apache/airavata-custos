@@ -33,8 +33,8 @@ const (
 	PacketStatusDecoded   PacketStatus = "DECODED"
 	PacketStatusProcessed PacketStatus = "PROCESSED"
 	PacketStatusFailed    PacketStatus = "FAILED"
-	// PacketStatusWaitingApproval means the reply is held until an approval on
-	// Custos side, for e.g., a cluster account approval.
+	// PacketStatusWaitingApproval means the packet waits on a person's cluster
+	// account review, which approves or denies it.
 	PacketStatusWaitingApproval PacketStatus = "WAITING_APPROVAL"
 	// PacketStatusRefused means Custos declined the request and ACCESS was sent a
 	// failure, for e.g., when a cluster account is denied.
@@ -53,8 +53,7 @@ type Packet struct {
 	ProcessedAt *time.Time   `db:"processed_at" json:"processed_at,omitempty"`
 	Retries     int          `db:"retries" json:"retries"`
 	LastError   *string      `db:"last_error" json:"last_error,omitempty"`
-	HeldReply   *string      `db:"held_reply" json:"held_reply,omitempty"`
-	// HeldFor names what HeldReply waits on, for example, a compute cluster user.
+	// HeldFor is the ACCESS person whose account review the packet waits on.
 	HeldFor *string `db:"held_for" json:"held_for,omitempty"`
 }
 

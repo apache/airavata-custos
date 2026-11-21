@@ -56,7 +56,7 @@ type PacketStore interface {
 	FindByID(ctx context.Context, id string) (*model.Packet, error)
 	Save(ctx context.Context, tx *sql.Tx, p *model.Packet) error
 	Update(ctx context.Context, tx *sql.Tx, p *model.Packet) error
-	ListWaitingFor(ctx context.Context, clusterUserID string) ([]model.Packet, error)
+	ListWaitingFor(ctx context.Context, personID string) ([]model.Packet, error)
 
 	ListPackets(ctx context.Context, f PacketListFilter) ([]model.Packet, int, error)
 	ListPacketEvents(ctx context.Context, packetID string) ([]model.ProcessingEvent, error)
@@ -71,7 +71,7 @@ func NewPacketStore(db *sqlx.DB) PacketStore {
 	return &pgPacketStore{db: db}
 }
 
-const packetColumns = `id, amie_id, type, status, raw_json, received_at, decoded_at, processed_at, retries, last_error, held_reply, held_for`
+const packetColumns = `id, amie_id, type, status, raw_json, received_at, decoded_at, processed_at, retries, last_error, held_for`
 
 func (s *pgPacketStore) FindByAmieID(ctx context.Context, amieID int64) (*model.Packet, error) {
 	var p model.Packet
@@ -112,18 +112,18 @@ func (s *pgPacketStore) Save(ctx context.Context, tx *sql.Tx, p *model.Packet) e
 func (s *pgPacketStore) Update(ctx context.Context, tx *sql.Tx, p *model.Packet) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE amie_packets SET type = $1, status = $2, raw_json = $3, decoded_at = $4, processed_at = $5, retries = $6, last_error = $7,
-		 held_reply = $8, held_for = $9
-		 WHERE id = $10`,
+		 held_for = $8
+		 WHERE id = $9`,
 		p.Type, p.Status, p.RawJSON, p.DecodedAt, p.ProcessedAt,
-		p.Retries, p.LastError, p.HeldReply, p.HeldFor, p.ID)
+		p.Retries, p.LastError, p.HeldFor, p.ID)
 	return err
 }
 
-func (s *pgPacketStore) ListWaitingFor(ctx context.Context, clusterUserID string) ([]model.Packet, error) {
+func (s *pgPacketStore) ListWaitingFor(ctx context.Context, personID string) ([]model.Packet, error) {
 	var packets []model.Packet
 	err := s.db.SelectContext(ctx, &packets,
 		`SELECT `+packetColumns+` FROM amie_packets WHERE held_for = $1 AND status = $2 ORDER BY received_at`,
-		clusterUserID, model.PacketStatusWaitingApproval)
+		personID, model.PacketStatusWaitingApproval)
 	return packets, err
 }
 

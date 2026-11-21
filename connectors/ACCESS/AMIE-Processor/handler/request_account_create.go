@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/otel/codes"
 
@@ -160,18 +161,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: audit CREATE_MEMBERSHIP: %w", err)
 	}
 
-	replyBody := map[string]any{
-		"ProjectID":           projectID,
-		"GrantNumber":         getString(body, "GrantNumber"),
-		"UserPersonID":        user.ID,
-		"UserRemoteSiteLogin": account.LocalUsername,
-		"ResourceList":        getResourceList(body),
-	}
-	if v := getString(body, "UserOrgCode"); v != "" {
-		replyBody["UserOrgCode"] = v
-	}
-	reply := map[string]any{"type": "notify_account_create", "body": replyBody}
-	if err := replyWhenAccountApproved(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, account, reply); err != nil {
+	if err := answerAccountCreate(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, body, account); err != nil {
 		return fmt.Errorf("request_account_create: %w", err)
 	}
 	return nil
@@ -189,4 +179,45 @@ func normalizeAMIERole(amieRole string) string {
 	default:
 		return "MEMBER"
 	}
+}
+
+// accountCreateReply is the notify_account_create reply to a request_account_create body, for account.
+func accountCreateReply(body map[string]any, account *models.ComputeClusterUser) map[string]any {
+	replyBody := map[string]any{
+		"ProjectID":           getString(body, "ProjectID"),
+		"GrantNumber":         getString(body, "GrantNumber"),
+		"UserPersonID":        account.UserID,
+		"UserRemoteSiteLogin": account.LocalUsername,
+		"ResourceList":        getResourceList(body),
+	}
+	if v := getString(body, "UserOrgCode"); v != "" {
+		replyBody["UserOrgCode"] = v
+	}
+	return map[string]any{"type": "notify_account_create", "body": replyBody}
+}
+
+// answerAccountCreate replies to a request_account_create packet as account's review decided.
+// Before a review, the packet waits on the ACCESS person, which a merge keeps.
+func answerAccountCreate(ctx context.Context, tx *sql.Tx, client AmieClient, auditSvc AuditService, packet *model.Packet, eventID string, body map[string]any, account *models.ComputeClusterUser) error {
+	var reply map[string]any
+	switch account.ApprovalStatus {
+	case models.ComputeClusterUserApproved:
+		now := time.Now().UTC()
+		reply, packet.Status, packet.ProcessedAt = accountCreateReply(body, account), model.PacketStatusProcessed, &now
+	case models.ComputeClusterUserDenied:
+		note := ""
+		if account.ReviewNote != nil {
+			note = *account.ReviewNote
+		}
+		reply, packet.Status = model.TransactionFailureReply(note), model.PacketStatusRefused
+	default:
+		personID := getString(body, "UserGlobalID")
+		packet.Status, packet.HeldFor = model.PacketStatusWaitingApproval, &personID
+		return auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplyHeld, "compute_cluster_user", account.ID, account.LocalUsername)
+	}
+	if err := client.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
+		return fmt.Errorf("reply to packet %s: %w", packet.ID, err)
+	}
+	packet.HeldFor = nil
+	return auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", string(packet.Status))
 }

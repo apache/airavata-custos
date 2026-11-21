@@ -40,6 +40,7 @@ import (
 	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/models"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -180,19 +181,20 @@ func (f *fakeAmieClient) lastReplyType() string {
 	return t
 }
 
-// heldReply returns the type and body of the reply a handler kept on the packet.
-func heldReply(t *testing.T, pkt *model.Packet) (string, map[string]any) {
+// clusterAccount is userID's account on the AMIE cluster.
+func clusterAccount(t *testing.T, svc *coreservice.Service, userID string) models.ComputeClusterUser {
 	t.Helper()
-	if pkt.Status != model.PacketStatusWaitingApproval || pkt.HeldReply == nil {
-		t.Fatalf("expected the packet to hold its reply, got status %s", pkt.Status)
+	accounts, err := svc.ListComputeClusterUsersByUser(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("list cluster accounts: %v", err)
 	}
-	var reply map[string]any
-	if err := json.Unmarshal([]byte(*pkt.HeldReply), &reply); err != nil {
-		t.Fatalf("decode held reply: %v", err)
+	for _, a := range accounts {
+		if a.ComputeClusterID == testClusterID {
+			return a
+		}
 	}
-	typ, _ := reply["type"].(string)
-	body, _ := reply["body"].(map[string]any)
-	return typ, body
+	t.Fatalf("user %s has no account on the AMIE cluster", userID)
+	return models.ComputeClusterUser{}
 }
 
 // approvePendingAccounts approves every pending cluster account, as an admin would.
