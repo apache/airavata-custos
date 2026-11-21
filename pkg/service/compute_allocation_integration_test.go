@@ -46,3 +46,12 @@ func TestUpdateComputeAllocationStatus_RecordsDiff(t *testing.T) {
 		t.Fatalf("status DELETED: %v, want ErrInvalidInput", err)
 	}
 }
+
+func TestDeleteComputeAllocation_RefusedWhileActive(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	_, allocID := newClusterAllocation(t, svc, seedUser(t, database, uuid.NewString()+"@example.edu"))
+	if err := svc.DeleteComputeAllocation(ctx(), allocID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("delete active allocation: %v, want ErrInUse", err)
+	}
+}

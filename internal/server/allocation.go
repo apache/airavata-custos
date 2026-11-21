@@ -76,6 +76,7 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/compute-allocations/{id} [delete]
 func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocation(r.Context(), r.PathValue("id")); err != nil {

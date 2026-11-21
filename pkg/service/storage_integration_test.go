@@ -164,7 +164,8 @@ func TestStorageLifecycle(t *testing.T) {
 	if err := svc.UpdateStorage(ctx(), byPath()[siblingPath].ID, 1, &until, "", "admin"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("quota on a storage without one of its own: got %v, want ErrNotFound", err)
 	}
-	err = errors.Join(svc.DeleteComputeClusterUser(ctx(), cu.ID), svc.DeleteComputeAllocation(ctx(), sibling.ID))
+	_, err = svc.UpdateComputeAllocationStatus(ctx(), sibling.ID, models.INACTIVE)
+	err = errors.Join(err, svc.DeleteComputeClusterUser(ctx(), cu.ID), svc.DeleteComputeAllocation(ctx(), sibling.ID))
 	if got := byPath(); err != nil || got["/home/jdoe"].Status != "pending_deletion" || got[siblingPath].Status != "pending_deletion" ||
 		got["/home/jdoe"].ComputeClusterUserID != nil || got[siblingPath].AllocationID != nil {
 		t.Fatalf("deleting the account and an allocation: err=%v got=%+v, want theirs retired and unlinked", err, got)
