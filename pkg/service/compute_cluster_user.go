@@ -388,14 +388,21 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("lookup compute cluster user: %w", err)
+		}
+		if cu == nil {
+			return ErrNotFound
+		}
+		user, err := s.users.FindByIDTx(ctx, tx, cu.UserID, store.NoKeyUpdateLock)
+		if err != nil {
+			return fmt.Errorf("lookup user: %w", err)
+		}
+		if cu.ProvisionedAt != nil && user.Status == models.UserActive {
+			return fmt.Errorf("%w: compute cluster user %q is provisioned for an ACTIVE user, set the user INACTIVE first", ErrInUse, id)
+		}
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}

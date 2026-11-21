@@ -161,6 +161,12 @@ func TestStorageLifecycle(t *testing.T) {
 		countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = 'storage::delete'") != 1 {
 		t.Fatalf("delete: err=%v left=%+v, want one delete event for the storage, which takes the member's under it", err, byPath())
 	}
+	if err := svc.DeleteComputeClusterUser(ctx(), cu.ID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("deleting the provisioned account of an ACTIVE user: got %v, want ErrInUse", err)
+	}
+	if _, err := svc.UpdateUserStatus(ctx(), cu.UserID, models.UserInactive); err != nil {
+		t.Fatalf("deactivating the user: %v", err)
+	}
 	if err := svc.UpdateStorage(ctx(), byPath()[siblingPath].ID, 1, &until, "", "admin"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("quota on a storage without one of its own: got %v, want ErrNotFound", err)
 	}
