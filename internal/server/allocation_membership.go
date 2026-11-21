@@ -123,6 +123,7 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 // @Param	id	path	string	true	"Membership ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/compute-allocation-memberships/{id} [delete]
 func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationMembership(r.Context(), r.PathValue("id")); err != nil {
