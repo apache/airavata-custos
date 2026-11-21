@@ -49,7 +49,7 @@ type UserStore interface {
 	FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error)
 	// Create inserts a new user within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, u *models.User) error
-	// Update replaces mutable fields of an existing user within the provided transaction.
+	// Update replaces mutable fields of an existing user within the provided transaction, except status.
 	Update(ctx context.Context, tx *sql.Tx, u *models.User) error
 	// UpdateStatus sets the lifecycle status of an existing user within the provided transaction.
 	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error

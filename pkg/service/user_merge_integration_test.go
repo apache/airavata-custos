@@ -180,6 +180,18 @@ func TestMergeUsers_LetsALockHolderReferenceTheUser(t *testing.T) {
 	}
 }
 
+func TestUpdateUser_KeepsStatus(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedUser(t, database, "keeps-status@example.edu")
+	if err := svc.UpdateUser(ctx(), &models.User{ID: user, FirstName: "Renamed", Status: models.UserInactive}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if after, err := svc.GetUser(ctx(), user); err != nil || after.FirstName != "Renamed" || after.Status != models.UserActive {
+		t.Errorf("user: got %+v, %v, want renamed and ACTIVE", after, err)
+	}
+}
+
 func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)

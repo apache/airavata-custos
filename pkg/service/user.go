@@ -145,7 +145,7 @@ func (s *Service) ListUsersByOrganization(ctx context.Context, organizationID st
 	return users, nil
 }
 
-// UpdateUser persists changes to an existing user. Fields left blank/zero on
+// UpdateUser persists changes to an existing user, except status. Fields left blank/zero on
 // the supplied record fall back to the stored value.
 func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user == nil || user.ID == "" {
@@ -182,9 +182,7 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.Email == "" {
 		user.Email = existing.Email
 	}
-	if user.Status == "" {
-		user.Status = existing.Status
-	}
+	user.Status = existing.Status
 	if user.Type == "" {
 		user.Type = existing.Type
 	}
