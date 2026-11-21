@@ -178,7 +178,7 @@ func newTestPipeline(t *testing.T) *testPipeline {
 		handler.NewRequestProjectReactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestAccountInactivateHandler(coreSvc, amieClient, auditSvc),
 		handler.NewRequestAccountReactivateHandler(coreSvc, amieClient, auditSvc),
-		handler.NewRequestPersonMergeHandler(coreSvc, userDNStore, eventStore, amieClient, auditSvc),
+		handler.NewRequestPersonMergeHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewRequestUserModifyHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewDataProjectCreateHandler(coreSvc, userDNStore, amieClient, auditSvc),
 		handler.NewDataAccountCreateHandler(coreSvc, userDNStore, amieClient, auditSvc),
@@ -186,7 +186,7 @@ func newTestPipeline(t *testing.T) *testPipeline {
 		handler.NewNoOpHandler(),
 	)
 
-	handler.NewHeldReplies(database, packetStore, amieClient, auditSvc).Subscribe(eventBus, "amie-processor")
+	handler.NewHeldReplies(database, coreSvc, testClusterID, packetStore, amieClient, auditSvc).Subscribe(eventBus, "amie-processor")
 
 	met := metrics.NewWithRegistry(prometheus.NewRegistry())
 	poller := worker.NewPoller(amieClient, packetStore, eventStore, met, database, cfg)

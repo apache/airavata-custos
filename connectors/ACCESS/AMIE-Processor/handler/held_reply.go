@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,97 +33,112 @@ import (
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// replyWhenAccountApproved replies to ACCESS only if the cluster account is
-// approved. Otherwise, the reply is held and sent once an admin approves it.
-func replyWhenAccountApproved(ctx context.Context, tx *sql.Tx, client AmieClient, auditSvc AuditService, packet *model.Packet, eventID string, account *models.ComputeClusterUser, reply map[string]any) error {
-	if account.ApprovalStatus == models.ClusterAccountApproved {
-		if err := client.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
-			return fmt.Errorf("sending reply: %w", err)
-		}
-		// A packet processed again can still carry an earlier held reply.
-		packet.HeldReply, packet.HeldFor = nil, nil
-		return auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", "")
-	}
-	raw, err := json.Marshal(reply)
-	if err != nil {
-		return fmt.Errorf("encode held reply: %w", err)
-	}
-	held := string(raw)
-	packet.Status = model.PacketStatusWaitingApproval
-	packet.HeldReply = &held
-	packet.HeldFor = &account.ID
-	return auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplyHeld, "compute_cluster_user", account.ID, account.LocalUsername)
-}
-
-// HeldReplies answers packets that are held for a reason, for example a
-// cluster account approval.
+// HeldReplies answers the packets waiting on a person once their account on the AMIE cluster changes.
 type HeldReplies struct {
-	db       *sqlx.DB
-	packets  store.PacketStore
-	client   AmieClient
-	auditSvc AuditService
+	db        *sqlx.DB
+	svc       *service.Service
+	clusterID string
+	packets   store.PacketStore
+	client    AmieClient
+	auditSvc  AuditService
 }
 
-func NewHeldReplies(db *sqlx.DB, packets store.PacketStore, client AmieClient, auditSvc AuditService) *HeldReplies {
-	return &HeldReplies{db: db, packets: packets, client: client, auditSvc: auditSvc}
+func NewHeldReplies(db *sqlx.DB, svc *service.Service, clusterID string, packets store.PacketStore, client AmieClient, auditSvc AuditService) *HeldReplies {
+	return &HeldReplies{db: db, svc: svc, clusterID: clusterID, packets: packets, client: client, auditSvc: auditSvc}
 }
 
+// Subscribe answers on reviews, and on user updates, which a merge publishes for the survivor.
 func (h *HeldReplies) Subscribe(bus *events.Bus, subscriber string) {
-	bus.SubscribeComputeClusterUserApproved(subscriber, h.approved)
-	bus.SubscribeComputeClusterUserDenied(subscriber, h.denied)
+	bus.SubscribeComputeClusterUserApproved(subscriber, func(ctx context.Context, cu models.ComputeClusterUser) error { return h.answer(ctx, cu.UserID) })
+	bus.SubscribeComputeClusterUserDenied(subscriber, func(ctx context.Context, cu models.ComputeClusterUser) error { return h.answer(ctx, cu.UserID) })
+	bus.SubscribeUserUpdated(subscriber, func(ctx context.Context, u models.User) error { return h.answer(ctx, u.ID) })
 }
 
-func (h *HeldReplies) approved(ctx context.Context, cu models.ComputeClusterUser) error {
-	return h.answer(ctx, cu.ID, model.PacketStatusProcessed, nil)
-}
-
-// denied ends the transaction on the ACCESS side with a failure that carries
-// the admin's reason, which the protocol allows in reply to any packet.
-func (h *HeldReplies) denied(ctx context.Context, cu models.ComputeClusterUser) error {
-	reason := ""
-	if cu.ReviewNote != nil {
-		reason = *cu.ReviewNote
-	}
-	return h.answer(ctx, cu.ID, model.PacketStatusRefused, model.TransactionFailureReply(reason))
-}
-
-// answer sends each packet its held reply, or the failure when one is given.
-// Each packet gets its own transaction, so a failed send leaves only that
-// packet waiting for the bus to retry.
-func (h *HeldReplies) answer(ctx context.Context, clusterUserID string, status model.PacketStatus, failure map[string]any) error {
+// answer answers each packet waiting on one of the user's ACCESS persons, as their account on this
+// connector's cluster decides. Each packet gets its own transaction, so a failed send leaves only
+// that packet waiting for the bus to retry.
+func (h *HeldReplies) answer(ctx context.Context, userID string) error {
 	ctx, span := tracing.Start(ctx, "amie.held_reply")
 	defer span.End()
-	packets, err := h.packets.ListWaitingFor(ctx, clusterUserID)
-	if err != nil {
-		return fmt.Errorf("list held packets: %w", err)
+	account, err := h.svc.GetComputeClusterUserByPair(ctx, h.clusterID, userID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
 	}
-	for _, p := range packets {
-		packetReply := failure
-		// No failure means approval, so send the reply held on this packet.
-		if packetReply == nil {
-			if err := json.Unmarshal([]byte(*p.HeldReply), &packetReply); err != nil {
-				return fmt.Errorf("decode held reply of packet %s: %w", p.ID, err)
-			}
+	if err != nil {
+		return fmt.Errorf("get cluster account: %w", err)
+	}
+	if account.ApprovalStatus == models.ClusterAccountPending {
+		return nil
+	}
+	identities, err := h.svc.ListUserIdentitiesForUser(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("list user identities: %w", err)
+	}
+	for _, identity := range identities {
+		if identity.Source != amieIdentitySource {
+			continue
 		}
-		if err := custosdb.TxFn(ctx, h.db, func(tx *sql.Tx) error {
-			if err := h.client.ReplyToPacket(ctx, p.AmieID, packetReply); err != nil {
-				return fmt.Errorf("reply to packet %s: %w", p.ID, err)
+		packets, err := h.packets.ListWaitingFor(ctx, identity.ExternalID)
+		if err != nil {
+			return fmt.Errorf("list held packets: %w", err)
+		}
+		for _, p := range packets {
+			var packetJSON map[string]any
+			if err := json.Unmarshal([]byte(p.RawJSON), &packetJSON); err != nil {
+				return fmt.Errorf("decode packet %s: %w", p.ID, err)
 			}
-			p.Status = status
-			if status == model.PacketStatusProcessed {
-				now := time.Now().UTC()
-				p.ProcessedAt = &now
+			body, err := getBody(packetJSON)
+			if err != nil {
+				return fmt.Errorf("packet %s: %w", p.ID, err)
 			}
-			p.HeldReply, p.HeldFor = nil, nil
-			if err := h.packets.Update(ctx, tx, &p); err != nil {
+			if err := custosdb.TxFn(ctx, h.db, func(tx *sql.Tx) error {
+				if err := answerAccountCreate(ctx, tx, h.client, h.auditSvc, &p, "", body, account); err != nil {
+					return err
+				}
+				return h.packets.Update(ctx, tx, &p)
+			}); err != nil {
 				return err
 			}
-			return h.auditSvc.Log(ctx, tx, p.ID, "", model.AuditReplySent, "reply", "", string(status))
-		}); err != nil {
-			return err
 		}
 	}
 	return nil
+}
+
+// answerAccountCreate replies to a request_account_create packet as account's review decided.
+// Before a review, the packet waits on the ACCESS person, which a merge keeps.
+func answerAccountCreate(ctx context.Context, tx *sql.Tx, client AmieClient, auditSvc AuditService, packet *model.Packet, eventID string, body map[string]any, account *models.ComputeClusterUser) error {
+	var reply map[string]any
+	switch account.ApprovalStatus {
+	case models.ClusterAccountApproved:
+		now := time.Now().UTC()
+		replyBody := map[string]any{
+			"ProjectID":           getString(body, "ProjectID"),
+			"GrantNumber":         getString(body, "GrantNumber"),
+			"UserPersonID":        account.UserID,
+			"UserRemoteSiteLogin": account.LocalUsername,
+			"ResourceList":        getResourceList(body),
+		}
+		if v := getString(body, "UserOrgCode"); v != "" {
+			replyBody["UserOrgCode"] = v
+		}
+		reply, packet.Status, packet.ProcessedAt = map[string]any{"type": "notify_account_create", "body": replyBody}, model.PacketStatusProcessed, &now
+	case models.ClusterAccountDenied:
+		note := ""
+		if account.ReviewNote != nil {
+			note = *account.ReviewNote
+		}
+		reply, packet.Status = model.TransactionFailureReply(note), model.PacketStatusRefused
+	default:
+		personID := getString(body, "UserGlobalID")
+		packet.Status, packet.HeldFor = model.PacketStatusWaitingApproval, &personID
+		return auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplyHeld, "compute_cluster_user", account.ID, account.LocalUsername)
+	}
+	if err := client.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
+		return fmt.Errorf("reply to packet %s: %w", packet.ID, err)
+	}
+	packet.HeldFor = nil
+	return auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", string(packet.Status))
 }

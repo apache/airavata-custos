@@ -30,6 +30,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -116,7 +117,10 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, audit)
 
 	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
-		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+		if err := h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, ""); err != nil {
+			return err
+		}
+		return store.NewPacketStore(database).Update(ctx, tx, pkt)
 	}); err != nil {
 		t.Fatalf("Handle returned error: %v", err)
 	}
@@ -236,13 +240,20 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		}
 	}
 
-	// The cluster account is new and not approved yet, so nothing goes to ACCESS. The
-	// reply is kept on the packet: notify_account_create with the required
+	// The cluster account is new and not approved yet, so nothing goes to ACCESS and the
+	// packet waits on the person. Approval sends notify_account_create with the required
 	// fields AccountActivityTime, ProjectID, ResourceList, UserRemoteSiteLogin.
 	if len(amie.Replies) != 0 {
 		t.Fatalf("expected no reply before approval, got %d", len(amie.Replies))
 	}
-	replyType, reply := heldReply(t, pkt)
+	if pkt.Status != model.PacketStatusWaitingApproval || pkt.HeldFor == nil || *pkt.HeldFor != body["UserGlobalID"] {
+		t.Fatalf("expected the packet to wait on %v, got status %s held_for %v", body["UserGlobalID"], pkt.Status, pkt.HeldFor)
+	}
+	approvePendingAccounts(t, database, svc)
+	if err := newTestHeldReplies(database, svc, amie).answer(context.Background(), user.ID); err != nil {
+		t.Fatalf("answer: %v", err)
+	}
+	replyType, reply := amie.lastReplyType(), amie.lastReplyBody()
 	if replyType != "notify_account_create" {
 		t.Fatalf("reply type: got %q, want %q", replyType, "notify_account_create")
 	}
@@ -372,7 +383,7 @@ func TestRequestAccountCreate_ApprovedAccountRepliesAtOnce(t *testing.T) {
 	if got := amie.lastReplyType(); got != "notify_account_create" {
 		t.Fatalf("reply type: got %q, want notify_account_create", got)
 	}
-	if pkt.Status == model.PacketStatusWaitingApproval || pkt.HeldReply != nil {
+	if pkt.Status == model.PacketStatusWaitingApproval || pkt.HeldFor != nil {
 		t.Errorf("expected the reply to be sent, not held, got status %s", pkt.Status)
 	}
 }

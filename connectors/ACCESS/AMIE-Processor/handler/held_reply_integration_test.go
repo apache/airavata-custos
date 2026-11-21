@@ -22,7 +22,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -54,13 +53,23 @@ func holdAccountReply(t *testing.T, database *sqlx.DB, svc *coreservice.Service)
 	return pkt
 }
 
-func reviewedAccount(t *testing.T, svc *coreservice.Service, id string) models.ComputeClusterUser {
+// heldAccount is the AMIE cluster account of the person pkt is held on.
+func heldAccount(t *testing.T, svc *coreservice.Service, pkt *model.Packet) models.ComputeClusterUser {
 	t.Helper()
-	cu, err := svc.GetComputeClusterUser(context.Background(), id)
+	user, err := svc.GetUserByUserIdentity(context.Background(), amieIdentitySource, *pkt.HeldFor)
 	if err != nil {
-		t.Fatalf("get cluster account: %v", err)
+		t.Fatalf("get held person: %v", err)
 	}
-	return *cu
+	account, err := svc.GetComputeClusterUserByPair(context.Background(), testClusterID, user.ID)
+	if err != nil {
+		t.Fatalf("get cluster account of %s: %v", user.ID, err)
+	}
+	return *account
+}
+
+// newTestHeldReplies answers held packets on the test cluster.
+func newTestHeldReplies(database *sqlx.DB, svc *coreservice.Service, amie AmieClient) *HeldReplies {
+	return NewHeldReplies(database, svc, testClusterID, store.NewPacketStore(database), amie, newTestAuditService(database))
 }
 
 func packetStatus(t *testing.T, database *sqlx.DB, id string) model.PacketStatus {
@@ -81,12 +90,12 @@ func TestHeldReplies_ApprovalSendsHeldReplyOnce(t *testing.T) {
 	approvePendingAccounts(t, database, svc)
 
 	amie := &fakeAmieClient{}
-	held := NewHeldReplies(database, store.NewPacketStore(database), amie, newTestAuditService(database))
-	account := reviewedAccount(t, svc, *pkt.HeldFor)
+	held := newTestHeldReplies(database, svc, amie)
+	account := heldAccount(t, svc, pkt)
 	ctx, delivery := tracing.Start(context.Background(), "delivery")
 	for range 2 {
-		if err := held.approved(ctx, account); err != nil {
-			t.Fatalf("approved: %v", err)
+		if err := held.answer(ctx, account.UserID); err != nil {
+			t.Fatalf("answer: %v", err)
 		}
 	}
 	var chained int
@@ -101,41 +110,11 @@ func TestHeldReplies_ApprovalSendsHeldReplyOnce(t *testing.T) {
 		t.Errorf("packet status: got %s, want %s", got, model.PacketStatusProcessed)
 	}
 	var stillHeld int
-	if err := database.Get(&stillHeld, "SELECT COUNT(*) FROM amie_packets WHERE id = $1 AND (held_reply IS NOT NULL OR held_for IS NOT NULL)", pkt.ID); err != nil {
+	if err := database.Get(&stillHeld, "SELECT COUNT(*) FROM amie_packets WHERE id = $1 AND held_for IS NOT NULL", pkt.ID); err != nil {
 		t.Fatalf("read held fields: %v", err)
 	}
 	if stillHeld != 0 {
 		t.Errorf("expected the held reply to be cleared once it is sent")
-	}
-}
-
-// Make sure a held packet that is processed again after the account is
-// approved gets its reply and no longer carries the old held reply. This is
-// what happens to a held packet after a person merge.
-func TestHeldReplies_ProcessedAgainAfterApprovalClearsHeldReply(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestCoreService(database)
-	pkt := holdAccountReply(t, database, svc)
-	approvePendingAccounts(t, database, svc)
-
-	var packetJSON map[string]any
-	if err := json.Unmarshal([]byte(pkt.RawJSON), &packetJSON); err != nil {
-		t.Fatalf("decode packet: %v", err)
-	}
-	amie := &fakeAmieClient{}
-	h := NewRequestAccountCreateHandler(svc, testClusterID, amie, newTestAuditService(database))
-	pkt.Status = model.PacketStatusDecoded // the processor resets it before the handler runs
-	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
-		return h.Handle(ctx, tx, packetJSON, pkt, "")
-	}); err != nil {
-		t.Fatalf("Handle: %v", err)
-	}
-
-	if amie.lastReplyType() != "notify_account_create" {
-		t.Fatalf("reply type: got %q, want notify_account_create", amie.lastReplyType())
-	}
-	if pkt.HeldReply != nil || pkt.HeldFor != nil {
-		t.Errorf("expected the old held reply to be cleared, got held_for %v", pkt.HeldFor)
 	}
 }
 
@@ -149,14 +128,14 @@ func TestHeldReplies_DenialSendsFailureWithReason(t *testing.T) {
 	if err := database.Get(&reviewer, "SELECT id FROM users LIMIT 1"); err != nil {
 		t.Fatalf("pick a reviewer: %v", err)
 	}
-	if _, err := svc.DenyComputeClusterUser(tracingtest.Context(), *pkt.HeldFor, reviewer, "not on the collaborator list"); err != nil {
+	if _, err := svc.DenyComputeClusterUser(tracingtest.Context(), heldAccount(t, svc, pkt).ID, reviewer, "not on the collaborator list"); err != nil {
 		t.Fatalf("deny: %v", err)
 	}
 
 	amie := &fakeAmieClient{}
-	held := NewHeldReplies(database, store.NewPacketStore(database), amie, newTestAuditService(database))
-	if err := held.denied(context.Background(), reviewedAccount(t, svc, *pkt.HeldFor)); err != nil {
-		t.Fatalf("denied: %v", err)
+	held := newTestHeldReplies(database, svc, amie)
+	if err := held.answer(context.Background(), heldAccount(t, svc, pkt).UserID); err != nil {
+		t.Fatalf("answer: %v", err)
 	}
 
 	if amie.lastReplyType() != "inform_transaction_complete" {
@@ -180,8 +159,8 @@ func TestHeldReplies_FailedSendKeepsPacketWaiting(t *testing.T) {
 	approvePendingAccounts(t, database, svc)
 
 	amie := &fakeAmieClient{FailWith: errors.New("simulated AMIE outage")}
-	held := NewHeldReplies(database, store.NewPacketStore(database), amie, newTestAuditService(database))
-	if err := held.approved(context.Background(), reviewedAccount(t, svc, *pkt.HeldFor)); err == nil {
+	held := newTestHeldReplies(database, svc, amie)
+	if err := held.answer(context.Background(), heldAccount(t, svc, pkt).UserID); err == nil {
 		t.Fatal("expected an error when the reply fails")
 	}
 	if got := packetStatus(t, database, pkt.ID); got != model.PacketStatusWaitingApproval {

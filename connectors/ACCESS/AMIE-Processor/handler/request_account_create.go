@@ -133,18 +133,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: audit CREATE_MEMBERSHIP: %w", err)
 	}
 
-	replyBody := map[string]any{
-		"ProjectID":           projectID,
-		"GrantNumber":         getString(body, "GrantNumber"),
-		"UserPersonID":        user.ID,
-		"UserRemoteSiteLogin": account.LocalUsername,
-		"ResourceList":        getResourceList(body),
-	}
-	if v := getString(body, "UserOrgCode"); v != "" {
-		replyBody["UserOrgCode"] = v
-	}
-	reply := map[string]any{"type": "notify_account_create", "body": replyBody}
-	if err := replyWhenAccountApproved(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, account, reply); err != nil {
+	if err := answerAccountCreate(ctx, tx, h.amieClient, h.auditSvc, packet, eventID, body, account); err != nil {
 		return fmt.Errorf("request_account_create: %w", err)
 	}
 	return nil

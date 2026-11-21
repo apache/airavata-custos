@@ -30,9 +30,7 @@ CREATE TABLE IF NOT EXISTS amie_packets
     processed_at TIMESTAMPTZ(6) NULL,
     retries      INT            NOT NULL DEFAULT 0,
     last_error   TEXT           NULL,
-    -- A reply that has to wait for something on Custos side is kept here, with
-    -- held_for naming what it waits on. Used for cluster account approval.
-    held_reply   TEXT           NULL,
+    -- held_for is the ACCESS person whose cluster account review the packet waits on.
     held_for     VARCHAR(255)   NULL,
     PRIMARY KEY (id),
     CONSTRAINT uq_amie_packets_amie_id UNIQUE (amie_id)
