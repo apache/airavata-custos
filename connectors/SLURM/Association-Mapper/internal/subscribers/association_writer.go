@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
@@ -61,27 +62,11 @@ func keyOf(a client.Association) assocKey {
 	return assocKey{account: a.Account, user: a.User, partition: a.Partition}
 }
 
-// sameLimits reports whether two associations already carry the same limits.
-// Only the limits are compared: the key fields match by construction.
-func sameLimits(want, got client.Association) bool {
-	return sameTRES(want.Limits.GrpTRES, got.Limits.GrpTRES) &&
-		sameTRES(want.Limits.GrpTRESMins, got.Limits.GrpTRESMins)
-}
-
-func sameTRES(want, got []client.TRES) bool {
-	if len(want) != len(got) {
-		return false
-	}
-	counts := make(map[string]float64, len(want))
-	for _, t := range want {
-		counts[t.Type] = t.Count
-	}
-	for _, t := range got {
-		if c, ok := counts[t.Type]; !ok || c != t.Count {
-			return false
-		}
-	}
-	return true
+// Reports if the current SLURM association state needs an update to reach the desired state.
+// Limits set outside Custos are left as-is.
+func needsLimitUpdate(current, desired client.Association) bool {
+	return client.NeedsTRESUpdate(current.Limits.GrpTRES, desired.Limits.GrpTRES) ||
+		client.NeedsTRESUpdate(current.Limits.GrpTRESMins, desired.Limits.GrpTRESMins)
 }
 
 // noAllocation is every user's default account. It runs no jobs, so a job names the allocation it charges,
@@ -98,7 +83,25 @@ func (a *AssociationSubscriber) writeAssociation(assoc client.Association) error
 	if err := a.slurmClient.SetDefaultAccount(assoc.Cluster, assoc.User, noAllocation); err != nil {
 		return fmt.Errorf("set default account: %w", err)
 	}
-	return a.slurmClient.UpsertAssociation(assoc)
+	return a.upsertAssociation(assoc)
+}
+
+// Upserts desired, carrying over TRES limits set outside Custos, since slurmrestd replaces the whole list.
+func (a *AssociationSubscriber) upsertAssociation(desired client.Association) error {
+	associations, err := a.slurmClient.ListAssociations(client.AssocFilter{
+		Cluster: desired.Cluster, Account: desired.Account, User: desired.User, Partition: desired.Partition,
+	})
+	if err != nil {
+		return fmt.Errorf("read association before upsert: %w", err)
+	}
+	for _, current := range associations {
+		if keyOf(current) == keyOf(desired) {
+			desired.Limits.GrpTRES = client.WithTRESSetOutside(current.Limits.GrpTRES, desired.Limits.GrpTRES)
+			desired.Limits.GrpTRESMins = client.WithTRESSetOutside(current.Limits.GrpTRESMins, desired.Limits.GrpTRESMins)
+			break
+		}
+	}
+	return a.slurmClient.UpsertAssociation(desired)
 }
 
 // The event handlers use this. An event means something changed, so the
@@ -149,11 +152,16 @@ func (a *AssociationSubscriber) desiredAssociationForMembership(ctx context.Cont
 	if err != nil {
 		return nil, err
 	}
+	resources, err := a.coreService.ListResourcesForAllocation(ctx, allocation.ID)
+	if err != nil {
+		return nil, fmt.Errorf("list resources for allocation: %w", err)
+	}
+	limits.GrpTRES = clearResourcesWithoutLimit(limits.GrpTRES, resources)
+	limits.GrpTRESMins = clearResourcesWithoutLimit(limits.GrpTRESMins, resources)
 	return &client.Association{
 		Account: slurmAccount(allocation.Name),
 		Cluster: cluster.Name,
 		User:    csu.LocalUsername,
-		QoS:     []string{"normal"},
 		Limits:  limits,
 	}, nil
 }
@@ -176,6 +184,23 @@ func (a *AssociationSubscriber) limitsFor(ctx context.Context, overrides []model
 		}
 	}
 	return limits, nil
+}
+
+// Clears the limit of each allocation resource that Custos no longer limits.
+func clearResourcesWithoutLimit(limits []client.TRES, resources []models.ComputeAllocationResource) []client.TRES {
+	for _, r := range resources {
+		if r.ResourceType == "" {
+			continue
+		}
+		cleared := tresFor(r.ResourceType, client.NoLimit)
+		hasLimit := slices.ContainsFunc(limits, func(t client.TRES) bool {
+			return t.Type == cleared.Type && t.Name == cleared.Name
+		})
+		if !hasLimit {
+			limits = append(limits, cleared)
+		}
+	}
+	return limits
 }
 
 func addTRES(list []client.TRES, t client.TRES) []client.TRES {

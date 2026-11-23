@@ -101,14 +101,12 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 		return
 	}
 
-	// One read per cluster. On failure fall back to writing every
-	// association, which costs extra calls but still converges.
 	existing, err := a.existingAssociations(ctx, cluster.Name)
 	health.Record(a.name, cluster.ID, err)
 	if err != nil {
-		slog.WarnContext(ctx, "Association reconciler: could not read current associations, writing unconditionally",
+		slog.WarnContext(ctx, "Association reconciler: could not read current associations, skipping cluster",
 			"cluster", cluster.Name, "error", err)
-		existing = nil
+		return
 	}
 
 	desired := make(map[assocKey]struct{})
@@ -147,9 +145,11 @@ func (a *AssociationSubscriber) reconcileCluster(ctx context.Context, cluster mo
 			if !a.readyForAssociation(csu) {
 				continue
 			}
+			current, exists := existing[keyOf(*record)]
 			// A user without the no-allocation association predates it, so the write also moves their default.
 			_, hasDefault := existing[assocKey{account: noAllocation, user: record.User}]
-			if got, ok := existing[keyOf(*record)]; ok && sameLimits(*record, got) && hasDefault {
+			needsWrite := !exists || !hasDefault || needsLimitUpdate(current, *record)
+			if !needsWrite {
 				continue
 			}
 			if err := a.writeAssociation(*record); err != nil {
@@ -191,14 +191,16 @@ func (a *AssociationSubscriber) pruneStaleAssociations(ctx context.Context, clus
 	}
 
 	removed := 0
-	for key, assoc := range existing {
+	for _, assoc := range existing {
 		if assoc.User == "" {
 			continue
 		}
 		if _, ok := managed[assoc.Account]; !ok {
 			continue
 		}
-		if _, ok := desired[key]; ok {
+		// Custos does not manage partitions, so only the account and user decide if an association is stale.
+		_, isActiveMember := desired[assocKey{account: assoc.Account, user: assoc.User}]
+		if isActiveMember {
 			continue
 		}
 		filter := client.AssocFilter{

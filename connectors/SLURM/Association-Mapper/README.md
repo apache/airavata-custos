@@ -38,7 +38,7 @@ Events apply each change as it happens. A periodic sweep applies any change an e
 | `compute_allocation_membership::delete` | Remove the member's association on that allocation only |
 | `compute_allocation_membership_resource_override::create` | Rewrite the member's association with limits from all of their overrides |
 
-An association uses QoS `normal` and no partition, so the cluster's partition settings decide where jobs run. Overrides
+Associations Custos writes set no QoS or partition, so each inherits its account's QoS and the cluster decides where jobs run. Overrides
 on two GPU resources become one GPU limit, their sum. CPU and GPU limits stay separate.
 
 Before writing an association, the connector makes `none` the user's default account. `none` runs no jobs, so each job

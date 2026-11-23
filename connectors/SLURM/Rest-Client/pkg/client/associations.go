@@ -102,39 +102,59 @@ func (c *Client) UpsertAssociation(a Association) error {
 		return errors.New("fetched association does not match upserted association")
 	}
 
-	fetchedLimits := fetchedAssociation.Limits
-	upsertedLimits := a.Limits
+	currentLimits := fetchedAssociation.Limits
+	desiredLimits := a.Limits
 
-	if !tresSliceEqualUnordered(fetchedLimits.GrpTRES, upsertedLimits.GrpTRES) {
-		slog.Error("Fetched association limits GrpTRES does not match upserted association limits GrpTRES", "got", fetchedLimits.GrpTRES, "want", upsertedLimits.GrpTRES)
-		return errors.New("fetched association limits GrpTRES does not match upserted association limits GrpTRES")
+	if NeedsTRESUpdate(currentLimits.GrpTRES, desiredLimits.GrpTRES) {
+		slog.Error("Fetched association still needs a GrpTRES update", "current", currentLimits.GrpTRES, "desired", desiredLimits.GrpTRES)
+		return errors.New("fetched association still needs a GrpTRES update")
 	}
 
-	if !tresSliceEqualUnordered(fetchedLimits.GrpTRESMins, upsertedLimits.GrpTRESMins) {
-		slog.Error("Fetched association limits GrpTRESMins does not match upserted association limits GrpTRESMins", "got", fetchedLimits.GrpTRESMins, "want", upsertedLimits.GrpTRESMins)
-		return errors.New("fetched association limits GrpTRESMins does not match upserted association limits GrpTRESMins")
+	if NeedsTRESUpdate(currentLimits.GrpTRESMins, desiredLimits.GrpTRESMins) {
+		slog.Error("Fetched association still needs a GrpTRESMins update", "current", currentLimits.GrpTRESMins, "desired", desiredLimits.GrpTRESMins)
+		return errors.New("fetched association still needs a GrpTRESMins update")
 	}
 
 	return nil
 }
 
-// tresSliceEqualUnordered reports whether two TRES slices contain the same
-// elements regardless of order. nil and empty slices are treated as equal.
-func tresSliceEqualUnordered(a, b []TRES) bool {
-	if len(a) != len(b) {
-		return false
+// NoLimit as a TRES count clears that limit on write.
+const NoLimit = -1
+
+// tresKey identifies a limit regardless of its count.
+type tresKey struct{ typ, name string }
+
+// NeedsTRESUpdate reports if current differs from any limit desired sets or clears.
+// Limits only in current are ignored.
+func NeedsTRESUpdate(current, desired []TRES) bool {
+	inCurrent := make(map[tresKey]float64, len(current))
+	for _, t := range current {
+		inCurrent[tresKey{t.Type, t.Name}] = t.Count
 	}
-	counts := make(map[TRES]int, len(a))
-	for _, t := range a {
-		counts[t]++
-	}
-	for _, t := range b {
-		counts[t]--
-		if counts[t] < 0 {
-			return false
+	for _, t := range desired {
+		count, isSet := inCurrent[tresKey{t.Type, t.Name}]
+		isAlreadyCleared := t.Count == NoLimit && !isSet
+		isSame := isSet && count == t.Count
+		if !isAlreadyCleared && !isSame {
+			return true
 		}
 	}
-	return true
+	return false
+}
+
+// WithTRESSetOutside returns desired plus each current limit whose type and name desired does not set.
+func WithTRESSetOutside(current, desired []TRES) []TRES {
+	inDesired := make(map[tresKey]bool, len(desired))
+	for _, t := range desired {
+		inDesired[tresKey{t.Type, t.Name}] = true
+	}
+	merged := append([]TRES(nil), desired...)
+	for _, t := range current {
+		if !inDesired[tresKey{t.Type, t.Name}] {
+			merged = append(merged, t)
+		}
+	}
+	return merged
 }
 
 // DeleteAssociation deletes the user associations matching f one at a time, as slurmrestd requires.

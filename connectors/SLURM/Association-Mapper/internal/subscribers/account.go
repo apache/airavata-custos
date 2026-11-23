@@ -235,7 +235,7 @@ func (a *AssociationSubscriber) handleComputeAllocationResourceMappingCreated(ct
 		Limits:  limits,
 	}
 
-	err = a.slurmClient.UpsertAssociation(association)
+	err = a.upsertAssociation(association)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to upsert association for membership resource override creation", "error", err)
 		span.RecordError(err)

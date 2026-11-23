@@ -20,6 +20,7 @@ package subscribers
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -37,6 +38,7 @@ type fakeSlurmClient struct {
 	defaults     []string
 	deletes      []client.AssocFilter
 	existing     []client.Association
+	listErr      map[string]error // by cluster name
 	deletedUsers []string
 }
 
@@ -60,8 +62,8 @@ func (f *fakeSlurmClient) allDeletes() []client.AssocFilter {
 	return append([]client.AssocFilter(nil), f.deletes...)
 }
 
-func (f *fakeSlurmClient) ListAssociations(client.AssocFilter) ([]client.Association, error) {
-	return f.existing, nil
+func (f *fakeSlurmClient) ListAssociations(filter client.AssocFilter) ([]client.Association, error) {
+	return f.existing, f.listErr[filter.Cluster]
 }
 
 func (f *fakeSlurmClient) CreateAccount(client.Account, string) error { return nil }
@@ -389,6 +391,46 @@ func TestReconcilerWritesAssociationsForProvisionedMembers(t *testing.T) {
 	if n := len(slurm.all()); n != 1 {
 		t.Fatalf("expected the reconciler to write 1 association, got %d", n)
 	}
+	if qos := slurm.all()[0].QoS; qos != nil {
+		t.Errorf("expected no QoS, so the account's QoS is inherited; got %v", qos)
+	}
+}
+
+func TestReconcilerSkipsClusterWhenAssociationsCannotBeRead(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	clusters := []models.ComputeCluster{{ID: "cluster-1", Name: "testcluster"}, {ID: "cluster-2", Name: "othercluster"}}
+	core.ListComputeClustersFunc = func(context.Context) ([]models.ComputeCluster, error) { return clusters, nil }
+	core.GetComputeClusterFunc = func(_ context.Context, id string) (*models.ComputeCluster, error) {
+		for _, c := range clusters {
+			if c.ID == id {
+				return &c, nil
+			}
+		}
+		return nil, service.ErrNotFound
+	}
+	getAllocation := core.GetComputeAllocationFunc
+	core.GetComputeAllocationFunc = func(ctx context.Context, id string) (*models.ComputeAllocation, error) {
+		alloc, err := getAllocation(ctx, id)
+		if id == "alloc-2" {
+			alloc.ComputeClusterID = "cluster-2"
+		}
+		return alloc, err
+	}
+	core.ListAllocationsForUserFunc = func(context.Context, string) ([]models.ComputeAllocationMembership, error) {
+		return []models.ComputeAllocationMembership{testMembership(), {
+			ID: "mem-2", ComputeAllocationID: "alloc-2", UserID: "user-1", MembershipStatus: models.ACTIVE,
+		}}, nil
+	}
+	slurm := &fakeSlurmClient{listErr: map[string]error{"testcluster": errors.New("dns timeout")}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	got := slurm.all()
+	if len(got) != 1 || got[0].Cluster != "othercluster" || len(slurm.allDeletes()) != 0 {
+		t.Fatalf("expected only othercluster to be written, got upserts %+v and deletes %+v", got, slurm.allDeletes())
+	}
 }
 
 // A member with no account on another cluster must not stop this cluster's pass.
@@ -502,6 +544,48 @@ func TestReconcilerSkipsAssociationsAlreadyCorrect(t *testing.T) {
 
 	if n := len(slurm.all()); n != 0 {
 		t.Fatalf("expected no writes when the association already matches, got %d", n)
+	}
+}
+
+func TestReconcilerKeepsPartitionAssociationsOfActiveMembers(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser"},
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "gpu"},
+		{Account: noAllocation, Cluster: "testcluster", User: "testuser"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if d := slurm.allDeletes(); len(d) != 0 {
+		t.Fatalf("expected the partition association set outside Custos to be kept, got deletes %+v", d)
+	}
+}
+
+func TestReconcilerClearsLimitOfRemovedOverride(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	member := client.Association{Account: "test-alloc", Cluster: "testcluster", User: "testuser"}
+	none := client.Association{Account: noAllocation, Cluster: "testcluster", User: "testuser"}
+	member.Limits.GrpTRES = []client.TRES{{Type: "cpu", Count: 4}, {Type: "mem", Count: 1024}}
+	slurm := &fakeSlurmClient{existing: []client.Association{member, none}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	got := slurm.all()
+	want := []client.TRES{{Type: "cpu", Count: client.NoLimit}, {Type: "mem", Count: 1024}}
+	if len(got) != 1 || !slices.Equal(got[0].Limits.GrpTRES, want) {
+		t.Fatalf("expected cpu cleared and the mem limit set outside Custos kept, got %+v", got)
+	}
+
+	member.Limits.GrpTRES = []client.TRES{{Type: "mem", Count: 1024}}
+	slurm = &fakeSlurmClient{existing: []client.Association{member, none}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+	if n := len(slurm.all()); n != 0 {
+		t.Fatalf("expected no rewrite once the limit is cleared, got %d writes", n)
 	}
 }
 
