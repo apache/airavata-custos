@@ -89,6 +89,13 @@ definitions:
       total:
         type: integer
     type: object
+  RetryPacketResponse:
+    properties:
+      packet:
+        $ref: '#/definitions/PacketResponse'
+      queued:
+        type: boolean
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -252,18 +259,34 @@ paths:
       produces:
       - application/json
       responses:
-        "501":
-          description: Not Implemented
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/RetryPacketResponse'
+        "404":
+          description: Packet not found
           schema:
             properties:
               error:
                 type: string
-              message:
+            type: object
+        "409":
+          description: Packet is not FAILED
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Store update failed
+          schema:
+            properties:
+              error:
                 type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Retry an AMIE packet (not yet implemented)
+      summary: Queue a FAILED AMIE packet for one more processing attempt
       tags:
       - AMIE Packets
   /connectors/amie/packets/{packet_id}/audits:

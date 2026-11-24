@@ -20,6 +20,7 @@ package server
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -239,15 +240,52 @@ func (h *Handlers) listUnmapped(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, emptyPacketPage(common.Paged(r.URL.Query())))
 }
 
-// @Summary	Retry an AMIE packet (not yet implemented)
+// RetryPacketResponse is returned when a failed packet is queued again.
+type RetryPacketResponse struct {
+	Queued bool           `json:"queued"`
+	Packet PacketResponse `json:"packet"`
+}
+
+// @Summary	Queue a FAILED AMIE packet for one more processing attempt
 // @Tags	AMIE Packets
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE packet ID"
-// @Failure	501	{object}	object{error=string,message=string}
+// @Success	200	{object}	RetryPacketResponse
+// @Failure	404	{object}	object{error=string}	"Packet not found"
+// @Failure	409	{object}	object{error=string}	"Packet is not FAILED"
+// @Failure	500	{object}	object{error=string}	"Store update failed"
 // @Router	/connectors/amie/packets/{id}/retry [post]
-func (h *Handlers) retryPacket(w http.ResponseWriter, _ *http.Request) {
-	writeNotImplemented(w, "packet retry")
+func (h *Handlers) retryPacket(w http.ResponseWriter, r *http.Request) {
+	if h.packets == nil {
+		common.WriteError(w, http.StatusNotFound, errors.New("not found"))
+		return
+	}
+	id := r.PathValue("id")
+	p, err := h.packets.FindByID(r.Context(), id)
+	if err != nil {
+		common.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if p == nil {
+		common.WriteError(w, http.StatusNotFound, errors.New("not found"))
+		return
+	}
+	queued, err := h.packets.RequeueFailed(r.Context(), id)
+	if err != nil {
+		common.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if queued == nil {
+		common.WriteError(w, http.StatusConflict, errors.New("only FAILED packets can be retried, and this one is not FAILED or is already queued"))
+		return
+	}
+	requester := ""
+	if caller := identity.CallerFromContext(r.Context()); caller != nil {
+		requester = caller.Requester()
+	}
+	slog.InfoContext(r.Context(), "AMIE packet queued for retry", "packetId", id, "amieId", queued.AmieID, "requester", requester)
+	common.WriteJSON(w, http.StatusOK, RetryPacketResponse{Queued: true, Packet: packetResponseFrom(*queued)})
 }
 
 // @Summary	Resolve an AMIE packet (not yet implemented)

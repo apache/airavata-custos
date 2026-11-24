@@ -57,6 +57,7 @@ type PacketStore interface {
 	Save(ctx context.Context, tx *sql.Tx, p *model.Packet) error
 	Update(ctx context.Context, tx *sql.Tx, p *model.Packet) error
 	ListWaitingFor(ctx context.Context, clusterUserID string) ([]model.Packet, error)
+	RequeueFailed(ctx context.Context, id string) (*model.Packet, error)
 
 	ListPackets(ctx context.Context, f PacketListFilter) ([]model.Packet, int, error)
 	ListPacketEvents(ctx context.Context, packetID string) ([]model.ProcessingEvent, error)
@@ -125,6 +126,34 @@ func (s *pgPacketStore) ListWaitingFor(ctx context.Context, clusterUserID string
 		`SELECT `+packetColumns+` FROM amie_packets WHERE held_for = $1 AND status = $2 ORDER BY received_at`,
 		clusterUserID, model.PacketStatusWaitingApproval)
 	return packets, err
+}
+
+// RequeueFailed puts a FAILED packet and its permanently failed event back to
+// NEW so the processor picks it up on its next tick. The attempt count is kept,
+// so the rerun gets one attempt and a new failure lands back in FAILED. It
+// returns nil when the packet is not FAILED, so two concurrent retries queue
+// the packet once.
+func (s *pgPacketStore) RequeueFailed(ctx context.Context, id string) (*model.Packet, error) {
+	var p model.Packet
+	err := s.db.GetContext(ctx, &p,
+		`WITH requeued AS (
+		     UPDATE amie_processing_events SET status = $1, next_retry_at = NULL
+		     WHERE status = $2
+		       AND packet_id = (SELECT id FROM amie_packets WHERE id = $3 AND status = $4)
+		     RETURNING packet_id
+		 )
+		 UPDATE amie_packets SET status = $5
+		 WHERE id IN (SELECT packet_id FROM requeued)
+		 RETURNING `+packetColumns,
+		model.ProcessingStatusNew, model.ProcessingStatusPermanentlyFailed,
+		id, model.PacketStatusFailed, model.PacketStatusNew)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
 }
 
 func (s *pgPacketStore) ListPackets(ctx context.Context, f PacketListFilter) ([]model.Packet, int, error) {
