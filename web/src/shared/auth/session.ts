@@ -15,34 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// Server-side reads of the session cookie; its tokens never reach browser JS.
 import "server-only";
-import { auth } from "./auth";
+import { serverEnv } from "@/lib/env";
+import { type JWT, getToken } from "next-auth/jwt";
+import { backendBearerOf, refreshIfDue, sessionCookieName } from "./auth";
 
-export type PortalSession = {
-  accessToken?: string | null;
-  idToken?: string | null;
-  userId?: string | null;
-} | null;
-
-export async function getPortalSession(): Promise<PortalSession> {
-  const session = await auth();
-  if (!session) return null;
-  return {
-    accessToken: session.accessToken ?? null,
-    idToken: session.idToken ?? null,
-    userId: session.user?.id ?? null,
-  };
+export function readSessionCookie(request: Request): Promise<JWT | null> {
+  return getToken({
+    req: request,
+    secret: serverEnv.NEXTAUTH_SECRET,
+    cookieName: sessionCookieName,
+  });
 }
 
-// Some IdPs hand out opaque access tokens while their id_tokens are JWTs;
-// the backend only verifies JWTs, so prefer whichever bearer has the JWT shape.
-export function pickBackendBearer(session: PortalSession): string | null {
-  if (!session) return null;
-  if (looksLikeJwt(session.accessToken)) return session.accessToken ?? null;
-  if (looksLikeJwt(session.idToken)) return session.idToken ?? null;
-  return session.accessToken ?? session.idToken ?? null;
-}
-
-function looksLikeJwt(token: string | null | undefined): boolean {
-  return typeof token === "string" && token.split(".").length === 3;
+export async function freshBackendBearer(request: Request): Promise<string | undefined> {
+  const token = await readSessionCookie(request);
+  return token ? backendBearerOf(await refreshIfDue(token)) : undefined;
 }

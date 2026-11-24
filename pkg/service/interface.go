@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -58,8 +59,10 @@ type UserService interface {
 	ListUsersByOrganization(ctx context.Context, organizationID string) ([]models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
 	UpdateUserStatus(ctx context.Context, id string, status models.UserStatus) (*models.User, error)
+	UpdatePendingUserEmail(ctx context.Context, actorID, id, email string) (*models.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	MergeUsers(ctx context.Context, survivingID, retiringID string) (*models.User, error)
+	ValidateUsername(name string) error
 }
 
 // UserIdentityService exposes external-identity linking.
@@ -69,6 +72,7 @@ type UserIdentityService interface {
 	GetUserIdentityBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.UserIdentity, error)
 	GetUserIdentityByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error)
 	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	GetOIDCIdentity(ctx context.Context, userID string) (*models.UserIdentity, error)
 	UpdateUserIdentity(ctx context.Context, e *models.UserIdentity) error
 	DeleteUserIdentity(ctx context.Context, id string) error
 }
@@ -78,7 +82,6 @@ type ProjectService interface {
 	CreateProject(ctx context.Context, project *models.Project) (*models.Project, error)
 	GetProject(ctx context.Context, id string) (*models.Project, error)
 	GetProjectByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
-	ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
 	IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	UpdateProject(ctx context.Context, project *models.Project) error
@@ -109,6 +112,11 @@ type ComputeClusterUserService interface {
 	DeleteComputeClusterUser(ctx context.Context, id string) error
 }
 
+// StorageService exposes what a storage connector calls on core.
+type StorageService interface {
+	EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error)
+}
+
 // ComputeAllocationService exposes compute-allocation CRUD.
 type ComputeAllocationService interface {
 	CreateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) (*models.ComputeAllocation, error)
@@ -116,6 +124,7 @@ type ComputeAllocationService interface {
 	ListComputeAllocationsByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	ListComputeAllocationsByCluster(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error)
 	ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
+	AllocationRoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 	UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error
 	DeleteComputeAllocation(ctx context.Context, id string) error
 }
@@ -182,8 +191,6 @@ type ComputeAllocationChangeRequestEventService interface {
 // ProjectMembershipService exposes project-level governance roles.
 type ProjectMembershipService interface {
 	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
-	ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
-	ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error)
 }
 
 // ComputeAllocationMembershipService exposes allocation memberships.
@@ -191,9 +198,8 @@ type ComputeAllocationMembershipService interface {
 	CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	GetComputeAllocationMembership(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
 	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
-	ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
+	ListMembersForProject(ctx context.Context, projectID string) ([]store.ProjectMember, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
-	IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error)
 	UpdateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error)
 	DeleteComputeAllocationMembership(ctx context.Context, id string) error
@@ -218,8 +224,9 @@ type ComputeAllocationUsageService interface {
 	GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
 	ListUsagesForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 	ListUsagesByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
-	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error)
-	GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (float64, error)
+	GetTotalSUUsageForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error)
+	LatestUsageTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error)
 	DeleteComputeAllocationUsage(ctx context.Context, id string) error
 }
 
@@ -268,6 +275,30 @@ type UserRoleService interface {
 	BootstrapSuperAdmin(ctx context.Context, email, source string) error
 }
 
+// UserAgreementService manages the draft, publish, and remove lifecycle of
+// versioned user agreements. Writes require agreements:manage.
+type UserAgreementService interface {
+	ListUserAgreements(ctx context.Context) ([]models.UserAgreement, error)
+	GetUserAgreement(ctx context.Context, id string) (*models.UserAgreement, error)
+	CreateUserAgreementDraft(ctx context.Context, in UserAgreementInput, actorID string) (*models.UserAgreement, error)
+	UpdateUserAgreementDraft(ctx context.Context, id string, in UserAgreementInput, actorID string) (*models.UserAgreement, error)
+	DeleteUserAgreementDraft(ctx context.Context, id, actorID string) error
+	PublishUserAgreement(ctx context.Context, id, actorID string) (*models.UserAgreement, error)
+	RemoveUserAgreement(ctx context.Context, id, actorID string) (*models.UserAgreement, error)
+	UserAgreementCounts(ctx context.Context, id string) (accepted, pending int, err error)
+	ListUserAgreementAcceptances(ctx context.Context, id string, limit, offset int) ([]models.UserAgreementAcceptance, error)
+	ListUserAgreementPendingUsers(ctx context.Context, id string, limit, offset int) ([]models.User, error)
+}
+
+// UserConsentService covers what a user does before using the portal.
+// Accept the current user agreement and, at first sign-in, choose a username and link their sub.
+type UserConsentService interface {
+	PendingUserAgreements(ctx context.Context, userID string) ([]models.UserAgreement, error)
+	AcceptUserAgreement(ctx context.Context, userID, agreementID string) (*models.UserAgreementAcceptance, error)
+	CheckOnboardingUsername(ctx context.Context, userID, candidate string) (*UsernameCheck, error)
+	CompleteOnboarding(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error)
+}
+
 // CoreService is the aggregate of every domain interface this package exposes.
 // Most callers should depend on this, or — when they need only a slice of
 // the API — on the narrower per-domain interfaces above.
@@ -278,6 +309,7 @@ type CoreService interface {
 	ProjectService
 	ComputeClusterService
 	ComputeClusterUserService
+	StorageService
 	ComputeAllocationService
 	ComputeAllocationResourceService
 	ComputeAllocationResourceMappingService
@@ -293,6 +325,21 @@ type CoreService interface {
 	UserPrivilegeService
 	RoleService
 	UserRoleService
+	UserAgreementService
+	UserConsentService
+	ServiceAccountService
+}
+
+type ServiceAccountService interface {
+	ListServiceAccounts(ctx context.Context) ([]models.ServiceAccount, error)
+	GetServiceAccount(ctx context.Context, id string) (*models.ServiceAccount, error)
+	DeleteServiceAccount(ctx context.Context, id, actorID string) error
+	CreateServiceAccount(ctx context.Context, key, name, description string, privileges []models.PrivilegeKey, actorID string) (*models.ServiceAccount, string, error)
+	UpdateServiceAccount(ctx context.Context, id, name, description, actorID string) (*models.ServiceAccount, error)
+	DisableServiceAccount(ctx context.Context, id, actorID string) (*models.ServiceAccount, error)
+	EnableServiceAccount(ctx context.Context, id, actorID string) (*models.ServiceAccount, error)
+	IssueServiceAccountSecret(ctx context.Context, id, actorID string) (*models.ServiceAccount, string, error)
+	ResolveServiceAccount(ctx context.Context, token string) (*models.ServiceAccount, error)
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

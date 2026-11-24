@@ -19,6 +19,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -30,31 +31,27 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/trace/noop"
-)
-
-type Mode int
-
-const (
-	ModeProduction Mode = iota
-	ModeNoop
 )
 
 const tracerName = "custos"
 
+// provider mints the spans whose ids audit rows carry, so it is a real SDK
+// provider from the start rather than the otel global, which is a no-op until set.
+var provider trace.TracerProvider = sdktrace.NewTracerProvider()
+
+// SetProvider replaces the span provider, for Init and for tests that record
+// spans, and returns the previous one.
+func SetProvider(tp trace.TracerProvider) (prev trace.TracerProvider) {
+	prev, provider = provider, tp
+	return prev
+}
+
 type InitConfig struct {
-	Mode        Mode
 	Logger      *slog.Logger
 	ServiceName string
 }
 
 func Init(cfg InitConfig) (func(context.Context) error, error) {
-	if cfg.Mode == ModeNoop {
-		otel.SetTracerProvider(noop.NewTracerProvider())
-		otel.SetTextMapPropagator(propagation.TraceContext{})
-		return func(context.Context) error { return nil }, nil
-	}
-
 	serviceName := cfg.ServiceName
 	if serviceName == "" {
 		serviceName = "custos"
@@ -76,6 +73,7 @@ func Init(cfg InitConfig) (func(context.Context) error, error) {
 	// No SpanProcessor: spans live in ctx for ID propagation only.
 	tp := sdktrace.NewTracerProvider(sdktrace.WithResource(res))
 
+	SetProvider(tp)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
@@ -95,7 +93,7 @@ var (
 // Start opens a span and stamps the audit parent in ctx. bus.* spans are
 // skipped so audit parents jump over the bus to the nearest business span.
 func Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	newCtx, span := otel.Tracer(tracerName).Start(ctx, name, opts...)
+	newCtx, span := provider.Tracer(tracerName).Start(ctx, name, opts...)
 
 	if strings.HasPrefix(name, "bus.") {
 		return newCtx, span
@@ -111,33 +109,40 @@ func Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (con
 	return newCtx, span
 }
 
-func ParentSpanIDFromContext(ctx context.Context) string {
+func ParentSpanIDFromContext(ctx context.Context) *string {
 	if p, ok := ctx.Value(parentSpanIDKey).(trace.SpanID); ok && p.IsValid() {
-		return p.String()
+		s := p.String()
+		return &s
 	}
-	return ""
+	return nil
 }
 
-func FromContext(ctx context.Context) trace.Span {
-	return trace.SpanFromContext(ctx)
+// ContextWithSpanContext resumes a saved span, so the spans opened from here
+// on are its children and audit rows written here take it as their parent.
+// An invalid one leaves ctx unchanged and is logged since it should not happen.
+func ContextWithSpanContext(ctx context.Context, traceID, spanID string) context.Context {
+	tid, terr := trace.TraceIDFromHex(traceID)
+	sid, serr := trace.SpanIDFromHex(spanID)
+	if err := errors.Join(terr, serr); err != nil {
+		slog.WarnContext(ctx, "ignoring invalid span context", "trace_id", traceID, "span_id", spanID, "error", err)
+		return ctx
+	}
+	ctx = context.WithValue(ctx, parentSpanIDKey, sid)
+	return trace.ContextWithRemoteSpanContext(ctx, trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID:    tid,
+		SpanID:     sid,
+		TraceFlags: trace.FlagsSampled,
+		Remote:     true,
+	}))
 }
 
-func IDsFromContext(ctx context.Context) (traceID, spanID string) {
+// ErrNoSpan rejects a write made outside a span, since every audit row and event needs a trace.
+var ErrNoSpan = errors.New("tracing: no active span")
+
+func IDsFromContext(ctx context.Context) (traceID, spanID string, err error) {
 	sc := trace.SpanContextFromContext(ctx)
 	if !sc.IsValid() {
-		return "", ""
+		return "", "", ErrNoSpan
 	}
-	return sc.TraceID().String(), sc.SpanID().String()
-}
-
-// IDsBytesFromContext returns the active trace_id (16 bytes) and span_id (8 bytes),
-// or nil/nil if no recording span is on ctx.
-func IDsBytesFromContext(ctx context.Context) (traceID, spanID []byte) {
-	sc := trace.SpanContextFromContext(ctx)
-	if !sc.IsValid() {
-		return nil, nil
-	}
-	tid := sc.TraceID()
-	sid := sc.SpanID()
-	return append([]byte(nil), tid[:]...), append([]byte(nil), sid[:]...)
+	return sc.TraceID().String(), sc.SpanID().String(), nil
 }

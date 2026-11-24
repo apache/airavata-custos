@@ -24,7 +24,10 @@ import type { ElementType, ReactNode } from "react";
 const cardChrome = "rounded-lg border border-border bg-card p-5 shadow-sm";
 
 // Title row: tight uppercase muted label + optional inline lucide icon.
-function StatCardTitle({ icon: Icon, title }: { icon?: ElementType; title: ReactNode }) {
+function StatCardTitle({
+  icon: Icon,
+  title,
+}: { icon?: ElementType | undefined; title: ReactNode }) {
   return (
     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
       {Icon ? <Icon className="h-4 w-4 stroke-[1.5]" /> : null}
@@ -34,7 +37,7 @@ function StatCardTitle({ icon: Icon, title }: { icon?: ElementType; title: React
 }
 
 type CommonProps = {
-  icon?: ElementType;
+  icon?: ElementType | undefined;
   title: ReactNode;
   value: ReactNode;
   className?: string;
@@ -86,4 +89,3 @@ export function StatCard(props: StatCardProps) {
     </div>
   );
 }
-

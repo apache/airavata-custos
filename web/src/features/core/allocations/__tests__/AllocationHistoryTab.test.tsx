@@ -15,11 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
 
-let diffs: AllocationDiff[] = [];
+let diffs: ComputeAllocationDiff[] = [];
 
 vi.mock("../queries", () => ({
   useAllocationDiffs: () => ({ data: diffs, isLoading: false, error: null, refetch: vi.fn() }),
@@ -36,6 +36,8 @@ const allocation: ComputeAllocation = {
   initial_su_amount: 250000,
   start_time: "2026-04-01T00:00:00.000Z",
   end_time: "2027-03-31T00:00:00.000Z",
+  posix_group: null,
+  group_provisioned_at: null,
 };
 
 beforeEach(() => {
@@ -61,6 +63,7 @@ beforeEach(() => {
       id: "diff-c",
       compute_allocation_id: "alloc-001",
       diff_type: "RESOURCE_ATTACHED",
+      new_su_amount: 250000,
       status: "INACTIVE",
       timestamp: "2026-05-15T08:30:00.000Z",
     },
@@ -70,24 +73,21 @@ beforeEach(() => {
 describe("<AllocationHistoryTab />", () => {
   it("lists diffs newest first", () => {
     render(<AllocationHistoryTab allocation={allocation} />);
-    const rows = screen.getAllByRole("row").slice(1); // drop the header row
-    expect(within(rows[0] as HTMLElement).getByText("USAGE_UPDATE")).toBeInTheDocument();
-    expect(within(rows[1] as HTMLElement).getByText("RESOURCE_ATTACHED")).toBeInTheDocument();
-    expect(within(rows[2] as HTMLElement).getByText("ALLOCATION_STATUS_CHANGE")).toBeInTheDocument();
+    const [first, second, third] = screen.getAllByRole("row").slice(1); // drop the header row
+    if (!first || !second || !third) throw new Error("expected three diff rows");
+    expect(within(first).getByText("USAGE_UPDATE")).toBeInTheDocument();
+    expect(within(second).getByText("RESOURCE_ATTACHED")).toBeInTheDocument();
+    expect(within(third).getByText("ALLOCATION_STATUS_CHANGE")).toBeInTheDocument();
   });
 
-  it("renders the status badge and a placeholder for a missing SU amount", () => {
+  it("renders the status badge", () => {
     render(<AllocationHistoryTab allocation={allocation} />);
     expect(screen.getByText("INACTIVE")).toBeInTheDocument();
-    const resourceRow = screen.getByText("RESOURCE_ATTACHED").closest("tr");
-    expect(within(resourceRow as HTMLElement).getByText("-")).toBeInTheDocument();
   });
 
   it("shows the empty state when there is no history", () => {
     diffs = [];
     render(<AllocationHistoryTab allocation={allocation} />);
-    expect(
-      screen.getByRole("heading", { name: /no history recorded for this allocation/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No history recorded for this allocation.")).toBeInTheDocument();
   });
 });

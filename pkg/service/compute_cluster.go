@@ -46,12 +46,13 @@ func (s *Service) CreateComputeCluster(ctx context.Context, cluster *models.Comp
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusters.Create(ctx, tx, cluster)
+		if err := s.clusters.Create(ctx, tx, cluster); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterCreateEvent, cluster)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute cluster: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeClusterCreateEvent, cluster)
 	return cluster, nil
 }
 
@@ -98,12 +99,13 @@ func (s *Service) UpdateComputeCluster(ctx context.Context, cluster *models.Comp
 		return fmt.Errorf("%w: compute cluster name is required", ErrInvalidInput)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusters.Update(ctx, tx, cluster)
+		if err := s.clusters.Update(ctx, tx, cluster); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUpdateEvent, cluster)
 	}); err != nil {
 		return fmt.Errorf("update compute cluster: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeClusterUpdateEvent, cluster)
 	return nil
 }
 
@@ -120,11 +122,12 @@ func (s *Service) DeleteComputeCluster(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.clusters.Delete(ctx, tx, id)
+		if err := s.clusters.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeClusterDeleteEvent, cluster)
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeClusterDeleteEvent, cluster)
 	return nil
 }

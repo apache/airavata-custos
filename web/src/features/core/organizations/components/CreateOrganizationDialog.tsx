@@ -17,7 +17,6 @@
 
 "use client";
 
-import * as React from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -29,6 +28,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import * as React from "react";
 import type { CreateOrganizationPayload } from "../schemas";
 
 export type CreateOrganizationDialogProps = {
@@ -61,9 +61,7 @@ export function CreateOrganizationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create organization</DialogTitle>
-          <DialogDescription>
-            Register an institution or resource provider.
-          </DialogDescription>
+          <DialogDescription>Register an institution or resource provider.</DialogDescription>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -93,9 +91,7 @@ export function CreateOrganizationDialog({
               placeholder="Optional, e.g. ACCESS org code"
             />
           </div>
-          {error ? (
-            <p className="text-sm text-[color:var(--custos-red-700)]">{error}</p>
-          ) : null}
+          {error ? <p className="text-sm text-[color:var(--custos-red-700)]">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

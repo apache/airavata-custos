@@ -37,7 +37,7 @@ func NewUserStore(db *sqlx.DB) UserStore {
 	return &pgUserStore{db: db}
 }
 
-const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type`
+const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type, created_at`
 
 func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
@@ -52,23 +52,44 @@ func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, er
 	return &u, nil
 }
 
-func (s *pgUserStore) List(ctx context.Context, limit, offset int) ([]models.User, int, error) {
+func (s *pgUserStore) FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.User, error) {
+	var r models.User
+	err := (&sqlx.Tx{Tx: tx, Mapper: s.db.Mapper}).GetContext(ctx, &r,
+		`SELECT `+userColumns+` FROM users WHERE id = $1 `+string(lock), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+var userListOrderBy = map[string]string{
+	"name":        "first_name, last_name, id",
+	"-name":       "first_name DESC, last_name DESC, id",
+	"created_at":  "created_at, id",
+	"-created_at": "created_at DESC, id",
+}
+
+func (s *pgUserStore) List(ctx context.Context, filter UserListFilter, sort string, limit, offset int) ([]models.User, int, error) {
+	orderBy, ok := userListOrderBy[sort]
+	if !ok {
+		orderBy = "email"
+	}
+	const from = ` FROM users
+	 WHERE (email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1 OR first_name || ' ' || last_name ILIKE $1)
+	   AND ($2 = '' OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = users.id AND r.role_id = $2))
+	   AND ($3 = '' OR EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = users.id AND i.source = $3))`
+	pattern := "%" + filter.Query + "%"
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+from, pattern, filter.RoleID, filter.IdentitySource); err != nil {
 		return nil, 0, err
-	}
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	if offset < 0 {
-		offset = 0
 	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT $1 OFFSET $2`, limit, offset); err != nil {
+		`SELECT `+userColumns+from+` ORDER BY `+orderBy+` LIMIT $4 OFFSET $5`,
+		pattern, filter.RoleID, filter.IdentitySource, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
@@ -130,11 +151,11 @@ func (s *pgUserStore) FindByOrganization(ctx context.Context, organizationID str
 }
 
 func (s *pgUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
-	_, err := tx.ExecContext(ctx,
+	return tx.QueryRowContext(ctx,
 		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type)
-	return err
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		 RETURNING created_at`,
+		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type).Scan(&u.CreatedAt)
 }
 
 func (s *pgUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User) error {

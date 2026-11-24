@@ -17,15 +17,15 @@
 
 "use client";
 
-import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CenteredSpinner } from "@/shared/ui/Loading";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Button } from "@/shared/ui/button";
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import * as React from "react";
 import type { Packet, PacketEvent } from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketEventsTable } from "./PacketEventsTable";
@@ -72,11 +72,7 @@ const STATE_BREADCRUMB: Array<{
     key: "terminal",
     label: "PROCESSED | FAILED",
     whenAt: (p) =>
-      p.status === "PROCESSED"
-        ? p.processed_at
-        : p.status === "FAILED"
-          ? p.updated_at
-          : undefined,
+      p.status === "PROCESSED" ? p.processed_at : p.status === "FAILED" ? p.updated_at : undefined,
   },
 ];
 
@@ -134,6 +130,19 @@ function OverviewTab({ packet }: { packet: Packet }) {
         <dt className="text-muted-foreground">Updated</dt>
         <dd className="tabular-nums">{formatDate(packet.updated_at)}</dd>
       </dl>
+      {packet.status === "WAITING_APPROVAL" ? (
+        <div className="rounded-md bg-[color:var(--tone-warn-bg)] p-3 text-sm text-[color:var(--tone-warn-fg)]">
+          The reply to ACCESS is held until an admin reviews the cluster account.{" "}
+          <Link href="/admin/users/account-approvals" className="font-medium underline">
+            Review cluster accounts
+          </Link>
+        </div>
+      ) : null}
+      {packet.status === "REFUSED" ? (
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          An admin denied the cluster account. ACCESS was sent a failure with the reason.
+        </div>
+      ) : null}
       {packet.last_error ? (
         <div className="rounded-md border border-[color:var(--custos-red-200)] bg-[color:var(--custos-red-50)] p-3 text-sm text-[color:var(--custos-red-700)]">
           <strong>Last error:</strong> {packet.last_error}
@@ -232,14 +241,14 @@ export function PacketDetailDrawer({
       {isLoading ? (
         <CenteredSpinner label="Loading packet" />
       ) : error ? (
-        <ErrorState message={error.message ?? "Failed to load packet"} onRetry={onRefresh} />
+        <ErrorState message={error.message} onRetry={onRefresh} />
       ) : !packet ? (
         <p className="text-sm text-muted-foreground">Packet not found.</p>
       ) : (
         <div className="space-y-5">
           <TabsPrimitive.Root
             value={tab}
-            onValueChange={(v) => typeof v === "string" && setTab(v as TabValue)}
+            onValueChange={(v) => setTab(TAB_VALUES.find((t) => t === v) ?? tab)}
           >
             <TabsPrimitive.List className="flex gap-1 border-b border-border/80">
               {[

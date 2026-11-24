@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -133,5 +134,18 @@ func TestListPacketAudits_StoreErrorReturns500(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("status = %d, want 500", resp.StatusCode)
+	}
+}
+
+// Make sure the worker's queued, retrying and permanently failed events don't read as succeeded.
+func TestMapEventStatusFoldsWorkerStatuses(t *testing.T) {
+	for status, want := range map[model.ProcessingStatus][2]string{
+		model.ProcessingStatusNew:               {"HANDLED", "RUNNING"},
+		model.ProcessingStatusRetryScheduled:    {"HANDLED", "RUNNING"},
+		model.ProcessingStatusPermanentlyFailed: {"FAILED", "FAILED"},
+	} {
+		if got := [2]string{mapEventType(status), mapEventStatus(status)}; got != want {
+			t.Errorf("%s: got %v, want %v", status, got, want)
+		}
 	}
 }

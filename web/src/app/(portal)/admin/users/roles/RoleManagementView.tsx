@@ -18,8 +18,8 @@
 "use client";
 
 import { useAbility } from "@/shared/casl/AbilityProvider";
-import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
+import { Button } from "@/shared/ui/button";
 import { UsersNav } from "../UsersNav";
 import { RoleFormDialog } from "./RoleFormDialog";
 import { RolesGrid } from "./RolesGrid";
@@ -32,10 +32,7 @@ export function RoleManagementView() {
     return (
       <div className="space-y-6">
         <UsersNav />
-        <ErrorState
-          heading="Not permitted"
-          message="You do not have permission to manage roles."
-        />
+        <ErrorState heading="Not permitted" message="You do not have permission to manage roles." />
       </div>
     );
   }

@@ -17,16 +17,12 @@
 
 "use client";
 
-import { toast } from "sonner";
 import { ReconciliationQueue } from "@/features/connectors/amie/components/ReconciliationQueue";
-import {
-  useLinkUnmapped,
-  useResolvePacket,
-  useUnmapped,
-} from "@/features/connectors/amie/queries";
+import { useLinkUnmapped, useResolvePacket, useUnmapped } from "@/features/connectors/amie/queries";
 import type { Packet } from "@/features/connectors/amie/types";
 import { listProjects } from "@/features/core/projects/api";
 import type { ProjectAutocompletePick } from "@/shared/ui/ProjectAutocomplete";
+import { toast } from "sonner";
 
 async function searchProjectsAdapter(q: string): Promise<ProjectAutocompletePick[]> {
   if (!q.trim()) return [];

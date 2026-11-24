@@ -17,9 +17,9 @@
 
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import * as React from "react";
-import { cn } from "@/lib/utils";
 
 export type ProjectAutocompletePick = {
   id: string;

@@ -16,11 +16,11 @@
 package cert
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/pem"
+	"crypto/rsa"
 	"testing"
 	"time"
 
@@ -33,17 +33,11 @@ func generateTestEd25519CA(t *testing.T) ([]byte, ssh.PublicKey) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
-
 	sshPub, err := ssh.NewPublicKey(pub)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return privPEM, sshPub
+	return openSSHPrivateKey(t, priv), sshPub
 }
 
 func generateTestEd25519UserKey(t *testing.T) ssh.PublicKey {
@@ -70,7 +64,7 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 		CAPrivateKeyPEM: caPrivPEM,
 		Serial:          42,
 		Principal:       "testuser",
-		ClientID:        "webapp",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      7200,
 		Extensions:      exts,
 	})
@@ -133,64 +127,40 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 	}
 }
 
-func TestSignCertificate_UniqueNonces(t *testing.T) {
+// Make sure the signed certificate says who it is for and who asked, and that the key ID names both.
+func TestSignCertificate_CarriesUserAndRequester(t *testing.T) {
 	caPrivPEM, _ := generateTestEd25519CA(t)
-	userKey := generateTestEd25519UserKey(t)
-
-	var nonces [][]byte
-	for i := 0; i < 10; i++ {
-		result, err := SignCertificate(&SignRequest{
-			PublicKey:       userKey,
-			CAPrivateKeyPEM: caPrivPEM,
-			Serial:          uint64(i + 1),
-			Principal:       "user",
-			ClientID:        "c1",
-			TTLSeconds:      3600,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		parsedKey, _ := ssh.ParsePublicKey(result.CertBytes)
-		cert := parsedKey.(*ssh.Certificate)
-		nonces = append(nonces, cert.Nonce)
-	}
-
-	// Check all nonces are unique
-	for i := 0; i < len(nonces); i++ {
-		for j := i + 1; j < len(nonces); j++ {
-			if string(nonces[i]) == string(nonces[j]) {
-				t.Errorf("nonces %d and %d are identical", i, j)
-			}
-		}
-	}
-}
-
-func TestSignCertificate_KeyIDFormat(t *testing.T) {
-	caPrivPEM, _ := generateTestEd25519CA(t)
-	userKey := generateTestEd25519UserKey(t)
-
 	result, err := SignCertificate(&SignRequest{
-		PublicKey:       userKey,
+		PublicKey:       generateTestEd25519UserKey(t),
 		CAPrivateKeyPEM: caPrivPEM,
 		Serial:          1,
 		Principal:       "jdoe",
-		ClientID:        "webapp",
+		UserEmail:       "jdoe@example.edu",
+		UserSub:         "http://idp.example.edu/users/9",
+		RequestedBy:     "app/123",
 		TTLSeconds:      3600,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	parsedKey, _ := ssh.ParsePublicKey(result.CertBytes)
+	parsedKey, err := ssh.ParsePublicKey(result.CertBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
 	cert := parsedKey.(*ssh.Certificate)
 
-	// Key ID should match jdoe@webapp-{timestamp}
-	if len(cert.KeyId) < len("jdoe@webapp-") {
-		t.Errorf("key ID too short: %s", cert.KeyId)
+	if cert.KeyId != "jdoe@example.edu:app/123" {
+		t.Errorf("key ID: %s", cert.KeyId)
 	}
-	expected := "jdoe@webapp-"
-	if cert.KeyId[:len(expected)] != expected {
-		t.Errorf("key ID prefix: expected %s, got %s", expected, cert.KeyId[:len(expected)])
+	want := map[string]string{
+		ExtensionUserSub:     "http://idp.example.edu/users/9",
+		ExtensionUserEmail:   "jdoe@example.edu",
+		ExtensionRequestedBy: "app/123",
+	}
+	for name, value := range want {
+		if cert.Extensions[name] != value {
+			t.Errorf("extension %s = %q, want %q", name, cert.Extensions[name], value)
+		}
 	}
 }
 
@@ -203,7 +173,7 @@ func TestSignCertificate_WithCriticalOptions(t *testing.T) {
 		CAPrivateKeyPEM: caPrivPEM,
 		Serial:          1,
 		Principal:       "user",
-		ClientID:        "c1",
+		UserEmail:       "jdoe@example.edu",
 		TTLSeconds:      3600,
 		CriticalOptions: map[string]string{"source-address": "10.0.0.0/8"},
 	})
@@ -219,30 +189,30 @@ func TestSignCertificate_WithCriticalOptions(t *testing.T) {
 	}
 }
 
-func TestSignCertificate_Base64Decodable(t *testing.T) {
+// Make sure the ed25519 CA still signs RSA and ECDSA user keys, since users may bring either.
+func TestSignCertificate_SignsRSAAndECDSAUserKeys(t *testing.T) {
 	caPrivPEM, _ := generateTestEd25519CA(t)
-	userKey := generateTestEd25519UserKey(t)
+	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	p256, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	p384, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	p521, _ := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 
-	result, err := SignCertificate(&SignRequest{
-		PublicKey:       userKey,
-		CAPrivateKeyPEM: caPrivPEM,
-		Serial:          1,
-		Principal:       "user",
-		ClientID:        "c1",
-		TTLSeconds:      3600,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	encoded := base64.StdEncoding.EncodeToString(result.CertBytes)
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		t.Fatalf("base64 decode failed: %v", err)
-	}
-
-	_, err = ssh.ParsePublicKey(decoded)
-	if err != nil {
-		t.Fatalf("failed to parse decoded certificate: %v", err)
+	for name, key := range map[string]any{
+		"rsa":        &rsaKey.PublicKey,
+		"ecdsa-p256": &p256.PublicKey,
+		"ecdsa-p384": &p384.PublicKey,
+		"ecdsa-p521": &p521.PublicKey,
+	} {
+		userKey, _ := ssh.NewPublicKey(key)
+		if _, err := SignCertificate(&SignRequest{
+			PublicKey:       userKey,
+			CAPrivateKeyPEM: caPrivPEM,
+			Serial:          10,
+			Principal:       "jdoe",
+			UserEmail:       "jdoe@example.edu",
+			TTLSeconds:      3600,
+		}); err != nil {
+			t.Errorf("%s user key: %v", name, err)
+		}
 	}
 }

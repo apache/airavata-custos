@@ -17,8 +17,8 @@
 
 "use client";
 
-import * as React from "react";
 import { getLastTraceId, subscribeLastTraceId } from "@/shared/api/last-trace-id";
+import * as React from "react";
 
 // Surfaces the latest X-Trace-Id captured by apiFetch via React context so
 // toast deep-links and global "View this trace" affordances can read the

@@ -20,10 +20,14 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // CreateUser persists a new user. If user.ID is empty a new UUID is generated.
@@ -33,12 +37,13 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		return nil, err
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Create(ctx, tx, user)
+		if err := s.users.Create(ctx, tx, user); err != nil {
+			return err
+		}
+		return s.publishUserTx(ctx, tx, events.UserCreateEvent, user)
 	}); err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
 	return user, nil
 }
 
@@ -79,9 +84,9 @@ func (s *Service) checkNewUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-// ListUsers returns a page of users plus the total count.
-func (s *Service) ListUsers(ctx context.Context, limit, offset int) ([]models.User, int, error) {
-	rows, total, err := s.users.List(ctx, limit, offset)
+// ListUsers returns a page of users matching filter ordered by sort, plus the total count.
+func (s *Service) ListUsers(ctx context.Context, filter store.UserListFilter, sort string, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, filter, sort, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
@@ -183,14 +188,16 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.Type == "" {
 		user.Type = existing.Type
 	}
+	user.CreatedAt = existing.CreatedAt
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.Update(ctx, tx, user)
+		if err := s.users.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, user)
 	}); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, user)
 	return nil
 }
 
@@ -210,15 +217,66 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	if existing == nil {
 		return nil, ErrNotFound
 	}
+	existing.Status = status
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.users.UpdateStatus(ctx, tx, id, status)
+		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
+			return err
+		}
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update user status: %w", err)
 	}
-	existing.Status = status
-
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, existing)
+	s.InvalidateAllIdentities()
 	return existing, nil
+}
+
+const (
+	userAuditEmailChangeRequested = "USER_EMAIL_CHANGE_REQUESTED"
+	userAuditEmailChanged         = "USER_EMAIL_CHANGED"
+	userAuditEmailChangeFailed    = "USER_EMAIL_CHANGE_FAILED"
+)
+
+// UpdatePendingUserEmail changes the email first sign-in matches on; refused once a sub is bound.
+// The request and a failure are audited in their own transactions, so they outlive a rollback.
+func (s *Service) UpdatePendingUserEmail(ctx context.Context, actorID, id, email string) (*models.User, error) {
+	if email == "" {
+		return nil, fmt.Errorf("%w: email is required", ErrInvalidInput)
+	}
+	auditCtx := context.WithoutCancel(ctx)
+	audit := func(eventType string, details map[string]any) error {
+		return s.inTx(auditCtx, func(tx *sql.Tx) error { return s.writeAuditTx(auditCtx, tx, "user", eventType, id, details) })
+	}
+	if err := audit(userAuditEmailChangeRequested, map[string]any{"actor_id": actorID, "email": email}); err != nil {
+		return nil, fmt.Errorf("audit email change request: %w", err)
+	}
+	var updated *models.User
+	err := s.inTx(ctx, func(tx *sql.Tx) error {
+		user, err := s.lockUnboundPendingTx(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		previous := user.Email
+		user.Email = email
+		if err := s.users.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		if err := s.writeAuditTx(ctx, tx, "user", userAuditEmailChanged, id, map[string]any{
+			"actor_id": actorID,
+			"from":     previous,
+			"to":       email,
+		}); err != nil {
+			return err
+		}
+		updated = user
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, user)
+	})
+	if err != nil {
+		if aerr := audit(userAuditEmailChangeFailed, map[string]any{"actor_id": actorID, "error": err.Error()}); aerr != nil {
+			slog.ErrorContext(ctx, "audit email change failure", "user_id", id, "error", aerr)
+		}
+		return nil, fmt.Errorf("update pending user email: %w", err)
+	}
+	return updated, nil
 }
 
 // DeleteUser removes a user by ID.
@@ -234,11 +292,17 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		// Retires first: deleting the user unlinks their storages.
+		if err := s.publishUserTx(ctx, tx, events.UserDeleteEvent, existing); err != nil {
+			return err
+		}
 		return s.users.Delete(ctx, tx, id)
 	}); err != nil {
+		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			return fmt.Errorf("%w: user %q is referenced by records that must stay", ErrInUse, id)
+		}
 		return fmt.Errorf("delete user: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserDeleteEvent, existing)
+	s.InvalidateAllIdentities()
 	return nil
 }

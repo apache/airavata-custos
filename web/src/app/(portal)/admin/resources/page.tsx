@@ -16,12 +16,12 @@
 // under the License.
 
 import type { Metadata } from "next";
-import { ResourcesClustersTabs } from "./ResourcesClustersTabs";
+import { ResourcesStatusPage } from "./ResourcesStatusPage";
 
 export const metadata: Metadata = {
-  title: "Resources & Clusters",
+  title: "Resources",
 };
 
 export default function AdminResourcesPage() {
-  return <ResourcesClustersTabs />;
+  return <ResourcesStatusPage />;
 }

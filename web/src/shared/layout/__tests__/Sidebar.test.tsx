@@ -29,6 +29,7 @@ vi.mock("@/shared/casl/AbilityProvider", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const NEW_ADMIN_LABELS = ["Organizations", "Resources"];

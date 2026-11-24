@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { zPostComputeAllocationResourceRatesBody } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
@@ -25,7 +26,7 @@ import { resourceKeys, useCreateResourceRate } from "../queries";
 
 const server = setupServer(
   http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = zPostComputeAllocationResourceRatesBody.parse(await request.json());
     return HttpResponse.json({ id: "rate-new", ...body }, { status: 201 });
   }),
 );

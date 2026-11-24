@@ -17,30 +17,36 @@
 
 import {
   Activity,
+  Blocks,
   Building2,
   ChartColumn,
   ClipboardList,
   FolderKanban,
   HardDrive,
+  KeyRound,
   type LucideIcon,
-  Server,
+  ScrollText,
+  Send,
+  SquareTerminal,
   UserCog,
 } from "lucide-react";
 
 export type AbilityCheck = { action: string; subject: string };
 
-export type NavGroup = "allocations" | "admin";
+export type NavGroup = "allocations" | "access" | "admin";
 
 export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
   group: NavGroup;
+  children?: Array<{ href: string; label: string; marker: string }>;
   ability?: AbilityCheck;
 };
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
   allocations: "My allocations",
+  access: "My access",
   admin: "Site administration",
 };
 
@@ -48,22 +54,39 @@ export const portalNav: NavItem[] = [
   // No ability gates on this group: the backend scopes these reads to the
   // caller's own memberships.
   {
-    href: "/allocations",
-    label: "Allocations",
-    icon: Server,
-    group: "allocations",
-  },
-  {
     href: "/projects",
     label: "Projects",
     icon: FolderKanban,
     group: "allocations",
+    children: [
+      {
+        href: "/projects?origination=ACCESS",
+        label: "ACCESS",
+        marker: "marker:text-custos-blue-500",
+      },
+      {
+        href: "/projects?origination=NAIRR",
+        label: "NAIRR",
+        marker: "marker:text-custos-green-600",
+      },
+      {
+        href: "/projects?origination=internal",
+        label: "Internal",
+        marker: "marker:text-custos-amber-600",
+      },
+    ],
   },
   {
     href: "/analytics",
     label: "Analytics",
     icon: ChartColumn,
     group: "allocations",
+  },
+  {
+    href: "/ssh-access",
+    label: "SSH access",
+    icon: SquareTerminal,
+    group: "access",
   },
   {
     href: "/admin/users",
@@ -73,9 +96,23 @@ export const portalNav: NavItem[] = [
     ability: { action: "read", subject: "User" },
   },
   {
+    href: "/admin/signer/certificates",
+    label: "SSH Certificates",
+    icon: KeyRound,
+    group: "admin",
+    ability: { action: "read", subject: "Signer" },
+  },
+  {
     href: "/admin/traces",
     label: "Tracing",
     icon: Activity,
+    group: "admin",
+    ability: { action: "read", subject: "Trace" },
+  },
+  {
+    href: "/admin/events",
+    label: "Events",
+    icon: Send,
     group: "admin",
     ability: { action: "read", subject: "Trace" },
   },
@@ -99,5 +136,19 @@ export const portalNav: NavItem[] = [
     icon: HardDrive,
     group: "admin",
     ability: { action: "read", subject: "Cluster" },
+  },
+  {
+    href: "/admin/agreements",
+    label: "Agreements",
+    icon: ScrollText,
+    group: "admin",
+    ability: { action: "read", subject: "Agreement" },
+  },
+  {
+    href: "/admin/service-accounts",
+    label: "Service accounts",
+    icon: Blocks,
+    group: "admin",
+    ability: { action: "manage", subject: "ServiceAccount" },
   },
 ];

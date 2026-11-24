@@ -20,6 +20,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -54,7 +55,7 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -83,11 +84,20 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 // @Produce	json
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
+// @Param	q	query	string	false	"Email, first, last or full name substring"
+// @Param	role_id	query	string	false	"Only users granted this role"
+// @Param	identity_source	query	string	false	"Only users with an external identity from this source"
+// @Param	sort	query	string	false	"Accepts signed field names"
 // @Success	200	{object}	UserListResponse
 // @Router	/users [get]
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	rows, total, err := s.svc.ListUsers(r.Context(), atoiOr(q.Get("limit"), 50), atoiOr(q.Get("offset"), 0))
+	limit, offset := common.Paged(q)
+	rows, total, err := s.svc.ListUsers(r.Context(), store.UserListFilter{
+		Query:          q.Get("q"),
+		RoleID:         q.Get("role_id"),
+		IdentitySource: q.Get("identity_source"),
+	}, q.Get("sort"), limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -133,6 +143,41 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u, err := s.svc.UpdateUserStatus(r.Context(), r.PathValue("id"), models.UserStatus(req.Status))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, u)
+}
+
+type emailUpdateRequest struct {
+	Email string `json:"email"`
+}
+
+// @Summary	Update a pending user's email
+// @Description	Changes the email first sign-in matches on. Refused once the user has a sign-in identity.
+// @Tags	Users
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Param	request	body	emailUpdateRequest	true	"Email patch"
+// @Success	200	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/users/{id}/email [put]
+func (s *Server) updatePendingUserEmail(w http.ResponseWriter, r *http.Request) {
+	var req emailUpdateRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	u, err := s.svc.UpdatePendingUserEmail(r.Context(), caller.UserID, r.PathValue("id"), req.Email)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

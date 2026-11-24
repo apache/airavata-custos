@@ -31,32 +31,19 @@ import (
 // parent project, or an active membership on the allocation. Everyone else
 // gets the same 404 as a missing id, so ids cannot be probed.
 func (s *Server) canReadAllocation(w http.ResponseWriter, r *http.Request) bool {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return false
 	}
 	if identity.HasPrivilege(r.Context(), models.AllocationsRead) {
 		return true
 	}
-	alloc, err := s.svc.GetComputeAllocation(r.Context(), r.PathValue("id"))
+	role, err := s.svc.AllocationRoleForUser(r.Context(), r.PathValue("id"), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return false
 	}
-	role, err := s.svc.ProjectRoleForUser(r.Context(), alloc.ProjectID, caller.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return false
-	}
-	if models.IsGovernanceRole(role) {
-		return true
-	}
-	member, err := s.svc.IsAllocationMember(r.Context(), alloc.ID, caller.UserID)
-	if err != nil {
-		common.WriteServiceError(w, err)
-		return false
-	}
-	if !member {
+	if role == "" {
 		common.WriteServiceError(w, service.ErrNotFound)
 		return false
 	}
@@ -68,7 +55,7 @@ func (s *Server) canReadAllocation(w http.ResponseWriter, r *http.Request) bool 
 // governance role or an active allocation membership). Everyone else gets the
 // same 404 as a missing id.
 func (s *Server) canReadProject(w http.ResponseWriter, r *http.Request) bool {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return false
 	}

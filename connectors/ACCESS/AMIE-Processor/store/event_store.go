@@ -32,6 +32,7 @@ type EventStore interface {
 	FindTop50EventsToProcess(ctx context.Context, statuses []model.ProcessingStatus, now time.Time) ([]model.EventWithPacket, error)
 	Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error
 	Update(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error
+	ReprocessPacketsHeldFor(ctx context.Context, tx *sql.Tx, heldFor string) error
 }
 
 type pgEventStore struct {
@@ -57,7 +58,7 @@ func (s *pgEventStore) FindByID(ctx context.Context, id string) (*model.Processi
 }
 
 func (s *pgEventStore) FindTop50EventsToProcess(ctx context.Context, statuses []model.ProcessingStatus, now time.Time) ([]model.EventWithPacket, error) {
-	query := `SELECT e.id, e.packet_id, e.type, e.status, e.attempts, e.created_at, e.started_at, e.finished_at, e.last_error, e.next_retry_at,
+	query := `SELECT e.id, e.packet_id, e.type, e.status, e.attempts, e.created_at, e.started_at, e.finished_at, e.last_error, e.next_retry_at, e.trace_id, e.span_id,
 	                  p.amie_id AS packet_amie_id, p.type AS packet_type, p.raw_json AS packet_raw_json
 	           FROM amie_processing_events e
 	           JOIN amie_packets p ON e.packet_id = p.id
@@ -84,11 +85,11 @@ func (s *pgEventStore) FindTop50EventsToProcess(ctx context.Context, statuses []
 
 func (s *pgEventStore) Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at, trace_id, span_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		e.ID, e.PacketID, e.Type, e.Status, e.Attempts,
 		e.CreatedAt, e.StartedAt, e.FinishedAt,
-		e.LastError, e.NextRetryAt)
+		e.LastError, e.NextRetryAt, e.TraceID, e.SpanID)
 	return err
 }
 
@@ -99,5 +100,16 @@ func (s *pgEventStore) Update(ctx context.Context, tx *sql.Tx, e *model.Processi
 		e.Status, e.Attempts,
 		e.StartedAt, e.FinishedAt,
 		e.LastError, e.NextRetryAt, e.ID)
+	return err
+}
+
+// ReprocessPacketsHeldFor marks the packets whose reply waits on heldFor to be
+// processed again, so their handler runs with the current state. For example, a
+// person merge deletes the cluster account those packets were held on.
+func (s *pgEventStore) ReprocessPacketsHeldFor(ctx context.Context, tx *sql.Tx, heldFor string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE amie_processing_events SET status = $1, next_retry_at = NULL
+		 WHERE packet_id IN (SELECT id FROM amie_packets WHERE held_for = $2 AND status = $3)`,
+		model.ProcessingStatusNew, heldFor, model.PacketStatusWaitingApproval)
 	return err
 }

@@ -17,9 +17,9 @@
 
 "use client";
 
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/admin/amie/packets", label: "Inbox" },
@@ -34,7 +34,7 @@ export function AmieNav() {
     <nav aria-label="AMIE console sections" className="border-b border-border/60">
       <ul className="-mb-px flex flex-wrap gap-1">
         {TABS.map((tab) => {
-          const active = pathname === tab.href || pathname?.startsWith(`${tab.href}/`);
+          const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (
             <li key={tab.href}>
               <Link

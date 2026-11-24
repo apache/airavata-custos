@@ -19,135 +19,181 @@
 
 # Custos Signer
 
-A multi-tenant SSH certificate authority for science gateways and research computing. Custos Signer issues short-lived, identity-bound OpenSSH user certificates so researchers can access HPC resources without managing long-lived SSH keys.
+Custos Signer is an SSH certificate authority. It issues short-lived OpenSSH user certificates.
 
-It validates user identity through institutional OIDC providers (CILogon, Keycloak, etc.), enforces access policies (TTL limits, allowed key types, principal validation), signs certificates with per-tenant CAs stored in HashiCorp Vault, and records every transaction for audit. Certificates expire automatically -- no key distribution, no manual revocation, no cleanup.
+The signer is internal and has one trusted caller, the Custos server, through its
+[Signer connector](../../connectors/Signer/README.md). Users talk to Custos, and Custos decides who may have a
+certificate. Do not expose the signer to the public. Whoever holds its service token can get a certificate for any user
+that is not reserved.
 
-Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a security middleware platform for science gateways.
+The signer is a separate Go module (`github.com/apache/airavata-custos/signer`) and its own service.
+
+## How it works
+
+The caller sends `POST /api/v1/sign` with the principal, the user's SSH public key, the user's email and subject, and
+`requested_by`, which says who asked. The principal is the Unix username the certificate is valid for. The signer does
+not interpret `requested_by`.
+
+1. The signer checks the service token.
+2. It refuses a username in `signer.reserved_usernames`, whichever validator is on.
+3. It enforces the deployment's maximum TTL and allowed key types, and grants the standard extensions minus those
+   denied.
+4. It refuses a user who already has `certificate_limit.max_per_user` certificates in the last
+   `certificate_limit.window_seconds` (default 5 an hour).
+5. It runs the validator set in `signer.validation.principal_validator`, below.
+6. It signs with the CA key from Vault and logs the issuance in `certificate_issuance_logs`.
+
+| `principal_validator` | Principal check                                                                                                                                        |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `none`                | Accepts the principal. The caller has already decided.                                                                                                 |
+| `ldap`                | A site's own extra check. Finds the LDAP entry for the subject and requires the principal to equal its `username_attribute`. Credentials are in Vault. |
+
+The certificate names who it is for. The CA signature covers all of it.
+
+| Field                                      | Value                                                      |
+|--------------------------------------------|------------------------------------------------------------|
+| Key ID                                     | `<email>:<requested_by>`. sshd writes it to the login log. |
+| Extension `user-sub@custos.apache.org`     | The user's subject                                         |
+| Extension `user-email@custos.apache.org`   | The user's email                                           |
+| Extension `requested-by@custos.apache.org` | Who asked. Custos sends `user/<id>`.                       |
+
+A request can also set `source_address`, a comma-separated list of IP addresses or CIDR blocks. It goes in the
+certificate's `source-address` critical option, and sshd then accepts the certificate only from those addresses.
+
+A deployment has one Ed25519 CA, stored in Vault in OpenSSH format, the same format `ssh-keygen -t ed25519` writes. The
+signer reads it at startup and refuses to start without it, unless `signer.ca.create_if_missing` is set, in which case
+it creates one and writes a `ca_created` audit log entry. At startup, it also checks that the stored public key matches
+the private key.
+
+Serial numbers come from the PostgreSQL sequence `certificate_serial_seq`, so a serial is never handed out twice.
 
 ## Prerequisites
 
-- Go 1.22+
+- Go 1.27+
 - PostgreSQL 17+
 - Vault / OpenBao with KV v2 secrets engine enabled
 
----
+## Setup
 
-## Quick Start
+### Compose stack
 
-```bash
-cd signer
-go build -o custos-signer .
-cp config.example.yaml config.yaml          # edit with your settings
-./custos-signer migrate --config config.yaml # apply database schema
-./custos-signer serve --config config.yaml   # start on :8084
-```
-
-For development (auto-applies migrations on startup):
+The dev compose stack runs the signer with everything it needs: PostgreSQL, OpenBao and a test login node. From the
+repository root:
 
 ```bash
-./custos-signer serve --config config.yaml --auto-migrate
+cd dev-ops/compose
+docker compose up -d db openbao openbao-init signer sshd-login
+./signer-e2e.sh    # sign, SSH login, list, revoke, and the negative checks
 ```
 
----
+The rest of this section is the manual setup.
 
-## Configuration
-
-Copy and edit the example configuration:
-
-```bash
-cp config.example.yaml config.yaml
-```
-
-The service loads `config.yaml` by default. Override with `--config /path/to/config.yaml`.
-
-### Environment Variable Overrides
-
-Environment variables take precedence over YAML values.
-
-| Env Var | Config Path | Description |
-|---------|------------|-------------|
-| `DB_HOST` | `database.host` | Database hostname |
-| `DB_PORT` | `database.port` | Database port |
-| `DB_NAME` | `database.name` | Database name |
-| `DB_USERNAME` | `database.username` | Database user |
-| `DB_PASSWORD` | `database.password` | Database password |
-| `VAULT_ADDRESS` | `vault.address` | Vault API address |
-| `VAULT_TOKEN` | `vault.token` | Vault authentication token |
-| `DEV_MODE` | `dev_mode.enabled` | Enable dev mode (disables OIDC validation) |
-| `DEV_DEFAULT_EMAIL` | `dev_mode.default_email` | Default email in dev mode |
-| `ALLOWED_ISSUERS` | `signer.auth.allowed_issuers` | Comma-separated list of allowed OIDC issuers |
-| `LOG_LEVEL` | `logging.level` | Log level: debug, info, warn, error |
-
----
-
-## Database Setup
-
-### Create the database
+### Database
 
 ```sql
 CREATE DATABASE custos_signer;
 ```
 
-If using the project's Docker Compose, the `custos_signer` database is created automatically by `compose/dbinit/init-db.sh`.
-
-### Migrations
-
-Migrations are managed separately from the server. Apply them explicitly:
+Migrations are read from `migrations/`, so run the signer from this directory:
 
 ```bash
 ./custos-signer migrate --config config.yaml
 ```
 
-This applies any pending migrations and exits. It's idempotent — safe to run repeatedly. The `migrate` subcommand tracks applied versions in a `schema_migrations` table and only applies what's new.
+It applies any pending migrations and exits, and is safe to run again. Applied versions are kept in
+`schema_migrations`.
 
-You can also apply SQL directly:
+The initial migration creates:
 
-```bash
-psql -U admin -d custos_signer < migrations/001_initial_schema.up.sql
-```
+- `certificate_issuance_logs`, the record of every issued certificate
+- `revocation_events`, the record of every revocation
+- `certificate_serial_seq`, the sequence serial numbers come from
 
-The initial migration creates three tables:
-- `client_ssh_configs` — client configuration and credentials
-- `certificate_issuance_logs` — audit log for certificate issuances
-- `revocation_events` — audit log for certificate revocations
-
-### Insert a client configuration
+After restoring the database from a backup, increase the serial counter before starting the signer. The backup
+does not have the serials issued after it was taken, so without this the signer would reuse them:
 
 ```sql
-INSERT INTO client_ssh_configs
-  (tenant_id, client_id, client_secret, target_host, target_port,
-   max_ttl_seconds, allowed_key_types, enabled)
-VALUES
-  ('tenant1', 'webapp', '$2a$10$<bcrypt_hash_of_secret>', 'login.example.org', 22,
-   86400, '["ed25519","rsa","ecdsa"]', TRUE);
+SELECT setval('certificate_serial_seq',
+              COALESCE((SELECT MAX(serial_number) FROM certificate_issuance_logs), 0) + 100000);
 ```
 
-Generate the bcrypt hash with:
-
-```bash
-htpasswd -nbBC 10 "" "your-secret" | cut -d: -f2
-```
-
----
-
-## Vault Setup
-
-### Enable KV v2 secrets engine
+### Vault
 
 ```bash
 vault secrets enable -path=ssh-ca kv-v2
 ```
 
-The service auto-generates Ed25519 CA key pairs on first signing request for each tenant-client pair. No manual key setup is required.
+The path must match `vault.mount_path`. Store the CA key before starting the signer, or set
+`signer.ca.create_if_missing` to let it create one. The CA is one secret at `vault.ca_key_path` (default `ca/current`):
 
-Ensure the configured token has read/write access to `ssh-ca/data/*`.
+| Key           | Value                                                                    |
+|---------------|--------------------------------------------------------------------------|
+| `private_key` | The CA private key, `-----BEGIN OPENSSH PRIVATE KEY-----`. Ed25519 only. |
+| `public_key`  | The matching public key line, `ssh-ed25519 AAAA...`                      |
+| `created_at`  | Optional. When the CA was created, in RFC 3339 (`2026-11-12T10:00:00Z`). |
 
----
+```bash
+ssh-keygen -t ed25519 -f ca -N "" -C custos-ca
+vault kv put ssh-ca/ca/current private_key=@ca public_key=@ca.pub created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+```
 
-## Running the Service
+The signer's token only needs to read. Write is needed only while `create_if_missing` is on:
 
-### CLI Usage
+```hcl
+path "ssh-ca/data/ca/current" { capabilities = ["read"] }
+```
+
+For a Vault served over TLS with a private CA, set `BAO_CACERT` (or `VAULT_CACERT`) to the CA certificate file.
+
+For `principal_validator: ldap`, store the LDAP settings at `ssh-ca/validation`, and give the token read on
+`ssh-ca/data/validation` too:
+
+| Key                                               | Value                                           |
+|---------------------------------------------------|-------------------------------------------------|
+| `type`                                            | `ldap`                                          |
+| `ldap_url`, `bind_dn`, `bind_password`, `base_dn` | LDAP connection and bind settings               |
+| `search_filter`                                   | Search filter. `%s` becomes the user's subject. |
+| `username_attribute`                              | Optional. Default `uid`.                        |
+
+### Login nodes
+
+Each login node's sshd needs two lines, usually in a drop-in under `/etc/ssh/sshd_config.d/`:
+
+```
+TrustedUserCAKeys /storage/keystore/custos/ssh/ca.pub
+RevokedKeys       /storage/keystore/custos/ssh/revoked_keys
+```
+
+`ca.pub` is the CA public key from `GET /api/v1/ca-public-key`. `revoked_keys` is the file the signer writes at
+`signer.krl.path`. The signer writes it, the login nodes read it, so both point at one file on shared storage.
+
+### Configuration
+
+```bash
+cd extensions/SSH-Certificate-Signer
+go build -o custos-signer .
+cp config.example.yaml config.yaml          # edit with your settings
+```
+
+The service loads `config.yaml` by default. Override with `--config /path/to/config.yaml`.
+In [`config.example.yaml`](config.example.yaml), `vault.token` is a sample. The signer refuses to start without a
+`service_token` of at least 32 characters, without `root` in `reserved_usernames`, and without a `login_host`.
+
+Environment variables take precedence over YAML values.
+
+| Env Var                | Config Path            | Description                         |
+|------------------------|------------------------|-------------------------------------|
+| `DB_HOST`              | `database.host`        | Database hostname                   |
+| `DB_PORT`              | `database.port`        | Database port                       |
+| `DB_NAME`              | `database.name`        | Database name                       |
+| `DB_USERNAME`          | `database.username`    | Database user                       |
+| `DB_PASSWORD`          | `database.password`    | Database password                   |
+| `VAULT_ADDRESS`        | `vault.address`        | Vault API address                   |
+| `VAULT_TOKEN`          | `vault.token`          | Vault authentication token          |
+| `SIGNER_SERVICE_TOKEN` | `signer.service_token` | The caller's token                  |
+| `LOG_LEVEL`            | `logging.level`        | Log level: debug, info, warn, error |
+
+## Running the service
 
 ```
 custos-signer <command> [options]
@@ -163,13 +209,13 @@ Options:
 
 Running without a subcommand defaults to `serve`.
 
-### Development
+Development:
 
 ```bash
 ./custos-signer serve --config config.yaml --auto-migrate
 ```
 
-### Production
+Production:
 
 ```bash
 ./custos-signer migrate --config config.yaml   # apply pending migrations
@@ -195,35 +241,49 @@ docker run -p 8084:8084 \
   custos-signer
 ```
 
-The Docker image uses a `scratch` base and runs as non-root user (UID 65534).
-
-### Shutdown Behavior
+The image is a multi-stage build on an Alpine base, ships the migrations, and runs as a non-root user (UID 65534).
 
 The service handles SIGTERM and SIGINT for graceful shutdown:
+
 1. Stops accepting new connections.
 2. Drains in-flight requests (up to `shutdown_timeout_seconds`, default 30s).
 3. Closes database connection pool.
 4. Exits.
 
----
+## API
 
-## API Endpoints
+| Method | Path                                   | Description                                                                      |
+|--------|----------------------------------------|----------------------------------------------------------------------------------|
+| `POST` | `/api/v1/sign`                         | Sign an SSH public key                                                           |
+| `GET`  | `/api/v1/ca-public-key`                | CA public key                                                                    |
+| `GET`  | `/api/v1/certificates`                 | List certificates. Filters: `user_sub`, `requested_by`, `q`, `status`            |
+| `GET`  | `/api/v1/certificates/{serial}`        | One certificate, with the `login_host` and `login_port` to use it on             |
+| `POST` | `/api/v1/certificates/{serial}/revoke` | Revoke an active certificate. `revoked_by` is required and `reason` can be empty |
+| `GET`  | `/api/v1/health`                       | Health check, no token                                                           |
+| `GET`  | `/api/v1/krl`                          | The revocation list for `RevokedKeys`, no token. `ETag` is its version           |
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/v1/sign` | Client credentials + OIDC token | Sign an SSH public key |
-| `POST` | `/api/v1/revoke` | Client credentials | Revoke a certificate |
-| `GET` | `/api/v1/jwks` | Client credentials | Get CA public keys in JWK format |
-| `GET` | `/api/v1/health` | None | Health check |
-| `POST` | `/api/v1/admin/rotate-ca` | Client credentials | Rotate CA keys |
-| `GET` | `/api/v1/certificates` | OIDC Bearer | List certificates for authenticated user |
-| `GET` | `/api/v1/certificates/{serial}` | OIDC Bearer | Get certificate details |
-| `GET` | `/api/v1/userinfo` | OIDC Bearer | Get authenticated user profile |
-| `GET` | `/metrics` | None | Prometheus metrics |
+Every route with a token takes `Authorization: Bearer <service token>`.
 
-Client credentials are passed via `X-Client-Id` (format: `{tenant_id}:{client_id}`) and `X-Client-Secret` headers. OIDC Bearer endpoints use `Authorization: Bearer <token>`.
+`q` matches the serial, principal, email or key ID. `status` is `active`, `not-yet-valid`, `expired` or `revoked`.
+`GET /api/v1/certificates` uses keyset pagination. Pass `limit`, and `cursor` set to the last `next_cursor`.
+It returns no total or offset.
 
-### API Examples
+### Revocation
+
+A revoke writes a row, then the signer rebuilds the OpenSSH revocation list (KRL) from every revoked certificate that
+has not expired and writes it to `signer.krl.path`, the file the login nodes' `RevokedKeys` points at, on storage they
+share with the signer. It writes a temp file next to it and renames, so the file is never missing or half written. The
+same bytes are served at `/api/v1/krl` for a node without that storage. The list is rebuilt every `refresh_seconds`
+too, so expired serials drop out, a failed write is retried and a file that went missing is written again. Login nodes
+see a new list once their NFS attribute cache refreshes, about a minute.
+
+sshd checks the list only at login. A session that is already open stays open after its certificate is revoked.
+
+The list names serials only, under any CA, since serials never repeat across CA rotations. Never delete the file or
+leave it empty: a missing file makes sshd refuse every key and certificate login, and a zero-byte file revokes nothing.
+To reset one by hand, write an empty real list with `ssh-keygen -k -f revoked_keys`.
+
+### Examples
 
 **Health Check**
 
@@ -238,57 +298,42 @@ ssh-keygen -t ed25519 -f /tmp/testkey -N ""
 
 curl -s -X POST http://localhost:8084/api/v1/sign \
   -H "Content-Type: application/json" \
-  -H "X-Client-Id: tenant1:webapp" \
-  -H "X-Client-Secret: your-secret" \
+  -H "Authorization: Bearer $SIGNER_SERVICE_TOKEN" \
   -d '{
     "principal": "jdoe",
     "ttl_seconds": 3600,
     "public_key": "'"$(cat /tmp/testkey.pub)"'",
-    "user_access_token": "<oidc-access-token>"
+    "user_email": "jdoe@example.edu",
+    "user_sub": "http://idp.example.edu/users/9",
+    "requested_by": "user/8f3a"
   }' | jq .
 ```
 
 **Revoke a Certificate**
 
 ```bash
-curl -s -X POST http://localhost:8084/api/v1/revoke \
+curl -s -X POST http://localhost:8084/api/v1/certificates/42/revoke \
   -H "Content-Type: application/json" \
-  -H "X-Client-Id: tenant1:webapp" \
-  -H "X-Client-Secret: your-secret" \
-  -d '{"serial_number": 42, "reason": "User deprovisioned"}' | jq .
+  -H "Authorization: Bearer $SIGNER_SERVICE_TOKEN" \
+  -d '{"reason": "User deprovisioned", "revoked_by": "user/8f3a"}' | jq .
 ```
-
-**Get CA Public Keys (JWK format)**
-
-```bash
-curl -s http://localhost:8084/api/v1/jwks \
-  -H "X-Client-Id: tenant1:webapp" \
-  -H "X-Client-Secret: your-secret" | jq .
-```
-
-**Rotate CA Keys**
-
-```bash
-curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
-  -H "X-Client-Id: tenant1:webapp" \
-  -H "X-Client-Secret: your-secret" | jq .
-```
-
----
 
 ## Troubleshooting
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| "failed to connect to database" | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
-| "failed to create vault client" | Vault unreachable or bad token | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled |
-| HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is `tenant_id:client_id` format, check bcrypt hash matches |
-| HTTP 403 "Client is disabled" | Client row has `enabled=false` | Set `enabled=true` in `client_ssh_configs` |
-| HTTP 401 "Issuer not allowed" | OIDC issuer not in allowed list | Add issuer to `allowed_issuers`, or set to empty list to accept all |
-| HTTP 503 "CA key storage unavailable" | Vault down during signing | Check Vault status and network connectivity |
-| Token validation errors in dev | No OIDC provider configured | Set `DEV_MODE=true` for development (returns default identity) |
-
----
+| Error                                 | Cause                                       | Fix                                                                                    |
+|---------------------------------------|---------------------------------------------|----------------------------------------------------------------------------------------|
+| "failed to connect to database"       | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists                    |
+| "failed to create vault client"       | Vault unreachable or bad token              | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled                     |
+| Migrations not found                  | The working directory is not this one       | Run the signer from `extensions/SSH-Certificate-Signer`                                |
+| HTTP 401 on any route                 | Wrong service token                         | Set the same `SIGNER_SERVICE_TOKEN` on the signer and the caller                       |
+| HTTP 403 `reserved_username`          | The username is in `reserved_usernames`     | Certificates are not issued for these names                                            |
+| HTTP 429 `too_many_certificates`      | The user reached the per-user limit         | Wait for the window to pass, or raise `certificate_limit`                              |
+| HTTP 503 "CA key storage unavailable" | Vault down during signing                   | Check Vault status and network connectivity                                            |
+| Exits with "no CA key in vault"       | No CA at `vault.ca_key_path`                | Fix the path. A new CA is not trusted by the login nodes                               |
+| Exits with "check-and-set parameter"  | The CA's latest version in Vault is deleted | Undelete that version. The signer never replaces an existing CA                        |
+| HTTP 500 on every sign                | `certificate_serial_seq` is missing         | `CREATE SEQUENCE certificate_serial_seq`, then the `setval` above                      |
+| Exits with "failed to publish KRL"    | `signer.krl.path` is not writable           | Check the service user owns the folder and the share is mounted rw                     |
+| Revoked certificate still logs in     | The list did not reach the node             | `ssh-keygen -Q -l -f revoked_keys` on the node, compare `/api/v1/health` `krl.version` |
 
 ## License
 

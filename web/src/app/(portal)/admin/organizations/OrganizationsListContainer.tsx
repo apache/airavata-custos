@@ -17,14 +17,14 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { CreateOrganizationDialog } from "@/features/core/organizations/components/CreateOrganizationDialog";
 import { OrganizationsList } from "@/features/core/organizations/components/OrganizationsList";
 import { useCreateOrganization, useOrganizations } from "@/features/core/organizations/queries";
 import type { CreateOrganizationPayload } from "@/features/core/organizations/schemas";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import { Button } from "@/shared/ui/button";
+import * as React from "react";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 50;
 
@@ -55,7 +55,7 @@ export function OrganizationsListContainer() {
       <OrganizationsList
         rows={query.data?.items ?? []}
         isLoading={query.isLoading}
-        error={(query.error as Error | null) ?? null}
+        error={query.error}
         onRetry={() => query.refetch()}
         page={page}
         pageSize={PAGE_SIZE}

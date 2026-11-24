@@ -36,7 +36,6 @@ curl -s -X GET \
 import (
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -59,8 +58,9 @@ func slurmQueryTime(ts int64) string {
 func (c *Client) ListJobs(filter JobFilter) ([]JobInfo, error) {
 	var out jobsResponse
 	params := url.Values{}
-	if len(filter.Users) > 0 {
-		params.Set("users", strings.Join(filter.Users, ","))
+	// slurmrestd 24.05 rejects the comma list its spec documents and takes one users parameter per user.
+	for _, u := range filter.Users {
+		params.Add("users", u)
 	}
 	if filter.StartTime > 0 {
 		params.Set("start_time", slurmQueryTime(filter.StartTime))

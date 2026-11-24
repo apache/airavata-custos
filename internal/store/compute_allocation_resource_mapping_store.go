@@ -27,6 +27,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+const computeAllocationResourceMappingColumns = "id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time"
+
 type pgComputeAllocationResourceMappingStore struct {
 	db *sqlx.DB
 }
@@ -37,25 +39,10 @@ func NewComputeAllocationResourceMappingStore(db *sqlx.DB) ComputeAllocationReso
 	return &pgComputeAllocationResourceMappingStore{db: db}
 }
 
-func (s *pgComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
-	var m models.ComputeAllocationResourceMapping
-	err := s.db.GetContext(ctx, &m,
-		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
-		 FROM compute_allocation_resource_mappings
-		 WHERE id = $1`, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &m, nil
-}
-
 func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
-		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
+		`SELECT `+computeAllocationResourceMappingColumns+`
 		 FROM compute_allocation_resource_mappings
 		 WHERE compute_allocation_id = $1 AND compute_allocation_resource_id = $2`,
 		allocationID, resourceID)
@@ -86,13 +73,10 @@ func (s *pgComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx 
 func (s *pgComputeAllocationResourceMappingStore) FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {
 	var allocs []models.ComputeAllocation
 	err := s.db.SelectContext(ctx, &allocs,
-		`SELECT a.id, a.project_id, a.name, a.status, a.compute_cluster_id,
-		        a.initial_su_amount, a.start_time, a.end_time
-		 FROM compute_allocations a
-		 JOIN compute_allocation_resource_mappings m
-		     ON m.compute_allocation_id = a.id
-		 WHERE m.compute_allocation_resource_id = $1
-		 ORDER BY a.name`, resourceID)
+		`SELECT `+computeAllocationColumns+`
+		 FROM compute_allocations
+		 WHERE id IN (SELECT compute_allocation_id FROM compute_allocation_resource_mappings WHERE compute_allocation_resource_id = $1)
+		 ORDER BY name`, resourceID)
 	if err != nil {
 		return nil, err
 	}

@@ -68,7 +68,10 @@ export function GroupByChip({ label, value, options, onChange, className }: Grou
                   data-current={isCurrent ? "" : undefined}
                 >
                   {isCurrent ? (
-                    <Check aria-hidden="true" className="absolute left-2 h-3.5 w-3.5 stroke-[1.5]" />
+                    <Check
+                      aria-hidden="true"
+                      className="absolute left-2 h-3.5 w-3.5 stroke-[1.5]"
+                    />
                   ) : null}
                   <span>{opt.label}</span>
                 </MenuPrimitive.Item>

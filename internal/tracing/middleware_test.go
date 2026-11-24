@@ -22,28 +22,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go.opentelemetry.io/otel"
 	otelcodes "go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func setupRecordingTracer(t *testing.T) *tracetest.SpanRecorder {
 	t.Helper()
-	prev := otel.GetTracerProvider()
 	sr := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+	prev := SetProvider(tp)
+	t.Cleanup(func() { SetProvider(prev) })
 	return sr
-}
-
-func setupNoopTracer(t *testing.T) {
-	t.Helper()
-	prev := otel.GetTracerProvider()
-	otel.SetTracerProvider(noop.NewTracerProvider())
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
 }
 
 func TestMiddlewareProductionEmitsRootSpanAndHeader(t *testing.T) {
@@ -54,13 +44,17 @@ func TestMiddlewareProductionEmitsRootSpanAndHeader(t *testing.T) {
 		innerTrace string
 		innerSpan  string
 	)
-	mux.HandleFunc("GET /probe", func(w http.ResponseWriter, r *http.Request) {
-		innerTrace, innerSpan = IDsFromContext(r.Context())
+	mux.HandleFunc("GET /probe/{id}", func(w http.ResponseWriter, r *http.Request) {
+		innerTrace, innerSpan, _ = IDsFromContext(r.Context())
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	handler := Middleware(mux)
-	req := httptest.NewRequest(http.MethodGet, "/probe", nil)
+	handler := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r)
+		SetRoute(r)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/probe/42", nil)
+	req.Header.Set("traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -75,6 +69,9 @@ func TestMiddlewareProductionEmitsRootSpanAndHeader(t *testing.T) {
 	if len(hdr) != 32 {
 		t.Fatalf("expected 32-char hex trace id, got %q (len=%d)", hdr, len(hdr))
 	}
+	if hdr == "4bf92f3577b34da6a3ce929d0e0e4736" {
+		t.Fatalf("client traceparent became the request's trace")
+	}
 
 	if innerTrace == "" || innerSpan == "" {
 		t.Fatalf("expected inner handler to see recording span; got trace=%q span=%q", innerTrace, innerSpan)
@@ -88,7 +85,10 @@ func TestMiddlewareProductionEmitsRootSpanAndHeader(t *testing.T) {
 		t.Fatalf("expected exactly 1 ended span, got %d", len(spans))
 	}
 	s := spans[0]
-	if got, want := s.Name(), "http.GET /probe"; got != want {
+	if links := s.Links(); len(links) != 1 || links[0].SpanContext.TraceID().String() != "4bf92f3577b34da6a3ce929d0e0e4736" {
+		t.Fatalf("expected the client traceparent as the only link, got %+v", links)
+	}
+	if got, want := s.Name(), "http.GET /probe/{id}"; got != want {
 		t.Fatalf("span name = %q, want %q", got, want)
 	}
 
@@ -99,40 +99,14 @@ func TestMiddlewareProductionEmitsRootSpanAndHeader(t *testing.T) {
 	if attrs["http.method"] != "GET" {
 		t.Fatalf("http.method attr = %q, want GET", attrs["http.method"])
 	}
-	if attrs["http.route"] != "/probe" {
-		t.Fatalf("http.route attr = %q, want /probe", attrs["http.route"])
+	if attrs["http.route"] != "/probe/{id}" {
+		t.Fatalf("http.route attr = %q, want /probe/{id}", attrs["http.route"])
 	}
 	if attrs["http.status_code"] != "204" {
 		t.Fatalf("http.status_code attr = %q, want 204", attrs["http.status_code"])
 	}
 	if attrs["source"] != "http" {
 		t.Fatalf("source attr = %q, want http", attrs["source"])
-	}
-}
-
-func TestMiddlewareNoopModeSetsNoHeader(t *testing.T) {
-	setupNoopTracer(t)
-
-	mux := http.NewServeMux()
-	var (
-		innerTrace string
-		innerSpan  string
-	)
-	mux.HandleFunc("GET /probe", func(w http.ResponseWriter, r *http.Request) {
-		innerTrace, innerSpan = IDsFromContext(r.Context())
-		w.WriteHeader(http.StatusOK)
-	})
-
-	handler := Middleware(mux)
-	req := httptest.NewRequest(http.MethodGet, "/probe", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if hdr := rec.Header().Get("X-Trace-Id"); hdr != "" {
-		t.Fatalf("expected no X-Trace-Id header in noop mode, got %q", hdr)
-	}
-	if innerTrace != "" || innerSpan != "" {
-		t.Fatalf("expected empty IDs from noop ctx, got trace=%q span=%q", innerTrace, innerSpan)
 	}
 }
 

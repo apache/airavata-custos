@@ -76,10 +76,14 @@ pam_oauth2_curl::call(Config const &config, const std::string &url,
 		      std::vector<std::pair<std::string,std::string>> const &postdata)
 {
     call_data readBuffer;
-    std::string params{pam_oauth2_curl_impl::make_post_data(postdata)};
     impl_->reset(config);
     impl_->add_call_data(readBuffer);
     impl_->add_credential(readBuffer, make_credential(config));
+    pam_oauth2_curl::params fields{postdata};
+    for (auto const &kv : readBuffer.post_data)
+        if (std::none_of(fields.begin(), fields.end(), [&kv](std::pair<std::string,std::string> const &f) { return f.first == kv.first; }))
+            fields.push_back(kv);
+    std::string params{pam_oauth2_curl_impl::make_post_data(fields)};
     curl_easy_setopt(impl_->curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(impl_->curl, CURLOPT_POSTFIELDS, params.c_str());
     curl_easy_setopt(impl_->curl, CURLOPT_ERRORBUFFER, readBuffer.errbuf);
@@ -230,8 +234,8 @@ pam_oauth2_curl_impl::add_credential(call_data &data, pam_oauth2_curl::credentia
 	case pam_oauth2_curl::credential::type::SECRET:
 	    // See RFC6749 section 2.3.1.
 	    // TODO: check if the connection is secure?
-	    add_params(data.post_data, "client_id", encode(cred.un_));
-	    add_params(data.post_data, "client_secret", encode(cred.pw_));
+	    add_params(data.post_data, "client_id", data.cred.un_);
+	    add_params(data.post_data, "client_secret", data.cred.pw_);
 	    break;
         case pam_oauth2_curl::credential::type::DENIED:
             throw NetworkError("default denied is not overridden");

@@ -17,9 +17,9 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  callerPrivilegesSchema,
   privilegeKeySchema,
   privilegesResponseSchema,
+  roleDetailResponseSchema,
   userRolesResponseSchema,
 } from "../schemas";
 
@@ -31,34 +31,29 @@ describe("identity schemas", () => {
     expect(() => privilegeKeySchema.parse("")).toThrow();
   });
 
-  it("accepts the CallerPrivileges shape", () => {
-    const parsed = callerPrivilegesSchema.parse({
-      privileges: ["core:allocations:read", "amie:packets:read"],
-    });
-    expect(parsed.privileges).toEqual([
-      "core:allocations:read",
-      "amie:packets:read",
-    ]);
-  });
-
-  it("unwraps the response transform to a Privilege[] (default [])", () => {
+  it("unwraps the response transform to a Privilege[]", () => {
     expect(
-      privilegesResponseSchema.parse({ privileges: ["core:projects:read"] }),
-    ).toEqual(["core:projects:read"]);
-    expect(privilegesResponseSchema.parse({})).toEqual([]);
+      privilegesResponseSchema.parse({
+        privileges: ["core:allocations:read", "amie:packets:read"],
+      }),
+    ).toEqual(["core:allocations:read", "amie:packets:read"]);
   });
 
-  it("tolerates null granted_by and reason on role grants (backend nullable *string)", () => {
-    const parsed = userRolesResponseSchema.parse([
-      {
-        user_id: "u-1",
-        role_id: "r-1",
-        granted_at: "2026-07-01T00:00:00.000Z",
-        granted_by: null,
-        reason: null,
+  it("normalizes null role lists to an empty array", () => {
+    expect(userRolesResponseSchema.parse(null)).toEqual([]);
+  });
+
+  it("preserves arbitrary privilege keys returned by role detail", () => {
+    const result = roleDetailResponseSchema.parse({
+      role: {
+        id: "role-1",
+        name: "Admin",
+        description: null,
+        is_system: false,
+        created_at: "2026-01-01T00:00:00Z",
       },
-    ]);
-    expect(parsed).toHaveLength(1);
-    expect(parsed[0]?.role_id).toBe("r-1");
+      privileges: ["core:roles:manage", "connector:custom:inspect"],
+    });
+    expect(result.privileges).toEqual(["core:roles:manage", "connector:custom:inspect"]);
   });
 });

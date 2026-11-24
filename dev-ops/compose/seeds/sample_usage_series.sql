@@ -15,7 +15,7 @@
 -- Idempotent via ON CONFLICT DO NOTHING + deterministic IDs (smpu- prefix). To view it
 -- signed in as yourself, attach your user to the project once (not committed):
 --   INSERT INTO project_memberships (project_id, user_id, role, added_time)
---   SELECT 'smpu-project', id, 'PI', NOW() FROM users WHERE email = '<your-email>' ON CONFLICT DO NOTHING;
+--   SELECT 'smpu-project', id, 'CO_PI', NOW() FROM users WHERE email = '<your-email>' ON CONFLICT DO NOTHING;
 
 
 SET TIME ZONE 'UTC';
@@ -46,7 +46,6 @@ INSERT INTO projects (id, originated_id, title, origination, project_pi_id, stat
 ON CONFLICT DO NOTHING;
 
 INSERT INTO project_memberships (project_id, user_id, role, added_time) VALUES
-  ('smpu-project', 'smpu-user-pi',  'PI',                 NOW()),
   ('smpu-project', 'smpu-user-mgr', 'ALLOCATION_MANAGER', NOW())
 ON CONFLICT DO NOTHING;
 

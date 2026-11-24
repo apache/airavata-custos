@@ -19,13 +19,12 @@
 package server
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/apache/airavata-custos/internal/httputil"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -48,17 +47,7 @@ func New(svc *service.Service, router *identity.Router) *Server {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
-}
-
-// requireCaller pulls the verified caller off the request context. Returns
-// nil and writes a 401 when the middleware did not attach one.
-func requireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
-	c := identity.CallerFromContext(r.Context())
-	if c == nil {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing authenticated caller"))
-		return nil
-	}
-	return c
+	tracing.SetRoute(r)
 }
 
 func (s *Server) routes() {
@@ -73,19 +62,26 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /users/{id}", models.UsersRead, s.getUser)
 	s.router.RequirePrivilege("PUT /users/{id}", models.UsersWrite, s.updateUser)
 	s.router.RequirePrivilege("PUT /users/{id}/status", models.UsersWrite, s.updateUserStatus)
+	s.router.RequirePrivilege("PUT /users/{id}/email", models.UsersWrite, s.updatePendingUserEmail)
 	s.router.RequirePrivilege("POST /users/merge", models.UsersWrite, s.mergeUsers)
 
 	s.router.RequireAuth("GET /projects", s.listProjects)
 	s.router.RequirePrivilege("POST /projects", models.ProjectsWrite, s.createProject)
 	s.router.RequireScoped("GET /projects/{id}", s.canReadProject, s.getProject)
+	s.router.RequirePrivilege("PUT /projects/{id}", models.ProjectsWrite, s.updateProject)
 	s.router.RequirePrivilege("PUT /projects/{id}/status", models.ProjectsWrite, s.updateProjectStatus)
+	s.router.RequirePrivilege("DELETE /projects/{id}", models.ProjectsWrite, s.deleteProject)
 	s.router.RequirePrivilege("GET /projects/{id}/members", models.ProjectsRead, s.listProjectMembers)
+	s.router.RequirePrivilege("PUT /projects/{id}/members/{userId}", models.ProjectsWrite, s.updateProjectMember)
 
 	s.router.RequirePrivilege("POST /compute-clusters", models.ClustersWrite, s.createComputeCluster)
 	s.router.RequirePrivilege("GET /compute-clusters", models.ClustersRead, s.listComputeClusters)
 	s.router.RequirePrivilege("GET /compute-clusters/{id}", models.ClustersRead, s.getComputeCluster)
 
 	s.router.RequirePrivilege("POST /compute-cluster-users", models.ClustersWrite, s.createComputeClusterUser)
+	s.router.RequirePrivilege("GET /compute-cluster-users", models.ClustersRead, s.listClusterAccounts)
+	s.router.RequirePrivilege("POST /compute-cluster-users/{id}/approve", models.ClustersWrite, s.approveClusterAccount)
+	s.router.RequirePrivilege("POST /compute-cluster-users/{id}/deny", models.ClustersWrite, s.denyClusterAccount)
 	s.router.RequirePrivilege("GET /compute-cluster-users/{id}", models.ClustersRead, s.getComputeClusterUser)
 	s.router.RequirePrivilege("PUT /compute-cluster-users/{id}", models.ClustersWrite, s.updateComputeClusterUser)
 	s.router.RequirePrivilege("DELETE /compute-cluster-users/{id}", models.ClustersWrite, s.deleteComputeClusterUser)
@@ -93,17 +89,25 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /compute-clusters/{id}/users/{userId}", models.ClustersRead, s.getComputeClusterUserByPair)
 	s.router.RequirePrivilege("GET /users/{id}/compute-cluster-users", models.ClustersRead, s.listComputeClusterUsersByUser)
 
+	s.router.RequirePrivilege("GET /storages", models.ClustersRead, s.listStorages)
+	s.router.RequirePrivilege("PUT /storages/{id}", models.ClustersWrite, s.updateStorage)
+	s.router.RequirePrivilege("DELETE /storages/{id}", models.ClustersWrite, s.deleteStorage)
+
 	s.router.RequireAuth("GET /compute-allocations", s.listComputeAllocations)
 	s.router.RequirePrivilege("POST /compute-allocations", models.AllocationsWrite, s.createComputeAllocation)
 	s.router.RequireScoped("GET /compute-allocations/{id}", s.canReadAllocation, s.getComputeAllocation)
+	s.router.RequirePrivilege("DELETE /compute-allocations/{id}", models.AllocationsWrite, s.deleteComputeAllocation)
 
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/summary", models.AllocationsRead, s.listComputeAllocationResourceSummaries)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}", models.AllocationsRead, s.getComputeAllocationResource)
+	s.router.RequirePrivilege("PUT /compute-allocation-resources/{id}", models.AllocationsWrite, s.updateComputeAllocationResource)
+	s.router.RequirePrivilege("DELETE /compute-allocation-resources/{id}", models.AllocationsWrite, s.deleteComputeAllocationResource)
 
 	s.router.RequireScoped("GET /compute-allocations/{id}/resources", s.canReadAllocation, s.listResourcesForAllocation)
 	s.router.RequirePrivilege("POST /compute-allocations/{id}/resources", models.AllocationsWrite, s.attachResourceToAllocation)
+	s.router.RequirePrivilege("PUT /compute-allocations/{id}/resources", models.AllocationsWrite, s.setAllocationResources)
 	s.router.RequirePrivilege("PUT /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.updateAllocationResourceMapping)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.detachResourceFromAllocation)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}/allocations", models.AllocationsRead, s.listAllocationsForResource)
@@ -165,8 +169,14 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /users/{id}/user-identities", models.UsersRead, s.listUserIdentitiesForUser)
 
 	// A caller reads their own profile; no privilege needed.
-	s.router.RequireAuth("GET /user/privileges", s.getCallerPrivileges)
-	s.router.RequireAuth("GET /me", s.getCallerProfile)
+	// These stay reachable before the caller has onboarded or consented.
+	s.router.RequireAuthWithoutUserConsent("GET /me/privileges", s.getCallerPrivileges)
+	s.router.RequireAuthWithoutUserConsent("GET /me", s.getCallerProfile)
+	s.router.RequireAuthWithoutUserConsent("GET /me/agreements/pending", s.listCallerPendingAgreements)
+	s.router.RequireAuthWithoutUserConsent("POST /me/agreements/{id}/accept", s.acceptCallerAgreement)
+	s.router.RequireAuthWithoutUserConsent("GET /me/onboarding/username", s.checkOnboardingUsername)
+	s.router.RequireAuthWithoutUserConsent("POST /me/onboarding", s.completeOnboarding)
+	s.router.RequireAuth("GET /me/onboarding/status", s.getSetupStatus)
 	s.router.RequirePrivilege("GET /privileges/catalog", models.PrivilegesGrant, s.getPrivilegeCatalog)
 	s.router.RequirePrivilege("GET /users/{id}/privileges", models.PrivilegesGrant, s.listUserPrivileges)
 	s.router.RequirePrivilege("GET /privileges/{key}/holders", models.PrivilegesGrant, s.listPrivilegeHolders)
@@ -185,10 +195,35 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /users/{id}/roles", models.RolesManage, s.grantRoleToUser)
 	s.router.RequirePrivilege("DELETE /users/{id}/roles/{roleId}", models.RolesManage, s.revokeRoleFromUser)
 
+	s.router.RequirePrivilege("GET /agreements", models.AgreementsRead, s.listUserAgreements)
+	s.router.RequirePrivilege("POST /agreements", models.AgreementsManage, s.createUserAgreement)
+	s.router.RequirePrivilege("GET /agreements/{id}", models.AgreementsRead, s.getUserAgreement)
+	s.router.RequirePrivilege("PUT /agreements/{id}", models.AgreementsManage, s.updateUserAgreement)
+	s.router.RequirePrivilege("DELETE /agreements/{id}", models.AgreementsManage, s.deleteUserAgreement)
+	s.router.RequirePrivilege("POST /agreements/{id}/publish", models.AgreementsManage, s.publishUserAgreement)
+	s.router.RequirePrivilege("POST /agreements/{id}/remove", models.AgreementsManage, s.removeUserAgreement)
+	s.router.RequirePrivilege("GET /agreements/{id}/acceptances", models.AgreementsRead, s.listUserAgreementAcceptances)
+
+	s.router.RequirePrivilege("GET /service-accounts", models.ServiceAccountsManage, s.listServiceAccounts)
+	s.router.RequirePrivilege("POST /service-accounts", models.ServiceAccountsManage, s.createServiceAccount)
+	s.router.RequirePrivilege("GET /service-accounts/privileges", models.ServiceAccountsManage, s.listServiceAccountPrivileges)
+	s.router.RequirePrivilege("GET /service-accounts/{id}", models.ServiceAccountsManage, s.getServiceAccount)
+	s.router.RequirePrivilege("PUT /service-accounts/{id}", models.ServiceAccountsManage, s.updateServiceAccount)
+	s.router.RequirePrivilege("DELETE /service-accounts/{id}", models.ServiceAccountsManage, s.deleteServiceAccount)
+	s.router.RequirePrivilege("POST /service-accounts/{id}/disable", models.ServiceAccountsManage, s.disableServiceAccount)
+	s.router.RequirePrivilege("POST /service-accounts/{id}/enable", models.ServiceAccountsManage, s.enableServiceAccount)
+	s.router.RequirePrivilege("POST /service-accounts/{id}/secret", models.ServiceAccountsManage, s.issueServiceAccountSecret)
+
 	s.router.RequirePrivilege("GET /audit/traces", models.TracesRead, s.handleListTraces)
 	s.router.RequirePrivilege("GET /audit/traces/{trace_id}", models.TracesRead, s.handleGetTrace)
 	s.router.RequirePrivilege("GET /audit/events", models.TracesRead, s.handleListEvents)
 	s.router.RequirePrivilege("GET /audit/sources", models.TracesRead, s.handleListSources)
+
+	s.router.RequirePrivilege("GET /events/deliveries", models.TracesRead, s.listEventDeliveries)
+	s.router.RequirePrivilege("GET /events/deliveries/{id}", models.TracesRead, s.getEventDelivery)
+	s.router.RequirePrivilege("POST /events/deliveries/{id}/retry", models.EventsManage, s.retryEventDelivery)
+	s.router.RequirePrivilege("GET /events/subscriptions", models.TracesRead, s.listEventSubscriptions)
+	s.router.RequirePrivilege("GET /events/graph", models.EventsManage, s.getEventGraph)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -199,35 +234,20 @@ type statusUpdateRequest struct {
 	Status string `json:"status"`
 }
 
-// LoggingMiddleware logs every request once it completes. It wraps
-// tracing.Middleware (logging outer, tracing inner) and reads the trace_id
-// from the X-Trace-Id response header the inner span set, since the inner
-// request ctx is not visible at this scope after ServeHTTP returns.
+// LoggingMiddleware logs every request once it completes. It sits outside
+// tracing.Middleware and reads the trace_id from the X-Trace-Id response
+// header, since the inner request ctx is not visible here after ServeHTTP returns.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rw := &httputil.StatusRecorder{ResponseWriter: w, Status: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		attrs := []any{
+		slog.InfoContext(r.Context(), "http request",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", rw.Status,
 			"duration", time.Since(start).String(),
-		}
-		if tid := rw.Header().Get("X-Trace-Id"); tid != "" {
-			attrs = append(attrs, "trace_id", tid)
-		}
-		slog.InfoContext(r.Context(), "http request", attrs...)
+			"trace_id", rw.Header().Get("X-Trace-Id"),
+		)
 	})
-}
-
-func atoiOr(s string, def int) int {
-	if s == "" {
-		return def
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return n
 }

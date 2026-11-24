@@ -19,7 +19,9 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -101,13 +103,20 @@ func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
 	// Access level is left out on purpose. Granting cluster admin goes through
 	// user onboarding, which checks roles:manage first.
 	// TODO - accept an access level here once the caller can be checked for ADMIN on the same cluster
+	// An admin creating the account by hand is the approval.
 	created, err := s.svc.CreateComputeClusterUser(r.Context(), &models.ComputeClusterUser{
 		ComputeClusterID: req.ComputeClusterID,
 		UserID:           req.UserID,
 		LocalUsername:    req.LocalUsername,
+		ApprovalStatus:   models.ClusterAccountApproved,
+		ReviewedBy:       &caller.UserID,
 	})
 	if err != nil {
 		common.WriteServiceError(w, err)
@@ -178,6 +187,108 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary	List cluster accounts by approval status
+// @Description	Cluster users with their user, cluster, and the user's newest allocation on that cluster. PENDING comes grouped by allocation, the rest newest first. Every status unless one is given.
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Produce	json
+// @Param	approval_status	query	string	false	"PENDING | APPROVED | DENIED"
+// @Param	q	query	string	false	"Matches name, email, username, allocation, or project"
+// @Param	role_id	query	string	false	"Only users granted this role"
+// @Param	identity_source	query	string	false	"Only users with an external identity from this source"
+// @Param	limit	query	integer	false	"Page size"
+// @Param	offset	query	integer	false	"Page offset"
+// @Success	200	{object}	ClusterAccountListResponse
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-cluster-users [get]
+func (s *Server) listClusterAccounts(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	status := models.ClusterAccountApproval(q.Get("approval_status"))
+	limit, offset := common.Paged(q)
+	rows, total, err := s.svc.ListComputeClusterUsersByApproval(r.Context(), status, store.UserListFilter{
+		Query:          q.Get("q"),
+		RoleID:         q.Get("role_id"),
+		IdentitySource: q.Get("identity_source"),
+	}, limit, offset)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	items := make([]ClusterAccountResponse, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, ClusterAccountResponse{
+			ComputeClusterUser: row.ComputeClusterUser,
+			RequestedAt:        row.RequestedAt,
+			DisplayName:        strings.TrimSpace(row.FirstName + " " + row.LastName),
+			Email:              row.Email,
+			ClusterName:        row.ClusterName,
+			ReviewerName:       row.ReviewerName,
+			AllocationID:       row.AllocationID,
+			AllocationName:     row.AllocationName,
+			ProjectID:          row.ProjectID,
+		})
+	}
+	common.WriteJSON(w, http.StatusOK, ClusterAccountListResponse{Items: items, Total: total})
+}
+
+// @Summary	Approve a cluster account
+// @Description	Records the caller as the approver and starts creating the account on the cluster.
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Success	200	{object}	models.ComputeClusterUser
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"Already approved"
+// @Router	/compute-cluster-users/{id}/approve [post]
+func (s *Server) approveClusterAccount(w http.ResponseWriter, r *http.Request) {
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	cu, err := s.svc.ApproveComputeClusterUser(r.Context(), r.PathValue("id"), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, cu)
+}
+
+type denyClusterAccountRequest struct {
+	Note string `json:"note"`
+}
+
+// @Summary	Deny a cluster account
+// @Description	Records the caller's decision and the reason. No account is created on the cluster, and the reason is passed on to whoever requested the account. The user keeps portal access.
+// @Tags	Compute Cluster Users
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Param	request	body	denyClusterAccountRequest	true	"Reason for the denial"
+// @Success	200	{object}	models.ComputeClusterUser
+// @Failure	400	{object}	object{error=string}	"Reason missing"
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"Already approved or denied"
+// @Router	/compute-cluster-users/{id}/deny [post]
+func (s *Server) denyClusterAccount(w http.ResponseWriter, r *http.Request) {
+	caller := common.RequireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	var req denyClusterAccountRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	cu, err := s.svc.DenyComputeClusterUser(r.Context(), r.PathValue("id"), caller.UserID, strings.TrimSpace(req.Note))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, cu)
 }
 
 // @Summary	List users on a compute cluster

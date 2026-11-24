@@ -17,18 +17,17 @@
 
 "use client";
 
-import * as React from "react";
-import { useAbility } from "@/shared/casl/AbilityProvider";
+import { CreateProjectDialog } from "@/features/core/projects/components/CreateProjectDialog";
+import { NewProjectCta, ProjectsList } from "@/features/core/projects/components/ProjectsList";
+import { useProjects } from "@/features/core/projects/queries";
+import type { ProjectStatus } from "@/generated/core/zod.gen";
+import { usePermissions } from "@/shared/casl/permissions";
 import {
-  replaceShallowSearchParams,
+  replaceShallowSearchParam,
   useShallowSearchParams,
 } from "@/shared/hooks/useShallowSearchParams";
-import {
-  NewProjectCta,
-  ProjectsList,
-} from "@/features/core/projects/components/ProjectsList";
-import { useProjects } from "@/features/core/projects/queries";
-import type { ProjectStatus } from "@/features/core/projects/schemas";
+import { useUrlSearch } from "@/shared/hooks/useUrlSearch";
+import * as React from "react";
 
 function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
   if (raw === "ACTIVE" || raw === "INACTIVE" || raw === "DELETED") return raw;
@@ -36,39 +35,40 @@ function statusFilterFromUrl(raw: string | null): ProjectStatus | "all" {
 }
 
 export function ProjectsListContainer() {
-  const ability = useAbility();
+  const can = usePermissions();
   const searchParams = useShallowSearchParams();
 
-  const search = searchParams.get("q") ?? "";
+  const search = useUrlSearch();
   const statusFilter = statusFilterFromUrl(searchParams.get("status"));
 
-  const updateParam = React.useCallback(
-    (key: string, value: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (!value) params.delete(key);
-      else params.set(key, value);
-      replaceShallowSearchParams(params);
-    },
-    [searchParams],
-  );
-
-  const query = useProjects({});
+  const origination = searchParams.get("origination");
+  const query = useProjects({
+    ...(search.settledQuery ? { q: search.settledQuery } : {}),
+    ...(statusFilter === "all" ? {} : { status: statusFilter }),
+    ...(origination ? { origination } : {}),
+  });
   const rows = query.data?.items ?? [];
-  const canCreate = ability.can("manage", "Project");
+  const [creating, setCreating] = React.useState(false);
 
   return (
     <ProjectsList
       rows={rows}
       isLoading={query.isLoading}
-      error={(query.error as Error | null) ?? null}
+      error={query.error}
       onRetry={() => query.refetch()}
-      search={search}
-      onSearchChange={(next) => updateParam("q", next)}
+      search={search.text}
+      onSearchChange={search.setText}
       statusFilter={statusFilter}
+      origination={origination}
       onStatusFilterChange={(next) =>
-        updateParam("status", next === "all" ? null : next)
+        replaceShallowSearchParam("status", next === "all" ? null : next)
       }
-      headerCta={<NewProjectCta canCreate={canCreate} />}
+      headerCta={
+        <>
+          <NewProjectCta canCreate={can.projectsWrite} onClick={() => setCreating(true)} />
+          {creating ? <CreateProjectDialog onOpenChange={setCreating} /> : null}
+        </>
+      }
     />
   );
 }

@@ -29,19 +29,42 @@ import (
 )
 
 // Caller is the verified identity behind an HTTP request.
+// NeedsOnboarding is set on a first sign-in -- the email matched a PENDING user but no sub is stored yet.
 type Caller struct {
-	UserID string
+	UserID            string
+	Email             string
+	NeedsOnboarding   bool
+	ConsentPending    bool
+	ServiceAccountKey string
+}
+
+// IsServiceAccount reports whether a service account made the call.
+func (c *Caller) IsServiceAccount() bool { return c.ServiceAccountKey != "" }
+
+// Requester is who made the call service account or a user.
+func (c *Caller) Requester() string {
+	if c.IsServiceAccount() {
+		return "service-account/" + c.ServiceAccountKey
+	}
+	return "user/" + c.UserID
 }
 
 // Wrap the ErrNotLinked to keep the specific cause in the log while the middleware
 // returns a single 401 identity_not_linked to clients.
 var (
-	ErrNotLinked             = errors.New("identity not linked")
-	ErrEmailNotVerified      = fmt.Errorf("%w: verified email claim missing", ErrNotLinked)
-	ErrNoUserMatchesEmail    = fmt.Errorf("%w: no user matches email", ErrNotLinked)
-	ErrUserNotPending        = fmt.Errorf("%w: user is not pending", ErrNotLinked)
-	ErrUserAlreadyOIDCLinked = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
+	ErrNotLinked                  = errors.New("identity not linked")
+	ErrEmailNotVerified           = fmt.Errorf("%w: verified email claim missing", ErrNotLinked)
+	ErrNoUserMatchesEmail         = fmt.Errorf("%w: no user matches email", ErrNotLinked)
+	ErrUserNotPending             = fmt.Errorf("%w: user is not pending", ErrNotLinked)
+	ErrUserAlreadyOIDCLinked      = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
+	ErrUserDisabled               = errors.New("user is disabled")
+	ErrInvalidServiceAccountToken = errors.New("service account token is not valid")
+	ErrServiceAccountDisabled     = errors.New("service account is disabled")
 )
+
+type TokenVerifier interface {
+	Verify(ctx context.Context, rawToken string) (*Claims, error)
+}
 
 // UserResolver maps verified OIDC claims to a Caller and the effective
 // privilege set.
@@ -49,10 +72,15 @@ type UserResolver interface {
 	ResolveCaller(ctx context.Context, claims *Claims) (*Caller, []models.PrivilegeKey, error)
 }
 
+type ServiceAccountResolver interface {
+	ResolveServiceAccount(ctx context.Context, token string) (*models.ServiceAccount, error)
+}
+
 type ctxKey string
 
 const (
 	callerKey     ctxKey = "caller"
+	claimsKey     ctxKey = "claims"
 	privilegesKey ctxKey = "privileges"
 )
 
@@ -67,6 +95,20 @@ func WithCaller(ctx context.Context, caller *Caller) context.Context {
 func CallerFromContext(ctx context.Context) *Caller {
 	if caller, ok := ctx.Value(callerKey).(*Caller); ok {
 		return caller
+	}
+	return nil
+}
+
+// WithClaims attaches the verified token claims to ctx. The middleware sets
+// it for every verified request, linked or not.
+func WithClaims(ctx context.Context, claims *Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, claims)
+}
+
+// ClaimsFromContext returns the verified token claims, or nil if none are set.
+func ClaimsFromContext(ctx context.Context) *Claims {
+	if claims, ok := ctx.Value(claimsKey).(*Claims); ok {
+		return claims
 	}
 	return nil
 }

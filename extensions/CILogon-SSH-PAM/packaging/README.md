@@ -19,7 +19,17 @@
 
 # Packaging pam_oauth2_device
 
-## Building a deb package
+These recipes build a DEB and an RPM of `pam_oauth2_device` in Docker.
+Both package an upstream release, without this tree's changes such as the prompt options.
+To install this tree, use the [README](../README.md#build-and-install) or the
+[node enrollment playbook](../../../dev-ops/account-provisioning/README.md).
+
+| Package | Base image | Source |
+|---|---|---|
+| DEB | `ubuntu:18.04` | Upstream fork named in `deb/build.sh`, v0.1.1 |
+| RPM | `centos:7` | `https://github.com/stfc/pam_oauth2_device`, v0.1 |
+
+## DEB
 
 (Tested on Ubuntu 18.04)
 
@@ -35,7 +45,7 @@ docker build -t pamoauth2device-deb-build .
 docker run --rm -v ${PWD}:/data pamoauth2device-deb-build bash -c 'cp *.deb /data'
 ```
 
-## Building a rpm package
+## RPM
 
 1. Update pam_oauth2_device version in `rpm/pamoauth2device.spec` and
 `rpm/Dockerfile` files. Update change log in `rpm/pamoauth2device.spec`.
@@ -43,5 +53,5 @@ docker run --rm -v ${PWD}:/data pamoauth2device-deb-build bash -c 'cp *.deb /dat
 
 ```bash
 docker build -t pamoauth2device-rpm-build .
-docker run --rm -v ${PWD}:/data pamoauth2device-rpm-build cp -r 'rpmbuild/RPMS /data'
+docker run --rm -v ${PWD}:/data pamoauth2device-rpm-build cp -r rpmbuild/RPMS /data
 ```

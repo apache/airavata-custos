@@ -19,65 +19,38 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/apache/airavata-custos/signer/internal/auth"
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
 
 type Handlers struct {
 	Sign              http.HandlerFunc
-	Revoke            http.HandlerFunc
-	JWKS              http.HandlerFunc
 	CAPublicKey       http.HandlerFunc
 	Health            http.HandlerFunc
-	Admin             http.HandlerFunc
 	Certificates      http.HandlerFunc
 	CertificateDetail http.HandlerFunc
-	UserInfo          http.HandlerFunc
+	CertificateRevoke http.HandlerFunc
+	KRL               http.HandlerFunc
 }
 
-func NewRouter(
-	cfg *config.Config,
-	authenticator *auth.ClientAuthenticator,
-	oidcValidator *auth.OIDCValidator,
-	handlers Handlers,
-) *chi.Mux {
+func NewRouter(cfg *config.Config, handlers Handlers) *chi.Mux {
 	r := chi.NewRouter()
 
-	if cfg.CORS.Enabled {
-		r.Use(CORSMiddleware(cfg.CORS))
-	}
 	r.Use(SecurityHeadersMiddleware)
-	r.Use(SourceIPMiddleware)
 	r.Use(BodyLimitMiddleware(1 << 20)) // 1 MB
 
-	// Health endpoint (no auth)
+	// No token needed for health and the revocation list endpoints
 	r.Get("/api/v1/health", handlers.Health)
+	r.Get("/api/v1/krl", handlers.KRL)
 
-	// Metrics endpoint (no auth)
-	if cfg.Metrics.Enabled {
-		r.Handle(cfg.Metrics.Path, promhttp.Handler())
-	}
-
-	// Client-authenticated routes (machine-to-machine)
 	r.Group(func(r chi.Router) {
-		r.Use(ClientAuthMiddleware(authenticator))
+		r.Use(ServiceTokenMiddleware(cfg.Signer.ServiceToken))
 
 		r.Post("/api/v1/sign", handlers.Sign)
-		r.Post("/api/v1/revoke", handlers.Revoke)
-		r.Get("/api/v1/jwks", handlers.JWKS)
 		r.Get("/api/v1/ca-public-key", handlers.CAPublicKey)
-		r.Post("/api/v1/admin/rotate-ca", handlers.Admin)
-	})
-
-	// User-authenticated routes (OIDC Bearer token)
-	r.Group(func(r chi.Router) {
-		r.Use(BearerAuthMiddleware(oidcValidator))
-
 		r.Get("/api/v1/certificates", handlers.Certificates)
 		r.Get("/api/v1/certificates/{serial}", handlers.CertificateDetail)
-		r.Get("/api/v1/userinfo", handlers.UserInfo)
+		r.Post("/api/v1/certificates/{serial}/revoke", handlers.CertificateRevoke)
 	})
 
 	return r

@@ -38,13 +38,22 @@ func writeTempYAML(t *testing.T, contents string) string {
 	return p
 }
 
-func TestLoadConfig(t *testing.T) {
+func loadRepoConfig(t *testing.T) *Config {
+	t.Setenv("DATABASE_DSN", "dsn")
+	t.Setenv("OIDC_ISSUER_URL", "https://issuer.example.org")
+	t.Setenv("OIDC_AUDIENCE", "custos")
 	cfg, err := LoadConfig("../../config/custos.yaml")
 	require.NoError(t, err)
+	return cfg
+}
+
+func TestLoadConfig(t *testing.T) {
+	cfg := loadRepoConfig(t)
 
 	assert.Equal(t, "info", cfg.Core.LogLevel)
 	assert.Equal(t, 8080, cfg.Core.API.Port)
 	assert.NotEmpty(t, cfg.Core.Database.URL)
+	assert.Contains(t, cfg.Core.Users.ReservedUsernames, "slurm")
 
 	assert.NotNil(t, cfg.Connectors)
 	assert.Greater(t, len(cfg.Connectors), 0)
@@ -65,11 +74,21 @@ func TestExpandEnvVars(t *testing.T) {
 		assert.Equal(t, "url: test_value", output)
 	})
 
-	t.Run("leaves unexpanded vars when env not set", func(t *testing.T) {
+	t.Run("expands unset vars to the empty string", func(t *testing.T) {
 		os.Unsetenv("UNDEFINED_VAR")
 		input := "url: ${UNDEFINED_VAR}"
 		output := expandEnvVars(input)
-		assert.Equal(t, "url: ${UNDEFINED_VAR}", output)
+		assert.Equal(t, "url: ", output)
+	})
+
+	t.Run("expands unset vars to their default", func(t *testing.T) {
+		os.Setenv("SET_VAR", "value")
+		defer os.Unsetenv("SET_VAR")
+		os.Setenv("EMPTY_VAR", "")
+		defer os.Unsetenv("EMPTY_VAR")
+		os.Unsetenv("UNDEFINED_VAR")
+		output := expandEnvVars("a: ${SET_VAR:-0}\nb: ${EMPTY_VAR:-0}\nc: ${UNDEFINED_VAR:-0}")
+		assert.Equal(t, "a: value\nb: 0\nc: 0", output)
 	})
 
 	t.Run("expands multiple variables", func(t *testing.T) {
@@ -85,8 +104,7 @@ func TestExpandEnvVars(t *testing.T) {
 }
 
 func TestConnectorConfigGetters(t *testing.T) {
-	cfg, err := LoadConfig("../../config/custos.yaml")
-	require.NoError(t, err)
+	cfg := loadRepoConfig(t)
 
 	t.Run("verify connector type field", func(t *testing.T) {
 		slurmMapper, ok := cfg.Connectors["slurm-mapper"]
@@ -115,11 +133,10 @@ func TestConnectorConfigGetters(t *testing.T) {
 }
 
 func TestLoadConfig_AuthDefaults(t *testing.T) {
-	cfg, err := LoadConfig("../../config/custos.yaml")
-	require.NoError(t, err)
+	cfg := loadRepoConfig(t)
 
 	assert.Equal(t, 30*time.Second, cfg.Core.Auth.CacheTTL)
-	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Issuer, "issuer should not be empty (env-unset stays as ${...} literal)")
+	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Issuer)
 	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Audience)
 }
 

@@ -50,6 +50,8 @@ type ProcessingEvent struct {
 	FinishedAt  *time.Time          `db:"finished_at" json:"finished_at,omitempty"`
 	LastError   *string             `db:"last_error" json:"last_error,omitempty"`
 	NextRetryAt *time.Time          `db:"next_retry_at" json:"next_retry_at,omitempty"`
+	TraceID     string              `db:"trace_id" json:"trace_id"` // Poll pass that ingested the packet.
+	SpanID      string              `db:"span_id" json:"span_id"`
 }
 
 // EventWithPacket is a read-only projection that joins a processing event with

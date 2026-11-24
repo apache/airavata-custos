@@ -93,6 +93,16 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   );
 }
 
+function TableEmptyRow({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
+  return (
+    <tr data-slot="table-row">
+      <td colSpan={colSpan} className="py-12 text-center text-sm text-muted-foreground">
+        {children}
+      </td>
+    </tr>
+  );
+}
+
 function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {
   return (
     <caption
@@ -103,4 +113,14 @@ function TableCaption({ className, ...props }: React.ComponentProps<"caption">) 
   );
 }
 
-export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption };
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+  TableEmptyRow,
+};

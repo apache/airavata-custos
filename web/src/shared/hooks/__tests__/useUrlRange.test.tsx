@@ -19,7 +19,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUrlRange } from "../useUrlRange";
 
-const replace = vi.fn();
+const replace = vi.fn<(href: string, options?: { scroll?: boolean }) => void>();
 let searchString = "";
 
 vi.mock("next/navigation", () => ({
@@ -77,10 +77,10 @@ describe("useUrlRange", () => {
       });
     });
     expect(replace).toHaveBeenCalledTimes(1);
-    const args = replace.mock.calls[0] as [string, { scroll: boolean }];
-    expect(args[0]).toContain("preset=7d");
-    expect(args[0]).not.toContain("from=");
-    expect(args[1]).toEqual({ scroll: false });
+    const args = replace.mock.calls[0];
+    expect(args?.[0]).toContain("preset=7d");
+    expect(args?.[0]).not.toContain("from=");
+    expect(args?.[1]).toEqual({ scroll: false });
   });
 
   it("setRange to custom writes from and to ISO strings", () => {
@@ -90,7 +90,7 @@ describe("useUrlRange", () => {
     act(() => {
       result.current.setRange({ from, to, preset: "custom" });
     });
-    const url = replace.mock.calls[0]?.[0] as string;
+    const url = replace.mock.calls[0]?.[0];
     expect(url).toContain("preset=custom");
     expect(url).toContain(`from=${encodeURIComponent(from.toISOString())}`);
     expect(url).toContain(`to=${encodeURIComponent(to.toISOString())}`);
@@ -106,7 +106,7 @@ describe("useUrlRange", () => {
         preset: "7d",
       });
     });
-    const writtenUrl = replace.mock.calls[0]?.[0] as string;
+    const writtenUrl = replace.mock.calls[0]?.[0];
     expect(writtenUrl).toBe("?preset=7d");
 
     // Read — feeding that URL back through the hook resolves to the same preset.
@@ -124,12 +124,12 @@ describe("useUrlRange", () => {
     act(() => {
       result.current.setRange({ from, to, preset: "custom" });
     });
-    const writtenUrl = replace.mock.calls[0]?.[0] as string;
+    const writtenUrl = replace.mock.calls[0]?.[0];
     expect(writtenUrl).toContain("preset=custom");
     expect(writtenUrl).toContain(`from=${encodeURIComponent(from.toISOString())}`);
     expect(writtenUrl).toContain(`to=${encodeURIComponent(to.toISOString())}`);
 
-    searchString = writtenUrl.replace(/^\?/, "");
+    searchString = (writtenUrl ?? "").replace(/^\?/, "");
     rerender();
     expect(result.current.range.preset).toBe("custom");
     expect(result.current.range.from.toISOString()).toBe(from.toISOString());

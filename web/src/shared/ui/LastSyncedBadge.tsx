@@ -54,12 +54,7 @@ const tintStyles: Record<Tint, string> = {
   expired: "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)]",
 };
 
-export function LastSyncedBadge({
-  syncedAt,
-  onRefetch,
-  now,
-  className,
-}: LastSyncedBadgeProps) {
+export function LastSyncedBadge({ syncedAt, onRefetch, now, className }: LastSyncedBadgeProps) {
   const syncedDate = syncedAt instanceof Date ? syncedAt : new Date(syncedAt);
   const reference = now ?? new Date();
   const ageMs = Math.max(0, reference.getTime() - syncedDate.getTime());

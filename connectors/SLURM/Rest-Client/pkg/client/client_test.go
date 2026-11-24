@@ -21,6 +21,7 @@ package client
 import (
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -60,5 +61,19 @@ func TestDoUnwrapsErrors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "42") || !strings.Contains(err.Error(), "nope") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+// Make sure jobs are filtered by user the way a real slurmrestd 24.05 accepts: one users parameter per user.
+func TestListJobsFiltersEachUser(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query()["users"]; !slices.Equal(got, []string{"alice", "bob"}) {
+			t.Fatalf("users = %q", got)
+		}
+		_, _ = w.Write([]byte(`{"jobs":[]}`))
+	}))
+	defer srv.Close()
+	if _, err := New(srv.URL, "root", "t", "41").ListJobs(JobFilter{Users: []string{"alice", "bob"}}); err != nil {
+		t.Fatal(err)
 	}
 }

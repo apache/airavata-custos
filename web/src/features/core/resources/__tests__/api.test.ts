@@ -18,8 +18,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getEffectiveRate, listResourceRates, listResourceSummaries } from "../api";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal("fetch", fetchMock);
 
 function mockResponse(status: number, body: unknown): Response {
   const text = typeof body === "string" ? body : JSON.stringify(body);
@@ -55,7 +55,7 @@ describe("listResourceSummaries", () => {
     const out = await listResourceSummaries();
     expect(out[0]?.name).toBe("ClusterA CPU");
     expect(out[0]?.rate_count).toBe(3);
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("/compute-allocation-resources/summary");
   });
 
@@ -82,7 +82,7 @@ describe("getEffectiveRate", () => {
   it("parses a single effective rate and appends the at query when given", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, rate));
     await getEffectiveRate("res-a-cpu", "2026-06-01T00:00:00Z");
-    const url = fetchMock.mock.calls[0]?.[0] as string;
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("/rates/effective?at=");
   });
 });

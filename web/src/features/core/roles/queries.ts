@@ -65,10 +65,8 @@ export function useCreateRole() {
   return useMutation({
     mutationFn: async (input: RoleMutationInput) => {
       const role = await createRole(input);
-      if (role.id) {
-        await reconcileRolePrivileges(role.id, [], input.privileges);
-        await reconcileRoleMembers(role.id, [], input.memberUserIds ?? []);
-      }
+      await reconcileRolePrivileges(role.id, [], input.privileges);
+      await reconcileRoleMembers(role.id, [], input.memberUserIds ?? []);
       return role;
     },
     onSettled: () => client.invalidateQueries({ queryKey: roleKeys.all }),
@@ -87,7 +85,6 @@ export function useUpdateRole() {
       input: RoleInput;
       memberUserIds?: string[];
     }) => {
-      if (!role.id) throw new Error("Role id is required");
       const updated = await updateRole(role.id, input);
       await reconcileRolePrivileges(role.id, role.privileges, input.privileges);
       await reconcileRoleMembers(role.id, role.holderIds, memberUserIds ?? role.holderIds);

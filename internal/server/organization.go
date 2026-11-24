@@ -56,8 +56,8 @@ func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 // @Success	200	{object}	OrganizationListResponse
 // @Router	/organizations [get]
 func (s *Server) listOrganizations(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	rows, total, err := s.svc.ListOrganizations(r.Context(), atoiOr(q.Get("limit"), 50), atoiOr(q.Get("offset"), 0))
+	limit, offset := common.Paged(r.URL.Query())
+	rows, total, err := s.svc.ListOrganizations(r.Context(), limit, offset)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return

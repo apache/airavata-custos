@@ -34,9 +34,9 @@ import (
 // @Produce	json
 // @Success	200	{object}	object{privileges=[]models.PrivilegeKey}	"Effective privilege set"
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
-// @Router	/user/privileges [get]
+// @Router	/me/privileges [get]
 func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
-	if requireCaller(w, r) == nil {
+	if common.RequireCaller(w, r) == nil {
 		return
 	}
 	keys := identity.PrivilegesFromContext(r.Context())
@@ -57,12 +57,31 @@ type CallerRoleGrant struct {
 // CallerProfileResponse bundles the caller's user row with the effective
 // privilege set and held roles.
 type CallerProfileResponse struct {
-	User       *models.User          `json:"user"`
-	Privileges []models.PrivilegeKey `json:"privileges"`
-	Roles      []CallerRoleGrant     `json:"roles"`
+	User            *models.User           `json:"user"`
+	Privileges      []models.PrivilegeKey  `json:"privileges"`
+	Roles           []CallerRoleGrant      `json:"roles"`
+	ClusterAccounts []CallerClusterAccount `json:"cluster_accounts"`
+	Consent         consentView            `json:"consent"`
+	Onboarding      onboardingView         `json:"onboarding"`
 }
 
-// @Summary	Get the caller's user record, effective privileges, and roles
+type consentView struct {
+	Pending []models.UserAgreement `json:"pending"`
+}
+
+type onboardingView struct {
+	Required         bool   `json:"required"`
+	Username         string `json:"username"`
+	UsernameEditable bool   `json:"username_editable"`
+}
+
+// CallerClusterAccount is one of the caller's cluster accounts with its cluster's name.
+type CallerClusterAccount struct {
+	models.ComputeClusterUser
+	ClusterName string `json:"cluster_name"`
+}
+
+// @Summary	Get the caller's user record, effective privileges, roles, and cluster accounts
 // @Description	Roles are the caller's own grants; unlike /users/{id}/roles this needs no admin privilege.
 // @Tags	Caller
 // @Security	BearerAuth
@@ -71,7 +90,7 @@ type CallerProfileResponse struct {
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/me [get]
 func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -80,26 +99,64 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	// Read fresh instead of using the cached context set, so roles and the
-	// effective privileges in one response always agree with each other.
-	keys, err := s.svc.EffectivePrivileges(r.Context(), caller.UserID)
+	keys := []models.PrivilegeKey{}
+	roles := []CallerRoleGrant{}
+	if !caller.NeedsOnboarding {
+		// Read fresh instead of using the cached context set, so roles and the
+		// effective privileges in one response always agree with each other.
+		if keys, err = s.svc.EffectivePrivileges(r.Context(), caller.UserID); err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		for _, d := range details {
+			roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+		}
+	}
+	pending, err := s.svc.PendingUserAgreements(r.Context(), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
+	if pending == nil {
+		pending = []models.UserAgreement{}
+	}
+	// The caller's own accounts need no cluster privilege, unlike /users/{id}/compute-cluster-users.
+	accounts, err := s.svc.ListComputeClusterUsersByUser(r.Context(), caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	roles := make([]CallerRoleGrant, 0, len(details))
-	for _, d := range details {
-		roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+	onboarding := onboardingView{Required: caller.NeedsOnboarding}
+	if caller.NeedsOnboarding {
+		if onboarding.UsernameEditable, err = s.svc.UsernameEditable(r.Context(), user, accounts); err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+	}
+	if len(accounts) > 0 {
+		onboarding.Username = accounts[0].LocalUsername
+	}
+	clusterAccounts := make([]CallerClusterAccount, 0, len(accounts))
+	for _, a := range accounts {
+		cluster, err := s.svc.GetComputeCluster(r.Context(), a.ComputeClusterID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		clusterAccounts = append(clusterAccounts, CallerClusterAccount{ComputeClusterUser: a, ClusterName: cluster.Name})
 	}
 	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{
-		User:       user,
-		Privileges: keys,
-		Roles:      roles,
+		User:            user,
+		Privileges:      keys,
+		Roles:           roles,
+		ClusterAccounts: clusterAccounts,
+		Consent:         consentView{Pending: pending},
+		Onboarding:      onboarding,
 	})
 }
 
@@ -186,7 +243,7 @@ func (s *Server) grantPrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -229,7 +286,7 @@ func (s *Server) revokePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id and privilege key are required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}

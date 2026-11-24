@@ -29,14 +29,8 @@ describe("AppearanceCard", () => {
   it("marks the active theme as pressed and calls setTheme on click", () => {
     render(<AppearanceCard />);
 
-    expect(screen.getByRole("button", { name: /light/i })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(screen.getByRole("button", { name: /dark/i })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByRole("button", { name: /light/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /dark/i })).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(screen.getByRole("button", { name: /dark/i }));
     expect(setTheme).toHaveBeenCalledWith("dark");

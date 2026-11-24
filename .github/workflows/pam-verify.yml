@@ -1,0 +1,58 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: PAM Verify
+
+on:
+  pull_request:
+    paths:
+      - 'extensions/CILogon-SSH-PAM/**'
+      - '.github/workflows/pam-verify.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'extensions/CILogon-SSH-PAM/**'
+      - '.github/workflows/pam-verify.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Build, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: extensions/CILogon-SSH-PAM
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++ make libpam0g-dev libcurl4-openssl-dev libldap-dev libgtest-dev
+
+      - name: Build
+        run: make
+
+      - name: Tests
+        run: |
+          python3 test/mock_server.py &
+          timeout 30 bash -c 'until (exec 3<>/dev/tcp/127.0.0.1/8042) 2>/dev/null; do sleep 1; done'
+          make test

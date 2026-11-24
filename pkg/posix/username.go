@@ -20,9 +20,11 @@
 package posix
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -35,6 +37,11 @@ const MaxCollisionSuffix = 999
 const MaxLoginLen = 32
 
 var ErrUnbuildableUsername = errors.New("posix: cannot build username from empty first and last name")
+
+// ProjectRef names a project by its source and id, e.g., ACCESS + TG-CIS230001 -> access-tgcis230001.
+func ProjectRef(p models.Project) string {
+	return strings.ToLower(p.Origination) + "-" + Normalize(cmp.Or(p.OriginatedID, p.ID[:min(8, len(p.ID))]))
+}
 
 // BuildBase returns the unsuffixed username. 'truncated' is set when the name
 // portion was shortened to fit the 32-char POSIX login cap.
@@ -64,6 +71,13 @@ func BuildBase(u *models.User, prefix string) (string, bool, error) {
 	return prefix + "-" + local, truncated, nil
 }
 
+func Candidate(base string, n int) string {
+	if n == 0 {
+		return base
+	}
+	return base + strconv.Itoa(n+1)
+}
+
 func Normalize(s string) string {
 	s = strings.ToLower(s)
 	var b strings.Builder
@@ -76,6 +90,23 @@ func Normalize(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// ValidChosen reports whether s is acceptable as a user-picked login, 1 to 32
+// lowercase letters, digits, hyphen or underscore, starting with a letter.
+func ValidChosen(s string) bool {
+	if s == "" || len(s) > 32 {
+		return false
+	}
+	for i, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case i > 0 && (r >= '0' && r <= '9' || r == '-' || r == '_'):
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func Prefix() string {

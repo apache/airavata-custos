@@ -17,10 +17,6 @@
 
 "use client";
 
-import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
-import * as React from "react";
-import { toast } from "sonner";
 import { PacketDetailDrawer } from "@/features/connectors/amie/components/PacketDetailDrawer";
 import {
   type PacketFilters,
@@ -46,6 +42,10 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
+import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+import * as React from "react";
+import { toast } from "sonner";
 
 // Recharts is heavy; defer until the inbox has hydrated so first paint stays fast.
 const PacketsTrendChart = dynamic(
@@ -61,7 +61,6 @@ const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_FILTERS: PacketFilters = {
   status: "all",
   type: "all",
-  source: "all",
   q: "",
 };
 
@@ -84,7 +83,6 @@ export function PacketInboxContainer({ initialPacketId }: { initialPacketId?: st
   const packetsQuery = usePackets({
     status: filters.status !== "all" ? filters.status : undefined,
     type: filters.type !== "all" ? filters.type : undefined,
-    source: filters.source !== "all" ? filters.source : undefined,
     q: filters.q || undefined,
     limit: DEFAULT_PAGE_SIZE,
     offset: (page - 1) * DEFAULT_PAGE_SIZE,
@@ -126,7 +124,8 @@ export function PacketInboxContainer({ initialPacketId }: { initialPacketId?: st
         // continue — surface aggregate result below
       }
     }
-    toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
+    if (queued > 0) toast.success(`Queued ${queued} ${pluralize("retry", queued, "retries")}`);
+    if (queued < ids.length) toast.error(`${ids.length - queued} of ${ids.length} retries failed`);
     setSelected(new Set());
   }
 
@@ -150,7 +149,10 @@ export function PacketInboxContainer({ initialPacketId }: { initialPacketId?: st
         // continue
       }
     }
-    toast.success(`Marked ${resolved} ${pluralize("packet", resolved)} processed`);
+    if (resolved > 0)
+      toast.success(`Marked ${resolved} ${pluralize("packet", resolved)} processed`);
+    if (resolved < ids.length)
+      toast.error(`${ids.length - resolved} of ${ids.length} packets failed`);
     setSelected(new Set());
     setMarkProcessedOpen(false);
     setMarkProcessedReason("");

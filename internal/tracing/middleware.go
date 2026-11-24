@@ -20,34 +20,34 @@ package tracing
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/apache/airavata-custos/internal/httputil"
 )
 
-// Middleware opens a root span per request and writes X-Trace-Id on the response.
+// Middleware opens a root span per request and writes X-Trace-Id. A client's
+// traceparent is only linked, so callers cannot write into another trace.
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		route := r.Pattern
-		if route == "" {
-			route = r.URL.Path
+		var opts []trace.SpanStartOption
+		if link := trace.LinkFromContext(propagation.TraceContext{}.Extract(r.Context(), propagation.HeaderCarrier(r.Header))); link.SpanContext.IsValid() {
+			opts = append(opts, trace.WithLinks(link))
 		}
-		name := "http." + r.Method + " " + route
-
-		ctx, span := Start(r.Context(), name)
+		ctx, span := Start(r.Context(), "http."+r.Method+" "+r.URL.Path, opts...)
 		defer span.End()
 
 		span.SetAttributes(
 			attribute.String("http.method", r.Method),
-			attribute.String("http.route", route),
+			attribute.String("http.route", r.URL.Path),
 			attribute.String("source", "http"),
 		)
 
-		if tid, _ := IDsFromContext(ctx); tid != "" {
-			w.Header().Set("X-Trace-Id", tid)
-		}
+		w.Header().Set("X-Trace-Id", span.SpanContext().TraceID().String())
 
 		sw := &httputil.StatusRecorder{ResponseWriter: w, Status: http.StatusOK}
 
@@ -67,4 +67,15 @@ func Middleware(next http.Handler) http.Handler {
 			span.SetStatus(codes.Error, http.StatusText(sw.Status))
 		}
 	})
+}
+
+// SetRoute names the request's span by the pattern, "[METHOD ]/path", that a mux matched on r.
+func SetRoute(r *http.Request) {
+	if r.Pattern == "" {
+		return
+	}
+	route := r.Pattern[strings.IndexByte(r.Pattern, ' ')+1:]
+	span := trace.SpanFromContext(r.Context())
+	span.SetName("http." + r.Method + " " + route)
+	span.SetAttributes(attribute.String("http.route", route))
 }

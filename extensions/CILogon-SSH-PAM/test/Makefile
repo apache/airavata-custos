@@ -6,7 +6,7 @@ SRC_DIR = ../src
 
 CPPFLAGS += -isystem -I$(GTEST_DIR)/include -I$(SRC_DIR)/include -I$(SRC_DIR)
 
-CXXFLAGS += -g -Wall -Wextra -Wno-unused-parameter -pthread -std=c++11
+CXXFLAGS += -g -Wall -Wextra -Wno-unused-parameter -pthread -std=c++17
 
 LDLIBS=-lpam -lcurl -lldap -llber
 
@@ -26,7 +26,7 @@ objects = $(SRC_DIR)/pam_oauth2_device.o \
 		  $(SRC_DIR)/include/pam_oauth2_log.o
 
 all: $(TESTS)
-	for test in $(TESTS); do ./$${test}; done
+	set -e; for test in $(TESTS); do ./$${test}; done
 
 
 .PHONY: clean distclean

@@ -17,40 +17,52 @@
 
 "use client";
 
-import * as React from "react";
 import { useClusters } from "@/features/core/clusters/queries";
-import { Button } from "@/shared/ui/button";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
+import { requires, usePermissions } from "@/shared/casl/permissions";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { UsageBar } from "@/shared/ui/UsageBar";
-import { useResourceSummaries } from "../queries";
-import type { ResourceSummary } from "../schemas";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import * as React from "react";
+import { useDeleteResource, useEffectiveRate, useResourceSummaries } from "../queries";
+import { ResourceDialog } from "./ResourceDialog";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
-export function ResourcesTab() {
-  const query = useResourceSummaries();
-  const clustersQuery = useClusters();
-  const [search, setSearch] = React.useState("");
-  const [clusterId, setClusterId] = React.useState("");
-  const [ratesFor, setRatesFor] = React.useState<ResourceSummary | null>(null);
+// Rates are SU per billing unit-hour: usage is units × hours × rate.
+export function EffectiveRateCell({ resource }: { resource: ComputeAllocationResourceSummary }) {
+  const rate = useEffectiveRate(resource.rate_count ? resource.id : undefined);
+  if (rate.isLoading) return <span className="text-sm text-muted-foreground">…</span>;
+  if (!rate.data) return <span className="text-sm text-muted-foreground">No rate</span>;
+  return (
+    <span className="text-sm tabular-nums text-foreground">
+      {rate.data.rate.toLocaleString()} SU/unit·h
+    </span>
+  );
+}
 
-  const clusters = clustersQuery.data ?? [];
-  const clusterName = (id: string) => clusters.find((c) => c.id === id)?.name ?? id;
+export function ResourcesTab() {
+  const can = usePermissions();
+  const query = useResourceSummaries();
+  const clusters = useClusters().data ?? [];
+  const [search, setSearch] = React.useState("");
+  const [editing, setEditing] = React.useState<ComputeAllocationResourceSummary | "new" | null>(
+    null,
+  );
+  const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResourceSummary | null>(null);
+  const [deleting, setDeleting] = React.useState<ComputeAllocationResourceSummary | null>(null);
+  const remove = useDeleteResource();
 
   const rows = query.data ?? [];
   const filtered = React.useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (clusterId && row.compute_cluster_id !== clusterId) return false;
-      if (!needle) return true;
-      return `${row.name} ${row.resource_type}`.toLowerCase().includes(needle);
-    });
-  }, [rows, search, clusterId]);
+    return rows.filter((row) => `${row.name} ${row.resource_type}`.toLowerCase().includes(needle));
+  }, [rows, search]);
 
-  const columns: Array<DataTableColumn<ResourceSummary>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationResourceSummary>> = [
     {
       key: "name",
       header: "Resource",
@@ -62,11 +74,10 @@ export function ResourcesTab() {
       ),
     },
     {
-      key: "cluster",
-      header: "Cluster",
-      cell: (row) => (
-        <span className="text-sm text-foreground">{clusterName(row.compute_cluster_id)}</span>
-      ),
+      key: "rate",
+      header: "SU rate",
+      align: "right",
+      cell: (row) => <EffectiveRateCell resource={row} />,
     },
     {
       key: "allocation_count",
@@ -77,72 +88,44 @@ export function ResourcesTab() {
       ),
     },
     {
-      key: "total_allocated",
-      header: "Allocated",
-      align: "right",
-      cell: (row) => (
-        <span className="text-sm tabular-nums text-foreground">
-          {row.total_allocated.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: "total_used_su",
-      header: "Used SU",
-      align: "right",
-      cell: (row) => (
-        <span className="text-sm tabular-nums text-foreground">
-          {row.total_used_su.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: "usage",
-      header: "Used %",
-      cell: (row) => {
-        const pct = (row.total_used_su / Math.max(1, row.total_allocated)) * 100;
-        return (
-          <div className="w-32" title={`${pct.toFixed(1)}% used`}>
-            <UsageBar
-              value={row.total_used_su}
-              max={Math.max(1, row.total_allocated)}
-              label={`${pct.toFixed(1)}%`}
-              ariaLabel={`${row.name} usage ${pct.toFixed(1)} percent`}
-              size="sm"
-            />
-          </div>
-        );
-      },
-    },
-    {
       key: "actions",
       header: "",
       align: "right",
       interactive: true,
       cell: (row) => (
-        <Button variant="outline" size="sm" onClick={() => setRatesFor(row)}>
-          Rates ({row.rate_count})
-        </Button>
+        <div className="flex justify-end gap-2">
+          <GuardedButton
+            variant="outline"
+            size="sm"
+            allowed={can.allocationsWrite}
+            reason={requires("allocationsWrite")}
+            onClick={() => setEditing(row)}
+          >
+            Edit
+          </GuardedButton>
+          <Button variant="outline" size="sm" onClick={() => setRatesFor(row)}>
+            Rates ({row.rate_count})
+          </Button>
+          <GuardedButton
+            variant="destructive"
+            size="sm"
+            allowed={can.allocationsWrite}
+            reason={requires("allocationsWrite")}
+            onClick={() => {
+              remove.reset();
+              setDeleting(row);
+            }}
+          >
+            Delete
+          </GuardedButton>
+        </div>
       ),
     },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center">
-        <select
-          value={clusterId}
-          onChange={(e) => setClusterId(e.target.value)}
-          aria-label="Filter by cluster"
-          className="h-9 rounded-md border bg-background px-3 text-sm sm:w-56"
-        >
-          <option value="">All clusters</option>
-          {clusters.map((cluster) => (
-            <option key={cluster.id} value={cluster.id}>
-              {cluster.name}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
           type="search"
           placeholder="Search resources"
@@ -151,20 +134,53 @@ export function ResourcesTab() {
           aria-label="Search resources"
           className="sm:w-72"
         />
+        <GuardedButton
+          allowed={can.allocationsWrite}
+          reason={requires("allocationsWrite")}
+          onClick={() => setEditing("new")}
+        >
+          + Add resource
+        </GuardedButton>
       </div>
 
       {query.isLoading ? (
         <CardSkeleton />
       ) : query.error ? (
-        <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />
-      ) : rows.length === 0 ? (
-        <EmptyState heading="No resources registered." />
-      ) : filtered.length === 0 ? (
-        <EmptyState heading="No resources match these filters." />
+        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(row) => row.id} />
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row.id}
+          empty={
+            rows.length === 0 ? "No resources registered." : "No resources match these filters."
+          }
+        />
       )}
 
+      <ResourceDialog
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        clusters={clusters}
+        resource={editing === "new" ? null : editing}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title={`Delete ${deleting?.name ?? "resource"}?`}
+        confirmLabel="Delete"
+        pending={remove.isPending}
+        error={remove.error}
+        onConfirm={() => {
+          if (deleting) remove.mutate(deleting.id, { onSuccess: () => setDeleting(null) });
+        }}
+      >
+        Its rates go with it, and allocations lose access to it.
+      </ConfirmDialog>
       <ResourcesRatesDrawer
         resourceId={ratesFor?.id ?? null}
         resourceName={ratesFor?.name ?? null}

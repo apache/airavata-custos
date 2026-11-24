@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -24,11 +25,13 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/signer/internal/audit"
-	"github.com/apache/airavata-custos/signer/internal/auth"
+	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/config"
 	"github.com/apache/airavata-custos/signer/internal/handler"
+	"github.com/apache/airavata-custos/signer/internal/krl"
 	"github.com/apache/airavata-custos/signer/internal/policy"
 	"github.com/apache/airavata-custos/signer/internal/server"
+	signerservice "github.com/apache/airavata-custos/signer/internal/service"
 	"github.com/apache/airavata-custos/signer/internal/store"
 	"github.com/apache/airavata-custos/signer/internal/validation"
 	"github.com/apache/airavata-custos/signer/internal/vault"
@@ -85,11 +88,6 @@ func main() {
 	logger := setupLogger(cfg.Logging)
 	slog.SetDefault(logger)
 
-	if cfg.DevMode.Enabled {
-		logger.Warn("DEV MODE ENABLED - OIDC token validation is disabled. DO NOT use in production.",
-			"default_email", cfg.DevMode.DefaultEmail)
-	}
-
 	switch cmd {
 	case "migrate":
 		runMigrate(cfg, logger)
@@ -128,6 +126,11 @@ func runMigrate(cfg *config.Config, logger *slog.Logger) {
 }
 
 func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
+	if err := cfg.Validate(); err != nil {
+		logger.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	db, err := store.NewDB(cfg.Database)
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
@@ -141,22 +144,24 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		runMigrate(cfg, logger)
 	}
 
-	vaultClient, err := vault.NewClient(cfg.Vault, cfg.Signer.CA.Rotation)
+	vaultClient, err := vault.NewClient(cfg.Vault)
 	if err != nil {
 		logger.Error("failed to create vault client", "error", err)
 		os.Exit(1)
 	}
 	logger.Info("vault client initialized")
 
-	authenticator := auth.NewClientAuthenticator(db)
-	oidcValidator := auth.NewOIDCValidator(cfg.Signer.Auth, cfg.DevMode)
-	policyEnforcer := policy.NewEnforcer(cfg.Signer.Policy.Defaults.MaxTTLSeconds, cfg.Signer.Policy.Defaults.AllowedKeyTypes)
+	policyEnforcer := policy.NewEnforcer(cfg.Signer.Policy.MaxTTLSeconds, cfg.Signer.Policy.AllowedKeyTypes)
 	auditLogger := audit.NewLogger(db, logger)
 
-	cacheTTL := time.Duration(cfg.Signer.Validation.CacheTTLSeconds) * time.Second
-	if cacheTTL <= 0 {
-		cacheTTL = 5 * time.Minute
+	caFingerprint, err := loadCA(context.Background(), vaultClient, cfg.Signer.CA.CreateIfMissing, auditLogger)
+	if err != nil {
+		logger.Error("failed to load CA", "error", err)
+		os.Exit(1)
 	}
+	logger.Info("CA loaded", "ca_fingerprint", caFingerprint)
+
+	cacheTTL := time.Duration(cfg.Signer.Validation.CacheTTLSeconds) * time.Second
 	ldapConnector := validation.NewDefaultLDAPConnector()
 	principalValidator := validation.NewValidatorDispatcher(
 		vaultClient, ldapConnector,
@@ -164,37 +169,71 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		cacheTTL, logger,
 	)
 	logger.Info("principal validation dispatcher initialized",
-		"fallback_source", cfg.Signer.Validation.PrincipalValidator,
+		"source", cfg.Signer.Validation.PrincipalValidator,
 		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
-	signHandler := handler.NewSignHandler(oidcValidator, policyEnforcer, principalValidator, vaultClient, auditLogger, logger)
-	revokeHandler := handler.NewRevokeHandler(auditLogger, logger)
-	jwksHandler := handler.NewJWKSHandler(vaultClient, logger)
+	signHandler := handler.NewSignHandler(policyEnforcer, principalValidator, vaultClient, db, auditLogger, handler.SignSettings{
+		ReservedUsernames:      cfg.Signer.ReservedUsernames,
+		DeniedExtensions:       cfg.Signer.Policy.DeniedExtensions,
+		LoginHost:              cfg.Signer.LoginHost,
+		LoginPort:              cfg.Signer.LoginPort,
+		CertificateLimit:       cfg.Signer.Policy.CertificateLimit.MaxPerUser,
+		CertificateLimitWindow: time.Duration(cfg.Signer.Policy.CertificateLimit.WindowSeconds) * time.Second,
+	}, logger)
+	krlPublisher := krl.NewPublisher(db, cfg.Signer.KRL.Path, auditLogger, logger)
+	if err := krlPublisher.Publish(context.Background()); err != nil {
+		logger.Error("failed to publish KRL", "error", err)
+		os.Exit(1)
+	}
+	go krlPublisher.Run(context.Background(), time.Duration(cfg.Signer.KRL.RefreshSeconds)*time.Second)
+
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
-	healthHandler := handler.NewHealthHandler(db, vaultClient)
-	adminHandler := handler.NewAdminHandler(vaultClient, logger)
-	certificatesHandler := handler.NewCertificatesHandler(db, logger)
-	userInfoHandler := handler.NewUserInfoHandler()
+	healthHandler := handler.NewHealthHandler(db, vaultClient, krlPublisher)
+	certificatesHandler := handler.NewCertificatesHandler(db, signerservice.NewRevocationService(db), krlPublisher, cfg.Signer.LoginHost, cfg.Signer.LoginPort, logger)
 
 	handlers := server.Handlers{
 		Sign:              signHandler.Handle,
-		Revoke:            revokeHandler.Handle,
-		JWKS:              jwksHandler.Handle,
 		CAPublicKey:       caPublicKeyHandler.Handle,
 		Health:            healthHandler.Handle,
-		Admin:             adminHandler.Handle,
 		Certificates:      certificatesHandler.HandleList,
 		CertificateDetail: certificatesHandler.HandleGet,
-		UserInfo:          userInfoHandler.Handle,
+		CertificateRevoke: certificatesHandler.HandleRevoke,
+		KRL:               handler.NewKRLHandler(krlPublisher).Handle,
 	}
 
-	router := server.NewRouter(cfg, authenticator, oidcValidator, handlers)
+	router := server.NewRouter(cfg, handlers)
 
 	srv := server.New(cfg.Server, router, logger)
 	if err := srv.ListenAndServe(); err != nil {
 		logger.Error("server error", "error", err)
 		os.Exit(1)
 	}
+}
+
+// loadCA makes sure the CA exists before the signer serves requests and returns its fingerprint.
+func loadCA(ctx context.Context, vaultClient *vault.Client, createIfMissing bool, auditLogger *audit.Logger) (string, error) {
+	kp, err := vaultClient.GetCurrentCAKey(ctx)
+	if errors.Is(err, vault.ErrCANotFound) {
+		if !createIfMissing {
+			return "", fmt.Errorf("%w: store the CA key, or set signer.ca.create_if_missing to create one", err)
+		}
+		if kp, err = vaultClient.GenerateCAKey(ctx); err != nil {
+			return "", err
+		}
+		fingerprint, err := cert.CAFingerprint(kp.PublicKey)
+		if err != nil {
+			return "", err
+		}
+		auditLogger.LogCACreated(ctx, fingerprint)
+		return fingerprint, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := cert.CheckCAKeysMatch(kp.PrivateKey, kp.PublicKey); err != nil {
+		return "", err
+	}
+	return cert.CAFingerprint(kp.PublicKey)
 }
 
 func setupLogger(cfg config.LoggingConfig) *slog.Logger {

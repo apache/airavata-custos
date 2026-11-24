@@ -19,8 +19,9 @@ import type { ReactNode } from "react";
 import { BreadcrumbLabelsProvider } from "./BreadcrumbLabelsProvider";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import type { SignedInUser } from "./UserPill";
 
-export function PortalLayout({ children }: { children: ReactNode }) {
+export function PortalLayout({ user, children }: { user: SignedInUser; children: ReactNode }) {
   return (
     <BreadcrumbLabelsProvider>
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
@@ -32,7 +33,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
         </a>
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <Topbar />
+          <Topbar user={user} />
           <main id="main-content" className="flex-1 overflow-y-auto px-10 py-8" tabIndex={-1}>
             {children}
           </main>

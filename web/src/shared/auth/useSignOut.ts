@@ -28,12 +28,9 @@ export function useSignOut() {
     // the portal); bare deployments fall through to the sign-in page.
     const callbackUrl = opts?.callbackUrl ?? "/";
     setIsPending(true);
-    // The end-session route reads idToken from the session before clearing
-    // the cookie, so it can build a Keycloak logout URL with id_token_hint
-    // (otherwise Keycloak skips the SSO invalidation).
-    window.location.assign(
-      `/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
-    );
+    // The end-session route reads the id_token from the cookie before clearing it,
+    // so the IdP logout URL carries id_token_hint and ends the SSO session too.
+    window.location.assign(`/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }, []);
   return { signOut, isPending };
 }

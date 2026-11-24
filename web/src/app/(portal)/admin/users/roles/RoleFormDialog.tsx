@@ -17,10 +17,10 @@
 
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
 import { useCreateRole, usePrivilegeCatalog, useUpdateRole } from "@/features/core/roles/queries";
 import type { RoleRow } from "@/features/core/roles/schemas";
+import { useUsers } from "@/features/core/users/queries";
+import type { User } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -35,13 +35,13 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { togglePermission } from "@/shared/users-admin/permissions";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
-import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
-import type { UserRow } from "@/shared/users-admin/types";
+import * as React from "react";
+import { toast } from "sonner";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 
-function fullNameFor(user: UserRow): string {
+function fullNameFor(user: User): string {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
-  return name || (user.email ?? "Unknown user");
+  return name || user.email || "Unknown user";
 }
 
 export function RoleFormDialog({
@@ -58,7 +58,7 @@ export function RoleFormDialog({
   const catalogQuery = usePrivilegeCatalog();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
-  const { users } = useUsersAdmin();
+  const users = useUsers({ limit: 200 }).data?.items ?? [];
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -91,7 +91,7 @@ export function RoleFormDialog({
     const input = { name: name.trim(), description: description.trim(), privileges: permissions };
     const memberUserIds = Array.from(selectedUserIds);
     try {
-      if (isEdit && role?.id) {
+      if (isEdit && role) {
         await updateRole.mutateAsync({ role, input, memberUserIds });
         toast.success("Role updated");
       } else {
@@ -108,7 +108,7 @@ export function RoleFormDialog({
   const catalog = catalogQuery.data ?? [];
   const needle = userSearch.trim().toLowerCase();
   const matchingUsers = needle
-    ? users.filter((u) => `${fullNameFor(u)} ${u.email ?? ""}`.toLowerCase().includes(needle))
+    ? users.filter((u) => `${fullNameFor(u)} ${u.email}`.toLowerCase().includes(needle))
     : users;
 
   return (
@@ -171,7 +171,7 @@ export function RoleFormDialog({
                 <li className="px-1 py-1 text-sm text-muted-foreground">No users match.</li>
               ) : (
                 matchingUsers.map((u) => {
-                  const id = u.id ?? u.email ?? "";
+                  const id = u.id;
                   return (
                     <li key={id}>
                       <label className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-sm hover:bg-muted">

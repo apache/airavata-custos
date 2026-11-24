@@ -305,9 +305,6 @@ func TestRequestAccountInactivate_MissingRequiredField(t *testing.T) {
 // TestRequestAccountInactivate_ReplyFailurePropagates asserts the handler
 // surfaces a ReplyToPacket failure to the caller so the processor can decide
 // to retry. The REPLY_SENT audit row must be absent when the reply failed.
-// (Note the broader atomicity gap: the membership flip is already committed
-// because UpdateMembershipStatus opens its own tx; this test only asserts
-// the error propagation + audit shape.)
 func TestRequestAccountInactivate_ReplyFailurePropagates(t *testing.T) {
 	database := setupTestDB(t)
 	seed := seedMembership(t, database)
@@ -331,6 +328,9 @@ func TestRequestAccountInactivate_ReplyFailurePropagates(t *testing.T) {
 	}
 	if got := countAuditActions(t, database, pkt.ID, model.AuditReplySent); got != 0 {
 		t.Errorf("audit REPLY_SENT on failed reply: got %d, want 0", got)
+	}
+	if got := getMembershipStatus(t, database, seed.Membership.ID); got != string(models.ACTIVE) {
+		t.Errorf("membership after failed reply: got %q, want ACTIVE", got)
 	}
 }
 

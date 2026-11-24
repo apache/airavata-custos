@@ -17,7 +17,7 @@
 
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import type { Allocation } from "@/generated/analytics/zod.gen";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -25,10 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { creditsBand, formatCredits, pctRemaining, type UrgencyBand } from "../lib";
-import type { AnalyticsAllocation, AnalyticsContext } from "../schemas";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { type UrgencyBand, creditsBand, formatCredits, pctRemaining } from "../lib";
+import type { AnalyticsContext } from "../schemas";
 
-function balance(a: AnalyticsAllocation): string {
+function balance(a: Allocation): string {
   return `${formatCredits(Math.max(0, a.initial_su_amount - a.used_su_amount))} left`;
 }
 

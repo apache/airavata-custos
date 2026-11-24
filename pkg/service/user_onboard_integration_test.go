@@ -20,8 +20,10 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -29,6 +31,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/posix"
 )
@@ -389,5 +392,198 @@ func TestOnboardUser_RejectsLongUsername(t *testing.T) {
 	}
 	if u, err := svc.GetUserByEmail(ctx(), in.Email); err == nil && u != nil {
 		t.Fatalf("user row written for a rejected username: %s", u.ID)
+	}
+}
+
+func newClusterAccount(t *testing.T, svc *Service, userID, name string) *models.ComputeClusterUser {
+	t.Helper()
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{Name: "onb-" + uuid.NewString()[:8]})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: userID, LocalUsername: name})
+	if err != nil {
+		t.Fatalf("create cluster account: %v", err)
+	}
+	return cu
+}
+
+// Accepting the current agreement at first sign-in binds the sub, activates the
+// user, renames the cluster account, and records the acceptance together.
+func TestCompleteOnboarding_HappyPath(t *testing.T) {
+	database := setupTestDB(t)
+	bus := newTestBus(database)
+	svc := New(database, bus)
+	bus.SubscribeUserOnboarded("test-subscriber", func(context.Context, models.User) error { return nil })
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	user := seedPendingUserWithEmail(t, database, email)
+	newClusterAccount(t, svc, user, "custos-jdoe")
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
+
+	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
+		t.Fatalf("CompleteOnboarding: %v", err)
+	}
+
+	if u, err := svc.GetUser(ctx(), user); err != nil || u.Status != models.UserActive {
+		t.Errorf("status: got %+v, %v, want ACTIVE", u, err)
+	}
+	if n := countRows(t, database, "SELECT COUNT(*) FROM user_identities WHERE user_id = $1 AND source = 'oidc' AND oidc_sub = $2", user, claims.Sub); n != 1 {
+		t.Errorf("oidc identity with sub: got %d, want 1", n)
+	}
+	if accounts, err := svc.ListComputeClusterUsersByUser(ctx(), user); err != nil || len(accounts) != 1 || accounts[0].LocalUsername != "jdoe" {
+		t.Errorf("cluster account: got %+v, %v, want one named jdoe", accounts, err)
+	}
+	if n := countRows(t, database, "SELECT COUNT(*) FROM user_agreement_acceptances WHERE user_id = $1 AND agreement_id = $2", user, aup.ID); n != 1 {
+		t.Errorf("acceptance: got %d, want 1", n)
+	}
+	for _, ev := range []string{"IDENTITY_LINKED", "USER_AGREEMENT_ACCEPTED"} {
+		if got := countAuditEventsOfType(t, database, ev, user); got != 1 {
+			t.Errorf("audit %s: got %d, want 1", ev, got)
+		}
+	}
+	if n := countRows(t, database, "SELECT COUNT(*) FROM events WHERE event_type = 'user::onboarded'"); n != 1 {
+		t.Errorf("user::onboarded events: got %d, want 1", n)
+	}
+}
+
+// First sign-in without accepting the current agreement is refused and writes nothing. No sub, no status change, no rename, no acceptance.
+func TestCompleteOnboarding_MissingAcceptance(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	user := seedPendingUserWithEmail(t, database, email)
+	newClusterAccount(t, svc, user, "custos-jdoe")
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
+
+	_, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe"})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	}
+
+	if u, err := svc.GetUser(ctx(), user); err != nil || u.Status != models.UserPending {
+		t.Errorf("status: got %+v, %v, want PENDING", u, err)
+	}
+	if n := countRows(t, database, "SELECT COUNT(*) FROM user_identities WHERE user_id = $1", user); n != 0 {
+		t.Errorf("identities: got %d, want 0", n)
+	}
+	if n := countRows(t, database, "SELECT COUNT(*) FROM user_agreement_acceptances WHERE user_id = $1", user); n != 0 {
+		t.Errorf("acceptances: got %d, want 0", n)
+	}
+	if accounts, err := svc.ListComputeClusterUsersByUser(ctx(), user); err != nil || len(accounts) != 1 || accounts[0].LocalUsername != "custos-jdoe" {
+		t.Errorf("cluster account: got %+v, %v, want one named custos-jdoe", accounts, err)
+	}
+}
+
+// Make sure a user the registry already knows finishes onboarding with their username unchanged.
+func TestCompleteOnboarding_RegisteredUserKeepsUsername(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	user := seedPendingUserWithEmail(t, database, email)
+	newClusterAccount(t, svc, user, "custos-jdoe")
+	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: user, Source: "comanage", ExternalID: "100001"}); err != nil {
+		t.Fatalf("create comanage identity: %v", err)
+	}
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
+
+	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil {
+		t.Fatalf("CompleteOnboarding: %v", err)
+	}
+	if accounts, err := svc.ListComputeClusterUsersByUser(ctx(), user); err != nil || len(accounts) != 1 || accounts[0].LocalUsername != "custos-jdoe" {
+		t.Errorf("cluster account: got %+v, %v, want one named custos-jdoe", accounts, err)
+	}
+}
+
+// Make sure the setup steps follow what provisioning has recorded.
+func TestSetupSteps_FollowProvisioning(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedPendingUserWithEmail(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+	cu := newClusterAccount(t, svc, user, "jdoe")
+	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
+	if err != nil {
+		t.Fatalf("get cluster: %v", err)
+	}
+
+	want := []SetupStep{{Key: "registry"}, {Key: "cluster_account", Name: cluster.Name}}
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || !slices.Equal(got, want) {
+		t.Fatalf("before provisioning: got %+v, %v, want %+v", got, err, want)
+	}
+
+	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: user, Source: "comanage", ExternalID: "100001"}); err != nil {
+		t.Fatalf("create comanage identity: %v", err)
+	}
+	if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+		t.Fatalf("mark provisioned: %v", err)
+	}
+	got, err := svc.SetupSteps(ctx(), user)
+	if err != nil || len(got) != 2 {
+		t.Fatalf("after provisioning: got %+v, %v, want registry and cluster_account", got, err)
+	}
+	for _, step := range got {
+		if step.DoneAt == nil {
+			t.Errorf("step %s: got %+v, want a done time", step.Key, step)
+		}
+	}
+}
+
+// Make sure a user without a cluster account has no setup steps.
+func TestSetupSteps_NoneWithoutClusterAccount(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedUser(t, database, "jdoe-"+uuid.NewString()[:8]+"@example.edu")
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || len(got) != 0 {
+		t.Fatalf("got %+v, %v, want no steps", got, err)
+	}
+}
+
+// Make sure a virtual user's setup skips the registry, even with a cluster account.
+func TestSetupSteps_VirtualUserSkipsRegistry(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedPendingUserWithEmail(t, database, "temp-"+uuid.NewString()[:8]+"@example.edu")
+	if _, err := database.Exec("UPDATE users SET type = $1 WHERE id = $2", models.UserTypeVirtual, user); err != nil {
+		t.Fatalf("make user virtual: %v", err)
+	}
+	cu := newClusterAccount(t, svc, user, "temp")
+	cluster, err := svc.GetComputeCluster(ctx(), cu.ComputeClusterID)
+	if err != nil {
+		t.Fatalf("get cluster: %v", err)
+	}
+	want := []SetupStep{{Key: "cluster_account", Name: cluster.Name}}
+	if got, err := svc.SetupSteps(ctx(), user); err != nil || !slices.Equal(got, want) {
+		t.Fatalf("got %+v, %v, want %+v", got, err, want)
+	}
+}
+
+// Make sure only a pending user without a bound sub can change email.
+func TestUpdatePendingUserEmail(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	active := seedUser(t, database, "active-"+uuid.NewString()[:8]+"@example.edu")
+	bound := seedPendingUserWithEmail(t, database, "bound-"+uuid.NewString()[:8]+"@example.edu")
+	if _, err := svc.CreateUserIdentity(ctx(), &models.UserIdentity{UserID: bound, Source: "oidc", ExternalID: "sub-x", OIDCSub: "sub-x"}); err != nil {
+		t.Fatalf("create oidc identity: %v", err)
+	}
+	pending := seedPendingUserWithEmail(t, database, "pending-"+uuid.NewString()[:8]+"@example.edu")
+	alias := "alias-" + uuid.NewString()[:8] + "@example.edu"
+
+	for _, user := range []string{active, bound} {
+		if _, err := svc.UpdatePendingUserEmail(ctx(), active, user, alias); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("user %s: got %v, want ErrInvalidInput", user, err)
+		}
+	}
+	if u, err := svc.UpdatePendingUserEmail(ctx(), active, pending, alias); err != nil || u.Email != alias {
+		t.Fatalf("pending user: got %+v, %v, want email %s", u, err, alias)
+	}
+	for user, want := range map[string][3]int{active: {1, 0, 1}, pending: {1, 1, 0}} {
+		for i, ev := range []string{userAuditEmailChangeRequested, userAuditEmailChanged, userAuditEmailChangeFailed} {
+			if got := countAuditEventsOfType(t, database, ev, user); got != want[i] {
+				t.Errorf("user %s audit %s: got %d, want %d", user, ev, got, want[i])
+			}
+		}
 	}
 }

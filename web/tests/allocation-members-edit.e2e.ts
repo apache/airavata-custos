@@ -21,7 +21,7 @@ import { signInAs } from "./fixtures/auth";
 test.describe("allocation members tab", () => {
   test("admin adds, edits, and removes a member", async ({ page }) => {
     await signInAs(page, "admin");
-    await page.goto("/allocations/alloc-002");
+    await page.goto("/projects/project-001/alloc-002");
     await expect(
       page.getByRole("heading", { name: /Genomic Sequencing - CPU Pool/i }),
     ).toBeVisible();

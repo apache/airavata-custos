@@ -19,7 +19,8 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
-import { ChevronDown, ChevronsUpDown, ChevronUp } from "lucide-react";
+import { TableEmptyRow } from "@/shared/ui/table";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 export type DataTableSortValue = string | number | Date | null | undefined;
@@ -34,13 +35,13 @@ export type DataTableColumn<T> = {
   // checkbox, a button, a link). The DataTable will then skip wrapping the cell
   // in its keyboard-activation <button>, which would otherwise nest controls.
   interactive?: boolean;
-  // Mark the column header as a sort toggle. Requires `sortValue`. The toggle
-  // cycles none → asc → desc → none.
+  // Mark the column header as a sort toggle. Requires `sortValue`, or `onSortChange` on the
+  // table for rows sorted elsewhere. The local toggle cycles none → asc → desc → none.
   sortable?: boolean;
   sortValue?: (row: T) => DataTableSortValue;
 };
 
-type SortState = { key: string; direction: "asc" | "desc" } | null;
+export type DataTableSort = { key: string; direction: "asc" | "desc" };
 
 export type DataTablePagination = {
   page: number;
@@ -61,9 +62,14 @@ export type DataTableProps<T> = {
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
   caption?: string;
-  empty?: React.ReactNode;
+  empty?: string;
   pagination?: DataTablePagination;
   className?: string;
+  // Groups rows under a full-width header row, in order of first appearance; sorting applies within each group.
+  groupBy?: { key: (row: T) => string; header: (row: T) => React.ReactNode };
+  // Rows arrive sorted by `sort`; header toggles request a new one.
+  sort?: DataTableSort | undefined;
+  onSortChange?: ((sort: DataTableSort) => void) | undefined;
 };
 
 function compareSortable(
@@ -97,8 +103,12 @@ export function DataTable<T>({
   empty,
   pagination,
   className,
+  groupBy,
+  sort,
+  onSortChange,
 }: DataTableProps<T>) {
-  const [sortState, setSortState] = React.useState<SortState>(null);
+  const [localSort, setLocalSort] = React.useState<DataTableSort | null>(null);
+  const sortState = onSortChange ? (sort ?? null) : localSort;
 
   const sortedRows = React.useMemo(() => {
     if (!sortState) return rows;
@@ -115,8 +125,32 @@ export function DataTable<T>({
       .map((entry) => entry.row);
   }, [rows, sortState, columns]);
 
+  const displayRows = groupBy
+    ? [...Map.groupBy(sortedRows, groupBy.key).values()].flat()
+    : sortedRows;
+
+  const groupHeader = (row: T, prev: T | undefined) => {
+    if (!groupBy || (prev !== undefined && groupBy.key(prev) === groupBy.key(row))) return null;
+    return (
+      <tr key={`group:${groupBy.key(row)}`} className="border-t border-border/60 bg-muted/40">
+        <th
+          scope="colgroup"
+          colSpan={columns.length}
+          className="px-4 py-2 text-left text-xs font-medium text-muted-foreground"
+        >
+          {groupBy.header(row)}
+        </th>
+      </tr>
+    );
+  };
+
   const cycleSort = (key: string) => {
-    setSortState((prev) => {
+    if (onSortChange) {
+      const flip = sortState?.key === key && sortState.direction === "asc";
+      onSortChange({ key, direction: flip ? "desc" : "asc" });
+      return;
+    }
+    setLocalSort((prev) => {
       if (!prev || prev.key !== key) return { key, direction: "asc" };
       if (prev.direction === "asc") return { key, direction: "desc" };
       return null;
@@ -125,10 +159,7 @@ export function DataTable<T>({
 
   return (
     <div
-      className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card",
-        className,
-      )}
+      className={cn("overflow-hidden rounded-lg border border-foreground/20 bg-card", className)}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -156,7 +187,7 @@ export function DataTable<T>({
                       col.align === "center" && "text-center",
                     )}
                   >
-                    {col.sortable && col.sortValue ? (
+                    {col.sortable && (col.sortValue || onSortChange) ? (
                       <button
                         type="button"
                         onClick={() => cycleSort(col.key)}
@@ -186,23 +217,16 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {sortedRows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  {empty ?? (
-                    <span className="text-sm text-muted-foreground">
-                      No data.
-                    </span>
-                  )}
-                </td>
-              </tr>
+            {displayRows.length === 0 ? (
+              <TableEmptyRow colSpan={columns.length}>{empty ?? "No data."}</TableEmptyRow>
             ) : (
-              sortedRows.map((row, index) => (
+              displayRows.map((row, index) => [
+                groupHeader(row, displayRows[index - 1]),
                 <tr
                   key={rowKey(row, index)}
                   className={cn(
                     "border-t border-border/60 bg-card",
-                    onRowClick && "cursor-pointer",
+                    onRowClick && "cursor-pointer hover:bg-muted/60",
                     rowClassName?.(row),
                   )}
                   onClick={
@@ -216,9 +240,9 @@ export function DataTable<T>({
                           // synthetic events still bubble through the
                           // *component* tree, so without this the row click
                           // fires alongside the menu item's own click.
-                          const target = e.target as HTMLElement;
                           if (
-                            target.closest(
+                            e.target instanceof Element &&
+                            e.target.closest(
                               "button, a, input, select, textarea, label, [role='menu'], [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [role='dialog'], [role='listbox'], [role='option']",
                             )
                           )
@@ -230,10 +254,7 @@ export function DataTable<T>({
                   onKeyDown={
                     onRowClick
                       ? (e) => {
-                          if (
-                            e.key === "Enter" &&
-                            e.target === e.currentTarget
-                          ) {
+                          if (e.key === "Enter" && e.target === e.currentTarget) {
                             onRowClick(row);
                           }
                         }
@@ -276,8 +297,8 @@ export function DataTable<T>({
                       );
                     });
                   })()}
-                </tr>
-              ))
+                </tr>,
+              ])
             )}
           </tbody>
         </table>

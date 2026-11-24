@@ -15,7 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UserManagementRow } from "@/features/core/users/types";
+import type { UserAccountRow } from "@/features/core/users/types";
+import type { Role } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,38 +32,65 @@ vi.mock("@/shared/hooks/useShallowSearchParams", () => ({
   replaceShallowSearchParams: searchParamMocks.replace,
 }));
 
-const row: UserManagementRow = {
+const adminRole: Role = {
+  id: "role-1",
+  name: "Administrator",
+  description: null,
+  is_system: false,
+  created_at: "2026-01-01T00:00:00Z",
+};
+
+const row: UserAccountRow = {
   id: "user-1",
   email: "user@example.org",
   first_name: "Example",
   last_name: "User",
-  roles: [{ id: "role-1", name: "Administrator" }],
-  identities: [{ id: "identity-1", user_id: "user-1", source: "cilogon" }],
+  organization_id: "org-1",
+  status: "ACTIVE",
+  type: "CLUSTER_LOCAL",
+  created_at: "2026-01-01T00:00:00Z",
+  roles: [adminRole],
+  identities: [
+    {
+      id: "identity-1",
+      user_id: "user-1",
+      source: "cilogon",
+      external_id: "user@example.org",
+      created_at: "2026-01-01T00:00:00Z",
+    },
+  ],
   rolesLoading: false,
   identitiesLoading: false,
   rolesError: false,
   identitiesError: false,
+  accounts: [],
 };
 
-function renderTable(canManageRoles: boolean, users: UserManagementRow[] = [row]) {
+function renderTable(canManageRoles: boolean, users: UserAccountRow[] = [row]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const onPageChange = vi.fn();
+  const onSearchChange = vi.fn();
   const view = render(
     <QueryClientProvider client={client}>
       <UsersTable
         users={users}
-        rolesCatalog={[{ id: "role-1", name: "Administrator" }]}
+        rolesCatalog={[adminRole]}
         currentUserEmail="user@example.org"
         canManageRoles={canManageRoles}
         canReadDirectPrivileges={false}
+        canReadAllocations={false}
+        clusterAccounts={undefined}
+        search=""
+        onSearchChange={onSearchChange}
         page={1}
         pageSize={25}
         total={users.length}
         onPageChange={onPageChange}
+        sort="-created_at"
       />
     </QueryClientProvider>,
   );
-  return { ...view, onPageChange };
+  return { ...view, onPageChange, onSearchChange };
 }
 
 describe("UsersTable", () => {
@@ -106,14 +134,25 @@ describe("UsersTable", () => {
     expect(screen.getByText("Identities unavailable")).toBeInTheDocument();
   });
 
+  it("sorts by the clicked header", () => {
+    renderTable(true);
+    fireEvent.click(screen.getByRole("button", { name: "Created at" }));
+    fireEvent.click(screen.getByRole("button", { name: "Name" }));
+    expect(searchParamMocks.replace.mock.calls.map(([params]) => String(params))).toEqual([
+      "sort=created_at",
+      "sort=name",
+    ]);
+  });
+
   it("keeps the permissions drawer open while typing in search", () => {
-    const { onPageChange } = renderTable(true);
+    const { onPageChange, onSearchChange } = renderTable(true);
     fireEvent.click(screen.getByText("Example User"));
     expect(screen.getByText("Edit roles")).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "exam" } });
 
     expect(screen.getByText("Edit roles")).toBeInTheDocument();
+    expect(onSearchChange).toHaveBeenCalledWith("exam");
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });

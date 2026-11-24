@@ -63,7 +63,7 @@ test.describe("admin AMIE packet detail", () => {
       .include("main")
       .withTags(["wcag2a", "wcag2aa"])
       .analyze();
-    const critical = results.violations.filter((v) => SEVERITIES.includes(v.impact as "serious"));
+    const critical = results.violations.filter((v) => SEVERITIES.some((s) => s === v.impact));
     expect(critical).toEqual([]);
   });
 });

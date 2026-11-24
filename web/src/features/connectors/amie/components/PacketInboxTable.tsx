@@ -17,22 +17,26 @@
 
 "use client";
 
-import * as React from "react";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { PACKET_TYPES, type Packet, type PacketStatus } from "../types";
+import * as React from "react";
+import {
+  PACKET_STATUSES,
+  PACKET_TYPES,
+  type Packet,
+  type PacketStatus,
+  packetStatusLabel,
+} from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
 
 export type PacketFilters = {
   status: PacketStatus | "all";
   type: string;
-  source: string;
   q: string;
 };
 
@@ -224,16 +228,17 @@ export function PacketInboxTable({
             onChange={(e) =>
               onFiltersChange({
                 ...filters,
-                status: e.currentTarget.value as PacketStatus | "all",
+                status: PACKET_STATUSES.find((s) => s === e.currentTarget.value) ?? "all",
               })
             }
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             <option value="all">All</option>
-            <option value="NEW">NEW</option>
-            <option value="DECODED">DECODED</option>
-            <option value="PROCESSED">PROCESSED</option>
-            <option value="FAILED">FAILED</option>
+            {PACKET_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {packetStatusLabel(s)}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -255,24 +260,11 @@ export function PacketInboxTable({
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="amie-source">Source</Label>
-          <select
-            id="amie-source"
-            value={filters.source}
-            onChange={(e) => onFiltersChange({ ...filters, source: e.currentTarget.value })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All sources</option>
-            <option value="access">access</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
           <Label htmlFor="amie-search">Search</Label>
           <Input
             id="amie-search"
             type="search"
-            placeholder="amie id, packet id, entity"
+            placeholder="Packet ID or AMIE ID"
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.currentTarget.value)}
             className="w-56"
@@ -313,19 +305,15 @@ export function PacketInboxTable({
       </form>
 
       {error ? (
-        <ErrorState message={error.message ?? "Failed to load packets"} onRetry={onRetry} />
+        <ErrorState message={error.message} onRetry={onRetry} />
       ) : isLoading ? (
         <TableSkeleton />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          heading="No packets in this view"
-          description="Try clearing filters or widening the time window."
-        />
       ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          empty="No packets in this view."
           pagination={{ page, pageSize, total, onPageChange }}
         />
       )}

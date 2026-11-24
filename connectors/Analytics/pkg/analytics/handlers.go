@@ -20,7 +20,6 @@ package analytics
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -47,7 +46,8 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 }
 
 // @Summary	List the caller's analytics contexts
-// @Description	Projects the caller belongs to (through a role or allocation membership), each with the caller's role and its allocations. No privilege required; scoped to the caller's own memberships.
+// @Description	Projects the caller belongs to (through a role or allocation membership), each with the caller's role and its allocations.
+// @Description	A caller with core:allocations:read gets every project, with a null role where they hold none.
 // @Tags	Analytics
 // @Security	BearerAuth
 // @Produce	json
@@ -55,11 +55,11 @@ func (h *Handlers) RegisterRoutes(router *identity.Router) {
 // @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/connectors/analytics/contexts [get]
 func (h *Handlers) getCallerAnalyticsContexts(w http.ResponseWriter, r *http.Request) {
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
-	contexts, err := h.svc.AnalyticsContexts(r.Context(), caller.UserID)
+	contexts, err := h.svc.AnalyticsContexts(r.Context(), caller.UserID, identity.HasPrivilege(r.Context(), models.AllocationsRead))
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -68,7 +68,8 @@ func (h *Handlers) getCallerAnalyticsContexts(w http.ResponseWriter, r *http.Req
 }
 
 // @Summary	Get an allocation's usage summary
-// @Description	Aggregated usage for one allocation. Access is membership-scoped: the caller must hold a membership on the allocation or a governance role on its project. The per-member breakdown is populated only for project managers. Callers without access receive 404 so allocation existence is not leaked.
+// @Description	Aggregated usage for one allocation. The caller must hold a membership on the allocation, a governance role on its project, or core:allocations:read.
+// @Description	The per-member breakdown is populated only for project managers and core:allocations:read holders. Callers without access receive 404 so allocation existence is not leaked.
 // @Tags	Analytics
 // @Security	BearerAuth
 // @Produce	json
@@ -84,7 +85,7 @@ func (h *Handlers) getAllocationUsageSummary(w http.ResponseWriter, r *http.Requ
 		common.WriteError(w, http.StatusBadRequest, errors.New("allocation id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -115,7 +116,8 @@ func (h *Handlers) getAllocationUsageSummary(w http.ResponseWriter, r *http.Requ
 }
 
 // @Summary	List an allocation's jobs (usage records)
-// @Description	A page of usage records (a job's charge) the newest first, with the total count. Access is membership-scoped like the usage summary. Plain members always see only their own records; project managers see everyone's by default and can narrow to their own with mine=true. Non-members receive 404.
+// @Description	A page of usage records (a job's charge) the newest first, with the total count. Access is membership-scoped like the usage summary.
+// @Description	Plain members always see only their own records; project managers and core:allocations:read holders see everyone's by default and can narrow to their own with mine=true. Non-members receive 404.
 // @Tags	Analytics
 // @Security	BearerAuth
 // @Produce	json
@@ -134,7 +136,7 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("allocation id is required"))
 		return
 	}
-	caller := requireCaller(w, r)
+	caller := common.RequireCaller(w, r)
 	if caller == nil {
 		return
 	}
@@ -157,7 +159,7 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 	// Members may only see their own records; managers default to everyone and
 	// opt into their own with mine=true.
 	mineOnly := !canManage || q.Get("mine") == "true"
-	page, err := h.svc.AllocationJobsPage(r.Context(), id, caller.UserID, mineOnly, atoiOr(q.Get("limit"), 20), atoiOr(q.Get("offset"), 0))
+	page, err := h.svc.AllocationJobsPage(r.Context(), id, caller.UserID, mineOnly, common.AtoiOr(q.Get("limit"), 20), common.AtoiOr(q.Get("offset"), 0))
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -168,40 +170,12 @@ func (h *Handlers) getAllocationJobs(w http.ResponseWriter, r *http.Request) {
 // allocationAccess resolves the caller's standing on an allocation. canManage
 // is true for project managers (PI/co-PI/allocation manager) and gates the
 // per-member breakdown; hasAccess additionally admits plain allocation members
-// (their own scoped view). Access comes from membership alone, never a
-// site-wide privilege.
+// (their own scoped view). The allocation read privilege gives the full view,
+// as it does for the allocation itself.
 func (h *Handlers) allocationAccess(r *http.Request, alloc *models.ComputeAllocation, userID string) (canManage, hasAccess bool, err error) {
-	role, err := h.svc.ProjectRoleForUser(r.Context(), alloc.ProjectID, userID)
-	if err != nil {
-		return false, false, err
-	}
-	switch role {
-	case models.ProjectRolePI, models.ProjectRoleCoPI, models.ProjectRoleAllocationManager:
+	if identity.HasPrivilege(r.Context(), models.AllocationsRead) {
 		return true, true, nil
 	}
-	member, err := h.svc.IsAllocationMember(r.Context(), alloc.ID, userID)
-	if err != nil {
-		return false, false, err
-	}
-	return false, member, nil
-}
-
-func requireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
-	c := identity.CallerFromContext(r.Context())
-	if c == nil {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing authenticated caller"))
-		return nil
-	}
-	return c
-}
-
-func atoiOr(s string, def int) int {
-	if s == "" {
-		return def
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return n
+	role, err := h.svc.AllocationRoleForUser(r.Context(), alloc.ID, userID)
+	return models.IsGovernanceRole(role), role != "", err
 }

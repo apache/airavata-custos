@@ -78,10 +78,10 @@ const toneToVariant: Record<MetaTone, StatusBadgeVariant> = {
 
 export function MetaItem(props: MetaItemProps) {
   if (props.variant === "status") {
-    const variant: StatusBadgeProps["variant"] = props.tone
-      ? toneToVariant[props.tone]
-      : "active";
-    return <StatusBadge variant={variant} label={String(props.value)} className={props.className} />;
+    const variant: StatusBadgeProps["variant"] = props.tone ? toneToVariant[props.tone] : "active";
+    return (
+      <StatusBadge variant={variant} label={String(props.value)} className={props.className} />
+    );
   }
 
   const { icon: Icon, label, value, className } = props;

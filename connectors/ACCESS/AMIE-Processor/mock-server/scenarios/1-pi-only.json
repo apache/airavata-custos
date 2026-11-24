@@ -1,0 +1,5 @@
+{
+  "projects": [
+    { "grant": "E2E-101", "title": "One allocation, PI only", "su": 10000, "pi": "person1" }
+  ]
+}

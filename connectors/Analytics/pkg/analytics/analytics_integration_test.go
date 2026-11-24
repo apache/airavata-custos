@@ -55,16 +55,6 @@ func seedProject(t *testing.T, db *sqlx.DB, piUserID string) string {
 	return id
 }
 
-func seedProjectRole(t *testing.T, db *sqlx.DB, projectID, userID string, role models.ProjectRole) {
-	t.Helper()
-	if _, err := db.Exec(
-		`INSERT INTO project_memberships (project_id, user_id, role, added_time) VALUES ($1, $2, $3, NOW())`,
-		projectID, userID, string(role),
-	); err != nil {
-		t.Fatalf("seed project role: %v", err)
-	}
-}
-
 func seedAllocation(t *testing.T, db *sqlx.DB, projectID, clusterID string, initialSU int64, start, end time.Time) string {
 	t.Helper()
 	id := uuid.NewString()
@@ -149,7 +139,6 @@ func TestAnalyticsContexts_PIRoleAndAllocations(t *testing.T) {
 	pi := seedUser(t, database, "pi@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 
 	start := time.Now().UTC().AddDate(0, 0, -10)
 	end1 := time.Now().UTC().AddDate(0, 0, 20)
@@ -173,8 +162,8 @@ func TestAnalyticsContexts_PIRoleAndAllocations(t *testing.T) {
 		t.Fatalf("contexts: got %d, want 1", len(got))
 	}
 	c := got[0]
-	if c.Role != string(models.ProjectRolePI) {
-		t.Errorf("role: got %q, want PI", c.Role)
+	if roleOf(c) != string(models.ProjectRolePI) {
+		t.Errorf("role: got %q, want PI", roleOf(c))
 	}
 	if len(c.Allocations) != 2 {
 		t.Fatalf("allocations: got %d, want 2", len(c.Allocations))
@@ -213,8 +202,8 @@ func TestAnalyticsContexts_MemberViaAllocationOnly(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("contexts: got %d, want 1", len(got))
 	}
-	if got[0].Role != roleMember {
-		t.Errorf("role: got %q, want MEMBER (derived from allocation membership)", got[0].Role)
+	if roleOf(got[0]) != roleMember {
+		t.Errorf("role: got %q, want MEMBER (derived from allocation membership)", roleOf(got[0]))
 	}
 }
 
@@ -227,7 +216,6 @@ func TestAnalyticsContexts_MemberSeesOnlySiblingTheyBelongTo(t *testing.T) {
 	member := seedUser(t, database, "member-sib@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -5)
 	end := time.Now().UTC().AddDate(0, 0, 25)
 	mine := seedAllocation(t, database, project, cluster, 1000, start, end)
@@ -349,7 +337,7 @@ func TestUsageSummary_MemberSeesOwnSliceNoMembers(t *testing.T) {
 		t.Errorf("by_member: got %v, want null for a plain member", got.ByMember)
 	}
 	if got.Total != 1000 {
-		t.Errorf("total: got %d, want 1000", got.Total)
+		t.Errorf("total: got %g, want 1000", got.Total)
 	}
 	if got.Used != 500 {
 		t.Errorf("used: got %v, want 500", got.Used)
@@ -378,7 +366,6 @@ func TestUsageSummary_PISeesRankedMembers(t *testing.T) {
 	member := seedUser(t, database, "m5@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -2)
 	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 28))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -415,7 +402,6 @@ func TestUsageSummary_MemberWithoutNameFallsBackToEmail(t *testing.T) {
 	pi := seedUser(t, database, "pi7@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -2)
 	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 28))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -439,9 +425,8 @@ func TestUsageSummary_MemberWithoutNameFallsBackToEmail(t *testing.T) {
 	}
 }
 
-// Access is membership-only: a site-wide privilege does not open an allocation
-// the caller has no membership or role on.
-func TestUsageSummary_SitePrivilegeAloneDoesNotGrantAccess_404(t *testing.T) {
+// Make sure core:allocations:read opens an allocation's full usage.
+func TestUsageSummary_AllocationsReadGivesFullView(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	pi := seedUser(t, database, "pi6@example.edu")
 	admin := seedUser(t, database, "admin6@example.edu")
@@ -453,11 +438,47 @@ func TestUsageSummary_SitePrivilegeAloneDoesNotGrantAccess_404(t *testing.T) {
 	seedUsage(t, database, alloc, res, pi, 400, 40, time.Now().UTC().AddDate(0, 0, -1))
 
 	rr := httptest.NewRecorder()
-	// admin has no membership on this allocation, only site allocations:read.
 	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/allocations/"+alloc+"/usage-summary", nil), admin, models.AllocationsRead)
 	srv.ServeHTTP(rr, req)
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("status: got %d, want 404 (site privilege must not grant access)", rr.Code)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var got UsageSummary
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.ByMember) != 1 || got.ByMember[0].UserID != pi {
+		t.Errorf("by_member: got %+v, want the PI's usage", got.ByMember)
+	}
+}
+
+func roleOf(c ProjectContext) string {
+	if c.Role == nil {
+		return ""
+	}
+	return *c.Role
+}
+
+// Make sure core:allocations:read lists every project, with a null role where the caller has none.
+func TestAnalyticsContexts_AllocationsReadListsEveryProject(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "pi7@example.edu")
+	admin := seedUser(t, database, "admin7@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	alloc := seedAllocation(t, database, project, cluster, 1000, time.Now().UTC().AddDate(0, 0, -2), time.Now().UTC().AddDate(0, 0, 28))
+
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/contexts", nil), admin, models.AllocationsRead))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var got []ProjectContext
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got) != 1 || got[0].Role != nil || len(got[0].Allocations) != 1 || got[0].Allocations[0].ID != alloc {
+		t.Errorf("contexts: got %+v, want the project with a null role and its allocation", got)
 	}
 }
 
@@ -527,7 +548,6 @@ func TestAllocationJobs_ManagerSeesAllAndCanFilterMine(t *testing.T) {
 	member := seedUser(t, database, "mj3@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	alloc := seedAllocation(t, database, project, cluster, 1000,
 		time.Now().UTC().AddDate(0, 0, -3), time.Now().UTC().AddDate(0, 0, 27))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -567,7 +587,6 @@ func TestAllocationJobs_Pagination(t *testing.T) {
 	pi := seedUser(t, database, "pij4@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	alloc := seedAllocation(t, database, project, cluster, 100000,
 		time.Now().UTC().AddDate(0, 0, -5), time.Now().UTC().AddDate(0, 0, 25))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -607,7 +626,6 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 	pi := seedUser(t, database, "pi7@example.edu")
 	cluster := seedCluster(t, database)
 	project := seedProject(t, database, pi)
-	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
 	start := time.Now().UTC().AddDate(0, 0, -5)
 	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 25))
 	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
@@ -644,5 +662,48 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 	}
 	if nonEmpty != 2 {
 		t.Errorf("non-empty days: got %d, want 2", nonEmpty)
+	}
+}
+
+// A CO_PI who is also a member sees each allocation once with undoubled usage,
+// and a project without allocations still lists for its role holder.
+func TestAnalyticsContexts_CoPIMemberAndProjectWithoutAllocations(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "copi-pi@example.edu")
+	copi := seedUser(t, database, "copi@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	empty := seedProject(t, database, pi)
+	for _, p := range []string{project, empty} {
+		if _, err := database.Exec(`INSERT INTO project_memberships (project_id, user_id, role, added_time) VALUES ($1, $2, 'CO_PI', NOW())`, p, copi); err != nil {
+			t.Fatalf("seed tag: %v", err)
+		}
+	}
+	start, end := time.Now().UTC().AddDate(0, 0, -10), time.Now().UTC().AddDate(0, 0, 20)
+	alloc1 := seedAllocation(t, database, project, cluster, 1000, start, end)
+	_ = seedAllocation(t, database, project, cluster, 2000, start, end)
+	seedAllocMember(t, database, alloc1, copi)
+	seedUsage(t, database, alloc1, seedResource(t, database, cluster, "gpu-02", "GPU_HOURS"), copi, 300, 30, time.Now().UTC().AddDate(0, 0, -1))
+
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/contexts", nil), copi))
+	var got []ProjectContext
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil || rr.Code != http.StatusOK {
+		t.Fatalf("contexts: %d %v %s", rr.Code, err, rr.Body.String())
+	}
+	allocs := map[string][]Allocation{}
+	for _, c := range got {
+		if roleOf(c) != string(models.ProjectRoleCoPI) {
+			t.Errorf("project %s role: got %q, want CO_PI", c.ProjectID, roleOf(c))
+		}
+		allocs[c.ProjectID] = c.Allocations
+	}
+	if len(got) != 2 || len(allocs[project]) != 2 || len(allocs[empty]) != 0 {
+		t.Fatalf("contexts: %+v", got)
+	}
+	for _, a := range allocs[project] {
+		if a.ID == alloc1 && a.UsedSUAmount != 300 {
+			t.Errorf("alloc1 used: got %v, want 300", a.UsedSUAmount)
+		}
 	}
 }

@@ -58,7 +58,7 @@ export function TabsRouter({
 }: TabsRouterProps) {
   const searchParams = useShallowSearchParams();
   const activeRaw = searchParams.get(searchParam);
-  const active = tabs.some((t) => t.value === activeRaw) ? (activeRaw as string) : defaultValue;
+  const active = tabs.find((t) => t.value === activeRaw)?.value ?? defaultValue;
 
   const handleChange = (value: string | number | null) => {
     if (typeof value !== "string") return;
@@ -80,7 +80,7 @@ export function TabsRouter({
 
   const resolvedRightSlot: React.ReactNode =
     rightSlot && typeof rightSlot === "object" && !isReactElement(rightSlot)
-      ? ((rightSlot as Record<string, React.ReactNode | undefined>)[active] ?? null)
+      ? (rightSlot[active] ?? null)
       : (rightSlot ?? null);
 
   return (
@@ -111,11 +111,7 @@ export function TabsRouter({
             ? panelClassName[tab.value]
             : panelClassName;
         return (
-          <TabsPrimitive.Panel
-            key={tab.value}
-            value={tab.value}
-            className={cn("pt-6", perPanel)}
-          >
+          <TabsPrimitive.Panel key={tab.value} value={tab.value} className={cn("pt-6", perPanel)}>
             {tab.content}
           </TabsPrimitive.Panel>
         );

@@ -137,12 +137,12 @@ export const userActivityHandlers = [
     ),
   ),
   http.get("*/api/v1/users/:id/activity/analytics", ({ request, params }) => {
-    if (!activityUsers.some((user) => user.user_id === params.id))
+    if (!activityUsers.some((user) => user.user_id === params["id"]))
       return HttpResponse.json({ error: "Not found" }, { status: 404 });
     return HttpResponse.json(
       activityAnalytics(
         Number(new URL(request.url).searchParams.get("window") ?? 30),
-        String(params.id),
+        String(params["id"]),
       ),
     );
   }),

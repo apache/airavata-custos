@@ -1,0 +1,505 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+"use client";
+
+import { Download, Info } from "lucide-react";
+import * as React from "react";
+import { ApiError } from "@/shared/api/client";
+import { Button } from "@/shared/ui/button";
+import { CopyValue } from "@/shared/ui/CopyValue";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
+import { useGenerateCertificate } from "../queries";
+import type { GeneratedCertificate } from "../schemas";
+import { CERTIFICATE_OPTIONS, formatUnixSeconds, LIFETIME_CHOICES } from "../status";
+
+const REFUSAL_MESSAGES: Record<string, string> = {
+    user_not_active: "Your account is not active. Contact your site admin.",
+    no_cluster_account: "You do not have an account on this cluster yet.",
+    cluster_account_not_ready: "Your cluster account is not ready yet. Try again once it is set up.",
+    no_active_allocation: "You need an active allocation to get a certificate.",
+    reserved_username: "Certificates cannot be issued for this username. Contact your site admin.",
+    invalid_public_key: "This does not look like an SSH public key. Paste the one line from your .pub file.",
+    key_type_not_allowed: "This site does not accept that key type.",
+    too_many_certificates: "You have generated as many certificates as allowed for now. Use one you already have, or try again later.",
+    signer_unavailable: "Certificate service is not reachable. No certificate was issued. Try again in a minute.",
+    invalid_ttl: "That lifetime is longer than this site allows.",
+    invalid_request: "Check the addresses. Use addresses like 192.0.2.10 or ranges like 192.0.2.0/24.",
+    principal_denied: "Your cluster account cannot log in yet. Contact your site admin.",
+};
+
+const LONGEST = LIFETIME_CHOICES.reduce((a, b) => (b.seconds > a.seconds ? b : a));
+
+// The signer takes a comma-separated list with no spaces.
+function addressList(text: string): string {
+  return text
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .join(",");
+}
+
+function OptionField({
+  id,
+  label,
+  info,
+  children,
+}: {
+  id: string;
+  label: string;
+  info: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        <span id={`${id}-label`} className="text-sm font-medium">
+          {label}
+        </span>
+        <Tooltip>
+          <TooltipTrigger
+            aria-label={`About ${label.toLowerCase()}`}
+            className="inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          </TooltipTrigger>
+          <TooltipContent side="right">{info}</TooltipContent>
+        </Tooltip>
+      </div>
+      <fieldset aria-labelledby={`${id}-label`} className="min-w-0 space-y-2 text-sm">
+        {children}
+      </fieldset>
+    </div>
+  );
+}
+
+function refusalMessage(error: unknown): string {
+  const code = error instanceof ApiError ? (error.body as { error?: string } | null)?.error : undefined;
+  return (code && REFUSAL_MESSAGES[code]) || "Could not generate a certificate. Please try again.";
+}
+
+function keyFile(certificate: string): string {
+  if (certificate.startsWith("ssh-rsa")) return "~/.ssh/id_rsa";
+  if (certificate.startsWith("ecdsa")) return "~/.ssh/id_ecdsa";
+  return "~/.ssh/id_ed25519";
+}
+
+function sshCommand(result: GeneratedCertificate): string {
+  const port = result.login_port === 22 ? "" : `-p ${result.login_port} `;
+  return `ssh -i ${keyFile(result.certificate)} ${port}${result.principal}@${result.login_host}`;
+}
+
+function downloadCertificate(certificate: string) {
+  const url = URL.createObjectURL(new Blob([`${certificate}\n`], { type: "text/plain" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${keyFile(certificate).replace("~/.ssh/", "")}-cert.pub`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export type GenerateCertificateDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export function GenerateCertificateDialog({ open, onOpenChange }: GenerateCertificateDialogProps) {
+  const generate = useGenerateCertificate();
+  const [publicKey, setPublicKey] = React.useState("");
+  const [lifetimeChoice, setLifetimeChoice] = React.useState<number | "custom">(LONGEST.seconds);
+  const [hours, setHours] = React.useState("");
+  const [minutes, setMinutes] = React.useState("");
+  const [onlyAddresses, setOnlyAddresses] = React.useState(false);
+  const [addresses, setAddresses] = React.useState("");
+  const [onlyCommand, setOnlyCommand] = React.useState(false);
+  const [command, setCommand] = React.useState("");
+  const [blocked, setBlocked] = React.useState<string[]>([]);
+  const { reset } = generate;
+
+  React.useEffect(() => {
+    if (!open) {
+      setPublicKey("");
+      setLifetimeChoice(LONGEST.seconds);
+      setHours("");
+      setMinutes("");
+      setOnlyAddresses(false);
+      setAddresses("");
+      setOnlyCommand(false);
+      setCommand("");
+      setBlocked([]);
+      reset();
+    }
+  }, [open, reset]);
+
+  // Checked here so a pasted private key is never sent anywhere.
+  const isPrivateKey = publicKey.includes("PRIVATE KEY") || publicKey.includes("PuTTY-User-Key-File");
+  const lifetime =
+    lifetimeChoice === "custom" ? Number(hours) * 3600 + Number(minutes) * 60 : lifetimeChoice;
+  let lifetimeError = "";
+  if (lifetimeChoice === "custom") {
+    if (!(lifetime > 0)) lifetimeError = "Enter at least one minute.";
+    else if (lifetime > LONGEST.seconds) lifetimeError = `The longest allowed is ${LONGEST.label}.`;
+  }
+  const missingValue =
+    (onlyAddresses && !addressList(addresses)) || (onlyCommand && !command.trim()) || !!lifetimeError;
+  const result = generate.data;
+  // What the member narrowed, shown back with the certificate.
+  const restrictions: Array<{ label: string; value: string; mono: boolean }> = [];
+  if (onlyAddresses) {
+    restrictions.push({ label: "Log in from", value: addressList(addresses), mono: true });
+  }
+  if (onlyCommand) {
+    restrictions.push({ label: "Runs only", value: command.trim(), mono: true });
+  }
+  if (blocked.length > 0) {
+    const labels = CERTIFICATE_OPTIONS.filter((o) => blocked.includes(o.name)).map((o) => o.label);
+    restrictions.push({ label: "Blocked", value: labels.join(", "), mono: false });
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!generate.isPending) onOpenChange(next);
+      }}
+    >
+      <DialogContent
+        className={`max-h-[90vh] overflow-y-auto ${result ? "sm:max-w-2xl" : "sm:max-w-lg"}`}
+      >
+        {result ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Your certificate is ready</DialogTitle>
+              <DialogDescription>
+                Certificate{" "}
+                <span className="font-medium text-foreground">{result.serial_number}</span> for{" "}
+                <span className="font-mono font-medium text-foreground">{result.principal}</span>,
+                valid until{" "}
+                <span className="font-medium text-foreground">
+                  {formatUnixSeconds(result.valid_before)}
+                </span>
+                . Shown once.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="min-w-0 space-y-4 text-sm">
+              <div className="rounded-md border p-3">
+                <p className="mb-2 font-medium">Restrictions</p>
+                {restrictions.length > 0 ? (
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                    {restrictions.map(({ label, value, mono }) => (
+                      <React.Fragment key={label}>
+                        <dt className="text-muted-foreground">{label}</dt>
+                        <dd
+                          className={`min-w-0 break-all font-medium ${mono ? "font-mono text-xs" : ""}`}
+                        >
+                          {value}
+                        </dd>
+                      </React.Fragment>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="text-muted-foreground">
+                    No restrictions: any address, normal login, all options allowed.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Certificate</p>
+                  <div className="flex items-center gap-3">
+                    <CopyValue value={result.certificate} label="certificate" explicit>
+                      Copy
+                    </CopyValue>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadCertificate(result.certificate)}
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+                <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-3 font-mono text-xs leading-relaxed">
+                  {result.certificate}
+                </pre>
+              </div>
+              <ol className="list-decimal space-y-2 pl-5">
+                <li>
+                  Download it, or copy it, and save it next to your private key as{" "}
+                  <code className="font-mono text-xs">{keyFile(result.certificate)}-cert.pub</code>
+                </li>
+                <li className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span>Run</span>
+                    <CopyValue value={sshCommand(result)} label="ssh command" explicit>
+                      Copy
+                    </CopyValue>
+                  </div>
+                  <pre className="whitespace-pre-wrap break-all rounded-md border bg-muted p-3 font-mono text-xs">
+                    {sshCommand(result)}
+                  </pre>
+                </li>
+              </ol>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => onOpenChange(false)}>Done</Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Generate certificate</DialogTitle>
+              <DialogDescription>Logs in with your own cluster account.</DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!publicKey.trim() || isPrivateKey || missingValue) return;
+                generate.mutate({
+                  public_key: publicKey.trim(),
+                  ttl_seconds: lifetime,
+                  exclude_extensions: blocked,
+                  ...(onlyAddresses ? { source_address: addressList(addresses) } : {}),
+                  ...(onlyCommand ? { force_command: command.trim() } : {}),
+                });
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="public-key">Public key</Label>
+                <textarea
+                  id="public-key"
+                  value={publicKey}
+                  onChange={(e) => setPublicKey(e.target.value)}
+                  rows={4}
+                  aria-invalid={isPrivateKey}
+                  aria-describedby="public-key-help"
+                  disabled={generate.isPending}
+                  className="w-full rounded-md border border-border bg-background p-2 font-mono text-xs"
+                />
+                <p id="public-key-help" className="text-xs text-muted-foreground">
+                  {isPrivateKey
+                    ? "This is a private key. Keep it on your computer and paste the .pub file instead."
+                    : "Paste your .pub file, for example ~/.ssh/id_ed25519.pub. Never your private key."}
+                </p>
+              </div>
+              {isPrivateKey ? null : (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p>No key yet? Run this on your computer:</p>
+                  <div className="rounded-md border bg-muted px-3 py-2">
+                    <CopyValue
+                      value="ssh-keygen -t ed25519"
+                      label="ssh-keygen command"
+                      explicit
+                      className="w-full justify-between"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <OptionField id="lifetime" label="Lifetime" info="How long the certificate works.">
+                <select
+                  aria-labelledby="lifetime-label"
+                  value={lifetimeChoice}
+                  onChange={(e) =>
+                    setLifetimeChoice(
+                      e.target.value === "custom" ? "custom" : Number(e.target.value),
+                    )
+                  }
+                  disabled={generate.isPending}
+                  className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  {LIFETIME_CHOICES.map((choice) => (
+                    <option key={choice.seconds} value={choice.seconds}>
+                      {choice.label}
+                    </option>
+                  ))}
+                  <option value="custom">Other</option>
+                </select>
+                {lifetimeChoice === "custom" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="lifetime-hours" className="text-xs text-muted-foreground">
+                          Hours
+                        </Label>
+                        <Input
+                          id="lifetime-hours"
+                          type="number"
+                          min={0}
+                          max={Math.floor(LONGEST.seconds / 3600)}
+                          value={hours}
+                          onChange={(e) => setHours(e.target.value)}
+                          aria-invalid={!!lifetimeError}
+                          aria-describedby="lifetime-help"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="lifetime-minutes" className="text-xs text-muted-foreground">
+                          Minutes
+                        </Label>
+                        <Input
+                          id="lifetime-minutes"
+                          type="number"
+                          min={0}
+                          max={59}
+                          value={minutes}
+                          onChange={(e) => setMinutes(e.target.value)}
+                          aria-invalid={!!lifetimeError}
+                          aria-describedby="lifetime-help"
+                        />
+                      </div>
+                    </div>
+                    <p
+                      id="lifetime-help"
+                      className={`text-xs ${lifetimeError && (hours || minutes) ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                      {(hours || minutes) && lifetimeError ? lifetimeError : `Up to ${LONGEST.label}.`}
+                    </p>
+                  </>
+                ) : null}
+              </OptionField>
+
+              <OptionField
+                id="log-in-from"
+                label="Log in from"
+                info="Written into the certificate as source-address. Login nodes refuse the certificate from any other address."
+              >
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="log-in-from"
+                    checked={!onlyAddresses}
+                    onChange={() => setOnlyAddresses(false)}
+                  />
+                  Any address
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="log-in-from"
+                    checked={onlyAddresses}
+                    onChange={() => setOnlyAddresses(true)}
+                  />
+                  Only these addresses
+                </label>
+                {onlyAddresses ? (
+                  <input
+                    aria-label="Addresses"
+                    value={addresses}
+                    onChange={(e) => setAddresses(e.target.value)}
+                    placeholder="192.0.2.10, 198.51.100.0/24"
+                    className="h-9 w-full rounded-md border bg-background px-3 font-mono text-xs"
+                  />
+                ) : null}
+              </OptionField>
+
+              <OptionField
+                id="command"
+                label="Command"
+                info="Written into the certificate as force-command. Every login runs this command and nothing else."
+              >
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="command"
+                    checked={!onlyCommand}
+                    onChange={() => setOnlyCommand(false)}
+                  />
+                  Normal login
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="command"
+                    checked={onlyCommand}
+                    onChange={() => setOnlyCommand(true)}
+                  />
+                  Only this command
+                </label>
+                {onlyCommand ? (
+                  <input
+                    aria-label="Command"
+                    value={command}
+                    onChange={(e) => setCommand(e.target.value)}
+                    placeholder="/usr/bin/rsync --server ..."
+                    className="h-9 w-full rounded-md border bg-background px-3 font-mono text-xs"
+                  />
+                ) : null}
+              </OptionField>
+
+              <OptionField
+                id="allow"
+                label="Allow on this certificate"
+                info="Unticked options are left out of the certificate, so the login node blocks them."
+              >
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {CERTIFICATE_OPTIONS.map((option) => (
+                    <label key={option.name} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!blocked.includes(option.name)}
+                        onChange={(e) =>
+                          setBlocked((current) =>
+                            e.target.checked
+                              ? current.filter((n) => n !== option.name)
+                              : [...current, option.name],
+                          )
+                        }
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </OptionField>
+
+              {generate.error ? (
+                <p className="text-sm text-destructive">{refusalMessage(generate.error)}</p>
+              ) : null}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={generate.isPending}
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={generate.isPending || !publicKey.trim() || isPrivateKey || missingValue}
+                >
+                  {generate.isPending ? "Generating…" : "Generate certificate"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

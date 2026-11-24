@@ -20,8 +20,7 @@ import { describe, expect, it } from "vitest";
 import { middleware } from "../middleware";
 
 function request(cookie?: string) {
-  const headers = cookie ? { cookie } : undefined;
-  return new NextRequest("http://localhost:3000/", { headers });
+  return new NextRequest("http://localhost:3000/", cookie ? { headers: { cookie } } : {});
 }
 
 describe("root middleware", () => {

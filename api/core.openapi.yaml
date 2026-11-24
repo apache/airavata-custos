@@ -28,7 +28,7 @@ definitions:
       compute_allocation_id:
         type: string
       total_su_amount:
-        type: integer
+        type: number
     type: object
   AllocationStatus:
     enum:
@@ -40,8 +40,78 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
+  AuditEvent:
+    properties:
+      details:
+        description: Additional details about the event, stored as a JSON string or
+          plain text.
+        type: string
+      entity_id:
+        description: ID of the entity the event is about.
+        type: string
+      entity_type:
+        description: Kind of the entity ("user", "role", "compute_cluster_user", "packet",
+          etc.).
+        type: string
+      event_time:
+        type: string
+      event_type:
+        description: e.g., "COMPUTE_ALLOCATION_CREATED", "COMPUTE_ALLOCATION_UPDATED",
+          "COMPUTE_ALLOCATION_DELETED", etc.
+        type: string
+      id:
+        type: string
+      parent_span_id:
+        type: string
+      source:
+        description: Subsystem that produced the event (e.g., "amie", "comanage",
+          "slurm", "core", etc.).
+        type: string
+      span_id:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  CallerClusterAccount:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
+      user_id:
+        type: string
+    type: object
   CallerProfileResponse:
     properties:
+      cluster_accounts:
+        items:
+          $ref: '#/definitions/CallerClusterAccount'
+        type: array
+      consent:
+        $ref: '#/definitions/consentView'
+      onboarding:
+        $ref: '#/definitions/onboardingView'
       privileges:
         items:
           $ref: '#/definitions/PrivilegeKey'
@@ -72,6 +142,69 @@ definitions:
     x-enum-varnames:
     - ClusterAccessUser
     - ClusterAccessAdmin
+  ClusterAccountApproval:
+    enum:
+    - PENDING
+    - APPROVED
+    - DENIED
+    type: string
+    x-enum-varnames:
+    - ClusterAccountPending
+    - ClusterAccountApproved
+    - ClusterAccountDenied
+  ClusterAccountListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ClusterAccountResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ClusterAccountResponse:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      project_id:
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      requested_at:
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
+      reviewer_name:
+        type: string
+      user_id:
+        type: string
+    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -79,12 +212,19 @@ definitions:
         type: string
       end_time:
         type: string
+      group_provisioned_at:
+        description: When the group gained its first member and so reached the cluster;
+          nil until then.
+        type: string
       id:
         type: string
       initial_su_amount:
-        description: SUs allocated at the time of allocation creation.
-        type: integer
+        description: The allocation's SU budget, exactly as the source granted it.
+        type: number
       name:
+        type: string
+      posix_group:
+        description: Fixed at creation; the group's name everywhere.
         type: string
       project_id:
         type: string
@@ -118,7 +258,7 @@ definitions:
         description: ACTIVE, INACTIVE, DELETED, etc.
       requested_su_amount:
         description: The requested allocation amount in SUs, e.g., 1200 SUs, etc.
-        type: integer
+        type: number
       requester_id:
         description: The ID of the user who made the change request.
         type: string
@@ -158,8 +298,8 @@ definitions:
       id:
         type: string
       new_su_amount:
-        description: New allocation amount in SUs, e.g., 900 SUs, etc.
-        type: integer
+        description: The SU amount of this change, as the source sent it.
+        type: number
       status:
         allOf:
         - $ref: '#/definitions/AllocationStatus'
@@ -305,9 +445,8 @@ definitions:
         description: The ID of the job that consumed the allocation.
         type: string
       last_updated:
-        description: The last time the usage was updated. SU should be calculated
-          up to this point in time and charge rates should be applied based on the
-          rates effective at this time.
+        description: When the job ended. Picks the rate and the allocation period
+          the usage counts against.
         type: string
       used_raw_amount:
         description: The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours,
@@ -333,6 +472,8 @@ definitions:
     properties:
       access_level:
         $ref: '#/definitions/ClusterAccessLevel'
+      approval_status:
+        $ref: '#/definitions/ClusterAccountApproval'
       compute_cluster_id:
         type: string
       id:
@@ -345,9 +486,116 @@ definitions:
         description: When the account was provisioned into the registry; nil until
           then.
         type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
       user_id:
         type: string
     type: object
+  ConnectorCheck:
+    properties:
+      checked_at:
+        type: string
+      error:
+        type: string
+      ok:
+        type: boolean
+      target:
+        type: string
+    type: object
+  ConnectorListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ConnectorStatus'
+        type: array
+    type: object
+  ConnectorStatus:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/ConnectorCheck'
+        type: array
+      enabled:
+        type: boolean
+      failed_deliveries:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  DeliveryCounts:
+    properties:
+      attempts:
+        type: integer
+      failed:
+        type: integer
+      pending:
+        type: integer
+      succeeded:
+        type: integer
+    type: object
+  DeliveryHistory:
+    properties:
+      attempts:
+        type: integer
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/Event'
+      event_id:
+        type: string
+      finished_at:
+        type: string
+      history:
+        items:
+          $ref: '#/definitions/AuditEvent'
+        type: array
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
+  Event:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: string
+      payload:
+        type: object
+      source:
+        description: Subsystem that published the event.
+        type: string
+      span_id:
+        description: Publisher's span, the parent of its deliveries.
+        type: string
+      trace_id:
+        type: string
+    type: object
+  EventDeliveryStatus:
+    enum:
+    - PENDING
+    - SUCCEEDED
+    - FAILED
+    type: string
+    x-enum-varnames:
+    - EventDeliveryPending
+    - EventDeliverySucceeded
+    - EventDeliveryFailed
   Organization:
     properties:
       id:
@@ -368,6 +616,29 @@ definitions:
       total:
         type: integer
     type: object
+  PendingDelivery:
+    properties:
+      attempts:
+        type: integer
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/Event'
+      event_id:
+        type: string
+      finished_at:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   PrivilegeKey:
     enum:
     - core:clusters:read
@@ -383,6 +654,10 @@ definitions:
     - core:traces:read
     - core:privileges:grant
     - core:roles:manage
+    - core:events:manage
+    - core:agreements:read
+    - core:agreements:manage
+    - core:service-accounts:manage
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -398,6 +673,10 @@ definitions:
     - TracesRead
     - PrivilegesGrant
     - RolesManage
+    - EventsManage
+    - AgreementsRead
+    - AgreementsManage
+    - ServiceAccountsManage
   Project:
     properties:
       created_time:
@@ -449,6 +728,7 @@ definitions:
       email:
         type: string
       id:
+        description: The user's id.
         type: string
       project_id:
         type: string
@@ -478,6 +758,8 @@ definitions:
         type: string
       project_pi_id:
         type: string
+      ref:
+        type: string
       status:
         $ref: '#/definitions/ProjectStatus'
       title:
@@ -506,6 +788,131 @@ definitions:
       name:
         type: string
     type: object
+  ServiceAccount:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/ServiceAccountStatus'
+      updated_at:
+        type: string
+    type: object
+  ServiceAccountStatus:
+    enum:
+    - ACTIVE
+    - DISABLED
+    - DELETED
+    type: string
+    x-enum-varnames:
+    - ServiceAccountActive
+    - ServiceAccountDisabled
+    - ServiceAccountDeleted
+  SetupStatusResponse:
+    properties:
+      steps:
+        items:
+          $ref: '#/definitions/SetupStep'
+        type: array
+    type: object
+  SetupStep:
+    properties:
+      done_at:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+    type: object
+  Storage:
+    properties:
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      compute_cluster_user_id:
+        type: string
+      end_time:
+        type: string
+      group:
+        type: string
+      id:
+        type: string
+      mode:
+        type: string
+      owner:
+        type: string
+      path:
+        type: string
+      quota_bytes:
+        type: integer
+      quota_inodes:
+        type: integer
+      quota_until:
+        description: Set while an administrator's quota stands in for the target's.
+        type: string
+      start_time:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      used_bytes:
+        description: Read from the storage connector.
+        type: integer
+      user_id:
+        type: string
+      username:
+        description: Read from the holder when listed.
+        type: string
+    type: object
+  Subscription:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      loaded:
+        type: boolean
+      subscriber:
+        type: string
+    type: object
+  TraceDelivery:
+    properties:
+      attempts:
+        type: integer
+      event_type:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      next_run_at:
+        type: string
+      span_id:
+        type: string
+      status:
+        $ref: '#/definitions/EventDeliveryStatus'
+      subscriber:
+        type: string
+    type: object
   TraceEvent:
     properties:
       created_at:
@@ -517,6 +924,8 @@ definitions:
       entity_type:
         type: string
       event_type:
+        type: string
+      id:
         type: string
       parent_span_id:
         type: string
@@ -543,6 +952,8 @@ definitions:
         type: string
       event_type:
         type: string
+      id:
+        type: string
       parent_span_id:
         type: string
       source:
@@ -554,6 +965,8 @@ definitions:
     type: object
   TraceSummary:
     properties:
+      deliveries:
+        $ref: '#/definitions/DeliveryCounts'
       ended_at:
         type: string
       event_count:
@@ -571,6 +984,8 @@ definitions:
     type: object
   User:
     properties:
+      created_at:
+        type: string
       email:
         type: string
       first_name:
@@ -588,12 +1003,68 @@ definitions:
       type:
         $ref: '#/definitions/UserType'
     type: object
+  UserAgreement:
+    properties:
+      body_hash:
+        type: string
+      body_md:
+        type: string
+      change_note:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      published_by:
+        type: string
+      removed_at:
+        type: string
+      removed_by:
+        type: string
+      status:
+        $ref: '#/definitions/UserAgreementStatus'
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version_label:
+        type: string
+    type: object
+  UserAgreementAcceptance:
+    properties:
+      accepted_at:
+        type: string
+      agreement_id:
+        type: string
+      body_hash:
+        type: string
+      id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  UserAgreementStatus:
+    enum:
+    - DRAFT
+    - PUBLISHED
+    - REMOVED
+    type: string
+    x-enum-varnames:
+    - UserAgreementDraft
+    - UserAgreementPublished
+    - UserAgreementRemoved
   UserAllocationSUTotalResponse:
     properties:
       compute_allocation_id:
         type: string
       total_su_amount:
-        type: integer
+        type: number
       user_id:
         type: string
     type: object
@@ -682,6 +1153,44 @@ definitions:
     - UserTypeClusterLocal
     - UserTypeVirtual
     - UserTypeSystem
+  UsernameCheck:
+    properties:
+      available:
+        type: boolean
+      suggestion:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  acceptanceReport:
+    properties:
+      accepted:
+        items:
+          $ref: '#/definitions/acceptanceRow'
+        type: array
+      pending:
+        items:
+          $ref: '#/definitions/pendingRow'
+        type: array
+      status:
+        type: string
+    type: object
+  acceptanceRow:
+    properties:
+      accepted_at:
+        type: string
+      user:
+        $ref: '#/definitions/actorView'
+    type: object
+  actorView:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -690,6 +1199,13 @@ definitions:
         type: integer
       resource_time:
         type: integer
+    type: object
+  consentView:
+    properties:
+      pending:
+        items:
+          $ref: '#/definitions/UserAgreement'
+        type: array
     type: object
   createComputeClusterUserRequest:
     properties:
@@ -706,6 +1222,19 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  createServiceAccountRequest:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
     type: object
   createUserRequest:
     properties:
@@ -726,6 +1255,16 @@ definitions:
       portal_admin:
         type: boolean
       username:
+        type: string
+    type: object
+  denyClusterAccountRequest:
+    properties:
+      note:
+        type: string
+    type: object
+  emailUpdateRequest:
+    properties:
+      email:
         type: string
     type: object
   grantPrivilegeRequest:
@@ -749,6 +1288,31 @@ definitions:
       surviving_user_id:
         type: string
     type: object
+  onboardingRequest:
+    properties:
+      accepted:
+        items:
+          type: string
+        type: array
+      username:
+        type: string
+    type: object
+  onboardingView:
+    properties:
+      required:
+        type: boolean
+      username:
+        type: string
+      username_editable:
+        type: boolean
+    type: object
+  pendingRow:
+    properties:
+      first_sign_in_at:
+        type: string
+      user:
+        $ref: '#/definitions/actorView'
+    type: object
   revokePrivilegeRequest:
     properties:
       reason:
@@ -764,6 +1328,40 @@ definitions:
       privilege:
         $ref: '#/definitions/PrivilegeKey'
     type: object
+  serviceAccountTokenResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      secret_hint:
+        type: string
+      status:
+        $ref: '#/definitions/ServiceAccountStatus'
+      token:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  setAllocationResourcesRequest:
+    properties:
+      resource_ids:
+        items:
+          type: string
+        type: array
+    type: object
   updateAllocationResourceMappingRequest:
     properties:
       resource_amount:
@@ -771,11 +1369,121 @@ definitions:
       resource_time:
         type: integer
     type: object
+  updateProjectRequest:
+    properties:
+      project_pi_id:
+        type: string
+      title:
+        type: string
+    type: object
   updateRoleRequest:
     properties:
       description:
         type: string
       name:
+        type: string
+    type: object
+  updateServiceAccountRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  updateStorageRequest:
+    properties:
+      quota_bytes:
+        type: integer
+      quota_until:
+        type: string
+      reason:
+        type: string
+    type: object
+  userAgreementDetail:
+    properties:
+      accepted_count:
+        type: integer
+      body_hash:
+        type: string
+      body_md:
+        type: string
+      change_note:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/actorView'
+      id:
+        type: string
+      pending_count:
+        type: integer
+      published_at:
+        type: string
+      published_by:
+        $ref: '#/definitions/actorView'
+      removed_at:
+        type: string
+      removed_by:
+        $ref: '#/definitions/actorView'
+      status:
+        $ref: '#/definitions/UserAgreementStatus'
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version_label:
+        type: string
+    type: object
+  userAgreementListItem:
+    properties:
+      accepted_count:
+        type: integer
+      body_hash:
+        type: string
+      body_md:
+        type: string
+      change_note:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      pending_count:
+        type: integer
+      published_at:
+        type: string
+      published_by:
+        type: string
+      removed_at:
+        type: string
+      removed_by:
+        type: string
+      status:
+        $ref: '#/definitions/UserAgreementStatus'
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version_label:
+        type: string
+    type: object
+  userAgreementRequest:
+    properties:
+      body_md:
+        type: string
+      change_note:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+      version_label:
         type: string
     type: object
   userNameUpdateRequest:
@@ -796,6 +1504,393 @@ info:
   title: Apache Custos Core API
   version: 0.2.0
 paths:
+  /agreements:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/userAgreementListItem'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List user agreements with acceptance counts
+      tags:
+      - Agreements
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Agreement draft
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userAgreementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That version already exists
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a draft user agreement
+      tags:
+      - Agreements
+  /agreements/{id}:
+    delete:
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Not a draft
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a draft user agreement
+      tags:
+      - Agreements
+    get:
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a user agreement with counts and actor names
+      tags:
+      - Agreements
+    put:
+      consumes:
+      - application/json
+      description: Only drafts can be edited.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Agreement draft
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userAgreementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Not a draft or invalid content
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That version already exists
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a draft user agreement
+      tags:
+      - Agreements
+  /agreements/{id}/acceptances:
+    get:
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: accepted (default) or pending
+        in: query
+        name: status
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Rows to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/acceptanceReport'
+        "400":
+          description: Unknown status
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Report who accepted or has not yet accepted an agreement
+      tags:
+      - Agreements
+  /agreements/{id}/publish:
+    post:
+      description: It becomes the current version. Every user must accept it at their
+        next request.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Not a draft
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Publish a draft user agreement
+      tags:
+      - Agreements
+  /agreements/{id}/remove:
+    post:
+      description: If it was the current version, the previous published version becomes
+        current again.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userAgreementDetail'
+        "400":
+          description: Not published
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks agreements:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a published user agreement
+      tags:
+      - Agreements
   /audit/events:
     get:
       parameters:
@@ -956,6 +2051,12 @@ paths:
           description: OK
           schema:
             properties:
+              deliveries:
+                items:
+                  $ref: '#/definitions/TraceDelivery'
+                type: array
+              status:
+                type: string
               trace_id:
                 type: string
               tree:
@@ -1776,6 +2877,29 @@ paths:
       tags:
       - Compute Allocation Resources
   /compute-allocation-resources/{id}:
+    delete:
+      description: Removes the resource with its rates and its grants to allocations.
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a compute allocation resource
+      tags:
+      - Compute Allocation Resources
     get:
       parameters:
       - description: Resource ID
@@ -1802,6 +2926,47 @@ paths:
       summary: Get a compute allocation resource
       tags:
       - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeAllocationResource'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationResource'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a compute allocation resource
+      tags:
+      - Compute Allocation Resources
   /compute-allocation-resources/{id}/allocations:
     get:
       parameters:
@@ -1817,7 +2982,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/ComputeAllocationResourceMapping'
+              $ref: '#/definitions/ComputeAllocation'
             type: array
         "404":
           description: Not Found
@@ -2036,8 +3201,9 @@ paths:
   /compute-allocations:
     get:
       description: Callers without the allocations read privilege get only allocations
-        where they hold a membership or a governance role on the parent project; filters
-        and pagination apply to privileged callers only.
+        where they hold a membership or a governance role on the parent project; for
+        them only project_id applies, and other filters and pagination apply to privileged
+        callers only.
       parameters:
       - description: Filter by project ID
         in: query
@@ -2108,6 +3274,29 @@ paths:
       tags:
       - Compute Allocations
   /compute-allocations/{id}:
+    delete:
+      description: Removes the allocation with its memberships, resources and usage.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a compute allocation
+      tags:
+      - Compute Allocations
     get:
       description: Callers without the allocations read privilege must hold a membership
         on the allocation or a governance role on its project; others return 404.
@@ -2347,6 +3536,45 @@ paths:
       summary: Attach a resource to a compute allocation
       tags:
       - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      description: Replaces the allocation's resources with the given ones. Usage
+        on any of them is charged to the allocation's SUs.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/setAllocationResourcesRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set the resources a compute allocation grants
+      tags:
+      - Compute Allocation Resources
   /compute-allocations/{id}/resources/{resourceId}:
     delete:
       parameters:
@@ -2528,6 +3756,54 @@ paths:
       tags:
       - Compute Allocation Usages
   /compute-cluster-users:
+    get:
+      description: Cluster users with their user, cluster, and the user's newest allocation
+        on that cluster. PENDING comes grouped by allocation, the rest newest first.
+        Every status unless one is given.
+      parameters:
+      - description: PENDING | APPROVED | DENIED
+        in: query
+        name: approval_status
+        type: string
+      - description: Matches name, email, username, allocation, or project
+        in: query
+        name: q
+        type: string
+      - description: Only users granted this role
+        in: query
+        name: role_id
+        type: string
+      - description: Only users with an external identity from this source
+        in: query
+        name: identity_source
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ClusterAccountListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List cluster accounts by approval status
+      tags:
+      - Compute Cluster Users
     post:
       consumes:
       - application/json
@@ -2645,6 +3921,94 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a compute cluster user
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/approve:
+    post:
+      description: Records the caller as the approver and starts creating the account
+        on the cluster.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterUser'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Already approved
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve a cluster account
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}/deny:
+    post:
+      consumes:
+      - application/json
+      description: Records the caller's decision and the reason. No account is created
+        on the cluster, and the reason is passed on to whoever requested the account.
+        The user keeps portal access.
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason for the denial
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/denyClusterAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterUser'
+        "400":
+          description: Reason missing
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Already approved or denied
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deny a cluster account
       tags:
       - Compute Cluster Users
   /compute-clusters:
@@ -2787,6 +4151,182 @@ paths:
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
+  /connectors:
+    get:
+      description: Checks are the cached outcome of each connector's own work; nothing
+        is probed on request.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ConnectorListResponse'
+      security:
+      - BearerAuth: []
+      summary: List configured connectors with their last known health
+      tags:
+      - Connectors
+  /events/deliveries:
+    get:
+      description: Newest first, every status unless one is given. A pending delivery
+        with no attempts means its subscriber is not loaded, so it waits until that
+        connector starts.
+      parameters:
+      - description: PENDING | SUCCEEDED | FAILED
+        in: query
+        name: status
+        type: string
+      - description: Only deliveries to this connector
+        in: query
+        name: subscriber
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/PendingDelivery'
+                type: array
+            type: object
+        "400":
+          description: Invalid status or limit
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List event deliveries
+      tags:
+      - Events
+  /events/deliveries/{id}:
+    get:
+      description: Returns the delivery with its event and its history. The history
+        lists each delivery attempt and each admin retry, the oldest first.
+      parameters:
+      - description: Delivery id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/DeliveryHistory'
+        "404":
+          description: Delivery not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an event delivery
+      tags:
+      - Events
+  /events/deliveries/{id}/retry:
+    post:
+      description: Makes the delivery due again with a fresh attempt count and records
+        who retried it. The worker picks it up on its next pass.
+      parameters:
+      - description: Delivery id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Delivery not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Delivery has not failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retry a failed event delivery
+      tags:
+      - Events
+  /events/graph:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              edges:
+                items:
+                  type: object
+                type: array
+              events:
+                items:
+                  type: object
+                type: array
+              terms:
+                items:
+                  type: object
+                type: array
+            type: object
+        "404":
+          description: Graph not generated
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the event graph
+      tags:
+      - Events
+  /events/subscriptions:
+    get:
+      description: Every saved subscription and whether its subscriber is loaded in
+        this process.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              items:
+                items:
+                  $ref: '#/definitions/Subscription'
+                type: array
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List event subscriptions
+      tags:
+      - Events
   /me:
     get:
       description: Roles are the caller's own grants; unlike /users/{id}/roles this
@@ -2807,7 +4347,201 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get the caller's user record, effective privileges, and roles
+      summary: Get the caller's user record, effective privileges, roles, and cluster
+        accounts
+      tags:
+      - Caller
+  /me/agreements/{id}/accept:
+    post:
+      description: A first sign-in accepts through POST /me/onboarding instead.
+      parameters:
+      - description: Agreement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/UserAgreementAcceptance'
+        "400":
+          description: Caller still has to onboard, or the agreement is not published
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Unknown agreement
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Accept a published agreement as the caller
+      tags:
+      - Consent
+  /me/agreements/pending:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserAgreement'
+            type: array
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the current agreement if the caller has not accepted it
+      tags:
+      - Consent
+  /me/onboarding:
+    post:
+      consumes:
+      - application/json
+      description: Binds the caller's IdP subject to their pending user once the current
+        agreement is accepted. Nothing is written unless all of it succeeds.
+      parameters:
+      - description: Chosen username and accepted agreement IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/onboardingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Caller is not onboarding, an agreement is missing, or the username
+            is invalid
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Username is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Finish a first sign-in
+      tags:
+      - Onboarding
+  /me/onboarding/status:
+    get:
+      description: 'One entry per step, with done_at once it is done. registry: the
+        user is in the identity registry. cluster_account: the account on the named
+        cluster is created. project_group: the named allocation''s group is on the
+        cluster.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/SetupStatusResponse'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Report provisioning progress after onboarding
+      tags:
+      - Onboarding
+  /me/onboarding/username:
+    get:
+      description: Reports whether the candidate is valid and free on every cluster
+        the caller has an account on, and suggests a free name.
+      parameters:
+      - description: Candidate login name
+        in: query
+        name: u
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UsernameCheck'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check a login name for onboarding
+      tags:
+      - Onboarding
+  /me/privileges:
+    get:
+      description: Effective set is direct grants UNION every privilege carried by
+        every role the caller holds.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Effective privilege set
+          schema:
+            properties:
+              privileges:
+                items:
+                  $ref: '#/definitions/PrivilegeKey'
+                type: array
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get caller's effective privileges
       tags:
       - Caller
   /organizations:
@@ -2908,6 +4642,10 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
+        - core:agreements:read
+        - core:agreements:manage
+        - core:service-accounts:manage
         in: path
         name: key
         required: true
@@ -2976,7 +4714,11 @@ paths:
         in: query
         name: status
         type: string
-      - description: Search title / originated_id
+      - description: Filter by origination, case-insensitive
+        in: query
+        name: origination
+        type: string
+      - description: Search title, originated_id or ref
         in: query
         name: q
         type: string
@@ -3037,6 +4779,35 @@ paths:
       tags:
       - Projects
   /projects/{id}:
+    delete:
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Project has allocations
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a project without allocations
+      tags:
+      - Projects
     get:
       description: Callers without the projects read privilege only see projects they
         participate in; others return 404.
@@ -3072,6 +4843,54 @@ paths:
       summary: Get a project by ID
       tags:
       - Projects
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to change
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Project'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: PI change
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a project
+      tags:
+      - Projects
   /projects/{id}/members:
     get:
       parameters:
@@ -3099,6 +4918,59 @@ paths:
       security:
       - BearerAuth: []
       summary: List project members (one row per distinct user, with allocations)
+      tags:
+      - Projects
+  /projects/{id}/members/{userId}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Role
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            role:
+              type: string
+          type: object
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: PI change
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set a project member's role; MEMBER removes the role
       tags:
       - Projects
   /projects/{id}/status:
@@ -3433,6 +5305,10 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
+        - core:agreements:read
+        - core:agreements:manage
+        - core:service-accounts:manage
         in: path
         name: key
         required: true
@@ -3466,6 +5342,468 @@ paths:
       summary: Remove a privilege from a role
       tags:
       - Roles
+  /service-accounts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ServiceAccount'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List service accounts
+      tags:
+      - Service accounts
+    post:
+      consumes:
+      - application/json
+      description: The token is returned only here.
+      parameters:
+      - description: Service account
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/createServiceAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/serviceAccountTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That key or name is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a service account
+      tags:
+      - Service accounts
+  /service-accounts/{id}:
+    delete:
+      description: The key can never be used again.
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: The service account is not disabled
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a disabled service account
+      tags:
+      - Service accounts
+    get:
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a service account
+      tags:
+      - Service accounts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Name and description
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateServiceAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: That name is taken
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Edit a service account's name and description
+      tags:
+      - Service accounts
+  /service-accounts/{id}/disable:
+    post:
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Disable a service account
+      tags:
+      - Service accounts
+  /service-accounts/{id}/enable:
+    post:
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ServiceAccount'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Enable a service account
+      tags:
+      - Service accounts
+  /service-accounts/{id}/secret:
+    post:
+      description: The old token stops working at once. The new token is returned
+        only here.
+      parameters:
+      - description: Service account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/serviceAccountTokenResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Issue a new secret for a service account
+      tags:
+      - Service accounts
+  /service-accounts/privileges:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks service-accounts:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the privileges a service account may hold
+      tags:
+      - Service accounts
+  /storages:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Storage'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List storages
+      tags:
+      - Storages
+  /storages/{id}:
+    delete:
+      description: It goes with the storages under it, once all are pending.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a pending storage
+      tags:
+      - Storages
+    put:
+      consumes:
+      - application/json
+      description: Sets its temporary quota, which lasts until a date at most 90 days
+        ahead.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Storage update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/updateStorageRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a storage
+      tags:
+      - Storages
   /user-identities:
     post:
       consumes:
@@ -3645,34 +5983,6 @@ paths:
       summary: Get a user identity by source and external ID
       tags:
       - User Identities
-  /user/privileges:
-    get:
-      description: Effective set is direct grants UNION every privilege carried by
-        every role the caller holds.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Effective privilege set
-          schema:
-            properties:
-              privileges:
-                items:
-                  $ref: '#/definitions/PrivilegeKey'
-                type: array
-            type: object
-        "401":
-          description: Missing authenticated caller
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get caller's effective privileges
-      tags:
-      - Caller
   /users:
     get:
       parameters:
@@ -3684,6 +5994,22 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Email, first, last or full name substring
+        in: query
+        name: q
+        type: string
+      - description: Only users granted this role
+        in: query
+        name: role_id
+        type: string
+      - description: Only users with an external identity from this source
+        in: query
+        name: identity_source
+        type: string
+      - description: Accepts signed field names
+        in: query
+        name: sort
+        type: string
       produces:
       - application/json
       responses:
@@ -3917,6 +6243,57 @@ paths:
       summary: List compute cluster users for a user
       tags:
       - Compute Cluster Users
+  /users/{id}/email:
+    put:
+      consumes:
+      - application/json
+      description: Changes the email first sign-in matches on. Refused once the user
+        has a sign-in identity.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Email patch
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/emailUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a pending user's email
+      tags:
+      - Users
   /users/{id}/privileges:
     get:
       description: Returns DIRECT grants only (not role-derived). Combine with `GET
@@ -4037,6 +6414,10 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:events:manage
+        - core:agreements:read
+        - core:agreements:manage
+        - core:service-accounts:manage
         in: path
         name: key
         required: true

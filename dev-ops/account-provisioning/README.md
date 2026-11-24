@@ -17,45 +17,62 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# HPC Node Enrollment — Account Provisioning
+# HPC node enrollment
 
-Ansible playbook to enroll RHEL 9/10 nodes for COmanage-provisioned LDAP user resolution and CILogon device-flow SSH authentication.
+This Ansible playbook enrolls RHEL 9 and 10 login nodes. Enrolled nodes let users provisioned through COmanage SSH in
+with their CILogon identity. It is for site administrators. Run it on each login node.
 
-## Architecture
+It does two things:
 
-This setup uses two independent systems that each answer one question:
+- Configures SSSD to resolve accounts from the COmanage-provisioned LDAP.
+- Builds and installs the [CILogon SSH PAM module](../../extensions/CILogon-SSH-PAM/README.md), which
+  authenticates users through the OAuth 2.0 device flow.
+
+Password and SSH key logins keep working: see [Other login methods](#other-login-methods).
+
+## How it works
+
+Two independent systems each answer one question:
 
 | System | Question | Technology |
 |--------|----------|------------|
 | **SSSD/LDAP** | "Does this Unix account exist?" | SSSD → COmanage-provisioned LDAP (posixAccount) |
 | **OIDC** | "Is this the right human?" | pam_oauth2_device → CILogon device authorization flow |
 
-**Key design decisions:**
-
-- **Sub→uid mapping via LDAP, not PAM config.** The SSH username is always a Unix username. The PAM module maps the CILogon `sub` to a local `uid` via an LDAP lookup (`voPersonExternalID` → `uid`) to verify the authenticated identity matches the login user. No static mapping or PAM-level account resolution is needed.
-- **Authentication then authorization.** The device flow always starts. After the user authenticates via CILogon, the PAM module's LDAP lookup verifies the `sub` maps to the SSH login username. If the user does not exist in LDAP, this lookup fails and login is denied.
-- **Revocation via COmanage.** When COmanage sets a person inactive, the LDAP entry is removed, SSSD stops resolving the user, and SSH login fails automatically. No SSH config changes needed.
-
 ```
 SSH login flow:
   1. ssh jdoe@node
-  2. PAM auth → pam_oauth2_device → CILogon device flow
-  3. User completes browser auth
-  4. PAM module queries LDAP: voPersonExternalID=<sub> → uid
-  5. Returned uid matches "jdoe"? No → reject. Yes → continue.
-  6. SSSD resolves "jdoe" → LDAP (posixAccount lookup)
-  7. pam_mkhomedir creates /home/jdoe if first login
+  2. sshd resolves "jdoe" through SSSD (posixAccount lookup)
+  3. PAM auth → pam_oauth2_device → CILogon device flow
+  4. User completes browser auth
+  5. PAM module queries LDAP: voPersonExternalID=<CILogon sub> → uid
+  6. Returned uid matches "jdoe"? No → reject. Yes → continue.
+  7. pam_oddjob_mkhomedir creates the home directory on first login
 ```
+
+The SSH username is the Unix username. The node needs no static mapping.
+
+Deleting the user's LDAP entry ends device-flow logins. Other methods: [revocation](../../README.md#problems-it-addresses).
+
+### Other login methods
+
+The playbook adds the device flow without removing other methods:
+
+| Method | After enrollment |
+|---|---|
+| Device flow | `pam_oauth2_device` is `sufficient` in `/etc/pam.d/sshd`, so a completed device flow logs the user in. |
+| Password | The standard `password-auth` stack follows the module. The sshd override sets `PasswordAuthentication yes`. It works only for accounts with a local password, because SSSD does not authenticate. |
+| SSH key | sshd handles it. The playbook does not change it. |
+
+To allow only the device flow, disable the other methods in the site's own sshd and PAM configuration.
 
 ## Prerequisites
 
-1. **LDAP server** with COmanage-provisioned entries having both `posixAccount` objectClass and `voPersonExternalID` attribute (from [voPerson schema](https://refeds.org/specifications/voperson)). The PAM module maps CILogon subjects to local usernames via the LDAP filter `(&(objectClass=posixAccount)(voPersonExternalID=%s))`. See [LDAP Schema Requirements](#ldap-schema-requirements) for details on required schemas.
+1. **LDAP server** with COmanage-provisioned entries having both `posixAccount` objectClass and `voPersonExternalID` attribute (from [voPerson schema](https://refeds.org/specifications/voperson)). The PAM module maps CILogon subjects to local usernames via the LDAP filter `(&(objectClass=posixAccount)(voPersonExternalID=%s))`. See the schema table below for details on required schemas.
 2. **CILogon OIDC client** — must be a **confidential client** (with a client secret), not a public client.
 3. **Ansible** 2.14+ on your control node.
 4. **RHEL 9/10** target nodes with SSH and sudo access.
 5. Target nodes must be able to reach the LDAP server (port 636) and CILogon (port 443).
-
-### LDAP Schema Requirements
 
 If you're setting up a fresh LDAP server for COmanage, these schemas must be imported. COmanage's LDAP provisioning plugin writes entries using these objectClasses.
 
@@ -63,14 +80,14 @@ If you're setting up a fresh LDAP server for COmanage, these schemas must be imp
 |--------|------|---------|
 | **voPerson** | AUXILIARY | COmanage person attributes. Critical: `voPersonExternalID` stores the CILogon subject URI used for OIDC sub→Unix uid mapping |
 | **eduMember** | AUXILIARY | Group membership (`isMemberOf`, `hasMember`) |
-| **posixAccount** | STRUCTURAL | Unix account attributes (`uidNumber`, `gidNumber`, `homeDirectory`, `loginShell`). Required for SSSD |
+| **posixAccount** | AUXILIARY | Unix account attributes (`uidNumber`, `gidNumber`, `homeDirectory`, `loginShell`). Required for SSSD |
 | **posixGroup** | STRUCTURAL | Unix group attributes |
 | **inetOrgPerson** | STRUCTURAL | Base person object (`cn`, `sn`, `mail`, `uid`) |
 
-## Quick Start
+## Setup
 
 ```bash
-cd deployment/account-provisioning
+cd dev-ops/account-provisioning
 
 # 1. Configure
 cp inventory/hosts.example.yml inventory/hosts.yml
@@ -91,18 +108,19 @@ ansible-playbook -i inventory/hosts.yml enroll-node.yml --ask-vault-pass
 ansible-playbook -i inventory/hosts.yml verify.yml --ask-vault-pass
 ```
 
-All variables are documented with inline comments in `group_vars/all.yml.example`.
+All variables are documented with inline comments in `group_vars/all.yml.example`. Set `test_username` to a user in LDAP, which the `sssd` phase and
+`verify.yml` resolve. `pam_prompt_hostname` and `pam_logo_file_src` set the system name and logo in the sign-in prompt.
 
-## What the Playbook Does
+## What the playbook does
 
 The playbook has 4 tagged phases that can be run independently with `--tags`:
 
 | Tag | Phase | Key detail |
 |-----|-------|------------|
-| `prereqs` | Read-only LDAP connectivity check | Fails fast if LDAP is unreachable. No files modified. |
+| `prereqs` | LDAP check | Installs `openldap-clients`, then fails fast if LDAP is unreachable or the bind fails. Changes no configuration. |
 | `sssd` | SSSD + NSS + mkhomedir | Configures `auth_provider = none` — PAM handles authentication, SSSD only resolves identity. Sets SELinux boolean `authlogin_nsswitch_use_ldap`. |
-| `pam` | Build pam_oauth2_device, configure PAM stack, SELinux policy | Builds from source (cyber-shuttle fork). Installs SELinux policy allowing `sshd_t` to connect to CILogon on port 443 — without it, auth silently falls through to password-auth. |
-| `sshd` | Keyboard-interactive auth config | Drops `99-pam-oauth2-device.conf` into `sshd_config.d/` — the `99-` prefix ensures it overrides RHEL defaults. |
+| `pam` | Module, PAM stack and SELinux policy | Builds `extensions/CILogon-SSH-PAM` from `pam_oauth2_device_repo` at `pam_oauth2_device_version`. The SELinux policy lets sshd reach CILogon on port 443 and LDAP on port 636. Without it, authentication falls through to `password-auth` silently. |
+| `sshd` | Keyboard-interactive authentication | Writes `99-pam-oauth2-device.conf` to `sshd_config.d/`. Its settings sit in a `Match all` block, which overrides global values set earlier, such as RHEL's `50-redhat.conf`. |
 
 ## Verification
 
@@ -118,19 +136,20 @@ sudo sshd -T | egrep -i 'usepam|kbdinteractiveauthentication|passwordauthenticat
 
 ## Troubleshooting
 
-### SSSD won't start
+**SSSD won't start**
 - Check permissions: `ls -la /etc/sssd/sssd.conf` — must be `0600` owned by root
 - Check logs: `journalctl -u sssd --since "5 minutes ago"`
 - Clear cache and restart: `rm -rf /var/lib/sss/db/* && systemctl restart sssd`
 
-### `getent passwd <user>` returns nothing
+**`getent passwd <user>` returns nothing**
 - Verify LDAP connectivity: re-run `--tags prereqs`
 - Enable SSSD debug: add `debug_level = 6` under `[domain/...]` in sssd.conf, restart, check `/var/log/sssd/sssd_<domain>.log`
 
-### SSH shows no device code prompt
-- Check effective config: `sudo sshd -T | grep kbdinteractive` — if it shows `no`, another file in `/etc/ssh/sshd_config.d/` is overriding it. The `99-` prefix on our config ensures it loads last; verify the file exists and restart sshd.
+**SSH shows no device code prompt**
+- Check effective config: `sudo sshd -T | grep kbdinteractive` — if it shows `no`, another file in `/etc/ssh/sshd_config.d/` is overriding it. Verify `99-pam-oauth2-device.conf` exists and restart sshd.
 
-### SELinux blocking CILogon requests
+**SELinux blocking CILogon requests**
+
 The PAM module runs inside sshd and makes HTTPS calls to CILogon. SELinux's `sshd_t` context blocks this by default.
 
 **Symptoms:** `journalctl -u sshd` shows `curl failed HTTP POST` or `Authentication failure`, and `sealert -a /var/log/audit/audit.log` shows `SELinux is preventing /usr/sbin/sshd from name_connect access on the tcp_socket port 443`.
@@ -141,11 +160,14 @@ sudo dnf install -y setroubleshoot-server
 sudo sealert -a /var/log/audit/audit.log
 ```
 
-### CILogon auth fails with missing claims
+**CILogon auth fails with missing claims**
+
 Your CILogon client is likely a **public** client. See [Prerequisites](#prerequisites) — a confidential client with a client secret is required.
 
-## Operational Notes
+## Operational notes
 
-- **LDAP outage:** SSSD caches credentials (`cache_credentials = true`), so previously-resolved users can still log in when LDAP is temporarily unreachable.
+- **LDAP outage.** The device flow queries LDAP at each login, so it fails while LDAP is unreachable. SSSD serves
+  cached entries while offline, so SSH key logins of users it has resolved before still work.
 - **PAM config:** The playbook replaces `/etc/pam.d/sshd` entirely. Back up the existing file before running on nodes with custom PAM configurations.
-- **pam_oauth2_device version:** The playbook builds from the latest commit of the configured git repo. Pin to a specific tag by adding `version:` to the git task in `enroll-node.yml` for production stability.
+- **Module version.** The `pam` phase builds `pam_oauth2_device_version`, `master` by default. Pin it to a tag or commit
+  for production.

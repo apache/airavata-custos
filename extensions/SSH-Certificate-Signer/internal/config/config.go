@@ -17,35 +17,23 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
+const minServiceTokenLength = 32
+
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	Database DatabaseConfig `yaml:"database"`
 	Vault    VaultConfig    `yaml:"vault"`
 	Signer   SignerConfig   `yaml:"signer"`
-	DevMode  DevModeConfig  `yaml:"dev_mode"`
 	Logging  LoggingConfig  `yaml:"logging"`
-	Metrics  MetricsConfig  `yaml:"metrics"`
-	CORS     CORSConfig     `yaml:"cors"`
-}
-
-// DevModeConfig disables OIDC token validation and returns a default identity
-// for all requests when enabled.
-type DevModeConfig struct {
-	Enabled        bool   `yaml:"enabled"`
-	DefaultEmail   string `yaml:"default_email"`
-	DefaultSubject string `yaml:"default_subject"`
-}
-
-type CORSConfig struct {
-	Enabled        bool     `yaml:"enabled"`
-	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 type ServerConfig struct {
@@ -70,43 +58,41 @@ type VaultConfig struct {
 	Address        string `yaml:"address"`
 	Token          string `yaml:"token"`
 	MountPath      string `yaml:"mount_path"`
+	CAKeyPath      string `yaml:"ca_key_path"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
 }
 
 type SignerConfig struct {
-	CA         CAConfig         `yaml:"ca"`
-	Policy     PolicyConfig     `yaml:"policy"`
-	Auth       AuthConfig       `yaml:"auth"`
-	Validation ValidationConfig `yaml:"validation"`
+	ServiceToken      string           `yaml:"service_token"`
+	ReservedUsernames []string         `yaml:"reserved_usernames"`
+	LoginHost         string           `yaml:"login_host"`
+	LoginPort         int              `yaml:"login_port"`
+	CA                CAConfig         `yaml:"ca"`
+	Policy            PolicyConfig     `yaml:"policy"`
+	Validation        ValidationConfig `yaml:"validation"`
+	KRL               KRLConfig        `yaml:"krl"`
+}
+
+// KRLConfig says where the revocation list is written and how often it is rebuilt.
+type KRLConfig struct {
+	Path           string `yaml:"path"`
+	RefreshSeconds int    `yaml:"refresh_seconds"`
 }
 
 type CAConfig struct {
-	Rotation RotationConfig `yaml:"rotation"`
-}
-
-type RotationConfig struct {
-	PeriodHours  int `yaml:"period_hours"`
-	OverlapHours int `yaml:"overlap_hours"`
+	CreateIfMissing bool `yaml:"create_if_missing"`
 }
 
 type PolicyConfig struct {
-	Defaults PolicyDefaults `yaml:"defaults"`
+	MaxTTLSeconds    int                    `yaml:"max_ttl_seconds"`
+	AllowedKeyTypes  []string               `yaml:"allowed_key_types"`
+	DeniedExtensions []string               `yaml:"denied_extensions"`
+	CertificateLimit CertificateLimitConfig `yaml:"certificate_limit"`
 }
 
-type PolicyDefaults struct {
-	MaxTTLSeconds   int      `yaml:"max_ttl_seconds"`
-	AllowedKeyTypes []string `yaml:"allowed_key_types"`
-}
-
-type AuthConfig struct {
-	AllowedIssuers []string   `yaml:"allowed_issuers"`
-	OIDC           OIDCConfig `yaml:"oidc"`
-}
-
-type OIDCConfig struct {
-	JWKSCacheTTLSeconds int `yaml:"jwks_cache_ttl_seconds"`
-	JWKSMaxProviders    int `yaml:"jwks_max_providers"`
-	TimeoutSeconds      int `yaml:"timeout_seconds"`
+type CertificateLimitConfig struct {
+	MaxPerUser    int `yaml:"max_per_user"`
+	WindowSeconds int `yaml:"window_seconds"`
 }
 
 type ValidationConfig struct {
@@ -115,14 +101,8 @@ type ValidationConfig struct {
 }
 
 type LoggingConfig struct {
-	Level      string `yaml:"level"`
-	Format     string `yaml:"format"`
-	AuditLevel string `yaml:"audit_level"`
-}
-
-type MetricsConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	Path    string `yaml:"path"`
+	Level  string `yaml:"level"`
+	Format string `yaml:"format"`
 }
 
 func DefaultConfig() *Config {
@@ -147,42 +127,26 @@ func DefaultConfig() *Config {
 			Address:        "http://localhost:8200",
 			Token:          "",
 			MountPath:      "ssh-ca",
+			CAKeyPath:      "ca/current",
 			TimeoutSeconds: 10,
 		},
 		Signer: SignerConfig{
-			CA: CAConfig{
-				Rotation: RotationConfig{
-					PeriodHours:  2160,
-					OverlapHours: 2,
-				},
-			},
+			ReservedUsernames: []string{"root"},
+			LoginPort:         22,
 			Policy: PolicyConfig{
-				Defaults: PolicyDefaults{
-					MaxTTLSeconds:   86400,
-					AllowedKeyTypes: []string{"ed25519", "rsa", "ecdsa"},
-				},
-			},
-			Auth: AuthConfig{
-				AllowedIssuers: []string{},
-				OIDC: OIDCConfig{
-					JWKSCacheTTLSeconds: 300,
-					JWKSMaxProviders:    10,
-					TimeoutSeconds:      10,
-				},
+				MaxTTLSeconds:    86400,
+				AllowedKeyTypes:  []string{"ed25519", "rsa", "ecdsa"},
+				CertificateLimit: CertificateLimitConfig{MaxPerUser: 5, WindowSeconds: 3600},
 			},
 			Validation: ValidationConfig{
-				PrincipalValidator: "noop",
+				PrincipalValidator: "none",
 				CacheTTLSeconds:    300, // 5 minutes cache
 			},
+			KRL: KRLConfig{RefreshSeconds: 300},
 		},
 		Logging: LoggingConfig{
-			Level:      "info",
-			Format:     "json",
-			AuditLevel: "info",
-		},
-		Metrics: MetricsConfig{
-			Enabled: true,
-			Path:    "/metrics",
+			Level:  "info",
+			Format: "json",
 		},
 	}
 }
@@ -203,6 +167,32 @@ func Load(path string) (*Config, error) {
 
 	applyEnvOverrides(cfg)
 	return cfg, nil
+}
+
+// Validate stops startup on unsafe settings. Whoever holds the service token can get a certificate for any user that is not reserved.
+func (c *Config) Validate() error {
+	if len(c.Signer.ServiceToken) < minServiceTokenLength {
+		return fmt.Errorf("service_token must be at least %d characters", minServiceTokenLength)
+	}
+	if v := c.Signer.Validation.PrincipalValidator; v != "none" && v != "ldap" {
+		return fmt.Errorf("principal_validator %q must be none or ldap", v)
+	}
+	if !slices.ContainsFunc(c.Signer.ReservedUsernames, func(name string) bool { return strings.EqualFold(name, "root") }) {
+		return fmt.Errorf("reserved_usernames must include root")
+	}
+	if c.Signer.LoginHost == "" {
+		return fmt.Errorf("login_host is required")
+	}
+	if limit := c.Signer.Policy.CertificateLimit; limit.MaxPerUser < 1 || limit.WindowSeconds < 1 {
+		return fmt.Errorf("certificate_limit max_per_user and window_seconds must be at least 1")
+	}
+	if c.Signer.KRL.Path == "" {
+		return fmt.Errorf("krl path is required")
+	}
+	if c.Signer.KRL.RefreshSeconds < 1 {
+		return fmt.Errorf("krl refresh_seconds must be at least 1")
+	}
+	return nil
 }
 
 func applyEnvOverrides(cfg *Config) {
@@ -229,22 +219,8 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("VAULT_TOKEN"); v != "" {
 		cfg.Vault.Token = v
 	}
-	if v := os.Getenv("DEV_MODE"); v != "" {
-		cfg.DevMode.Enabled = strings.EqualFold(v, "true")
-	}
-	if v := os.Getenv("DEV_DEFAULT_EMAIL"); v != "" {
-		cfg.DevMode.DefaultEmail = v
-	}
-	if v := os.Getenv("ALLOWED_ISSUERS"); v != "" {
-		issuers := strings.Split(v, ",")
-		trimmed := make([]string, 0, len(issuers))
-		for _, issuer := range issuers {
-			s := strings.TrimSpace(issuer)
-			if s != "" {
-				trimmed = append(trimmed, s)
-			}
-		}
-		cfg.Signer.Auth.AllowedIssuers = trimmed
+	if v := os.Getenv("SIGNER_SERVICE_TOKEN"); v != "" {
+		cfg.Signer.ServiceToken = v
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.Logging.Level = v

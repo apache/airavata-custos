@@ -17,19 +17,18 @@
 
 "use client";
 
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { requires } from "@/shared/casl/permissions";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { GuardedButton } from "@/shared/ui/GuardedButton";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge, statusBadgeVariantFromChangeRequest } from "@/shared/ui/StatusBadge";
+import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import * as React from "react";
-import { Button } from "@/shared/ui/button";
-import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
-import { ErrorState } from "@/shared/ui/ErrorState";
-import { TableSkeleton } from "@/shared/ui/Loading";
-import {
-  StatusBadge,
-  statusBadgeVariantFromChangeRequest,
-} from "@/shared/ui/StatusBadge";
 import { useChangeRequests } from "../queries";
-import type { ChangeRequest, ComputeAllocation } from "../schemas";
+import type { ChangeRequest } from "../schemas";
 import { ChangeRequestSubmitDrawer } from "./ChangeRequestSubmitDrawer";
 
 export type AllocationChangeRequestsTabProps = {
@@ -60,7 +59,7 @@ export function AllocationChangeRequestsTab({
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={4} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = query.data ?? [];
 
@@ -68,6 +67,7 @@ export function AllocationChangeRequestsTab({
     {
       key: "submitted",
       header: "Submitted",
+      width: "9rem",
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDate(row.timestamp)}</span>
       ),
@@ -80,14 +80,18 @@ export function AllocationChangeRequestsTab({
     {
       key: "amount",
       header: "Requested SUs",
+      width: "10rem",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">{new Intl.NumberFormat().format(row.requested_su_amount)}</span>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat().format(row.requested_su_amount)}
+        </span>
       ),
     },
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromChangeRequest(row.change_status)}
@@ -98,21 +102,32 @@ export function AllocationChangeRequestsTab({
     {
       key: "actions",
       header: "",
+      width: "6rem",
       align: "right",
       interactive: true,
       cell: (row) => (
-        <Button variant="ghost" size="sm" render={<Link href={`/change-requests/${row.id}`} />}>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={`/change-requests/${row.id}`} />}
+        >
           View
         </Button>
       ),
     },
   ];
 
-  const headerCta = canSubmit ? (
-    <Button size="sm" onClick={() => setDrawerOpen(true)}>
+  const headerCta = (
+    <GuardedButton
+      size="sm"
+      allowed={canSubmit}
+      reason={requires("allocationsWrite")}
+      onClick={() => setDrawerOpen(true)}
+    >
       + Submit change request
-    </Button>
-  ) : null;
+    </GuardedButton>
+  );
 
   return (
     <div className="space-y-3">
@@ -122,14 +137,12 @@ export function AllocationChangeRequestsTab({
         </p>
         {headerCta}
       </div>
-      {rows.length === 0 ? (
-        <EmptyState
-          heading="No change requests"
-          description={canSubmit ? "Submit a request when this allocation needs more SUs or more time." : "There are no change requests for this allocation."}
-        />
-      ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
-      )}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => row.id}
+        empty="No change requests."
+      />
       <ChangeRequestSubmitDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}

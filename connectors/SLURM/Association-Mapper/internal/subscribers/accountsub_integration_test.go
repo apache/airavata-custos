@@ -27,7 +27,7 @@ import (
 	"testing"
 )
 
-func TestSubscribeToComputeAllocationCreation(t *testing.T) {
+func TestHandleComputeAllocationCreated(t *testing.T) {
 	if !operations.IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for compute allocation creation subscription because local SLURM config is not available")
 	}
@@ -70,7 +70,7 @@ func TestSubscribeToComputeAllocationCreation(t *testing.T) {
 		ComputeClusterID: "test_cluster_id",
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAccount)
+	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -90,7 +90,7 @@ func TestSubscribeToComputeAllocationCreation(t *testing.T) {
 
 }
 
-func TestSubscribeToComputeAllocationCreationWrongCluster(t *testing.T) {
+func TestHandleComputeAllocationCreatedWrongCluster(t *testing.T) {
 	if !operations.IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for compute allocation creation subscription because local SLURM config is not available")
 	}
@@ -133,7 +133,7 @@ func TestSubscribeToComputeAllocationCreationWrongCluster(t *testing.T) {
 		ComputeClusterID: "test_cluster_id",
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAccount)
+	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -166,7 +166,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ComputeClusterID: clusterID,
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAllocation)
+	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAllocation)
 
 	allAuditEvents, err := mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -196,7 +196,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ResourceTime:                100,
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationResourceMappingCreation(context.Background(), resourceMapping)
+	associationSubscriber.handleComputeAllocationResourceMappingCreated(context.Background(), resourceMapping)
 
 	allAuditEvents, err = mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -220,7 +220,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 	return nil
 }
 
-func TestSubscribeToComputeAllocationResourceMappingCreation(t *testing.T) {
+func TestHandleComputeAllocationResourceMappingCreated(t *testing.T) {
 	if !operations.IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for compute allocation creation subscription because local SLURM config is not available")
 	}
@@ -284,7 +284,7 @@ func TestSubscribeToComputeAllocationResourceMappingCreation(t *testing.T) {
 
 }
 
-func TestSubscribeToComputeAllocationResourceMappingWrongClusterCreation(t *testing.T) {
+func TestHandleComputeAllocationResourceMappingWrongClusterCreated(t *testing.T) {
 
 	// Pass the wrong cluster name in the mock to simulate the case where the cluster
 	// associated with the compute allocation does not match any cluster in SLURM,
@@ -358,7 +358,7 @@ func TestSubscribeToComputeAllocationResourceMappingWrongClusterCreation(t *test
 	}
 }
 
-func TestSubscribeToComputeAllocationResourceMappingWrongResourceTypeCreation(t *testing.T) {
+func TestHandleComputeAllocationResourceMappingWrongResourceTypeCreated(t *testing.T) {
 
 	// Passing the wrong resource type in the mock to simulate the case where the
 	// resource type of the allocation resource is not compatible with SLURM,

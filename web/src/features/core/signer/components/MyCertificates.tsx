@@ -1,0 +1,214 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+"use client";
+
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { toast } from "sonner";
+import { ApiError } from "@/shared/api/client";
+import { Button } from "@/shared/ui/button";
+import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { TableSkeleton } from "@/shared/ui/Loading";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { useCursorPaging, useMyCertificates, useRevokeMyCertificate } from "../queries";
+import type { Certificate } from "../schemas";
+import {
+  CERTIFICATE_STATUS_LABELS,
+  type CertificateStatus,
+  formatUnixDate,
+  formatUnixSeconds,
+  formatValidUntil,
+  getCertificateStatus,
+  statusBadgeVariantFromCertificateStatus,
+} from "../status";
+import { revokeErrorMessage } from "./CertificateDetail";
+import { CursorPager } from "./CertificateList";
+import { GenerateCertificateDialog } from "./GenerateCertificateDialog";
+import { RevokeCertificateDialog } from "./RevokeCertificateDialog";
+
+export function loadErrorMessage(error: unknown): string {
+  const message = error instanceof ApiError ? (error.body as { message?: string } | null)?.message : undefined;
+  return message || "Your certificates could not be loaded. Please try again.";
+}
+
+export function MyCertificates() {
+  const router = useRouter();
+  const [statusFilter, setStatusFilter] = React.useState<CertificateStatus | "all">("all");
+  const { params, paging } = useCursorPaging(
+    statusFilter === "all" ? {} : { status: statusFilter },
+  );
+  const query = useMyCertificates(params);
+  const revoke = useRevokeMyCertificate();
+  const [generateOpen, setGenerateOpen] = React.useState(false);
+  const [revoking, setRevoking] = React.useState<Certificate | null>(null);
+  const [revokeError, setRevokeError] = React.useState<string | null>(null);
+
+  const rows = query.data?.certificates ?? [];
+
+  const columns: Array<DataTableColumn<Certificate>> = [
+    {
+      key: "serial",
+      header: "Serial",
+      cell: (row) => <span className="font-mono font-medium">{row.serial_number}</span>,
+    },
+    {
+      key: "key",
+      header: "Key",
+      cell: (row) => (
+        <span className="font-mono text-xs text-muted-foreground" title={row.public_key_fingerprint}>
+          {row.public_key_fingerprint.slice(0, 14)}…
+        </span>
+      ),
+    },
+    {
+      key: "issued",
+      header: "Issued",
+      cell: (row) => (
+        <span className="text-sm" title={formatUnixSeconds(row.issued_at)}>
+          {formatUnixDate(row.issued_at)}
+        </span>
+      ),
+    },
+    {
+      key: "validBefore",
+      header: "Valid until",
+      cell: (row) => (
+        <span className="text-sm" title={formatUnixSeconds(row.valid_before)}>
+          {formatValidUntil(row)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (row) => {
+        const status = getCertificateStatus(row);
+        return (
+          <StatusBadge
+            variant={statusBadgeVariantFromCertificateStatus(status)}
+            label={CERTIFICATE_STATUS_LABELS[status]}
+          />
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      interactive: true,
+      cell: (row) =>
+        getCertificateStatus(row) === "active" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label={`Revoke certificate ${row.serial_number}`}
+            onClick={() => {
+              setRevokeError(null);
+              setRevoking(row);
+            }}
+          >
+            Revoke
+          </Button>
+        ) : null,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[28px] font-bold leading-tight">SSH access</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your SSH certificates for logging in to the cluster.
+          </p>
+        </div>
+        <Button onClick={() => setGenerateOpen(true)}>Generate certificate</Button>
+      </div>
+
+      <p className="rounded-md border bg-card p-3 text-sm text-muted-foreground">
+        Login nodes refuse a revoked certificate at once.
+      </p>
+
+      <div className="flex items-center gap-3">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as CertificateStatus | "all")}
+          aria-label="Filter by status"
+          className="h-9 rounded-md border bg-background px-3 text-sm"
+        >
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="revoked">Revoked</option>
+        </select>
+      </div>
+
+      {query.isLoading ? (
+        <TableSkeleton rows={4} columns={6} />
+      ) : query.error ? (
+        <ErrorState message={loadErrorMessage(query.error)} onRetry={() => query.refetch()} />
+      ) : rows.length === 0 ? (
+        statusFilter === "all" ? (
+          <EmptyState
+            heading="No certificates yet"
+            description="Generate a certificate to log in to the cluster."
+          />
+        ) : (
+          <EmptyState heading="No matches" description="No certificates have that status." />
+        )
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(row) => String(row.serial_number)}
+          onRowClick={(row) => router.push(`/ssh-access/${row.serial_number}`)}
+        />
+      )}
+      {!query.isLoading && (query.error || rows.length > 0) ? (
+        <CursorPager {...paging(query.data?.next_cursor)} />
+      ) : null}
+
+      <GenerateCertificateDialog open={generateOpen} onOpenChange={setGenerateOpen} />
+      <RevokeCertificateDialog
+        serialNumber={revoking?.serial_number ?? 0}
+        open={revoking !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevoking(null);
+        }}
+        isPending={revoke.isPending}
+        error={revokeError}
+        onSubmit={(reason) => {
+          if (!revoking) return;
+          setRevokeError(null);
+          revoke.mutate(
+            { serial: revoking.serial_number, reason },
+            {
+              onSuccess: () => {
+                setRevoking(null);
+                toast.success("Certificate revoked");
+              },
+              onError: (err) => setRevokeError(revokeErrorMessage(err)),
+            },
+          );
+        }}
+      />
+    </div>
+  );
+}

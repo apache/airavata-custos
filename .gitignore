@@ -42,6 +42,9 @@ dist/
 # Built server binary from `make build`.
 /custos
 
+# Event graph from `go generate ./cmd/server/`.
+/internal/server/eventgraph/graph.json
+
 database_data
 
 # local application properties
@@ -60,10 +63,12 @@ venv/
 # Vault
 vault.db
 raft.db
+dev-ops/compose/openbao/keys/
 
 # Configurations
 .env
 config.yaml
+!dev-ops/compose/signer/config.yaml
 
 # Binaries
 bin/
@@ -71,6 +76,9 @@ bin/
 # Python virtualenvs (e.g. AMIE mock-server)
 venv/
 .venv/
+
+# Real people for the AMIE mock-server configurations
+connectors/ACCESS/AMIE-Processor/mock-server/scenarios/people.json
 
 # Local working drafts
 docs/drafts/

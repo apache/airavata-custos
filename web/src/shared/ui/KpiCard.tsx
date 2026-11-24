@@ -35,12 +35,12 @@ export type KpiDelta = {
 };
 
 export type KpiCardProps = {
-  icon?: ElementType;
+  icon?: ElementType | undefined;
   title: ReactNode;
   value: ReactNode;
-  delta?: KpiDelta;
-  deltaTone?: KpiDeltaTone;
-  sparkline?: number[];
+  delta?: KpiDelta | undefined;
+  deltaTone?: KpiDeltaTone | undefined;
+  sparkline?: number[] | undefined;
   onClick?: () => void;
   loading?: boolean;
   className?: string;
@@ -54,7 +54,7 @@ const toneStyles: Record<KpiDeltaTone, string> = {
   neutral: "bg-muted text-muted-foreground",
 };
 
-function KpiCardTitle({ icon: Icon, title }: { icon?: ElementType; title: ReactNode }) {
+function KpiCardTitle({ icon: Icon, title }: { icon?: ElementType | undefined; title: ReactNode }) {
   return (
     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
       {Icon ? <Icon className="h-4 w-4 stroke-[1.5]" /> : null}

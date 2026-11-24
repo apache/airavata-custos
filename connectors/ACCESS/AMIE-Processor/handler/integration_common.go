@@ -36,19 +36,14 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	amieservice "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	corestore "github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
 const testClusterID = "00000000-0000-0000-0000-000000000001"
-
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
-)
 
 func isLocalAMIEConfigAvailable() bool {
 	for _, key := range []string{
@@ -72,29 +67,8 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 	if !isLocalAMIEConfigAvailable() {
 		t.Skip("integration env not set; run via scripts/run-amie-integration-tests.sh")
 	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          os.Getenv("DATABASE_DSN"),
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateConnectorFS(database, amiedb.MigrationFS(), "migrations", "amie"); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
+	sharedDB := dbtest.Open(t, os.Getenv("DATABASE_DSN"),
+		dbtest.Migrations{FS: amiedb.MigrationFS(), Dir: "migrations", Name: "amie"})
 	truncateAll(t, sharedDB)
 	seedDefaultCluster(t, sharedDB)
 	return sharedDB
@@ -106,6 +80,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 	tables := []string{
 		"amie_audit_extras",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
@@ -147,7 +124,11 @@ func seedDefaultCluster(t *testing.T, database *sqlx.DB) {
 }
 
 func newTestCoreService(database *sqlx.DB) *coreservice.Service {
-	return coreservice.New(database, events.New())
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		panic("event bus: " + err.Error())
+	}
+	return coreservice.New(database, bus)
 }
 
 func newTestAuditService(database *sqlx.DB) *amieservice.AuditService {
@@ -197,6 +178,39 @@ func (f *fakeAmieClient) lastReplyType() string {
 	last := f.Replies[len(f.Replies)-1]
 	t, _ := last.Body["type"].(string)
 	return t
+}
+
+// heldReply returns the type and body of the reply a handler kept on the packet.
+func heldReply(t *testing.T, pkt *model.Packet) (string, map[string]any) {
+	t.Helper()
+	if pkt.Status != model.PacketStatusWaitingApproval || pkt.HeldReply == nil {
+		t.Fatalf("expected the packet to hold its reply, got status %s", pkt.Status)
+	}
+	var reply map[string]any
+	if err := json.Unmarshal([]byte(*pkt.HeldReply), &reply); err != nil {
+		t.Fatalf("decode held reply: %v", err)
+	}
+	typ, _ := reply["type"].(string)
+	body, _ := reply["body"].(map[string]any)
+	return typ, body
+}
+
+// approvePendingAccounts approves every pending cluster account, as an admin would.
+func approvePendingAccounts(t *testing.T, database *sqlx.DB, svc *coreservice.Service) {
+	t.Helper()
+	var ids []string
+	if err := database.Select(&ids, "SELECT id FROM compute_cluster_users WHERE approval_status = 'PENDING'"); err != nil {
+		t.Fatalf("list pending cluster accounts: %v", err)
+	}
+	var reviewer string
+	if err := database.Get(&reviewer, "SELECT id FROM users LIMIT 1"); err != nil {
+		t.Fatalf("pick a reviewer: %v", err)
+	}
+	for _, id := range ids {
+		if _, err := svc.ApproveComputeClusterUser(tracingtest.Context(), id, reviewer); err != nil {
+			t.Fatalf("approve %s: %v", id, err)
+		}
+	}
 }
 
 func insertPacket(t *testing.T, database *sqlx.DB, packetType string, body map[string]any) *model.Packet {

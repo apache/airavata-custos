@@ -87,6 +87,10 @@ func TestCreateAssociation(t *testing.T) {
 
 func TestDeleteAssociation(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			_, _ = w.Write([]byte(`{"associations":[{"account":"eng","cluster":"artisan","user":""},{"account":"eng","cluster":"artisan","user":"alice"}]}`))
+			return
+		}
 		if r.Method != "DELETE" || r.URL.Path != "/slurmdb/v0.0.41/association" {
 			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
@@ -97,7 +101,7 @@ func TestDeleteAssociation(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := New(srv.URL, "root", "t", "41")
-	if err := c.DeleteAssociation(AssocFilter{Account: "eng", User: "alice"}); err != nil {
+	if err := c.DeleteAssociation(AssocFilter{Account: "eng"}); err != nil {
 		t.Fatal(err)
 	}
 }

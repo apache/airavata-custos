@@ -19,46 +19,27 @@ package events
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // UserIdentityHandler handles user-identity lifecycle events with a typed payload.
-type UserIdentityHandler func(ctx context.Context, identity models.UserIdentity)
+type UserIdentityHandler func(ctx context.Context, identity models.UserIdentity) error
 
 // SubscribeUserIdentityCreated registers a typed handler invoked whenever a
 // user_identity::create event is published.
-func (b *Bus) SubscribeUserIdentityCreated(handler UserIdentityHandler) {
-	b.subscribeUserIdentity(UserIdentityCreateEvent, handler)
+func (b *Bus) SubscribeUserIdentityCreated(subscriber string, handler UserIdentityHandler) {
+	subscribeTyped(b, subscriber, UserIdentityCreateEvent, handler)
 }
 
 // SubscribeUserIdentityUpdated registers a typed handler invoked whenever a
 // user_identity::update event is published.
-func (b *Bus) SubscribeUserIdentityUpdated(handler UserIdentityHandler) {
-	b.subscribeUserIdentity(UserIdentityUpdateEvent, handler)
+func (b *Bus) SubscribeUserIdentityUpdated(subscriber string, handler UserIdentityHandler) {
+	subscribeTyped(b, subscriber, UserIdentityUpdateEvent, handler)
 }
 
 // SubscribeUserIdentityDeleted registers a typed handler invoked whenever a
 // user_identity::delete event is published.
-func (b *Bus) SubscribeUserIdentityDeleted(handler UserIdentityHandler) {
-	b.subscribeUserIdentity(UserIdentityDeleteEvent, handler)
-}
-
-func (b *Bus) subscribeUserIdentity(topic EventType, handler UserIdentityHandler) {
-	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
-		switch e := value.(type) {
-		case models.UserIdentity:
-			handler(ctx, e)
-		case *models.UserIdentity:
-			if e != nil {
-				handler(ctx, *e)
-			}
-		default:
-			slog.Warn("user identity event payload has unexpected type",
-				"type", event.Type,
-				"got", value,
-			)
-		}
-	})
+func (b *Bus) SubscribeUserIdentityDeleted(subscriber string, handler UserIdentityHandler) {
+	subscribeTyped(b, subscriber, UserIdentityDeleteEvent, handler)
 }

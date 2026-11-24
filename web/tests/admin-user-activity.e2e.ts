@@ -54,7 +54,7 @@ test("activity dashboard, filters, pagination and drawer", async ({ page }) => {
 });
 
 test("users:read alone cannot open activity or fetch its data", async ({ page }) => {
-  await signInAs(page, "viewer");
+  await signInAs(page, "readOnlyAdmin");
   const activityRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("/api/v1/users/activity")) activityRequests.push(request.url());

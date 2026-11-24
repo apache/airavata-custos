@@ -45,6 +45,8 @@ type Account struct {
 	Name         string `json:"name"`
 	Description  string `json:"description,omitempty"`
 	Organization string `json:"organization,omitempty"`
+	// GrpJobs, when set, caps the account's running jobs as it is created.
+	GrpJobs *int64 `json:"-"`
 }
 
 type AssocLimits struct {

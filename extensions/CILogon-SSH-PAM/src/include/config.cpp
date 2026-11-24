@@ -172,6 +172,10 @@ Config::load(const char *path)
 	};
     for( auto var : configdata )
 	var.set(config);
+    if(!ldap_host.empty() && (ldap_filter.empty() || ldap_attr.empty()))
+	throw std::runtime_error("config - ldap.host needs ldap.filter and ldap.attr");
+    if(ldap_host.empty() && !ldap_preauth.empty())
+	throw std::runtime_error("config - ldap.preauth needs ldap.host");
 
     // The users section is much like before but can be in a separate file, too
     if (config.find("users") != the_end) {
@@ -252,7 +256,7 @@ load(json j, iter next, iter end, bool required)
     case json::value_t::object:
 	// We've reached the target but it's an object
 	if(next == end)
-	    throw "config - reference returns object";
+	    throw std::runtime_error("config - reference returns object");
 	if(required) {
 	    auto node = j.at(*next);
 	    return load(node, std::next(next), end, required);

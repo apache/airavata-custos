@@ -16,37 +16,7 @@
 // under the License.
 
 import { describe, expect, it } from "vitest";
-import {
-  createOrganizationPayloadSchema,
-  organizationListEnvelopeSchema,
-  organizationSchema,
-} from "../schemas";
-
-const validOrg = {
-  id: "org-gatech",
-  name: "Georgia Institute of Technology",
-  originated_id: "GATECH",
-};
-
-describe("organizationSchema", () => {
-  it("accepts a backend-shaped organization", () => {
-    expect(organizationSchema.safeParse(validOrg).success).toBe(true);
-  });
-  it("rejects a missing name", () => {
-    expect(organizationSchema.safeParse({ id: "org-1", originated_id: "X" }).success).toBe(false);
-  });
-});
-
-describe("organizationListEnvelopeSchema", () => {
-  it("accepts a valid envelope", () => {
-    expect(
-      organizationListEnvelopeSchema.safeParse({ items: [validOrg], total: 1 }).success,
-    ).toBe(true);
-  });
-  it("rejects a negative total", () => {
-    expect(organizationListEnvelopeSchema.safeParse({ items: [], total: -1 }).success).toBe(false);
-  });
-});
+import { createOrganizationPayloadSchema } from "../schemas";
 
 describe("createOrganizationPayloadSchema", () => {
   it("requires name 1+ chars", () => {
@@ -54,10 +24,5 @@ describe("createOrganizationPayloadSchema", () => {
   });
   it("accepts a name-only payload", () => {
     expect(createOrganizationPayloadSchema.safeParse({ name: "GT" }).success).toBe(true);
-  });
-  it("accepts an optional originated_id", () => {
-    expect(
-      createOrganizationPayloadSchema.safeParse({ name: "GT", originated_id: "GATECH" }).success,
-    ).toBe(true);
   });
 });

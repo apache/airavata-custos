@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { NextRequest } from "next/server";
 import { signIn } from "@/shared/auth/auth";
+import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 

@@ -17,13 +17,12 @@
 
 "use client";
 
+import type { ComputeAllocation, ComputeAllocationDiff } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge, statusBadgeVariantFromAllocationStatus } from "@/shared/ui/StatusBadge";
 import { useAllocationDiffs } from "../queries";
-import type { AllocationDiff, ComputeAllocation } from "../schemas";
 
 export type AllocationHistoryTabProps = {
   allocation: ComputeAllocation;
@@ -48,20 +47,17 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
 
   if (query.isLoading) return <TableSkeleton rows={3} columns={5} />;
   if (query.error) {
-    return <ErrorState message={(query.error as Error).message} onRetry={() => query.refetch()} />;
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
   }
   const rows = [...(query.data ?? [])].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
 
-  if (rows.length === 0) {
-    return <EmptyState heading="No history recorded for this allocation." />;
-  }
-
-  const columns: Array<DataTableColumn<AllocationDiff>> = [
+  const columns: Array<DataTableColumn<ComputeAllocationDiff>> = [
     {
       key: "when",
       header: "When",
+      width: "12rem",
       cell: (row) => (
         <span className="text-sm text-muted-foreground">{formatDateTime(row.timestamp)}</span>
       ),
@@ -69,23 +65,22 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     {
       key: "type",
       header: "Type",
+      width: "10rem",
       cell: (row) => <span className="text-sm">{row.diff_type}</span>,
     },
     {
       key: "su",
       header: "New SU amount",
+      width: "10rem",
       align: "right",
       cell: (row) => (
-        <span className="tabular-nums">
-          {typeof row.new_su_amount === "number"
-            ? new Intl.NumberFormat().format(row.new_su_amount)
-            : "-"}
-        </span>
+        <span className="tabular-nums">{new Intl.NumberFormat().format(row.new_su_amount)}</span>
       ),
     },
     {
       key: "status",
       header: "Status",
+      width: "8rem",
       cell: (row) => (
         <StatusBadge
           variant={statusBadgeVariantFromAllocationStatus(row.status)}
@@ -103,5 +98,12 @@ export function AllocationHistoryTab({ allocation }: AllocationHistoryTabProps) 
     },
   ];
 
-  return <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />;
+  return (
+    <DataTable
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => row.id}
+      empty="No history recorded for this allocation."
+    />
+  );
 }

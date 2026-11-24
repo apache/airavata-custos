@@ -26,7 +26,7 @@ function Cell({
   label: string;
   active: boolean;
   activeClass: string;
-  onClick?: () => void;
+  onClick?: (() => void) | undefined;
 }) {
   const title = label === "read" ? "Read" : "Write";
   const className = cn(

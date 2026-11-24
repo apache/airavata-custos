@@ -17,232 +17,23 @@
     under the License.
 -->
 
-# Configuration Guide
+# Configuration
 
-Custos server can be configured using a YAML configuration file instead of environment variables. This guide explains how to set up and use the configuration system.
+Reference for the server's YAML file, environment variables, `core` keys and connector blocks. Connector keys are in
+each connector's README, linked under [Connectors](#connectors). For a local stack, follow [INSTALL.md](INSTALL.md).
+[`config/custos.yaml`](config/custos.yaml) is the complete sample.
 
-## Quick Start
+## The config file
 
-1. Place your configuration file at `config/custos.yaml`
-2. Start the server:
-   ```bash
-   ./custos
-   ```
-
-The server will automatically load the configuration file. If the config file is not found at the resolved path, the server exits with an error — make sure `config/custos.yaml` exists (or override `CONFIG_PATH`).
-
-## Configuration File Location
-
-By default, the server looks for the configuration file at `config/custos.yaml`. You can customize this location using the `CONFIG_PATH` environment variable:
+The server reads one YAML file at startup, `config/custos.yaml` by default. Set `CONFIG_PATH` to read another:
 
 ```bash
 CONFIG_PATH=/etc/custos/config.yaml ./custos
 ```
 
-## Configuration Structure
+The server exits if it cannot read or parse the file. On success it logs the path:
 
-### Core Configuration
-
-The `core` section contains essential server settings:
-
-```yaml
-core:
-  database:
-    url: "postgres://admin:admin@localhost:5432/custos?sslmode=disable"
-  api:
-    port: 8080
-  log_level: "info"
-```
-
-- **database.url**: PostgreSQL DSN (the server uses the `pgx` driver). Required.
-- **api.port**: HTTP API port (default: 8080)
-- **log_level**: Logging level (info, debug, warn, error)
-
-### Auth Configuration
-
-The verifier and caller resolver read this block. The loader refuses to boot when either OIDC field is empty; the cache TTL is capped at 60s.
-
-```yaml
-core:
-  auth:
-    oidc:
-      issuer:   "${OIDC_ISSUER_URL}"
-      audience: "${OIDC_AUDIENCE}"
-    cache_ttl: "30s"
-```
-
-| Key | Default | Notes |
-|-----|---------|-------|
-| `core.auth.oidc.issuer` | *(required)* | OIDC issuer URL. The verifier discovers JWKS from `<issuer>/.well-known/openid-configuration`. Empty → boot fails with `core.auth.oidc.issuer is required`. |
-| `core.auth.oidc.audience` | *(required)* | Expected `aud` claim. Usually the client_id registered with the IdP. Empty → boot fails with `core.auth.oidc.audience is required`. |
-| `core.auth.cache_ttl` | `30s` | TTL of the in-process caller + privilege cache, keyed by OIDC sub. Any `time.Duration` string (`s`, `m`). Zero or negative → `30s`. Values above `60s` are capped at `60s` at boot and a WARN is logged. |
-
-Public routes (those that bypass JWT verification) are declared in code via `router.Public(...)`. There is no YAML allowlist.
-
-### Connector Configuration
-
-The `connectors` section defines which connectors are enabled and their settings.
-
-#### SLURM Association Mapper
-
-```yaml
-connectors:
-  slurm-mapper:
-    type: "slurm-association-mapper"
-    enabled: true
-    slurm_api:
-      url: "https://slurm-api.example.com"
-      version: "0.0.38"
-      username: "slurm_admin"
-      token: "${SLURM_TOKEN}"
-```
-
-#### SLURM Usage Monitor
-
-```yaml
-  slurm-usage-monitor:
-    type: "slurm-usage-monitor"
-    enabled: true
-    slurm_api:
-      url: "https://slurm-api.example.com"
-      version: "0.0.38"
-      username: "slurm_admin"
-      token: "${SLURM_TOKEN}"
-    cluster_id: "slurm-cluster"
-```
-
-#### COmanage Identity Provisioner
-
-```yaml
-  comanage-provisioner:
-    type: "comanage-identity-provisioner"
-    enabled: true
-    registry:
-      url: "https://comanage.example.org"
-      co_id: 1
-      api_user: "comanage_api_user"
-      api_key: "${COMANAGE_API_KEY}"
-    unix_cluster:
-      id: 10
-      person_id_type: "eppn"
-    provisioning:
-      custos_cluster_id: "cluster-001"
-      default_shell: "/bin/bash"
-      homedir_prefix: "/home/"
-      http_timeout: "30s"
-```
-
-#### AMIE Processor
-
-```yaml
-  amie-processor:
-    type: "amie-processor"
-    enabled: true
-    credentials:
-      base_url: "https://amie.xsede.org"
-      site_code: "XSEDE"
-      api_key: "${AMIE_API_KEY}"
-    cluster:
-      id: "cluster-001"
-    polling:
-      poll_interval: "30s"
-      worker_interval: "5s"
-      poller_enabled: true
-    timeouts:
-      connect_timeout: "5s"
-      read_timeout: "20s"
-```
-
-## Environment Variable Substitution
-
-The configuration parser supports environment variable substitution using the `${VAR_NAME}` syntax. This allows you to:
-
-1. Keep sensitive values (API keys, passwords) out of version control
-2. Use different values for different deployment environments
-3. Reference environment variables directly in the config file
-
-### Example
-
-```yaml
-core:
-  database:
-    url: "${DATABASE_URL}"
-```
-
-In your shell:
-```bash
-export DATABASE_URL="postgres://admin:admin@localhost:5432/custos?sslmode=disable"
-./custos
-```
-
-If an environment variable referenced in the config file is not set, it will remain unexpanded:
-
-```yaml
-token: "${MISSING_TOKEN}"  # Will not be replaced if MISSING_TOKEN is not set
-```
-
-## Environment Overrides
-
-A small set of process-level knobs aren't in the YAML — they're read directly from the environment at boot.
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `CONFIG_PATH` | `config/custos.yaml` | Override the config file location. |
-| `DB_MAX_OPEN_CONNS` | `25` | Maximum open database connections. |
-| `DB_MAX_IDLE_CONNS` | `5` | Maximum idle database connections. |
-
-## Enabling/Disabling Connectors
-
-The configuration supports any number of connectors with any names. Each connector is identified by its `type` field which determines which loader is used:
-
-```yaml
-connectors:
-  connector-name:  # Can be any identifier
-    type: "slurm-association-mapper"  # Determines which loader to use
-    enabled: true
-    # Connector-specific configuration
-```
-
-To disable a connector, set `enabled: false`:
-
-```yaml
-connectors:
-  slurm-mapper:
-    type: "slurm-association-mapper"
-    enabled: false
-    # Rest of configuration is still required but will be ignored
-```
-
-When a connector is disabled:
-- It will not be loaded on server startup
-- An info log message will indicate it's disabled
-- The server will continue to function normally
-
-### Supported Connector Types
-
-- `slurm-association-mapper` - SLURM Association Mapper
-- `slurm-usage-monitor` - SLURM Usage Monitor
-- `comanage-identity-provisioner` - COmanage Identity Provisioner
-- `amie-processor` - AMIE Processor
-
-New connector types can be added by:
-1. Implementing the connector package
-2. Adding the loader function to `internal/connectors/loader.go`
-3. Mapping the type to the loader in `connectorLoaders` map
-
-## Configuration Validation
-
-The configuration is validated during parsing. Common issues:
-
-1. **Missing required fields**: If `core.database.url` is missing, the server will fail to start
-2. **Invalid YAML syntax**: Check your YAML indentation and structure
-3. **Undefined environment variables**: Variables referenced with `${VAR}` will be left as-is if not set
-
-## Logging
-
-Configuration loading is logged at the INFO level:
-
-```
+```json
 {
   "time": "2026-06-12T10:30:45Z",
   "level": "INFO",
@@ -251,35 +42,120 @@ Configuration loading is logged at the INFO level:
 }
 ```
 
-Connector loading logs indicate which connectors are enabled or disabled:
+## Environment variable substitution
 
-```
-{
-  "time": "2026-06-12T10:30:46Z",
-  "level": "INFO",
-  "msg": "loading SLURM Association Mapper connector"
-}
-```
+Before parsing, the server replaces each `${VAR_NAME}` in the file with that variable's value.
+`${VAR_NAME:-default}` takes `default` when the variable is unset or empty.
 
-## Adding New Connectors
-
-To add a new connector type:
-
-1. Implement the connector package with a `LoadConnector` function
-2. Update `internal/connectors/loader.go` to import the new connector
-3. Add the type-to-loader mapping in the `connectorLoaders` map:
-
-```go
-connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *http.ServeMux, *config.ConnectorConfig) error{
-    "my-new-connector": mynewconnector.LoadConnector,
-    // ... existing connectors
-}
+```yaml
+core:
+  database:
+    url: "${DATABASE_DSN}"
 ```
 
-4. Add the connector to your config file with the corresponding type
+```bash
+export DATABASE_DSN="postgres://admin:admin@localhost:5432/custos?sslmode=disable"
+./custos
+```
 
-No code changes are required elsewhere — the configuration system is fully extensible.
+| Variable state                      | Result in the file |
+|-------------------------------------|--------------------|
+| set                                 | its value          |
+| set to the empty string, or not set | the empty string   |
 
-## Example Complete Configuration
+An unset variable is not an error, so a typo leaves the value empty. Write numeric values unquoted, so YAML
+reads them as numbers.
 
-See [config/custos.yaml](config/custos.yaml) for a complete example configuration with all connectors.
+[`.env.example`](.env.example) lists the variables the sample file uses, with local defaults.
+
+## Environment variables read directly
+
+The server reads these from the environment, not the YAML file.
+
+| Variable                       | Default              | Purpose                                                                                                                                                                                                        |
+|--------------------------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CONFIG_PATH`                  | `config/custos.yaml` | Location of the config file.                                                                                                                                                                                   |
+| `DB_MAX_OPEN_CONNS`            | `25`                 | Maximum open database connections.                                                                                                                                                                             |
+| `DB_MAX_IDLE_CONNS`            | `5`                  | Maximum idle database connections.                                                                                                                                                                             |
+| `CUSTOS_BOOTSTRAP_ADMIN_EMAIL` | unset                | Grants super_admin to the user with this email at startup. Creates a PENDING user if none exists. Skipped when super_admin already has a holder. The first sign-in links the OIDC `sub` to that user by email. |
+
+## Core keys
+
+The `core` block configures the server itself.
+
+```yaml
+core:
+  database:
+    url: "${DATABASE_DSN}"
+  api:
+    port: 8080
+  log_level: "info"
+  auth:
+    oidc:
+      issuer: "${OIDC_ISSUER_URL}"
+      audience: "${OIDC_AUDIENCE}"
+    cache_ttl: "30s"
+  users:
+    reserved_usernames: [ root, daemon, slurm, ... ]
+```
+
+| Key                             | Default  | Notes                                                                                                                                                                                          |
+|---------------------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `core.database.url`             | required | PostgreSQL DSN, opened with the `pgx` driver. Empty → the server exits with `database.url in config is required`.                                                                              |
+| `core.api.port`                 | `8080`   | HTTP port of the API.                                                                                                                                                                          |
+| `core.log_level`                | `info`   | `debug`, `info`, `warn` or `error`. Any other value means `info`.                                                                                                                              |
+| `core.auth.oidc.issuer`         | required | OIDC issuer URL. The verifier discovers the JWKS from `<issuer>/.well-known/openid-configuration`. Empty → boot fails with `core.auth.oidc.issuer is required`.                                |
+| `core.auth.oidc.audience`       | required | Expected `aud` claim, usually the client ID registered with the provider. Empty → boot fails with `core.auth.oidc.audience is required`.                                                       |
+| `core.auth.cache_ttl`           | `30s`    | How long a resolved caller and its privileges stay cached. A Go duration such as `30s` or `1m`. Zero or negative → `30s`. Above `60s` → capped at `60s` with a warning.                        |
+| `core.users.reserved_usernames` | empty    | Names a user cannot choose as their cluster login. The sample lists system, service and distribution accounts.                                                                                 |
+| `core.storage.clusters`         | empty    | Each cluster's storage targets, made by a storage connector. See [storage](docs/storage.md).                                                                                                   |
+
+## Connectors
+
+Each `connectors` entry maps a site-chosen name to one connector. `type` selects the loader.
+
+```yaml
+connectors:
+  slurm-mapper: # any name
+    type: "slurm-association-mapper"     # selects the loader
+    enabled: true
+    # connector keys
+```
+
+At startup the server goes through the blocks:
+
+| Block                          | Behavior                                                                                                            |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `enabled: false`               | Not loaded. Logs `connector is disabled` and stops keeping bus events for that type. The other keys are ignored.    |
+| unknown `type`                 | Not loaded. Logs a warning. Startup continues.                                                                      |
+| enabled, required keys missing | The connector logs it, records it in its health status, and is skipped. The VAST provisioner fails startup instead. |
+| enabled, load error            | Startup fails.                                                                                                      |
+
+`GET /connectors` reports each configured connector's status.
+
+| Type                            | Keys                                                                                              |
+|---------------------------------|---------------------------------------------------------------------------------------------------|
+| `slurm-association-mapper`      | [SLURM Association-Mapper](connectors/SLURM/Association-Mapper/README.md#configuration)           |
+| `slurm-usage-monitor`           | [SLURM Usage Monitor](connectors/SLURM/Usage-Monitor/README.md#configuration)                     |
+| `comanage-identity-provisioner` | [COmanage Identity-Provisioner](connectors/COmanage/Identity-Provisioner/README.md#configuration) |
+| `vast-storage-provisioner`      | [VAST-Provisioner](connectors/Storage/VAST-Provisioner/README.md#configuration)                   |
+| `amie-processor`                | [AMIE Processor](connectors/ACCESS/AMIE-Processor/README.md#configuration)                        |
+| `email-notifier`                | [Email Notifier](connectors/Notification/Email/README.md#configuration)                           |
+| `temp-account`, `analytics`     | [Temporary accounts and analytics](#temporary-accounts-and-analytics), below                      |
+| `airavata`                      | [Airavata](#airavata), below                                                                      |
+
+To add a connector type, follow [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md).
+
+### Temporary accounts and analytics
+
+The `temp-account` and `analytics` connectors take no keys beyond `type` and `enabled`.
+
+### Airavata
+
+| Key                      | Purpose                                                                        |
+|--------------------------|--------------------------------------------------------------------------------|
+| `base_url`               | The Airavata server                                                            |
+| `service_token`          | Token of an Airavata service account with `user:create` that manages the group |
+| `virtual_users_group_id` | The Airavata group `VIRTUAL` users join                                        |
+
+The connector is skipped when any key is empty.

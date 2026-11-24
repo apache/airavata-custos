@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { AllocationsListContainer } from "./AllocationsListContainer";
+import { redirect } from "next/navigation";
 
 export default function AllocationsPage() {
-  return <AllocationsListContainer />;
+  redirect("/projects");
 }

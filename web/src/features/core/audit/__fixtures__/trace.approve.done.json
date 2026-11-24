@@ -1,0 +1,143 @@
+{
+  "deliveries": [
+    {
+      "id": "0c71f5ea-f376-49ef-b7fc-78e6df13b098",
+      "event_type": "compute_cluster_user::approve",
+      "subscriber": "amie-processor",
+      "status": "SUCCEEDED",
+      "attempts": 1,
+      "next_run_at": "2026-10-09T20:29:05.378645-04:00",
+      "span_id": "13678ee9a22708ab"
+    },
+    {
+      "id": "ff8fe816-3dd8-45ca-a10b-8eb7c89ccae5",
+      "event_type": "compute_cluster_user::approve",
+      "subscriber": "comanage-identity-provisioner",
+      "status": "SUCCEEDED",
+      "attempts": 1,
+      "next_run_at": "2026-10-09T20:29:05.378645-04:00",
+      "span_id": "13678ee9a22708ab"
+    },
+    {
+      "id": "e3f9e5f6-1eef-460e-9e31-2039137ada61",
+      "event_type": "compute_cluster_user::provision",
+      "subscriber": "email-notifier",
+      "status": "SUCCEEDED",
+      "attempts": 1,
+      "next_run_at": "2026-10-09T20:29:05.411591-04:00",
+      "span_id": "39c1b7ba375a654f"
+    }
+  ],
+  "status": "ok",
+  "trace_id": "0f73c2379f0363d8fdfe797b1d2926f6",
+  "tree": [
+    {
+      "id": "68da5481-5a69-4c12-bb0a-ca9060c508d4",
+      "span_id": "13678ee9a22708ab",
+      "source": "core",
+      "event_type": "CLUSTER_ACCOUNT_APPROVED",
+      "entity_type": "compute_cluster_user",
+      "entity_id": "277bd3d4-7269-4864-bee7-99040671122a",
+      "description": "{\"actor_id\":\"a80f5985-dfdb-424e-b7bb-5b4b30f790c6\",\"cluster_id\":\"2a6e2e27-4f7c-46b3-9673-8293806e1d60\",\"local_username\":\"custos-rresearcher\",\"user_id\":\"6edd1c61-6a4d-40f6-ab99-054c69c98d34\"}",
+      "status": "ok",
+      "created_at": "2026-10-09T20:29:05.378453-04:00",
+      "children": [
+        {
+          "id": "4c2da5f8-74ca-4c97-8b28-5b39c2b49b19",
+          "span_id": "a673ca89729eb7b7",
+          "parent_span_id": "13678ee9a22708ab",
+          "source": "amie-processor",
+          "event_type": "EVENT_DELIVERY_SUCCEEDED",
+          "entity_type": "event_delivery",
+          "entity_id": "0c71f5ea-f376-49ef-b7fc-78e6df13b098",
+          "description": "{\"attempt\":1,\"event_type\":\"compute_cluster_user::approve\",\"subscriber\":\"amie-processor\"}",
+          "status": "ok",
+          "created_at": "2026-10-09T20:29:05.407289-04:00",
+          "children": [
+            {
+              "id": "24f48b42-c503-4ff0-aff5-585e719594d5",
+              "span_id": "bb1b31893e4a393e",
+              "parent_span_id": "a673ca89729eb7b7",
+              "source": "amie",
+              "event_type": "REPLY_SENT",
+              "entity_type": "packet",
+              "entity_id": "013daa77-42ea-4937-8ceb-9e22f57991da",
+              "description": "DECODED",
+              "status": "ok",
+              "created_at": "2026-10-09T20:29:05.406717-04:00",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "a28933b5-5091-4c49-9bcf-203bdcc4b6ba",
+          "span_id": "40341c519fe757a0",
+          "parent_span_id": "13678ee9a22708ab",
+          "source": "comanage-identity-provisioner",
+          "event_type": "EVENT_DELIVERY_SUCCEEDED",
+          "entity_type": "event_delivery",
+          "entity_id": "ff8fe816-3dd8-45ca-a10b-8eb7c89ccae5",
+          "description": "{\"attempt\":1,\"event_type\":\"compute_cluster_user::approve\",\"subscriber\":\"comanage-identity-provisioner\"}",
+          "status": "ok",
+          "created_at": "2026-10-09T20:29:05.412662-04:00",
+          "children": [
+            {
+              "id": "9dd34fab-9396-4cea-a1b5-a4ebd98c1450",
+              "span_id": "39c1b7ba375a654f",
+              "parent_span_id": "40341c519fe757a0",
+              "source": "comanage",
+              "event_type": "ComanageProvisioningStarted",
+              "entity_type": "compute_cluster_user",
+              "entity_id": "277bd3d4-7269-4864-bee7-99040671122a",
+              "description": "cluster_user_id=277bd3d4-7269-4864-bee7-99040671122a user_id=6edd1c61-6a4d-40f6-ab99-054c69c98d34",
+              "status": "ok",
+              "created_at": "2026-10-09T20:29:05.408037-04:00",
+              "children": [
+                {
+                  "id": "068faa57-7c52-484b-a364-ea6afbff9dda",
+                  "span_id": "3708b696b24f11a8",
+                  "parent_span_id": "39c1b7ba375a654f",
+                  "source": "comanage",
+                  "event_type": "ComanageClusterAccountAttached",
+                  "entity_type": "compute_cluster_user",
+                  "entity_id": "277bd3d4-7269-4864-bee7-99040671122a",
+                  "description": "comanage_id=812 username=custos-rresearcher uid=20451",
+                  "status": "ok",
+                  "created_at": "2026-10-09T20:29:05.408631-04:00",
+                  "children": []
+                },
+                {
+                  "id": "164723fc-fe15-4d32-aefe-980e953c8844",
+                  "span_id": "fddeecfa177d1337",
+                  "parent_span_id": "39c1b7ba375a654f",
+                  "source": "email-notifier",
+                  "event_type": "NOTIFICATION_SENT",
+                  "entity_type": "compute_cluster_user",
+                  "entity_id": "277bd3d4-7269-4864-bee7-99040671122a",
+                  "description": "{\"channel\":\"email\",\"recipient\":\"rresearcher@example.edu\",\"template\":\"account-ready\"}",
+                  "status": "ok",
+                  "created_at": "2026-10-09T20:29:15.388916-04:00",
+                  "children": []
+                },
+                {
+                  "id": "89168c82-46ef-48ed-b82a-c5cfe8d7faac",
+                  "span_id": "fddeecfa177d1337",
+                  "parent_span_id": "39c1b7ba375a654f",
+                  "source": "email-notifier",
+                  "event_type": "EVENT_DELIVERY_SUCCEEDED",
+                  "entity_type": "event_delivery",
+                  "entity_id": "e3f9e5f6-1eef-460e-9e31-2039137ada61",
+                  "description": "{\"attempt\":1,\"event_type\":\"compute_cluster_user::provision\",\"subscriber\":\"email-notifier\"}",
+                  "status": "ok",
+                  "created_at": "2026-10-09T20:29:15.391003-04:00",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "truncated": false
+}

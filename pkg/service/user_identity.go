@@ -59,12 +59,13 @@ func (s *Service) CreateUserIdentity(ctx context.Context, e *models.UserIdentity
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.userIdentities.Create(ctx, tx, e)
+		if err := s.userIdentities.Create(ctx, tx, e); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserIdentityCreateEvent, e)
 	}); err != nil {
 		return nil, fmt.Errorf("create user identity: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserIdentityCreateEvent, e)
 	return e, nil
 }
 
@@ -126,6 +127,11 @@ func (s *Service) ListUserIdentitiesForUser(ctx context.Context, userID string) 
 	return out, nil
 }
 
+// GetOIDCIdentity returns the user's sign-in identity, or nil when the user has not signed in yet.
+func (s *Service) GetOIDCIdentity(ctx context.Context, userID string) (*models.UserIdentity, error) {
+	return s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceOIDC)
+}
+
 // UpdateUserIdentity persists changes to an existing user identity. Fields
 // left blank/zero on the supplied record fall back to the stored value.
 func (s *Service) UpdateUserIdentity(ctx context.Context, e *models.UserIdentity) error {
@@ -158,12 +164,14 @@ func (s *Service) UpdateUserIdentity(ctx context.Context, e *models.UserIdentity
 		e.Metadata = existing.Metadata
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.userIdentities.Update(ctx, tx, e)
+		if err := s.userIdentities.Update(ctx, tx, e); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserIdentityUpdateEvent, e)
 	}); err != nil {
 		return fmt.Errorf("update user identity: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserIdentityUpdateEvent, e)
+	s.InvalidateAllIdentities()
 	return nil
 }
 
@@ -180,11 +188,13 @@ func (s *Service) DeleteUserIdentity(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.userIdentities.Delete(ctx, tx, id)
+		if err := s.userIdentities.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.UserIdentityDeleteEvent, e)
 	}); err != nil {
 		return fmt.Errorf("delete user identity: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.UserIdentityDeleteEvent, e)
+	s.InvalidateAllIdentities()
 	return nil
 }

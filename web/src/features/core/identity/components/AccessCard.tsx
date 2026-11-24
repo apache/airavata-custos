@@ -17,13 +17,14 @@
 
 "use client";
 
-import { useState } from "react";
+import type { UserRole } from "@/generated/core/zod.gen";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { useState } from "react";
 import { buildPrivilegeRows } from "../privileges";
 import type { MyAccess } from "../queries";
-import type { RoleWithPrivileges, UserRole } from "../schemas";
+import type { RoleWithPrivileges } from "../schemas";
 
 function formatDate(iso?: string): string | null {
   if (!iso) return null;
@@ -49,8 +50,7 @@ const ACTION_CHIP_CLASSES: Record<string, string> = {
   read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
   write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
 };
-const ACTION_CHIP_FALLBACK =
-  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
+const ACTION_CHIP_FALLBACK = "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
 
 export function AccessCard({ access }: { access: MyAccess }) {
   const [activeRole, setActiveRole] = useState<string | null>(null);
@@ -68,11 +68,7 @@ export function AccessCard({ access }: { access: MyAccess }) {
       <div className="grid grid-cols-1 border-t border-border md:grid-cols-2">
         <section className="px-6 py-5 md:border-r md:border-border">
           <h4 className={columnHeading}>Roles</h4>
-          <RolesColumn
-            roles={access.roles}
-            activeRole={activeRole}
-            onHover={setActiveRole}
-          />
+          <RolesColumn roles={access.roles} activeRole={activeRole} onHover={setActiveRole} />
         </section>
 
         <section className="border-t border-border px-6 py-5 md:border-t-0">
@@ -83,9 +79,7 @@ export function AccessCard({ access }: { access: MyAccess }) {
             <div className="space-y-0.5">
               {rows.map((row) => {
                 const highlighted =
-                  activeRole !== null &&
-                  row.provenance === "role" &&
-                  row.roleId === activeRole;
+                  activeRole !== null && row.provenance === "role" && row.roleId === activeRole;
                 return (
                   <div
                     key={row.prefix}
@@ -148,7 +142,7 @@ function RolesColumn({
   return (
     <div className="space-y-2.5">
       {roles.map((rwp) => {
-        const roleId = rwp.role.id ?? "";
+        const roleId = rwp.role.id;
         const granted = grantedLine(rwp.grant);
         return (
           <div

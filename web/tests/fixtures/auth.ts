@@ -21,13 +21,18 @@
 import type { Page } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 
-export type Persona = "viewer" | "manager" | "admin";
+// researcher - no privileges, sees only their own allocations and projects
+// readOnlyAdmin - reads users, organizations, clusters and allocations
+// manager - reads and writes allocations and projects, reads the rest and AMIE
+// admin - reads and writes everything, manages roles and privileges
+export type Persona =   | "researcher" | "readOnlyAdmin" | "manager" | "signer-reader" | "admin";
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
-// gates resolve per persona. The MSW /user/privileges handler reads the
+// gates resolve per persona. The MSW /me/privileges handler reads the
 // matching test-privileges cookie set below.
 const PRIVILEGES: Record<Persona, string[]> = {
-  viewer: [
+  researcher: [],
+  readOnlyAdmin: [
     "core:users:read",
     "core:organizations:read",
     "core:clusters:read",
@@ -57,24 +62,37 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "core:organizations:read",
     "core:organizations:write",
     "core:traces:read",
+    "core:events:manage",
     "core:privileges:grant",
     "core:roles:manage",
+    "core:agreements:read",
+    "core:agreements:manage",
+    "core:service-accounts:manage",
     "amie:packets:read",
     "amie:packets:write",
     "amie:replies:read",
     "amie:replies:write",
     "amie:unmapped:read",
     "amie:unmapped:write",
+    "signer:certificates:read",
+    "signer:certificates:write",
   ],
+  "signer-reader": ["signer:certificates:read"],
 };
 
 const NAMES: Record<Persona, string> = {
-  viewer: "Test Viewer",
+  researcher: "Test Researcher",
+  readOnlyAdmin: "Test Read-only Admin",
   manager: "Test Manager",
   admin: "Test Admin",
+  "signer-reader": "Test Signer Reader",
 };
 
-export async function signInAs(page: Page, persona: Persona = "admin") {
+export async function signInAs(
+  page: Page,
+  persona: Persona = "admin",
+  gate?: "onboarding" | "consent",
+) {
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) {
     throw new Error("NEXTAUTH_SECRET must be set for the cookie-injection fixture");
@@ -85,10 +103,13 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
     secret,
     token: {
       sub: `test-${persona}`,
+      custosUserId: `test-${persona}`,
       name: NAMES[persona],
       email: `${persona}@custos.local`,
       privileges: PRIVILEGES[persona],
       accessToken: "test-mock-bearer",
+      needsOnboarding: gate === "onboarding",
+      consentPending: gate === "consent",
     },
   });
 
@@ -103,7 +124,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
       secure: false,
       sameSite: "Lax",
     },
-    // Non-httpOnly so the browser-context MSW /user/privileges handler can read
+    // Non-httpOnly so the browser-context MSW /me/privileges handler can read
     // it and scope abilities to this persona.
     {
       name: "custos.test-privileges",
@@ -113,5 +134,9 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
       secure: false,
       sameSite: "Lax",
     },
+    // Read by the MSW /me handler to return the pending agreement for the gate.
+    ...(gate
+      ? [{ name: "custos.test-gate", value: gate, url, httpOnly: false, secure: false, sameSite: "Lax" as const }]
+      : []),
   ]);
 }

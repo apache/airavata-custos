@@ -52,12 +52,13 @@ func (s *Service) CreateComputeAllocationResource(ctx context.Context, resource 
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resources.Create(ctx, tx, resource)
+		if err := s.resources.Create(ctx, tx, resource); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceCreateEvent, resource)
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation resource: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceCreateEvent, resource)
 	return resource, nil
 }
 
@@ -135,12 +136,13 @@ func (s *Service) UpdateComputeAllocationResource(ctx context.Context, resource 
 		return fmt.Errorf("%w: compute allocation resource id is required", ErrInvalidInput)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resources.Update(ctx, tx, resource)
+		if err := s.resources.Update(ctx, tx, resource); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceUpdateEvent, resource)
 	}); err != nil {
 		return fmt.Errorf("update compute allocation resource: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceUpdateEvent, resource)
 	return nil
 }
 
@@ -157,11 +159,12 @@ func (s *Service) DeleteComputeAllocationResource(ctx context.Context, id string
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.resources.Delete(ctx, tx, id)
+		if err := s.resources.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceDeleteEvent, resource)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation resource: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.ComputeAllocationResourceDeleteEvent, resource)
 	return nil
 }

@@ -17,12 +17,11 @@
 
 "use client";
 
-import type * as React from "react";
+import type { Organization } from "@/generated/core/zod.gen";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import type { Organization } from "../schemas";
+import type * as React from "react";
 
 export type OrganizationsListProps = {
   rows: Organization[];
@@ -83,13 +82,12 @@ export function OrganizationsList({
         <CardSkeleton />
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
-      ) : rows.length === 0 ? (
-        <EmptyState heading="No organizations yet." />
       ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          empty="No organizations yet."
           pagination={{ page, pageSize, total, onPageChange }}
         />
       )}

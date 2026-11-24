@@ -17,10 +17,10 @@
 
 "use client";
 
-import { Pencil, ShieldCheck } from "lucide-react";
 import type { RoleRow } from "@/features/core/roles/schemas";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
+import { Pencil, ShieldCheck } from "lucide-react";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 import { RoleFormDialog } from "./RoleFormDialog";
 
@@ -33,10 +33,7 @@ export function RoleCard({ role }: { role: RoleRow }) {
             <div className="flex items-center gap-1.5 font-heading text-base font-semibold text-foreground">
               {role.name}
               {role.is_system ? (
-                <ShieldCheck
-                  className="size-3.5 text-muted-foreground"
-                  aria-label="System role"
-                />
+                <ShieldCheck className="size-3.5 text-muted-foreground" aria-label="System role" />
               ) : null}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{role.description}</p>
@@ -49,10 +46,7 @@ export function RoleCard({ role }: { role: RoleRow }) {
       <CardContent className="space-y-4">
         <div className="border-t border-border" />
 
-        <PermissionMatrixEditor
-          permissions={role.privileges}
-          editable={false}
-        />
+        <PermissionMatrixEditor permissions={role.privileges} editable={false} />
 
         <div className="border-t border-border" />
 

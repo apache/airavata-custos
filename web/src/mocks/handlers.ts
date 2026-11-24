@@ -16,10 +16,12 @@
 // under the License.
 
 import type { RequestHandler } from "msw";
+import { agreementsHandlers } from "./handlers/agreements";
 import { allocationsHandlers } from "./handlers/allocations";
 import { amieHandlers } from "./handlers/amie";
 import { analyticsHandlers } from "./handlers/analytics";
 import { clustersHandlers } from "./handlers/clusters";
+import { eventsHandlers } from "./handlers/events";
 import { healthzHandlers } from "./handlers/healthz";
 import { identityHandlers } from "./handlers/identity";
 import { organizationsHandlers } from "./handlers/organizations";
@@ -27,6 +29,8 @@ import { privilegesHandlers } from "./handlers/privileges";
 import { projectsHandlers } from "./handlers/projects";
 import { resourcesHandlers } from "./handlers/resources";
 import { rolesHandlers } from "./handlers/roles";
+import { serviceAccountsHandlers } from "./handlers/service-accounts";
+import { signerHandlers } from "./handlers/signer";
 import { tracesHandlers } from "./handlers/traces";
 import { userActivityHandlers } from "./handlers/user-activity";
 import { usersHandlers } from "./handlers/users";
@@ -35,6 +39,7 @@ export const handlers: RequestHandler[] = [
   ...healthzHandlers,
   ...privilegesHandlers,
   ...rolesHandlers,
+  ...signerHandlers,
   ...identityHandlers,
   ...usersHandlers,
   ...userActivityHandlers,
@@ -43,7 +48,10 @@ export const handlers: RequestHandler[] = [
   ...organizationsHandlers,
   ...allocationsHandlers,
   ...tracesHandlers,
+  ...eventsHandlers,
   ...amieHandlers,
   ...clustersHandlers,
   ...resourcesHandlers,
+  ...agreementsHandlers,
+  ...serviceAccountsHandlers,
 ];

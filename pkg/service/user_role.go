@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -75,7 +74,7 @@ func (s *Service) GrantRoleToUser(ctx context.Context, userID, roleID, granterID
 		if err := s.userRoles.Create(ctx, tx, assignment); err != nil {
 			return fmt.Errorf("insert role assignment: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, userRoleAuditGranted, userID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", userRoleAuditGranted, userID, map[string]any{
 			"actor_id":  granterID,
 			"role_id":   roleID,
 			"role_name": role.Name,
@@ -123,7 +122,7 @@ func (s *Service) RevokeRoleFromUser(ctx context.Context, userID, roleID, revoke
 		if err := s.userRoles.Delete(ctx, tx, userID, roleID); err != nil {
 			return fmt.Errorf("delete role assignment: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, userRoleAuditRevoked, userID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", userRoleAuditRevoked, userID, map[string]any{
 			"actor_id":  revokerID,
 			"role_id":   roleID,
 			"role_name": role.Name,
@@ -180,7 +179,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 			return fmt.Errorf("lookup existing assignment: %w", err)
 		}
 		if existing != nil {
-			slog.Info("bootstrap: super_admin already granted to user, skipping", "email", email)
+			slog.InfoContext(ctx, "bootstrap: super_admin already granted to user, skipping", "email", email)
 			return nil
 		}
 		// If another user already holds super_admin, install is past bootstrap.
@@ -189,7 +188,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 			return fmt.Errorf("count super_admin holders: %w", err)
 		}
 		if len(holders) > 0 {
-			slog.Info("bootstrap: super_admin already held by another user, skipping", "email", email)
+			slog.InfoContext(ctx, "bootstrap: super_admin already held by another user, skipping", "email", email)
 			return nil
 		}
 		assignment := &models.UserRole{
@@ -202,14 +201,14 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		if err := s.userRoles.Create(ctx, tx, assignment); err != nil {
 			return fmt.Errorf("insert bootstrap assignment: %w", err)
 		}
-		if err := s.writeRoleAuditTx(ctx, tx, userRoleAuditBootstrap, user.ID, map[string]any{
+		if err := s.writeAuditTx(ctx, tx, "role", userRoleAuditBootstrap, user.ID, map[string]any{
 			"role_id":   role.ID,
 			"role_name": role.Name,
 			"source":    source,
 		}); err != nil {
 			return fmt.Errorf("audit bootstrap assignment: %w", err)
 		}
-		slog.Info("bootstrap: super_admin granted", "user_id", user.ID, "email", email, "source", source)
+		slog.InfoContext(ctx, "bootstrap: super_admin granted", "user_id", user.ID, "email", email, "source", source)
 		return nil
 	})
 }
@@ -233,7 +232,7 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 		if err := s.users.Create(ctx, tx, created); err != nil {
 			return fmt.Errorf("insert bootstrap user: %w", err)
 		}
-		return s.writeUserBootstrappedAuditTx(ctx, tx, created.ID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "user", userAuditBootstrapped, created.ID, map[string]any{
 			"email":  email,
 			"source": source,
 		})
@@ -241,23 +240,8 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
+	slog.InfoContext(ctx, "bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
 	return created, nil
-}
-
-func (s *Service) writeUserBootstrappedAuditTx(ctx context.Context, tx *sql.Tx, userID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  userAuditBootstrapped,
-		EventTime:  nowUTC(),
-		EntityID:   userID,
-		EntityType: "user",
-		Details:    string(payload),
-	})
 }
 
 // ensureSuperAdminRoleTx creates the super_admin role with the meta
@@ -323,14 +307,14 @@ func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Ro
 	role = &models.Role{
 		ID:          newID(),
 		Name:        models.SystemRoleAdmin,
-		Description: stringPtrOrNil("day-to-day administration, everything except grants and role management"),
+		Description: stringPtrOrNil("day-to-day administration, everything except grants, role management and service accounts"),
 		IsSystem:    true,
 	}
 	if err := s.roles.Create(ctx, tx, role); err != nil {
 		return nil, fmt.Errorf("create admin role: %w", err)
 	}
 	for _, key := range models.KnownPrivileges() {
-		if key == models.PrivilegesGrant || key == models.RolesManage {
+		if key == models.PrivilegesGrant || key == models.RolesManage || key == models.ServiceAccountsManage {
 			continue
 		}
 		if err := s.roles.AddPrivilege(ctx, tx, role.ID, key); err != nil {

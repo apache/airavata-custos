@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { UsageDailyBucket, UsageResource } from "./schemas";
+import type { UsageDailyBucket, UsageResource } from "@/generated/analytics/zod.gen";
 
 // Categorical series colors; chart-5 is the neutral used for "Other".
 export const CHART_SERIES_COLORS = [

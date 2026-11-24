@@ -32,7 +32,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	defer pipe.stop()
 
 	pipe.fireScenario(t, "baseline")
-	decoded := pipe.waitForDrain(t, 12, 90*time.Second)
+	pipe.startApproving()
+	processed := pipe.waitForDrain(t, 12, 90*time.Second)
 
 	// Counts match baseline.yaml.
 	expectations := []struct {
@@ -48,15 +49,15 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"compute_allocations", 2},
 		{"compute_allocation_diffs", 1},
 		{"amie_user_dns", 2},
-		{"amie_audit_extras", 54},
+		{"amie_audit_extras", 57},
 		{"compute_cluster_users", 4},
 		{"compute_allocation_memberships", 5},
-		{"project_memberships", 4},
+		{"project_memberships", 2},
 		// One per allocation; the supplement re-delivery does not duplicate.
 		{"compute_allocation_resource_mappings", 2},
 	}
-	if decoded != 12 {
-		t.Errorf("decoded packets: got %d, want 12", decoded)
+	if processed != 12 {
+		t.Errorf("processed packets: got %d, want 12", processed)
 	}
 	for _, e := range expectations {
 		if got := countRows(t, pipe.db, e.table); got != e.want {
@@ -71,8 +72,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	); err != nil {
 		t.Fatalf("count amie audit_events: %v", err)
 	}
-	if amieAuditEvents != 54 {
-		t.Errorf("audit_events source='amie': got %d, want 54", amieAuditEvents)
+	if amieAuditEvents != 57 {
+		t.Errorf("audit_events source='amie': got %d, want 57", amieAuditEvents)
 	}
 
 	// audit_log.by_action.
@@ -85,6 +86,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"CREATE_ACCOUNT", 6},
 		{"CREATE_PROJECT", 3},
 		{"CREATE_ALLOCATION", 3},
+		{"REPLY_HELD", 3},
 		{"CREATE_MEMBERSHIP", 5},
 		{"REPLY_SENT", 11},
 		{"PERSIST_DNS", 3},

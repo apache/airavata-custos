@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -60,7 +59,7 @@ func (s *Service) CreateRole(ctx context.Context, name, description, actorID str
 		if err := s.roles.Create(ctx, tx, role); err != nil {
 			return fmt.Errorf("insert role: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, roleAuditCreated, role.ID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditCreated, role.ID, map[string]any{
 			"name":     role.Name,
 			"actor_id": actorID,
 		})
@@ -104,7 +103,7 @@ func (s *Service) UpdateRole(ctx context.Context, roleID, name, description, act
 			return fmt.Errorf("update role: %w", err)
 		}
 		updated = existing
-		return s.writeRoleAuditTx(ctx, tx, roleAuditUpdated, existing.ID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditUpdated, existing.ID, map[string]any{
 			"actor_id": actorID,
 			"name":     existing.Name,
 		})
@@ -140,7 +139,7 @@ func (s *Service) DeleteRole(ctx context.Context, roleID, actorID string) error 
 		if err := s.roles.Delete(ctx, tx, roleID); err != nil {
 			return fmt.Errorf("delete role: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, roleAuditDeleted, roleID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditDeleted, roleID, map[string]any{
 			"actor_id": actorID,
 			"name":     existing.Name,
 		})
@@ -202,7 +201,7 @@ func (s *Service) AddPrivilegeToRole(ctx context.Context, roleID string, privile
 		if err := s.roles.AddPrivilege(ctx, tx, roleID, privilege); err != nil {
 			return fmt.Errorf("add role privilege: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, roleAuditPrivilegeAdded, roleID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditPrivilegeAdded, roleID, map[string]any{
 			"actor_id":  actorID,
 			"privilege": privilege,
 			"role_name": existing.Name,
@@ -253,7 +252,7 @@ func (s *Service) RemovePrivilegeFromRole(ctx context.Context, roleID string, pr
 		if err := s.roles.RemovePrivilege(ctx, tx, roleID, privilege); err != nil {
 			return fmt.Errorf("remove role privilege: %w", err)
 		}
-		return s.writeRoleAuditTx(ctx, tx, roleAuditPrivilegeRemoved, roleID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditPrivilegeRemoved, roleID, map[string]any{
 			"actor_id":  actorID,
 			"privilege": privilege,
 			"role_name": existing.Name,
@@ -281,19 +280,4 @@ func (s *Service) assertHasPrivilegeTx(ctx context.Context, tx *sql.Tx, actorID 
 		}
 	}
 	return fmt.Errorf("%w: actor does not hold %s", ErrInvalidInput, required)
-}
-
-func (s *Service) writeRoleAuditTx(ctx context.Context, tx *sql.Tx, eventType string, entityID string, details map[string]any) error {
-	payload, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal audit details: %w", err)
-	}
-	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:         newID(),
-		EventType:  eventType,
-		EventTime:  nowUTC(),
-		EntityID:   entityID,
-		EntityType: "role",
-		Details:    string(payload),
-	})
 }

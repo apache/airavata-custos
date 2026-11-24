@@ -27,6 +27,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+const computeAllocationResourceColumns = "id, name, resource_type, resource_amount, compute_cluster_id"
+
 type pgComputeAllocationResourceStore struct {
 	db *sqlx.DB
 }
@@ -40,7 +42,7 @@ func NewComputeAllocationResourceStore(db *sqlx.DB) ComputeAllocationResourceSto
 func (s *pgComputeAllocationResourceStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
 	var r models.ComputeAllocationResource
 	err := s.db.GetContext(ctx, &r,
-		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources WHERE id = $1`, id)
+		`SELECT `+computeAllocationResourceColumns+` FROM compute_allocation_resources WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -53,7 +55,7 @@ func (s *pgComputeAllocationResourceStore) FindByID(ctx context.Context, id stri
 func (s *pgComputeAllocationResourceStore) FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
 	var r models.ComputeAllocationResource
 	err := s.db.GetContext(ctx, &r,
-		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
+		`SELECT `+computeAllocationResourceColumns+`
 		 FROM compute_allocation_resources
 		 WHERE name = $1 AND compute_cluster_id = $2`, name, clusterID)
 	if err != nil {
@@ -68,7 +70,7 @@ func (s *pgComputeAllocationResourceStore) FindByNameAndCluster(ctx context.Cont
 func (s *pgComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
-		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
+		`SELECT `+computeAllocationResourceColumns+`
 		 FROM compute_allocation_resources
 		 WHERE resource_type = $1 AND compute_cluster_id = $2
 		 ORDER BY name`, resourceType, clusterID)
@@ -81,7 +83,7 @@ func (s *pgComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.Cont
 func (s *pgComputeAllocationResourceStore) List(ctx context.Context) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
-		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources ORDER BY name`)
+		`SELECT `+computeAllocationResourceColumns+` FROM compute_allocation_resources ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}

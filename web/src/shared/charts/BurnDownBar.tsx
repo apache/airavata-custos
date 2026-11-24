@@ -22,7 +22,7 @@ export type BurnDownBarProps = {
   projected: number;
   capacity: number;
   className?: string;
-  ariaLabel?: string;
+  ariaLabel?: string | undefined;
 };
 
 // Visualizes the sam-queries pace pattern: solid past-burn segment and a hatched

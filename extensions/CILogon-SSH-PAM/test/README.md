@@ -17,8 +17,13 @@
     under the License.
 -->
 
-# PAM module testing
+# PAM module tests
 
-1. Install Google test (the build assumes a standard system install)
-2. Run mock server `./mock_server.py`.
-3. In a new terminal window execute `make` to run the tests.
+The tests are Google Test programs (`test_config`, `unit`, `test_pam_oauth2_device`) built against `../src`.
+A mock server stands in for the OIDC provider on port 8042.
+
+1. Install Google Test. The build expects a system install under `/usr`.
+2. Start the mock server: `./mock_server.py`.
+3. In another terminal, run `make` here. It builds and runs each test.
+
+`make test` in the module directory does the same. `data/` holds sample configurations and expected QR codes.

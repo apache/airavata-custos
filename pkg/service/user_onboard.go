@@ -20,12 +20,16 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
+	"slices"
 	"strings"
+	"time"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/posix"
 )
@@ -47,28 +51,55 @@ type OnboardUserInput struct {
 
 // generateClusterUsername builds a base name with the same rule ingestion uses.
 func (s *Service) generateClusterUsername(ctx context.Context, clusterID, firstName, lastName, email string) (string, error) {
+	base, err := usernameBase(firstName, lastName, email, posix.Prefix())
+	if err != nil {
+		return "", err
+	}
+	name, err := firstFreeUsername(base, func(candidate string) (bool, error) {
+		existing, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, clusterID, candidate)
+		if err != nil {
+			return false, fmt.Errorf("check username: %w", err)
+		}
+		return existing == nil, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if name == "" {
+		return "", fmt.Errorf("username allocator exhausted for base %q", base)
+	}
+	return name, nil
+}
+
+// usernameBase falls back to the email local part when both names are empty after normalizing.
+func usernameBase(firstName, lastName, email, prefix string) (string, error) {
 	u := &models.User{FirstName: firstName, LastName: lastName}
 	if posix.Normalize(firstName) == "" && posix.Normalize(lastName) == "" {
 		u.LastName, _, _ = strings.Cut(email, "@")
 	}
-	base, _, err := posix.BuildBase(u, posix.Prefix())
+	base, _, err := posix.BuildBase(u, prefix)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrInvalidInput, err)
 	}
-	for n := 0; n < posix.MaxCollisionSuffix; n++ {
-		candidate := base
-		if n > 0 {
-			candidate = base + strconv.Itoa(n+1)
-		}
-		existing, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, clusterID, candidate)
+	if prefix == "" {
+		base = strings.TrimPrefix(base, "-")
+	}
+	return base, nil
+}
+
+// firstFreeUsername tries base, base2, base3 and so on. It returns "" when every suffix is taken.
+func firstFreeUsername(base string, free func(string) (bool, error)) (string, error) {
+	for n := range posix.MaxCollisionSuffix {
+		name := posix.Candidate(base, n)
+		ok, err := free(name)
 		if err != nil {
-			return "", fmt.Errorf("check username: %w", err)
+			return "", err
 		}
-		if existing == nil {
-			return candidate, nil
+		if ok {
+			return name, nil
 		}
 	}
-	return "", fmt.Errorf("username allocator exhausted for base %q", base)
+	return "", nil
 }
 
 // OnboardUser creates the same rows ingestion does, so the existing `cluster user create event` drives provisioning.
@@ -182,12 +213,17 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		}
 	}
 
+	// Onboarding is an admin creating the user account on purpose, so it counts as the approval.
+	reviewedAt := nowUTC()
 	clusterUser := &models.ComputeClusterUser{
 		ID:               newID(),
 		ComputeClusterID: in.ComputeClusterID,
 		UserID:           created.ID,
 		LocalUsername:    in.Username,
 		AccessLevel:      models.ClusterAccessUser,
+		ApprovalStatus:   models.ClusterAccountApproved,
+		ReviewedAt:       &reviewedAt,
+		ReviewedBy:       &in.OnboardedBy,
 	}
 	if in.ClusterAdmin {
 		clusterUser.AccessLevel = models.ClusterAccessAdmin
@@ -213,7 +249,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return fmt.Errorf("grant admin role: %w", err)
 			}
 
-			if err := s.writeRoleAuditTx(ctx, tx, userRoleAuditGranted, created.ID, map[string]any{
+			if err := s.writeAuditTx(ctx, tx, "role", userRoleAuditGranted, created.ID, map[string]any{
 				"actor_id":  in.OnboardedBy,
 				"role_id":   role.ID,
 				"role_name": role.Name,
@@ -228,7 +264,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return fmt.Errorf("create cluster user: %w", err)
 			}
 			if in.ClusterAdmin {
-				if err := s.writeClusterUserAuditTx(ctx, tx, clusterUserAuditAdminGranted, clusterUser.ID, map[string]any{
+				if err := s.writeAuditTx(ctx, tx, "compute_cluster_user", clusterUserAuditAdminGranted, clusterUser.ID, map[string]any{
 					"actor_id":       in.OnboardedBy,
 					"user_id":        created.ID,
 					"cluster_id":     clusterUser.ComputeClusterID,
@@ -252,19 +288,269 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 				return fmt.Errorf("create allocation membership: %w", err)
 			}
 		}
+
+		if err := s.publishUserTx(ctx, tx, events.UserCreateEvent, created); err != nil {
+			return err
+		}
+		if needsCluster {
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserCreateEvent, clusterUser); err != nil {
+				return err
+			}
+			// Approved at creation, so provisioning starts now.
+			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, clusterUser)
+		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	// Published after commit so a subscriber never provisions a rolled-back row.
-	s.eventBus.Publish(ctx, events.UserCreateEvent, created)
-	if needsCluster {
-		s.eventBus.Publish(ctx, events.ComputeClusterUserCreateEvent, clusterUser)
-	}
 	if in.ClusterAdmin {
-		slog.Info("cluster admin account created", "user_id", created.ID, "cluster_id", clusterUser.ComputeClusterID, "actor_id", in.OnboardedBy)
+		slog.InfoContext(ctx, "cluster admin account created", "user_id", created.ID, "cluster_id", clusterUser.ComputeClusterID, "actor_id", in.OnboardedBy)
 	}
 
 	return created, nil
+}
+
+type OnboardingInput struct {
+	Username    string
+	AcceptedIDs []string
+}
+
+type UsernameCheck struct {
+	Valid      bool   `json:"valid"`
+	Available  bool   `json:"available"`
+	Suggestion string `json:"suggestion"`
+}
+
+// CheckOnboardingUsername checks a chosen login against every cluster the user has an account and suggests a free one.
+func (s *Service) CheckOnboardingUsername(ctx context.Context, userID, candidate string) (*UsernameCheck, error) {
+	user, err := s.GetUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	accounts, err := s.clusterUsers.FindByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	free := func(name string) (bool, error) { return s.usernameFree(ctx, accounts, userID, name) }
+
+	base, err := usernameBase(user.FirstName, user.LastName, user.Email, "")
+	if err != nil {
+		return nil, err
+	}
+	check := &UsernameCheck{}
+	if check.Suggestion, err = firstFreeUsername(base, free); err != nil {
+		return nil, err
+	}
+
+	if candidate == "" {
+		return check, nil
+	}
+	if check.Valid = s.ValidateUsername(candidate) == nil; check.Valid {
+		if check.Available, err = free(candidate); err != nil {
+			return nil, err
+		}
+	}
+	return check, nil
+}
+
+// usernameFree reports whether no other user holds name on any cluster in accounts.
+func (s *Service) usernameFree(ctx context.Context, accounts []models.ComputeClusterUser, userID, name string) (bool, error) {
+	for _, acc := range accounts {
+		taken, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, acc.ComputeClusterID, name)
+		if err != nil {
+			return false, fmt.Errorf("check username: %w", err)
+		}
+		if taken != nil && taken.UserID != userID {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// SetReservedUsernames sets the names a user cannot choose as a cluster login.
+func (s *Service) SetReservedUsernames(names []string) {
+	s.reservedUsernames = make(map[string]bool, len(names))
+	for _, n := range names {
+		s.reservedUsernames[strings.ToLower(n)] = true
+	}
+}
+
+// ValidateUsername checks a username a person supplied. The login format and the configured reserved list.
+func (s *Service) ValidateUsername(name string) error {
+	if !posix.ValidChosen(name) {
+		return fmt.Errorf("%w: username %q must be 1 to 32 characters, start with a lowercase letter, then use lowercase letters, digits, - or _", ErrInvalidInput, name)
+	}
+	if s.reservedUsernames[name] {
+		return fmt.Errorf("%w: username %q is reserved", ErrInvalidInput, name)
+	}
+	return nil
+}
+
+// CompleteOnboarding binds the caller's sub to their PENDING user. The request
+// must accept the current agreement. Nothing is written unless all of it succeeds.
+func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claims, in OnboardingInput) (*models.User, error) {
+	matched, err := s.matchPendingByEmail(ctx, claims)
+	if errors.Is(err, identity.ErrUserAlreadyOIDCLinked) || errors.Is(err, identity.ErrUserNotPending) {
+		return nil, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		// Recheck under the row lock. A parallel submit or email edit may have changed this user.
+		user, err := s.lockUnboundPendingTx(ctx, tx, matched.ID)
+		if err != nil {
+			return err
+		}
+		if user.Email != claims.Email {
+			return fmt.Errorf("%w: user email changed during sign-in", ErrInvalidInput)
+		}
+
+		current, err := s.agreements.FindCurrent(ctx)
+		if err != nil {
+			return fmt.Errorf("lookup current agreement: %w", err)
+		}
+		if current != nil && !slices.Contains(in.AcceptedIDs, current.ID) {
+			return fmt.Errorf("%w: agreement %q must be accepted", ErrInvalidInput, current.VersionLabel)
+		}
+
+		if user.Type == models.UserTypeClusterLocal && in.Username != "" {
+			if err := s.renameClusterAccountsTx(ctx, tx, user, in.Username); err != nil {
+				return err
+			}
+		}
+
+		if err := s.bindSubTx(ctx, tx, user, claims); err != nil {
+			return err
+		}
+		if current != nil {
+			if _, err := s.acceptTx(ctx, tx, user.ID, current); err != nil {
+				return err
+			}
+		}
+		user.Status = models.UserActive
+		return s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user)
+	}); err != nil {
+		return nil, err
+	}
+	return s.GetUser(ctx, matched.ID)
+}
+
+// lockUnboundPendingTx locks a user that is PENDING with no sign-in identity bound yet.
+func (s *Service) lockUnboundPendingTx(ctx context.Context, tx *sql.Tx, id string) (*models.User, error) {
+	user, err := s.users.FindByIDTx(ctx, tx, id, store.NoKeyUpdateLock)
+	if err != nil {
+		return nil, fmt.Errorf("lock user: %w", err)
+	}
+	if user == nil || user.Status != models.UserPending {
+		return nil, fmt.Errorf("%w: user is not waiting for onboarding", ErrInvalidInput)
+	}
+	if bound, err := s.userIdentities.FindByUserAndSource(ctx, id, identitySourceOIDC); err != nil {
+		return nil, fmt.Errorf("lookup oidc identity: %w", err)
+	} else if bound != nil {
+		return nil, fmt.Errorf("%w: user already has a sign-in identity", ErrInvalidInput)
+	}
+	return user, nil
+}
+
+// A locked name is skipped, not refused, so onboarding still finishes.
+func (s *Service) renameClusterAccountsTx(ctx context.Context, tx *sql.Tx, user *models.User, name string) error {
+	accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
+	if err != nil {
+		return fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	editable, err := s.UsernameEditable(ctx, user, accounts)
+	if err != nil || !editable {
+		return err
+	}
+	if err := s.ValidateUsername(name); err != nil {
+		return err
+	}
+	for i := range accounts {
+		acc := &accounts[i]
+		if acc.LocalUsername == name {
+			continue
+		}
+		free, err := s.usernameFree(ctx, accounts[i:i+1], user.ID, name)
+		if err != nil {
+			return err
+		}
+		if !free {
+			return fmt.Errorf("%w: username %q is taken on cluster %q", ErrAlreadyExists, name, acc.ComputeClusterID)
+		}
+		acc.LocalUsername = name
+		if err := s.clusterUsers.Update(ctx, tx, acc); err != nil {
+			return fmt.Errorf("rename cluster account: %w", err)
+		}
+	}
+	return nil
+}
+
+// UsernameEditable is false once the registry knows the user, since the name may already be on the cluster.
+func (s *Service) UsernameEditable(ctx context.Context, user *models.User, accounts []models.ComputeClusterUser) (bool, error) {
+	if !usesRegistry(user, accounts) {
+		return false, nil
+	}
+	registered, err := s.userIdentities.FindByUserAndSource(ctx, user.ID, identitySourceComanage)
+	if err != nil {
+		return false, fmt.Errorf("lookup registry identity: %w", err)
+	}
+	return registered == nil, nil
+}
+
+// SetupStep is one provisioning step shown after onboarding. Name is the cluster or
+// allocation the step is for, and DoneAt is nil until it is done.
+type SetupStep struct {
+	Key    string     `json:"key"`
+	Name   string     `json:"name,omitempty"`
+	DoneAt *time.Time `json:"done_at,omitempty"`
+}
+
+// usesRegistry holds for a cluster-local user with a cluster account; virtual and system users skip the registry.
+func usesRegistry(user *models.User, accounts []models.ComputeClusterUser) bool {
+	return user.Type == models.UserTypeClusterLocal && len(accounts) > 0
+}
+
+// SetupSteps returns the provisioning steps that apply to the user and when each was done.
+func (s *Service) SetupSteps(ctx context.Context, userID string) ([]SetupStep, error) {
+	user, err := s.GetUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	registered, err := s.userIdentities.FindByUserAndSource(ctx, userID, identitySourceComanage)
+	if err != nil {
+		return nil, fmt.Errorf("lookup registry identity: %w", err)
+	}
+	var registeredAt *time.Time
+	if registered != nil {
+		registeredAt = &registered.CreatedAt
+	}
+	steps := []SetupStep{{Key: "registry", DoneAt: registeredAt}}
+
+	accounts, err := s.clusterUsers.FindByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup cluster accounts: %w", err)
+	}
+	if !usesRegistry(user, accounts) {
+		steps = steps[:0]
+	}
+	for _, a := range accounts {
+		cluster, err := s.GetComputeCluster(ctx, a.ComputeClusterID)
+		if err != nil {
+			return nil, err
+		}
+		steps = append(steps, SetupStep{Key: "cluster_account", Name: cluster.Name, DoneAt: a.ProvisionedAt})
+	}
+
+	allocations, err := s.ListComputeAllocationsForParticipant(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range allocations {
+		if a.PosixGroup != nil {
+			steps = append(steps, SetupStep{Key: "project_group", Name: a.Name, DoneAt: a.GroupProvisionedAt})
+		}
+	}
+	return steps, nil
 }

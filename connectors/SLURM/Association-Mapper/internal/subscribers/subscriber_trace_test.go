@@ -25,18 +25,16 @@ import (
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
-	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 func setupRecorder(t *testing.T) *tracetest.SpanRecorder {
 	t.Helper()
-	prev := otel.GetTracerProvider()
 	sr := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+	prev := tracing.SetProvider(tp)
+	t.Cleanup(func() { tracing.SetProvider(prev) })
 	return sr
 }
 
@@ -76,16 +74,16 @@ func TestSubscriberSpansOpenUnderParent(t *testing.T) {
 	rootTrace := root.SpanContext().TraceID()
 	rootSpan := root.SpanContext().SpanID()
 
-	sub.SubscribeToComputeAllocationCreation(ctx, models.ComputeAllocation{
+	sub.handleComputeAllocationCreated(ctx, models.ComputeAllocation{
 		ID: "alloc-1", ComputeClusterID: "cluster-1",
 	})
-	sub.SubscribeToComputeAllocationResourceMappingCreation(ctx, models.ComputeAllocationResourceMapping{
+	sub.handleComputeAllocationResourceMappingCreated(ctx, models.ComputeAllocationResourceMapping{
 		ID: "mapping-1", ComputeAllocationID: "alloc-1",
 	})
-	sub.SubscribeToComputeAllocationMembershipCreation(ctx, models.ComputeAllocationMembership{
+	sub.handleComputeAllocationMembershipCreated(ctx, models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
 	})
-	sub.SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx, models.ComputeAllocationMembershipResourceOverride{
+	sub.handleComputeAllocationMembershipResourceOverrideCreated(ctx, models.ComputeAllocationMembershipResourceOverride{
 		ID: "override-1", ComputeAllocationMembershipID: "mem-1",
 	})
 	root.End()
@@ -119,7 +117,7 @@ func TestSubscriberSpansRecordErrorOnDownstreamFailure(t *testing.T) {
 	sub := NewAssociationSubscriber(nil, nil, core, 0, 0)
 
 	ctx, root := tracing.Start(context.Background(), "test.parent")
-	sub.SubscribeToComputeAllocationCreation(ctx, models.ComputeAllocation{
+	sub.handleComputeAllocationCreated(ctx, models.ComputeAllocation{
 		ID: "alloc-err", ComputeClusterID: "cluster-err",
 	})
 	root.End()

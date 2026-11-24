@@ -15,15 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Privilege } from "@/features/core/identity/types";
+import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
-    accessToken?: string | null;
-    idToken?: string | null;
-    privileges?: Privilege[];
+    // Unset when the sign-in matches no Custos user.
+    custosUserId?: string;
+    needsOnboarding?: boolean;
+    consentPending?: boolean;
+    error?: "RefreshAccessTokenError";
   }
-  interface User {
-    privileges?: Privilege[];
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+    idToken?: string;
+    refreshToken?: string;
+    // Unix seconds when the backend bearer expires.
+    expiresAt?: number;
+    error?: "RefreshAccessTokenError";
+    custosUserId?: string;
+    needsOnboarding?: boolean;
+    consentPending?: boolean;
   }
 }

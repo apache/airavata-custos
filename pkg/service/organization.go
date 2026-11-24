@@ -48,12 +48,13 @@ func (s *Service) CreateOrganization(ctx context.Context, org *models.Organizati
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.orgs.Create(ctx, tx, org)
+		if err := s.orgs.Create(ctx, tx, org); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.OrganizationCreateEvent, org)
 	}); err != nil {
 		return nil, fmt.Errorf("create organization: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.OrganizationCreateEvent, org)
 	return org, nil
 }
 
@@ -97,12 +98,13 @@ func (s *Service) UpdateOrganization(ctx context.Context, org *models.Organizati
 		return fmt.Errorf("%w: organization id is required", ErrInvalidInput)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.orgs.Update(ctx, tx, org)
+		if err := s.orgs.Update(ctx, tx, org); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.OrganizationUpdateEvent, org)
 	}); err != nil {
 		return fmt.Errorf("update organization: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.OrganizationUpdateEvent, org)
 	return nil
 }
 
@@ -119,11 +121,12 @@ func (s *Service) DeleteOrganization(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.orgs.Delete(ctx, tx, id)
+		if err := s.orgs.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		return s.eventBus.Publish(ctx, tx, events.OrganizationDeleteEvent, org)
 	}); err != nil {
 		return fmt.Errorf("delete organization: %w", err)
 	}
-
-	s.eventBus.Publish(ctx, events.OrganizationDeleteEvent, org)
 	return nil
 }

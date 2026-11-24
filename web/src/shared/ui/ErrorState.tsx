@@ -23,8 +23,8 @@ import * as React from "react";
 export type ErrorStateProps = {
   heading?: string;
   message?: React.ReactNode;
-  onRetry?: () => void;
-  retryLabel?: string;
+  onRetry?: (() => void) | undefined;
+  retryLabel?: string | undefined;
   className?: string;
 };
 

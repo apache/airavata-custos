@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { SourcePill } from "@/features/core/audit/components/primitives/SourcePill";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SourcePill } from "@/features/core/audit/components/primitives/SourcePill";
 
 describe("SourcePill", () => {
   it.each(["amie", "comanage", "slurm", "http", "core"])("renders the %s source", (src) => {

@@ -20,58 +20,30 @@
 package server
 
 import (
+	"context"
 	"net/http"
-	"os"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
-)
-
 func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 	t.Helper()
-	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
-	if dsn == "" {
-		dsn = os.Getenv("DATABASE_DSN")
-	}
-	if dsn == "" {
-		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN or DATABASE_DSN required")
-	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          dsn,
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
+	sharedDB := dbtest.Open(t, dbtest.CoreDSN(t))
 	truncateAll(t, sharedDB)
-	svc := service.New(sharedDB, events.New())
+	bus, err := events.New(context.Background(), sharedDB)
+	if err != nil {
+		t.Fatalf("event bus: %v", err)
+	}
+	svc := service.New(sharedDB, bus)
 	router := identity.NewRouter(http.NewServeMux())
 	return sharedDB, svc, New(svc, router)
 }
@@ -84,6 +56,9 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"roles",
 		"user_privileges",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"compute_allocation_usages",
 		"compute_allocation_memberships",
 		"compute_allocation_resource_mappings",

@@ -19,6 +19,9 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
+
+const navStackSchema = z.array(z.string());
 
 // Shadows the browser history stack so the topbar chevrons can render disabled
 // when there's nowhere to go. Next.js doesn't surface a usable history cursor,
@@ -42,7 +45,7 @@ export function useNavHistory(): { canGoBack: boolean; canGoForward: boolean } {
     const KEY_STACK = "custos.nav.stack";
     const KEY_CURSOR = "custos.nav.cursor";
     const raw = sessionStorage.getItem(KEY_STACK);
-    let stack: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    let stack = raw ? navStackSchema.parse(JSON.parse(raw)) : [];
     let cursor = Number(sessionStorage.getItem(KEY_CURSOR) ?? "-1");
 
     if (popped.current) {

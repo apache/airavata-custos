@@ -15,6 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import {
+  type CallerClusterAccount,
+  type User,
+  type UserIdentity,
+  type UserNameUpdateRequest,
+  zUser,
+} from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 import {
   meResponseSchema,
@@ -23,16 +30,8 @@ import {
   userIdentitiesResponseSchema,
   userPrivilegesResponseSchema,
   userRolesResponseSchema,
-  userSchema,
 } from "./schemas";
-import type {
-  CallerRoleGrant,
-  RoleWithPrivileges,
-  UserIdentity,
-  UserNameUpdate,
-  UserPrivilege,
-  UserProfile,
-} from "./schemas";
+import type { CallerRoleGrant, RoleWithPrivileges, UserPrivilege } from "./schemas";
 import type { Privilege } from "./types";
 
 export async function getPrivileges(): Promise<Privilege[]> {
@@ -40,52 +39,43 @@ export async function getPrivileges(): Promise<Privilege[]> {
   return privilegesResponseSchema.parse(raw);
 }
 
-export type Me = { user: UserProfile; privileges: Privilege[]; roles: CallerRoleGrant[] };
+export type Me = {
+  user: User;
+  privileges: Privilege[];
+  roles: CallerRoleGrant[];
+  clusterAccounts: CallerClusterAccount[];
+};
 
 export async function getMe(): Promise<Me> {
   const parsed = meResponseSchema.parse(await apiFetch("/me"));
-  return { user: parsed.user, privileges: parsed.privileges ?? [], roles: parsed.roles };
+  return {
+    user: parsed.user,
+    privileges: parsed.privileges,
+    roles: parsed.roles,
+    clusterAccounts: parsed.cluster_accounts ?? [],
+  };
 }
 
 export async function getMyIdentities(userId: string): Promise<UserIdentity[]> {
-  return userIdentitiesResponseSchema.parse(
-    await apiFetch(`/users/${userId}/user-identities`),
-  );
+  return userIdentitiesResponseSchema.parse(await apiFetch(`/users/${userId}/user-identities`));
 }
 
 // No user-scoped roles-with-privileges endpoint exists; compose it from the
 // caller's role grants and each role's privilege detail.
-export async function getMyRolesWithPrivileges(
-  userId: string,
-): Promise<RoleWithPrivileges[]> {
-  const grants = userRolesResponseSchema.parse(
-    await apiFetch(`/users/${userId}/roles`),
-  );
-  const details = await Promise.all(
+export async function getMyRolesWithPrivileges(userId: string): Promise<RoleWithPrivileges[]> {
+  const grants = userRolesResponseSchema.parse(await apiFetch(`/users/${userId}/roles`));
+  return Promise.all(
     grants.map(async (grant) => {
-      const detail = roleDetailResponseSchema.parse(
-        await apiFetch(`/roles/${grant.role_id}`),
-      );
-      if (!detail.role) return null;
+      const detail = roleDetailResponseSchema.parse(await apiFetch(`/roles/${grant.role_id}`));
       return { role: detail.role, privileges: detail.privileges, grant };
     }),
   );
-  return details.filter((d): d is RoleWithPrivileges => d !== null);
 }
 
-export async function getMyDirectPrivileges(
-  userId: string,
-): Promise<UserPrivilege[]> {
-  return userPrivilegesResponseSchema.parse(
-    await apiFetch(`/users/${userId}/privileges`),
-  );
+export async function getMyDirectPrivileges(userId: string): Promise<UserPrivilege[]> {
+  return userPrivilegesResponseSchema.parse(await apiFetch(`/users/${userId}/privileges`));
 }
 
-export async function updateMyName(
-  userId: string,
-  name: UserNameUpdate,
-): Promise<UserProfile> {
-  return userSchema.parse(
-    await apiFetch(`/users/${userId}`, { method: "PUT", body: name }),
-  );
+export async function updateMyName(userId: string, name: UserNameUpdateRequest): Promise<User> {
+  return zUser.parse(await apiFetch(`/users/${userId}`, { method: "PUT", body: name }));
 }

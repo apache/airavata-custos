@@ -31,6 +31,17 @@ test.describe("projects list", () => {
     await expect(page).toHaveURL(/\/projects\/project-/);
   });
 
+  // Make sure a user with no privileges can open their allocations.
+  test("a user with no privileges sees their allocations", async ({ page }) => {
+    await signInAs(page, "researcher");
+    await page.goto("/projects");
+    await expect(
+      page.locator('a[href^="/projects/project-"][href*="/alloc-"]').first(),
+    ).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+
   test("status filter updates URL state", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/projects");
@@ -42,9 +53,7 @@ test.describe("projects list", () => {
     await signInAs(page, "admin");
     await page.goto("/projects");
     await expect(page.getByRole("heading", { name: /^Projects$/ })).toBeVisible();
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     const blocking = results.violations.filter(
       (v) => v.impact === "serious" || v.impact === "critical",
     );

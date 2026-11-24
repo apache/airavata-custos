@@ -15,19 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ComputeCluster } from "@/features/core/clusters/schemas";
-import type { ResourceSummary } from "../schemas";
 
-let resources: ResourceSummary[] = [];
+let resources: ComputeAllocationResourceSummary[] = [];
 const clusters: ComputeCluster[] = [
   { id: "cluster-a", name: "ClusterA" },
   { id: "cluster-b", name: "ClusterB" },
 ];
 
 vi.mock("../queries", () => ({
-  useResourceSummaries: () => ({ data: resources, isLoading: false, error: null, refetch: vi.fn() }),
+  useResourceSummaries: () => ({
+    data: resources,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useEffectiveRate: (id: string) => ({
+    data: id === "res-a-cpu" ? { rate: 2.5 } : undefined,
+    isLoading: false,
+  }),
+  useDeleteResource: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+}));
+
+vi.mock("@/shared/casl/permissions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/shared/casl/permissions")>()),
+  usePermissions: () => ({ allocationsWrite: false }),
 }));
 
 vi.mock("@/features/core/clusters/queries", () => ({
@@ -35,7 +49,7 @@ vi.mock("@/features/core/clusters/queries", () => ({
 }));
 
 // The rates drawer owns its own queries; stub it so this suite stays on the
-// table, its filters, and the cluster resolution.
+// table and its filters.
 vi.mock("../components/ResourcesRatesDrawer", () => ({
   ResourcesRatesDrawer: ({ resourceName }: { resourceName: string | null }) => (
     <div>{resourceName ? `rates-drawer:${resourceName}` : null}</div>
@@ -72,25 +86,9 @@ beforeEach(() => {
 });
 
 describe("<ResourcesTab />", () => {
-  it("resolves the cluster name as plain text, not a link", () => {
-    render(<ResourcesTab />);
-    expect(screen.getByText("ClusterA CPU")).toBeInTheDocument();
-    expect(screen.getAllByText("ClusterA", { exact: true }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: "ClusterA" })).not.toBeInTheDocument();
-  });
-
   it("filters by search text", () => {
     render(<ResourcesTab />);
     fireEvent.change(screen.getByLabelText("Search resources"), { target: { value: "gpu" } });
-    expect(screen.queryByText("ClusterA CPU")).not.toBeInTheDocument();
-    expect(screen.getByText("ClusterB GPU")).toBeInTheDocument();
-  });
-
-  it("filters by the selected cluster", () => {
-    render(<ResourcesTab />);
-    fireEvent.change(screen.getByLabelText("Filter by cluster"), {
-      target: { value: "cluster-b" },
-    });
     expect(screen.queryByText("ClusterA CPU")).not.toBeInTheDocument();
     expect(screen.getByText("ClusterB GPU")).toBeInTheDocument();
   });
@@ -101,16 +99,15 @@ describe("<ResourcesTab />", () => {
     expect(screen.getByText("rates-drawer:ClusterA CPU")).toBeInTheDocument();
   });
 
-  it("renders aggregate columns with a usage bar", () => {
+  it("shows each resource's effective rate", () => {
     render(<ResourcesTab />);
-    expect(screen.getByText("50,000")).toBeInTheDocument();
-    expect(screen.getByText("12,500")).toBeInTheDocument();
-    expect(screen.getAllByText("25.0%").length).toBeGreaterThan(0);
+    expect(screen.getByText("2.5 SU/unit·h")).toBeInTheDocument();
+    expect(screen.getByText("No rate")).toBeInTheDocument();
   });
 
   it("shows the empty state when no resources are registered", () => {
     resources = [];
     render(<ResourcesTab />);
-    expect(screen.getByRole("heading", { name: /no resources registered/i })).toBeInTheDocument();
+    expect(screen.getByText("No resources registered.")).toBeInTheDocument();
   });
 });

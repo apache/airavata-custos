@@ -17,11 +17,23 @@
 
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import {
+  type QueryClient,
+  skipToken,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   addMember,
   approveChangeRequest,
+  createAllocation,
+  deleteAllocation,
   getAllocation,
+  getAllocationUsedSU,
   getChangeRequest,
   listAllocationDiffs,
   listAllocationMembers,
@@ -30,27 +42,30 @@ import {
   listAllocations,
   listChangeRequestEvents,
   listChangeRequests,
+  listUserMemberships,
   rejectChangeRequest,
   removeMember,
+  setAllocationResources,
   submitChangeRequest,
-  updateMember,
 } from "./api";
 import type {
+  AllocationMembership,
+  CreateAllocationPayload,
   CreateChangeRequestPayload,
   CreateMembershipPayload,
-  UpdateMembershipPayload,
 } from "./schemas";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
 
 export const allocationKeys = {
   all: ["allocations"] as const,
-  list: (params: AllocationListParams = {}) =>
-    [...allocationKeys.all, "list", params] as const,
+  list: (params: AllocationListParams = {}) => [...allocationKeys.all, "list", params] as const,
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
+  usedSU: (id: string) => [...allocationKeys.detail(id), "used-su"] as const,
   diffs: (id: string) => [...allocationKeys.detail(id), "diffs"] as const,
   members: (id: string) => [...allocationKeys.detail(id), "members"] as const,
+  userMemberships: (userId: string) => [...allocationKeys.all, "user-memberships", userId] as const,
   changeRequests: (params: ChangeRequestListParams = {}) =>
     [...allocationKeys.all, "change-requests", "list", params] as const,
   changeRequestDetail: (id: string) =>
@@ -58,6 +73,12 @@ export const allocationKeys = {
   changeRequestEvents: (id: string) =>
     [...allocationKeys.all, "change-requests", "events", id] as const,
 };
+
+// Project members are derived from allocation memberships; a key prefix avoids importing projects.
+function invalidateMembers(client: QueryClient, allocationId: string) {
+  client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) });
+  client.invalidateQueries({ queryKey: ["projects", "members"] });
+}
 
 const DEFAULTS = {
   staleTime: 30_000,
@@ -79,17 +100,53 @@ export function useAllocationsByProject(projectId: string | undefined) {
     queryKey: projectId
       ? allocationKeys.list({ project_id: projectId })
       : [...allocationKeys.all, "list", "none"],
-    queryFn: () => listAllocations({ project_id: projectId as string }),
-    enabled: Boolean(projectId),
+    queryFn: projectId ? () => listAllocations({ project_id: projectId }) : skipToken,
     ...DEFAULTS,
+  });
+}
+
+export function useCreateAllocation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      resourceIds,
+      ...payload
+    }: CreateAllocationPayload & { resourceIds: string[] }) => {
+      const created = await createAllocation(payload);
+      // The allocation exists either way, so a failed grant is reported rather than retried as a create.
+      if (resourceIds.length) {
+        await setAllocationResources(created.id, resourceIds).catch((err: Error) =>
+          toast.error(`Allocation created without its resources: ${err.message}`),
+        );
+      }
+      return created;
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
+  });
+}
+
+export function useDeleteAllocation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAllocation,
+    // Marks lists stale without refetching the deleted allocation's own queries.
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: allocationKeys.all, refetchType: "none" }),
+  });
+}
+
+export function useSetAllocationResources(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (resourceIds: string[]) => setAllocationResources(allocationId, resourceIds),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
   });
 }
 
 export function useAllocation(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.detail(id) : [...allocationKeys.all, "detail", "none"],
-    queryFn: () => getAllocation(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getAllocation(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -97,8 +154,15 @@ export function useAllocation(id: string | undefined) {
 export function useAllocationResources(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.resources(id) : [...allocationKeys.all, "resources", "none"],
-    queryFn: () => listAllocationResources(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationResources(id) : skipToken,
+    ...DEFAULTS,
+  });
+}
+
+export function useAllocationUsedSU(id: string) {
+  return useQuery({
+    queryKey: allocationKeys.usedSU(id),
+    queryFn: () => getAllocationUsedSU(id),
     ...DEFAULTS,
   });
 }
@@ -106,8 +170,7 @@ export function useAllocationResources(id: string | undefined) {
 export function useAllocationUsage(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.usage(id) : [...allocationKeys.all, "usage", "none"],
-    queryFn: () => listAllocationUsage(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationUsage(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -115,8 +178,7 @@ export function useAllocationUsage(id: string | undefined) {
 export function useAllocationDiffs(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.diffs(id) : [...allocationKeys.all, "diffs", "none"],
-    queryFn: () => listAllocationDiffs(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationDiffs(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -124,8 +186,7 @@ export function useAllocationDiffs(id: string | undefined) {
 export function useAllocationMembers(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.members(id) : [...allocationKeys.all, "members", "none"],
-    queryFn: () => listAllocationMembers(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listAllocationMembers(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -134,16 +195,7 @@ export function useAddMember(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateMembershipPayload) => addMember(payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
-  });
-}
-
-export function useUpdateMember(allocationId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: UpdateMembershipPayload }) =>
-      updateMember(id, patch),
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
+    onSuccess: () => invalidateMembers(client, allocationId),
   });
 }
 
@@ -151,7 +203,50 @@ export function useRemoveMember(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => removeMember(id),
-    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
+    onSuccess: () => invalidateMembers(client, allocationId),
+  });
+}
+
+// Sanctioned cross-feature hooks (ADR-0004) for the project members grid.
+export function useMembershipsByAllocation(allocationIds: string[]) {
+  return useQueries({
+    queries: allocationIds.map((id) => ({
+      queryKey: allocationKeys.members(id),
+      queryFn: () => listAllocationMembers(id),
+      ...DEFAULTS,
+    })),
+    combine: (results) => ({
+      byAllocation: Object.fromEntries(allocationIds.map((id, i) => [id, results[i]?.data ?? []])),
+      isLoading: results.some((r) => r.isLoading),
+      error: results.find((r) => r.error)?.error ?? null,
+      refetch: () => Promise.all(results.map((r) => r.refetch())),
+    }),
+  });
+}
+
+// Revokes access by deleting the membership, or grants it for the allocation's remaining term.
+export function useToggleAllocationAccess() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      allocation,
+      userId,
+      membership,
+    }: {
+      allocation: ComputeAllocation;
+      userId: string;
+      membership: AllocationMembership | undefined;
+    }) =>
+      membership
+        ? removeMember(membership.id)
+        : addMember({
+            compute_allocation_id: allocation.id,
+            user_id: userId,
+            start_time: new Date().toISOString(),
+            end_time: allocation.end_time,
+            membership_status: "ACTIVE",
+          }),
+    onSuccess: (_data, { allocation }) => invalidateMembers(client, allocation.id),
   });
 }
 
@@ -168,8 +263,7 @@ export function useChangeRequest(id: string | undefined) {
     queryKey: id
       ? allocationKeys.changeRequestDetail(id)
       : [...allocationKeys.all, "change-requests", "detail", "none"],
-    queryFn: () => getChangeRequest(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => getChangeRequest(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -179,8 +273,7 @@ export function useChangeRequestEvents(id: string | undefined) {
     queryKey: id
       ? allocationKeys.changeRequestEvents(id)
       : [...allocationKeys.all, "change-requests", "events", "none"],
-    queryFn: () => listChangeRequestEvents(id as string),
-    enabled: Boolean(id),
+    queryFn: id ? () => listChangeRequestEvents(id) : skipToken,
     ...DEFAULTS,
   });
 }
@@ -198,10 +291,14 @@ export function useSubmitChangeRequest() {
 export function useApproveChangeRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
+    mutationFn: ({
+      id,
+      approverId,
+      comment,
+    }: { id: string; approverId: string; comment?: string }) =>
       approveChangeRequest(id, approverId, comment),
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: [...allocationKeys.all, "change-requests"] });
+      client.invalidateQueries({ queryKey: allocationKeys.all });
     },
   });
 }
@@ -209,10 +306,22 @@ export function useApproveChangeRequest() {
 export function useRejectChangeRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approverId, comment }: { id: string; approverId: string; comment?: string }) =>
+    mutationFn: ({
+      id,
+      approverId,
+      comment,
+    }: { id: string; approverId: string; comment?: string }) =>
       rejectChangeRequest(id, approverId, comment),
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: [...allocationKeys.all, "change-requests"] });
+      client.invalidateQueries({ queryKey: allocationKeys.all });
     },
+  });
+}
+
+export function useUserMemberships(userId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: userId ? allocationKeys.userMemberships(userId) : [...allocationKeys.all, "none"],
+    queryFn: userId && enabled ? () => listUserMemberships(userId) : skipToken,
+    ...DEFAULTS,
   });
 }

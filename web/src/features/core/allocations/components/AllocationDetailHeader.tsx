@@ -17,26 +17,15 @@
 
 "use client";
 
-import { Calendar, Gauge, Server, UserSquare } from "lucide-react";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { CopyValue } from "@/shared/ui/CopyValue";
 import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
-import type { ComputeAllocation } from "../schemas";
+import { Gauge, Server, UserSquare } from "lucide-react";
 
 export type AllocationDetailHeaderProps = {
   allocation: ComputeAllocation;
   memberCount: number;
 };
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat().format(n);
@@ -59,9 +48,19 @@ export function AllocationDetailHeader({ allocation, memberCount }: AllocationDe
 
   return (
     <header className="space-y-4">
-      <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
-        {allocation.name}
-      </h1>
+      <div>
+        <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
+          {allocation.name}
+        </h1>
+        <p className="mt-1 font-mono text-xs text-muted-foreground">
+          ID:{" "}
+          <CopyValue
+            value={allocation.id}
+            label="allocation ID"
+            className="text-muted-foreground"
+          />
+        </p>
+      </div>
       <MetaItem
         className="hidden"
         icon={Server}
@@ -76,7 +75,6 @@ export function AllocationDetailHeader({ allocation, memberCount }: AllocationDe
             label="Initial SUs"
             value={formatNumber(allocation.initial_su_amount)}
           />
-          <MetaItem icon={Calendar} label="End date" value={formatDate(allocation.end_time)} />
           <MetaItem icon={UserSquare} label="Members" value={memberCount} />
         </MetaRow>
       </div>

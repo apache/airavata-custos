@@ -58,12 +58,6 @@ test.describe("closeout live walk", () => {
     await expect(page.getByRole("heading", { name: /^Projects$/ })).toBeVisible();
   });
 
-  test("allocations renders against live backend", async ({ page }) => {
-    await signInAdmin(page);
-    await gotoAndAssertNoRuntimeError(page, "/allocations");
-    await expect(page.getByRole("heading", { name: /^Allocations$/ })).toBeVisible();
-  });
-
   test("admin/traces renders against live backend (graceful empty/404)", async ({ page }) => {
     await signInAdmin(page);
     await gotoAndAssertNoRuntimeError(page, "/admin/traces");

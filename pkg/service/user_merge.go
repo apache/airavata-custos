@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -37,6 +38,9 @@ import (
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //
+// A dropped cluster account publishes compute_cluster_user::delete, so it is
+// also removed outside Custos.
+//
 // Left in place (who actually did the thing):
 //   - compute_allocation_change_requests (requester / approver)
 //   - compute_allocation_usages
@@ -44,7 +48,15 @@ import (
 // Not idempotent — a retiring user already in status=MERGED is rejected with
 // ErrAlreadyExists. Callers that need replay safety should fetch the retiring
 // user by ID and skip the call when its status is already MERGED.
-func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string) (*models.User, error) {
+func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string) (survivor *models.User, err error) {
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		survivor, err = s.MergeUsersTx(ctx, tx, survivingID, retiringID)
+		return
+	})
+	return
+}
+
+func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, retiringID string) (*models.User, error) {
 	if survivingID == "" || retiringID == "" {
 		return nil, fmt.Errorf("%w: surviving and retiring user IDs are required", ErrInvalidInput)
 	}
@@ -52,7 +64,7 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 		return nil, fmt.Errorf("%w: cannot merge a user with itself", ErrInvalidInput)
 	}
 
-	survivor, err := s.users.FindByID(ctx, survivingID)
+	survivor, err := s.users.FindByIDTx(ctx, tx, survivingID, store.NoKeyUpdateLock)
 	if err != nil {
 		return nil, fmt.Errorf("lookup surviving user: %w", err)
 	}
@@ -63,7 +75,7 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 		return nil, fmt.Errorf("%w: surviving user %q must be ACTIVE or PENDING (got %s)",
 			ErrInvalidInput, survivingID, survivor.Status)
 	}
-	retiring, err := s.users.FindByID(ctx, retiringID)
+	retiring, err := s.users.FindByIDTx(ctx, tx, retiringID, store.NoKeyUpdateLock)
 	if err != nil {
 		return nil, fmt.Errorf("lookup retiring user: %w", err)
 	}
@@ -78,12 +90,38 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 			ErrInvalidInput, retiringID, retiring.Status)
 	}
 
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	// The reassigning below deletes the retiring user's cluster account on every
+	// cluster where the survivor already has one. Those need a delete event.
+	retiringAccounts, err := s.clusterUsers.FindByUserTx(ctx, tx, retiringID)
+	if err != nil {
+		return nil, fmt.Errorf("list retiring cluster users: %w", err)
+	}
+	survivorAccounts, err := s.clusterUsers.FindByUserTx(ctx, tx, survivingID)
+	if err != nil {
+		return nil, fmt.Errorf("list surviving cluster users: %w", err)
+	}
+	survivorClusters := make(map[string]bool, len(survivorAccounts))
+	for _, cu := range survivorAccounts {
+		survivorClusters[cu.ComputeClusterID] = true
+	}
+
+	if err := func() error {
 		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user identities: %w", err)
 		}
 		if err := s.clusterUsers.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign compute cluster users: %w", err)
+		}
+		for _, cu := range retiringAccounts {
+			if !survivorClusters[cu.ComputeClusterID] {
+				continue
+			}
+			if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID}); err != nil {
+				return err
+			}
+			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
+				return err
+			}
 		}
 		if err := s.projs.ReassignPI(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project PI: %w", err)
@@ -94,14 +132,18 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 		if err := s.projMemberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project memberships: %w", err)
 		}
-		return s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged)
-	}); err != nil {
+		if err := s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged); err != nil {
+			return err
+		}
+		retiring.Status = models.UserMerged
+		if err := s.publishUserTx(ctx, tx, events.UserUpdateEvent, retiring); err != nil {
+			return err
+		}
+		return s.publishUserTx(ctx, tx, events.UserUpdateEvent, survivor)
+	}(); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)
 	}
-
-	retiring.Status = models.UserMerged
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, retiring)
-	s.eventBus.Publish(ctx, events.UserUpdateEvent, survivor)
+	s.InvalidateAllIdentities()
 	return survivor, nil
 }
 

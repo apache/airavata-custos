@@ -25,14 +25,23 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+// UserListFilter narrows a user listing; an empty field matches every user.
+type UserListFilter struct {
+	Query          string // substring of the email, first, last or full name
+	RoleID         string // users granted this role
+	IdentitySource string // users with an external identity from this source
+}
+
 // UserStore defines persistence operations for users.
 type UserStore interface {
 	// FindByID returns the user with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.User, error)
+	// FindByIDTx returns the user read in tx under lock, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
-	// List returns a page of users ordered by email, plus the total count.
-	List(ctx context.Context, limit, offset int) ([]models.User, int, error)
+	// List returns a page of users ordered by sort, plus the total count.
+	List(ctx context.Context, filter UserListFilter, sort string, limit, offset int) ([]models.User, int, error)
 	// GetUserByOIDCSub returns the user owning the user_identities row whose
 	// oidc_sub matches or nil if no row links the given subject.
 	GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error)
@@ -85,6 +94,8 @@ type ComputeClusterStore interface {
 type ComputeClusterUserStore interface {
 	// FindByID returns the mapping with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error)
+	// FindByIDTx returns the mapping locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeClusterUser, error)
 	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
 	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
 	// FindByClusterAndLocalUsername returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
@@ -93,12 +104,18 @@ type ComputeClusterUserStore interface {
 	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	// FindByUser returns every cluster mapping held by the given Custos user.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
+	// FindByUserTx returns the user's mappings locked FOR UPDATE in tx, ordered by compute_cluster_id.
+	FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error)
+	// ListByApprovalStatus returns mappings joined with the user, cluster and allocation, plus the total. Empty status or filter fields match all.
+	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
 	// Create inserts a new mapping within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// Review records the admin's decision on the mapping within the provided transaction.
+	Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
-	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction.
-	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string) error
+	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.
+	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
 	// dropping fromUserID's rows on clusters where toUserID already has one.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
@@ -134,10 +151,10 @@ type UserIdentityStore interface {
 type ProjectStore interface {
 	// FindByID returns the project with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.Project, error)
+	// FindByIDTx returns the project locked FOR NO KEY UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.Project, error)
 	// FindByOriginatedID returns the project matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
-	// FindByPI returns all projects whose PI matches the given user ID.
-	FindByPI(ctx context.Context, piUserID string) ([]models.Project, error)
 	// Create inserts a new project within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, p *models.Project) error
 	// Update replaces mutable fields of an existing project within the provided transaction.
@@ -148,34 +165,33 @@ type ProjectStore interface {
 	ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a project by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
-	// List returns a paginated, filtered slice of projects plus the total
-	// count matching the filter (ignoring limit/offset).
-	List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error)
 	// FindByIDWithPI is FindByID joined with the PI user, so a single query
 	// returns everything the portal needs to render a project header.
 	FindByIDWithPI(ctx context.Context, id string) (*ProjectWithPI, error)
-	// ListWithPI is List joined with the PI user, replacing the per-row
-	// GetUser fan-out the handler would otherwise need.
+	// ListWithPI returns a filtered page of projects with the PI user joined,
+	// plus the total count matching the filter (ignoring limit/offset).
 	ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error)
-	// ListWithPIForParticipant returns the projects where the user holds a
-	// project membership or an active allocation membership, PI joined,
-	// newest first.
+	// ListWithPIForParticipant returns the projects the user has a role on, PI
+	// joined, newest first.
 	ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error)
 }
 
-// ProjectListFilter selects which projects ProjectStore.List returns.
+// ProjectListFilter selects which projects ProjectStore.ListWithPI returns.
 type ProjectListFilter struct {
-	PIID   string
-	Status string
-	Query  string
-	Limit  int
-	Offset int
+	PIID        string
+	Status      string
+	Origination string // case-insensitive, e.g. access matches ACCESS
+	Query       string
+	Limit       int
+	Offset      int
 }
 
 // ComputeAllocationStore defines persistence operations for compute allocations.
 type ComputeAllocationStore interface {
 	// FindByID returns the allocation with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error)
+	// FindByIDTx returns the allocation read in tx under lock, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.ComputeAllocation, error)
 	// FindByProject returns all allocations attached to the given project.
 	FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	// FindByCluster returns all allocations attached to the given compute cluster.
@@ -184,6 +200,8 @@ type ComputeAllocationStore interface {
 	Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
 	// Update replaces mutable fields of an existing allocation within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
+	// MarkGroupProvisioned stamps group_provisioned_at within the provided transaction and returns true only the first time.
+	MarkGroupProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
 	// Delete removes an allocation by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 	// List returns a paginated, filtered slice of allocations plus the total
@@ -192,7 +210,21 @@ type ComputeAllocationStore interface {
 	// FindByParticipant returns the allocations where the user holds an active
 	// membership, or a governance role on the parent project. Newest first.
 	FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
+	// RoleForUser returns the user's role on the allocation, a project-wide role
+	// before MEMBER, or "" for none.
+	RoleForUser(ctx context.Context, allocationID, userID string) (models.ProjectRole, error)
 }
+
+// RowLock is the lock a read in a transaction takes on the rows it returns.
+type RowLock string
+
+const (
+	NoLock     RowLock = ""
+	UpdateLock RowLock = "FOR UPDATE"
+	// NoKeyUpdateLock still lets other transactions insert rows that reference the locked row.
+	NoKeyUpdateLock RowLock = "FOR NO KEY UPDATE"
+	ShareLock       RowLock = "FOR SHARE"
+)
 
 // AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
 type AllocationListFilter struct {
@@ -240,8 +272,6 @@ type ComputeAllocationResourceStore interface {
 // ComputeAllocationResourceMappingStore defines persistence operations for
 // the join table linking compute allocations and compute allocation resources.
 type ComputeAllocationResourceMappingStore interface {
-	// FindByID returns the mapping with the given ID, or nil if it does not exist.
-	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error)
 	// FindByPair returns the mapping for a (allocation, resource) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error)
 	// FindResourcesByAllocation returns every resource attached to the given allocation.
@@ -300,6 +330,8 @@ type ComputeAllocationDiffStore interface {
 type ComputeAllocationChangeRequestStore interface {
 	// FindByID returns the change request with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequest, error)
+	// FindByIDTx returns the change request locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationChangeRequest, error)
 	// FindByAllocation returns every change request ever recorded against the
 	// given allocation, ordered by timestamp ascending.
 	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error)
@@ -342,27 +374,20 @@ type ComputeAllocationChangeRequestEventStore interface {
 }
 
 // ProjectMembershipStore defines persistence operations for project-level
-// governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
+// governance roles (CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
 // compute_allocation_memberships and not stored here.
 type ProjectMembershipStore interface {
-	// FindByPair returns the (project, user) row, or nil if absent.
+	// FindByPair returns the user's project-wide role (PI, CO_PI or
+	// ALLOCATION_MANAGER), or nil if absent.
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
-	// FindByProject returns every project_memberships row for the project.
-	FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
-	// FindPIByProject returns the PI row, or nil if the project has no PI yet.
-	FindPIByProject(ctx context.Context, projectID string) (*models.ProjectMembership, error)
-	// IsParticipant reports whether the user has a project_memberships row or
-	// an active membership on any of the project's allocations.
+	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	// Create inserts a new row within the provided transaction.
-	Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
-	// UpdateRole changes the role of an existing (project, user) row.
-	UpdateRole(ctx context.Context, tx *sql.Tx, projectID, userID string, role models.ProjectRole) error
+	// Upsert inserts the (project, user) row or sets its role.
+	Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
 	// Delete removes the (project, user) row.
 	Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error
-	// ReassignUser moves every project_memberships row owned by fromUserID
-	// over to toUserID, dropping fromUserID's rows on projects where toUserID
-	// already has one.
+	// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag
+	// per project and none where toUserID is PI.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 }
 
@@ -372,23 +397,19 @@ type ProjectMembershipStore interface {
 type ComputeAllocationMembershipStore interface {
 	// FindByID returns the membership with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
+	// FindByIDTx returns the membership locked FOR UPDATE in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ComputeAllocationMembership, error)
 	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error)
-	// FindByAllocation returns every membership recorded against the given
-	// allocation, ordered by start_time ascending.
-	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
-	// FindByAllocationWithUser is FindByAllocation joined with user +
-	// project_memberships so each row carries display_name, email, and the
-	// project-level role (defaulted to MEMBER).
+	// FindByAllocationWithUser returns the allocation's memberships joined with
+	// users so each row carries display_name, email, and the user's project-wide
+	// role (MEMBER by default).
 	FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error)
-	// FindByProjectWithUser returns memberships across every allocation in
-	// the project joined with users, allocation name, and project-level role.
-	// The caller aggregates per user (collapsing into the response's
-	// allocations list).
-	FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error)
+	// FindByProjectWithUser returns one row per project member with their allocations.
+	FindByProjectWithUser(ctx context.Context, projectID string) ([]ProjectMember, error)
 	// Create inserts a new membership within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
 	// Update replaces mutable fields of an existing membership within the provided transaction.
@@ -440,6 +461,41 @@ type AuditEventStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// EventDeliveryStore persists which subscriber listens to which event, each
+// published event, and each event on its way to each subscriber.
+type EventDeliveryStore interface {
+	// SaveSubscription records the subscriber that listens to eventType. Saving the same pair again is a no-op.
+	SaveSubscription(ctx context.Context, subscriber, eventType string) error
+	// ListSubscriptions returns every saved subscription.
+	ListSubscriptions(ctx context.Context) ([]models.EventSubscription, error)
+	// DeleteSubscriptions removes every subscription of the given subscriber.
+	DeleteSubscriptions(ctx context.Context, subscriber string) error
+	// DeleteSubscription removes one subscriber's subscription to one event type.
+	DeleteSubscription(ctx context.Context, subscriber, eventType string) error
+
+	// CreateEvent inserts a published event within the provided transaction.
+	CreateEvent(ctx context.Context, tx *sql.Tx, e *models.Event) error
+	// CreateDelivery inserts one subscriber's delivery of an event within the provided transaction.
+	CreateDelivery(ctx context.Context, tx *sql.Tx, d *models.EventDelivery) error
+	// FindDeliveryByID returns the delivery with its event, or nil if not found.
+	FindDeliveryByID(ctx context.Context, id string) (*models.PendingDelivery, error)
+	// FindDueDeliveries returns pending deliveries for the given subscribers
+	// whose next_run_at is at or before now, oldest first, each with its event.
+	FindDueDeliveries(ctx context.Context, now time.Time, subscribers []string, limit int) ([]models.PendingDelivery, error)
+	// ListDeliveries returns deliveries newest first, each with its event. An empty status or subscriber means any.
+	ListDeliveries(ctx context.Context, status models.EventDeliveryStatus, subscriber string, limit int) ([]models.PendingDelivery, error)
+	// CountDeliveriesBySubscriber returns how many deliveries each subscriber has in status.
+	CountDeliveriesBySubscriber(ctx context.Context, status models.EventDeliveryStatus) (map[string]int, error)
+	// MarkDeliverySucceeded records a successful delivery within the provided transaction.
+	MarkDeliverySucceeded(ctx context.Context, tx *sql.Tx, id string, attempts int, finishedAt time.Time) error
+	// MarkDeliveryRetry records a failed attempt and when to try again, within the provided transaction.
+	MarkDeliveryRetry(ctx context.Context, tx *sql.Tx, id string, attempts int, nextRunAt time.Time, lastError string) error
+	// MarkDeliveryFailed records that delivery has given up, within the provided transaction.
+	MarkDeliveryFailed(ctx context.Context, tx *sql.Tx, id string, attempts int, lastError string, finishedAt time.Time) error
+	// ResetDeliveryToPending makes a delivery due again with a fresh attempt count, within the provided transaction. The last error is kept.
+	ResetDeliveryToPending(ctx context.Context, tx *sql.Tx, id string, nextRunAt time.Time) error
+}
+
 // RoleStore covers role definitions and the privilege bundle each carries.
 type RoleStore interface {
 	FindByID(ctx context.Context, id string) (*models.Role, error)
@@ -457,16 +513,13 @@ type RoleStore interface {
 
 // UserRoleStore covers role assignments. Revoke is DELETE; history lives in audit_events.
 type UserRoleStore interface {
-	Find(ctx context.Context, userID, roleID string) (*models.UserRole, error)
 	FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error)
 	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
 	ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error)
 	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
-	ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error)
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error
 	Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error
 	PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
-	UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error)
 }
 
 // UserPrivilegeStore defines persistence operations for fine-grained admin
@@ -491,14 +544,61 @@ type UserPrivilegeStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error
 }
 
+// UserAgreementStore defines persistence operations for versioned user agreements.
+type UserAgreementStore interface {
+	// FindByID returns the agreement, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.UserAgreement, error)
+	// FindByIDTx is FindByID inside the given transaction.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.UserAgreement, error)
+	// FindCurrent returns the PUBLISHED version with the newest published_at, or nil when nothing is published.
+	FindCurrent(ctx context.Context) (*models.UserAgreement, error)
+	// List returns every version, the newest first.
+	List(ctx context.Context) ([]models.UserAgreement, error)
+	// ListPendingForUser returns the current version if the user has not accepted it, else an empty list.
+	ListPendingForUser(ctx context.Context, userID string) ([]models.UserAgreement, error)
+	// Create inserts a new agreement inside the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreement) error
+	// Update writes every mutable column and bumps updated_at.
+	Update(ctx context.Context, tx *sql.Tx, a *models.UserAgreement) error
+	// Delete removes the agreement inside the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// CountAcceptances returns how many users accepted the agreement.
+	CountAcceptances(ctx context.Context, agreementID string) (int, error)
+	// CountPendingUsers returns the non-system, pending or active users who have not accepted the agreement.
+	CountPendingUsers(ctx context.Context, agreementID string) (int, error)
+}
+
+// ServiceAccountStore defines persistence operations for service accounts. Find methods return nil if not found.
+type ServiceAccountStore interface {
+	FindByID(ctx context.Context, id string) (*models.ServiceAccount, error)
+	FindByKey(ctx context.Context, key string) (*models.ServiceAccount, error)
+	// FindByIDTx returns the service account locked FOR UPDATE in tx.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string) (*models.ServiceAccount, error)
+	List(ctx context.Context) ([]models.ServiceAccount, error)
+	Create(ctx context.Context, tx *sql.Tx, a *models.ServiceAccount) error
+	Update(ctx context.Context, tx *sql.Tx, a *models.ServiceAccount) error
+}
+
+// UserAgreementAcceptanceStore defines persistence operations for the record of who accepted which agreement.
+type UserAgreementAcceptanceStore interface {
+	// FindTx returns the user's acceptance of the agreement inside tx, or nil.
+	FindTx(ctx context.Context, tx *sql.Tx, userID, agreementID string) (*models.UserAgreementAcceptance, error)
+	// Create inserts an acceptance and returns false when the user already accepted that agreement.
+	Create(ctx context.Context, tx *sql.Tx, a *models.UserAgreementAcceptance) (bool, error)
+	// ListByAgreement returns acceptances newest first.
+	ListByAgreement(ctx context.Context, agreementID string, limit, offset int) ([]models.UserAgreementAcceptance, error)
+	// ListPendingUsers returns the users counted by CountPendingUsers, ordered by email.
+	ListPendingUsers(ctx context.Context, agreementID string, limit, offset int) ([]models.User, error)
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.
 type ComputeAllocationUsageStore interface {
 	// FindByID returns the usage with the given ID, or nil if it does not exist.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationUsage, error)
-	// FindByAllocation returns every usage event recorded against the given
-	// allocation, ordered by calculated_time ascending.
+	// FindByAllocation returns the usage events of the allocation's current
+	// period, ordered by calculated_time ascending.
 	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 	// FindByUser returns every usage event attributed to the given user,
 	// ordered by calculated_time ascending.
@@ -506,14 +606,52 @@ type ComputeAllocationUsageStore interface {
 	// FindByComputeAllocationIDAndJobID returns the usage event for the given
 	// compute allocation ID and job ID, or nil if it does not exist.
 	FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
-	// SumSUForAllocation returns the total SUs consumed against the given
-	// allocation across all usage events.
-	SumSUForAllocation(ctx context.Context, allocationID string) (int64, error)
-	// SumSUForUserInAllocation returns the total SUs consumed by the given
-	// user against the given allocation.
-	SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	// SumSUForAllocation returns the SUs consumed against the allocation
+	// between its start and end dates. A renewal moves the dates, so usage
+	// from the earlier period stops counting.
+	SumSUForAllocation(ctx context.Context, allocationID string) (float64, error)
+	// SumSUForUserInAllocation is SumSUForAllocation for one user.
+	SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (float64, error)
+	// LatestCalculatedTimeForCluster returns the latest calculated_time of usage
+	// recorded against the cluster's allocations, or nil when there is none.
+	LatestCalculatedTimeForCluster(ctx context.Context, clusterID string) (*time.Time, error)
 	// Create inserts a new usage event within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error
 	// Delete removes a usage event by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// StorageStore keeps each cluster's storages.
+type StorageStore interface {
+	// List returns every cluster's storages, pending ones first.
+	List(ctx context.Context) ([]models.Storage, error)
+	// Lock runs storage writes one at a time, so none acts on a storage another changes between its reads and writes.
+	Lock(ctx context.Context, tx *sql.Tx) error
+	// AccountHolders returns the scope's provisioned accounts.
+	AccountHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
+	// AllocationHolders returns the scope's active allocations with a provisioned group.
+	AllocationHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
+	// MemberHolders returns the scope's active memberships whose account and allocation both qualify.
+	MemberHolders(ctx context.Context, tx *sql.Tx, scope StorageScope) ([]StorageHolder, error)
+	// Users returns every user, or the one with userID, oldest first.
+	Users(ctx context.Context, tx *sql.Tx, userID string) ([]models.User, error)
+	// Retire marks the scope's active storages on the clusters pending deletion, except desired ones and kept types.
+	Retire(ctx context.Context, tx *sql.Tx, scope StorageScope, claimedClusterIDs []string, keptTypes []models.StorageType, desired []models.Storage) error
+	// Upsert makes or updates and activates each storage at its path, keeping an administrator's live quota and another
+	// user's storage. It returns those it made or changed, a parent first.
+	Upsert(ctx context.Context, tx *sql.Tx, desired []models.Storage) ([]models.Storage, error)
+	// SetQuota replaces the quota of a storage that has one of its own, and returns the storage and its old quota; nil without one.
+	SetQuota(ctx context.Context, tx *sql.Tx, id string, bytes int64, until time.Time) (*models.Storage, int64, error)
+	// Delete drops a pending storage and those under it once all of them are pending, and returns the storage.
+	Delete(ctx context.Context, tx *sql.Tx, id string) (*models.Storage, error)
+}
+
+// execOnce runs an update and reports whether it changed exactly one row.
+func execOnce(ctx context.Context, tx *sql.Tx, query string, args ...any) (bool, error) {
+	res, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
 }

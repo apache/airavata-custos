@@ -208,3 +208,17 @@ func TestPoller_DisabledRunReturnsImmediately(t *testing.T) {
 		t.Errorf("disabled poller called client %d times, want 0", stub.callCount())
 	}
 }
+
+// Packets fetched in one poll each start a trace of their own.
+func TestPoller_EachPacketGetsItsOwnTrace(t *testing.T) {
+	database := setupTestDB(t)
+	stub := &stubAmieClient{responses: [][]map[string]any{{makePollerPacket(1101, "request_project_create"), makePollerPacket(1102, "request_account_create")}}}
+	p, _ := newPoller(t, stub)
+
+	p.pollForPackets(context.Background())
+
+	var traces []string
+	if err := database.Select(&traces, "SELECT DISTINCT trace_id FROM amie_processing_events"); err != nil || len(traces) != 2 {
+		t.Fatalf("traces = %v (%v), want one per packet", traces, err)
+	}
+}

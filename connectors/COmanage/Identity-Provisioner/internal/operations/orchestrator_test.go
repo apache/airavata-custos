@@ -26,7 +26,6 @@ import (
 	"sync"
 	"testing"
 
-	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/apache/airavata-custos/internal/tracing"
@@ -62,16 +61,15 @@ func installRecorder(t *testing.T) *recordingProcessor {
 	t.Helper()
 	rec := &recordingProcessor{}
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
-	prev := otel.GetTracerProvider()
-	otel.SetTracerProvider(tp)
+	prev := tracing.SetProvider(tp)
 	t.Cleanup(func() {
 		_ = tp.ForceFlush(context.Background())
-		otel.SetTracerProvider(prev)
+		tracing.SetProvider(prev)
 	})
 	return rec
 }
 
-func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
+func TestEnsureClusterAccount_EmitsComanageSpanTree(t *testing.T) {
 	rec := installRecorder(t)
 	srv := mockComanageServer(t, &mockRegistry{})
 	defer srv.Close()
@@ -82,9 +80,9 @@ func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest"}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
+	if err := orch.EnsureClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	wantSpans := []string{
@@ -111,7 +109,7 @@ func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 	}
 }
 
-func TestEnsurePOSIXAccount_DlqAuditCarriesTraceID(t *testing.T) {
+func TestEnsureClusterAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	installRecorder(t)
 
 	// Server fails CreatePerson with 500, exhausting retries — triggers dlq.
@@ -135,9 +133,9 @@ func TestEnsurePOSIXAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	defer root.End()
 	wantTrace := root.SpanContext().TraceID()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx"}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err == nil {
-		t.Fatalf("expected EnsurePOSIXAccount to fail under 500")
+	cu := &models.ComputeClusterUser{ID: "ccu-x", UserID: "user-x", LocalUsername: "flx", ApprovalStatus: models.ClusterAccountApproved}
+	if err := orch.EnsureClusterAccount(ctx, cu); err == nil {
+		t.Fatalf("expected EnsureClusterAccount to fail under 500")
 	}
 
 	if len(core.auditEvents) == 0 {
@@ -161,7 +159,7 @@ func contains(haystack []string, needle string) bool {
 	return false
 }
 
-func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
+func TestEnsureClusterAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	installRecorder(t)
 
 	var peoplePutBody string
@@ -218,9 +216,9 @@ func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest"}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest", ApprovalStatus: models.ClusterAccountApproved}
+	if err := orch.EnsureClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	if !strings.Contains(peoplePutBody, `"identifier":"cluster-e2etest"`) {
@@ -234,7 +232,7 @@ func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
 	}
 }
 
-func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
+func TestEnsureClusterAccount_CreatesOIDCLinkage(t *testing.T) {
 	installRecorder(t)
 
 	var oidcPutBody string
@@ -282,9 +280,9 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 	ctx, root := tracing.Start(context.Background(), "test.root")
 	defer root.End()
 
-	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest"}
-	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
-		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ClusterAccountApproved}
+	if err := orch.EnsureClusterAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
 	}
 
 	if oidcPutBody == "" {
@@ -299,5 +297,34 @@ func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
 		if !strings.Contains(oidcPutBody, keep) {
 			t.Fatalf("PUT dropped %s, which deleteOmitted would erase: %s", keep, oidcPutBody)
 		}
+	}
+}
+
+// Make sure an account that is still waiting for admin approval is not sent to the registry.
+func TestEnsureClusterAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+	defer srv.Close()
+
+	core := &fakeCore{user: &models.User{ID: "user-1", FirstName: "Jane", LastName: "Doe", Email: "jdoe@example.edu"}}
+	orch := newOrchestratorForTest(t, srv, core, "")
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountPending}
+	if err := orch.EnsureClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
+	}
+
+	if calls != 0 {
+		t.Errorf("registry got %d calls for a pending account, want 0", calls)
+	}
+	if len(core.markedProvisioned) != 0 {
+		t.Errorf("pending account was marked provisioned: %v", core.markedProvisioned)
+	}
+}
+
+func TestStorePersonID_RepointsAStaleID(t *testing.T) {
+	core := &fakeCore{identities: []models.UserIdentity{{ID: "ui-1", Source: "comanage", ExternalID: "Person100001"}}}
+	if err := (&Orchestrator{core: core}).storePersonID(context.Background(), "user-1", "Person100002"); err != nil || core.writtenIdentity == nil || core.writtenIdentity.ID != "ui-1" || core.writtenIdentity.ExternalID != "Person100002" {
+		t.Fatalf("err=%v written=%+v; want ui-1 repointed to Person100002", err, core.writtenIdentity)
 	}
 }

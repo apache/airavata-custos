@@ -17,17 +17,17 @@
 
 "use client";
 
-import Link from "next/link";
+import { useSignOut } from "@/shared/auth/useSignOut";
 import * as React from "react";
 import { toast } from "sonner";
 
 const HEADING = "No portal access";
-const BODY = "Your account has no privileges yet. Ask an administrator to grant you a role.";
+const BODY = "No account was found for this sign-in. Ask an administrator for access.";
 
-// Shown in place of the portal content when the signed-in user holds no
-// privileges. Announces the reason as a toast and keeps a durable inline
-// message, so the state does not vanish with the toast.
+// Shown when the sign-in matches no Custos user. The message also stays on
+// the page, since a toast alone disappears.
 export function NoAccessNotice() {
+  const { signOut } = useSignOut();
   React.useEffect(() => {
     toast.error(HEADING, { description: BODY });
   }, []);
@@ -35,9 +35,13 @@ export function NoAccessNotice() {
     <div className="flex flex-col gap-2">
       <h1 className="text-2xl font-bold tracking-tight">{HEADING}</h1>
       <p className="text-sm text-muted-foreground">{BODY}</p>
-      <Link href="/sign-in" className="mt-2 text-sm font-medium text-brand">
+      <button
+        type="button"
+        onClick={() => signOut({ callbackUrl: "/sign-in" })}
+        className="mt-2 text-left text-sm font-medium text-brand"
+      >
         Sign in as a different user
-      </Link>
+      </button>
     </div>
   );
 }

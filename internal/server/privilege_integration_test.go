@@ -27,15 +27,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 func TestGetCallerPrivileges_NoCaller_401(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
-	srv.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/user/privileges", nil))
+	srv.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/me/privileges", nil))
 	// Route is router.RequireAuth, no privilege check. Without a caller on
-	// ctx, the handler's requireCaller returns 401.
+	// ctx, the handler's common.RequireCaller returns 401.
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("status: got %d, want 401", rr.Code)
 	}
@@ -44,7 +46,7 @@ func TestGetCallerPrivileges_NoCaller_401(t *testing.T) {
 func TestGetCallerPrivileges_NoGrants_ReturnsEmpty(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
+	req := httptest.NewRequest(http.MethodGet, "/me/privileges", nil)
 	// Empty privilege set on ctx mirrors a caller the middleware resolved
 	// with no direct grants and no role-derived privileges.
 	req = withTestCaller(req, "u-1")
@@ -66,7 +68,7 @@ func TestGetCallerPrivileges_NoGrants_ReturnsEmpty(t *testing.T) {
 func TestGetCallerPrivileges_WithGrants(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
+	req := httptest.NewRequest(http.MethodGet, "/me/privileges", nil)
 	req = withTestCaller(req, "u-1", models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -214,9 +216,13 @@ func TestGrantPrivilegeEndpoint_HappyPath(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = withTestCaller(req, granter, models.PrivilegesGrant)
-	srv.ServeHTTP(rr, req)
+	tracing.Middleware(srv).ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("status: got %d, want 201, body=%s", rr.Code, rr.Body.String())
+	}
+	var traceID string
+	if err := database.Get(&traceID, "SELECT trace_id FROM audit_events WHERE entity_id = $1", target); err != nil || traceID != rr.Header().Get("X-Trace-Id") {
+		t.Fatalf("audit row trace=%q err=%v, want the request's trace", traceID, err)
 	}
 	has, err := svc.HasPrivilege(context.Background(), target, models.ClustersRead)
 	if err != nil || !has {
@@ -244,7 +250,7 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegesGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.ClustersRead, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(tracingtest.Context(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("seed grant: %v", err)
 	}
 	body, _ := json.Marshal(map[string]any{"reason": "rotated"})
@@ -278,7 +284,7 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegesGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.ClustersRead, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(tracingtest.Context(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	rr := httptest.NewRecorder()
@@ -302,7 +308,7 @@ func TestListPrivilegeHoldersEndpoint(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegesGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.ClustersRead, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(tracingtest.Context(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	rr := httptest.NewRecorder()

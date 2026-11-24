@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { identityKeys } from "@/features/core/identity/queries";
+import type { UserRole } from "@/generated/core/zod.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { type ReactNode, createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { identityKeys } from "@/features/core/identity/queries";
 import { applyUserRoleChanges, useUpdateUserRoles, userKeys } from "../queries";
-import type { UserRole } from "../schemas";
 
 const apiMocks = vi.hoisted(() => ({
   assignUserRole: vi.fn(),
@@ -79,7 +79,7 @@ describe("applyUserRoleChanges", () => {
   });
 
   it("forwards the reason to assign operations", async () => {
-    const assignArgs: { roleId: string; reason?: string }[] = [];
+    const assignArgs: { roleId: string; reason?: string | undefined }[] = [];
     const operations = {
       assign: vi.fn(async (_userId: string, roleId: string, reason?: string) => {
         assignArgs.push({ roleId, reason });
@@ -169,7 +169,13 @@ describe("useUpdateUserRoles", () => {
     apiMocks.removeUserRole.mockResolvedValue(undefined);
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     client.setQueryData<UserRole[]>(userKeys.roles("user-1"), [
-      { user_id: "user-1", role_id: "old-role" },
+      {
+        user_id: "user-1",
+        role_id: "old-role",
+        granted_at: "2026-01-01T00:00:00Z",
+        granted_by: null,
+        reason: null,
+      },
     ]);
     const wrapper = ({ children }: { children: ReactNode }) =>
       createElement(QueryClientProvider, { client }, children);
@@ -184,7 +190,7 @@ describe("useUpdateUserRoles", () => {
     );
 
     expect(client.getQueryData<UserRole[]>(userKeys.roles("user-1"))).toEqual([
-      { user_id: "user-1", role_id: "new-role" },
+      expect.objectContaining({ user_id: "user-1", role_id: "new-role" }),
     ]);
   });
 

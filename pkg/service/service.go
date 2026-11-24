@@ -20,6 +20,9 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +31,8 @@ import (
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // Service is a high-level façade over the underlying stores. It wraps each
@@ -36,6 +41,7 @@ import (
 type Service struct {
 	db                  *sqlx.DB
 	eventBus            *events.Bus
+	reservedUsernames   map[string]bool
 	orgs                store.OrganizationStore
 	users               store.UserStore
 	projs               store.ProjectStore
@@ -57,7 +63,15 @@ type Service struct {
 	privileges          store.UserPrivilegeStore
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
+	agreements          store.UserAgreementStore
+	acceptances         store.UserAgreementAcceptanceStore
 	auditTraces         store.AuditTraceStore
+	serviceAccounts     store.ServiceAccountStore
+	storages            store.StorageStore
+	storageTargets      map[string]map[models.StorageType]models.StorageTarget
+	claimedClusters     map[string]StorageUsage
+	storageHolders      map[models.StorageType]StorageHolderOf
+	claimedMu           sync.RWMutex // connectors claim clusters while others already run
 	identityCache       *identityCache
 }
 
@@ -67,6 +81,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 	return &Service{
 		db:                  database,
 		eventBus:            eventBus,
+		reservedUsernames:   map[string]bool{},
 		orgs:                store.NewOrganizationStore(database),
 		users:               store.NewUserStore(database),
 		projs:               store.NewProjectStore(database),
@@ -88,7 +103,13 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		privileges:          store.NewUserPrivilegeStore(database),
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
+		agreements:          store.NewUserAgreementStore(database),
+		acceptances:         store.NewUserAgreementAcceptanceStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
+		serviceAccounts:     store.NewServiceAccountStore(database),
+		storages:            store.NewStorageStore(database),
+		claimedClusters:     map[string]StorageUsage{},
+		storageHolders:      map[models.StorageType]StorageHolderOf{},
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -120,6 +141,8 @@ func NewWithStores(
 	privileges store.UserPrivilegeStore,
 	roles store.RoleStore,
 	userRoles store.UserRoleStore,
+	agreements store.UserAgreementStore,
+	acceptances store.UserAgreementAcceptanceStore,
 ) *Service {
 	return &Service{
 		db:                  database,
@@ -145,13 +168,23 @@ func NewWithStores(
 		privileges:          privileges,
 		roles:               roles,
 		userRoles:           userRoles,
+		agreements:          agreements,
+		acceptances:         acceptances,
 		auditTraces:         store.NewAuditTraceStore(database),
+		serviceAccounts:     store.NewServiceAccountStore(database),
+		storages:            store.NewStorageStore(database),
+		claimedClusters:     map[string]StorageUsage{},
+		storageHolders:      map[models.StorageType]StorageHolderOf{},
 		identityCache:       newIdentityCache(),
 	}
 }
 
 func (s *Service) AuditTraces() store.AuditTraceStore {
 	return s.auditTraces
+}
+
+func (s *Service) EventBus() *events.Bus {
+	return s.eventBus
 }
 
 func (s *Service) SetAuditTraces(ts store.AuditTraceStore) {
@@ -161,6 +194,25 @@ func (s *Service) SetAuditTraces(ts store.AuditTraceStore) {
 // inTx runs fn inside a database transaction managed by the Service.
 func (s *Service) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 	return db.TxFn(ctx, s.db, fn)
+}
+
+func (s *Service) writeAuditTx(ctx context.Context, tx *sql.Tx, entityType, eventType, entityID string, details map[string]any) error {
+	// Record the service account too when one made the request.
+	if caller := identity.CallerFromContext(ctx); caller != nil && caller.IsServiceAccount() {
+		details["service_account_key"] = caller.ServiceAccountKey
+	}
+	payload, err := json.Marshal(details)
+	if err != nil {
+		return fmt.Errorf("marshal audit details: %w", err)
+	}
+	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
+		ID:         newID(),
+		EventType:  eventType,
+		EventTime:  nowUTC(),
+		EntityID:   entityID,
+		EntityType: entityType,
+		Details:    string(payload),
+	})
 }
 
 // newID returns a new identifier for a freshly created entity.

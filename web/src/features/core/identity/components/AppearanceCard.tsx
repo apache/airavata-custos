@@ -17,11 +17,11 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 const CHOICES = [
   { value: "light", label: "Light", Icon: Sun },

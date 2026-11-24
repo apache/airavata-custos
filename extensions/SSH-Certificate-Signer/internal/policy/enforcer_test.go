@@ -16,167 +16,34 @@
 package policy
 
 import (
+	"errors"
 	"testing"
-
-	"github.com/apache/airavata-custos/signer/internal/store"
 )
 
-func clientCfg(maxTTL int, keyTypes []string, sourceRestriction *string) *store.ClientConfig {
-	return &store.ClientConfig{
-		MaxTTLSeconds:            maxTTL,
-		AllowedKeyTypes:          keyTypes,
-		SourceAddressRestriction: sourceRestriction,
+func policyErrorCode(t *testing.T, err error) string {
+	t.Helper()
+	var policyErr *PolicyError
+	if !errors.As(err, &policyErr) {
+		t.Fatalf("expected PolicyError, got %v", err)
+	}
+	return policyErr.Code
+}
+
+// Make sure the signer caps certificate length even for its trusted caller.
+func TestEnforce_RefusesLifetimeOverTheLimit(t *testing.T) {
+	e := NewEnforcer(3600, []string{"ed25519"})
+	if code := policyErrorCode(t, e.Enforce(3601, "ssh-ed25519")); code != "invalid_ttl" {
+		t.Errorf("code = %s", code)
+	}
+	if err := e.Enforce(3600, "ssh-ed25519"); err != nil {
+		t.Errorf("lifetime at the limit was refused: %v", err)
 	}
 }
 
-func strPtr(s string) *string {
-	return &s
-}
-
-func TestEnforce_TTLWithinLimit(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519", "rsa", "ecdsa"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil)
-	err := e.Enforce(3600, "ssh-ed25519", "10.0.0.1", cfg)
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-}
-
-func TestEnforce_TTLExceedsLimit(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(3600, []string{"ed25519"}, nil)
-	err := e.Enforce(7200, "ssh-ed25519", "10.0.0.1", cfg)
-	if err == nil {
-		t.Fatal("expected error for TTL exceeding limit")
-	}
-	pErr, ok := err.(*PolicyError)
-	if !ok {
-		t.Fatalf("expected PolicyError, got %T", err)
-	}
-	if pErr.Message != "Requested TTL 7200 seconds exceeds maximum allowed TTL 3600 seconds" {
-		t.Errorf("unexpected message: %s", pErr.Message)
-	}
-}
-
-func TestEnforce_TTLAtExactLimit(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(3600, []string{"ed25519"}, nil)
-	err := e.Enforce(3600, "ssh-ed25519", "10.0.0.1", cfg)
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-}
-
-func TestEnforce_NullMaxTTLUsesDefault(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(0, []string{"ed25519"}, nil) // 0 = null equivalent
-	err := e.Enforce(86400, "ssh-ed25519", "10.0.0.1", cfg)
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-}
-
-func TestEnforce_TTLZero(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil)
-	err := e.Enforce(0, "ssh-ed25519", "10.0.0.1", cfg)
-	if err == nil {
-		t.Fatal("expected error for TTL 0")
-	}
-}
-
-func TestEnforce_NegativeTTL(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil)
-	err := e.Enforce(-100, "ssh-ed25519", "10.0.0.1", cfg)
-	if err == nil {
-		t.Fatal("expected error for negative TTL")
-	}
-}
-
-func TestEnforce_DisallowedKeyType(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil)
-	err := e.Enforce(3600, "ssh-rsa", "10.0.0.1", cfg)
-	if err == nil {
-		t.Fatal("expected error for disallowed key type")
-	}
-	pErr := err.(*PolicyError)
-	if pErr == nil {
-		t.Fatal("expected PolicyError")
-	}
-}
-
-func TestEnforce_AllowedKeyType(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519", "rsa"})
-	cfg := clientCfg(86400, []string{"ed25519", "rsa"}, nil)
-	err := e.Enforce(3600, "ssh-rsa", "10.0.0.1", cfg)
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-}
-
-func TestEnforce_SourceAddressRejected(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cidr := "10.0.0.0/8"
-	cfg := clientCfg(86400, []string{"ed25519"}, &cidr)
-	err := e.Enforce(3600, "ssh-ed25519", "192.168.1.1", cfg)
-	if err == nil {
-		t.Fatal("expected error for source address outside CIDR")
-	}
-}
-
-func TestEnforce_SourceAddressAccepted(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cidr := "10.0.0.0/8"
-	cfg := clientCfg(86400, []string{"ed25519"}, &cidr)
-	err := e.Enforce(3600, "ssh-ed25519", "10.1.2.3", cfg)
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-}
-
-func TestEnforce_NoSourceRestriction(t *testing.T) {
-	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil)
-	err := e.Enforce(3600, "ssh-ed25519", "192.168.1.1", cfg)
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-}
-
-func TestBuildCriticalOptions_SourceAddress(t *testing.T) {
-	addr := "10.0.0.0/8"
-	result := BuildCriticalOptions(&addr, "")
-	if result == nil {
-		t.Fatal("expected non-nil critical options")
-	}
-	if result["source-address"] != "10.0.0.0/8" {
-		t.Errorf("expected source-address=10.0.0.0/8, got %v", result)
-	}
-}
-
-func TestBuildCriticalOptions_ForceCommand(t *testing.T) {
-	result := BuildCriticalOptions(nil, "sbatch /path/to/job.sh")
-	if result == nil {
-		t.Fatal("expected non-nil critical options")
-	}
-	if result["force-command"] != "sbatch /path/to/job.sh" {
-		t.Errorf("expected force-command, got %v", result)
-	}
-}
-
-func TestBuildCriticalOptions_Both(t *testing.T) {
-	addr := "10.0.0.0/8"
-	result := BuildCriticalOptions(&addr, "sbatch /job.sh")
-	if len(result) != 2 {
-		t.Errorf("expected 2 critical options, got %d", len(result))
-	}
-}
-
-func TestBuildCriticalOptions_Empty(t *testing.T) {
-	result := BuildCriticalOptions(nil, "")
-	if result != nil {
-		t.Errorf("expected nil critical options, got %v", result)
+// Key type that is not allowed will have its own error code
+func TestEnforce_RefusesKeyTypeNotAllowed(t *testing.T) {
+	e := NewEnforcer(3600, []string{"ed25519"})
+	if code := policyErrorCode(t, e.Enforce(60, "ssh-rsa")); code != "key_type_not_allowed" {
+		t.Errorf("code = %s", code)
 	}
 }

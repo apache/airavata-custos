@@ -16,34 +16,40 @@
 package handler
 
 import (
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"regexp"
+	"slices"
+	"strings"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgconn"
+	"unicode"
 
 	"github.com/apache/airavata-custos/signer/internal/audit"
-	"github.com/apache/airavata-custos/signer/internal/auth"
 	"github.com/apache/airavata-custos/signer/internal/cert"
 	"github.com/apache/airavata-custos/signer/internal/httputil"
-	"github.com/apache/airavata-custos/signer/internal/metrics"
 	"github.com/apache/airavata-custos/signer/internal/policy"
+	"github.com/apache/airavata-custos/signer/internal/store"
 	"github.com/apache/airavata-custos/signer/internal/validation"
 	vaultpkg "github.com/apache/airavata-custos/signer/internal/vault"
 )
 
 var principalRegex = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
 
+// The user_email, user_sub and requested_by columns are VARCHAR(255). The key ID
+// joins two of these with ":", so it always fits its VARCHAR(512) column.
+const maxAttributeLength = 255
+
 type SignRequest struct {
 	Principal         string   `json:"principal"`
 	TTLSeconds        int      `json:"ttl_seconds"`
 	PublicKey         string   `json:"public_key"`
-	UserAccessToken   string   `json:"user_access_token"`
+	UserEmail         string   `json:"user_email"`
+	UserSub           string   `json:"user_sub"`
+	RequestedBy       string   `json:"requested_by"`
 	ForceCommand      string   `json:"force_command,omitempty"`
+	SourceAddress     string   `json:"source_address,omitempty"`
 	ExcludeExtensions []string `json:"exclude_extensions,omitempty"`
 }
 
@@ -53,167 +59,174 @@ type SignResponse struct {
 	ValidAfter        int64    `json:"valid_after"`
 	ValidBefore       int64    `json:"valid_before"`
 	CAFingerprint     string   `json:"ca_fingerprint"`
-	TargetHost        string   `json:"target_host"`
-	TargetPort        int      `json:"target_port"`
-	TargetUsername    string   `json:"target_username"`
+	LoginHost         string   `json:"login_host"`
+	LoginPort         int      `json:"login_port"`
+	Principal         string   `json:"principal"`
 	ForceCommand      string   `json:"force_command,omitempty"`
 	GrantedExtensions []string `json:"granted_extensions"`
 }
 
+type SignSettings struct {
+	ReservedUsernames      []string
+	DeniedExtensions       []string
+	LoginHost              string
+	LoginPort              int
+	CertificateLimit       int
+	CertificateLimitWindow time.Duration
+}
+
 type SignHandler struct {
-	oidcValidator      *auth.OIDCValidator
 	policyEnforcer     *policy.Enforcer
 	principalValidator *validation.ValidatorDispatcher
 	vaultClient        *vaultpkg.Client
+	db                 *store.DB
 	auditLogger        *audit.Logger
+	settings           SignSettings
 	logger             *slog.Logger
 }
 
 func NewSignHandler(
-	oidcValidator *auth.OIDCValidator,
 	policyEnforcer *policy.Enforcer,
 	principalValidator *validation.ValidatorDispatcher,
 	vaultClient *vaultpkg.Client,
+	db *store.DB,
 	auditLogger *audit.Logger,
+	settings SignSettings,
 	logger *slog.Logger,
 ) *SignHandler {
 	return &SignHandler{
-		oidcValidator:      oidcValidator,
 		policyEnforcer:     policyEnforcer,
 		principalValidator: principalValidator,
 		vaultClient:        vaultClient,
+		db:                 db,
 		auditLogger:        auditLogger,
+		settings:           settings,
 		logger:             logger,
 	}
 }
 
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	clientCfg := httputil.ClientConfigFromContext(r.Context())
-	if clientCfg == nil {
-		writeError(w, http.StatusInternalServerError, "internal_error", "Missing client config")
-		return
-	}
-
-	tenantID := clientCfg.TenantID
-	clientID := clientCfg.ClientID
-
-	defer func() {
-		duration := time.Since(startTime).Seconds()
-		metrics.SignDurationSeconds.WithLabelValues(tenantID).Observe(duration)
-	}()
-
 	var req SignRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 
-	if req.Principal == "" {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: principal")
-		return
-	}
 	if !principalRegex.MatchString(req.Principal) {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid principal format: must match ^[a-z_][a-z0-9_-]{0,31}$")
 		return
 	}
-
-	if req.PublicKey == "" {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: public_key")
+	// Checked before the validator, so it holds whichever validator is on.
+	if slices.ContainsFunc(h.settings.ReservedUsernames, func(name string) bool { return strings.EqualFold(name, req.Principal) }) {
+		h.logRefusal(&req, "reserved_username")
+		writeError(w, http.StatusForbidden, "reserved_username", "This username cannot be signed for")
 		return
 	}
-	if req.UserAccessToken == "" {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: user_access_token")
+
+	if req.UserEmail == "" || req.UserSub == "" || req.RequestedBy == "" {
+		h.logRefusal(&req, "invalid_request")
+		writeError(w, http.StatusBadRequest, "invalid_request", "Missing required field: user_email, user_sub and requested_by")
+		return
+	}
+	if !validAttributes(&req) {
+		h.logRefusal(&req, "invalid_request")
+		writeError(w, http.StatusBadRequest, "invalid_request", "user_email, user_sub, requested_by or force_command is not valid")
+		return
+	}
+	if req.SourceAddress != "" && !validSourceAddress(req.SourceAddress) {
+		h.logRefusal(&req, "invalid_request")
+		writeError(w, http.StatusBadRequest, "invalid_request", "source_address must be a comma-separated list of IP addresses or CIDR blocks")
 		return
 	}
 
 	sshPubKey, err := cert.ParseSSHPublicKey(req.PublicKey)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid SSH public key format")
+		h.logRefusal(&req, "invalid_public_key")
+		writeError(w, http.StatusBadRequest, "invalid_public_key", "Invalid SSH public key format")
 		return
 	}
 
-	identity, err := h.oidcValidator.ValidateAccessToken(r.Context(), req.UserAccessToken)
-	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		if authErr, ok := err.(*auth.AuthError); ok {
-			writeError(w, authErr.Status, authErr.Code, authErr.Message)
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "internal_error", "Token validation error")
-		return
-	}
-
-	sourceIP := httputil.SourceIPFromContext(r.Context())
-	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type(), sourceIP, clientCfg); err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type()); err != nil {
 		if policyErr, ok := err.(*policy.PolicyError); ok {
-			writeError(w, http.StatusBadRequest, "policy_violation", policyErr.Message)
+			h.logRefusal(&req, policyErr.Code)
+			writeError(w, http.StatusBadRequest, policyErr.Code, policyErr.Message)
 			return
 		}
+		h.logger.Error("policy enforcement failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Policy enforcement error")
 		return
 	}
 
-	// Resolve extensions: all standard - client denied - request excluded
-	grantedExts, err := cert.ResolveExtensions(clientCfg.DeniedExtensions, req.ExcludeExtensions)
+	grantedExts, err := cert.ResolveExtensions(h.settings.DeniedExtensions, req.ExcludeExtensions)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		h.logRefusal(&req, "invalid_request")
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
 	extensionsMap := cert.ExtensionsToMap(grantedExts)
 	grantedExtNames := cert.ExtensionNames(grantedExts)
 
-	valResult, err := h.principalValidator.ValidateForClient(r.Context(), tenantID, clientID, req.Principal, identity.Subject, clientCfg.PrincipalSource)
+	// Requests that arrive together can each pass this count, so a user can go a few over the limit.
+	issued, err := h.db.CountRecentCertificates(r.Context(), req.UserSub, h.settings.CertificateLimitWindow)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		h.logger.Error("failed to count recent certificates", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to check the certificate limit")
+		return
+	}
+	if issued >= h.settings.CertificateLimit {
+		h.logRefusal(&req, "too_many_certificates")
+		writeError(w, http.StatusTooManyRequests, "too_many_certificates", "Too many certificates for this user. Try again later.")
+		return
+	}
+
+	valResult, err := h.principalValidator.Validate(r.Context(), req.Principal, req.UserSub)
+	if err != nil {
 		if valErr, ok := err.(*validation.ValidationError); ok {
+			h.logRefusal(&req, "principal_denied")
 			httputil.WriteJSONErrorWithExtra(w, http.StatusForbidden, "principal_denied", valErr.Message, map[string]string{
 				"reason_code": valErr.ReasonCode,
 			})
 			return
 		}
+		h.logger.Error("principal validation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Principal validation error")
 		return
 	}
 
 	validatedPrincipal := valResult.ValidatedPrincipal
 
-	caKeyPair, err := h.vaultClient.GetCurrentCAKey(r.Context(), tenantID, clientID)
+	caKeyPair, err := h.vaultClient.GetCurrentCAKey(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "error").Inc()
-		h.logger.Error("failed to get CA key", "error", err, "tenant_id", tenantID, "client_id", clientID)
+		h.logger.Error("failed to get CA key", "error", err)
 		writeError(w, http.StatusServiceUnavailable, "internal_error", "CA key storage unavailable")
 		return
 	}
-	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
 
-	serial, err := h.vaultClient.IncrementSerialCounter(r.Context(), tenantID, clientID)
+	serial, err := h.db.NextSerial(r.Context())
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
-		h.logger.Error("failed to increment serial counter", "error", err, "tenant_id", tenantID, "client_id", clientID)
+		h.logger.Error("failed to allocate serial number", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
 	}
-	metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
 
-	criticalOpts := policy.BuildCriticalOptions(clientCfg.SourceAddressRestriction, req.ForceCommand)
+	criticalOpts := map[string]string{}
+	if req.ForceCommand != "" {
+		criticalOpts["force-command"] = req.ForceCommand
+	}
+	if req.SourceAddress != "" {
+		criticalOpts["source-address"] = req.SourceAddress
+	}
 
 	signReq := &cert.SignRequest{
 		PublicKey:       sshPubKey,
 		CAPrivateKeyPEM: caKeyPair.PrivateKey,
 		Serial:          uint64(serial),
 		Principal:       validatedPrincipal,
-		ClientID:        clientID,
+		UserEmail:       req.UserEmail,
+		UserSub:         req.UserSub,
+		RequestedBy:     req.RequestedBy,
 		TTLSeconds:      uint64(req.TTLSeconds),
 		CriticalOptions: criticalOpts,
 		Extensions:      extensionsMap,
@@ -221,89 +234,44 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	signResult, err := cert.SignCertificate(signReq)
 	if err != nil {
-		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
 		h.logger.Error("failed to sign certificate", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 		return
 	}
 
-	tokenHash := cert.HashToken(req.UserAccessToken)
 	pubKeyFP := cert.SSHPublicKeyFingerprint(sshPubKey)
 
 	auditEntry := &audit.IssuanceEntry{
-		TenantID:             tenantID,
-		ClientID:             clientID,
+		RequestedBy:          req.RequestedBy,
 		SerialNumber:         serial,
 		KeyID:                signResult.KeyID,
 		Principal:            validatedPrincipal,
-		UserEmail:            identity.Email,
+		UserEmail:            req.UserEmail,
+		UserSub:              req.UserSub,
 		PublicKeyFingerprint: pubKeyFP,
 		CAFingerprint:        signResult.CAFingerprint,
 		ValidAfter:           time.Unix(int64(signResult.ValidAfter), 0).UTC(),
 		ValidBefore:          time.Unix(int64(signResult.ValidBefore), 0).UTC(),
-		SourceIP:             sourceIP,
-		UserAccessTokenHash:  tokenHash,
 		GrantedExtensions:    grantedExtNames,
 		ForceCommand:         stringPtrIfNonEmpty(req.ForceCommand),
+		SourceAddress:        stringPtrIfNonEmpty(req.SourceAddress),
 	}
 
 	if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
-		if !isDuplicateKeyError(err) {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-			h.logger.Error("failed to write audit log", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
-			return
-		}
-
-		// Duplicate serial — retry with a fresh serial
-		h.logger.Warn("duplicate serial detected, retrying with fresh serial",
-			"serial", serial, "tenant_id", tenantID, "client_id", clientID)
-
-		retrySerial, err := h.vaultClient.IncrementSerialCounter(r.Context(), tenantID, clientID)
-		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-			metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
-			return
-		}
-		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
-
-		signReq.Serial = uint64(retrySerial)
-		retryResult, err := cert.SignCertificate(signReq)
-		if err != nil {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-			h.logger.Error("failed to sign certificate on retry", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
-			return
-		}
-
-		serial = retrySerial
-		signResult = retryResult
-		auditEntry.SerialNumber = retrySerial
-		auditEntry.KeyID = retryResult.KeyID
-		auditEntry.CAFingerprint = retryResult.CAFingerprint
-		auditEntry.ValidAfter = time.Unix(int64(retryResult.ValidAfter), 0).UTC()
-		auditEntry.ValidBefore = time.Unix(int64(retryResult.ValidBefore), 0).UTC()
-
-		if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
-			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
-			h.logger.Error("failed to write audit log on retry", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
-			return
-		}
+		h.logger.Error("failed to write audit log", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
+		return
 	}
 
-	metrics.SignRequestsTotal.WithLabelValues(tenantID, "success").Inc()
-
 	resp := SignResponse{
-		Certificate:       base64.StdEncoding.EncodeToString(signResult.CertBytes),
+		Certificate:       signResult.AuthorizedKey,
 		SerialNumber:      serial,
 		ValidAfter:        int64(signResult.ValidAfter),
 		ValidBefore:       int64(signResult.ValidBefore),
 		CAFingerprint:     signResult.CAFingerprint,
-		TargetHost:        clientCfg.TargetHost,
-		TargetPort:        clientCfg.TargetPort,
-		TargetUsername:    validatedPrincipal,
+		LoginHost:         h.settings.LoginHost,
+		LoginPort:         h.settings.LoginPort,
+		Principal:         validatedPrincipal,
 		ForceCommand:      req.ForceCommand,
 		GrantedExtensions: grantedExtNames,
 	}
@@ -313,10 +281,35 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// isDuplicateKeyError detects a unique-constraint violation (SQLSTATE 23505).
-func isDuplicateKeyError(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+// logRefusal records a turned-down request. Issued certificates are stored, refusals are not.
+func (h *SignHandler) logRefusal(req *SignRequest, code string) {
+	h.logger.Warn("sign request refused", "code", code, "principal", req.Principal, "user_sub", req.UserSub, "requested_by", req.RequestedBy)
+}
+
+// These values reach the key ID in the login log. A control character could forge
+// a log line, and ":" could make two key IDs the same.
+func validAttributes(req *SignRequest) bool {
+	for _, value := range []string{req.UserEmail, req.UserSub, req.RequestedBy} {
+		if len(value) > maxAttributeLength || strings.ContainsFunc(value, unicode.IsControl) {
+			return false
+		}
+	}
+	return !strings.ContainsFunc(req.ForceCommand, unicode.IsControl) &&
+		!strings.Contains(req.UserEmail, ":") && !strings.Contains(req.RequestedBy, ":")
+}
+
+// validSourceAddress validate the ip address that is going be restricted on the certificate
+func validSourceAddress(list string) bool {
+	for entry := range strings.SplitSeq(list, ",") {
+		if addr, err := netip.ParseAddr(entry); err == nil && addr.Zone() == "" && !addr.Is4In6() {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(entry)
+		if err != nil || prefix != prefix.Masked() || prefix.Addr().Is4In6() {
+			return false
+		}
+	}
+	return true
 }
 
 func stringPtrIfNonEmpty(s string) *string {

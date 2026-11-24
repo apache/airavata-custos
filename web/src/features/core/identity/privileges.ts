@@ -23,7 +23,7 @@ export type PrivilegeRow = {
   prefix: string;
   actions: string[];
   provenance: ProvenanceKind;
-  roleId?: string;
+  roleId?: string | undefined;
   provenanceLabel: string;
 };
 
@@ -34,8 +34,8 @@ const UNKNOWN_SOURCE: Source = { kind: "unknown", label: "" };
 export function buildPrivilegeRows(access: MyAccess): PrivilegeRow[] {
   const sourceByKey = new Map<string, Source>();
   for (const rwp of access.roles) {
-    const roleId = rwp.role.id ?? "";
-    const label = rwp.role.name ?? "Role";
+    const roleId = rwp.role.id;
+    const label = rwp.role.name;
     for (const key of rwp.privileges) {
       if (!sourceByKey.has(key)) sourceByKey.set(key, { roleId, kind: "role", label });
     }

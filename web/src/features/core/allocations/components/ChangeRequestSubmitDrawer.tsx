@@ -17,17 +17,15 @@
 
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { ApiError } from "@/shared/api/client";
+import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { SideDrawer } from "@/shared/ui/SideDrawer";
+import * as React from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 import { useSubmitChangeRequest } from "../queries";
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
@@ -58,8 +56,10 @@ const formSchema = z.discriminatedUnion("requested_change_type", [
   }),
 ]);
 
-type FormValues = z.infer<typeof formSchema>;
-type ChangeType = FormValues["requested_change_type"];
+type ChangeType = z.infer<typeof formSchema>["requested_change_type"];
+// Every field any variant has; the schema keeps the ones the chosen type needs.
+type Draft = { requested_amount: string; requested_end_date: string; reason: string };
+const emptyDraft: Draft = { requested_amount: "", requested_end_date: "", reason: "" };
 
 export type ChangeRequestSubmitDrawerProps = {
   open: boolean;
@@ -77,15 +77,35 @@ export function ChangeRequestSubmitDrawer({
   currentSuAmount,
 }: ChangeRequestSubmitDrawerProps) {
   const submitMutation = useSubmitChangeRequest();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { requested_change_type: "INCREASE_CREDITS", reason: "" } as FormValues,
-    mode: "onBlur",
+  const [changeType, setChangeType] = React.useState<ChangeType>("INCREASE_CREDITS");
+  const [draft, setDraft] = React.useState(emptyDraft);
+  const [errors, setErrors] = React.useState<Partial<Record<keyof Draft, string | undefined>>>({});
+  const field = (key: keyof Draft) => ({
+    value: draft[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setDraft((d) => ({ ...d, [key]: e.target.value })),
   });
 
-  const changeType = form.watch("requested_change_type");
-
-  const onSubmit = form.handleSubmit(async (values) => {
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = formSchema.safeParse({
+      ...draft,
+      requested_change_type: changeType,
+      requested_amount: Number.parseFloat(draft.requested_amount),
+    });
+    if (!parsed.success) {
+      const fields: Partial<Record<keyof Draft, string[]>> = z.flattenError(
+        parsed.error,
+      ).fieldErrors;
+      setErrors({
+        requested_amount: fields.requested_amount?.[0],
+        requested_end_date: fields.requested_end_date?.[0],
+        reason: fields.reason?.[0],
+      });
+      return;
+    }
+    setErrors({});
+    const values = parsed.data;
     const requestedSuAmount =
       values.requested_change_type === "INCREASE_CREDITS"
         ? currentSuAmount + values.requested_amount
@@ -106,35 +126,21 @@ export function ChangeRequestSubmitDrawer({
         requester_id: requesterId,
       });
       toast.success("Change request submitted");
-      form.reset({ requested_change_type: "INCREASE_CREDITS", reason: "" } as FormValues);
+      setChangeType("INCREASE_CREDITS");
+      setDraft(emptyDraft);
       onOpenChange(false);
     } catch (err) {
       const msg =
         err instanceof ApiError ? `Failed (${err.status}): ${err.message}` : "Failed to submit";
       toast.error(msg);
     }
-  });
-
-  function onChangeTypeChange(next: ChangeType) {
-    const reason = (form.getValues() as { reason?: string }).reason ?? "";
-    if (next === "INCREASE_CREDITS") {
-      form.reset({
-        requested_change_type: "INCREASE_CREDITS",
-        reason,
-        requested_amount: undefined as unknown as number,
-      });
-    } else if (next === "EXTEND_END_DATE") {
-      form.reset({
-        requested_change_type: "EXTEND_END_DATE",
-        reason,
-        requested_end_date: "",
-      });
-    } else {
-      form.reset({ requested_change_type: "OTHER", reason });
-    }
   }
 
-  const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
+  function onChangeTypeChange(next: ChangeType) {
+    setChangeType(next);
+    setDraft((d) => ({ ...emptyDraft, reason: d.reason }));
+    setErrors({});
+  }
 
   return (
     <SideDrawer
@@ -146,7 +152,7 @@ export function ChangeRequestSubmitDrawer({
       <form onSubmit={onSubmit} className="space-y-4" aria-label="Submit change request form">
         <div className="space-y-2">
           <Label htmlFor="cr-type">Change type</Label>
-          <Select value={changeType} onValueChange={(v) => onChangeTypeChange(v as ChangeType)}>
+          <Select value={changeType} onValueChange={(v) => v !== null && onChangeTypeChange(v)}>
             <SelectTrigger id="cr-type" aria-label="Change type">
               <SelectValue>{(value: string) => CHANGE_TYPE_LABELS[value] ?? value}</SelectValue>
             </SelectTrigger>
@@ -166,10 +172,10 @@ export function ChangeRequestSubmitDrawer({
               type="number"
               min={1}
               placeholder="e.g. 10000"
-              {...form.register("requested_amount", { valueAsNumber: true })}
+              {...field("requested_amount")}
             />
-            {errors.requested_amount?.message ? (
-              <p className="text-xs text-destructive">{errors.requested_amount.message}</p>
+            {errors.requested_amount ? (
+              <p className="text-xs text-destructive">{errors.requested_amount}</p>
             ) : null}
           </div>
         ) : null}
@@ -177,9 +183,9 @@ export function ChangeRequestSubmitDrawer({
         {changeType === "EXTEND_END_DATE" ? (
           <div className="space-y-2">
             <Label htmlFor="cr-end">Requested new end date</Label>
-            <Input id="cr-end" type="date" {...form.register("requested_end_date")} />
-            {errors.requested_end_date?.message ? (
-              <p className="text-xs text-destructive">{errors.requested_end_date.message}</p>
+            <Input id="cr-end" type="date" {...field("requested_end_date")} />
+            {errors.requested_end_date ? (
+              <p className="text-xs text-destructive">{errors.requested_end_date}</p>
             ) : null}
           </div>
         ) : null}
@@ -193,11 +199,9 @@ export function ChangeRequestSubmitDrawer({
             rows={5}
             className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             placeholder="Why is this change needed?"
-            {...form.register("reason")}
+            {...field("reason")}
           />
-          {errors.reason?.message ? (
-            <p className="text-xs text-destructive">{errors.reason.message}</p>
-          ) : null}
+          {errors.reason ? <p className="text-xs text-destructive">{errors.reason}</p> : null}
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-2">

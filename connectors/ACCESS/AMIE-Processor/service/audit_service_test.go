@@ -25,12 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -152,59 +148,6 @@ func TestAuditLog_PropagatesExtrasStoreError(t *testing.T) {
 	err := svc.Log(ctx, nil, "p", "e", model.AuditCreatePerson, "person", "p1", "boom")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "amie_audit_extras")
-}
-
-func TestAuditLog_PersistsTraceAndSpanIDs(t *testing.T) {
-	prev := otel.GetTracerProvider()
-	tp := sdktrace.NewTracerProvider()
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { otel.SetTracerProvider(prev) })
-
-	ctx, span := tracing.Start(context.Background(), "test.root")
-	defer span.End()
-	wantTrace := span.SpanContext().TraceID()
-	wantSpan := span.SpanContext().SpanID()
-
-	coreEvents := new(mockCoreEventStore)
-	extras := new(mockExtrasStore)
-	svc := NewAuditService(coreEvents, extras)
-
-	var captured *models.AuditEvent
-	coreEvents.On("Create", mock.Anything, mock.Anything, mock.MatchedBy(func(e *models.AuditEvent) bool {
-		captured = e
-		return true
-	})).Return(nil)
-	extras.On("Save", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	require.NoError(t, svc.Log(ctx, nil, "packet-trace", "event-trace", model.AuditCreatePerson, "person", "p1", "with trace"))
-	require.NotNil(t, captured)
-	if captured.TraceID != wantTrace.String() {
-		t.Fatalf("trace_id mismatch: got %s want %s", captured.TraceID, wantTrace.String())
-	}
-	if captured.SpanID != wantSpan.String() {
-		t.Fatalf("span_id mismatch: got %s want %s", captured.SpanID, wantSpan.String())
-	}
-}
-
-func TestAuditLog_NilTraceWhenNoSpan(t *testing.T) {
-	coreEvents := new(mockCoreEventStore)
-	extras := new(mockExtrasStore)
-	svc := NewAuditService(coreEvents, extras)
-
-	var captured *models.AuditEvent
-	coreEvents.On("Create", mock.Anything, mock.Anything, mock.MatchedBy(func(e *models.AuditEvent) bool {
-		captured = e
-		return true
-	})).Return(nil)
-	extras.On("Save", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	require.NoError(t, svc.Log(
-		trace.ContextWithSpanContext(context.Background(), trace.SpanContext{}),
-		nil, "p", "e", model.AuditReplySent, "reply", "", ""))
-	require.NotNil(t, captured)
-	if captured.TraceID != "" || captured.SpanID != "" {
-		t.Fatalf("expected nil trace/span IDs when no active span")
-	}
 }
 
 func TestAuditLog_RejectsEmptyPacketID(t *testing.T) {

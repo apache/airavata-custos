@@ -16,7 +16,7 @@
 // under the License.
 
 import { serverEnv } from "@/lib/env";
-import { getPortalSession, pickBackendBearer } from "@/shared/auth/session";
+import { freshBackendBearer } from "@/shared/auth/session";
 import { type NextRequest, NextResponse } from "next/server";
 import { responseBodyForStatus } from "./proxy-response";
 
@@ -26,11 +26,11 @@ type Context = { params: Promise<{ path: string[] }> };
 
 async function proxy(request: NextRequest, ctx: Context) {
   const { path } = await ctx.params;
-  const upstreamUrl = new URL(`/${path.join("/")}`, serverEnv.CUSTOS_CORE_API_BASE_URL);
+  const upstreamPath = `/${path.join("/")}`;
+  const upstreamUrl = new URL(upstreamPath, serverEnv.CUSTOS_CORE_API_BASE_URL);
   upstreamUrl.search = request.nextUrl.search;
 
-  const session = await getPortalSession();
-  const bearer = pickBackendBearer(session);
+  const bearer = await freshBackendBearer(request);
   if (!bearer) {
     return NextResponse.json(
       { code: "missing_bearer", message: "Not authenticated" },
@@ -46,14 +46,23 @@ async function proxy(request: NextRequest, ctx: Context) {
   headers.set("authorization", `Bearer ${bearer}`);
 
   const method = request.method;
-  const body = method === "GET" || method === "HEAD" ? undefined : await request.text();
+  const body = method === "GET" || method === "HEAD" ? null : await request.text();
 
-  const upstream = await fetch(upstreamUrl, {
-    method,
-    headers,
-    body,
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method,
+      headers,
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    console.error("API proxy upstream unavailable", { method, path: upstreamPath });
+    return NextResponse.json(
+      { code: "upstream_unavailable", message: "Backend service is unavailable" },
+      { status: 503 },
+    );
+  }
 
   const responseHeaders = new Headers();
   const upstreamType = upstream.headers.get("content-type");

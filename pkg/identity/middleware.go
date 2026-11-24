@@ -28,15 +28,12 @@ import (
 )
 
 // Middleware verifies the bearer token once, resolves the caller, and
-// attaches Caller + privilege set to the request context. Public paths
-// bypass verification entirely.
-func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
-	publicSet := make(map[string]struct{}, len(publicPaths))
-	for _, path := range publicPaths {
-		publicSet[path] = struct{}{}
-	}
+// attaches Caller + privilege set to the request context. Routes public
+// matches bypass verification entirely. Callers who need onboarding or consent
+// only reach routes withoutUserConsent matches. A nil matcher matches none.
+func Middleware(verifier TokenVerifier, resolver UserResolver, public, withoutUserConsent func(*http.Request) bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if _, ok := publicSet[req.URL.Path]; ok {
+		if public != nil && public(req) {
 			next.ServeHTTP(w, req)
 			return
 		}
@@ -55,26 +52,88 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked", "OIDC identity is not linked to a portal user")
 			return
 		}
+		if errors.Is(err, ErrUserDisabled) {
+			writeJSONError(w, http.StatusForbidden, "user_disabled", "User account is disabled")
+			return
+		}
 		if err != nil {
-			slog.Error("identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
+			slog.ErrorContext(req.Context(), "identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
-		ctx := WithCaller(req.Context(), caller)
+
+		// Determine that this endpoint requires no user consent
+		allowedWithoutUserConsent := withoutUserConsent != nil && withoutUserConsent(req)
+		if caller.NeedsOnboarding && !allowedWithoutUserConsent {
+			writeJSONError(w, http.StatusForbidden, "onboarding_required", "Accept the user agreement to continue")
+			return
+		}
+		if caller.ConsentPending && !allowedWithoutUserConsent {
+			writeJSONError(w, http.StatusForbidden, "consent_required", "Accept the updated user agreement to continue")
+			return
+		}
+		ctx := WithClaims(req.Context(), claims)
+		ctx = WithCaller(ctx, caller)
 		ctx = withPrivileges(ctx, privileges)
 		next.ServeHTTP(w, req.WithContext(ctx))
 	})
 }
 
+// ServiceAccountTokenPrefix marks a Custos issued service account token (csa_ - custos service account).
+const ServiceAccountTokenPrefix = "csa_"
+
+// ServiceAccountMiddleware handles calls made with a service account token. Other calls go to nonServiceAccountCalls.
+// A service account always calls as itself, with its own privileges, never as a user.
+func ServiceAccountMiddleware(accounts ServiceAccountResolver, next, nonServiceAccountCalls http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		rawToken, ok := bearer(req.Header.Get("Authorization"))
+		if !ok || !strings.HasPrefix(rawToken, ServiceAccountTokenPrefix) {
+			nonServiceAccountCalls.ServeHTTP(w, req)
+			return
+		}
+		account, err := accounts.ResolveServiceAccount(req.Context(), rawToken)
+		if errors.Is(err, ErrInvalidServiceAccountToken) {
+			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid service account token")
+			return
+		}
+		if errors.Is(err, ErrServiceAccountDisabled) {
+			writeJSONError(w, http.StatusForbidden, "service_account_disabled", "Service account is disabled")
+			return
+		}
+		if err != nil {
+			slog.ErrorContext(req.Context(), "service account lookup failed", "error", err.Error())
+			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
+			return
+		}
+		ctx := WithCaller(req.Context(), &Caller{ServiceAccountKey: account.Key})
+		next.ServeHTTP(w, req.WithContext(withPrivileges(ctx, account.Privileges)))
+	})
+}
+
 // Router is the only path that lets HTTP routes hit the mux. The mux
-// field is unexported on purpose: callers must go through RequirePrivilege, RequireAuth, or Public.
+// field is unexported on purpose: callers must go through RequirePrivilege,
+// RequireAuth, RequireAuthWithoutUserConsent, RequireScoped, or Public.
 type Router struct {
-	mux         *http.ServeMux
-	publicPaths []string
+	mux                   *http.ServeMux
+	publicMux             *http.ServeMux
+	withoutUserConsentMux *http.ServeMux
 }
 
 // NewRouter wraps mux.
-func NewRouter(mux *http.ServeMux) *Router { return &Router{mux: mux} }
+func NewRouter(mux *http.ServeMux) *Router {
+	return &Router{mux: mux, publicMux: http.NewServeMux(), withoutUserConsentMux: http.NewServeMux()}
+}
+
+// Routes without a privilege work on the caller's own data, so a service account can't use them.
+func refuseServiceAccounts(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if caller := CallerFromContext(req.Context()); caller != nil && caller.IsServiceAccount() {
+			writeJSONError(w, http.StatusForbidden, "service_account_not_allowed", "Service accounts cannot use this route")
+			return
+		}
+		handler(w, req)
+	}
+}
 
 // RequirePrivilege registers an authenticated handler. The wrapper checks privilege
 // against the caller's privilege set in ctx; absent → 403.
@@ -88,17 +147,16 @@ func (r *Router) RequirePrivilege(pattern string, privilege models.PrivilegeKey,
 	})
 }
 
-// Public registers an unauthenticated handler. The middleware uses the path
-// component to bypass JWT verification.
+// Public registers an unauthenticated handler. The middleware skips JWT verification for requests that match it.
 func (r *Router) Public(pattern string, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, handler)
-	r.publicPaths = append(r.publicPaths, methodPath(pattern))
+	r.publicMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
 }
 
 // RequireAuth registers a handler that requires a verified caller but no
 // specific privilege. (e.g., caller looking up their own data).
 func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, handler)
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(handler))
 }
 
 // RequireScoped registers a route whose access depends on the specific
@@ -106,17 +164,39 @@ func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
 // and returns false to deny, or returns true to run handler. The policy is a
 // required argument, so a scoped route cannot be registered without one.
 func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
-	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(func(w http.ResponseWriter, req *http.Request) {
 		if !authorize(w, req) {
 			return
 		}
 		handler(w, req)
-	})
+	}))
 }
 
-// PublicPaths returns the path components of every Public() registration,
-// suitable for handing to Middleware.
-func (r *Router) PublicPaths() []string { return r.publicPaths }
+// RequireAuthWithoutUserConsent registers a handler that signed-in callers
+// can reach before accepting the user agreement. Handlers read ClaimsFromContext.
+func (r *Router) RequireAuthWithoutUserConsent(pattern string, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, refuseServiceAccounts(handler))
+	r.withoutUserConsentMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
+}
+
+// PublicRoutes reports whether a request targets a Public route.
+func (r *Router) PublicRoutes() func(*http.Request) bool {
+	return routesIn(r.publicMux)
+}
+
+// WithoutUserConsentRoutes reports whether a request targets a RequireAuthWithoutUserConsent route.
+func (r *Router) WithoutUserConsentRoutes() func(*http.Request) bool {
+	return routesIn(r.withoutUserConsentMux)
+}
+
+// routesIn looks the request up in mux with the same pattern rules as the real
+// mux. The handlers in mux are empty and never run.
+func routesIn(mux *http.ServeMux) func(*http.Request) bool {
+	return func(req *http.Request) bool {
+		_, pattern := mux.Handler(req)
+		return pattern != ""
+	}
+}
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.mux.ServeHTTP(w, req)
@@ -128,15 +208,6 @@ func bearer(header string) (string, bool) {
 		return "", false
 	}
 	return strings.TrimSpace(header[len(prefix):]), true
-}
-
-// methodPath strips the optional "METHOD " prefix from a mux pattern, since
-// the middleware bypass check compares against req.URL.Path (path only).
-func methodPath(pattern string) string {
-	if i := strings.IndexByte(pattern, ' '); i >= 0 {
-		return strings.TrimSpace(pattern[i+1:])
-	}
-	return pattern
 }
 
 // TODO: use pkg/common.WriteJSON once its import cycle is broken.

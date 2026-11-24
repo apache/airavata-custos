@@ -18,17 +18,10 @@
 "use client";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { KpiCard } from "@/shared/ui/KpiCard";
+import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/shared/ui/drawer";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { Activity, CalendarDays, Flame, LogIn, X } from "lucide-react";
+import { Activity, CalendarDays, Flame, LogIn } from "lucide-react";
 import * as React from "react";
 import { activityActionLabel, formatLastLogin } from "../lib";
 import { useUserActivityAnalytics } from "../queries";
@@ -41,94 +34,88 @@ export function UserActivityDrawer({
   user,
   initialWindow,
   onClose,
-}: { user: UserActivityRow; initialWindow: number; onClose: () => void }) {
+}: {
+  user: UserActivityRow;
+  initialWindow: number;
+  onClose: () => void;
+}) {
   const [windowDays, setWindowDays] = React.useState(initialWindow);
   const analytics = useUserActivityAnalytics(windowDays, user.user_id);
   const reviewAccess = activityActionLabel(user, initialWindow) === "Review access";
   return (
-    <Drawer
+    <SideDrawer
       open
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      direction="right"
+      width="lg"
+      closeLabel="Close user activity"
+      title={reviewAccess ? "Review access" : "User engagement audit"}
+      description={
+        <>
+          {user.name} · {user.email}
+          {reviewAccess
+            ? ". Sign-in activity only; this does not change roles or cluster access."
+            : ""}
+        </>
+      }
     >
-      <DrawerContent
-        className="overflow-y-auto"
-        style={{ width: "min(94vw, 760px)", maxWidth: "760px" }}
-      >
-        <DrawerHeader className="border-b pr-16">
-          <DrawerTitle>{reviewAccess ? "Review access" : "User engagement audit"}</DrawerTitle>
-          <DrawerDescription>
-            {user.name} · {user.email}
-            {reviewAccess
-              ? ". Sign-in activity only; this does not change roles or cluster access."
-              : ""}
-          </DrawerDescription>
-          <DrawerClose
-            aria-label="Close user activity"
-            className="absolute right-4 top-4 rounded-md p-2 hover:bg-muted"
-          >
-            <X size={16} />
-          </DrawerClose>
-        </DrawerHeader>
-        <div className="space-y-5 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-display text-xl font-semibold">{user.name}</p>
-            <ActivityStatus user={user} windowDays={initialWindow} />
-          </div>
-          <DaysRangePicker
-            value={windowDays}
-            onChange={setWindowDays}
-            label="User analytics date range"
-          />
-          {analytics.isPending ? (
-            <Skeleton aria-label="Loading individual activity" className="h-64 w-full" />
-          ) : analytics.error ? (
-            <ErrorState
-              message="We couldn't load this user's activity."
-              onRetry={() => analytics.refetch()}
-            />
-          ) : analytics.data ? (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <KpiCard title="Last login" value={formatLastLogin(user)} icon={CalendarDays} />
-                <KpiCard
-                  title={`Logins · ${windowDays}d`}
-                  value={analytics.data.window_login_count}
-                  icon={LogIn}
-                />
-                <KpiCard
-                  title={`Active days · ${windowDays}d`}
-                  value={analytics.data.window_active_days}
-                  icon={Activity}
-                />
-                <KpiCard
-                  title="Current login streak"
-                  value={`${user.current_streak}d`}
-                  icon={Flame}
-                />
-              </div>
-              <LoginTrend analytics={analytics.data} />
-              <Card>
-                <CardHeader>
-                  <CardTitle>Activity summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="grid grid-cols-[1fr_auto] gap-3 text-sm tabular-nums">
-                    <dt>Lifetime sign-ins</dt>
-                    <dd>{analytics.data.lifetime_login_count}</dd>
-                    <dt>Lifetime active days</dt>
-                    <dd>{analytics.data.lifetime_active_days}</dd>
-                    <dt>Dashboard activity window</dt>
-                    <dd>{initialWindow} days</dd>
-                  </dl>
-                </CardContent>
-              </Card>
-            </>
-          ) : null}
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-display text-xl font-semibold">{user.name}</p>
+          <ActivityStatus user={user} windowDays={initialWindow} />
         </div>
-      </DrawerContent>
-    </Drawer>
+        <DaysRangePicker
+          value={windowDays}
+          onChange={setWindowDays}
+          label="User analytics date range"
+        />
+        {analytics.isPending ? (
+          <Skeleton aria-label="Loading individual activity" className="h-64 w-full" />
+        ) : analytics.error ? (
+          <ErrorState
+            message="We couldn't load this user's activity."
+            onRetry={() => analytics.refetch()}
+          />
+        ) : analytics.data ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <KpiCard title="Last login" value={formatLastLogin(user)} icon={CalendarDays} />
+              <KpiCard
+                title={`Logins · ${windowDays}d`}
+                value={analytics.data.window_login_count}
+                icon={LogIn}
+              />
+              <KpiCard
+                title={`Active days · ${windowDays}d`}
+                value={analytics.data.window_active_days}
+                icon={Activity}
+              />
+              <KpiCard
+                title="Current login streak"
+                value={`${user.current_streak}d`}
+                icon={Flame}
+              />
+            </div>
+            <LoginTrend analytics={analytics.data} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-[1fr_auto] gap-3 text-sm tabular-nums">
+                  <dt>Lifetime sign-ins</dt>
+                  <dd>{analytics.data.lifetime_login_count}</dd>
+                  <dt>Lifetime active days</dt>
+                  <dd>{analytics.data.lifetime_active_days}</dd>
+                  <dt>Dashboard activity window</dt>
+                  <dd>{initialWindow} days</dd>
+                </dl>
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
+      </div>
+    </SideDrawer>
   );
 }

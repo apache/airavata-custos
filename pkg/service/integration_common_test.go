@@ -21,23 +21,16 @@ package service
 
 import (
 	"context"
-	"os"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/db/dbtest"
+	"github.com/apache/airavata-custos/internal/tracing/tracingtest"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
-)
-
-var (
-	sharedDB     *sqlx.DB
-	sharedDBOnce sync.Once
-	sharedDBErr  error
 )
 
 // setupTestDB opens (once per process) and migrates the test DB pointed to by
@@ -45,32 +38,7 @@ var (
 // tables and return the shared handle.
 func setupTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
-	dsn := os.Getenv("CORE_TEST_DATABASE_DSN")
-	if dsn == "" {
-		dsn = os.Getenv("DATABASE_DSN")
-	}
-	if dsn == "" {
-		t.Skip("integration env not set: CORE_TEST_DATABASE_DSN or DATABASE_DSN required")
-	}
-	sharedDBOnce.Do(func() {
-		database, err := db.Open(db.Config{
-			DSN:          dsn,
-			MaxOpenConns: 5,
-			MaxIdleConns: 2,
-		})
-		if err != nil {
-			sharedDBErr = err
-			return
-		}
-		if err := db.MigrateEmbedded(database); err != nil {
-			sharedDBErr = err
-			return
-		}
-		sharedDB = database
-	})
-	if sharedDBErr != nil {
-		t.Fatalf("setup db: %v", sharedDBErr)
-	}
+	sharedDB := dbtest.Open(t, dbtest.CoreDSN(t))
 	truncateAll(t, sharedDB)
 	return sharedDB
 }
@@ -79,14 +47,20 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 func truncateAll(t *testing.T, database *sqlx.DB) {
 	t.Helper()
 	tables := []string{
+		"user_agreement_acceptances",
+		"user_agreements",
 		"user_roles",
 		"role_privileges",
 		"roles",
 		"user_privileges",
 		"audit_events",
+		"event_deliveries",
+		"events",
+		"event_subscriptions",
 		"user_identities",
 		"users",
 		"organizations",
+		"storages",
 	}
 	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
 		t.Fatalf("truncate: %v", err)
@@ -94,7 +68,16 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 }
 
 func newTestService(database *sqlx.DB) *Service {
-	return New(database, events.New())
+	return New(database, newTestBus(database))
+}
+
+// newTestBus creates a bus on the test database and panics if that fails.
+func newTestBus(database *sqlx.DB) *events.Bus {
+	bus, err := events.New(context.Background(), database)
+	if err != nil {
+		panic("event bus: " + err.Error())
+	}
+	return bus
 }
 
 func seedOrg(t *testing.T, database *sqlx.DB) string {
@@ -148,4 +131,4 @@ func countAuditEventsOfType(t *testing.T, database *sqlx.DB, eventType, entityID
 	return n
 }
 
-func ctx() context.Context { return context.Background() }
+func ctx() context.Context { return tracingtest.Context() }

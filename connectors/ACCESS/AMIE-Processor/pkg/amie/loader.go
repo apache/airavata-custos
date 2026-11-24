@@ -23,6 +23,7 @@ package amie
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
@@ -40,19 +41,18 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
 	custosconfig "github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/internal/db"
 	corestore "github.com/apache/airavata-custos/internal/store"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
-func init() {
-	tracing.RegisterTerminalMarkers("amie", "TRANSACTION_COMPLETE")
-}
-
 const connectorName = "amie"
+
+// Type is the connector type in the config file.
+const Type = "amie-processor"
 
 // LoadConnector skips silently when AMIE_BASE_URL / AMIE_SITE_CODE /
 // AMIE_API_KEY are not all set. When enabled, it attaches /connectors/amie/*
@@ -71,6 +71,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	cfg := loadConfig(connectorConfig)
 	if cfg.APIKey == "" || cfg.BaseURL == "" || cfg.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
+		health.Record(Type, "config", errors.New("AMIE credentials not fully provided"))
 		return nil
 	}
 
@@ -100,13 +101,13 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	amie := amieclient.New(cfg)
 
 	dispatcher := handler.NewRouter(
-		handler.NewRequestProjectCreateHandler(coreService, clusterID, amie, auditSvc),
+		handler.NewRequestProjectCreateHandler(coreService, clusterID, amie, auditSvc, loadResourceAliases(connectorConfig)),
 		handler.NewRequestAccountCreateHandler(coreService, clusterID, amie, auditSvc),
 		handler.NewRequestProjectInactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestProjectReactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestAccountInactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestAccountReactivateHandler(coreService, amie, auditSvc),
-		handler.NewRequestPersonMergeHandler(coreService, userDNStore, amie, auditSvc),
+		handler.NewRequestPersonMergeHandler(coreService, userDNStore, eventStore, amie, auditSvc),
 		handler.NewRequestUserModifyHandler(coreService, userDNStore, amie, auditSvc),
 		handler.NewDataProjectCreateHandler(coreService, userDNStore, amie, auditSvc),
 		handler.NewDataAccountCreateHandler(coreService, userDNStore, amie, auditSvc),
@@ -114,15 +115,21 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 		handler.NewNoOpHandler(),
 	)
 
+	handler.NewHeldReplies(database, packetStore, amie, auditSvc).Subscribe(eventBus, Type)
+
 	met := metrics.New()
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, database, cfg)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, amie, database, cfg)
 
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
 		poller.Run(ctx)
 		slog.Info("AMIE poller stopped")
+	}()
+	go func() {
+		defer wg.Done()
+		reportHealth(ctx, amie, cfg)
 	}()
 	go func() {
 		defer wg.Done()
@@ -132,6 +139,20 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	slog.Info("AMIE connector started", "site", cfg.SiteCode, "baseURL", cfg.BaseURL)
 	return nil
+}
+
+// reportHealth caches whether AMIE answers, checked on the poll interval.
+func reportHealth(ctx context.Context, amie *amieclient.Client, cfg amieclient.Config) {
+	ticker := time.NewTicker(cfg.PollInterval)
+	defer ticker.Stop()
+	for {
+		health.Record(Type, cfg.SiteCode, amie.CheckHealth(ctx))
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 func loadConfig(connectorConfig *custosconfig.ConnectorConfig) amieclient.Config {
@@ -201,7 +222,7 @@ func loadConfig(connectorConfig *custosconfig.ConnectorConfig) amieclient.Config
 		cfg.ConnectTimeout = durationEnv("AMIE_CONNECT_TIMEOUT", 5*time.Second)
 	}
 	if cfg.ReadTimeout == 0 {
-		cfg.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 20*time.Second)
+		cfg.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 60*time.Second)
 	}
 	if !pollerEnabledSet {
 		cfg.PollerEnabled = boolEnv("AMIE_POLLER_ENABLED", true)
@@ -219,6 +240,31 @@ func loadClusterID(connectorConfig *custosconfig.ConnectorConfig) string {
 		}
 	}
 	return os.Getenv("AMIE_CLUSTER_ID")
+}
+
+// loadResourceAliases reads each alias as one catalog name or a list of them.
+func loadResourceAliases(connectorConfig *custosconfig.ConnectorConfig) map[string][]string {
+	aliases := map[string][]string{}
+	if connectorConfig == nil {
+		return aliases
+	}
+	raw, err := connectorConfig.GetNestedConfig("resource_aliases")
+	if err != nil {
+		return aliases
+	}
+	for name, v := range raw {
+		switch local := v.(type) {
+		case string:
+			aliases[name] = []string{local}
+		case []any:
+			for _, item := range local {
+				if s, ok := item.(string); ok {
+					aliases[name] = append(aliases[name], s)
+				}
+			}
+		}
+	}
+	return aliases
 }
 
 func durationEnv(key string, fallback time.Duration) time.Duration {

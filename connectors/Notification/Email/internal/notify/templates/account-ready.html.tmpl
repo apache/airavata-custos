@@ -1,0 +1,74 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}}
+{{define "preheader"}}Your username is {{.Username}}. Sign in to the portal to get started.{{end}}
+{{define "status"}}<td class="pill-ok" style="padding:4px 10px; border:1px solid #86efac; border-radius:999px; background-color:#f0fdf4; color:#15803d; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:18px; font-weight:600;">&#10003;&nbsp;Ready</td>{{end}}
+{{define "footer"}}You are receiving this because an account on {{.SiteName}} was created for you. This is an automated message.{{end}}
+{{define "body"}}
+<h1 class="h1 t-strong" style="margin:0 0 16px 0; font-size:24px; line-height:32px; font-weight:700; color:#111111;">Your account is ready</h1>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">Hi{{if .FirstName}} {{.FirstName}}{{end}},</p>
+<p class="t-body" style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#404040;">Your {{.SiteName}} account is ready. Sign in to the portal first, then you can connect to the cluster.</p>
+<p class="t-muted" style="margin:24px 0 8px 0; font-size:13px; line-height:18px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#4b5563;">Your account</p>
+{{/* The plain anchors stop mail apps turning the host into a link, and keep a copied ssh command clean. */}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-code" style="margin:0 0 16px 0; background-color:#f4f5f7; border:1px solid #e5e7eb; border-radius:8px; border-collapse:separate;">
+<tr>
+<td class="t-muted" style="padding:12px 16px 2px 16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:18px; color:#4b5563;">Username</td>
+</tr>
+<tr>
+<td class="t-strong" style="padding:0 16px 12px 16px; font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:16px; line-height:24px; font-weight:600; color:#111111; word-break:break-all;"><a href="#" style="color:inherit; text-decoration:none; cursor:text;">{{.Username}}</a></td>
+</tr>
+<tr>
+<td class="t-muted" style="padding:12px 16px 2px 16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:18px; color:#4b5563;">Login host</td>
+</tr>
+<tr>
+<td class="t-strong" style="padding:0 16px 12px 16px; font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:16px; line-height:24px; font-weight:600; color:#111111; word-break:break-all;"><a href="#" style="color:inherit; text-decoration:none; cursor:text;">{{.ClusterHost}}</a></td>
+</tr>
+<tr>
+<td class="t-muted" style="padding:12px 16px 2px 16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:18px; color:#4b5563;">Connect with SSH</td>
+</tr>
+<tr>
+<td class="t-strong" style="padding:0 16px 12px 16px; font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:16px; line-height:24px; font-weight:600; color:#111111; word-break:break-all;"><a href="#" style="color:inherit; text-decoration:none; cursor:text;">ssh {{.Username}}@{{.ClusterHost}}</a></td>
+</tr>
+</table>
+<p class="t-muted" style="margin:24px 0 8px 0; font-size:13px; line-height:18px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#4b5563;">What to do first</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px 0;">
+<tr>
+<td width="32" valign="top" class="t-strong" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding-top:2px; font-size:15px; line-height:22px; font-weight:700; color:#111111;">1.</td>
+<td valign="top" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<p class="t-strong" style="margin:0 0 2px 0; font-size:16px; line-height:24px; font-weight:600; color:#111111;">Sign in to the portal first</p>
+<p class="t-body" style="margin:0; font-size:16px; line-height:24px; color:#404040;">Use your institution's login. This activates your cluster login, so do it before connecting.</p>
+</td>
+</tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px 0;">
+<tr>
+<td width="32" valign="top" class="t-strong" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding-top:2px; font-size:15px; line-height:22px; font-weight:700; color:#111111;">2.</td>
+<td valign="top" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<p class="t-strong" style="margin:0 0 2px 0; font-size:16px; line-height:24px; font-weight:600; color:#111111;">Connect to the cluster</p>
+<p class="t-body" style="margin:0; font-size:16px; line-height:24px; color:#404040;">Open a terminal and run the SSH command above. When asked, finish signing in with your institution's login.</p>
+</td>
+</tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px 0;">
+<tr>
+<td class="btn-td" align="center" bgcolor="#171717" style="border-radius:8px; background-color:#171717; mso-padding-alt:14px 28px;">
+<a class="btn-a" href="{{.PortalURL}}" style="display:inline-block; padding:14px 28px; min-height:20px; border:1px solid #171717; border-radius:8px; background-color:#171717; color:#ffffff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:20px; font-weight:600; text-decoration:none;">Sign in to {{.SiteName}}</a>
+</td>
+</tr>
+</table>
+{{end}}
