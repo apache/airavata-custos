@@ -20,6 +20,7 @@ package smonitor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -331,5 +332,100 @@ func TestPollContinuesPastUnknownClusterUser(t *testing.T) {
 	}
 	if calls[0].U.JobID != "2" {
 		t.Errorf("expected job 2 to be recorded after skipping job 1, got job %s", calls[0].U.JobID)
+	}
+}
+
+// Make sure a usage row that could not be written keeps the window, so the next
+// poll asks for the same jobs again and records the one that was missed.
+func TestPollKeepsTheWindowWhenAUsageWriteFails(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
+	writes := 0
+	core.CreateComputeAllocationUsageFunc = func(ctx context.Context, u *models.ComputeAllocationUsage) (*models.ComputeAllocationUsage, error) {
+		writes++
+		if writes == 1 {
+			return nil, errors.New("connection reset")
+		}
+		return u, nil
+	}
+	lister := &fakeJobLister{jobs: []client.JobInfo{fixtureJob(42, "alice", "debug")}}
+	m := newTestMonitor(core)
+	m.slurmClient = lister
+	m.lastMonitorTime = time.Now().Add(-3 * time.Hour).Unix()
+
+	m.poll(context.Background())
+	m.poll(context.Background())
+
+	if first, second := lister.filters[0].StartTime, lister.filters[1].StartTime; second != first {
+		t.Errorf("second query starts at %d, want the same start as the poll that lost a write (%d)", second, first)
+	}
+	if writes != 2 {
+		t.Errorf("usage writes: got %d, want 2 (the failed one and the retry)", writes)
+	}
+	m.poll(context.Background())
+	if third, second := lister.filters[2].StartTime, lister.filters[1].StartTime; third <= second {
+		t.Errorf("third query starts at %d, want it past %d once every job was recorded", third, second)
+	}
+}
+
+// Make sure a job's earlier row that could not be deleted is not charged twice.
+func TestPollDoesNotChargeAJobTwiceWhenTheOldRowCannotBeDeleted(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
+	core.GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc = func(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error) {
+		return &models.ComputeAllocationUsage{ID: "usage-old", JobID: jobID}, nil
+	}
+	core.DeleteComputeAllocationUsageFunc = func(ctx context.Context, id string) error {
+		return errors.New("connection reset")
+	}
+	lister := &fakeJobLister{jobs: []client.JobInfo{fixtureJob(42, "alice", "debug")}}
+	m := newTestMonitor(core)
+	m.slurmClient = lister
+
+	m.poll(context.Background())
+	m.poll(context.Background())
+
+	if n := len(core.CreateComputeAllocationUsageCalls()); n != 0 {
+		t.Errorf("usage rows written: got %d, want 0 while the old row is still there", n)
+	}
+	if first, second := lister.filters[0].StartTime, lister.filters[1].StartTime; second != first {
+		t.Errorf("second query starts at %d, want the same start (%d)", second, first)
+	}
+}
+
+// Make sure jobs that are skipped on purpose do not hold the window back.
+func TestPollMovesOnPastSkippedJobs(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
+	lister := &fakeJobLister{jobs: []client.JobInfo{
+		fixtureJob(1, "ghost", "debug"),   // unknown cluster user
+		fixtureJob(2, "alice", "unrated"), // no rate
+	}}
+	m := newTestMonitor(core)
+	m.slurmClient = lister
+	m.lastMonitorTime = time.Now().Add(-3 * time.Hour).Unix()
+
+	m.poll(context.Background())
+	m.poll(context.Background())
+
+	if first, second := lister.filters[0].StartTime, lister.filters[1].StartTime; second <= first {
+		t.Errorf("second query starts at %d, want it past %d", second, first)
+	}
+}
+
+// Make sure a usage row core rejects as invalid does not hold the window back
+// forever, since it would be rejected on every poll.
+func TestPollMovesOnPastAnInvalidUsageRow(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
+	core.CreateComputeAllocationUsageFunc = func(ctx context.Context, u *models.ComputeAllocationUsage) (*models.ComputeAllocationUsage, error) {
+		return nil, fmt.Errorf("%w: compute allocation %q not found", service.ErrInvalidInput, u.ComputeAllocationID)
+	}
+	lister := &fakeJobLister{jobs: []client.JobInfo{fixtureJob(42, "alice", "debug")}}
+	m := newTestMonitor(core)
+	m.slurmClient = lister
+	m.lastMonitorTime = time.Now().Add(-3 * time.Hour).Unix()
+
+	m.poll(context.Background())
+	m.poll(context.Background())
+
+	if first, second := lister.filters[0].StartTime, lister.filters[1].StartTime; second <= first {
+		t.Errorf("second query starts at %d, want it past %d", second, first)
 	}
 }
