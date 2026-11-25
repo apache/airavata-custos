@@ -37,6 +37,7 @@ export type SideDrawerProps = {
   onOpenChange: (open: boolean) => void;
   title?: React.ReactNode;
   description?: React.ReactNode;
+  closeLabel?: string;
   children: React.ReactNode;
   width?: SideDrawerWidth;
   // Non-modal drawers skip the dimming backdrop and leave the rest of the
@@ -56,6 +57,7 @@ export function SideDrawer({
   onOpenChange,
   title,
   description,
+  closeLabel = "Close",
   children,
   width = "md",
   modal = true,
@@ -97,7 +99,7 @@ export function SideDrawer({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Close"
+                  aria-label={closeLabel}
                   className="h-8 w-8 rounded-md"
                 />
               }

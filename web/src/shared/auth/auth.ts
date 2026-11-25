@@ -17,6 +17,7 @@
 
 import { zUser } from "@/generated/core/zod.gen";
 import { serverEnv } from "@/lib/env";
+import { captureInitialOIDCLogin } from "@/shared/auth/login-capture";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Keycloak from "next-auth/providers/keycloak";
@@ -160,6 +161,11 @@ export const authConfig: NextAuthConfig = {
         console.info("OIDC sign-in", { refreshTokenIssued: Boolean(account.refresh_token) });
         storeTokens(token, account);
         await loadProfile(token, backendBearerOf(token));
+        const recorded = await captureInitialOIDCLogin({
+          account,
+          coreApiBaseUrl: serverEnv.CUSTOS_CORE_API_BASE_URL,
+        });
+        if (recorded === false) console.error("OIDC login activity capture failed");
         return token;
       }
       const current = await refreshIfDue(token);

@@ -47,6 +47,13 @@ describe("StatusBadge", () => {
     }
   });
 
+  it("renders a leading dot when non-active variants opt in", () => {
+    const { container } = render(<StatusBadge variant="warning" label="Dormant" dot />);
+    const dot = container.querySelector("[aria-hidden='true']");
+    expect(dot).not.toBeNull();
+    expect(screen.getByText("Dormant")).toBeInTheDocument();
+  });
+
   it("renders the default label per variant", () => {
     render(<StatusBadge variant="pending" />);
     expect(screen.getByText("Pending")).toBeInTheDocument();

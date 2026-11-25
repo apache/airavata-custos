@@ -54,11 +54,14 @@ const labels: Record<StatusBadgeVariant, string> = {
 
 export type StatusBadgeProps = {
   variant: StatusBadgeVariant;
-  label?: string;
+  label?: string | undefined;
   className?: string | undefined;
+  /** Leading status dot. Active keeps a dot by default; other variants opt in. */
+  dot?: boolean;
 };
 
-export function StatusBadge({ variant, label, className }: StatusBadgeProps) {
+export function StatusBadge({ variant, label, className, dot }: StatusBadgeProps) {
+  const showDot = dot ?? variant === "active";
   return (
     <span
       className={cn(
@@ -67,9 +70,7 @@ export function StatusBadge({ variant, label, className }: StatusBadgeProps) {
         className,
       )}
     >
-      {variant === "active" ? (
-        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-current" />
-      ) : null}
+      {showDot ? <span aria-hidden="true" className="h-2 w-2 rounded-full bg-current" /> : null}
       {label ?? labels[variant]}
     </span>
   );

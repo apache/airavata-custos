@@ -56,4 +56,12 @@ describe("Sidebar admin entries", () => {
       expect(screen.queryByRole("link", { name: label })).toBeNull();
     }
   });
+  it("links an activity-only custom role directly to its authorized page", () => {
+    currentPrivileges = ["core:users:activity:read"];
+    render(<Sidebar />);
+    expect(screen.getByRole("link", { name: "Users & Permissions" })).toHaveAttribute(
+      "href",
+      "/admin/users/activity",
+    );
+  });
 });

@@ -109,6 +109,13 @@ const cases: Array<[Privilege, Array<[string, string, boolean]>]> = [
     ],
   ],
   [
+    "core:users:activity:read",
+    [
+      ["read", "UserActivity", true],
+      ["read", "User", false],
+    ],
+  ],
+  [
     "core:organizations:read",
     [
       ["read", "Organization", true],

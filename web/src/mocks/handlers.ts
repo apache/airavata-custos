@@ -32,6 +32,7 @@ import { rolesHandlers } from "./handlers/roles";
 import { serviceAccountsHandlers } from "./handlers/service-accounts";
 import { signerHandlers } from "./handlers/signer";
 import { tracesHandlers } from "./handlers/traces";
+import { userActivityHandlers } from "./handlers/user-activity";
 import { usersHandlers } from "./handlers/users";
 
 export const handlers: RequestHandler[] = [
@@ -41,6 +42,7 @@ export const handlers: RequestHandler[] = [
   ...signerHandlers,
   ...identityHandlers,
   ...usersHandlers,
+  ...userActivityHandlers,
   ...analyticsHandlers,
   ...projectsHandlers,
   ...organizationsHandlers,
