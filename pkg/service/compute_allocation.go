@@ -216,14 +216,17 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
 	}
-	alloc, err := s.allocs.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute allocation: %w", err)
-	}
-	if alloc == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		alloc, err := s.allocs.FindByIDTx(ctx, tx, id, store.UpdateLock)
+		if err != nil {
+			return fmt.Errorf("lookup compute allocation: %w", err)
+		}
+		if alloc == nil {
+			return ErrNotFound
+		}
+		if alloc.Status == models.ACTIVE {
+			return fmt.Errorf("%w: compute allocation %q is active, set it INACTIVE first", ErrInUse, id)
+		}
 		if err := s.allocs.Delete(ctx, tx, id); err != nil {
 			return err
 		}
@@ -235,4 +238,40 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 		return fmt.Errorf("delete compute allocation: %w", err)
 	}
 	return nil
+}
+
+// UpdateComputeAllocationStatus sets an allocation's status and records a diff; INACTIVE ends member access.
+func (s *Service) UpdateComputeAllocationStatus(ctx context.Context, id string, status models.AllocationStatus) (alloc *models.ComputeAllocation, err error) {
+	if status != models.ACTIVE && status != models.INACTIVE {
+		return nil, fmt.Errorf("%w: status must be ACTIVE or INACTIVE", ErrInvalidInput)
+	}
+	err = s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		alloc, err = s.allocs.FindByIDTx(ctx, tx, id, store.UpdateLock)
+		if err != nil {
+			return err
+		}
+		if alloc == nil {
+			return ErrNotFound
+		}
+		if alloc.Status == status {
+			return nil
+		}
+		return s.UpdateComputeAllocationStatusTx(ctx, tx, alloc, status, "Set by an admin")
+	})
+	return
+}
+
+// UpdateComputeAllocationStatusTx sets the allocation's status in tx and records the change as a diff.
+func (s *Service) UpdateComputeAllocationStatusTx(ctx context.Context, tx *sql.Tx, alloc *models.ComputeAllocation, status models.AllocationStatus, description string) error {
+	alloc.Status = status
+	if err := s.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
+		return err
+	}
+	_, err := s.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
+		ComputeAllocationID: alloc.ID,
+		DiffType:            "ALLOCATION_STATUS_CHANGE",
+		Status:              status,
+		Description:         description,
+	})
+	return err
 }

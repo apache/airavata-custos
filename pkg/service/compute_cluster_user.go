@@ -388,14 +388,19 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("lookup compute cluster user: %w", err)
+		}
+		if cu == nil {
+			return ErrNotFound
+		}
+		if active, err := s.memberships.IsActiveMemberOnClusterTx(ctx, tx, cu.UserID, cu.ComputeClusterID); err != nil {
+			return fmt.Errorf("lookup active memberships: %w", err)
+		} else if active {
+			return fmt.Errorf("%w: compute cluster user %q has an ACTIVE membership on an ACTIVE allocation, set it INACTIVE first", ErrInUse, id)
+		}
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}

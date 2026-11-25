@@ -49,7 +49,7 @@ type UserStore interface {
 	FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error)
 	// Create inserts a new user within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, u *models.User) error
-	// Update replaces mutable fields of an existing user within the provided transaction.
+	// Update replaces mutable fields of an existing user within the provided transaction, except status.
 	Update(ctx context.Context, tx *sql.Tx, u *models.User) error
 	// UpdateStatus sets the lifecycle status of an existing user within the provided transaction.
 	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error
@@ -116,8 +116,7 @@ type ComputeClusterUserStore interface {
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.
 	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string, at time.Time) (bool, error)
-	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
-	// dropping fromUserID's rows on clusters where toUserID already has one.
+	// ReassignUser moves fromUserID's mappings to toUserID on clusters where toUserID has none.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a mapping by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
@@ -404,6 +403,8 @@ type ComputeAllocationMembershipStore interface {
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
+	// IsActiveMemberOnClusterTx reports whether the user holds an ACTIVE membership on an ACTIVE allocation of the cluster.
+	IsActiveMemberOnClusterTx(ctx context.Context, tx *sql.Tx, userID, clusterID string) (bool, error)
 	// FindByAllocationWithUser returns the allocation's memberships joined with
 	// users so each row carries display_name, email, and the user's project-wide
 	// role (MEMBER by default).

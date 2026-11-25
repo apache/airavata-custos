@@ -111,6 +111,16 @@ func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, use
 	return rows, nil
 }
 
+func (s *pgComputeAllocationMembershipStore) IsActiveMemberOnClusterTx(ctx context.Context, tx *sql.Tx, userID, clusterID string) (bool, error) {
+	var active bool
+	err := tx.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM compute_allocation_memberships m
+		                  JOIN compute_allocations a ON a.id = m.compute_allocation_id
+		                 WHERE m.user_id = $1 AND a.compute_cluster_id = $2 AND m.membership_status = 'ACTIVE' AND a.status = 'ACTIVE')`,
+		userID, clusterID).Scan(&active)
+	return active, err
+}
+
 func (s *pgComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_memberships

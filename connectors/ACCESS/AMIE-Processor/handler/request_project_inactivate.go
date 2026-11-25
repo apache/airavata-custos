@@ -97,10 +97,6 @@ func (h *RequestProjectInactivateHandler) deactivateAllocations(ctx context.Cont
 		return fmt.Errorf("list allocations: %w", err)
 	}
 	for _, a := range allocations {
-		a.Status = models.INACTIVE
-		if err := h.svc.UpdateComputeAllocationTx(ctx, tx, &a); err != nil {
-			return fmt.Errorf("inactivate allocation %s: %w", a.ID, err)
-		}
 		if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 			ComputeAllocationID: a.ID,
 			DiffType:            "ALLOCATION_STATUS_CHANGE",
