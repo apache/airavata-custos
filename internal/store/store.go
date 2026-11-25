@@ -89,6 +89,22 @@ type ComputeClusterStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// ComputeClusterQoSStore defines persistence operations for a cluster's QoS definitions.
+type ComputeClusterQoSStore interface {
+	// FindByIDTx returns the QoS locked in tx, or nil if not found.
+	FindByIDTx(ctx context.Context, tx *sql.Tx, id string, lock RowLock) (*models.ComputeClusterQoS, error)
+	// FindByCluster returns the cluster's QoS definitions, or those the allocation grants when allocationID is set, ordered by name.
+	FindByCluster(ctx context.Context, clusterID, allocationID string) ([]models.ComputeClusterQoS, error)
+	// Create inserts the QoS.
+	Create(ctx context.Context, tx *sql.Tx, q *models.ComputeClusterQoS) error
+	// Update replaces the QoS's limits, and reports whether it is on that cluster.
+	Update(ctx context.Context, tx *sql.Tx, q *models.ComputeClusterQoS) (bool, error)
+	// Delete removes the cluster's QoS, and reports whether it existed on that cluster.
+	Delete(ctx context.Context, tx *sql.Tx, clusterID, id string) (bool, error)
+	// ReplaceForAllocation makes qosIDs the allocation's only QoS.
+	ReplaceForAllocation(ctx context.Context, tx *sql.Tx, allocationID string, qosIDs []string) error
+}
+
 // ComputeClusterUserStore defines persistence operations for the mapping of
 // a Custos user to their local account on a compute cluster.
 type ComputeClusterUserStore interface {
@@ -273,6 +289,8 @@ type ComputeAllocationResourceStore interface {
 type ComputeAllocationResourceMappingStore interface {
 	// FindByPair returns the mapping for a (allocation, resource) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error)
+	// FindByAllocation returns the allocation's mappings, ordered by resource.
+	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error)
 	// FindResourcesByAllocation returns every resource attached to the given allocation.
 	FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error)
 	// FindAllocationsByResource returns every allocation that has the given resource attached.
@@ -645,6 +663,31 @@ type StorageStore interface {
 	SetQuota(ctx context.Context, tx *sql.Tx, id string, bytes int64, until time.Time) (*models.Storage, int64, error)
 	// Delete drops a pending storage and those under it once all of them are pending, and returns the storage.
 	Delete(ctx context.Context, tx *sql.Tx, id string) (*models.Storage, error)
+}
+
+// SlurmPendingTable names a table whose rows carry slurm_pending_since; only its constants are valid.
+type SlurmPendingTable string
+
+const (
+	SlurmPendingAllocations SlurmPendingTable = "compute_allocations"
+	SlurmPendingMemberships SlurmPendingTable = "compute_allocation_memberships"
+	SlurmPendingQoS         SlurmPendingTable = "compute_cluster_qos"
+)
+
+// MarkSlurmPending marks the rows matching where pending a SLURM write, and reports whether any matched.
+func MarkSlurmPending(ctx context.Context, tx *sql.Tx, table SlurmPendingTable, where string, args ...any) (bool, error) {
+	res, err := tx.ExecContext(ctx, `UPDATE `+string(table)+` SET slurm_pending_since = now() WHERE `+where, args...)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
+}
+
+// ClearSlurmPending clears the row's pending mark, unless a change marked it after since.
+func ClearSlurmPending(ctx context.Context, tx *sql.Tx, table SlurmPendingTable, id string, since time.Time) error {
+	_, err := tx.ExecContext(ctx, `UPDATE `+string(table)+` SET slurm_pending_since = NULL WHERE id = $1 AND slurm_pending_since = $2`, id, since)
+	return err
 }
 
 // execOnce runs an update and reports whether it changed exactly one row.

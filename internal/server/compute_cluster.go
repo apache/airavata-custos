@@ -343,3 +343,91 @@ func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Re
 	}
 	common.WriteJSON(w, http.StatusOK, users)
 }
+
+// @Summary	List a compute cluster's QoS definitions
+// @Tags	Compute Cluster QoS
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Success	200	{array}	models.ComputeClusterQoS
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-clusters/{id}/qos [get]
+func (s *Server) listComputeClusterQoS(w http.ResponseWriter, r *http.Request) {
+	list, err := s.svc.ListComputeClusterQoS(r.Context(), r.PathValue("id"), "")
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, list)
+}
+
+// @Summary	Create a QoS on a compute cluster
+// @Tags	Compute Cluster QoS
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Param	request	body	models.ComputeClusterQoS	true	"QoS payload"
+// @Success	201	{object}	models.ComputeClusterQoS
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/compute-clusters/{id}/qos [post]
+func (s *Server) createComputeClusterQoS(w http.ResponseWriter, r *http.Request) {
+	var q models.ComputeClusterQoS
+	if err := common.DecodeJSON(r, &q); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	q.ComputeClusterID = r.PathValue("id")
+	created, err := s.svc.CreateComputeClusterQoS(r.Context(), &q)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusCreated, created)
+}
+
+// @Summary	Update a QoS on a compute cluster
+// @Tags	Compute Cluster QoS
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Param	qosId	path	string	true	"QoS ID"
+// @Param	request	body	models.ComputeClusterQoS	true	"QoS payload"
+// @Success	200	{object}	models.ComputeClusterQoS
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
+// @Router	/compute-clusters/{id}/qos/{qosId} [put]
+func (s *Server) updateComputeClusterQoS(w http.ResponseWriter, r *http.Request) {
+	var q models.ComputeClusterQoS
+	if err := common.DecodeJSON(r, &q); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	q.ID, q.ComputeClusterID = r.PathValue("qosId"), r.PathValue("id")
+	updated, err := s.svc.UpdateComputeClusterQoS(r.Context(), &q)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, updated)
+}
+
+// @Summary	Delete a QoS from a compute cluster
+// @Tags	Compute Cluster QoS
+// @Security	BearerAuth
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Param	qosId	path	string	true	"QoS ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-clusters/{id}/qos/{qosId} [delete]
+func (s *Server) deleteComputeClusterQoS(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeClusterQoS(r.Context(), r.PathValue("id"), r.PathValue("qosId")); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

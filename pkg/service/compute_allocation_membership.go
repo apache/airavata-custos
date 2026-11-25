@@ -166,6 +166,9 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Update(ctx, tx, m); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, m.ID); err != nil {
+			return err
+		}
 		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
 			return err
 		}
@@ -205,6 +208,9 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 		if err := s.memberships.Update(ctx, tx, existing); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, id); err != nil {
+			return err
+		}
 		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
 			return err
 		}
@@ -228,8 +234,8 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 		if existing == nil {
 			return ErrNotFound
 		}
-		if existing.MembershipStatus == models.ACTIVE {
-			return fmt.Errorf("%w: compute allocation membership %q is active, set it INACTIVE first", ErrInUse, id)
+		if err := refuseDeleteHeldBySlurm("compute allocation membership", id, existing.MembershipStatus, existing.SlurmPendingSince); err != nil {
+			return err
 		}
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {
 			return err

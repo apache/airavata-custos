@@ -74,6 +74,9 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 		if err := s.resourceMappings.Create(ctx, tx, mapping); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingAllocation, allocationID); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	}); err != nil {
 		return nil, fmt.Errorf("attach resource to allocation: %w", err)
@@ -108,6 +111,9 @@ func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocatio
 		if err := s.resourceMappings.Update(ctx, tx, existing); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingAllocation, allocationID); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
 	}); err != nil {
 		return nil, fmt.Errorf("update allocation resource mapping: %w", err)
@@ -135,6 +141,9 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 		if err := s.resourceMappings.DeleteByPair(ctx, tx, allocationID, resourceID); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingAllocation, allocationID); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	}); err != nil {
 		return fmt.Errorf("detach resource from allocation: %w", err)
@@ -153,6 +162,15 @@ func (s *Service) ListResourcesForAllocation(ctx context.Context, allocationID s
 		return nil, fmt.Errorf("list resources for allocation: %w", err)
 	}
 	return resources, nil
+}
+
+// ListResourceMappingsForAllocation returns the amount and time granted per resource.
+func (s *Service) ListResourceMappingsForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error) {
+	mappings, err := s.resourceMappings.FindByAllocation(ctx, allocationID)
+	if err != nil {
+		return nil, fmt.Errorf("list resource mappings for allocation: %w", err)
+	}
+	return mappings, nil
 }
 
 // SetAllocationResources makes resourceIDs the allocation's only resources,

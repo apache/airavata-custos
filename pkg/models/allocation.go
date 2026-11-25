@@ -64,6 +64,20 @@ type ComputeClusterUser struct {
 	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
 }
 
+// ComputeClusterQoS is a SLURM QoS whose limits Custos owns.
+type ComputeClusterQoS struct {
+	ID                string     `json:"id"                  db:"id"`
+	ComputeClusterID  string     `json:"compute_cluster_id"  db:"compute_cluster_id"`
+	Name              string     `json:"name"                db:"name"`
+	Priority          int64      `json:"priority"            db:"priority"`
+	MaxWallMinutes    *int64     `json:"max_wall_minutes"    db:"max_wall_minutes"`
+	MaxJobsPerUser    *int64     `json:"max_jobs_per_user"   db:"max_jobs_per_user"`
+	MaxTRESPerUser    string     `json:"max_tres_per_user"   db:"max_tres_per_user"` // SLURM TRES string, e.g. "gres/gpu=8"
+	Flags             []string   `json:"flags"               db:"flags"`
+	IsDefault         bool       `json:"is_default"          db:"is_default"`          // The cluster's default QoS; at most one per cluster.
+	SlurmPendingSince *time.Time `json:"-"                   db:"slurm_pending_since"` // Set while SLURM lacks a change.
+}
+
 type ComputeAllocation struct {
 	ID               string           `json:"id"                 db:"id"`
 	ProjectID        string           `json:"project_id"         db:"project_id"`
@@ -76,6 +90,7 @@ type ComputeAllocation struct {
 
 	PosixGroup         *string    `json:"posix_group" db:"posix_group"`                   // Fixed at creation; the group's name everywhere.
 	GroupProvisionedAt *time.Time `json:"group_provisioned_at" db:"group_provisioned_at"` // When the group gained its first member and so reached the cluster; nil until then.
+	SlurmPendingSince  *time.Time `json:"-"                    db:"slurm_pending_since"`  // Set while SLURM lacks a change.
 }
 
 // Typically store the a paritition information
@@ -159,5 +174,6 @@ type ComputeAllocationMembership struct {
 	UserID              string           `json:"user_id"               db:"user_id"`
 	StartTime           time.Time        `json:"start_time"            db:"start_time"`
 	EndTime             time.Time        `json:"end_time"              db:"end_time"`
-	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"` // ACTIVE, INACTIVE, etc.
+	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"`   // ACTIVE, INACTIVE, etc.
+	SlurmPendingSince   *time.Time       `json:"-"                     db:"slurm_pending_since"` // Set while SLURM lacks a change.
 }
