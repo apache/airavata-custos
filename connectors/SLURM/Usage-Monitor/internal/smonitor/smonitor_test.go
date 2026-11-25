@@ -109,7 +109,7 @@ const maxQuerySeconds = int64((maxPollStep + defaultPollOverlap) / time.Second)
 // Make sure the first poll after a start asks only for the last day of jobs.
 func TestPollFirstQueryAfterAStartCoversOneStep(t *testing.T) {
 	lister := &fakeJobLister{}
-	m := NewSlurmMonitor(nil, nil, newMockCore(nil, nil), "cl-1", 0)
+	m := NewSlurmMonitor("usage-test", nil, nil, newMockCore(nil, nil), "cl-1", 0)
 	m.slurmClient = lister
 
 	m.poll(context.Background())
@@ -128,7 +128,7 @@ func TestPollResumesFromTheLastRecordedUsage(t *testing.T) {
 		return &lastUsage, nil
 	}
 	lister := &fakeJobLister{}
-	m := NewSlurmMonitor(nil, nil, core, "cl-1", 0)
+	m := NewSlurmMonitor("usage-test", nil, nil, core, "cl-1", 0)
 	m.slurmClient = lister
 
 	m.resumeFromLastUsage(context.Background())
@@ -147,7 +147,7 @@ func TestPollStartsOneDayBackWithoutRecordedUsage(t *testing.T) {
 	}
 	lister := &fakeJobLister{}
 	before := time.Now().Add(-startupCatchUp - defaultPollOverlap).Unix()
-	m := NewSlurmMonitor(nil, nil, core, "cl-1", 0)
+	m := NewSlurmMonitor("usage-test", nil, nil, core, "cl-1", 0)
 	m.slurmClient = lister
 
 	m.resumeFromLastUsage(context.Background())
