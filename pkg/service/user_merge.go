@@ -98,22 +98,7 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	if err != nil {
 		return nil, fmt.Errorf("list surviving cluster users: %w", err)
 	}
-	survivorAccountByCluster := make(map[string]models.ComputeClusterUser, len(survivorAccounts))
-	for _, cu := range survivorAccounts {
-		survivorAccountByCluster[cu.ComputeClusterID] = cu
-	}
-	var deletedAccounts []models.ComputeClusterUser
-	for _, cu := range retiringAccounts {
-		survivorAccount, sameCluster := survivorAccountByCluster[cu.ComputeClusterID]
-		if !sameCluster {
-			continue
-		}
-		if cu.ProvisionedAt == nil || survivorAccount.ProvisionedAt != nil {
-			deletedAccounts = append(deletedAccounts, cu)
-		} else {
-			deletedAccounts = append(deletedAccounts, survivorAccount)
-		}
-	}
+	deletedAccounts := ComputeClusterUsersDeletedByMerge(retiringAccounts, survivorAccounts)
 
 	if err := func() error {
 		// The survivor takes the retiring user's sign-in identity, so it is ACTIVE if either was.
@@ -162,6 +147,27 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	}
 	s.InvalidateAllIdentities()
 	return survivor, nil
+}
+
+// ComputeClusterUsersDeletedByMerge returns, per cluster both users share, the retiring user's account unless only it is provisioned.
+func ComputeClusterUsersDeletedByMerge(retiringAccounts, survivorAccounts []models.ComputeClusterUser) []models.ComputeClusterUser {
+	survivorAccountByCluster := make(map[string]models.ComputeClusterUser, len(survivorAccounts))
+	for _, cu := range survivorAccounts {
+		survivorAccountByCluster[cu.ComputeClusterID] = cu
+	}
+	var deletedAccounts []models.ComputeClusterUser
+	for _, cu := range retiringAccounts {
+		survivorAccount, sameCluster := survivorAccountByCluster[cu.ComputeClusterID]
+		if !sameCluster {
+			continue
+		}
+		if cu.ProvisionedAt == nil || survivorAccount.ProvisionedAt != nil {
+			deletedAccounts = append(deletedAccounts, cu)
+		} else {
+			deletedAccounts = append(deletedAccounts, survivorAccount)
+		}
+	}
+	return deletedAccounts
 }
 
 // canBeMerged returns true for the user statuses eligible for merging:
