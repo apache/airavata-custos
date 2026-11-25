@@ -108,6 +108,16 @@ How these routes treat service accounts is in [architecture.md](architecture.md#
 | `signer:certificates:read`  | `GET /connectors/signer/certificates`<br>`GET /connectors/signer/certificates/{serial}`<br>`GET /connectors/signer/status`<br>`GET /connectors/signer/users/{id}` (the email only) |
 | `signer:certificates:write` | `POST /connectors/signer/certificates/{serial}/revoke`                                                                                                                             |
 
+## SLURM connector (`connectors/SLURM/Association-Mapper/internal/handlers/handlers.go`)
+
+The routes use core keys. Resolve demands the key its conflict's kind needs.
+
+| Privilege                | Routes it gates                                                                                                                                                                                                                                                       |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `core:clusters:read`     | `GET /connectors/slurm/clusters/{id}`                                                                                                                                              |
+| `core:clusters:write`    | `POST /connectors/slurm/clusters/{id}/conflicts/resolve` for QoS definition conflicts (keys starting `qos:`)                                                                                                                                                         |
+| `core:allocations:write` | `POST /connectors/slurm/clusters/{id}/conflicts/resolve` for allocation QoS, member QoS, limit, access and partition conflicts                                                                                                                                       |
+
 ## Other connectors
 
 The VAST-Provisioner routes use the core `core:clusters:*` keys, listed above. The remaining connectors gate

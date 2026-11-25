@@ -36,6 +36,12 @@ var ErrInvalidInput = errors.New("invalid input")
 // ErrInUse is returned when a record cannot be removed while others depend on it.
 var ErrInUse = errors.New("record is in use")
 
+// ErrUnavailable is returned when an outside system cannot be read.
+var ErrUnavailable = errors.New("outside system unavailable")
+
+// ErrUpstream is returned when an outside system refuses a write.
+var ErrUpstream = errors.New("outside system write failed")
+
 // ErrPIChange is returned when an operation would change a project's PI to a
 // different user. PI is set once at project creation and cannot be reassigned
 // through normal flows.

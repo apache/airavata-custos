@@ -20,6 +20,7 @@ package subscribers
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
@@ -28,8 +29,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// The Slurm account for an allocation. Slurm wants lowercase names in its accounting database.
-func slurmAccount(allocationName string) string {
+// SlurmAccount is the allocation's SLURM account name, lowercased for slurmdbd.
+func SlurmAccount(allocationName string) string {
 	return strings.ToLower(allocationName)
 }
 
@@ -41,6 +42,9 @@ type SlurmClient interface {
 	ListAssociations(f client.AssocFilter) ([]client.Association, error)
 	DeleteAssociation(f client.AssocFilter) error
 	DeleteUser(name string) error
+	ListQoS() ([]client.QoS, error)
+	PostQoS(q client.QoS) error
+	ListPartitions(cluster string) ([]client.Partition, error)
 }
 
 type AssociationSubscriber struct {
@@ -50,6 +54,7 @@ type AssociationSubscriber struct {
 	reconcileInterval time.Duration
 	provisionGrace    time.Duration
 	name              string
+	clusterLocks      sync.Map // cluster ID -> *sync.Mutex
 }
 
 func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, coreService service.CoreService, reconcileInterval, provisionGrace time.Duration) *AssociationSubscriber {
@@ -65,15 +70,16 @@ func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, cor
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (a *AssociationSubscriber) RegisterSubscribers(subscriber string) {
 	a.name = subscriber
-	a.eventBus.SubscribeComputeAllocationCreated(subscriber, a.handleComputeAllocationCreated)
-	a.eventBus.SubscribeComputeAllocationDeleted(subscriber, a.handleComputeAllocationDeleted)
-	a.eventBus.SubscribeComputeAllocationUpdated(subscriber, a.handleComputeAllocationUpdated)
-	a.eventBus.SubscribeComputeAllocationMembershipCreated(subscriber, a.handleComputeAllocationMembershipCreated)
-	a.eventBus.SubscribeComputeAllocationMembershipUpdated(subscriber, a.handleComputeAllocationMembershipUpdated)
-	a.eventBus.SubscribeComputeAllocationMembershipDeleted(subscriber, a.handleComputeAllocationMembershipDeleted)
-	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber, a.handleComputeAllocationMembershipResourceOverrideCreated)
-	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(subscriber, a.handleComputeAllocationResourceMappingCreated)
-	a.eventBus.SubscribeComputeClusterUserDeleted(subscriber, a.handleComputeClusterUserDeleted)
+	b := a.eventBus
+	b.SubscribeComputeAllocationCreated(subscriber, a.handleComputeAllocationCreated)
+	b.SubscribeComputeAllocationUpdated(subscriber, a.handleComputeAllocationUpdated)
+	b.SubscribeComputeAllocationDeleted(subscriber, a.handleComputeAllocationDeleted)
+	b.SubscribeComputeAllocationMembershipCreated(subscriber, a.handleComputeAllocationMembershipCreated)
+	b.SubscribeComputeAllocationMembershipUpdated(subscriber, a.handleComputeAllocationMembershipUpdated)
+	b.SubscribeComputeAllocationMembershipDeleted(subscriber, a.handleComputeAllocationMembershipDeleted)
+	b.SubscribeComputeAllocationMembershipResourceOverrideCreated(subscriber, a.handleComputeAllocationMembershipResourceOverrideCreated)
+	b.SubscribeComputeAllocationResourceMappingCreated(subscriber, a.handleComputeAllocationResourceMappingCreated)
+	b.SubscribeComputeClusterUserDeleted(subscriber, a.handleComputeClusterUserDeleted)
 }
 
 func (a *AssociationSubscriber) recordAuditEvent(ctx context.Context, eventType, entityType, entityId, message string) {
@@ -85,4 +91,40 @@ func (a *AssociationSubscriber) recordAuditEvent(ctx context.Context, eventType,
 		EventTime:  time.Now(),
 	}
 	a.coreService.CreateAuditEvent(ctx, auditEvent)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationCreated(ctx context.Context, x models.ComputeAllocation) error {
+	return allocationCreated.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationUpdated(ctx context.Context, x models.ComputeAllocation) error {
+	return allocationUpdated.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationDeleted(ctx context.Context, x models.ComputeAllocation) error {
+	return allocationDeleted.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationMembershipCreated(ctx context.Context, x models.ComputeAllocationMembership) error {
+	return membershipCreated.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationMembershipUpdated(ctx context.Context, x models.ComputeAllocationMembership) error {
+	return membershipUpdated.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationMembershipDeleted(ctx context.Context, x models.ComputeAllocationMembership) error {
+	return membershipDeleted.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationMembershipResourceOverrideCreated(ctx context.Context, x models.ComputeAllocationMembershipResourceOverride) error {
+	return overrideCreated.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeAllocationResourceMappingCreated(ctx context.Context, x models.ComputeAllocationResourceMapping) error {
+	return mappingCreated.run(ctx, a, x)
+}
+
+func (a *AssociationSubscriber) handleComputeClusterUserDeleted(ctx context.Context, x models.ComputeClusterUser) error {
+	return clusterUserDeleted.run(ctx, a, x)
 }

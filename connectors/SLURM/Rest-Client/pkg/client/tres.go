@@ -42,15 +42,30 @@ func ParseTRES(s string) ([]TRES, error) {
 		if err != nil {
 			return nil, fmt.Errorf("TRES count %q not a number", kv[1])
 		}
-		t := TRES{Count: n}
-		key := strings.TrimSpace(kv[0])
-		if slash := strings.Index(key, "/"); slash >= 0 {
-			t.Type = key[:slash]
-			t.Name = key[slash+1:]
-		} else {
-			t.Type = key
-		}
-		out = append(out, t)
+		out = append(out, TRESFromKey(strings.TrimSpace(kv[0]), n))
 	}
 	return out, nil
+}
+
+// Key joins the type and name as SLURM writes them, e.g. "gres/gpu".
+func (t TRES) Key() string {
+	if t.Name == "" {
+		return t.Type
+	}
+	return t.Type + "/" + t.Name
+}
+
+// TRESFromKey splits a "type[/name]" key, e.g. "gres/gpu", into a TRES.
+func TRESFromKey(key string, count float64) TRES {
+	typ, name, _ := strings.Cut(key, "/")
+	return TRES{Type: typ, Name: name, Count: count}
+}
+
+// FormatTRES writes a TRES list in the form ParseTRES reads.
+func FormatTRES(list []TRES) string {
+	parts := make([]string, 0, len(list))
+	for _, t := range list {
+		parts = append(parts, t.Key()+"="+strconv.FormatFloat(t.Count, 'f', -1, 64))
+	}
+	return strings.Join(parts, ",")
 }

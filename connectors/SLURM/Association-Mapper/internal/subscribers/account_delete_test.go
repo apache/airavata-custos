@@ -33,8 +33,7 @@ func TestAccountDeletionRemovesTheSlurmUser(t *testing.T) {
 		{Cluster: "testcluster", Account: noAllocation, User: "testuser"},
 		{Cluster: "testcluster", Account: "test-alloc", User: "testuser"},
 	}}
-	if err := NewAssociationSubscriber(slurm, nil, coreMock(mockOpts{}), 0, 0).
-		handleComputeClusterUserDeleted(context.Background(), deletedAccount); err != nil {
+	if err := clusterUserDeleted.run(context.Background(), NewAssociationSubscriber(slurm, nil, coreMock(mockOpts{}), 0, 0), deletedAccount); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 	if !slices.Equal(slurm.deletedUsers, []string{"testuser"}) || len(slurm.allDeletes()) != 0 {
@@ -48,8 +47,7 @@ func TestAccountDeletionKeepsAUserOnAnotherCluster(t *testing.T) {
 		{Cluster: "testcluster", Account: "test-alloc", User: "testuser"},
 		{Cluster: "othercluster", Account: noAllocation, User: "testuser"},
 	}}
-	if err := NewAssociationSubscriber(slurm, nil, coreMock(mockOpts{}), 0, 0).
-		handleComputeClusterUserDeleted(context.Background(), deletedAccount); err != nil {
+	if err := clusterUserDeleted.run(context.Background(), NewAssociationSubscriber(slurm, nil, coreMock(mockOpts{}), 0, 0), deletedAccount); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 	want := []client.AssocFilter{
