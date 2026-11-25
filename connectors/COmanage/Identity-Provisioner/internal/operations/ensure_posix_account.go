@@ -124,7 +124,7 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 	block := UnixClusterAccountBlock{
 		UnixClusterId:    o.c.Config().UnixClusterID,
 		SyncMode:         "M",
-		Status:           "A",
+		Status:           unixAccountStatus(user.Status),
 		Username:         cu.LocalUsername,
 		Uid:              uidInt,
 		Gecos:            "",
@@ -152,6 +152,13 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 		log.WarnContext(ctx, "comanage: failed to mark cluster user provisioned", "err", err)
 	}
 	return nil
+}
+
+func unixAccountStatus(status models.UserStatus) string {
+	if status == models.UserActive {
+		return "A"
+	}
+	return "S"
 }
 
 func (o *Orchestrator) getPersonComposite(ctx context.Context, personID string) (json.RawMessage, error) {

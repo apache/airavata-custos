@@ -31,14 +31,16 @@ The connector subscribes to core events for one cluster, `provisioning.custos_cl
 
 | Event | Action |
 |---|---|
-| `compute_cluster_user::approve` | Provision the account, join the admin group for an `ADMIN` account, then sync the user's allocation groups |
+| `compute_cluster_user::approve` | Provision the account of an `ACTIVE` user, join the admin group for an `ADMIN` account, then sync the user's allocation groups |
 | `user::onboarded` | Provision again once the user has signed in, so the registry gets their OIDC `sub` |
+| `user::update` | Provision an approved account of an `ACTIVE` user; set a provisioned account's status from the user's |
 | `compute_cluster_user::delete` | Remove an approved account from the registry, then sync the user's allocation groups |
 | `compute_allocation::create` and `::update`; `compute_allocation_membership::create`, `::update` and `::delete` | Sync the allocation's group |
 | `compute_allocation::delete` | Delete the allocation's group |
 
-The registry matches a person to their SSH login by the OIDC `sub`. An account approved before the first sign-in has
-none. The connector then writes `ComanageProvisioningDeferred` and runs again on `user::onboarded`.
+An account approved before its user is `ACTIVE` writes `ComanageProvisioningDeferred`. The `user::update` that
+activates the user provisions it. The registry matches a person to their SSH login by the OIDC `sub`, sent on
+`user::onboarded`.
 
 The [event bus](../../../docs/architecture.md#event-bus) retries a failed delivery with backoff. Each step finds an
 existing record before it creates one, so a retry is safe.
@@ -112,7 +114,7 @@ Each audit row the connector writes goes to the core `audit_events` table with `
 
 | Event type | When |
 |------------|------|
-| `ComanageProvisioningDeferred` | The user has not signed in. Provisioning waits for `user::onboarded`. |
+| `ComanageProvisioningDeferred` | The user is not `ACTIVE`. Provisioning waits for the `user::update` that activates them. |
 | `ComanageProvisioningStarted` | Provisioning of an approved account began. |
 | `ComanageCoPersonCreated` | Step 1 created a new CoPerson. A lookup that found one does not write this. |
 | `ComanageOIDCLinkageCreated` | Step 4 added the `oidcsub` identifier. |
@@ -138,7 +140,7 @@ A failure writes `ComanageProvisioningFailed` in place of the last event.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ComanageProvisioningDeferred` with `reason=no_oidc_identity` | The user has not signed in to Custos | None. Provisioning runs after the first sign-in |
+| `ComanageProvisioningDeferred` with `reason=user_not_active` | The user is not `ACTIVE` | None. Provisioning runs once the user is `ACTIVE` |
 | `ComanageProvisioningFailed` with `step=missing_uidnumber` | The registry has not assigned a `uidnumber` | Check the registry's identifier assignment for `uidnumber` |
 | `ComanageProvisioningFailed` with `step=cluster_admin_group_unset` or `cluster_admin_group_missing` | No `admin_group` configured, or no CoGroup by that name | Set `unix_cluster.admin_group` and create the group in the registry |
 | No audit rows at all | The connector skipped loading | Check the log for `required config not set` and `GET /connectors` |

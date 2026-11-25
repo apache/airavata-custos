@@ -328,3 +328,19 @@ func TestStorePersonID_RepointsAStaleID(t *testing.T) {
 		t.Fatalf("err=%v written=%+v; want ui-1 repointed to Person100002", err, core.writtenIdentity)
 	}
 }
+
+func TestEnsureClusterAccount_SuspendsTheAccountOfAUserNotActive(t *testing.T) {
+	for status, want := range map[models.UserStatus]string{models.UserActive: `"status":"A"`, models.UserInactive: `"status":"S"`} {
+		reg := &mockRegistry{}
+		srv := mockComanageServer(t, reg)
+		core := &fakeCore{user: &models.User{ID: "user-1", Email: "e2e@example.edu", Status: status}}
+		cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountApproved}
+		if err := newOrchestratorForTest(t, srv, core, "").EnsureClusterAccount(context.Background(), cu); err != nil {
+			t.Fatalf("%s: EnsureClusterAccount: %v", status, err)
+		}
+		srv.Close()
+		if n := len(reg.put); n == 0 || !strings.Contains(string(reg.put[n-1]), want) {
+			t.Errorf("%s: last person PUT %q, want account %s", status, reg.put, want)
+		}
+	}
+}
