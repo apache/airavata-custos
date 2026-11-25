@@ -22,7 +22,7 @@ import {
   useMembershipsByAllocation,
   useToggleAllocationAccess,
 } from "@/features/core/allocations/queries";
-import type { AllocationMembership } from "@/features/core/allocations/schemas";
+import { type AllocationMembership, isActiveMembership } from "@/features/core/allocations/schemas";
 import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsDrawer";
 import { useUserEmailSearch } from "@/features/core/users/queries";
 import type { ComputeAllocation, User } from "@/generated/core/zod.gen";
@@ -178,7 +178,7 @@ function describe(change: Change, changes: Change[]): string {
     }`;
   }
   if (change.kind === "role") return `${change.row.name}: role → ${ROLE_LABELS[change.to]}`;
-  return `${change.row.name}: ${change.membership ? "remove from" : "add to"} ${change.allocation.name}`;
+  return `${change.row.name}: ${isActiveMembership(change.membership) ? "remove from" : "add to"} ${change.allocation.name}`;
 }
 
 export function ProjectMembersTab({
@@ -240,10 +240,12 @@ export function ProjectMembersTab({
   ];
   const membershipOf = (allocationId: string, userId: string) =>
     memberships.byAllocation[allocationId]?.find((m) => m.user_id === userId);
+  const hasActiveMembership = (allocationId: string, userId: string) =>
+    isActiveMembership(membershipOf(allocationId, userId));
   const accessKey = (allocationId: string, userId: string) => `${allocationId}:${userId}`;
   const roleOf = (row: GridRow) => draft.roles[row.userId] ?? row.role;
   const hasAccess = (allocationId: string, userId: string) =>
-    draft.access[accessKey(allocationId, userId)] ?? Boolean(membershipOf(allocationId, userId));
+    draft.access[accessKey(allocationId, userId)] ?? hasActiveMembership(allocationId, userId);
 
   const isNew = (row: GridRow) => draft.added.some((a) => a.userId === row.userId);
   const changes: Change[] = rows.flatMap((row) => [
@@ -252,7 +254,7 @@ export function ProjectMembersTab({
       : []),
     ...allocations.flatMap((allocation) => {
       const membership = membershipOf(allocation.id, row.userId);
-      return hasAccess(allocation.id, row.userId) !== Boolean(membership)
+      return hasAccess(allocation.id, row.userId) !== isActiveMembership(membership)
         ? [{ kind: "access" as const, row, allocation, membership }]
         : [];
     }),
@@ -388,7 +390,7 @@ export function ProjectMembersTab({
                   </TableCell>
                   {allocations.map((a) => {
                     const checked = hasAccess(a.id, row.userId);
-                    const changed = checked !== Boolean(membershipOf(a.id, row.userId));
+                    const changed = checked !== hasActiveMembership(a.id, row.userId);
                     const label = `${row.name} in ${a.name}`;
                     return (
                       <TableCell

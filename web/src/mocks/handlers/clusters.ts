@@ -92,6 +92,8 @@ export const clustersHandlers = [
     return HttpResponse.json(found);
   }),
 
+  http.get("*/api/v1/compute-clusters/:id/qos", () => HttpResponse.json([])),
+
   http.get<{ id: string }>("*/api/v1/compute-clusters/:id/users", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(clusterUsers.filter((u) => u.compute_cluster_id === id));

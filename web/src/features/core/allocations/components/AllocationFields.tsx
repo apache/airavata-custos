@@ -21,7 +21,7 @@ import { useClusters } from "@/features/core/clusters/queries";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import * as React from "react";
-import { ResourcePicker } from "./ResourcePicker";
+import { ResourcePicker, useResourceOptions } from "./ResourcePicker";
 
 export type AllocationDraft = {
   name: string;
@@ -68,6 +68,7 @@ export function AllocationFields({
 }) {
   const clusters = useClusters().data ?? [];
   const first = clusters[0]?.id;
+  const resourceOptions = useResourceOptions(value.clusterId);
   React.useEffect(() => {
     if (!value.clusterId && first) onChange({ ...value, clusterId: first });
   }, [value, first, onChange]);
@@ -131,7 +132,7 @@ export function AllocationFields({
       <div className="space-y-2">
         <Label>Resources</Label>
         <ResourcePicker
-          clusterId={value.clusterId}
+          options={resourceOptions}
           value={value.resourceIds}
           onChange={(resourceIds) => set({ resourceIds })}
         />

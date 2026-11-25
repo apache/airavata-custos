@@ -18,24 +18,27 @@
 import { expect, test } from "@playwright/test";
 import { signInAs } from "./fixtures/auth";
 
-test.describe("admin resources & clusters read-only sweep", () => {
-  test("clusters tab opens a drawer with local users", async ({ page }) => {
+test.describe("admin resources read-only sweep", () => {
+  test("resources tab lists the first cluster's billed resources", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Resources$/ })).toBeVisible({
       timeout: 20_000,
     });
 
-    // Clusters is the default tab.
-    await page.getByRole("button", { name: "ClusterA", exact: true }).click();
-    await expect(page.getByText("Cluster: ClusterA")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("ghopper")).toBeVisible();
+    // Resources is the default tab, on the first cluster.
+    await expect(page.getByRole("tab", { name: /^resources$/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByRole("row", { name: /ClusterA CPU/ })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("row", { name: /ClusterA GPU/ })).toBeVisible();
   });
 
   test("resources tab opens a rates drawer with rate rows", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Resources$/ })).toBeVisible({
       timeout: 20_000,
     });
 
@@ -54,7 +57,7 @@ test.describe("admin resources & clusters read-only sweep", () => {
   test("admin adds a rate that becomes active and supersedes the current one", async ({ page }) => {
     await signInAs(page, "admin");
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Resources$/ })).toBeVisible({
       timeout: 20_000,
     });
 

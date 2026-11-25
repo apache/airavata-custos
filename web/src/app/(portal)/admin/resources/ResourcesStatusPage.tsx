@@ -17,6 +17,9 @@
 
 "use client";
 
+import { ClusterQoSTab } from "@/features/connectors/slurm/components/ClusterQoSTab";
+import { ClusterSyncNotice } from "@/features/connectors/slurm/components/ClusterSyncNotice";
+import { SystemAccountsTab } from "@/features/connectors/slurm/components/SystemAccountsTab";
 import { useClusters } from "@/features/core/clusters/queries";
 import { useConnectors } from "@/features/core/connectors/queries";
 import { relativeTime } from "@/features/core/events/utils";
@@ -43,13 +46,15 @@ function StatusPill({
   tone,
   name,
   status,
-  check,
+  checks,
+  labelOf,
   failedDeliveries,
 }: {
   tone: Tone;
   name: string;
   status: string;
-  check: ConnectorCheck | undefined;
+  checks: ConnectorCheck[];
+  labelOf?: (check: ConnectorCheck) => string | null;
   failedDeliveries?: number;
 }) {
   return (
@@ -60,9 +65,15 @@ function StatusPill({
       </TooltipTrigger>
       <TooltipContent className="flex-col items-start gap-0.5">
         <span className="font-medium">{status}</span>
-        {check ? <span>Checked {relativeTime(check.checked_at)}</span> : null}
+        {checks.map((check) => (
+          <React.Fragment key={check.target}>
+            <span>
+              {labelOf?.(check)}Checked {relativeTime(check.checked_at)}
+            </span>
+            {check.error ? <span className="opacity-80">{check.error}</span> : null}
+          </React.Fragment>
+        ))}
         {failedDeliveries ? <span>{failedDeliveries} failed deliveries</span> : null}
-        {check?.error ? <span className="opacity-80">{check.error}</span> : null}
       </TooltipContent>
     </Tooltip>
   );
@@ -73,6 +84,14 @@ function connectorStatus(c: ConnectorStatus): { tone: Tone; label: string } {
   if ((c.checks ?? []).some((check) => !check.ok)) return { tone: "error", label: "Failing" };
   if (c.failed_deliveries > 0) return { tone: "warn", label: "Failed deliveries" };
   return { tone: "ok", label: "Running" };
+}
+
+// A check targets a cluster, the configuration, or the connector itself.
+function targetLabel(target: string, type: string, clusters: { id: string; name: string }[] = []) {
+  if (target === type) return null;
+  const name =
+    target === "config" ? "Configuration" : (clusters.find((c) => c.id === target)?.name ?? target);
+  return `${name}: `;
 }
 
 function latest(checks: ConnectorCheck[]): ConnectorCheck | undefined {
@@ -136,7 +155,7 @@ export function ResourcesStatusPage() {
                   tone={check ? (check.ok ? "ok" : "error") : "off"}
                   name={cluster.name}
                   status={check ? (check.ok ? "Reachable" : "Unreachable") : "Not checked yet"}
-                  check={check}
+                  checks={check ? [check] : []}
                 />
               );
             })}
@@ -152,7 +171,8 @@ export function ResourcesStatusPage() {
                   tone={status.tone}
                   name={c.name}
                   status={status.label}
-                  check={latest(c.checks ?? [])}
+                  checks={c.checks ?? []}
+                  labelOf={(check) => targetLabel(check.target, c.type, clusters.data)}
                   failedDeliveries={c.failed_deliveries}
                 />
               );
@@ -161,10 +181,31 @@ export function ResourcesStatusPage() {
         </dl>
       )}
 
+      {clusterId ? <ClusterSyncNotice clusterId={clusterId} /> : null}
+
+      {/* Read-only tabs first, then configuring ones. */}
       <TabsRouter
-        defaultValue="resources"
+        defaultValue={clusterId ? "resources" : "storage"}
         tabs={[
-          { value: "resources", label: "Resources", content: <ResourcesTab /> },
+          ...(clusterId
+            ? [
+                {
+                  value: "resources",
+                  label: "Resources",
+                  content: <ResourcesTab clusterId={clusterId} />,
+                },
+                {
+                  value: "system-accounts",
+                  label: "System accounts",
+                  content: <SystemAccountsTab clusterId={clusterId} />,
+                },
+                {
+                  value: "qos",
+                  label: "QoS",
+                  content: <ClusterQoSTab clusterId={clusterId} />,
+                },
+              ]
+            : []),
           {
             value: "storage",
             label: "Storage",

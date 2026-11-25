@@ -35,6 +35,8 @@ import {
 import {
   type ComputeAllocation,
   type ComputeAllocationChangeRequestEvent,
+  type ComputeClusterQoS,
+  zAllocationQoSRequest,
   zComputeAllocation,
   zComputeAllocationChangeRequestEvent,
   zComputeAllocationDiff,
@@ -54,6 +56,7 @@ const diffsByAlloc = byId(zComputeAllocationDiff).parse(diffsFixture);
 const membersByAlloc = byId(allocationMembershipSchema).parse(membersFixture);
 const changeRequests = z.array(changeRequestSchema).parse(changeRequestsFixture);
 const eventsByCr = byId(zComputeAllocationChangeRequestEvent).parse(eventsFixture);
+const qosByAlloc: Record<string, ComputeClusterQoS[]> = {};
 
 let memberSeq = 1000;
 let crSeq = 1000;
@@ -132,6 +135,39 @@ export const allocationsHandlers = [
     return HttpResponse.json(found);
   }),
 
+  http.post<never, Pick<ComputeAllocation, "status"> & { compute_allocation_id: string }>(
+    "*/api/v1/compute-allocation-diffs",
+    async ({ request }) => {
+      const body = await request.json();
+      const found = allocations.find((a) => a.id === body.compute_allocation_id);
+      if (!found) return HttpResponse.json({ error: "allocation not found" }, { status: 404 });
+      found.status = body.status;
+      return HttpResponse.json(body, { status: 201 });
+    },
+  ),
+
+  http.get<{ id: string }>("*/api/v1/compute-allocations/:id/qos", ({ params }) =>
+    HttpResponse.json(qosByAlloc[String(params.id)] ?? []),
+  ),
+
+  http.put<{ id: string }>("*/api/v1/compute-allocations/:id/qos", async ({ params, request }) => {
+    const found = allocations.find((a) => a.id === String(params.id));
+    if (!found) return HttpResponse.json({ error: "allocation not found" }, { status: 404 });
+    const { qos } = zAllocationQoSRequest.parse(await request.json());
+    qosByAlloc[found.id] = (qos ?? []).map((name) => ({
+      id: `qos-${name}`,
+      compute_cluster_id: found.compute_cluster_id,
+      name,
+      priority: 0,
+      max_wall_minutes: null,
+      max_jobs_per_user: null,
+      max_tres_per_user: "",
+      flags: [],
+      is_default: false,
+    }));
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id/resources", ({ params }) => {
     const id = String(params.id);
     return HttpResponse.json(resourcesByAlloc[id] ?? []);
@@ -179,17 +215,16 @@ export const allocationsHandlers = [
     return HttpResponse.json(member, { status: 201 });
   }),
 
-  http.delete<{ id: string }>("*/api/v1/compute-allocation-memberships/:id", ({ params }) => {
-    const id = String(params.id);
-    for (const bucket of Object.values(membersByAlloc)) {
-      const idx = bucket.findIndex((m) => m.id === id);
-      if (idx !== -1) {
-        bucket.splice(idx, 1);
-        return new HttpResponse(null, { status: 204 });
-      }
-    }
-    return HttpResponse.json({ error: "membership not found" }, { status: 404 });
-  }),
+  http.put<{ id: string }, Pick<AllocationMembership, "membership_status">>(
+    "*/api/v1/compute-allocation-memberships/:id/status",
+    async ({ params, request }) => {
+      const all = Object.values(membersByAlloc).flat();
+      const member = all.find((m) => m.id === String(params.id));
+      if (!member) return HttpResponse.json({ error: "membership not found" }, { status: 404 });
+      member.membership_status = (await request.json()).membership_status;
+      return HttpResponse.json(member);
+    },
+  ),
 
   http.get<{ id: string }>("*/api/v1/compute-allocations/:id/change-requests", ({ params }) => {
     const id = String(params.id);
