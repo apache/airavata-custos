@@ -1,8 +1,8 @@
 # User Activity frontend contract
 
-This is the current frontend baseline for User Activity. Apache [PR #573](https://github.com/apache/airavata-custos/pull/573) is a historical snapshot of the first frontend-only draft. Keep that PR closed; later work stays on the `aimee-RH` fork until frontend and backend are both ready, then one complete PR can go upstream.
+The User Activity work is split into two upstream PRs from the `aimee-RH` fork: [#573](https://github.com/apache/airavata-custos/pull/573) contains the frontend and remains a draft; [#754](https://github.com/apache/airavata-custos/pull/754) contains the Audit-backed backend. The backend should be merged first because the frontend depends on its login-capture and activity-read APIs.
 
-The backend, migrations, and OpenAPI generation are **not** in this frontend branch. The [fork backend branch](https://github.com/aimee-RH/airavata-custos/tree/feature/user-activity-audit-backend) implements Audit-backed capture and reads. Its first version uses UTC calendar days; per-user timezones remain an open requirement. Local preview uses MSW (`NEXT_PUBLIC_PORTAL_USE_MSW=true`).
+The backend and migration are **not** in this frontend branch; they are in [#754](https://github.com/apache/airavata-custos/pull/754). Generated OpenAPI documentation for the activity endpoints remains a follow-up. The first backend version uses UTC calendar days; per-user timezones remain an open requirement. Local preview uses MSW (`NEXT_PUBLIC_PORTAL_USE_MSW=true`).
 
 ## Access and population
 
@@ -84,8 +84,8 @@ The server-side NextAuth initial account callback calls `POST /me/login-events` 
 
 Run `pnpm exec msw init public --save` once after installing dependencies, then set `NEXT_PUBLIC_PORTAL_USE_MSW=true`. Activity mocks model 225 users and parameter-aware queries. The local preview is labelled Demo data. List and analytics queries refresh every 60 seconds while the page is visible.
 
-From `web/`: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm gen:api:check`, `pnpm build`, and `pnpm exec playwright test tests/admin-user-activity.e2e.ts --workers=1`.
+From `web/`: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm exec playwright test tests/admin-user-activity.e2e.ts --workers=1`.
 
-Mock checks alone do not prove live backend or OIDC capture. The fork frontend and backend passed a local Keycloak browser smoke test; reconcile the timezone requirement and generated API documentation before an upstream PR.
+Mock checks alone do not prove live backend or OIDC capture. The frontend and backend branches passed a local Keycloak browser smoke test covering login capture, Audit storage, and dashboard reads. Per-user timezone support and generated API documentation remain follow-ups for review.
 
 ![Desktop activity dashboard](images/user-activity-desktop.png)
