@@ -30,7 +30,7 @@ import (
 const allocationGIDBase = 3_000_000
 
 // ProvisionAllocationGroup gives an active allocation its CoGroup and makes it
-// hold exactly its active members with a provisioned cluster account.
+// hold exactly its active members with a provisioned compute cluster user.
 func (o *Orchestrator) ProvisionAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
 	if a.PosixGroup == nil {
 		return nil

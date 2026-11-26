@@ -35,7 +35,7 @@ import (
 )
 
 // Make sure a merge publishes the delete event only for the retiring user's
-// cluster account that it drops, which is the one on a cluster where the
+// cluster account that it deletes, which is the one on a cluster where the
 // survivor already has an account. An account that moves to the survivor is
 // not deleted, so it gets no event.
 func TestMergeUsers_PublishesDeleteForTheDeletedComputeClusterUser(t *testing.T) {
@@ -65,7 +65,7 @@ func TestMergeUsers_PublishesDeleteForTheDeletedComputeClusterUser(t *testing.T)
 	}
 	shared, onlyRetiring, retiringProvisioned, bothProvisioned := cluster(), cluster(), cluster(), cluster()
 	account(survivor, shared)
-	dropped := account(retiring, shared)
+	deleted := account(retiring, shared)
 	moved := account(retiring, onlyRetiring)
 	deletedSurvivor := account(survivor, retiringProvisioned)
 	kept := account(retiring, retiringProvisioned)
@@ -84,7 +84,7 @@ func TestMergeUsers_PublishesDeleteForTheDeletedComputeClusterUser(t *testing.T)
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}
-	want := map[string]string{dropped.ID: dropped.LocalUsername, deletedSurvivor.ID: deletedSurvivor.LocalUsername, deletedBoth.ID: deletedBoth.LocalUsername}
+	want := map[string]string{deleted.ID: deleted.LocalUsername, deletedSurvivor.ID: deletedSurvivor.LocalUsername, deletedBoth.ID: deletedBoth.LocalUsername}
 	if len(deliveries) != len(want) {
 		t.Fatalf("expected %d deliveries of the delete event, got %+v", len(want), deliveries)
 	}

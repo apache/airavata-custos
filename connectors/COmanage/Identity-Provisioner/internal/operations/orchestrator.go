@@ -54,7 +54,7 @@ func New(c *client.Client, core *service.Service) *Orchestrator {
 	return &Orchestrator{c: c, core: core}
 }
 
-// ProvisionUnixClusterAccount creates the cluster account in the registry. An account
+// ProvisionUnixClusterAccount creates the UnixClusterAccount in the registry. An account
 // that is not approved is skipped, whichever event asked for it.
 func (o *Orchestrator) ProvisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
 	if cu.ApprovalStatus != models.ComputeClusterUserApproved {

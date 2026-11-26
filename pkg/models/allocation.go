@@ -41,7 +41,7 @@ const (
 	ClusterAccessAdmin ClusterAccessLevel = "ADMIN"
 )
 
-// ComputeClusterUserApproval is the admin's decision on a cluster account.
+// ComputeClusterUserApproval is the admin's decision on a compute cluster user.
 // The account is created on the cluster only after it is approved.
 type ComputeClusterUserApproval string
 
@@ -60,7 +60,7 @@ type ComputeClusterUser struct {
 	ProvisionedAt    *time.Time                 `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
 	ApprovalStatus   ComputeClusterUserApproval `json:"approval_status"    db:"approval_status"`
 	ReviewedAt       *time.Time                 `json:"reviewed_at,omitempty" db:"reviewed_at"`
-	ReviewedBy       *string                    `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
+	ReviewedBy       *string                    `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the compute cluster user.
 	ReviewNote       *string                    `json:"review_note,omitempty" db:"review_note"`
 }
 

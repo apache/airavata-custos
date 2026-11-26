@@ -225,7 +225,7 @@ func TestMergeIdentifier_KeepsEveryPropertyOfThePerson(t *testing.T) {
 	}
 }
 
-// Make sure removing a login takes only the cluster account and the uid
+// Make sure removing a login takes only the UnixClusterAccount and the uid
 // identifier with that username, since the composite PUT deletes anything the
 // body leaves out and the rest of the attributes of the person must survive.
 func TestWithoutUnixClusterAccount_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {

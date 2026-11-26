@@ -97,7 +97,7 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the cluster account.
+        description: The admin who approved or denied the compute cluster user.
         type: string
       user_id:
         type: string
@@ -453,7 +453,7 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the cluster account.
+        description: The admin who approved or denied the compute cluster user.
         type: string
       user_id:
         type: string
@@ -514,7 +514,7 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the cluster account.
+        description: The admin who approved or denied the compute cluster user.
         type: string
       reviewer_name:
         type: string
@@ -3914,7 +3914,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List cluster accounts by approval status
+      summary: List compute cluster users by approval status
       tags:
       - Compute Cluster Users
     post:
@@ -4076,7 +4076,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Approve a cluster account
+      summary: Approve a compute cluster user
       tags:
       - Compute Cluster Users
   /compute-cluster-users/{id}/deny:
@@ -4128,7 +4128,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Deny a cluster account
+      summary: Deny a compute cluster user
       tags:
       - Compute Cluster Users
   /compute-clusters:

@@ -30,7 +30,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// DeprovisionUnixClusterAccount removes what provisioning created for a cluster account:
+// DeprovisionUnixClusterAccount removes what provisioning created for a ComputeClusterUser:
 // the account and login name on the person, the admin group membership, and
 // the account's primary group. The person stays in the registry. It is safe
 // to run again, anything already removed is skipped.

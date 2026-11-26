@@ -190,7 +190,7 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// @Summary	List cluster accounts by approval status
+// @Summary	List compute cluster users by approval status
 // @Description	Cluster users with their user, cluster, and the user's newest allocation on that cluster. PENDING comes grouped by allocation, the rest newest first. Every status unless one is given.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
@@ -234,7 +234,7 @@ func (s *Server) listComputeClusterUsers(w http.ResponseWriter, r *http.Request)
 	common.WriteJSON(w, http.StatusOK, ComputeClusterUserListResponse{Items: items, Total: total})
 }
 
-// @Summary	Approve a cluster account
+// @Summary	Approve a compute cluster user
 // @Description	Records the caller as the approver and starts creating the account on the cluster.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth
@@ -261,7 +261,7 @@ type denyComputeClusterUserRequest struct {
 	Note string `json:"note"`
 }
 
-// @Summary	Deny a cluster account
+// @Summary	Deny a compute cluster user
 // @Description	Records the caller's decision and the reason. No account is created on the cluster, and the reason is passed on to whoever requested the account. The user keeps portal access.
 // @Tags	Compute Cluster Users
 // @Security	BearerAuth

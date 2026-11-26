@@ -127,12 +127,12 @@ func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) 
 
 	cu, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, user.ID)
 	if errors.Is(err, service.ErrNotFound) {
-		// Expected for portal admins, system users, and temp users, which have no compute cluster account.
-		slog.DebugContext(ctx, "comanage subscriber: no cluster account to link the sub to", "user_id", user.ID, "cluster_id", s.custosClusterID)
+		// Expected for portal admins, system users, and temp users, which have no compute cluster user.
+		slog.DebugContext(ctx, "comanage subscriber: no compute cluster user to link the sub to", "user_id", user.ID, "cluster_id", s.custosClusterID)
 		return nil
 	}
 	if err != nil {
-		slog.ErrorContext(ctx, "comanage subscriber: cluster user lookup failed", "user_id", user.ID, "err", err)
+		slog.ErrorContext(ctx, "comanage subscriber: compute cluster user lookup failed", "user_id", user.ID, "err", err)
 		return err
 	}
 	if err := s.ops.ProvisionUnixClusterAccount(ctx, cu); err != nil {

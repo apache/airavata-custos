@@ -75,7 +75,7 @@ type onboardingView struct {
 	UsernameEditable bool   `json:"username_editable"`
 }
 
-// CallerComputeClusterUser is one of the caller's cluster accounts with its cluster's name.
+// CallerComputeClusterUser is one of the caller's compute cluster users with its cluster's name.
 type CallerComputeClusterUser struct {
 	models.ComputeClusterUser
 	ClusterName string `json:"cluster_name"`

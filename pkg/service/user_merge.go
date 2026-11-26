@@ -38,7 +38,7 @@ import (
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //
-// A dropped cluster account publishes compute_cluster_user::delete, so it is
+// A deleted compute cluster user publishes compute_cluster_user::delete, so it is
 // also removed outside Custos.
 //
 // Left in place (who actually did the thing):
