@@ -174,6 +174,9 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		if err != nil {
 			return fmt.Errorf("ensure super_admin role: %w", err)
 		}
+		if err := s.grantMissingPrivilegesTx(ctx, tx, role.ID); err != nil {
+			return fmt.Errorf("grant super_admin privileges: %w", err)
+		}
 		existing, err := s.userRoles.FindForUpdate(ctx, tx, user.ID, role.ID)
 		if err != nil {
 			return fmt.Errorf("lookup existing assignment: %w", err)
@@ -244,36 +247,41 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 	return created, nil
 }
 
-// ensureSuperAdminRoleTx creates the super_admin role with the meta
-// privileges if it doesn't exist, otherwise returns the existing row.
+// ensureSuperAdminRoleTx returns the super_admin role, creating it on first use.
 func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
 	role, err := s.roles.FindByName(ctx, models.SystemRoleSuperAdmin)
 	if err != nil {
 		return nil, fmt.Errorf("lookup super_admin role: %w", err)
 	}
-	if role == nil {
-		role = &models.Role{
-			ID:          newID(),
-			Name:        models.SystemRoleSuperAdmin,
-			Description: stringPtrOrNil("bootstrap role carrying every registered privilege"),
-			IsSystem:    true,
-		}
-		if err := s.roles.Create(ctx, tx, role); err != nil {
-			return nil, fmt.Errorf("create super_admin role: %w", err)
-		}
+	if role != nil {
+		return role, nil
 	}
+	role = &models.Role{
+		ID:          newID(),
+		Name:        models.SystemRoleSuperAdmin,
+		Description: stringPtrOrNil("bootstrap role carrying every registered privilege"),
+		IsSystem:    true,
+	}
+	if err := s.roles.Create(ctx, tx, role); err != nil {
+		return nil, fmt.Errorf("create super_admin role: %w", err)
+	}
+	return role, nil
+}
+
+// grantMissingPrivilegesTx grants the role every known privilege it lacks.
+func (s *Service) grantMissingPrivilegesTx(ctx context.Context, tx *sql.Tx, roleID string) error {
 	for _, key := range models.KnownPrivileges() {
-		has, err := s.roles.HasPrivilege(ctx, tx, role.ID, key)
+		has, err := s.roles.HasPrivilege(ctx, tx, roleID, key)
 		if err != nil {
-			return nil, fmt.Errorf("check super_admin privilege %s: %w", key, err)
+			return fmt.Errorf("check privilege %s: %w", key, err)
 		}
 		if !has {
-			if err := s.roles.AddPrivilege(ctx, tx, role.ID, key); err != nil {
-				return nil, fmt.Errorf("attach %s to super_admin: %w", key, err)
+			if err := s.roles.AddPrivilege(ctx, tx, roleID, key); err != nil {
+				return fmt.Errorf("grant %s: %w", key, err)
 			}
 		}
 	}
-	return role, nil
+	return nil
 }
 
 // ensureSystemOrgTx returns the organization for users without an upstream one, creating it on first use.
@@ -295,7 +303,7 @@ func (s *Service) ensureSystemOrgTx(ctx context.Context, tx *sql.Tx) (*models.Or
 	return org, nil
 }
 
-// ensureAdminRoleTx creates the admin role on first use. Privileges are seeded only at creation.
+// ensureAdminRoleTx returns the admin role, creating it with its privileges on first use. Privileges are seeded only at creation.
 func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
 	role, err := s.roles.FindByName(ctx, models.SystemRoleAdmin)
 	if err != nil {

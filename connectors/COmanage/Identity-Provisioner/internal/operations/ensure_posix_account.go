@@ -60,7 +60,22 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 		o.audit(ctx, cu, "ComanageCoPersonCreated", fmt.Sprintf("comanage_id=%s email=%s", personID, user.Email))
 	}
 
-	if err := o.storePersonID(ctx, cu.UserID, personID); err != nil {
+	identityCtx, identitySpan := tracing.Start(ctx, "comanage.store_person_id")
+	identity, err := o.findCoPersonUserIdentity(identityCtx, cu.UserID)
+	switch {
+	case err != nil:
+	case identity == nil:
+		err = o.createCoPersonUserIdentity(identityCtx, cu.UserID, personID)
+	default:
+		identity.ExternalID = personID
+		err = o.core.UpdateUserIdentity(identityCtx, identity)
+	}
+	if err != nil {
+		identitySpan.RecordError(err)
+		identitySpan.SetStatus(codes.Error, err.Error())
+	}
+	identitySpan.End()
+	if err != nil {
 		log.WarnContext(ctx, "comanage: failed to store CoPerson id", "err", err)
 	}
 

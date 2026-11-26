@@ -322,10 +322,19 @@ func TestEnsureClusterAccount_SkipsAnAccountThatIsNotApproved(t *testing.T) {
 	}
 }
 
-func TestStorePersonID_RepointsAStaleID(t *testing.T) {
-	core := &fakeCore{identities: []models.UserIdentity{{ID: "ui-1", Source: "comanage", ExternalID: "Person100001"}}}
-	if err := (&Orchestrator{core: core}).storePersonID(context.Background(), "user-1", "Person100002"); err != nil || core.writtenIdentity == nil || core.writtenIdentity.ID != "ui-1" || core.writtenIdentity.ExternalID != "Person100002" {
-		t.Fatalf("err=%v written=%+v; want ui-1 repointed to Person100002", err, core.writtenIdentity)
+func TestProvisionUnixClusterAccount_ChangesTheExistingCoPersonIdentity(t *testing.T) {
+	srv := mockComanageServer(t, &mockRegistry{})
+	defer srv.Close()
+	core := &fakeCore{
+		user:       &models.User{ID: "user-1", FirstName: "E2E", LastName: "Test", Email: "e2e@example.invalid"},
+		identities: []models.UserIdentity{{ID: "ui-1", Source: "comanage", ExternalID: "Person100001"}},
+	}
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest", ApprovalStatus: models.ComputeClusterUserApproved}
+	if err := newOrchestratorForTest(t, srv, core, "").EnsureClusterAccount(context.Background(), cu); err != nil {
+		t.Fatalf("EnsureClusterAccount: %v", err)
+	}
+	if w := core.writtenIdentity; w == nil || w.ID != "ui-1" {
+		t.Fatalf("written=%+v; want the existing identity ui-1 changed, not a new one created", w)
 	}
 }
 
