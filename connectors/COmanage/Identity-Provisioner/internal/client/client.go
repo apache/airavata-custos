@@ -21,12 +21,15 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/apache/airavata-custos/internal/connectors/health"
 )
 
 // restAPIVersion is the COmanage REST v1 model version.
@@ -94,6 +97,11 @@ func (c *Client) Do(method, url string, body []byte) (*http.Response, []byte, er
 		}
 	}
 	return resp, respBody, err
+}
+
+// Ping checks that the registry root answers without a 5xx.
+func (c *Client) Ping(ctx context.Context) error {
+	return health.GetProbe(ctx, c.http, c.cfg.RegistryURL)
 }
 
 func (c *Client) doOnce(method, url string, body []byte, apiKey string) (*http.Response, []byte, error) {

@@ -17,18 +17,33 @@
 
 "use client";
 
+import { SyncRows } from "@/features/connectors/slurm/components/SyncRows";
+import {
+  allocationConflicts,
+  conflictsOf,
+  useSlurmCluster,
+} from "@/features/connectors/slurm/queries";
 import { ClusterName } from "@/features/core/clusters/components/ClusterName";
+import { useQoSOptions } from "@/features/core/clusters/queries";
 import { ProjectPI } from "@/features/core/projects/components/ProjectPI";
 import { useProject } from "@/features/core/projects/queries";
 import { useEffectiveRate } from "@/features/core/resources/queries";
 import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { requires, usePermissions } from "@/shared/casl/permissions";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { GuardedButton } from "@/shared/ui/GuardedButton";
 import Link from "next/link";
 import * as React from "react";
-import { useAllocationResources } from "../queries";
+import { toast } from "sonner";
+import {
+  useAllocationQoS,
+  useAllocationResources,
+  useSetAllocationQoS,
+  useSetAllocationResources,
+} from "../queries";
 import { AllocationResourcesDialog } from "./AllocationResourcesDialog";
+import { useResourceOptions } from "./ResourcePicker";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
@@ -74,6 +89,16 @@ export function AllocationOverviewTab({ allocation, canEdit }: AllocationOvervie
   const project = useProject(allocation.project_id).data;
   const can = usePermissions();
   const [editing, setEditing] = React.useState(false);
+  const [editingQoS, setEditingQoS] = React.useState(false);
+  const qosQuery = useAllocationQoS(allocation.id);
+  const saveResources = useSetAllocationResources(allocation.id);
+  const resourceOptions = useResourceOptions(allocation.compute_cluster_id);
+  const saveQoS = useSetAllocationQoS(allocation.id);
+  const qosOptions = useQoSOptions(allocation.compute_cluster_id, qosQuery.data ?? []);
+  const slurmConflicts = useSlurmCluster(allocation.compute_cluster_id, conflictsOf);
+  const sync = allocationConflicts(slurmConflicts, allocation.id);
+  const qosConflicts = sync.ofKinds(["allocation_qos"]);
+  const qosConflict = qosConflicts[0];
 
   return (
     <div className="space-y-6">
@@ -148,7 +173,10 @@ export function AllocationOverviewTab({ allocation, canEdit }: AllocationOvervie
                   allowed={canEdit}
                   reason={requires("allocationsWrite")}
                   disabled={!resourcesQuery.data}
-                  onClick={() => setEditing(true)}
+                  onClick={() => {
+                    saveResources.reset();
+                    setEditing(true);
+                  }}
                 >
                   Add resource
                 </GuardedButton>
@@ -158,10 +186,76 @@ export function AllocationOverviewTab({ allocation, canEdit }: AllocationOvervie
         </dd>
       </dl>
 
+      <SyncRows
+        clusterId={allocation.compute_cluster_id}
+        syncUnknown={sync.syncUnknown}
+        rows={[
+          {
+            label: "QoS",
+            custos: qosQuery.data ?? [],
+            slurm: qosConflict?.slurm,
+            conflicts: qosConflicts,
+            items: canEdit ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  saveQoS.reset();
+                  setEditingQoS(true);
+                }}
+              >
+                Edit
+              </DropdownMenuItem>
+            ) : undefined,
+          },
+          ...sync.ofKinds(["allocation_limit"]).map((c) => ({
+            label: c.label,
+            custos: c.custos,
+            slurm: c.slurm,
+            conflicts: [c],
+          })),
+        ]}
+      />
+
+      {editingQoS ? (
+        <AllocationResourcesDialog
+          title="Allocation QoS"
+          options={qosOptions}
+          empty="No QoS on this cluster."
+          initial={qosQuery.data ?? []}
+          pending={saveQoS.isPending}
+          error={saveQoS.error?.message}
+          onSave={(qos) =>
+            saveQoS.mutate(qos, {
+              onSuccess: () => {
+                slurmConflicts.refetch();
+                setEditingQoS(false);
+              },
+            })
+          }
+          onOpenChange={setEditingQoS}
+        />
+      ) : null}
+
       {editing ? (
         <AllocationResourcesDialog
-          allocation={allocation}
-          granted={resourcesQuery.data ?? []}
+          title="Resources"
+          description={
+            <>
+              Usage on these resources is charged to the allocation&apos;s{" "}
+              {allocation.initial_su_amount.toLocaleString()} SUs at each resource&apos;s rate.
+            </>
+          }
+          options={resourceOptions}
+          initial={(resourcesQuery.data ?? []).map((r) => r.id)}
+          pending={saveResources.isPending}
+          error={saveResources.error?.message}
+          onSave={(ids) =>
+            saveResources.mutate(ids, {
+              onSuccess: () => {
+                toast.success("Resources saved.");
+                setEditing(false);
+              },
+            })
+          }
           onOpenChange={setEditing}
         />
       ) : null}

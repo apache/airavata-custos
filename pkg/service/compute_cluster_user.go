@@ -62,11 +62,11 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	}
 	// A new row waits for review. The admin routes pass it as approved, with the admin who added it as the reviewer.
 	if cu.ApprovalStatus == "" {
-		cu.ApprovalStatus = models.ClusterAccountPending
+		cu.ApprovalStatus = models.ComputeClusterUserPending
 	}
 	switch cu.ApprovalStatus {
-	case models.ClusterAccountPending:
-	case models.ClusterAccountApproved:
+	case models.ComputeClusterUserPending:
+	case models.ComputeClusterUserApproved:
 		if cu.ReviewedBy == nil || *cu.ReviewedBy == "" {
 			return nil, fmt.Errorf("%w: an approved cluster user needs a reviewer", ErrInvalidInput)
 		}
@@ -76,7 +76,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		}
 	default:
 		return nil, fmt.Errorf("%w: a new cluster user can be %s or %s, not %s",
-			ErrInvalidInput, models.ClusterAccountPending, models.ClusterAccountApproved, cu.ApprovalStatus)
+			ErrInvalidInput, models.ComputeClusterUserPending, models.ComputeClusterUserApproved, cu.ApprovalStatus)
 	}
 
 	if cluster, err := s.clusters.FindByID(ctx, cu.ComputeClusterID); err != nil {
@@ -105,7 +105,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 			return err
 		}
 		// Approved at creation, so provisioning starts now.
-		if cu.ApprovalStatus == models.ClusterAccountApproved {
+		if cu.ApprovalStatus == models.ComputeClusterUserApproved {
 			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserApproveEvent, cu)
 		}
 		return nil
@@ -123,9 +123,9 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	return cu, nil
 }
 
-func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ClusterAccountApproval, filter store.UserListFilter, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
+func (s *Service) ListComputeClusterUsersByApproval(ctx context.Context, status models.ComputeClusterUserApproval, filter store.UserListFilter, limit, offset int) ([]store.ComputeClusterUserWithUser, int, error) {
 	switch status {
-	case "", models.ClusterAccountPending, models.ClusterAccountApproved, models.ClusterAccountDenied:
+	case "", models.ComputeClusterUserPending, models.ComputeClusterUserApproved, models.ComputeClusterUserDenied:
 	default:
 		return nil, 0, fmt.Errorf("%w: unknown approval status %q", ErrInvalidInput, status)
 	}
@@ -146,15 +146,15 @@ func (s *Service) ApproveComputeClusterUser(ctx context.Context, id, reviewerID 
 			return err
 		}
 		// Only a denied or pending cluster account can be approved
-		if cu.ApprovalStatus == models.ClusterAccountApproved {
+		if cu.ApprovalStatus == models.ComputeClusterUserApproved {
 			return fmt.Errorf("%w: cluster user %q is already approved", ErrAlreadyExists, id)
 		}
 		now := nowUTC()
-		cu.ApprovalStatus = models.ClusterAccountApproved
+		cu.ApprovalStatus = models.ComputeClusterUserApproved
 		cu.ReviewedAt = &now
 		cu.ReviewedBy = &reviewerID
 		cu.ReviewNote = nil
-		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountApproved, reviewerID, "", now); err != nil {
+		if err := s.clusterUsers.Review(ctx, tx, id, models.ComputeClusterUserApproved, reviewerID, "", now); err != nil {
 			return err
 		}
 		if err := s.writeAuditTx(ctx, tx, "compute_cluster_user", clusterUserAuditApproved, id, map[string]any{
@@ -186,17 +186,17 @@ func (s *Service) DenyComputeClusterUser(ctx context.Context, id, reviewerID, no
 			return err
 		}
 		switch cu.ApprovalStatus {
-		case models.ClusterAccountApproved:
+		case models.ComputeClusterUserApproved:
 			return fmt.Errorf("%w: cluster user %q is already approved, remove it instead", ErrAlreadyExists, id)
-		case models.ClusterAccountDenied:
+		case models.ComputeClusterUserDenied:
 			return fmt.Errorf("%w: cluster user %q is already denied", ErrAlreadyExists, id)
 		}
 		now := nowUTC()
-		cu.ApprovalStatus = models.ClusterAccountDenied
+		cu.ApprovalStatus = models.ComputeClusterUserDenied
 		cu.ReviewedAt = &now
 		cu.ReviewedBy = &reviewerID
 		cu.ReviewNote = &note
-		if err := s.clusterUsers.Review(ctx, tx, id, models.ClusterAccountDenied, reviewerID, note, now); err != nil {
+		if err := s.clusterUsers.Review(ctx, tx, id, models.ComputeClusterUserDenied, reviewerID, note, now); err != nil {
 			return err
 		}
 		if err := s.writeAuditTx(ctx, tx, "compute_cluster_user", clusterUserAuditDenied, id, map[string]any{
@@ -371,7 +371,7 @@ func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id stri
 			cu.ProvisionedAt = &now
 		}
 		if firstTime {
-			if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID, UserID: cu.UserID}); err != nil {
+			if err := s.syncStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID, UserID: cu.UserID}); err != nil {
 				return err
 			}
 			return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserProvisionEvent, cu)
@@ -388,18 +388,23 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
-	cu, err := s.clusterUsers.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute cluster user: %w", err)
-	}
-	if cu == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		cu, err := s.clusterUsers.FindByIDTx(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("lookup compute cluster user: %w", err)
+		}
+		if cu == nil {
+			return ErrNotFound
+		}
+		if active, err := s.memberships.IsActiveMemberOnClusterTx(ctx, tx, cu.UserID, cu.ComputeClusterID); err != nil {
+			return fmt.Errorf("lookup active memberships: %w", err)
+		} else if active {
+			return fmt.Errorf("%w: compute cluster user %q has an ACTIVE membership on an ACTIVE allocation, set it INACTIVE first", ErrInUse, id)
+		}
 		if err := s.clusterUsers.Delete(ctx, tx, id); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu)

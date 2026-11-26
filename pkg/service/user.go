@@ -145,7 +145,7 @@ func (s *Service) ListUsersByOrganization(ctx context.Context, organizationID st
 	return users, nil
 }
 
-// UpdateUser persists changes to an existing user. Fields left blank/zero on
+// UpdateUser persists changes to an existing user, except status. Fields left blank/zero on
 // the supplied record fall back to the stored value.
 func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user == nil || user.ID == "" {
@@ -182,9 +182,7 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.Email == "" {
 		user.Email = existing.Email
 	}
-	if user.Status == "" {
-		user.Status = existing.Status
-	}
+	user.Status = existing.Status
 	if user.Type == "" {
 		user.Type = existing.Type
 	}
@@ -207,18 +205,22 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	if id == "" {
 		return nil, fmt.Errorf("%w: user id is required", ErrInvalidInput)
 	}
-	if status == "" {
-		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
+	// PENDING and MERGED are set only by onboarding and merges.
+	if status != models.UserActive && status != models.UserInactive {
+		return nil, fmt.Errorf("%w: status must be ACTIVE or INACTIVE", ErrInvalidInput)
 	}
-	existing, err := s.users.FindByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("lookup user: %w", err)
-	}
-	if existing == nil {
-		return nil, ErrNotFound
-	}
-	existing.Status = status
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+	var existing *models.User
+	if err := s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		if existing, err = s.users.FindByIDTx(ctx, tx, id, store.NoKeyUpdateLock); err != nil {
+			return fmt.Errorf("lookup user: %w", err)
+		}
+		if existing == nil {
+			return ErrNotFound
+		}
+		if existing.Status == models.UserMerged {
+			return fmt.Errorf("%w: user %q is merged", ErrInvalidInput, id)
+		}
+		existing.Status = status
 		if err := s.users.UpdateStatus(ctx, tx, id, status); err != nil {
 			return err
 		}

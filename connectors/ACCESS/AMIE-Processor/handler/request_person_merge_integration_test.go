@@ -587,5 +587,71 @@ func TestRequestPersonMerge_ReprocessesPacketsHeldOnRetiringAccount(t *testing.T
 	}
 }
 
+// Make sure a reply held on the survivor's deleted account is sent from the kept one.
+func TestRequestPersonMerge_AnswersPacketsHeldOnDeletedSurvivorAccount(t *testing.T) {
+	database := setupTestDB(t)
+	projectID := seedProjectForRAC(t, database)
+	seed := seedMergeUsers(t, database)
+	svc := newTestCoreService(database)
+	amie := &fakeAmieClient{}
+	rac := NewRequestAccountCreateHandler(svc, testClusterID, amie, newTestAuditService(database))
+
+	racBody := baseRACBody()
+	racBody["ProjectID"] = projectID
+	racBody["UserGlobalID"] = seed.survivingGlobal
+	held := insertPacket(t, database, "request_account_create", racBody)
+	handleRAC := func() {
+		if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+			return rac.Handle(ctx, tx, map[string]any{"type": held.Type, "body": racBody}, held, "")
+		}); err != nil {
+			t.Fatalf("Handle request_account_create: %v", err)
+		}
+	}
+	handleRAC()
+	if held.Status != model.PacketStatusWaitingApproval {
+		t.Fatalf("request_account_create status: got %s, want %s", held.Status, model.PacketStatusWaitingApproval)
+	}
+	if _, err := database.Exec("UPDATE amie_packets SET status = $1, held_reply = $2, held_for = $3 WHERE id = $4",
+		held.Status, held.HeldReply, held.HeldFor, held.ID); err != nil {
+		t.Fatalf("hold packet: %v", err)
+	}
+	eventID := uuid.NewString()
+	if _, err := database.Exec("INSERT INTO amie_processing_events (id, packet_id, type, status, trace_id, span_id) VALUES ($1, $2, $3, $4, $5, $6)",
+		eventID, held.ID, held.Type, model.ProcessingStatusSucceeded, "4bf92f3577b34da6a3ce929d0e0e4736", "00f067aa0ba902b7"); err != nil {
+		t.Fatalf("insert processing event: %v", err)
+	}
+	if _, err := database.Exec("UPDATE compute_cluster_users SET approval_status = $1, provisioned_at = now() WHERE user_id = $2",
+		string(models.ComputeClusterUserApproved), seed.retiringID); err != nil {
+		t.Fatalf("provision retiring account: %v", err)
+	}
+
+	body := baseRPMBody(seed)
+	pkt := insertPacket(t, database, "request_person_merge", body)
+	h := NewRequestPersonMergeHandler(svc, store.NewUserDNStore(database), store.NewEventStore(database), amie, newTestAuditService(database))
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle request_person_merge: %v", err)
+	}
+
+	var status model.ProcessingStatus
+	if err := database.Get(&status, "SELECT status FROM amie_processing_events WHERE id = $1", eventID); err != nil {
+		t.Fatalf("read processing event: %v", err)
+	}
+	if status != model.ProcessingStatusNew {
+		t.Fatalf("held packet's processing event: got %s, want %s", status, model.ProcessingStatusNew)
+	}
+
+	held.Status = model.PacketStatusDecoded // the processor resets it before the handler runs
+	handleRAC()
+	if got := amie.lastReplyType(); got != "notify_account_create" {
+		t.Fatalf("reply type: got %q, want notify_account_create", got)
+	}
+	reply := amie.Replies[len(amie.Replies)-1].Body["body"].(map[string]any)
+	if reply["UserPersonID"] != seed.survivingID || reply["UserRemoteSiteLogin"] != "pretiring" {
+		t.Errorf("reply person and login: got %v %v, want %s pretiring", reply["UserPersonID"], reply["UserRemoteSiteLogin"], seed.survivingID)
+	}
+}
+
 // silence unused-import false positives when only some tests reference these.
 var _ = model.AuditMergePersons

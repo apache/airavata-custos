@@ -34,7 +34,7 @@ import {
 } from "@/shared/ui/dialog";
 
 export type EnableToggleResource = {
-  kind: "cluster" | "resource";
+  kind: "cluster" | "resource" | "allocation";
   id: string;
   label: string;
 };
@@ -49,7 +49,9 @@ export type EnableToggleProps = {
   enabled: boolean;
   resource: EnableToggleResource;
   impact?: EnableToggleImpact;
-  onConfirm: (next: boolean) => Promise<void>;
+  onConfirm: (next: boolean) => Promise<unknown>;
+  // Replaces the default dialog text.
+  description?: string;
   disabled?: boolean;
   size?: "sm" | "md";
 };
@@ -71,6 +73,7 @@ export function EnableToggle({
   resource,
   impact,
   onConfirm,
+  description,
   disabled = false,
   size = "md",
 }: EnableToggleProps) {
@@ -154,9 +157,10 @@ export function EnableToggle({
               {actionLabel} {resource.label}?
             </DialogTitle>
             <DialogDescription>
-              {next
-                ? `Re-enabling will allow new allocations to target ${resource.label}.`
-                : `Disabling hides ${resource.label} from new allocation flows. Existing allocations and in-flight jobs continue.`}
+              {description ??
+                (next
+                  ? `Re-enabling will allow new allocations to target ${resource.label}.`
+                  : `Disabling hides ${resource.label} from new allocation flows. Existing allocations and in-flight jobs continue.`)}
             </DialogDescription>
           </DialogHeader>
 

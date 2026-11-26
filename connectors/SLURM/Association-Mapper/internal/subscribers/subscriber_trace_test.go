@@ -49,6 +49,9 @@ func mockCoreServiceWithError(err error) *service.CoreServiceMock {
 		GetComputeAllocationMembershipFunc: func(ctx context.Context, id string) (*models.ComputeAllocationMembership, error) {
 			return nil, err
 		},
+		GetComputeAllocationResourceFunc: func(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
+			return nil, err
+		},
 		CreateAuditEventFunc: func(ctx context.Context, event *models.AuditEvent) (*models.AuditEvent, error) {
 			return event, nil
 		},
@@ -74,16 +77,16 @@ func TestSubscriberSpansOpenUnderParent(t *testing.T) {
 	rootTrace := root.SpanContext().TraceID()
 	rootSpan := root.SpanContext().SpanID()
 
-	sub.handleComputeAllocationCreated(ctx, models.ComputeAllocation{
+	allocationCreated.run(ctx, sub, models.ComputeAllocation{
 		ID: "alloc-1", ComputeClusterID: "cluster-1",
 	})
-	sub.handleComputeAllocationResourceMappingCreated(ctx, models.ComputeAllocationResourceMapping{
+	mappingCreated.run(ctx, sub, models.ComputeAllocationResourceMapping{
 		ID: "mapping-1", ComputeAllocationID: "alloc-1",
 	})
-	sub.handleComputeAllocationMembershipCreated(ctx, models.ComputeAllocationMembership{
+	membershipCreated.run(ctx, sub, models.ComputeAllocationMembership{
 		ID: "mem-1", ComputeAllocationID: "alloc-1", UserID: "user-1",
 	})
-	sub.handleComputeAllocationMembershipResourceOverrideCreated(ctx, models.ComputeAllocationMembershipResourceOverride{
+	overrideCreated.run(ctx, sub, models.ComputeAllocationMembershipResourceOverride{
 		ID: "override-1", ComputeAllocationMembershipID: "mem-1",
 	})
 	root.End()
@@ -117,7 +120,7 @@ func TestSubscriberSpansRecordErrorOnDownstreamFailure(t *testing.T) {
 	sub := NewAssociationSubscriber(nil, nil, core, 0, 0)
 
 	ctx, root := tracing.Start(context.Background(), "test.parent")
-	sub.handleComputeAllocationCreated(ctx, models.ComputeAllocation{
+	allocationCreated.run(ctx, sub, models.ComputeAllocation{
 		ID: "alloc-err", ComputeClusterID: "cluster-err",
 	})
 	root.End()

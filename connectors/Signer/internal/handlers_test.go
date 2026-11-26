@@ -99,7 +99,7 @@ func readyCore() *fakeCore {
 	provisioned := time.Now().Add(-time.Hour)
 	start, end := time.Now().Add(-time.Hour), time.Now().Add(time.Hour)
 	return &fakeCore{
-		account:     &models.ComputeClusterUser{LocalUsername: "jdoe", ApprovalStatus: models.ClusterAccountApproved, ProvisionedAt: &provisioned},
+		account:     &models.ComputeClusterUser{LocalUsername: "jdoe", ApprovalStatus: models.ComputeClusterUserApproved, ProvisionedAt: &provisioned},
 		memberships: []models.ComputeAllocationMembership{{ComputeAllocationID: "a1", MembershipStatus: models.ACTIVE, StartTime: start, EndTime: end}},
 		allocation:  models.ComputeAllocation{ComputeClusterID: testClusterID, Status: models.ACTIVE, StartTime: start, EndTime: end},
 	}
@@ -237,7 +237,7 @@ func TestGenerate_RefusesWithoutAccountOrAllocation(t *testing.T) {
 		code   string
 	}{
 		{"no cluster account", func(c *fakeCore) { c.account = nil }, "no_cluster_account"},
-		{"account not approved", func(c *fakeCore) { c.account.ApprovalStatus = models.ClusterAccountPending }, "cluster_account_not_ready"},
+		{"account not approved", func(c *fakeCore) { c.account.ApprovalStatus = models.ComputeClusterUserPending }, "cluster_account_not_ready"},
 		{"account not provisioned", func(c *fakeCore) { c.account.ProvisionedAt = nil }, "cluster_account_not_ready"},
 		{"no memberships", func(c *fakeCore) { c.memberships = nil }, "no_active_allocation"},
 		{"membership expired", expired, "no_active_allocation"},

@@ -31,6 +31,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -97,7 +98,7 @@ func TestStorageLifecycle(t *testing.T) {
 	projectPath, siblingPath := "/project/"+*a.PosixGroup, "/project/"+*sibling.PosixGroup
 	ensure := func() int {
 		before := countRows(t, database, storageCreates)
-		if _, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil {
+		if _, err := svc.SyncStorages(ctx(), cluster.ID); err != nil {
 			t.Fatalf("ensure: %v", err)
 		}
 		return countRows(t, database, storageCreates) - before
@@ -144,6 +145,9 @@ func TestStorageLifecycle(t *testing.T) {
 	if err := svc.UpdateStorage(ctx(), byPath()["/home/jdoe"].ID, 500, &until, "", "admin"); err != nil || ensure() != 0 || byPath()["/home/jdoe"].QuotaBytes != 500 {
 		t.Fatalf("administrator's quota: err=%v, want it to stand and nothing to change when storages are ensured again", err)
 	}
+	if err := svc.DeleteComputeClusterUser(ctx(), cu.ID); !errors.Is(err, ErrInUse) {
+		t.Fatalf("deleting an account with an ACTIVE membership on an ACTIVE allocation: got %v, want ErrInUse", err)
+	}
 
 	setAllocationStatus(models.INACTIVE)
 	if got := byPath(); got[projectPath+"/jdoe"].Status != "pending_deletion" || got[siblingPath].Status != "active" {
@@ -164,7 +168,9 @@ func TestStorageLifecycle(t *testing.T) {
 	if err := svc.UpdateStorage(ctx(), byPath()[siblingPath].ID, 1, &until, "", "admin"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("quota on a storage without one of its own: got %v, want ErrNotFound", err)
 	}
-	err = errors.Join(svc.DeleteComputeClusterUser(ctx(), cu.ID), svc.DeleteComputeAllocation(ctx(), sibling.ID))
+	err = changeAllocationStatus(svc, sibling.ID, models.INACTIVE)
+	clearPending(t, svc, SlurmPendingAllocation, sibling.ID) // SLURM has applied the revoke
+	err = errors.Join(err, svc.DeleteComputeClusterUser(ctx(), cu.ID), svc.DeleteComputeAllocation(ctx(), sibling.ID))
 	if got := byPath(); err != nil || got["/home/jdoe"].Status != "pending_deletion" || got[siblingPath].Status != "pending_deletion" ||
 		got["/home/jdoe"].ComputeClusterUserID != nil || got[siblingPath].AllocationID != nil {
 		t.Fatalf("deleting the account and an allocation: err=%v got=%+v, want theirs retired and unlinked", err, got)
@@ -210,7 +216,7 @@ func TestStoragesFollowProvisioning(t *testing.T) {
 	err = svc.MarkComputeClusterUserProvisioned(ctx(), late.ID)
 	join(late)
 	check("a provisioned account joining", err, "/home/early", "/home/late", projectPath, projectPath+"/early", projectPath+"/late")
-	if desired, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil || len(desired) != 5 || countRows(t, database, storageCreates) != 5 {
+	if desired, err := svc.SyncStorages(ctx(), cluster.ID); err != nil || len(desired) != 5 || countRows(t, database, storageCreates) != 5 {
 		t.Fatalf("ensuring again: err=%v desired=%d, want the five storages and nothing made or changed", err, len(desired))
 	}
 }
@@ -232,7 +238,7 @@ func TestMemberStorageSurvivesConcurrentProvisioning(t *testing.T) {
 			if err := svc.memberships.Create(ctx(), tx, m); err != nil {
 				return err
 			}
-			return svc.ensureStoragesTx(ctx(), tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID})
+			return svc.syncStoragesTx(ctx(), tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID})
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -323,7 +329,7 @@ func TestClaimedStorageHolders(t *testing.T) {
 			t.Fatalf("after %q: %s, want %s", step.status, got, step.want)
 		}
 	}
-	if _, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil {
+	if _, err := svc.SyncStorages(ctx(), cluster.ID); err != nil {
 		t.Fatalf("ensure: %v", err)
 	}
 	if got, _ := storage("/unclaimed/x"); got != "active" {
@@ -376,5 +382,48 @@ func TestClaimedStorageNames(t *testing.T) {
 	}
 	if n := countRows(t, database, `SELECT COUNT(*) FROM storages WHERE path IN ('/trial-home/', '/trial-home/..', '/trial-home/a/b')`); n != 0 {
 		t.Fatalf("bad names gave %d storages, want none", n)
+	}
+}
+
+// Make sure a provisioned account's home is active only while its user is ACTIVE, including after onboarding and a merge.
+func TestStorages_ActiveOnlyWhileUserIsActive(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	cluster := newStorageCluster(t, svc, homeProjectMember)
+	home := func() string {
+		list, err := svc.ListStorages(ctx())
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		for _, st := range list {
+			if st.Path == "/home/jdoe" {
+				return st.Status
+			}
+		}
+		return ""
+	}
+	aup := seedPublishedAgreement(t, svc, seedAgreementManager(t, database), "1.0")
+	email := "jdoe-" + uuid.NewString()[:8] + "@example.edu"
+	pending := seedPendingUserWithEmail(t, database, email)
+	cu, err := svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: pending, LocalUsername: "custos-jdoe"})
+	if err == nil {
+		err = svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID)
+	}
+	if err != nil {
+		t.Fatalf("provision account: %v", err)
+	}
+	claims := &identity.Claims{Sub: "sub-" + uuid.NewString(), Email: email, EmailVerified: true}
+	if _, err := svc.CompleteOnboarding(ctx(), claims, OnboardingInput{Username: "jdoe", AcceptedIDs: []string{aup.ID}}); err != nil || home() != "active" {
+		t.Fatalf("onboarding: err=%v home=%q, want active", err, home())
+	}
+
+	survivor := seedPendingUserWithEmail(t, database, "survivor-"+uuid.NewString()[:8]+"@example.edu")
+	if _, err := svc.MergeUsers(ctx(), survivor, pending); err != nil || home() != "active" {
+		t.Fatalf("merging into a PENDING survivor: err=%v home=%q, want active", err, home())
+	}
+	for _, status := range []models.UserStatus{models.UserInactive, models.UserActive} {
+		if _, err := svc.UpdateUserStatus(ctx(), survivor, status); err != nil || (home() == "active") != (status == models.UserActive) {
+			t.Fatalf("setting the user %s: err=%v home=%q, want it active only while ACTIVE", status, err, home())
+		}
 	}
 }

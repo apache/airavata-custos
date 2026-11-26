@@ -39,6 +39,11 @@ const modules: ModuleSpec[] = [
     input: path.join(repoRoot, "connectors", "Analytics", "api", "analytics.openapi.yaml"),
     output: path.join(webRoot, "src", "generated", "analytics"),
   },
+  {
+    name: "slurm",
+    input: path.join(repoRoot, "connectors", "SLURM", "api", "slurm.openapi.yaml"),
+    output: path.join(webRoot, "src", "generated", "slurm"),
+  },
 ];
 
 async function main() {

@@ -17,7 +17,7 @@
 
 "use client";
 
-import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -39,11 +39,19 @@ const RESOURCE_TYPES = ["cpu", "gres/gpu"] as const;
 export type ResourceDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  clusters: ComputeCluster[];
+  clusterId: string;
+  partition: string;
   resource: ComputeAllocationResourceSummary | null;
 };
 
-export function ResourceDialog({ open, onOpenChange, clusters, resource }: ResourceDialogProps) {
+// Bills one partition; the record takes the partition's name.
+export function ResourceDialog({
+  open,
+  onOpenChange,
+  clusterId,
+  partition,
+  resource,
+}: ResourceDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -53,34 +61,36 @@ export function ResourceDialog({ open, onOpenChange, clusters, resource }: Resou
             A partition or TRES that allocations can be granted on, and its SU rate.
           </DialogDescription>
         </DialogHeader>
-        <ResourceForm clusters={clusters} resource={resource} onDone={() => onOpenChange(false)} />
+        <ResourceForm
+          clusterId={clusterId}
+          partition={partition}
+          resource={resource}
+          onDone={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
 function ResourceForm({
-  clusters,
+  clusterId,
+  partition,
   resource,
   onDone,
 }: {
-  clusters: ComputeCluster[];
+  clusterId: string;
+  partition: string;
   resource: ComputeAllocationResourceSummary | null;
   onDone: () => void;
 }) {
   const save = useSaveResource();
   const current = useEffectiveRate(resource?.rate_count ? resource.id : undefined).data?.rate;
-  const [name, setName] = React.useState(resource?.name ?? "");
   const [type, setType] = React.useState<string>(resource?.resource_type ?? RESOURCE_TYPES[0]);
-  const [clusterId, setClusterId] = React.useState(resource?.compute_cluster_id ?? "");
   // Null until typed, so a rate that loads after opening still shows.
   const [rate, setRate] = React.useState<string | null>(null);
-  const cluster = clusterId || clusters[0]?.id || "";
   const rateText = rate ?? (current === undefined ? "" : String(current));
   const newRate = rateText !== "" && Number(rateText) !== current ? Number(rateText) : undefined;
-  const ready = Boolean(
-    name.trim() && cluster && (rateText === "" ? resource : Number(rateText) >= 0),
-  );
+  const ready = rateText === "" ? Boolean(resource) : Number(rateText) >= 0;
 
   return (
     <form
@@ -91,9 +101,9 @@ function ResourceForm({
           {
             id: resource?.id,
             resource: {
-              name: name.trim(),
+              name: partition,
               resource_type: type,
-              compute_cluster_id: cluster,
+              compute_cluster_id: clusterId,
             },
             rate: newRate,
           },
@@ -106,15 +116,6 @@ function ResourceForm({
         );
       }}
     >
-      <div className="space-y-2">
-        <Label htmlFor="resource-name">Name</Label>
-        <Input
-          id="resource-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="gpu-a100"
-        />
-      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="resource-type">Type</Label>
@@ -143,23 +144,6 @@ function ResourceForm({
           />
         </div>
       </div>
-      {clusters.length > 1 ? (
-        <div className="space-y-2">
-          <Label htmlFor="resource-cluster">Cluster</Label>
-          <select
-            id="resource-cluster"
-            value={cluster}
-            onChange={(e) => setClusterId(e.target.value)}
-            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-          >
-            {clusters.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
       {save.error ? <p className="text-destructive text-sm">{save.error.message}</p> : null}
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>

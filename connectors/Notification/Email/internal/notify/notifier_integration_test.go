@@ -90,9 +90,9 @@ func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 		return user.ID
 	}
 	admin := newUser("Ada", "aadmin")
-	account := func(first, username string, status models.ClusterAccountApproval) *models.ComputeClusterUser {
+	account := func(first, username string, status models.ComputeClusterUserApproval) *models.ComputeClusterUser {
 		cu := &models.ComputeClusterUser{ComputeClusterID: cluster.ID, UserID: newUser(first, username), LocalUsername: username, ApprovalStatus: status}
-		if status == models.ClusterAccountApproved {
+		if status == models.ComputeClusterUserApproved {
 			cu.ReviewedBy = &admin
 		}
 		cu, err := svc.CreateComputeClusterUser(ctx, cu)
@@ -101,12 +101,12 @@ func TestNotifier_SendsOneEmailPerAccountEvent(t *testing.T) {
 		}
 		return cu
 	}
-	account("Jane", "jdoe", models.ClusterAccountPending)
-	john := account("John", "johndoe", models.ClusterAccountPending)
+	account("Jane", "jdoe", models.ComputeClusterUserPending)
+	john := account("John", "johndoe", models.ComputeClusterUserPending)
 	if _, err := svc.DenyComputeClusterUser(ctx, john.ID, admin, "Not on the allocation."); err != nil {
 		t.Fatal(err)
 	}
-	amy := account("Amy", "amydoe", models.ClusterAccountApproved)
+	amy := account("Amy", "amydoe", models.ComputeClusterUserApproved)
 	if err := svc.MarkComputeClusterUserProvisioned(ctx, amy.ID); err != nil {
 		t.Fatal(err)
 	}

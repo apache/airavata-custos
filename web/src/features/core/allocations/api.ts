@@ -25,6 +25,7 @@ import {
   type ComputeAllocationUsage,
   zGetComputeAllocationChangeRequestsByIdEventsResponse,
   zGetComputeAllocationsByIdDiffsResponse,
+  zGetComputeAllocationsByIdQosResponse,
   zGetComputeAllocationsByIdResourcesResponse,
   zGetComputeAllocationsByIdResponse,
   zGetComputeAllocationsByIdUsagesResponse,
@@ -85,6 +86,15 @@ export async function listAllocationResources(id: string): Promise<ComputeAlloca
   return zGetComputeAllocationsByIdResourcesResponse.parse(raw ?? []);
 }
 
+export async function getAllocationQoS(id: string): Promise<string[]> {
+  const raw = await apiFetch(`/compute-allocations/${id}/qos`);
+  return zGetComputeAllocationsByIdQosResponse.parse(raw).map((q) => q.name);
+}
+
+export async function setAllocationQoS(id: string, qos: string[]): Promise<void> {
+  await apiFetch(`/compute-allocations/${id}/qos`, { method: "PUT", body: { qos } });
+}
+
 export async function deleteAllocation(id: string): Promise<void> {
   await apiFetch(`/compute-allocations/${id}`, { method: "DELETE" });
 }
@@ -125,8 +135,18 @@ export async function addMember(
   return zPostComputeAllocationMembershipsResponse.parse(raw);
 }
 
-export async function removeMember(id: string): Promise<void> {
-  await apiFetch(`/compute-allocation-memberships/${id}`, { method: "DELETE" });
+export async function setMemberStatus(id: string, status: "ACTIVE" | "INACTIVE") {
+  await apiFetch(`/compute-allocation-memberships/${id}/status`, {
+    method: "PUT",
+    body: { membership_status: status },
+  });
+}
+
+export async function setAllocationStatus(id: string, status: "ACTIVE" | "INACTIVE") {
+  await apiFetch("/compute-allocation-diffs", {
+    method: "POST",
+    body: { compute_allocation_id: id, diff_type: "ALLOCATION_STATUS_CHANGE", status },
+  });
 }
 
 export async function listChangeRequests(

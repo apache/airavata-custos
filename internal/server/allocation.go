@@ -76,6 +76,7 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}
 // @Router	/compute-allocations/{id} [delete]
 func (s *Server) deleteComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocation(r.Context(), r.PathValue("id")); err != nil {
@@ -227,4 +228,54 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 		rows = []models.ComputeAllocation{}
 	}
 	common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: rows, Total: total})
+}
+
+type allocationQoSRequest struct {
+	QoS []string `json:"qos"`
+}
+
+// @Summary	List the QoS a compute allocation grants
+// @Tags	Compute Allocations
+// @Security	BearerAuth
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{array}	models.ComputeClusterQoS
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/qos [get]
+func (s *Server) listComputeAllocationQoS(w http.ResponseWriter, r *http.Request) {
+	alloc, err := s.svc.GetComputeAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	granted, err := s.svc.ListComputeClusterQoS(r.Context(), alloc.ComputeClusterID, alloc.ID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, granted)
+}
+
+// @Summary	Set the QoS a compute allocation grants
+// @Description	Replaces the allocation's QoS with the named QoS of its cluster.
+// @Tags	Compute Allocations
+// @Security	BearerAuth
+// @Accept	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	request	body	allocationQoSRequest	true	"QoS names"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/qos [put]
+func (s *Server) setComputeAllocationQoS(w http.ResponseWriter, r *http.Request) {
+	var body allocationQoSRequest
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.svc.SetComputeAllocationQoS(r.Context(), r.PathValue("id"), body.QoS); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

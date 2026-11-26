@@ -45,13 +45,13 @@ test.describe("allocation members tab", () => {
       timeout: 15_000,
     });
 
-    // Remove
-    const removeButtons = page.getByRole("button", { name: /^remove /i });
-    const initialCount = await removeButtons.count();
+    // Deactivate
+    const deactivateButtons = page.getByRole("button", { name: /^deactivate /i });
+    const initialCount = await deactivateButtons.count();
     expect(initialCount).toBeGreaterThan(0);
-    await removeButtons.first().click();
+    await deactivateButtons.first().click();
     await expect
-      .poll(async () => removeButtons.count(), { timeout: 15_000 })
+      .poll(async () => deactivateButtons.count(), { timeout: 15_000 })
       .toBeLessThan(initialCount);
   });
 });

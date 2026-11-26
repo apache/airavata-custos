@@ -65,7 +65,7 @@ func (s *pgProjectMembershipStore) IsParticipant(ctx context.Context, projectID,
 	return participant, nil
 }
 
-func (s *pgProjectMembershipStore) Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
+func (s *pgProjectMembershipStore) SetRole(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO project_memberships (project_id, user_id, role, added_time)
 		 VALUES ($1, $2, $3, $4)

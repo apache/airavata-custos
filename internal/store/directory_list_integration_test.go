@@ -142,7 +142,7 @@ func TestProjectListOrigination(t *testing.T) {
 }
 
 // The cluster account list narrows by role and identity source like the user list.
-func TestClusterAccountListFilters(t *testing.T) {
+func TestComputeClusterUserListFilters(t *testing.T) {
 	seedDirectory(t)
 	accounts := NewComputeClusterUserStore(setupTestDB(t))
 	for _, c := range []struct {

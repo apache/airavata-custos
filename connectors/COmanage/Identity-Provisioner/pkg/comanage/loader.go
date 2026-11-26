@@ -45,7 +45,7 @@ const Type = "comanage-identity-provisioner"
 // LoadConnector wires the subscriber to the event bus. Reads YAML config first
 // and falls back to environment variables. If neither yields a complete
 // config, it logs and returns nil without registering.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	cfg, ok := loadConfigFromConnectorConfig(connectorConfig)
 	if !ok {
 		cfg, ok = loadConfigFromEnv()
@@ -56,6 +56,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		}
 	}
 	httpClient := client.New(cfg)
+	health.Probe(ctx, wg, Type, Type, httpClient.Ping, health.ProbeInterval)
 	subscribers.NewSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers(Type)
 	slog.Info("comanage provisioner: subscriber registered",
 		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.CustosClusterID)

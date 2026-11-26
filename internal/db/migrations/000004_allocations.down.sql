@@ -25,4 +25,5 @@ DROP TABLE IF EXISTS compute_allocation_diffs;
 DROP TABLE IF EXISTS compute_allocation_resource_rates;
 DROP TABLE IF EXISTS compute_allocation_resource_mappings;
 DROP TABLE IF EXISTS compute_allocation_resources;
+DROP TABLE IF EXISTS compute_allocation_qos;
 DROP TABLE IF EXISTS compute_allocations;

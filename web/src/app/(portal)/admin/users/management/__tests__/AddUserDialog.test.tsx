@@ -78,7 +78,7 @@ describe("AddUserDialog", () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ username: "jkellett" }));
   });
 
-  it("submits a portal admin without a cluster account", () => {
+  it("submits a portal admin without a compute cluster user", () => {
     const { onSubmit } = renderDialog();
     fireEvent.click(screen.getByRole("radio", { name: /Admin/ }));
     fireEvent.change(screen.getByLabelText("Email"), {

@@ -15,27 +15,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operations
+import type { ClusterView, Conflict } from "@/generated/slurm/zod.gen";
+import { http, HttpResponse } from "msw";
 
-import (
-	"context"
-	"fmt"
+const CLUSTER_VIEW = "*/api/v1/connectors/slurm/clusters/:id";
 
-	"github.com/apache/airavata-custos/pkg/models"
-)
+// Every cluster reads in sync, with no partitions or system accounts.
+const inSync: ClusterView = { partitions: [], system_accounts: [], conflicts: [] };
 
-// RemoveAllocationGroup unbinds a deleted allocation's CoGroup from the UnixCluster, then deletes it.
-func (o *Orchestrator) RemoveAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
-	if a.PosixGroup == nil {
-		return nil
-	}
-	groupID, err := o.c.FindCoGroupByName(*a.PosixGroup)
-	if err != nil || groupID == 0 {
-		return err
-	}
-	if err := o.removeCoGroup(groupID); err != nil {
-		return err
-	}
-	o.auditAllocation(ctx, a, "ComanageAllocationGroupDeleted", fmt.Sprintf("group=%s co_group_id=%d", *a.PosixGroup, groupID))
-	return nil
-}
+// Overrides parts of the cluster view; for server.use.
+export const slurmView = (view: Partial<ClusterView>) =>
+  http.get(CLUSTER_VIEW, () => HttpResponse.json({ ...inSync, ...view }));
+
+export const slurmConflicts = (conflicts: Conflict[]) => slurmView({ conflicts });
+
+export const slurmHandlers = [
+  http.get(CLUSTER_VIEW, () => HttpResponse.json(inSync)),
+  http.post(`${CLUSTER_VIEW}/conflicts/resolve`, () => new HttpResponse(null, { status: 204 })),
+];

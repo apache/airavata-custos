@@ -15,7 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type ClusterAccountResponse, zClusterAccountResponse } from "@/generated/core/zod.gen";
+import {
+  type ComputeClusterUserResponse,
+  zComputeClusterUserResponse,
+} from "@/generated/core/zod.gen";
 import { projectsHandlers } from "@/mocks/handlers/projects";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -24,7 +27,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import fixture from "../__fixtures__/cluster-accounts.json";
 import { ClusterAccountsTable } from "../components/ClusterAccountsTable";
 
-const rows = zClusterAccountResponse.array().parse(fixture);
+const rows = zComputeClusterUserResponse.array().parse(fixture);
 const pending = rows.filter((r) => r.approval_status === "PENDING");
 
 const server = setupServer(...projectsHandlers);
@@ -32,7 +35,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function byId(id: string): ClusterAccountResponse {
+function byId(id: string): ComputeClusterUserResponse {
   const row = rows.find((r) => r.id === id);
   if (!row) throw new Error(`no fixture ${id}`);
   return row;
@@ -44,7 +47,11 @@ function rowOf(text: string): HTMLTableRowElement {
   return row;
 }
 
-function renderTable(canReview: boolean, shown: ClusterAccountResponse[] = rows, grouped = false) {
+function renderTable(
+  canReview: boolean,
+  shown: ComputeClusterUserResponse[] = rows,
+  grouped = false,
+) {
   const onApprove = vi.fn();
   const onDeny = vi.fn();
   const onApproveAll = vi.fn();
@@ -137,7 +144,7 @@ describe("ClusterAccountsTable", () => {
     expect(buttons).toHaveLength(1);
 
     fireEvent.click(buttons[0] as HTMLElement);
-    const ids = (onApproveAll.mock.calls[0]?.[0] as ClusterAccountResponse[]).map((r) => r.id);
+    const ids = (onApproveAll.mock.calls[0]?.[0] as ComputeClusterUserResponse[]).map((r) => r.id);
     expect(ids).toEqual(["ccu-pending-1", "ccu-pending-2", "ccu-pending-3"]);
   });
 });

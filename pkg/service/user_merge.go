@@ -29,16 +29,16 @@ import (
 
 // MergeUsers consolidates the retiring user into the surviving user. All
 // identity-forward state moves to the survivor; historical truth stays in
-// place. The retiring user is flipped to status=MERGED. All work happens in a
-// single transaction.
+// place. The retiring user is flipped to status=MERGED, and a PENDING survivor
+// of an ACTIVE user becomes ACTIVE. All work happens in a single transaction.
 //
 // Moved to survivor (duplicates on the retiring user are dropped first):
 //   - user_identities
-//   - compute_cluster_users
+//   - compute_cluster_users (on a shared cluster, the survivor's unless only the retiring user's is provisioned)
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
 //
-// A dropped cluster account publishes compute_cluster_user::delete, so it is
+// A deleted compute cluster user publishes compute_cluster_user::delete, so it is
 // also removed outside Custos.
 //
 // Left in place (who actually did the thing):
@@ -90,8 +90,6 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 			ErrInvalidInput, retiringID, retiring.Status)
 	}
 
-	// The reassigning below deletes the retiring user's cluster account on every
-	// cluster where the survivor already has one. Those need a delete event.
 	retiringAccounts, err := s.clusterUsers.FindByUserTx(ctx, tx, retiringID)
 	if err != nil {
 		return nil, fmt.Errorf("list retiring cluster users: %w", err)
@@ -100,28 +98,32 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	if err != nil {
 		return nil, fmt.Errorf("list surviving cluster users: %w", err)
 	}
-	survivorClusters := make(map[string]bool, len(survivorAccounts))
-	for _, cu := range survivorAccounts {
-		survivorClusters[cu.ComputeClusterID] = true
-	}
+	deletedAccounts := ComputeClusterUsersDeletedByMerge(retiringAccounts, survivorAccounts)
 
 	if err := func() error {
+		// The survivor takes the retiring user's sign-in identity, so it is ACTIVE if either was.
+		if retiring.Status == models.UserActive && survivor.Status != models.UserActive {
+			if err := s.users.UpdateStatus(ctx, tx, survivingID, models.UserActive); err != nil {
+				return err
+			}
+			survivor.Status = models.UserActive
+		}
 		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user identities: %w", err)
 		}
-		if err := s.clusterUsers.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
-			return fmt.Errorf("reassign compute cluster users: %w", err)
-		}
-		for _, cu := range retiringAccounts {
-			if !survivorClusters[cu.ComputeClusterID] {
-				continue
+		for _, cu := range deletedAccounts {
+			if err := s.clusterUsers.Delete(ctx, tx, cu.ID); err != nil {
+				return err
 			}
-			if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID}); err != nil {
+			if err := s.syncStoragesTx(ctx, tx, store.StorageScope{ClusterID: cu.ComputeClusterID}); err != nil {
 				return err
 			}
 			if err := s.eventBus.Publish(ctx, tx, events.ComputeClusterUserDeleteEvent, cu); err != nil {
 				return err
 			}
+		}
+		if err := s.clusterUsers.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
+			return fmt.Errorf("reassign compute cluster users: %w", err)
 		}
 		if err := s.projs.ReassignPI(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign project PI: %w", err)
@@ -145,6 +147,27 @@ func (s *Service) MergeUsersTx(ctx context.Context, tx *sql.Tx, survivingID, ret
 	}
 	s.InvalidateAllIdentities()
 	return survivor, nil
+}
+
+// ComputeClusterUsersDeletedByMerge returns, per cluster both users share, the retiring user's account unless only it is provisioned.
+func ComputeClusterUsersDeletedByMerge(retiringAccounts, survivorAccounts []models.ComputeClusterUser) []models.ComputeClusterUser {
+	survivorAccountByCluster := make(map[string]models.ComputeClusterUser, len(survivorAccounts))
+	for _, cu := range survivorAccounts {
+		survivorAccountByCluster[cu.ComputeClusterID] = cu
+	}
+	var deletedAccounts []models.ComputeClusterUser
+	for _, cu := range retiringAccounts {
+		survivorAccount, sameCluster := survivorAccountByCluster[cu.ComputeClusterID]
+		if !sameCluster {
+			continue
+		}
+		if cu.ProvisionedAt == nil || survivorAccount.ProvisionedAt != nil {
+			deletedAccounts = append(deletedAccounts, cu)
+		} else {
+			deletedAccounts = append(deletedAccounts, survivorAccount)
+		}
+	}
+	return deletedAccounts
 }
 
 // canBeMerged returns true for the user statuses eligible for merging:

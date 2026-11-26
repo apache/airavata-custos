@@ -229,7 +229,7 @@ func TestServiceAccount_AdminRoleCannotManageServiceAccounts(t *testing.T) {
 
 	var role *models.Role
 	if err := svc.inTx(ctx(), func(tx *sql.Tx) (err error) {
-		role, err = svc.ensureAdminRoleTx(ctx(), tx)
+		role, err = svc.findOrCreateAdminRoleTx(ctx(), tx)
 		return err
 	}); err != nil {
 		t.Fatal(err)

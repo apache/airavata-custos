@@ -194,7 +194,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		// Created ahead of the main transaction so the user check below can see it.
 		// If the rest fails, the empty system org left behind, which is harmless.
 		if err := s.inTx(ctx, func(tx *sql.Tx) error {
-			_, err := s.ensureSystemOrgTx(ctx, tx)
+			_, err := s.findOrCreateSystemOrgTx(ctx, tx)
 			return err
 		}); err != nil {
 			return nil, err
@@ -221,7 +221,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		UserID:           created.ID,
 		LocalUsername:    in.Username,
 		AccessLevel:      models.ClusterAccessUser,
-		ApprovalStatus:   models.ClusterAccountApproved,
+		ApprovalStatus:   models.ComputeClusterUserApproved,
 		ReviewedAt:       &reviewedAt,
 		ReviewedBy:       &in.OnboardedBy,
 	}
@@ -235,7 +235,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		}
 
 		if in.PortalAdmin {
-			role, err := s.ensureAdminRoleTx(ctx, tx)
+			role, err := s.findOrCreateAdminRoleTx(ctx, tx)
 			if err != nil {
 				return err
 			}
@@ -416,7 +416,7 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 		}
 
 		if user.Type == models.UserTypeClusterLocal && in.Username != "" {
-			if err := s.renameClusterAccountsTx(ctx, tx, user, in.Username); err != nil {
+			if err := s.renameComputeClusterUsersTx(ctx, tx, user, in.Username); err != nil {
 				return err
 			}
 		}
@@ -430,7 +430,7 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 			}
 		}
 		user.Status = models.UserActive
-		return s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user)
+		return s.publishUserTx(ctx, tx, events.UserOnboardedEvent, user)
 	}); err != nil {
 		return nil, err
 	}
@@ -455,7 +455,7 @@ func (s *Service) lockUnboundPendingTx(ctx context.Context, tx *sql.Tx, id strin
 }
 
 // A locked name is skipped, not refused, so onboarding still finishes.
-func (s *Service) renameClusterAccountsTx(ctx context.Context, tx *sql.Tx, user *models.User, name string) error {
+func (s *Service) renameComputeClusterUsersTx(ctx context.Context, tx *sql.Tx, user *models.User, name string) error {
 	accounts, err := s.clusterUsers.FindByUserTx(ctx, tx, user.ID)
 	if err != nil {
 		return fmt.Errorf("lookup cluster accounts: %w", err)

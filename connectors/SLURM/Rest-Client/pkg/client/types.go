@@ -67,6 +67,9 @@ type Association struct {
 	// QoS is the list of QoS names permitted for this association
 	// (e.g. ["normal"]). Marshaled to the top-level `qos` field on the wire.
 	QoS []string `json:"-"`
+	// DefaultQoS is the QoS a job gets without naming one; it must be in QoS.
+	// Empty on write leaves it as SLURM has it. Wire field: `default.qos`.
+	DefaultQoS string `json:"-"`
 	// Limits is a logical grouping — slurmrestd v0.0.41 actually encodes limits
 	// in a nested `max` object per-association. We translate between the two
 	// shapes in Marshal/UnmarshalJSON below.
@@ -134,6 +137,12 @@ type assocWire struct {
 	ID            int64     `json:"id_association,omitempty"`
 	QoS           []string  `json:"qos,omitempty"`
 	Max           *assocMax `json:"max,omitempty"`
+
+	Default *assocDefault `json:"default,omitempty"`
+}
+
+type assocDefault struct {
+	QoS string `json:"qos,omitempty"`
 }
 
 func (a Association) MarshalJSON() ([]byte, error) {
@@ -147,19 +156,13 @@ func (a Association) MarshalJSON() ([]byte, error) {
 		ID:            a.ID,
 		QoS:           a.QoS,
 	}
-	m := &assocMax{}
-	touched := false
-	if a.Limits.GrpJobs != nil || a.Limits.MaxWallPM != nil {
-		per := &assocMaxJobsPer{}
-		if a.Limits.GrpJobs != nil {
-			per.Count = numPtr(a.Limits.GrpJobs)
-		}
-		if a.Limits.MaxWallPM != nil {
-			per.WallClock = numPtr(a.Limits.MaxWallPM)
-		}
-		m.Jobs = &assocMaxJobs{Per: per}
-		touched = true
+	if a.DefaultQoS != "" {
+		w.Default = &assocDefault{QoS: a.DefaultQoS}
 	}
+	// slurmrestd keeps a scalar limit the payload leaves out, so an unset one is sent as infinite.
+	// An omitted TRES list already clears.
+	w.Max = &assocMax{Jobs: &assocMaxJobs{Per: &assocMaxJobsPer{
+		Count: limitOrInfinite(a.Limits.GrpJobs), WallClock: limitOrInfinite(a.Limits.MaxWallPM)}}}
 	if len(a.Limits.GrpTRES) > 0 || len(a.Limits.GrpTRESMins) > 0 {
 		t := &assocMaxTRES{}
 		if len(a.Limits.GrpTRES) > 0 {
@@ -168,13 +171,17 @@ func (a Association) MarshalJSON() ([]byte, error) {
 		if len(a.Limits.GrpTRESMins) > 0 {
 			t.Group = &assocMaxTRESGp{Minutes: a.Limits.GrpTRESMins}
 		}
-		m.TRES = t
-		touched = true
-	}
-	if touched {
-		w.Max = m
+		w.Max.TRES = t
 	}
 	return json.Marshal(w)
+}
+
+// limitOrInfinite sends an unset limit as infinite so an update clears it.
+func limitOrInfinite(n *int64) *SlurmNumber {
+	if n == nil {
+		return &SlurmNumber{Set: true, Infinite: true}
+	}
+	return numPtr(n)
 }
 
 func (a *Association) UnmarshalJSON(data []byte) error {
@@ -190,6 +197,10 @@ func (a *Association) UnmarshalJSON(data []byte) error {
 	a.IsDefault = w.IsDefault
 	a.ID = w.ID
 	a.QoS = w.QoS
+	a.DefaultQoS = ""
+	if w.Default != nil {
+		a.DefaultQoS = w.Default.QoS
+	}
 	a.Limits = AssocLimits{}
 	if w.Max != nil {
 		if w.Max.Jobs != nil && w.Max.Jobs.Per != nil {

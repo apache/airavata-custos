@@ -152,10 +152,10 @@ func (s *pgComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *m
 	return err
 }
 
-// clusterAccountListFrom links each account to the user's newest allocation on
+// computeClusterUserListFrom links each account to the user's newest allocation on
 // the same cluster.
 // TODO The request does not store its allocation, so this is inferred.
-const clusterAccountListFrom = `
+const computeClusterUserListFrom = `
 	  FROM compute_cluster_users cu
 	  JOIN users u            ON u.id = cu.user_id
 	  JOIN compute_clusters c ON c.id = cu.compute_cluster_id
@@ -173,10 +173,10 @@ const clusterAccountListFrom = `
 	   AND ($3 = '' OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = cu.user_id AND ur.role_id = $3))
 	   AND ($4 = '' OR EXISTS (SELECT 1 FROM user_identities ui WHERE ui.user_id = cu.user_id AND ui.source = $4))`
 
-func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
+func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, status models.ComputeClusterUserApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error) {
 	// Pending is worked one allocation at a time, so its rows come grouped.
 	order := `cu.created_at DESC, cu.id`
-	if status == models.ClusterAccountPending {
+	if status == models.ComputeClusterUserPending {
 		order = `a.id IS NULL, a.title, a.name, a.id, cu.created_at, cu.id`
 	}
 	var rows []ComputeClusterUserWithUser
@@ -186,7 +186,7 @@ func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, st
 		        u.first_name, u.last_name, u.email AS user_email, c.name AS cluster_name,
 		        NULLIF(TRIM(CONCAT_WS(' ', r.first_name, r.last_name)), '') AS reviewer_name,
 		        a.id AS allocation_id, a.name AS allocation_name, a.project_id`+
-			clusterAccountListFrom+`
+			computeClusterUserListFrom+`
 		  ORDER BY `+order+`
 		  LIMIT $5 OFFSET $6`,
 		status, filter.Query, filter.RoleID, filter.IdentitySource, limit, offset)
@@ -194,13 +194,13 @@ func (s *pgComputeClusterUserStore) ListByApprovalStatus(ctx context.Context, st
 		return nil, 0, err
 	}
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+clusterAccountListFrom, status, filter.Query, filter.RoleID, filter.IdentitySource); err != nil {
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*)`+computeClusterUserListFrom, status, filter.Query, filter.RoleID, filter.IdentitySource); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
 }
 
-func (s *pgComputeClusterUserStore) Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error {
+func (s *pgComputeClusterUserStore) Review(ctx context.Context, tx *sql.Tx, id string, status models.ComputeClusterUserApproval, reviewedBy, note string, at time.Time) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_cluster_users
 		    SET approval_status = $1, reviewed_by = $2, reviewed_at = $3, review_note = NULLIF($4, '')
@@ -225,19 +225,9 @@ func (s *pgComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql
 }
 
 func (s *pgComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM compute_cluster_users
-		 WHERE user_id = $1
-		   AND compute_cluster_id IN (
-		       SELECT compute_cluster_id FROM (
-		           SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $2
-		       ) AS s
-		   )`,
-		fromUserID, toUserID); err != nil {
-		return err
-	}
 	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_cluster_users SET user_id = $1 WHERE user_id = $2`,
+		`UPDATE compute_cluster_users SET user_id = $1 WHERE user_id = $2
+		    AND compute_cluster_id NOT IN (SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = $1)`,
 		toUserID, fromUserID)
 	return err
 }

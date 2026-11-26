@@ -72,12 +72,12 @@ definitions:
       trace_id:
         type: string
     type: object
-  CallerClusterAccount:
+  CallerComputeClusterUser:
     properties:
       access_level:
         $ref: '#/definitions/ClusterAccessLevel'
       approval_status:
-        $ref: '#/definitions/ClusterAccountApproval'
+        $ref: '#/definitions/ComputeClusterUserApproval'
       cluster_name:
         type: string
       compute_cluster_id:
@@ -97,7 +97,7 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the cluster account.
+        description: The admin who approved or denied the compute cluster user.
         type: string
       user_id:
         type: string
@@ -106,7 +106,7 @@ definitions:
     properties:
       cluster_accounts:
         items:
-          $ref: '#/definitions/CallerClusterAccount'
+          $ref: '#/definitions/CallerComputeClusterUser'
         type: array
       consent:
         $ref: '#/definitions/consentView'
@@ -142,69 +142,6 @@ definitions:
     x-enum-varnames:
     - ClusterAccessUser
     - ClusterAccessAdmin
-  ClusterAccountApproval:
-    enum:
-    - PENDING
-    - APPROVED
-    - DENIED
-    type: string
-    x-enum-varnames:
-    - ClusterAccountPending
-    - ClusterAccountApproved
-    - ClusterAccountDenied
-  ClusterAccountListResponse:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/ClusterAccountResponse'
-        type: array
-      total:
-        type: integer
-    type: object
-  ClusterAccountResponse:
-    properties:
-      access_level:
-        $ref: '#/definitions/ClusterAccessLevel'
-      allocation_id:
-        type: string
-      allocation_name:
-        type: string
-      approval_status:
-        $ref: '#/definitions/ClusterAccountApproval'
-      cluster_name:
-        type: string
-      compute_cluster_id:
-        type: string
-      display_name:
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      local_username:
-        description: The username of the user on the compute cluster, which may be
-          different from their Airavata Custos username.
-        type: string
-      project_id:
-        type: string
-      provisioned_at:
-        description: When the account was provisioned into the registry; nil until
-          then.
-        type: string
-      requested_at:
-        type: string
-      review_note:
-        type: string
-      reviewed_at:
-        type: string
-      reviewed_by:
-        description: The admin who approved or denied the cluster account.
-        type: string
-      reviewer_name:
-        type: string
-      user_id:
-        type: string
-    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -468,12 +405,37 @@ definitions:
           A", "Cluster B", etc.
         type: string
     type: object
+  ComputeClusterQoS:
+    properties:
+      compute_cluster_id:
+        type: string
+      flags:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      is_default:
+        description: The cluster's default QoS; at most one per cluster.
+        type: boolean
+      max_jobs_per_user:
+        type: integer
+      max_tres_per_user:
+        description: SLURM TRES string, e.g. "gres/gpu=8"
+        type: string
+      max_wall_minutes:
+        type: integer
+      name:
+        type: string
+      priority:
+        type: integer
+    type: object
   ComputeClusterUser:
     properties:
       access_level:
         $ref: '#/definitions/ClusterAccessLevel'
       approval_status:
-        $ref: '#/definitions/ClusterAccountApproval'
+        $ref: '#/definitions/ComputeClusterUserApproval'
       compute_cluster_id:
         type: string
       id:
@@ -491,7 +453,70 @@ definitions:
       reviewed_at:
         type: string
       reviewed_by:
-        description: The admin who approved or denied the cluster account.
+        description: The admin who approved or denied the compute cluster user.
+        type: string
+      user_id:
+        type: string
+    type: object
+  ComputeClusterUserApproval:
+    enum:
+    - PENDING
+    - APPROVED
+    - DENIED
+    type: string
+    x-enum-varnames:
+    - ComputeClusterUserPending
+    - ComputeClusterUserApproved
+    - ComputeClusterUserDenied
+  ComputeClusterUserListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ComputeClusterUserResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ComputeClusterUserResponse:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      approval_status:
+        $ref: '#/definitions/ComputeClusterUserApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      project_id:
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      requested_at:
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the compute cluster user.
+        type: string
+      reviewer_name:
         type: string
       user_id:
         type: string
@@ -1191,6 +1216,13 @@ definitions:
       name:
         type: string
     type: object
+  allocationQoSRequest:
+    properties:
+      qos:
+        items:
+          type: string
+        type: array
+    type: object
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -1257,7 +1289,7 @@ definitions:
       username:
         type: string
     type: object
-  denyClusterAccountRequest:
+  denyComputeClusterUserRequest:
     properties:
       note:
         type: string
@@ -2603,6 +2635,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute allocation membership
@@ -3292,6 +3331,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute allocation
@@ -3455,6 +3501,73 @@ paths:
       summary: List members of a compute allocation
       tags:
       - Compute Allocation Memberships
+  /compute-allocations/{id}/qos:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeClusterQoS'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the QoS a compute allocation grants
+      tags:
+      - Compute Allocations
+    put:
+      consumes:
+      - application/json
+      description: Replaces the allocation's QoS with the named QoS of its cluster.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS names
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/allocationQoSRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set the QoS a compute allocation grants
+      tags:
+      - Compute Allocations
   /compute-allocations/{id}/resources:
     get:
       description: Callers without the allocations read privilege must hold a membership
@@ -3791,7 +3904,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/ClusterAccountListResponse'
+            $ref: '#/definitions/ComputeClusterUserListResponse'
         "400":
           description: Bad Request
           schema:
@@ -3801,7 +3914,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List cluster accounts by approval status
+      summary: List compute cluster users by approval status
       tags:
       - Compute Cluster Users
     post:
@@ -3846,6 +3959,13 @@ paths:
           description: No Content
         "404":
           description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             properties:
               error:
@@ -3956,7 +4076,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Approve a cluster account
+      summary: Approve a compute cluster user
       tags:
       - Compute Cluster Users
   /compute-cluster-users/{id}/deny:
@@ -3977,7 +4097,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/denyClusterAccountRequest'
+          $ref: '#/definitions/denyComputeClusterUserRequest'
       produces:
       - application/json
       responses:
@@ -4008,7 +4128,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Deny a cluster account
+      summary: Deny a compute cluster user
       tags:
       - Compute Cluster Users
   /compute-clusters:
@@ -4090,6 +4210,164 @@ paths:
       summary: Get a compute cluster by ID
       tags:
       - Compute Clusters
+  /compute-clusters/{id}/qos:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeClusterQoS'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List a compute cluster's QoS definitions
+      tags:
+      - Compute Cluster QoS
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeClusterQoS'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ComputeClusterQoS'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a QoS on a compute cluster
+      tags:
+      - Compute Cluster QoS
+  /compute-clusters/{id}/qos/{qosId}:
+    delete:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS ID
+        in: path
+        name: qosId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a QoS from a compute cluster
+      tags:
+      - Compute Cluster QoS
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS ID
+        in: path
+        name: qosId
+        required: true
+        type: string
+      - description: QoS payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeClusterQoS'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterQoS'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a QoS on a compute cluster
+      tags:
+      - Compute Cluster QoS
   /compute-clusters/{id}/users:
     get:
       parameters:
@@ -5277,12 +5555,12 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Add a privilege to a role
+      summary: Grant a privilege to a role
       tags:
       - Roles
   /roles/{id}/privileges/{key}:
     delete:
-      description: Removal propagates to every holder. Refuses to remove `privileges:grant`
+      description: Revocation propagates to every holder. Refuses to revoke `privileges:grant`
         or `roles:manage` if that would leave no role anywhere carrying it.
       parameters:
       - description: Role ID
@@ -5339,7 +5617,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Remove a privilege from a role
+      summary: Revoke a privilege from a role
       tags:
       - Roles
   /service-accounts:

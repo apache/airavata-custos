@@ -41,27 +41,41 @@ const (
 	ClusterAccessAdmin ClusterAccessLevel = "ADMIN"
 )
 
-// ClusterAccountApproval is the admin's decision on a cluster account.
+// ComputeClusterUserApproval is the admin's decision on a compute cluster user.
 // The account is created on the cluster only after it is approved.
-type ClusterAccountApproval string
+type ComputeClusterUserApproval string
 
 const (
-	ClusterAccountPending  ClusterAccountApproval = "PENDING"
-	ClusterAccountApproved ClusterAccountApproval = "APPROVED"
-	ClusterAccountDenied   ClusterAccountApproval = "DENIED"
+	ComputeClusterUserPending  ComputeClusterUserApproval = "PENDING"
+	ComputeClusterUserApproved ComputeClusterUserApproval = "APPROVED"
+	ComputeClusterUserDenied   ComputeClusterUserApproval = "DENIED"
 )
 
 type ComputeClusterUser struct {
-	ID               string                 `json:"id"                db:"id"`
-	ComputeClusterID string                 `json:"compute_cluster_id" db:"compute_cluster_id"`
-	UserID           string                 `json:"user_id"            db:"user_id"`
-	LocalUsername    string                 `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
-	AccessLevel      ClusterAccessLevel     `json:"access_level"       db:"access_level"`
-	ProvisionedAt    *time.Time             `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
-	ApprovalStatus   ClusterAccountApproval `json:"approval_status"    db:"approval_status"`
-	ReviewedAt       *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
-	ReviewedBy       *string                `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the cluster account.
-	ReviewNote       *string                `json:"review_note,omitempty" db:"review_note"`
+	ID               string                     `json:"id"                db:"id"`
+	ComputeClusterID string                     `json:"compute_cluster_id" db:"compute_cluster_id"`
+	UserID           string                     `json:"user_id"            db:"user_id"`
+	LocalUsername    string                     `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	AccessLevel      ClusterAccessLevel         `json:"access_level"       db:"access_level"`
+	ProvisionedAt    *time.Time                 `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
+	ApprovalStatus   ComputeClusterUserApproval `json:"approval_status"    db:"approval_status"`
+	ReviewedAt       *time.Time                 `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewedBy       *string                    `json:"reviewed_by,omitempty" db:"reviewed_by"` // The admin who approved or denied the compute cluster user.
+	ReviewNote       *string                    `json:"review_note,omitempty" db:"review_note"`
+}
+
+// ComputeClusterQoS is a SLURM QoS whose limits Custos owns.
+type ComputeClusterQoS struct {
+	ID                string     `json:"id"                  db:"id"`
+	ComputeClusterID  string     `json:"compute_cluster_id"  db:"compute_cluster_id"`
+	Name              string     `json:"name"                db:"name"`
+	Priority          int64      `json:"priority"            db:"priority"`
+	MaxWallMinutes    *int64     `json:"max_wall_minutes"    db:"max_wall_minutes"`
+	MaxJobsPerUser    *int64     `json:"max_jobs_per_user"   db:"max_jobs_per_user"`
+	MaxTRESPerUser    string     `json:"max_tres_per_user"   db:"max_tres_per_user"` // SLURM TRES string, e.g. "gres/gpu=8"
+	Flags             []string   `json:"flags"               db:"flags"`
+	IsDefault         bool       `json:"is_default"          db:"is_default"`          // The cluster's default QoS; at most one per cluster.
+	SlurmPendingSince *time.Time `json:"-"                   db:"slurm_pending_since"` // Set while SLURM lacks a change.
 }
 
 type ComputeAllocation struct {
@@ -76,6 +90,7 @@ type ComputeAllocation struct {
 
 	PosixGroup         *string    `json:"posix_group" db:"posix_group"`                   // Fixed at creation; the group's name everywhere.
 	GroupProvisionedAt *time.Time `json:"group_provisioned_at" db:"group_provisioned_at"` // When the group gained its first member and so reached the cluster; nil until then.
+	SlurmPendingSince  *time.Time `json:"-"                    db:"slurm_pending_since"`  // Set while SLURM lacks a change.
 }
 
 // Typically store the a paritition information
@@ -159,5 +174,6 @@ type ComputeAllocationMembership struct {
 	UserID              string           `json:"user_id"               db:"user_id"`
 	StartTime           time.Time        `json:"start_time"            db:"start_time"`
 	EndTime             time.Time        `json:"end_time"              db:"end_time"`
-	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"` // ACTIVE, INACTIVE, etc.
+	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"`   // ACTIVE, INACTIVE, etc.
+	SlurmPendingSince   *time.Time       `json:"-"                     db:"slurm_pending_since"` // Set while SLURM lacks a change.
 }

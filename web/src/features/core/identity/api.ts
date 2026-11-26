@@ -16,7 +16,7 @@
 // under the License.
 
 import {
-  type CallerClusterAccount,
+  type CallerComputeClusterUser,
   type User,
   type UserIdentity,
   type UserNameUpdateRequest,
@@ -43,7 +43,7 @@ export type Me = {
   user: User;
   privileges: Privilege[];
   roles: CallerRoleGrant[];
-  clusterAccounts: CallerClusterAccount[];
+  clusterAccounts: CallerComputeClusterUser[];
 };
 
 export async function getMe(): Promise<Me> {

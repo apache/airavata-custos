@@ -101,7 +101,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService, clusterID, pollOverlap)
+	monitor := smonitor.NewSlurmMonitor(Type, slurmClient, eventBus, coreService, clusterID, pollOverlap)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

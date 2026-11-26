@@ -35,7 +35,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
+func (o *Orchestrator) provisionUnixClusterAccountImpl(ctx context.Context, cu *models.ComputeClusterUser) error {
 	log := slog.With("correlation_id", cu.ID, "custos_user_id", cu.UserID, "unix_cluster_id", o.c.Config().UnixClusterID)
 
 	user, err := o.core.GetUser(ctx, cu.UserID)
@@ -60,7 +60,22 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 		o.audit(ctx, cu, "ComanageCoPersonCreated", fmt.Sprintf("comanage_id=%s email=%s", personID, user.Email))
 	}
 
-	if err := o.storePersonID(ctx, cu.UserID, personID); err != nil {
+	identityCtx, identitySpan := tracing.Start(ctx, "comanage.store_person_id")
+	identity, err := o.findCoPersonUserIdentity(identityCtx, cu.UserID)
+	switch {
+	case err != nil:
+	case identity == nil:
+		err = o.createCoPersonUserIdentity(identityCtx, cu.UserID, personID)
+	default:
+		identity.ExternalID = personID
+		err = o.core.UpdateUserIdentity(identityCtx, identity)
+	}
+	if err != nil {
+		identitySpan.RecordError(err)
+		identitySpan.SetStatus(codes.Error, err.Error())
+	}
+	identitySpan.End()
+	if err != nil {
 		log.WarnContext(ctx, "comanage: failed to store CoPerson id", "err", err)
 	}
 
@@ -94,7 +109,7 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 		return fmt.Errorf("extract CoPerson.meta.id: %w", err)
 	}
 
-	if err := o.ensureOIDCLinkage(ctx, cu, personID, composite, sub); err != nil {
+	if err := o.provisionOIDCLinkage(ctx, cu, personID, composite, sub); err != nil {
 		return err
 	}
 
@@ -124,7 +139,7 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 	block := UnixClusterAccountBlock{
 		UnixClusterId:    o.c.Config().UnixClusterID,
 		SyncMode:         "M",
-		Status:           "A",
+		Status:           unixAccountStatus(user.Status),
 		Username:         cu.LocalUsername,
 		Uid:              uidInt,
 		Gecos:            "",
@@ -152,6 +167,13 @@ func (o *Orchestrator) ensureClusterAccountImpl(ctx context.Context, cu *models.
 		log.WarnContext(ctx, "comanage: failed to mark cluster user provisioned", "err", err)
 	}
 	return nil
+}
+
+func unixAccountStatus(status models.UserStatus) string {
+	if status == models.UserActive {
+		return "A"
+	}
+	return "S"
 }
 
 func (o *Orchestrator) getPersonComposite(ctx context.Context, personID string) (json.RawMessage, error) {
@@ -187,10 +209,10 @@ func (o *Orchestrator) findOrCreateCoGroup(ctx context.Context, name string) (in
 	return id, nil
 }
 
-// ensureOIDCLinkage puts the `sub` on the person as an oidcsub identifier, which
+// provisionOIDCLinkage puts the `sub` on the person as an oidcsub identifier, which
 // is what the COmanage registry exports for ssh login matching.
 // A person provisioned before their first sign-in has no sub yet, so it is added here.
-func (o *Orchestrator) ensureOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite json.RawMessage, sub string) error {
+func (o *Orchestrator) provisionOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite json.RawMessage, sub string) error {
 	ctx, span := tracing.Start(ctx, "comanage.ensure_oidc_linkage")
 	defer span.End()
 

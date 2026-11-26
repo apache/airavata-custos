@@ -30,11 +30,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// RemoveClusterAccount removes what provisioning created for a cluster account:
+// DeprovisionUnixClusterAccount removes what provisioning created for a ComputeClusterUser:
 // the account and login name on the person, the admin group membership, and
 // the account's primary group. The person stays in the registry. It is safe
 // to run again, anything already removed is skipped.
-func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
+func (o *Orchestrator) DeprovisionUnixClusterAccount(ctx context.Context, cu *models.ComputeClusterUser) (err error) {
 	ctx, span := tracing.Start(ctx, "comanage.remove_posix_account")
 	defer span.End()
 	span.SetAttributes(attribute.String("comanage.cluster_user_id", cu.ID))
@@ -65,7 +65,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 		return fmt.Errorf("find primary group: %w", err)
 	}
 	if groupID != 0 {
-		if err := o.removeCoGroup(groupID); err != nil {
+		if err := o.deleteCoGroup(groupID); err != nil {
 			return err
 		}
 	}
@@ -77,7 +77,7 @@ func (o *Orchestrator) RemoveClusterAccount(ctx context.Context, cu *models.Comp
 // removeAccountFromPerson takes the cluster account, its login name and the
 // admin group membership off the person. The person record itself stays.
 func (o *Orchestrator) removeAccountFromPerson(ctx context.Context, cu *models.ComputeClusterUser, personID string, composite []byte) error {
-	body, changed, err := removeLogin(composite, cu.LocalUsername)
+	body, changed, err := withoutUnixClusterAccount(composite, cu.LocalUsername)
 	if err != nil {
 		return err
 	}
@@ -124,8 +124,8 @@ func ignoreNotFound(err error) error {
 	return err
 }
 
-// removeCoGroup unbinds a group from the UnixCluster, then deletes it.
-func (o *Orchestrator) removeCoGroup(groupID int) error {
+// deleteCoGroup unbinds a group from the UnixCluster, then deletes it.
+func (o *Orchestrator) deleteCoGroup(groupID int) error {
 	bindingID, err := o.c.FindUnixClusterGroup(groupID)
 	if err != nil {
 		return fmt.Errorf("find cluster group binding: %w", err)

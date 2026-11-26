@@ -127,7 +127,7 @@
       "chain": [
         "subscribers.Subscriber.handleComputeAllocationChanged",
         "subscribers.Subscriber.syncAllocation",
-        "operations.Orchestrator.EnsureAllocationGroup",
+        "operations.Orchestrator.ProvisionAllocationGroup",
         "service.Service.MarkComputeAllocationGroupProvisioned",
         "service.Service.MarkComputeAllocationGroupProvisioned$1"
       ],
@@ -145,7 +145,7 @@
       "chain": [
         "subscribers.Subscriber.handleComputeAllocationChanged",
         "subscribers.Subscriber.syncAllocation",
-        "operations.Orchestrator.EnsureAllocationGroup",
+        "operations.Orchestrator.ProvisionAllocationGroup",
         "service.Service.MarkComputeAllocationGroupProvisioned",
         "service.Service.MarkComputeAllocationGroupProvisioned$1"
       ],
@@ -163,7 +163,7 @@
       "chain": [
         "subscribers.Subscriber.handleMembershipChanged",
         "subscribers.Subscriber.syncAllocation",
-        "operations.Orchestrator.EnsureAllocationGroup",
+        "operations.Orchestrator.ProvisionAllocationGroup",
         "service.Service.MarkComputeAllocationGroupProvisioned",
         "service.Service.MarkComputeAllocationGroupProvisioned$1"
       ],
@@ -181,7 +181,7 @@
       "chain": [
         "subscribers.Subscriber.handleMembershipChanged",
         "subscribers.Subscriber.syncAllocation",
-        "operations.Orchestrator.EnsureAllocationGroup",
+        "operations.Orchestrator.ProvisionAllocationGroup",
         "service.Service.MarkComputeAllocationGroupProvisioned",
         "service.Service.MarkComputeAllocationGroupProvisioned$1"
       ],
@@ -199,7 +199,7 @@
       "chain": [
         "subscribers.Subscriber.handleMembershipChanged",
         "subscribers.Subscriber.syncAllocation",
-        "operations.Orchestrator.EnsureAllocationGroup",
+        "operations.Orchestrator.ProvisionAllocationGroup",
         "service.Service.MarkComputeAllocationGroupProvisioned",
         "service.Service.MarkComputeAllocationGroupProvisioned$1"
       ],

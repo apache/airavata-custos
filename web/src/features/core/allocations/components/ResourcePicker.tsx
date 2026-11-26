@@ -19,36 +19,45 @@
 
 import { EffectiveRateCell } from "@/features/core/resources/components/ResourcesTab";
 import { useResourceSummaries } from "@/features/core/resources/queries";
+import type * as React from "react";
+
+export type PickerOption = { id: string; label: string; extra?: React.ReactNode };
+
+// The cluster's resources, each with its effective rate.
+export function useResourceOptions(clusterId: string): PickerOption[] {
+  return (useResourceSummaries().data ?? [])
+    .filter((r) => r.compute_cluster_id === clusterId)
+    .map((r) => ({ id: r.id, label: r.name, extra: <EffectiveRateCell resource={r} /> }));
+}
 
 export function ResourcePicker({
-  clusterId,
+  options,
   value,
   onChange,
+  empty = "No resources on this cluster.",
 }: {
-  clusterId: string;
+  options: PickerOption[];
   value: string[];
   onChange: (next: string[]) => void;
+  empty?: string | undefined;
 }) {
-  const resources = (useResourceSummaries().data ?? []).filter(
-    (r) => r.compute_cluster_id === clusterId,
-  );
-  if (resources.length === 0) {
-    return <p className="text-sm text-muted-foreground">No resources on this cluster.</p>;
+  if (options.length === 0) {
+    return <p className="text-sm text-muted-foreground">{empty}</p>;
   }
   return (
     <ul className="divide-y rounded-md border">
-      {resources.map((r) => (
-        <li key={r.id}>
+      {options.map((o) => (
+        <li key={o.id}>
           <label className="flex items-center gap-3 px-3 py-2">
             <input
               type="checkbox"
-              checked={value.includes(r.id)}
+              checked={value.includes(o.id)}
               onChange={(e) =>
-                onChange(e.target.checked ? [...value, r.id] : value.filter((id) => id !== r.id))
+                onChange(e.target.checked ? [...value, o.id] : value.filter((id) => id !== o.id))
               }
             />
-            <span className="flex-1 text-sm font-medium">{r.name}</span>
-            <EffectiveRateCell resource={r} />
+            <span className="flex-1 text-sm font-medium">{o.label}</span>
+            {o.extra}
           </label>
         </li>
       ))}

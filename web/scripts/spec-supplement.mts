@@ -74,7 +74,7 @@ const filled: Record<string, [string, string][]> = {
     // allocation.go replaces a nil page with an empty one; project.go and compute_cluster.go build theirs with make.
     ["ComputeAllocationListResponse", "items"],
     ["ProjectListResponse", "items"],
-    ["ClusterAccountListResponse", "items"],
+    ["ComputeClusterUserListResponse", "items"],
     // FindByProjectWithUser coalesces the aggregate to '[]'.
     ["ProjectMemberResponse", "allocations"],
     // EffectivePrivileges and getCallerProfile build theirs with make; ListDetailedByUser starts each at [].

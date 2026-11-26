@@ -18,7 +18,7 @@
 "use client";
 
 import { useProject } from "@/features/core/projects/queries";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -35,7 +35,7 @@ import { AllocationRef } from "./AllocationRef";
 export type ReviewAction = "approve" | "deny";
 
 export type ReviewClusterAccountDialogProps = {
-  accounts: ClusterAccountResponse[];
+  accounts: ComputeClusterUserResponse[];
   action: ReviewAction;
   bulk?: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,13 +47,13 @@ export type ReviewClusterAccountDialogProps = {
 
 const copy: Record<ReviewAction, { title: string; description: string; button: string }> = {
   approve: {
-    title: "Approve cluster account",
+    title: "Approve compute cluster user",
     description:
       "This creates the account on the cluster and lets the user log in once provisioning finishes.",
     button: "Approve",
   },
   deny: {
-    title: "Deny cluster account",
+    title: "Deny compute cluster user",
     description:
       "No account is created on the cluster. The user keeps portal access and can be approved later. The reason is passed on to whoever requested the account.",
     button: "Deny",
@@ -85,7 +85,9 @@ export function ReviewClusterAccountDialog({
   }, [open]);
 
   const n = accounts.length;
-  const title = bulk ? `Approve ${n} cluster account${n === 1 ? "" : "s"}?` : copy[action].title;
+  const title = bulk
+    ? `Approve ${n} compute cluster user${n === 1 ? "" : "s"}?`
+    : copy[action].title;
   const button = bulk ? `Approve ${n}` : copy[action].button;
 
   return (

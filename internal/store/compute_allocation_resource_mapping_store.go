@@ -55,6 +55,16 @@ func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context
 	return &m, nil
 }
 
+func (s *pgComputeAllocationResourceMappingStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error) {
+	mappings := []models.ComputeAllocationResourceMapping{}
+	err := s.db.SelectContext(ctx, &mappings,
+		`SELECT `+computeAllocationResourceMappingColumns+`
+		 FROM compute_allocation_resource_mappings
+		 WHERE compute_allocation_id = $1
+		 ORDER BY compute_allocation_resource_id`, allocationID)
+	return mappings, err
+}
+
 func (s *pgComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,

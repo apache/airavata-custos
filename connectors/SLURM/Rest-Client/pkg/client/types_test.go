@@ -19,6 +19,7 @@ package client
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -54,5 +55,17 @@ func TestJobInfoDecodesFractionalTresCount(t *testing.T) {
 	}
 	if got := j.Tres.Allocated[1].Count; got != 2.8125 {
 		t.Fatalf("billing count: want 2.8125, got %v", got)
+	}
+}
+
+// A removed scalar limit is sent as infinite, since slurmrestd keeps a limit the payload leaves out.
+func TestAssociationSendsUnsetLimitsAsInfinite(t *testing.T) {
+	out, err := json.Marshal(Association{Account: "a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	infinite := `{"set":true,"infinite":true,"number":0}`
+	if !strings.Contains(string(out), `"per":{"count":`+infinite+`,"wall_clock":`+infinite+`}`) {
+		t.Fatalf("unset limits not infinite: %s", out)
 	}
 }

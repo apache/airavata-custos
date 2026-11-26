@@ -102,7 +102,7 @@ func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (
 type mockRegistry struct {
 	adminGroup  int    // CoGroup id returned for adminGroupName, 0 = not in the registry
 	adminMember bool   // person 42 is already in the admin group
-	account     string // username of the cluster account person 42 has, "" = none
+	account     string // username of the UnixClusterAccount person 42 has, "" = none
 	userGroup   int    // CoGroup id of that account's primary group, 0 = not in the registry
 	posted      []client.CoGroupMemberCreateOne
 	put         [][]byte // bodies of the person PUTs

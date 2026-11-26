@@ -53,10 +53,36 @@ CREATE TABLE IF NOT EXISTS compute_cluster_users
 CREATE INDEX IF NOT EXISTS idx_compute_cluster_users_user ON compute_cluster_users (user_id);
 CREATE INDEX IF NOT EXISTS idx_compute_cluster_users_approval_status ON compute_cluster_users (approval_status);
 
+-- A QoS definition Custos owns and writes to the cluster's scheduler. slurm_pending_since is set while a change waits to be written.
+CREATE TABLE IF NOT EXISTS compute_cluster_qos
+(
+    id                  VARCHAR(255) NOT NULL,
+    compute_cluster_id  VARCHAR(255) NOT NULL,
+    name                VARCHAR(255) NOT NULL,
+    priority            BIGINT NOT NULL DEFAULT 0,
+    max_wall_minutes    BIGINT NULL,
+    max_jobs_per_user   BIGINT NULL,
+    max_tres_per_user   TEXT NOT NULL DEFAULT '',
+    flags               TEXT[] NOT NULL DEFAULT '{}',
+    is_default          BOOLEAN NOT NULL DEFAULT false,
+    slurm_pending_since TIMESTAMPTZ(6) NULL,
+    created_at          TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at          TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    CONSTRAINT uq_compute_cluster_qos_name UNIQUE (compute_cluster_id, name),
+    CONSTRAINT fk_compute_cluster_qos_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_compute_cluster_qos_default ON compute_cluster_qos (compute_cluster_id) WHERE is_default;
+
 CREATE OR REPLACE TRIGGER trg_compute_clusters_updated_at
     BEFORE UPDATE ON compute_clusters
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE OR REPLACE TRIGGER trg_compute_cluster_users_updated_at
     BEFORE UPDATE ON compute_cluster_users
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE TRIGGER trg_compute_cluster_qos_updated_at
+    BEFORE UPDATE ON compute_cluster_qos
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

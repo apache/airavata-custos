@@ -110,9 +110,9 @@ func (s *Service) ClaimStorageTargets(clusterID string, usage StorageUsage) map[
 	return s.storageTargets[clusterID]
 }
 
-// EnsureStorages makes a cluster's storages match its targets and holders, and returns its active ones.
-func (s *Service) EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error) {
-	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.ensureStoragesTx(ctx, tx, store.StorageScope{ClusterID: clusterID}) }); err != nil {
+// SyncStorages makes a cluster's storages match its targets and holders, and returns its active ones.
+func (s *Service) SyncStorages(ctx context.Context, clusterID string) ([]models.Storage, error) {
+	if err := s.inTx(ctx, func(tx *sql.Tx) error { return s.syncStoragesTx(ctx, tx, store.StorageScope{ClusterID: clusterID}) }); err != nil {
 		return nil, err
 	}
 	storages, err := s.storages.List(ctx)
@@ -156,9 +156,9 @@ func (s *Service) DeleteStorage(ctx context.Context, id string) error {
 	})
 }
 
-// ensureStoragesTx makes the storages the claimed clusters' targets give the scope's holders, retires the scope's
+// syncStoragesTx makes the storages the claimed clusters' targets give the scope's holders, retires the scope's
 // others, and publishes each one made or changed, a parent first.
-func (s *Service) ensureStoragesTx(ctx context.Context, tx *sql.Tx, scope store.StorageScope) error {
+func (s *Service) syncStoragesTx(ctx context.Context, tx *sql.Tx, scope store.StorageScope) error {
 	s.claimedMu.RLock()
 	claimedClusterIDs := slices.Collect(maps.Keys(s.claimedClusters))
 	holders := maps.Clone(s.storageHolders)
@@ -278,15 +278,12 @@ func (s *Service) publishUserTx(ctx context.Context, tx *sql.Tx, topic events.Ev
 		return err
 	}
 	s.claimedMu.RLock()
-	claimedClusterIDs, claimed := slices.Collect(maps.Keys(s.claimedClusters)), len(s.storageHolders) > 0
+	claimedClusterIDs := slices.Collect(maps.Keys(s.claimedClusters))
 	s.claimedMu.RUnlock()
-	if !claimed {
-		return nil
-	}
 	if topic == events.UserDeleteEvent {
 		return s.storages.Retire(ctx, tx, store.StorageScope{UserID: u.ID}, claimedClusterIDs, nil, nil)
 	}
-	return s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: u.ID})
+	return s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: u.ID})
 }
 
 // pathPart holds for a placeholder's value that names one directory under its parent.

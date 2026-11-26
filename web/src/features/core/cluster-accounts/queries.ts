@@ -18,7 +18,7 @@
 "use client";
 
 import { useClusters } from "@/features/core/clusters/queries";
-import type { ClusterAccountResponse, User } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse, User } from "@/generated/core/zod.gen";
 import {
   keepPreviousData,
   useMutation,
@@ -60,7 +60,7 @@ export function useClusterAccounts(
   });
 }
 
-// Each user's cluster accounts, filled in with the cluster and user names the per-user route omits.
+// Each user's compute cluster users, filled in with the cluster and user names the per-user route omits.
 export function useUserClusterAccounts(users: User[], enabled: boolean) {
   const clusters = useClusters(enabled).data ?? [];
   const names = new Map(clusters.map((c) => [c.id, c.name]));
@@ -73,7 +73,7 @@ export function useUserClusterAccounts(users: User[], enabled: boolean) {
     })),
     combine: (results) =>
       new Map(
-        users.map((user, i): [string, ClusterAccountResponse[]] => [
+        users.map((user, i): [string, ComputeClusterUserResponse[]] => [
           user.id,
           (results[i]?.data ?? []).map((a) => ({
             ...a,

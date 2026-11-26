@@ -99,6 +99,20 @@ type ComputeClusterService interface {
 	DeleteComputeCluster(ctx context.Context, id string) error
 }
 
+// ComputeClusterQoSService exposes a cluster's QoS definitions.
+type ComputeClusterQoSService interface {
+	ListComputeClusterQoS(ctx context.Context, clusterID, allocationID string) ([]models.ComputeClusterQoS, error)
+	CreateComputeClusterQoS(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error)
+	UpdateComputeClusterQoS(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error)
+	DeleteComputeClusterQoS(ctx context.Context, clusterID string, id string) error
+	SetComputeAllocationQoS(ctx context.Context, allocationID string, qosNames []string) error
+}
+
+// SlurmPendingService exposes the marks on rows SLURM has not caught up with.
+type SlurmPendingService interface {
+	SetSlurmPending(ctx context.Context, kind SlurmPendingKind, id string, clearSince *time.Time) error
+}
+
 // ComputeClusterUserService exposes per-cluster user records.
 type ComputeClusterUserService interface {
 	CreateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) (*models.ComputeClusterUser, error)
@@ -114,7 +128,7 @@ type ComputeClusterUserService interface {
 
 // StorageService exposes what a storage connector calls on core.
 type StorageService interface {
-	EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error)
+	SyncStorages(ctx context.Context, clusterID string) ([]models.Storage, error)
 }
 
 // ComputeAllocationService exposes compute-allocation CRUD.
@@ -147,6 +161,7 @@ type ComputeAllocationResourceMappingService interface {
 	UpdateAllocationResourceMapping(ctx context.Context, allocationID, resourceID string, resourceAmount, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
 	DetachResourceFromAllocation(ctx context.Context, allocationID, resourceID string) error
 	ListResourcesForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error)
+	ListResourceMappingsForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error)
 	ListAllocationsForResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error)
 }
 
@@ -190,7 +205,7 @@ type ComputeAllocationChangeRequestEventService interface {
 
 // ProjectMembershipService exposes project-level governance roles.
 type ProjectMembershipService interface {
-	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
+	SetProjectRole(ctx context.Context, projectID, userID, role string) error
 }
 
 // ComputeAllocationMembershipService exposes allocation memberships.
@@ -261,8 +276,8 @@ type RoleService interface {
 	GetRole(ctx context.Context, roleID string) (*models.Role, error)
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	ListRolePrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
-	AddPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
-	RemovePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+	GrantPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+	RevokePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
 }
 
 // UserRoleService manages role assignments. Granting and revoking require
@@ -308,6 +323,8 @@ type CoreService interface {
 	UserIdentityService
 	ProjectService
 	ComputeClusterService
+	ComputeClusterQoSService
+	SlurmPendingService
 	ComputeClusterUserService
 	StorageService
 	ComputeAllocationService

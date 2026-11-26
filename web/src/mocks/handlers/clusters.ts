@@ -20,10 +20,10 @@ import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-u
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
 import projects from "@/features/core/projects/__fixtures__/projects.json";
 import {
-  zClusterAccountResponse,
+  zComputeClusterUserResponse,
   zComputeCluster,
   zComputeClusterUser,
-  zDenyClusterAccountRequest,
+  zDenyComputeClusterUserRequest,
 } from "@/generated/core/zod.gen";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
@@ -31,7 +31,7 @@ import { matchesDirectoryFilter } from "./users";
 
 const clusters = z.array(zComputeCluster).parse(clustersFixture);
 const clusterUsers = z.array(zComputeClusterUser).parse(clusterUsersFixture);
-const clusterAccounts = z.array(zClusterAccountResponse).parse(clusterAccountsFixture);
+const clusterAccounts = z.array(zComputeClusterUserResponse).parse(clusterAccountsFixture);
 
 export const clustersHandlers = [
   http.get("*/api/v1/compute-clusters", () => HttpResponse.json(clusters)),
@@ -72,7 +72,7 @@ export const clustersHandlers = [
       if (found.approval_status !== "PENDING") {
         return HttpResponse.json({ error: "already reviewed" }, { status: 409 });
       }
-      const body = zDenyClusterAccountRequest.parse(await request.json().catch(() => ({})));
+      const body = zDenyComputeClusterUserRequest.parse(await request.json().catch(() => ({})));
       if (!body.note?.trim()) {
         return HttpResponse.json({ error: "a reason is required to deny" }, { status: 400 });
       }
@@ -91,6 +91,8 @@ export const clustersHandlers = [
     if (!found) return HttpResponse.json({ error: "cluster not found" }, { status: 404 });
     return HttpResponse.json(found);
   }),
+
+  http.get("*/api/v1/compute-clusters/:id/qos", () => HttpResponse.json([])),
 
   http.get<{ id: string }>("*/api/v1/compute-clusters/:id/users", ({ params }) => {
     const id = String(params.id);

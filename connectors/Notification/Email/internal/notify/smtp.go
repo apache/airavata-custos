@@ -19,6 +19,10 @@ package notify
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"net/textproto"
+	"strconv"
 
 	"github.com/wneessen/go-mail"
 )
@@ -70,4 +74,19 @@ func (s *SMTP) Send(ctx context.Context, m Message) error {
 	msg.SetBodyString(mail.TypeTextPlain, m.Text)
 	msg.AddAlternativeString(mail.TypeTextHTML, m.HTML)
 	return s.client.DialAndSendWithContext(ctx, msg)
+}
+
+// Ping reads the SMTP greeting without sending mail.
+func Ping(ctx context.Context, host string, port int) error {
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	tp := textproto.NewConn(conn)
+	if _, _, err := tp.ReadResponse(220); err != nil {
+		return fmt.Errorf("smtp greeting: %w", err)
+	}
+	_ = tp.PrintfLine("QUIT")
+	return nil
 }

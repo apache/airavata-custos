@@ -134,7 +134,7 @@ func (h *Handlers) callSigner(ctx context.Context, method, path string, body any
 		resp.Body.Close()
 		err = errServiceTokenRefused
 	}
-	health.Record(Type, Type, callResult(resp, err))
+	health.Record(Type, Type, health.HTTPResult(resp, err))
 	if err != nil {
 		slog.Warn("signer request failed", "path", path, "error", err)
 		return nil, err
@@ -347,7 +347,7 @@ func (h *Handlers) loginName(ctx context.Context, userID string) (username, code
 	if err != nil {
 		return "", "", err
 	}
-	if account.ApprovalStatus != models.ClusterAccountApproved || account.ProvisionedAt == nil {
+	if account.ApprovalStatus != models.ComputeClusterUserApproved || account.ProvisionedAt == nil {
 		return "", "cluster_account_not_ready", nil
 	}
 	memberships, err := h.core.ListAllocationsForUser(ctx, userID)
@@ -372,14 +372,6 @@ func (h *Handlers) loginName(ctx context.Context, userID string) (username, code
 
 func activeAt(now time.Time, status models.AllocationStatus, start, end time.Time) bool {
 	return status == models.ACTIVE && !now.Before(start) && now.Before(end)
-}
-
-// A 5xx counts as a failure. A 4xx is the signer working and refusing the request.
-func callResult(resp *http.Response, err error) error {
-	if err == nil && resp.StatusCode >= http.StatusInternalServerError {
-		return fmt.Errorf("signer returned %d", resp.StatusCode)
-	}
-	return err
 }
 
 type statusResponse struct {

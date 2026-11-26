@@ -20,11 +20,14 @@ package subscribers
 import (
 	"context"
 	"fmt"
-	operations "github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
-	"github.com/apache/airavata-custos/pkg/models"
-	"github.com/apache/airavata-custos/pkg/service"
 	"os"
 	"testing"
+	"time"
+
+	operations "github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 func TestHandleComputeAllocationCreated(t *testing.T) {
@@ -69,8 +72,9 @@ func TestHandleComputeAllocationCreated(t *testing.T) {
 		ProjectID:        "test_project_id",
 		ComputeClusterID: "test_cluster_id",
 	}
+	stubSyncCore(mockCoreService, computeAccount, nil, nil)
 
-	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAccount)
+	allocationCreated.run(context.Background(), associationSubscriber, computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -132,8 +136,9 @@ func TestHandleComputeAllocationCreatedWrongCluster(t *testing.T) {
 		ProjectID:        "test_project_id",
 		ComputeClusterID: "test_cluster_id",
 	}
+	stubSyncCore(mockCoreService, computeAccount, nil, nil)
 
-	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAccount)
+	allocationCreated.run(context.Background(), associationSubscriber, computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -166,7 +171,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ComputeClusterID: clusterID,
 	}
 
-	associationSubscriber.handleComputeAllocationCreated(context.Background(), computeAllocation)
+	allocationCreated.run(context.Background(), associationSubscriber, computeAllocation)
 
 	allAuditEvents, err := mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -195,8 +200,11 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ResourceAmount:              10,
 		ResourceTime:                100,
 	}
+	mockCoreService.ListResourceMappingsForAllocationFunc = func(context.Context, string) ([]models.ComputeAllocationResourceMapping, error) {
+		return []models.ComputeAllocationResourceMapping{resourceMapping}, nil
+	}
 
-	associationSubscriber.handleComputeAllocationResourceMappingCreated(context.Background(), resourceMapping)
+	mappingCreated.run(context.Background(), associationSubscriber, resourceMapping)
 
 	allAuditEvents, err = mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -274,6 +282,8 @@ func TestHandleComputeAllocationResourceMappingCreated(t *testing.T) {
 		},
 	}
 
+	stubSyncCore(mockCoreService, models.ComputeAllocation{ID: computeAllocationID, Name: computeAllocationName, ComputeClusterID: clusterID}, nil, nil)
+
 	err := createAllocationMapping(client, mockCoreService, clusterID, clusterName,
 		computeAllocationID, computeAllocationName,
 		projectID, allocationMappingId, allocationResourceId,
@@ -343,6 +353,8 @@ func TestHandleComputeAllocationResourceMappingWrongClusterCreated(t *testing.T)
 			return auditEvents, nil
 		},
 	}
+
+	stubSyncCore(mockCoreService, models.ComputeAllocation{ID: computeAllocationID, Name: computeAllocationName, ComputeClusterID: clusterID}, nil, nil)
 
 	err := createAllocationMapping(client, mockCoreService, clusterID, clusterName,
 		computeAllocationID, computeAllocationName,
@@ -420,6 +432,8 @@ func TestHandleComputeAllocationResourceMappingWrongResourceTypeCreated(t *testi
 		},
 	}
 
+	stubSyncCore(mockCoreService, models.ComputeAllocation{ID: computeAllocationID, Name: computeAllocationName, ComputeClusterID: clusterID}, nil, nil)
+
 	err := createAllocationMapping(client, mockCoreService, clusterID, clusterName,
 		computeAllocationID, computeAllocationName,
 		projectID, allocationMappingId, allocationResourceId,
@@ -432,4 +446,25 @@ func TestHandleComputeAllocationResourceMappingWrongResourceTypeCreated(t *testi
 	} else {
 		t.Fatal("Expected error due to wrong resource type, but got nil")
 	}
+}
+
+// stubSyncCore answers the core calls a cluster sync makes: one active allocation with the given mappings and members.
+func stubSyncCore(m *service.CoreServiceMock, allocation models.ComputeAllocation, mappings []models.ComputeAllocationResourceMapping, members []store.MembershipWithUser) {
+	allocation.Status = models.ACTIVE
+	m.GetComputeAllocationFunc = func(context.Context, string) (*models.ComputeAllocation, error) { return &allocation, nil }
+	m.ListComputeClustersFunc = func(context.Context) ([]models.ComputeCluster, error) {
+		return []models.ComputeCluster{{ID: allocation.ComputeClusterID}}, nil
+	}
+	m.ListComputeClusterQoSFunc = func(context.Context, string, string) ([]models.ComputeClusterQoS, error) { return nil, nil }
+	m.ListComputeAllocationsByClusterFunc = func(context.Context, string) ([]models.ComputeAllocation, error) {
+		return []models.ComputeAllocation{allocation}, nil
+	}
+	m.ListResourceMappingsForAllocationFunc = func(context.Context, string) ([]models.ComputeAllocationResourceMapping, error) {
+		return mappings, nil
+	}
+	m.ListMembersForAllocationFunc = func(context.Context, string) ([]store.MembershipWithUser, error) { return members, nil }
+	m.ListOverridesForMembershipFunc = func(context.Context, string) ([]models.ComputeAllocationMembershipResourceOverride, error) {
+		return nil, nil
+	}
+	m.SetSlurmPendingFunc = func(context.Context, service.SlurmPendingKind, string, *time.Time) error { return nil }
 }

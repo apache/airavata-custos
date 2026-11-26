@@ -46,7 +46,7 @@ import (
 const Type = "airavata"
 
 // LoadConnector registers the identity subscriber.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, cfg *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, cfg *config.ConnectorConfig) error {
 	settings := make(map[string]string, 3)
 	for _, key := range []string{"base_url", "service_token", "virtual_users_group_id"} {
 		value, _ := cfg.GetStringField(key)
@@ -59,6 +59,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	}
 	r := &registrar{core: coreService, baseURL: strings.TrimSuffix(settings["base_url"], "/"), token: settings["service_token"], virtualUsersGroupID: settings["virtual_users_group_id"]}
 	eventBus.SubscribeUserIdentityCreated(Type, r.register)
+	health.Probe(ctx, wg, Type, Type, func(ctx context.Context) error { return health.GetProbe(ctx, httpClient, r.baseURL) }, health.ProbeInterval)
 	return nil
 }
 

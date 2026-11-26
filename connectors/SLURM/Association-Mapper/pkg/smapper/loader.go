@@ -17,6 +17,9 @@
 
 package smapper
 
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g loader.go -d .,../../internal/handlers -o ../../../api --outputTypes yaml --parseDependency --useStructName
+//go:generate mv ../../../api/swagger.yaml ../../../api/slurm.openapi.yaml
+
 import (
 	"context"
 	"errors"
@@ -27,6 +30,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
+	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/handlers"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/subscribers"
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/internal/config"
@@ -39,7 +43,7 @@ import (
 // Type is the connector type in the config file and the subscriber name on the bus.
 const Type = "slurm-association-mapper"
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion string
@@ -101,6 +105,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
 	subscriber := subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService, reconcileInterval, provisionGrace)
 	subscriber.RegisterSubscribers(Type)
+	handlers.NewHandlers(coreService, subscriber, slurmClient).RegisterRoutes(router)
 
 	// The sweep, not the events above, is what guarantees associations exist.
 	wg.Add(1)

@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS compute_allocations
     end_time           TIMESTAMPTZ(6) NOT NULL,
     posix_group        VARCHAR(32)  NULL,
     group_provisioned_at TIMESTAMPTZ(6) NULL,
+    slurm_pending_since TIMESTAMPTZ(6) NULL,
     created_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
@@ -36,6 +37,18 @@ CREATE TABLE IF NOT EXISTS compute_allocations
 );
 CREATE INDEX IF NOT EXISTS idx_compute_allocations_project ON compute_allocations (project_id);
 CREATE INDEX IF NOT EXISTS idx_compute_allocations_cluster ON compute_allocations (compute_cluster_id);
+
+CREATE TABLE IF NOT EXISTS compute_allocation_qos
+(
+    compute_allocation_id  VARCHAR(255) NOT NULL,
+    compute_cluster_qos_id VARCHAR(255) NOT NULL,
+    PRIMARY KEY (compute_allocation_id, compute_cluster_qos_id),
+    CONSTRAINT fk_compute_allocation_qos_allocation FOREIGN KEY (compute_allocation_id)
+        REFERENCES compute_allocations (id) ON DELETE CASCADE,
+    CONSTRAINT fk_compute_allocation_qos_qos FOREIGN KEY (compute_cluster_qos_id)
+        REFERENCES compute_cluster_qos (id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_compute_allocation_qos_qos ON compute_allocation_qos (compute_cluster_qos_id);
 
 CREATE TABLE IF NOT EXISTS compute_allocation_resources
 (
@@ -146,6 +159,7 @@ CREATE TABLE IF NOT EXISTS compute_allocation_memberships
     start_time            TIMESTAMPTZ(6) NOT NULL,
     end_time              TIMESTAMPTZ(6) NOT NULL,
     membership_status     VARCHAR(64)  NOT NULL,
+    slurm_pending_since   TIMESTAMPTZ(6) NULL,
     created_at            TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     CONSTRAINT uq_compute_allocation_memberships_allocation_user UNIQUE (compute_allocation_id, user_id),

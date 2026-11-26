@@ -17,8 +17,13 @@
 
 import {
   type ComputeCluster,
+  type ComputeClusterQoS,
+  type ComputeClusterQoSInput,
+  zGetComputeClustersByIdQosResponse,
   zGetComputeClustersByIdResponse,
   zGetComputeClustersResponse,
+  zPostComputeClustersByIdQosResponse,
+  zPutComputeClustersByIdQosByQosIdResponse,
 } from "@/generated/core/zod.gen";
 import { apiFetch } from "@/shared/api/client";
 
@@ -30,4 +35,33 @@ export async function listClusters(): Promise<ComputeCluster[]> {
 export async function getCluster(id: string): Promise<ComputeCluster> {
   const raw = await apiFetch(`/compute-clusters/${id}`);
   return zGetComputeClustersByIdResponse.parse(raw);
+}
+
+export async function listQoS(clusterId: string): Promise<ComputeClusterQoS[]> {
+  const raw = await apiFetch(`/compute-clusters/${clusterId}/qos`);
+  return zGetComputeClustersByIdQosResponse.parse(raw ?? []);
+}
+
+export async function createQoS(
+  clusterId: string,
+  body: ComputeClusterQoSInput,
+): Promise<ComputeClusterQoS> {
+  const raw = await apiFetch(`/compute-clusters/${clusterId}/qos`, { method: "POST", body });
+  return zPostComputeClustersByIdQosResponse.parse(raw);
+}
+
+export async function updateQoS(
+  clusterId: string,
+  qosId: string,
+  body: ComputeClusterQoSInput,
+): Promise<ComputeClusterQoS> {
+  const raw = await apiFetch(`/compute-clusters/${clusterId}/qos/${qosId}`, {
+    method: "PUT",
+    body,
+  });
+  return zPutComputeClustersByIdQosByQosIdResponse.parse(raw);
+}
+
+export async function deleteQoS(clusterId: string, qosId: string): Promise<void> {
+  await apiFetch(`/compute-clusters/${clusterId}/qos/${qosId}`, { method: "DELETE" });
 }

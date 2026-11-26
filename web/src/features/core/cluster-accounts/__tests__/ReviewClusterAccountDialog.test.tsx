@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { zClusterAccountResponse } from "@/generated/core/zod.gen";
+import { zComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import { projectsHandlers } from "@/mocks/handlers/projects";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -27,8 +27,8 @@ import {
   ReviewClusterAccountDialog,
 } from "../components/ReviewClusterAccountDialog";
 
-const [pending] = zClusterAccountResponse.array().parse(fixture);
-if (!pending) throw new Error("no cluster account fixture");
+const [pending] = zComputeClusterUserResponse.array().parse(fixture);
+if (!pending) throw new Error("no compute cluster user fixture");
 
 const server = setupServer(...projectsHandlers);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

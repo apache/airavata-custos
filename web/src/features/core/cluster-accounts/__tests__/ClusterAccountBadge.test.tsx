@@ -15,7 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { type ClusterAccountResponse, zClusterAccountResponse } from "@/generated/core/zod.gen";
+import {
+  type ComputeClusterUserResponse,
+  zComputeClusterUserResponse,
+} from "@/generated/core/zod.gen";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/cluster-accounts.json";
@@ -25,9 +28,9 @@ import {
   clusterAccountStatus,
 } from "../components/ClusterAccountBadge";
 
-const rows = zClusterAccountResponse.array().parse(fixture);
+const rows = zComputeClusterUserResponse.array().parse(fixture);
 
-function byId(id: string): ClusterAccountResponse {
+function byId(id: string): ComputeClusterUserResponse {
   const row = rows.find((r) => r.id === id);
   if (!row) throw new Error(`no fixture ${id}`);
   return row;
@@ -42,7 +45,7 @@ function decisionsFor(id: string): string[] {
   return names;
 }
 
-describe("cluster accounts", () => {
+describe("compute cluster users", () => {
   // Make sure an approved account reads as provisioning until it exists on
   // the cluster, so the admin can tell approval from a working login.
   it("tells approved from active by provisioned_at", () => {

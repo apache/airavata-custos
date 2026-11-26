@@ -29,73 +29,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// removeAssociationsForMembership revokes one member's access to one
-// allocation, for when their membership is deactivated or deleted. Their
-// access to other allocations, and everyone else's access to this one, is
-// untouched.
-func (a *AssociationSubscriber) removeAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
-	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
-	if errors.Is(err, service.ErrNotFound) {
-		return leftToCleanup(membership, "allocation")
-	}
-	if err != nil {
-		return fmt.Errorf("get compute allocation: %w", err)
-	}
-	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
-	if err != nil {
-		return fmt.Errorf("get compute cluster: %w", err)
-	}
-	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
-	if errors.Is(err, service.ErrNotFound) {
-		return leftToCleanup(membership, "cluster account")
-	}
-	if err != nil {
-		return fmt.Errorf("get compute cluster user: %w", err)
-	}
-
-	filter := client.AssocFilter{
-		Cluster: cluster.Name,
-		Account: slurmAccount(allocation.Name),
-		User:    csu.LocalUsername,
-	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
-		return fmt.Errorf("delete associations for %s on %s: %w", csu.LocalUsername, allocation.Name, err)
-	}
-	slog.InfoContext(ctx, "Removed associations for membership",
-		"user", csu.LocalUsername, "account", allocation.Name, "cluster", cluster.Name)
-	return nil
-}
-
-// leftToCleanup ends a membership revoke whose allocation or cluster account is
-// already gone. Retrying cannot bring it back; the allocation delete or the
-// reconciler removes whatever associations remain.
-func leftToCleanup(membership models.ComputeAllocationMembership, missing string) error {
-	slog.Info("Nothing to revoke for membership, its "+missing+" is gone",
-		"membership_id", membership.ID, "user_id", membership.UserID)
-	return nil
-}
-
-// removeAssociationsForAllocation drops every member's access to an allocation
-// at once, for when the allocation itself stops being usable.
-func (a *AssociationSubscriber) removeAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
-	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
-	if err != nil {
-		return fmt.Errorf("get compute cluster: %w", err)
-	}
-	filter := client.AssocFilter{
-		Cluster: cluster.Name,
-		Account: slurmAccount(allocation.Name),
-	}
-	if err := a.slurmClient.DeleteAssociation(filter); err != nil {
-		return fmt.Errorf("delete associations for allocation %s: %w", allocation.Name, err)
-	}
-	slog.InfoContext(ctx, "Removed associations for allocation",
-		"account", allocation.Name, "cluster", cluster.Name)
-	return nil
-}
-
-// removeUserFromCluster deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
-func (a *AssociationSubscriber) removeUserFromCluster(ctx context.Context, csu models.ComputeClusterUser) error {
+// deprovisionSlurmUser deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
+func (a *AssociationSubscriber) deprovisionSlurmUser(ctx context.Context, csu models.ComputeClusterUser) error {
 	cluster, err := a.coreService.GetComputeCluster(ctx, csu.ComputeClusterID)
 	if err != nil {
 		return fmt.Errorf("get compute cluster: %w", err)
@@ -119,37 +54,28 @@ func (a *AssociationSubscriber) removeUserFromCluster(ctx context.Context, csu m
 	return a.slurmClient.DeleteAssociation(client.AssocFilter{Cluster: cluster.Name, Account: noAllocation, User: user})
 }
 
-// activeAllocation reports whether an allocation should still grant access.
-func activeAllocation(allocation models.ComputeAllocation) bool {
-	return allocation.Status == models.ACTIVE
+// syncAllocationCluster syncs the cluster the allocation lives on.
+func (a *AssociationSubscriber) syncAllocationCluster(ctx context.Context, allocationID string) error {
+	allocation, err := a.coreService.GetComputeAllocation(ctx, allocationID)
+	if errors.Is(err, service.ErrNotFound) {
+		slog.InfoContext(ctx, "Allocation is gone, nothing to sync", "allocation_id", allocationID)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get compute allocation: %w", err)
+	}
+	return a.syncClusterByID(ctx, allocation.ComputeClusterID)
 }
 
-// restoreAssociationsForAllocation re-grants every active member of an
-// allocation, for when the allocation becomes usable again. Members whose
-// account is not provisioned yet are left to the reconciler, the same as on
-// first membership.
-func (a *AssociationSubscriber) restoreAssociationsForAllocation(ctx context.Context, allocation models.ComputeAllocation) error {
-	members, err := a.coreService.ListMembersForAllocation(ctx, allocation.ID)
+// syncClusterByID syncs a whole cluster, which takes as long as a sweep, so
+// it gets the sweep's budget rather than the event's fetch deadline.
+func (a *AssociationSubscriber) syncClusterByID(ctx context.Context, clusterID string) error {
+	cluster, err := a.coreService.GetComputeCluster(ctx, clusterID)
 	if err != nil {
-		return fmt.Errorf("list members for allocation: %w", err)
+		return fmt.Errorf("get compute cluster: %w", err)
 	}
-	var failed int
-	for _, member := range members {
-		if member.MembershipStatus != models.ACTIVE {
-			continue
-		}
-		if err := a.upsertAssociationsForMembership(ctx, member.ComputeAllocationMembership); err != nil {
-			if errors.Is(err, errNotProvisioned) {
-				continue
-			}
-			failed++
-			slog.ErrorContext(ctx, "Failed to restore association for member",
-				"membership_id", member.ID, "allocation_id", allocation.ID, "error", err)
-		}
-	}
-	if failed > 0 {
-		return fmt.Errorf("%d of %d members could not be restored", failed, len(members))
-	}
-	slog.InfoContext(ctx, "Restored associations for allocation", "account", allocation.Name, "members", len(members))
-	return nil
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), reconcileSweepTimeout)
+	defer cancel()
+	_, err = a.syncCluster(ctx, *cluster)
+	return err
 }

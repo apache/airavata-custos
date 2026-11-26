@@ -36,6 +36,12 @@ func newClusterAllocation(t *testing.T, svc *Service, piID string) (clusterID, a
 	if err != nil {
 		t.Fatalf("create cluster: %v", err)
 	}
+	return cluster.ID, newAllocation(t, svc, cluster.ID, piID)
+}
+
+// newAllocation creates an allocation on the cluster and returns its id.
+func newAllocation(t *testing.T, svc *Service, clusterID, piID string) string {
+	t.Helper()
 	project, err := svc.CreateProject(ctx(), &models.Project{Title: "usage-" + uuid.NewString()[:8], ProjectPIID: piID})
 	if err != nil {
 		t.Fatalf("create project: %v", err)
@@ -43,7 +49,7 @@ func newClusterAllocation(t *testing.T, svc *Service, piID string) (clusterID, a
 	alloc, err := svc.CreateComputeAllocation(ctx(), &models.ComputeAllocation{
 		ProjectID:        project.ID,
 		Name:             "usage-" + uuid.NewString()[:8],
-		ComputeClusterID: cluster.ID,
+		ComputeClusterID: clusterID,
 		InitialSUAmount:  1000,
 		StartTime:        time.Now().UTC(),
 		EndTime:          time.Now().UTC().Add(24 * time.Hour),
@@ -51,7 +57,7 @@ func newClusterAllocation(t *testing.T, svc *Service, piID string) (clusterID, a
 	if err != nil {
 		t.Fatalf("create allocation: %v", err)
 	}
-	return cluster.ID, alloc.ID
+	return alloc.ID
 }
 
 // Make sure the latest usage time only looks at the given cluster's allocations, and is nil for a cluster with none.

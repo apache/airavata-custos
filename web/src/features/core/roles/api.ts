@@ -97,14 +97,14 @@ export async function updateRole(roleId: string, input: RoleInput): Promise<Role
   );
 }
 
-export async function addPrivilegeToRole(roleId: string, privilege: PrivilegeKey): Promise<void> {
+export async function grantPrivilegeToRole(roleId: string, privilege: PrivilegeKey): Promise<void> {
   await apiFetch(`/roles/${roleId}/privileges`, {
     method: "POST",
     body: { privilege },
   });
 }
 
-export async function removePrivilegeFromRole(
+export async function revokePrivilegeFromRole(
   roleId: string,
   privilege: PrivilegeKey,
 ): Promise<void> {
@@ -120,14 +120,14 @@ export async function reconcileRolePrivileges(
 ): Promise<void> {
   const currentSet = new Set(current);
   const nextSet = new Set(next);
-  const toAdd = next.filter((key) => !currentSet.has(key));
-  const toRemove = current.filter((key) => !nextSet.has(key));
+  const toGrant = next.filter((key) => !currentSet.has(key));
+  const toRevoke = current.filter((key) => !nextSet.has(key));
 
-  for (const privilege of toAdd) {
-    await addPrivilegeToRole(roleId, privilege);
+  for (const privilege of toGrant) {
+    await grantPrivilegeToRole(roleId, privilege);
   }
-  for (const privilege of toRemove) {
-    await removePrivilegeFromRole(roleId, privilege);
+  for (const privilege of toRevoke) {
+    await revokePrivilegeFromRole(roleId, privilege);
   }
 }
 
@@ -152,13 +152,13 @@ export async function reconcileRoleMembers(
 ): Promise<void> {
   const currentSet = new Set(current);
   const nextSet = new Set(next);
-  const toAdd = next.filter((userId) => !currentSet.has(userId));
-  const toRemove = current.filter((userId) => !nextSet.has(userId));
+  const toGrant = next.filter((userId) => !currentSet.has(userId));
+  const toRevoke = current.filter((userId) => !nextSet.has(userId));
 
-  for (const userId of toAdd) {
+  for (const userId of toGrant) {
     await grantRoleToUser(userId, roleId);
   }
-  for (const userId of toRemove) {
+  for (const userId of toRevoke) {
     await revokeRoleFromUser(userId, roleId);
   }
 }

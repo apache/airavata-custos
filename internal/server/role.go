@@ -179,7 +179,7 @@ type rolePrivilegeRequest struct {
 	Privilege models.PrivilegeKey `json:"privilege"`
 }
 
-// @Summary	Add a privilege to a role
+// @Summary	Grant a privilege to a role
 // @Description	The new privilege propagates to every current holder.
 // @Tags	Roles
 // @Security	BearerAuth
@@ -191,7 +191,7 @@ type rolePrivilegeRequest struct {
 // @Failure	401	{object}	object{error=string}
 // @Failure	409	{object}	object{error=string}	"Role already carries that privilege"
 // @Router	/roles/{id}/privileges [post]
-func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
+func (s *Server) grantRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	if roleID == "" {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
@@ -206,7 +206,7 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := s.svc.AddPrivilegeToRole(r.Context(), roleID, req.Privilege, caller.UserID); err != nil {
+	if err := s.svc.GrantPrivilegeToRole(r.Context(), roleID, req.Privilege, caller.UserID); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
@@ -214,8 +214,8 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// @Summary	Remove a privilege from a role
-// @Description	Removal propagates to every holder. Refuses to remove `privileges:grant` or `roles:manage` if that would leave no role anywhere carrying it.
+// @Summary	Revoke a privilege from a role
+// @Description	Revocation propagates to every holder. Refuses to revoke `privileges:grant` or `roles:manage` if that would leave no role anywhere carrying it.
 // @Tags	Roles
 // @Security	BearerAuth
 // @Param	id	path	string	true	"Role ID"
@@ -225,7 +225,7 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 // @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}	"Role does not carry that privilege"
 // @Router	/roles/{id}/privileges/{key} [delete]
-func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
+func (s *Server) revokeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	key := models.PrivilegeKey(r.PathValue("key"))
 	if roleID == "" || key == "" {
@@ -236,7 +236,7 @@ func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	if caller == nil {
 		return
 	}
-	if err := s.svc.RemovePrivilegeFromRole(r.Context(), roleID, key, caller.UserID); err != nil {
+	if err := s.svc.RevokePrivilegeFromRole(r.Context(), roleID, key, caller.UserID); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}

@@ -310,10 +310,11 @@ func TestResolveCaller_RefusesDisabledUser(t *testing.T) {
 
 	for _, status := range []models.UserStatus{models.UserSuspended, models.UserInactive, models.UserMerged} {
 		for _, id := range []string{bound, unbound} {
-			if _, err := svc.UpdateUserStatus(ctx(), id, status); err != nil {
+			if _, err := database.Exec(`UPDATE users SET status = $1 WHERE id = $2`, status, id); err != nil {
 				t.Fatalf("set %s: %v", status, err)
 			}
 		}
+		svc.InvalidateAllIdentities()
 		if _, _, err := svc.ResolveCaller(ctx(), &identity.Claims{Sub: "sub-bound"}); !errors.Is(err, identity.ErrUserDisabled) {
 			t.Errorf("bound %s: got %v, want ErrUserDisabled", status, err)
 		}
