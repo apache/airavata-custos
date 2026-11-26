@@ -115,7 +115,7 @@ func (s *StorageSubscriber) StartReconciler(ctx context.Context, interval time.D
 func (s *StorageSubscriber) reconcile(ctx context.Context, id string) {
 	ctx, span := tracing.Start(ctx, "vast.reconcile")
 	defer span.End()
-	desired, err := s.core.EnsureStorages(ctx, id)
+	desired, err := s.core.SyncStorages(ctx, id)
 	for _, st := range desired {
 		err = errors.Join(err, s.createStorage(ctx, st))
 	}

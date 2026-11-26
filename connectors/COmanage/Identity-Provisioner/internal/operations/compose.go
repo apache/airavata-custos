@@ -55,7 +55,7 @@ func mergeUnixClusterAccount(composite json.RawMessage, block UnixClusterAccount
 	return out, nil
 }
 
-// removeLogin returns the person's record without the cluster account and the
+// withoutUnixClusterAccount returns the person's record without the cluster account and the
 // uid identifier of this username. Everything else on the person is kept.
 //
 // This is how the two are deleted in the registry. The caller sends the
@@ -63,7 +63,7 @@ func mergeUnixClusterAccount(composite json.RawMessage, block UnixClusterAccount
 // entry the record no longer has. The person itself is not deleted.
 //
 // It reports false when the person has neither, so there is nothing to send.
-func removeLogin(composite json.RawMessage, username string) ([]byte, bool, error) {
+func withoutUnixClusterAccount(composite json.RawMessage, username string) ([]byte, bool, error) {
 	var top map[string]json.RawMessage
 	if err := json.Unmarshal(composite, &top); err != nil {
 		return nil, false, fmt.Errorf("decode composite: %w", err)
@@ -72,13 +72,13 @@ func removeLogin(composite json.RawMessage, username string) ([]byte, bool, erro
 		var got string
 		return json.Unmarshal(raw, &got) == nil && got == want
 	}
-	account, err := dropEntries(top, "UnixClusterAccount", func(e map[string]json.RawMessage) bool {
+	account, err := deleteEntries(top, "UnixClusterAccount", func(e map[string]json.RawMessage) bool {
 		return is(e["username"], username)
 	})
 	if err != nil {
 		return nil, false, err
 	}
-	ident, err := dropEntries(top, "Identifier", func(e map[string]json.RawMessage) bool {
+	ident, err := deleteEntries(top, "Identifier", func(e map[string]json.RawMessage) bool {
 		return is(e["type"], "uid") && is(e["identifier"], username)
 	})
 	if err != nil {
@@ -91,9 +91,9 @@ func removeLogin(composite json.RawMessage, username string) ([]byte, bool, erro
 	return out, account || ident, nil
 }
 
-// dropEntries removes the matching entries of one composite array and reports
+// deleteEntries removes the matching entries of one composite array and reports
 // whether any matched.
-func dropEntries(top map[string]json.RawMessage, key string, match func(map[string]json.RawMessage) bool) (bool, error) {
+func deleteEntries(top map[string]json.RawMessage, key string, match func(map[string]json.RawMessage) bool) (bool, error) {
 	raw, ok := top[key]
 	if !ok {
 		return false, nil

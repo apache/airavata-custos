@@ -128,7 +128,7 @@ type ComputeClusterUserService interface {
 
 // StorageService exposes what a storage connector calls on core.
 type StorageService interface {
-	EnsureStorages(ctx context.Context, clusterID string) ([]models.Storage, error)
+	SyncStorages(ctx context.Context, clusterID string) ([]models.Storage, error)
 }
 
 // ComputeAllocationService exposes compute-allocation CRUD.
@@ -205,7 +205,7 @@ type ComputeAllocationChangeRequestEventService interface {
 
 // ProjectMembershipService exposes project-level governance roles.
 type ProjectMembershipService interface {
-	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
+	SetProjectRole(ctx context.Context, projectID, userID, role string) error
 }
 
 // ComputeAllocationMembershipService exposes allocation memberships.
@@ -276,8 +276,8 @@ type RoleService interface {
 	GetRole(ctx context.Context, roleID string) (*models.Role, error)
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	ListRolePrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
-	AddPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
-	RemovePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+	GrantPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+	RevokePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
 }
 
 // UserRoleService manages role assignments. Granting and revoking require

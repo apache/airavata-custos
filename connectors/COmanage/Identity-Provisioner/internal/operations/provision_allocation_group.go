@@ -29,9 +29,9 @@ import (
 // groups, which mirror uidnumbers.
 const allocationGIDBase = 3_000_000
 
-// EnsureAllocationGroup gives an active allocation its CoGroup and makes it
+// ProvisionAllocationGroup gives an active allocation its CoGroup and makes it
 // hold exactly its active members with a provisioned cluster account.
-func (o *Orchestrator) EnsureAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
+func (o *Orchestrator) ProvisionAllocationGroup(ctx context.Context, a *models.ComputeAllocation) error {
 	if a.PosixGroup == nil {
 		return nil
 	}

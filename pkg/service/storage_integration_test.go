@@ -98,7 +98,7 @@ func TestStorageLifecycle(t *testing.T) {
 	projectPath, siblingPath := "/project/"+*a.PosixGroup, "/project/"+*sibling.PosixGroup
 	ensure := func() int {
 		before := countRows(t, database, storageCreates)
-		if _, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil {
+		if _, err := svc.SyncStorages(ctx(), cluster.ID); err != nil {
 			t.Fatalf("ensure: %v", err)
 		}
 		return countRows(t, database, storageCreates) - before
@@ -216,7 +216,7 @@ func TestStoragesFollowProvisioning(t *testing.T) {
 	err = svc.MarkComputeClusterUserProvisioned(ctx(), late.ID)
 	join(late)
 	check("a provisioned account joining", err, "/home/early", "/home/late", projectPath, projectPath+"/early", projectPath+"/late")
-	if desired, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil || len(desired) != 5 || countRows(t, database, storageCreates) != 5 {
+	if desired, err := svc.SyncStorages(ctx(), cluster.ID); err != nil || len(desired) != 5 || countRows(t, database, storageCreates) != 5 {
 		t.Fatalf("ensuring again: err=%v desired=%d, want the five storages and nothing made or changed", err, len(desired))
 	}
 }
@@ -238,7 +238,7 @@ func TestMemberStorageSurvivesConcurrentProvisioning(t *testing.T) {
 			if err := svc.memberships.Create(ctx(), tx, m); err != nil {
 				return err
 			}
-			return svc.ensureStoragesTx(ctx(), tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID})
+			return svc.syncStoragesTx(ctx(), tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID})
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -329,7 +329,7 @@ func TestClaimedStorageHolders(t *testing.T) {
 			t.Fatalf("after %q: %s, want %s", step.status, got, step.want)
 		}
 	}
-	if _, err := svc.EnsureStorages(ctx(), cluster.ID); err != nil {
+	if _, err := svc.SyncStorages(ctx(), cluster.ID); err != nil {
 		t.Fatalf("ensure: %v", err)
 	}
 	if got, _ := storage("/unclaimed/x"); got != "active" {

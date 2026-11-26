@@ -194,7 +194,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		// Created ahead of the main transaction so the user check below can see it.
 		// If the rest fails, the empty system org left behind, which is harmless.
 		if err := s.inTx(ctx, func(tx *sql.Tx) error {
-			_, err := s.ensureSystemOrgTx(ctx, tx)
+			_, err := s.findOrCreateSystemOrgTx(ctx, tx)
 			return err
 		}); err != nil {
 			return nil, err
@@ -235,7 +235,7 @@ func (s *Service) OnboardUser(ctx context.Context, in OnboardUserInput) (*models
 		}
 
 		if in.PortalAdmin {
-			role, err := s.ensureAdminRoleTx(ctx, tx)
+			role, err := s.findOrCreateAdminRoleTx(ctx, tx)
 			if err != nil {
 				return err
 			}

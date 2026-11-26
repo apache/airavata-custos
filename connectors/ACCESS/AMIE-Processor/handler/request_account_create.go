@@ -111,9 +111,9 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 	allocation := allocations[0]
 
-	account, err := ensureClusterUser(ctx, h.svc, h.clusterID, user.ID)
+	account, err := findOrCreateClusterUser(ctx, h.svc, h.clusterID, user.ID)
 	if err != nil {
-		return fmt.Errorf("request_account_create: ensure compute cluster user: %w", err)
+		return fmt.Errorf("request_account_create: find or create compute cluster user: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "compute_cluster_user", account.ID, account.LocalUsername); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_ACCOUNT: %w", err)
@@ -135,8 +135,8 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 			return fmt.Errorf("request_account_create: activate membership: %w", err)
 		}
 	}
-	if err := h.svc.EnsureProjectMembership(ctx, project.ID, user.ID, role); err != nil {
-		return fmt.Errorf("request_account_create: ensure project membership: %w", err)
+	if err := h.svc.SetProjectRole(ctx, project.ID, user.ID, role); err != nil {
+		return fmt.Errorf("request_account_create: set project role: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", membership.ID,
 		fmt.Sprintf("allocation=%s user=%s role=%s", allocation.ID, user.ID, role)); err != nil {

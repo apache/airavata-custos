@@ -70,7 +70,7 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Create(ctx, tx, m); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipCreateEvent, m)
@@ -169,7 +169,7 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, m.ID); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, m)
@@ -211,7 +211,7 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, id); err != nil {
 			return err
 		}
-		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
+		if err := s.syncStoragesTx(ctx, tx, store.StorageScope{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipUpdateEvent, existing)

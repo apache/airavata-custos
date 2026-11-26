@@ -5555,12 +5555,12 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Add a privilege to a role
+      summary: Grant a privilege to a role
       tags:
       - Roles
   /roles/{id}/privileges/{key}:
     delete:
-      description: Removal propagates to every holder. Refuses to remove `privileges:grant`
+      description: Revocation propagates to every holder. Refuses to revoke `privileges:grant`
         or `roles:manage` if that would leave no role anywhere carrying it.
       parameters:
       - description: Role ID
@@ -5617,7 +5617,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Remove a privilege from a role
+      summary: Revoke a privilege from a role
       tags:
       - Roles
   /service-accounts:

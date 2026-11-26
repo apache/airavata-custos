@@ -70,7 +70,7 @@ var (
 	mappingCreated = eventSync[models.ComputeAllocationResourceMapping]{"slurm.compute_allocation_resource_mapping_create",
 		"ComputeAllocationResourceMappingCreationFailed", "ComputeAllocationResourceMappingCreationSucceeded", "compute_allocation_resource_mapping", mappingID, (*AssociationSubscriber).syncMapping}
 	clusterUserDeleted = eventSync[models.ComputeClusterUser]{"slurm.compute_cluster_user_delete",
-		"ComputeClusterUserDeletionFailed", "ComputeClusterUserDeprovisioned", "compute_cluster_user", clusterUserID, (*AssociationSubscriber).removeUserFromCluster}
+		"ComputeClusterUserDeletionFailed", "ComputeClusterUserDeprovisioned", "compute_cluster_user", clusterUserID, (*AssociationSubscriber).deprovisionSlurmUser}
 )
 
 // run syncs the event in its own span and audits the outcome on the event's entity.

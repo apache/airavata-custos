@@ -399,8 +399,8 @@ type ProjectMembershipStore interface {
 	FindByPair(ctx context.Context, projectID, userID string) (*models.ProjectMembership, error)
 	// IsParticipant reports whether the user has any role on the project.
 	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
-	// Upsert inserts the (project, user) row or sets its role.
-	Upsert(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
+	// SetRole inserts the (project, user) row or sets its role.
+	SetRole(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
 	// Delete removes the (project, user) row.
 	Delete(ctx context.Context, tx *sql.Tx, projectID, userID string) error
 	// ReassignUser moves fromUserID's tags to toUserID, keeping the higher tag
@@ -524,8 +524,8 @@ type RoleStore interface {
 	Update(ctx context.Context, tx *sql.Tx, r *models.Role) error
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 	ListPrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
-	AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
-	RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	GrantPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	RevokePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
 	HasPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) (bool, error)
 	CountRolesGrantingPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
 }

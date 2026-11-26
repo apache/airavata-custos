@@ -33,19 +33,21 @@ type fakeOps struct {
 	admins      []string
 }
 
-func (f *fakeOps) EnsureClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) ProvisionUnixClusterAccount(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.provisioned = append(f.provisioned, cu.ID)
 	return nil
 }
-func (f *fakeOps) RemoveClusterAccount(context.Context, *models.ComputeClusterUser) error { return nil }
-func (f *fakeOps) EnsureClusterAdminMembership(_ context.Context, cu *models.ComputeClusterUser) error {
+func (f *fakeOps) DeprovisionUnixClusterAccount(context.Context, *models.ComputeClusterUser) error {
+	return nil
+}
+func (f *fakeOps) ProvisionAdminGroupMembership(_ context.Context, cu *models.ComputeClusterUser) error {
 	f.admins = append(f.admins, cu.ID)
 	return nil
 }
-func (f *fakeOps) EnsureAllocationGroup(context.Context, *models.ComputeAllocation) error {
+func (f *fakeOps) ProvisionAllocationGroup(context.Context, *models.ComputeAllocation) error {
 	return nil
 }
-func (f *fakeOps) RemoveAllocationGroup(context.Context, *models.ComputeAllocation) error {
+func (f *fakeOps) DeprovisionAllocationGroup(context.Context, *models.ComputeAllocation) error {
 	return nil
 }
 

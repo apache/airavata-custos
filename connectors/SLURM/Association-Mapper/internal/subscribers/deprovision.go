@@ -29,8 +29,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// removeUserFromCluster deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
-func (a *AssociationSubscriber) removeUserFromCluster(ctx context.Context, csu models.ComputeClusterUser) error {
+// deprovisionSlurmUser deletes a deleted account's Slurm user, or only this cluster's associations if the user is on others.
+func (a *AssociationSubscriber) deprovisionSlurmUser(ctx context.Context, csu models.ComputeClusterUser) error {
 	cluster, err := a.coreService.GetComputeCluster(ctx, csu.ComputeClusterID)
 	if err != nil {
 		return fmt.Errorf("get compute cluster: %w", err)

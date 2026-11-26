@@ -29,8 +29,8 @@ const (
 	roleAuditCreated          = "ROLE_CREATED"
 	roleAuditUpdated          = "ROLE_UPDATED"
 	roleAuditDeleted          = "ROLE_DELETED"
-	roleAuditPrivilegeAdded   = "ROLE_PRIVILEGE_ADDED"
-	roleAuditPrivilegeRemoved = "ROLE_PRIVILEGE_REMOVED"
+	roleAuditPrivilegeGranted = "ROLE_PRIVILEGE_ADDED"
+	roleAuditPrivilegeRevoked = "ROLE_PRIVILEGE_REMOVED"
 )
 
 // CreateRole requires actorID to hold roles:manage. Role names are unique.
@@ -168,9 +168,9 @@ func (s *Service) ListRolePrivileges(ctx context.Context, roleID string) ([]mode
 	return s.roles.ListPrivileges(ctx, roleID)
 }
 
-// AddPrivilegeToRole requires actorID to hold roles:manage. The change
+// GrantPrivilegeToRole requires actorID to hold roles:manage. The change
 // propagates to every holder of the role.
-func (s *Service) AddPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
+func (s *Service) GrantPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 	if roleID == "" {
 		return fmt.Errorf("%w: role_id is required", ErrInvalidInput)
 	}
@@ -198,10 +198,10 @@ func (s *Service) AddPrivilegeToRole(ctx context.Context, roleID string, privile
 		if has {
 			return fmt.Errorf("%w: role %q already carries %q", ErrAlreadyExists, existing.Name, privilege)
 		}
-		if err := s.roles.AddPrivilege(ctx, tx, roleID, privilege); err != nil {
-			return fmt.Errorf("add role privilege: %w", err)
+		if err := s.roles.GrantPrivilege(ctx, tx, roleID, privilege); err != nil {
+			return fmt.Errorf("grant role privilege: %w", err)
 		}
-		return s.writeAuditTx(ctx, tx, "role", roleAuditPrivilegeAdded, roleID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditPrivilegeGranted, roleID, map[string]any{
 			"actor_id":  actorID,
 			"privilege": privilege,
 			"role_name": existing.Name,
@@ -209,10 +209,10 @@ func (s *Service) AddPrivilegeToRole(ctx context.Context, roleID string, privile
 	})
 }
 
-// RemovePrivilegeFromRole detaches a privilege from a role. Caller must
+// RevokePrivilegeFromRole detaches a privilege from a role. Caller must
 // hold roles:manage. Refuses to remove privileges:grant or roles:manage if
 // no other role carries it.
-func (s *Service) RemovePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
+func (s *Service) RevokePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 	if roleID == "" {
 		return fmt.Errorf("%w: role_id is required", ErrInvalidInput)
 	}
@@ -249,10 +249,10 @@ func (s *Service) RemovePrivilegeFromRole(ctx context.Context, roleID string, pr
 				return fmt.Errorf("%w: cannot remove the last source of %q from any role", ErrInvalidInput, privilege)
 			}
 		}
-		if err := s.roles.RemovePrivilege(ctx, tx, roleID, privilege); err != nil {
-			return fmt.Errorf("remove role privilege: %w", err)
+		if err := s.roles.RevokePrivilege(ctx, tx, roleID, privilege); err != nil {
+			return fmt.Errorf("revoke role privilege: %w", err)
 		}
-		return s.writeAuditTx(ctx, tx, "role", roleAuditPrivilegeRemoved, roleID, map[string]any{
+		return s.writeAuditTx(ctx, tx, "role", roleAuditPrivilegeRevoked, roleID, map[string]any{
 			"actor_id":  actorID,
 			"privilege": privilege,
 			"role_name": existing.Name,

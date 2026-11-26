@@ -170,9 +170,9 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		}
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		role, err := s.ensureSuperAdminRoleTx(ctx, tx)
+		role, err := s.findOrCreateSuperAdminRoleTx(ctx, tx)
 		if err != nil {
-			return fmt.Errorf("ensure super_admin role: %w", err)
+			return fmt.Errorf("find or create super_admin role: %w", err)
 		}
 		if err := s.grantMissingPrivilegesTx(ctx, tx, role.ID); err != nil {
 			return fmt.Errorf("grant super_admin privileges: %w", err)
@@ -221,7 +221,7 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 func (s *Service) createBootstrapUser(ctx context.Context, email, source string) (*models.User, error) {
 	var created *models.User
 	err := s.inTx(ctx, func(tx *sql.Tx) error {
-		org, err := s.ensureSystemOrgTx(ctx, tx)
+		org, err := s.findOrCreateSystemOrgTx(ctx, tx)
 		if err != nil {
 			return err
 		}
@@ -247,8 +247,8 @@ func (s *Service) createBootstrapUser(ctx context.Context, email, source string)
 	return created, nil
 }
 
-// ensureSuperAdminRoleTx returns the super_admin role, creating it on first use.
-func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
+// findOrCreateSuperAdminRoleTx returns the super_admin role, creating it on first use.
+func (s *Service) findOrCreateSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
 	role, err := s.roles.FindByName(ctx, models.SystemRoleSuperAdmin)
 	if err != nil {
 		return nil, fmt.Errorf("lookup super_admin role: %w", err)
@@ -276,7 +276,7 @@ func (s *Service) grantMissingPrivilegesTx(ctx context.Context, tx *sql.Tx, role
 			return fmt.Errorf("check privilege %s: %w", key, err)
 		}
 		if !has {
-			if err := s.roles.AddPrivilege(ctx, tx, roleID, key); err != nil {
+			if err := s.roles.GrantPrivilege(ctx, tx, roleID, key); err != nil {
 				return fmt.Errorf("grant %s: %w", key, err)
 			}
 		}
@@ -284,8 +284,8 @@ func (s *Service) grantMissingPrivilegesTx(ctx context.Context, tx *sql.Tx, role
 	return nil
 }
 
-// ensureSystemOrgTx returns the organization for users without an upstream one, creating it on first use.
-func (s *Service) ensureSystemOrgTx(ctx context.Context, tx *sql.Tx) (*models.Organization, error) {
+// findOrCreateSystemOrgTx returns the organization for users without an upstream one, creating it on first use.
+func (s *Service) findOrCreateSystemOrgTx(ctx context.Context, tx *sql.Tx) (*models.Organization, error) {
 	org, err := s.orgs.FindByID(ctx, bootstrapSystemOrgID)
 	if err != nil {
 		return nil, fmt.Errorf("lookup system org: %w", err)
@@ -303,8 +303,8 @@ func (s *Service) ensureSystemOrgTx(ctx context.Context, tx *sql.Tx) (*models.Or
 	return org, nil
 }
 
-// ensureAdminRoleTx returns the admin role, creating it with its privileges on first use. Privileges are seeded only at creation.
-func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
+// findOrCreateAdminRoleTx returns the admin role, creating it with its privileges on first use. Privileges are seeded only at creation.
+func (s *Service) findOrCreateAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
 	role, err := s.roles.FindByName(ctx, models.SystemRoleAdmin)
 	if err != nil {
 		return nil, fmt.Errorf("lookup admin role: %w", err)
@@ -325,7 +325,7 @@ func (s *Service) ensureAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Ro
 		if key == models.PrivilegesGrant || key == models.RolesManage || key == models.ServiceAccountsManage {
 			continue
 		}
-		if err := s.roles.AddPrivilege(ctx, tx, role.ID, key); err != nil {
+		if err := s.roles.GrantPrivilege(ctx, tx, role.ID, key); err != nil {
 			return nil, fmt.Errorf("attach %s to admin: %w", key, err)
 		}
 	}

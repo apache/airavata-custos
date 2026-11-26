@@ -111,12 +111,12 @@ func getResourceList(body map[string]any) []string {
 	return result
 }
 
-// ensureUserIdentity is the idempotent upsert used by data_project_create
+// findOrCreateUserIdentity is the idempotent upsert used by data_project_create
 // and data_account_create. It is a no-op when the user already has an AMIE
 // UserIdentity row for this globalID; creates one otherwise. Pre-existing
 // rows are NOT touched here, attribute updates (org / orgCode / nsfStatus)
 // are owned by request_user_modify.
-func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
+func findOrCreateUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
 	if existing, err := svc.GetUserIdentityBySourceAndExternalID(ctx, amieIdentitySource, globalID); err == nil {
 		if existing.UserID == userID {
 			return nil
@@ -217,9 +217,9 @@ func transactionSuccessReply(message string) map[string]any {
 	}
 }
 
-// ensureClusterUser returns the user's existing cluster mapping or
+// findOrCreateClusterUser returns the user's existing cluster mapping or
 // provisions a new one via the POSIX allocator.
-func ensureClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
+func findOrCreateClusterUser(ctx context.Context, svc *service.Service, clusterID, userID string) (*models.ComputeClusterUser, error) {
 	existing, err := svc.ListComputeClusterUsersByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list compute cluster users: %w", err)
@@ -268,9 +268,9 @@ func bindPersonUser(ctx context.Context, svc *service.Service, p amiePerson) (*m
 	if match == personBound {
 		return user, nil
 	}
-	org, err := ensureOrganization(ctx, svc, p.OrgCode, p.OrgName)
+	org, err := findOrCreateOrganization(ctx, svc, p.OrgCode, p.OrgName)
 	if err != nil {
-		return nil, fmt.Errorf("ensure organization: %w", err)
+		return nil, fmt.Errorf("find or create organization: %w", err)
 	}
 	if match == personNew {
 		user, err = createPersonUser(ctx, svc, org.ID, p)
@@ -335,10 +335,10 @@ func createPersonUserIdentity(ctx context.Context, svc *service.Service, userID 
 	return nil
 }
 
-// ensureOrganization looks up an Organization by its originated_id (the
+// findOrCreateOrganization looks up an Organization by its originated_id (the
 // AMIE-side org code such as "TEST123"); creates one if missing, using the
 // human-readable organization name from the packet.
-func ensureOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
+func findOrCreateOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
 	if code == "" {
 		return nil, fmt.Errorf("organization code is empty")
 	}

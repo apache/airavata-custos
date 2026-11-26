@@ -97,9 +97,9 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_PERSON: %w", err)
 	}
 
-	piClusterUser, err := ensureClusterUser(ctx, h.svc, h.clusterID, pi.ID)
+	piClusterUser, err := findOrCreateClusterUser(ctx, h.svc, h.clusterID, pi.ID)
 	if err != nil {
-		return fmt.Errorf("request_project_create: ensure PI cluster user: %w", err)
+		return fmt.Errorf("request_project_create: find or create PI cluster user: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "compute_cluster_user", piClusterUser.ID, piClusterUser.LocalUsername); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_ACCOUNT (PI): %w", err)
@@ -154,8 +154,8 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_ALLOCATION: %w", err)
 	}
 
-	if err := h.ensureResourceMappings(ctx, tx, body, allocation, packet, eventID); err != nil {
-		return fmt.Errorf("request_project_create: ensure resource mappings: %w", err)
+	if err := h.attachResources(ctx, tx, body, allocation, packet, eventID); err != nil {
+		return fmt.Errorf("request_project_create: attach resources: %w", err)
 	}
 
 	piMembership, err := findAllocationMembership(ctx, h.svc, allocation.ID, pi.ID)
@@ -173,8 +173,8 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 			return fmt.Errorf("request_project_create: activate PI membership: %w", err)
 		}
 	}
-	if err := h.svc.EnsureProjectMembership(ctx, project.ID, pi.ID, "PI"); err != nil {
-		return fmt.Errorf("request_project_create: ensure PI project membership: %w", err)
+	if err := h.svc.SetProjectRole(ctx, project.ID, pi.ID, "PI"); err != nil {
+		return fmt.Errorf("request_project_create: set PI project role: %w", err)
 	}
 	if created {
 		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", piMembership.ID, "PI"); err != nil {
@@ -222,11 +222,11 @@ func (h *RequestProjectCreateHandler) createAllocation(ctx context.Context, body
 	})
 }
 
-// ensureResourceMappings grants the allocation each packet resource found in
+// attachResources grants the allocation each packet resource found in
 // the cluster's catalog. AMIE expresses the grant only in service units,
 // already stored on the allocation, so mappings carry no native caps;
 // unregistered names are skipped rather than failing the packet.
-func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
+func (h *RequestProjectCreateHandler) attachResources(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
 	for _, packetName := range getResourceList(body) {
 		// One packet resource can stand for several catalog resources, such as two GPU partitions with their own rates.
 		names, ok := h.resourceAliases[packetName]

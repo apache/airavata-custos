@@ -228,7 +228,7 @@ func TestMergeIdentifier_KeepsEveryPropertyOfThePerson(t *testing.T) {
 // Make sure removing a login takes only the cluster account and the uid
 // identifier with that username, since the composite PUT deletes anything the
 // body leaves out and the rest of the attributes of the person must survive.
-func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
+func TestWithoutUnixClusterAccount_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
 	person := `{
       "CoPerson": {"meta": {"id": 244}, "co_id": 2, "status": "A"},
       "Name": [{"given": "Jane", "family": "Doe", "type": "official", "primary_name": true}],
@@ -255,9 +255,9 @@ func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
       "UnixClusterAccount": []
     }`
 
-	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	got, changed, err := withoutUnixClusterAccount(json.RawMessage(person), "jdoe")
 	if err != nil {
-		t.Fatalf("removeLogin: %v", err)
+		t.Fatalf("withoutUnixClusterAccount: %v", err)
 	}
 	if !changed {
 		t.Fatal("expected the person to be reported as changed")
@@ -269,15 +269,15 @@ func TestRemoveLogin_TakesOnlyTheAccountAndItsLoginName(t *testing.T) {
 
 // Make sure a person who has no account with the username being removed is
 // left unchanged. The person is found by an email search, which can match someone else.
-func TestRemoveLogin_LeavesAnotherPersonUntouched(t *testing.T) {
+func TestWithoutUnixClusterAccount_LeavesAnotherPersonUntouched(t *testing.T) {
 	person := `{
       "CoPerson": {"co_id": 2},
       "Identifier": [{"identifier": "asmith", "type": "uid", "login": false, "status": "A"}],
       "UnixClusterAccount": [{"username": "asmith", "uid": 2000094, "unix_cluster_id": 1}]
     }`
-	got, changed, err := removeLogin(json.RawMessage(person), "jdoe")
+	got, changed, err := withoutUnixClusterAccount(json.RawMessage(person), "jdoe")
 	if err != nil {
-		t.Fatalf("removeLogin: %v", err)
+		t.Fatalf("withoutUnixClusterAccount: %v", err)
 	}
 	if changed || !sameJSON(t, got, json.RawMessage(person)) {
 		t.Errorf("expected no change, got changed=%v body=%s", changed, got)
