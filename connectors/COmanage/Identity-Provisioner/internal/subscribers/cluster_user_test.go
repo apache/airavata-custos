@@ -64,8 +64,8 @@ func approveWith(t *testing.T, status models.UserStatus) (*fakeOps, []models.Aud
 	}
 	ops := &fakeOps{}
 	s := &Subscriber{ops: ops, core: core, custosClusterID: "c1"}
-	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ClusterAccountApproved}
-	if err := s.handleClusterUserApproved(context.Background(), cu); err != nil {
+	cu := models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", ApprovalStatus: models.ComputeClusterUserApproved}
+	if err := s.handleComputeClusterUserApproved(context.Background(), cu); err != nil {
 		t.Fatal(err)
 	}
 	return ops, audits
@@ -95,7 +95,7 @@ func TestClusterUserApproved_RunsForAnActiveUser(t *testing.T) {
 }
 
 func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T) {
-	signIn := func(level models.ClusterAccessLevel, approval models.ClusterAccountApproval) *fakeOps {
+	signIn := func(level models.ClusterAccessLevel, approval models.ComputeClusterUserApproval) *fakeOps {
 		core := &service.CoreServiceMock{
 			GetComputeClusterUserByPairFunc: func(context.Context, string, string) (*models.ComputeClusterUser, error) {
 				return &models.ComputeClusterUser{ID: "cu1", UserID: "u1", ComputeClusterID: "c1", AccessLevel: level, ApprovalStatus: approval}, nil
@@ -111,15 +111,15 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 	}
 
 	// An admin account joins the cluster admin group on first sign-in.
-	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountApproved); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
+	if ops := signIn(models.ClusterAccessAdmin, models.ComputeClusterUserApproved); len(ops.admins) != 1 || ops.admins[0] != "cu1" {
 		t.Fatalf("admin account: admin group calls = %v, want [cu1]", ops.admins)
 	}
 	// A normal account does not.
-	if ops := signIn(models.ClusterAccessUser, models.ClusterAccountApproved); len(ops.admins) != 0 {
+	if ops := signIn(models.ClusterAccessUser, models.ComputeClusterUserApproved); len(ops.admins) != 0 {
 		t.Fatalf("normal account: admin group calls = %v, want none", ops.admins)
 	}
 	// An admin account still awaiting approval does not.
-	if ops := signIn(models.ClusterAccessAdmin, models.ClusterAccountPending); len(ops.admins) != 0 {
+	if ops := signIn(models.ClusterAccessAdmin, models.ComputeClusterUserPending); len(ops.admins) != 0 {
 		t.Fatalf("pending admin account: admin group calls = %v, want none", ops.admins)
 	}
 }
@@ -127,14 +127,14 @@ func TestUserOnboarded_JoinsAdminGroupOnlyForApprovedAdminAccounts(t *testing.T)
 func TestUserUpdated_ProvisionsAnApprovedAccountOfAnActiveUser(t *testing.T) {
 	cases := []struct {
 		provisionedAt *time.Time
-		approval      models.ClusterAccountApproval
+		approval      models.ComputeClusterUserApproval
 		status        models.UserStatus
 		sent          bool
 	}{
-		{nil, models.ClusterAccountApproved, models.UserActive, true},
-		{nil, models.ClusterAccountApproved, models.UserPending, false},
-		{nil, models.ClusterAccountPending, models.UserActive, false},
-		{new(time.Time), models.ClusterAccountApproved, models.UserInactive, true},
+		{nil, models.ComputeClusterUserApproved, models.UserActive, true},
+		{nil, models.ComputeClusterUserApproved, models.UserPending, false},
+		{nil, models.ComputeClusterUserPending, models.UserActive, false},
+		{new(time.Time), models.ComputeClusterUserApproved, models.UserInactive, true},
 	}
 	for _, c := range cases {
 		core := &service.CoreServiceMock{

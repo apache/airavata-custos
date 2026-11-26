@@ -83,9 +83,9 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("DELETE /compute-clusters/{id}/qos/{qosId}", models.ClustersWrite, s.deleteComputeClusterQoS)
 
 	s.router.RequirePrivilege("POST /compute-cluster-users", models.ClustersWrite, s.createComputeClusterUser)
-	s.router.RequirePrivilege("GET /compute-cluster-users", models.ClustersRead, s.listClusterAccounts)
-	s.router.RequirePrivilege("POST /compute-cluster-users/{id}/approve", models.ClustersWrite, s.approveClusterAccount)
-	s.router.RequirePrivilege("POST /compute-cluster-users/{id}/deny", models.ClustersWrite, s.denyClusterAccount)
+	s.router.RequirePrivilege("GET /compute-cluster-users", models.ClustersRead, s.listComputeClusterUsers)
+	s.router.RequirePrivilege("POST /compute-cluster-users/{id}/approve", models.ClustersWrite, s.approveComputeClusterUser)
+	s.router.RequirePrivilege("POST /compute-cluster-users/{id}/deny", models.ClustersWrite, s.denyComputeClusterUser)
 	s.router.RequirePrivilege("GET /compute-cluster-users/{id}", models.ClustersRead, s.getComputeClusterUser)
 	s.router.RequirePrivilege("PUT /compute-cluster-users/{id}", models.ClustersWrite, s.updateComputeClusterUser)
 	s.router.RequirePrivilege("DELETE /compute-cluster-users/{id}", models.ClustersWrite, s.deleteComputeClusterUser)

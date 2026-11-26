@@ -65,8 +65,8 @@ func NewSubscriber(c *client.Client, bus *events.Bus, core *service.Service, cus
 func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	// Provisioning needs an approved account and an ACTIVE user.
 	// The later of the approve event and the onboarded or update event starts it.
-	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
-	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
+	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleComputeClusterUserApproved)
+	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleComputeClusterUserDeleted)
 	s.bus.SubscribeUserOnboarded(subscriber, s.handleUserOnboarded)
 	s.bus.SubscribeUserUpdated(subscriber, s.handleUserUpdated)
 
@@ -78,10 +78,10 @@ func (s *Subscriber) RegisterSubscribers(subscriber string) {
 	s.bus.SubscribeComputeAllocationMembershipDeleted(subscriber, s.handleMembershipChanged)
 }
 
-// handleClusterUserDeleted removes the account from the registry.
+// handleComputeClusterUserDeleted removes the account from the registry.
 // An account that was never approved was never sent there, so it is skipped.
-func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
-	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ClusterAccountApproved {
+func (s *Subscriber) handleComputeClusterUserDeleted(ctx context.Context, cu models.ComputeClusterUser) error {
+	if cu.ComputeClusterID != s.custosClusterID || cu.ApprovalStatus != models.ComputeClusterUserApproved {
 		return nil
 	}
 	ctx = audit.WithSource(ctx, "comanage")
@@ -105,10 +105,10 @@ func (s *Subscriber) handleUserUpdated(ctx context.Context, user models.User) er
 		return err
 	}
 	if cu.ProvisionedAt == nil {
-		if cu.ApprovalStatus != models.ClusterAccountApproved || user.Status != models.UserActive {
+		if cu.ApprovalStatus != models.ComputeClusterUserApproved || user.Status != models.UserActive {
 			return nil
 		}
-		return s.handleClusterUserApproved(ctx, *cu)
+		return s.handleComputeClusterUserApproved(ctx, *cu)
 	}
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.user_updated")
@@ -141,7 +141,7 @@ func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) 
 		slog.ErrorContext(ctx, "comanage subscriber: EnsurePOSIXAccount failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
 		return err
 	}
-	if cu.AccessLevel == models.ClusterAccessAdmin && cu.ApprovalStatus == models.ClusterAccountApproved {
+	if cu.AccessLevel == models.ClusterAccessAdmin && cu.ApprovalStatus == models.ComputeClusterUserApproved {
 		if err := s.ops.EnsureClusterAdminMembership(ctx, cu); err != nil {
 			span.RecordError(err)
 			slog.ErrorContext(ctx, "comanage subscriber: EnsureClusterAdminMembership failed after onboarding", "compute_cluster_user_id", cu.ID, "user_id", user.ID, "err", err)
@@ -151,7 +151,7 @@ func (s *Subscriber) handleUserOnboarded(ctx context.Context, user models.User) 
 	return s.syncUserAllocations(ctx, cu.UserID)
 }
 
-func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
+func (s *Subscriber) handleComputeClusterUserApproved(ctx context.Context, cu models.ComputeClusterUser) error {
 	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_approved")
 	defer span.End()

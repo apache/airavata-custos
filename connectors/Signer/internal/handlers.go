@@ -347,7 +347,7 @@ func (h *Handlers) loginName(ctx context.Context, userID string) (username, code
 	if err != nil {
 		return "", "", err
 	}
-	if account.ApprovalStatus != models.ClusterAccountApproved || account.ProvisionedAt == nil {
+	if account.ApprovalStatus != models.ComputeClusterUserApproved || account.ProvisionedAt == nil {
 		return "", "cluster_account_not_ready", nil
 	}
 	memberships, err := h.core.ListAllocationsForUser(ctx, userID)

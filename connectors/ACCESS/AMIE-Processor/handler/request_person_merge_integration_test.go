@@ -621,7 +621,7 @@ func TestRequestPersonMerge_AnswersPacketsHeldOnDeletedSurvivorAccount(t *testin
 		t.Fatalf("insert processing event: %v", err)
 	}
 	if _, err := database.Exec("UPDATE compute_cluster_users SET approval_status = $1, provisioned_at = now() WHERE user_id = $2",
-		string(models.ClusterAccountApproved), seed.retiringID); err != nil {
+		string(models.ComputeClusterUserApproved), seed.retiringID); err != nil {
 		t.Fatalf("provision retiring account: %v", err)
 	}
 

@@ -123,11 +123,11 @@ type ComputeClusterUserStore interface {
 	// FindByUserTx returns the user's mappings locked FOR UPDATE in tx, ordered by compute_cluster_id.
 	FindByUserTx(ctx context.Context, tx *sql.Tx, userID string) ([]models.ComputeClusterUser, error)
 	// ListByApprovalStatus returns mappings joined with the user, cluster and allocation, plus the total. Empty status or filter fields match all.
-	ListByApprovalStatus(ctx context.Context, status models.ClusterAccountApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
+	ListByApprovalStatus(ctx context.Context, status models.ComputeClusterUserApproval, filter UserListFilter, limit, offset int) ([]ComputeClusterUserWithUser, int, error)
 	// Create inserts a new mapping within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// Review records the admin's decision on the mapping within the provided transaction.
-	Review(ctx context.Context, tx *sql.Tx, id string, status models.ClusterAccountApproval, reviewedBy, note string, at time.Time) error
+	Review(ctx context.Context, tx *sql.Tx, id string, status models.ComputeClusterUserApproval, reviewedBy, note string, at time.Time) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction and returns true if it is successful and false if it already exists.

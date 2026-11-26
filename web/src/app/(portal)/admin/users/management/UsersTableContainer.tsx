@@ -37,7 +37,7 @@ import {
   useUsersById,
 } from "@/features/core/users/queries";
 import type { CreateUserPayload } from "@/features/core/users/schemas";
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import {
   replaceShallowSearchParams,
@@ -81,7 +81,7 @@ export function UsersTableContainer() {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addError, setAddError] = React.useState<string | null>(null);
   const [review, setReview] = React.useState<{
-    account: ClusterAccountResponse;
+    account: ComputeClusterUserResponse;
     action: ReviewAction;
   } | null>(null);
   const [reviewError, setReviewError] = React.useState<string | null>(null);
@@ -132,7 +132,7 @@ export function UsersTableContainer() {
   }
 
   function openReview(action: ReviewAction) {
-    return (account: ClusterAccountResponse) => {
+    return (account: ComputeClusterUserResponse) => {
       setReviewError(null);
       setReview({ account, action });
     };

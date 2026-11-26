@@ -65,8 +65,8 @@ type AllocationMembershipResponse struct {
 	Email       string `json:"email,omitempty"`
 }
 
-// ClusterAccountResponse is one row of the cluster account review list.
-type ClusterAccountResponse struct {
+// ComputeClusterUserResponse is one row of the cluster account review list.
+type ComputeClusterUserResponse struct {
 	models.ComputeClusterUser
 	RequestedAt    time.Time `json:"requested_at"`
 	DisplayName    string    `json:"display_name"`
@@ -78,10 +78,10 @@ type ClusterAccountResponse struct {
 	ProjectID      *string   `json:"project_id,omitempty"`
 }
 
-// ClusterAccountListResponse is the paginated list envelope for cluster accounts.
-type ClusterAccountListResponse struct {
-	Items []ClusterAccountResponse `json:"items"`
-	Total int                      `json:"total"`
+// ComputeClusterUserListResponse is the paginated list envelope for cluster accounts.
+type ComputeClusterUserListResponse struct {
+	Items []ComputeClusterUserResponse `json:"items"`
+	Total int                          `json:"total"`
 }
 
 // ComputeAllocationListResponse is the paginated list envelope for compute

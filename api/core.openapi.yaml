@@ -72,12 +72,12 @@ definitions:
       trace_id:
         type: string
     type: object
-  CallerClusterAccount:
+  CallerComputeClusterUser:
     properties:
       access_level:
         $ref: '#/definitions/ClusterAccessLevel'
       approval_status:
-        $ref: '#/definitions/ClusterAccountApproval'
+        $ref: '#/definitions/ComputeClusterUserApproval'
       cluster_name:
         type: string
       compute_cluster_id:
@@ -106,7 +106,7 @@ definitions:
     properties:
       cluster_accounts:
         items:
-          $ref: '#/definitions/CallerClusterAccount'
+          $ref: '#/definitions/CallerComputeClusterUser'
         type: array
       consent:
         $ref: '#/definitions/consentView'
@@ -142,69 +142,6 @@ definitions:
     x-enum-varnames:
     - ClusterAccessUser
     - ClusterAccessAdmin
-  ClusterAccountApproval:
-    enum:
-    - PENDING
-    - APPROVED
-    - DENIED
-    type: string
-    x-enum-varnames:
-    - ClusterAccountPending
-    - ClusterAccountApproved
-    - ClusterAccountDenied
-  ClusterAccountListResponse:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/ClusterAccountResponse'
-        type: array
-      total:
-        type: integer
-    type: object
-  ClusterAccountResponse:
-    properties:
-      access_level:
-        $ref: '#/definitions/ClusterAccessLevel'
-      allocation_id:
-        type: string
-      allocation_name:
-        type: string
-      approval_status:
-        $ref: '#/definitions/ClusterAccountApproval'
-      cluster_name:
-        type: string
-      compute_cluster_id:
-        type: string
-      display_name:
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      local_username:
-        description: The username of the user on the compute cluster, which may be
-          different from their Airavata Custos username.
-        type: string
-      project_id:
-        type: string
-      provisioned_at:
-        description: When the account was provisioned into the registry; nil until
-          then.
-        type: string
-      requested_at:
-        type: string
-      review_note:
-        type: string
-      reviewed_at:
-        type: string
-      reviewed_by:
-        description: The admin who approved or denied the cluster account.
-        type: string
-      reviewer_name:
-        type: string
-      user_id:
-        type: string
-    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -498,7 +435,7 @@ definitions:
       access_level:
         $ref: '#/definitions/ClusterAccessLevel'
       approval_status:
-        $ref: '#/definitions/ClusterAccountApproval'
+        $ref: '#/definitions/ComputeClusterUserApproval'
       compute_cluster_id:
         type: string
       id:
@@ -517,6 +454,69 @@ definitions:
         type: string
       reviewed_by:
         description: The admin who approved or denied the cluster account.
+        type: string
+      user_id:
+        type: string
+    type: object
+  ComputeClusterUserApproval:
+    enum:
+    - PENDING
+    - APPROVED
+    - DENIED
+    type: string
+    x-enum-varnames:
+    - ComputeClusterUserPending
+    - ComputeClusterUserApproved
+    - ComputeClusterUserDenied
+  ComputeClusterUserListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ComputeClusterUserResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ComputeClusterUserResponse:
+    properties:
+      access_level:
+        $ref: '#/definitions/ClusterAccessLevel'
+      allocation_id:
+        type: string
+      allocation_name:
+        type: string
+      approval_status:
+        $ref: '#/definitions/ComputeClusterUserApproval'
+      cluster_name:
+        type: string
+      compute_cluster_id:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      project_id:
+        type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
+      requested_at:
+        type: string
+      review_note:
+        type: string
+      reviewed_at:
+        type: string
+      reviewed_by:
+        description: The admin who approved or denied the cluster account.
+        type: string
+      reviewer_name:
         type: string
       user_id:
         type: string
@@ -1289,7 +1289,7 @@ definitions:
       username:
         type: string
     type: object
-  denyClusterAccountRequest:
+  denyComputeClusterUserRequest:
     properties:
       note:
         type: string
@@ -3904,7 +3904,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/ClusterAccountListResponse'
+            $ref: '#/definitions/ComputeClusterUserListResponse'
         "400":
           description: Bad Request
           schema:
@@ -4097,7 +4097,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/denyClusterAccountRequest'
+          $ref: '#/definitions/denyComputeClusterUserRequest'
       produces:
       - application/json
       responses:

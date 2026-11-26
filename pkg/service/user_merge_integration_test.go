@@ -38,7 +38,7 @@ import (
 // cluster account that it drops, which is the one on a cluster where the
 // survivor already has an account. An account that moves to the survivor is
 // not deleted, so it gets no event.
-func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
+func TestMergeUsers_PublishesDeleteForTheDeletedComputeClusterUser(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	svc.EventBus().SubscribeComputeClusterUserDeleted("test-subscriber", func(context.Context, models.ComputeClusterUser) error { return nil })

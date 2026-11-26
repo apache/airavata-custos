@@ -16,8 +16,8 @@
 // under the License.
 
 import type { GetComputeClusterUsersData } from "@/generated/core/types.gen";
-import type { ClusterAccountApproval } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserApproval } from "@/generated/core/zod.gen";
 
 export type ClusterAccountListParams = NonNullable<GetComputeClusterUsersData["query"]> & {
-  approval_status?: ClusterAccountApproval;
+  approval_status?: ComputeClusterUserApproval;
 };

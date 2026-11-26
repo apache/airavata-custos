@@ -57,12 +57,12 @@ type CallerRoleGrant struct {
 // CallerProfileResponse bundles the caller's user row with the effective
 // privilege set and held roles.
 type CallerProfileResponse struct {
-	User            *models.User           `json:"user"`
-	Privileges      []models.PrivilegeKey  `json:"privileges"`
-	Roles           []CallerRoleGrant      `json:"roles"`
-	ClusterAccounts []CallerClusterAccount `json:"cluster_accounts"`
-	Consent         consentView            `json:"consent"`
-	Onboarding      onboardingView         `json:"onboarding"`
+	User                *models.User               `json:"user"`
+	Privileges          []models.PrivilegeKey      `json:"privileges"`
+	Roles               []CallerRoleGrant          `json:"roles"`
+	ComputeClusterUsers []CallerComputeClusterUser `json:"cluster_accounts"`
+	Consent             consentView                `json:"consent"`
+	Onboarding          onboardingView             `json:"onboarding"`
 }
 
 type consentView struct {
@@ -75,8 +75,8 @@ type onboardingView struct {
 	UsernameEditable bool   `json:"username_editable"`
 }
 
-// CallerClusterAccount is one of the caller's cluster accounts with its cluster's name.
-type CallerClusterAccount struct {
+// CallerComputeClusterUser is one of the caller's cluster accounts with its cluster's name.
+type CallerComputeClusterUser struct {
 	models.ComputeClusterUser
 	ClusterName string `json:"cluster_name"`
 }
@@ -141,22 +141,22 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 	if len(accounts) > 0 {
 		onboarding.Username = accounts[0].LocalUsername
 	}
-	clusterAccounts := make([]CallerClusterAccount, 0, len(accounts))
+	computeClusterUsers := make([]CallerComputeClusterUser, 0, len(accounts))
 	for _, a := range accounts {
 		cluster, err := s.svc.GetComputeCluster(r.Context(), a.ComputeClusterID)
 		if err != nil {
 			common.WriteServiceError(w, err)
 			return
 		}
-		clusterAccounts = append(clusterAccounts, CallerClusterAccount{ComputeClusterUser: a, ClusterName: cluster.Name})
+		computeClusterUsers = append(computeClusterUsers, CallerComputeClusterUser{ComputeClusterUser: a, ClusterName: cluster.Name})
 	}
 	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{
-		User:            user,
-		Privileges:      keys,
-		Roles:           roles,
-		ClusterAccounts: clusterAccounts,
-		Consent:         consentView{Pending: pending},
-		Onboarding:      onboarding,
+		User:                user,
+		Privileges:          keys,
+		Roles:               roles,
+		ComputeClusterUsers: computeClusterUsers,
+		Consent:             consentView{Pending: pending},
+		Onboarding:          onboarding,
 	})
 }
 

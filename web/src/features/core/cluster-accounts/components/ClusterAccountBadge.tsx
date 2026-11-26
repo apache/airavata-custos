@@ -17,14 +17,14 @@
 
 "use client";
 
-import type { ClusterAccountResponse } from "@/generated/core/zod.gen";
+import type { ComputeClusterUserResponse } from "@/generated/core/zod.gen";
 import type { StatusBadgeVariant } from "@/shared/ui/StatusBadge";
 import { StatusIcon } from "@/shared/ui/StatusIcon";
 import { Button } from "@/shared/ui/button";
 import { HardDrive } from "lucide-react";
 
 export function clusterAccountStatus(
-  row: Pick<ClusterAccountResponse, "approval_status" | "provisioned_at">,
+  row: Pick<ComputeClusterUserResponse, "approval_status" | "provisioned_at">,
 ): {
   variant: StatusBadgeVariant;
   label: string;
@@ -39,7 +39,7 @@ export function clusterAccountStatus(
 }
 
 // The review note, such as why an account was denied, is shown nowhere else.
-export const clusterAccountLabel = (account: ClusterAccountResponse | undefined) =>
+export const clusterAccountLabel = (account: ComputeClusterUserResponse | undefined) =>
   account
     ? [clusterAccountStatus(account).label, account.review_note].filter(Boolean).join(": ")
     : "No account";
@@ -49,7 +49,7 @@ export function ClusterAccountBadge({
   account,
 }: {
   name: string;
-  account: ClusterAccountResponse | undefined;
+  account: ComputeClusterUserResponse | undefined;
 }) {
   const active = account ? clusterAccountStatus(account).variant === "active" : false;
   return (
@@ -66,9 +66,9 @@ export function ClusterAccountDecisions({
   onApprove,
   onDeny,
 }: {
-  account: ClusterAccountResponse;
-  onApprove: ((account: ClusterAccountResponse) => void) | undefined;
-  onDeny: ((account: ClusterAccountResponse) => void) | undefined;
+  account: ComputeClusterUserResponse;
+  onApprove: ((account: ComputeClusterUserResponse) => void) | undefined;
+  onDeny: ((account: ComputeClusterUserResponse) => void) | undefined;
 }) {
   return (
     <span className="inline-flex gap-1">
