@@ -76,6 +76,9 @@ var _ CoreService = &CoreServiceMock{}
 //			CreateComputeClusterFunc: func(ctx context.Context, cluster *models.ComputeCluster) (*models.ComputeCluster, error) {
 //				panic("mock out the CreateComputeCluster method")
 //			},
+//			CreateComputeClusterQoSFunc: func(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error) {
+//				panic("mock out the CreateComputeClusterQoS method")
+//			},
 //			CreateComputeClusterUserFunc: func(ctx context.Context, cu *models.ComputeClusterUser) (*models.ComputeClusterUser, error) {
 //				panic("mock out the CreateComputeClusterUser method")
 //			},
@@ -132,6 +135,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			DeleteComputeClusterFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the DeleteComputeCluster method")
+//			},
+//			DeleteComputeClusterQoSFunc: func(ctx context.Context, clusterID string, id string) error {
+//				panic("mock out the DeleteComputeClusterQoS method")
 //			},
 //			DeleteComputeClusterUserFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the DeleteComputeClusterUser method")
@@ -343,6 +349,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ListComputeAllocationsForParticipantFunc: func(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
 //				panic("mock out the ListComputeAllocationsForParticipant method")
 //			},
+//			ListComputeClusterQoSFunc: func(ctx context.Context, clusterID string, allocationID string) ([]models.ComputeClusterQoS, error) {
+//				panic("mock out the ListComputeClusterQoS method")
+//			},
 //			ListComputeClusterUsersByClusterFunc: func(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error) {
 //				panic("mock out the ListComputeClusterUsersByCluster method")
 //			},
@@ -378,6 +387,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			ListRatesForResourceFunc: func(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error) {
 //				panic("mock out the ListRatesForResource method")
+//			},
+//			ListResourceMappingsForAllocationFunc: func(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error) {
+//				panic("mock out the ListResourceMappingsForAllocation method")
 //			},
 //			ListResourcesForAllocationFunc: func(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error) {
 //				panic("mock out the ListResourcesForAllocation method")
@@ -451,6 +463,12 @@ var _ CoreService = &CoreServiceMock{}
 //			RevokeRoleFromUserFunc: func(ctx context.Context, userID string, roleID string, revokerID string, reason string) error {
 //				panic("mock out the RevokeRoleFromUser method")
 //			},
+//			SetComputeAllocationQoSFunc: func(ctx context.Context, allocationID string, qosNames []string) error {
+//				panic("mock out the SetComputeAllocationQoS method")
+//			},
+//			SetSlurmPendingFunc: func(ctx context.Context, kind SlurmPendingKind, id string, clearSince *time.Time) error {
+//				panic("mock out the SetSlurmPending method")
+//			},
 //			UpdateAllocationResourceMappingFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the UpdateAllocationResourceMapping method")
 //			},
@@ -474,6 +492,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			UpdateComputeClusterFunc: func(ctx context.Context, cluster *models.ComputeCluster) error {
 //				panic("mock out the UpdateComputeCluster method")
+//			},
+//			UpdateComputeClusterQoSFunc: func(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error) {
+//				panic("mock out the UpdateComputeClusterQoS method")
 //			},
 //			UpdateComputeClusterUserFunc: func(ctx context.Context, cu *models.ComputeClusterUser) error {
 //				panic("mock out the UpdateComputeClusterUser method")
@@ -578,6 +599,9 @@ type CoreServiceMock struct {
 	// CreateComputeClusterFunc mocks the CreateComputeCluster method.
 	CreateComputeClusterFunc func(ctx context.Context, cluster *models.ComputeCluster) (*models.ComputeCluster, error)
 
+	// CreateComputeClusterQoSFunc mocks the CreateComputeClusterQoS method.
+	CreateComputeClusterQoSFunc func(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error)
+
 	// CreateComputeClusterUserFunc mocks the CreateComputeClusterUser method.
 	CreateComputeClusterUserFunc func(ctx context.Context, cu *models.ComputeClusterUser) (*models.ComputeClusterUser, error)
 
@@ -634,6 +658,9 @@ type CoreServiceMock struct {
 
 	// DeleteComputeClusterFunc mocks the DeleteComputeCluster method.
 	DeleteComputeClusterFunc func(ctx context.Context, id string) error
+
+	// DeleteComputeClusterQoSFunc mocks the DeleteComputeClusterQoS method.
+	DeleteComputeClusterQoSFunc func(ctx context.Context, clusterID string, id string) error
 
 	// DeleteComputeClusterUserFunc mocks the DeleteComputeClusterUser method.
 	DeleteComputeClusterUserFunc func(ctx context.Context, id string) error
@@ -845,6 +872,9 @@ type CoreServiceMock struct {
 	// ListComputeAllocationsForParticipantFunc mocks the ListComputeAllocationsForParticipant method.
 	ListComputeAllocationsForParticipantFunc func(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
 
+	// ListComputeClusterQoSFunc mocks the ListComputeClusterQoS method.
+	ListComputeClusterQoSFunc func(ctx context.Context, clusterID string, allocationID string) ([]models.ComputeClusterQoS, error)
+
 	// ListComputeClusterUsersByClusterFunc mocks the ListComputeClusterUsersByCluster method.
 	ListComputeClusterUsersByClusterFunc func(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 
@@ -880,6 +910,9 @@ type CoreServiceMock struct {
 
 	// ListRatesForResourceFunc mocks the ListRatesForResource method.
 	ListRatesForResourceFunc func(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error)
+
+	// ListResourceMappingsForAllocationFunc mocks the ListResourceMappingsForAllocation method.
+	ListResourceMappingsForAllocationFunc func(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error)
 
 	// ListResourcesForAllocationFunc mocks the ListResourcesForAllocation method.
 	ListResourcesForAllocationFunc func(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error)
@@ -953,6 +986,12 @@ type CoreServiceMock struct {
 	// RevokeRoleFromUserFunc mocks the RevokeRoleFromUser method.
 	RevokeRoleFromUserFunc func(ctx context.Context, userID string, roleID string, revokerID string, reason string) error
 
+	// SetComputeAllocationQoSFunc mocks the SetComputeAllocationQoS method.
+	SetComputeAllocationQoSFunc func(ctx context.Context, allocationID string, qosNames []string) error
+
+	// SetSlurmPendingFunc mocks the SetSlurmPending method.
+	SetSlurmPendingFunc func(ctx context.Context, kind SlurmPendingKind, id string, clearSince *time.Time) error
+
 	// UpdateAllocationResourceMappingFunc mocks the UpdateAllocationResourceMapping method.
 	UpdateAllocationResourceMappingFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
 
@@ -976,6 +1015,9 @@ type CoreServiceMock struct {
 
 	// UpdateComputeClusterFunc mocks the UpdateComputeCluster method.
 	UpdateComputeClusterFunc func(ctx context.Context, cluster *models.ComputeCluster) error
+
+	// UpdateComputeClusterQoSFunc mocks the UpdateComputeClusterQoS method.
+	UpdateComputeClusterQoSFunc func(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error)
 
 	// UpdateComputeClusterUserFunc mocks the UpdateComputeClusterUser method.
 	UpdateComputeClusterUserFunc func(ctx context.Context, cu *models.ComputeClusterUser) error
@@ -1167,6 +1209,13 @@ type CoreServiceMock struct {
 			// Cluster is the cluster argument value.
 			Cluster *models.ComputeCluster
 		}
+		// CreateComputeClusterQoS holds details about calls to the CreateComputeClusterQoS method.
+		CreateComputeClusterQoS []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Q is the q argument value.
+			Q *models.ComputeClusterQoS
+		}
 		// CreateComputeClusterUser holds details about calls to the CreateComputeClusterUser method.
 		CreateComputeClusterUser []struct {
 			// Ctx is the ctx argument value.
@@ -1311,6 +1360,15 @@ type CoreServiceMock struct {
 		DeleteComputeCluster []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
+		// DeleteComputeClusterQoS holds details about calls to the DeleteComputeClusterQoS method.
+		DeleteComputeClusterQoS []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
 			// ID is the id argument value.
 			ID string
 		}
@@ -1852,6 +1910,15 @@ type CoreServiceMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// ListComputeClusterQoS holds details about calls to the ListComputeClusterQoS method.
+		ListComputeClusterQoS []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+		}
 		// ListComputeClusterUsersByCluster holds details about calls to the ListComputeClusterUsersByCluster method.
 		ListComputeClusterUsersByCluster []struct {
 			// Ctx is the ctx argument value.
@@ -1933,6 +2000,13 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// ResourceID is the resourceID argument value.
 			ResourceID string
+		}
+		// ListResourceMappingsForAllocation holds details about calls to the ListResourceMappingsForAllocation method.
+		ListResourceMappingsForAllocation []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
 		}
 		// ListResourcesForAllocation holds details about calls to the ListResourcesForAllocation method.
 		ListResourcesForAllocation []struct {
@@ -2122,6 +2196,26 @@ type CoreServiceMock struct {
 			// Reason is the reason argument value.
 			Reason string
 		}
+		// SetComputeAllocationQoS holds details about calls to the SetComputeAllocationQoS method.
+		SetComputeAllocationQoS []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+			// QosNames is the qosNames argument value.
+			QosNames []string
+		}
+		// SetSlurmPending holds details about calls to the SetSlurmPending method.
+		SetSlurmPending []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Kind is the kind argument value.
+			Kind SlurmPendingKind
+			// ID is the id argument value.
+			ID string
+			// ClearSince is the clearSince argument value.
+			ClearSince *time.Time
+		}
 		// UpdateAllocationResourceMapping holds details about calls to the UpdateAllocationResourceMapping method.
 		UpdateAllocationResourceMapping []struct {
 			// Ctx is the ctx argument value.
@@ -2183,6 +2277,13 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// Cluster is the cluster argument value.
 			Cluster *models.ComputeCluster
+		}
+		// UpdateComputeClusterQoS holds details about calls to the UpdateComputeClusterQoS method.
+		UpdateComputeClusterQoS []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Q is the q argument value.
+			Q *models.ComputeClusterQoS
 		}
 		// UpdateComputeClusterUser holds details about calls to the UpdateComputeClusterUser method.
 		UpdateComputeClusterUser []struct {
@@ -2325,6 +2426,7 @@ type CoreServiceMock struct {
 	lockCreateComputeAllocationResourceRate                    sync.RWMutex
 	lockCreateComputeAllocationUsage                           sync.RWMutex
 	lockCreateComputeCluster                                   sync.RWMutex
+	lockCreateComputeClusterQoS                                sync.RWMutex
 	lockCreateComputeClusterUser                               sync.RWMutex
 	lockCreateOrganization                                     sync.RWMutex
 	lockCreateProject                                          sync.RWMutex
@@ -2344,6 +2446,7 @@ type CoreServiceMock struct {
 	lockDeleteComputeAllocationResourceRate                    sync.RWMutex
 	lockDeleteComputeAllocationUsage                           sync.RWMutex
 	lockDeleteComputeCluster                                   sync.RWMutex
+	lockDeleteComputeClusterQoS                                sync.RWMutex
 	lockDeleteComputeClusterUser                               sync.RWMutex
 	lockDeleteOrganization                                     sync.RWMutex
 	lockDeleteProject                                          sync.RWMutex
@@ -2414,6 +2517,7 @@ type CoreServiceMock struct {
 	lockListComputeAllocationsByCluster                        sync.RWMutex
 	lockListComputeAllocationsByProject                        sync.RWMutex
 	lockListComputeAllocationsForParticipant                   sync.RWMutex
+	lockListComputeClusterQoS                                  sync.RWMutex
 	lockListComputeClusterUsersByCluster                       sync.RWMutex
 	lockListComputeClusterUsersByUser                          sync.RWMutex
 	lockListComputeClusters                                    sync.RWMutex
@@ -2426,6 +2530,7 @@ type CoreServiceMock struct {
 	lockListPrivilegeHolders                                   sync.RWMutex
 	lockListProjectsForParticipant                             sync.RWMutex
 	lockListRatesForResource                                   sync.RWMutex
+	lockListResourceMappingsForAllocation                      sync.RWMutex
 	lockListResourcesForAllocation                             sync.RWMutex
 	lockListRoleHolders                                        sync.RWMutex
 	lockListRolePrivileges                                     sync.RWMutex
@@ -2450,6 +2555,8 @@ type CoreServiceMock struct {
 	lockResolveServiceAccount                                  sync.RWMutex
 	lockRevokePrivilege                                        sync.RWMutex
 	lockRevokeRoleFromUser                                     sync.RWMutex
+	lockSetComputeAllocationQoS                                sync.RWMutex
+	lockSetSlurmPending                                        sync.RWMutex
 	lockUpdateAllocationResourceMapping                        sync.RWMutex
 	lockUpdateComputeAllocation                                sync.RWMutex
 	lockUpdateComputeAllocationChangeRequest                   sync.RWMutex
@@ -2458,6 +2565,7 @@ type CoreServiceMock struct {
 	lockUpdateComputeAllocationResource                        sync.RWMutex
 	lockUpdateComputeAllocationResourceRate                    sync.RWMutex
 	lockUpdateComputeCluster                                   sync.RWMutex
+	lockUpdateComputeClusterQoS                                sync.RWMutex
 	lockUpdateComputeClusterUser                               sync.RWMutex
 	lockUpdateMembershipStatus                                 sync.RWMutex
 	lockUpdateOrganization                                     sync.RWMutex
@@ -3159,6 +3267,42 @@ func (mock *CoreServiceMock) CreateComputeClusterCalls() []struct {
 	mock.lockCreateComputeCluster.RLock()
 	calls = mock.calls.CreateComputeCluster
 	mock.lockCreateComputeCluster.RUnlock()
+	return calls
+}
+
+// CreateComputeClusterQoS calls CreateComputeClusterQoSFunc.
+func (mock *CoreServiceMock) CreateComputeClusterQoS(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error) {
+	if mock.CreateComputeClusterQoSFunc == nil {
+		panic("CoreServiceMock.CreateComputeClusterQoSFunc: method is nil but CoreService.CreateComputeClusterQoS was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Q   *models.ComputeClusterQoS
+	}{
+		Ctx: ctx,
+		Q:   q,
+	}
+	mock.lockCreateComputeClusterQoS.Lock()
+	mock.calls.CreateComputeClusterQoS = append(mock.calls.CreateComputeClusterQoS, callInfo)
+	mock.lockCreateComputeClusterQoS.Unlock()
+	return mock.CreateComputeClusterQoSFunc(ctx, q)
+}
+
+// CreateComputeClusterQoSCalls gets all the calls that were made to CreateComputeClusterQoS.
+// Check the length with:
+//
+//	len(mockedCoreService.CreateComputeClusterQoSCalls())
+func (mock *CoreServiceMock) CreateComputeClusterQoSCalls() []struct {
+	Ctx context.Context
+	Q   *models.ComputeClusterQoS
+} {
+	var calls []struct {
+		Ctx context.Context
+		Q   *models.ComputeClusterQoS
+	}
+	mock.lockCreateComputeClusterQoS.RLock()
+	calls = mock.calls.CreateComputeClusterQoS
+	mock.lockCreateComputeClusterQoS.RUnlock()
 	return calls
 }
 
@@ -3871,6 +4015,46 @@ func (mock *CoreServiceMock) DeleteComputeClusterCalls() []struct {
 	mock.lockDeleteComputeCluster.RLock()
 	calls = mock.calls.DeleteComputeCluster
 	mock.lockDeleteComputeCluster.RUnlock()
+	return calls
+}
+
+// DeleteComputeClusterQoS calls DeleteComputeClusterQoSFunc.
+func (mock *CoreServiceMock) DeleteComputeClusterQoS(ctx context.Context, clusterID string, id string) error {
+	if mock.DeleteComputeClusterQoSFunc == nil {
+		panic("CoreServiceMock.DeleteComputeClusterQoSFunc: method is nil but CoreService.DeleteComputeClusterQoS was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ClusterID string
+		ID        string
+	}{
+		Ctx:       ctx,
+		ClusterID: clusterID,
+		ID:        id,
+	}
+	mock.lockDeleteComputeClusterQoS.Lock()
+	mock.calls.DeleteComputeClusterQoS = append(mock.calls.DeleteComputeClusterQoS, callInfo)
+	mock.lockDeleteComputeClusterQoS.Unlock()
+	return mock.DeleteComputeClusterQoSFunc(ctx, clusterID, id)
+}
+
+// DeleteComputeClusterQoSCalls gets all the calls that were made to DeleteComputeClusterQoS.
+// Check the length with:
+//
+//	len(mockedCoreService.DeleteComputeClusterQoSCalls())
+func (mock *CoreServiceMock) DeleteComputeClusterQoSCalls() []struct {
+	Ctx       context.Context
+	ClusterID string
+	ID        string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ClusterID string
+		ID        string
+	}
+	mock.lockDeleteComputeClusterQoS.RLock()
+	calls = mock.calls.DeleteComputeClusterQoS
+	mock.lockDeleteComputeClusterQoS.RUnlock()
 	return calls
 }
 
@@ -6490,6 +6674,46 @@ func (mock *CoreServiceMock) ListComputeAllocationsForParticipantCalls() []struc
 	return calls
 }
 
+// ListComputeClusterQoS calls ListComputeClusterQoSFunc.
+func (mock *CoreServiceMock) ListComputeClusterQoS(ctx context.Context, clusterID string, allocationID string) ([]models.ComputeClusterQoS, error) {
+	if mock.ListComputeClusterQoSFunc == nil {
+		panic("CoreServiceMock.ListComputeClusterQoSFunc: method is nil but CoreService.ListComputeClusterQoS was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		ClusterID    string
+		AllocationID string
+	}{
+		Ctx:          ctx,
+		ClusterID:    clusterID,
+		AllocationID: allocationID,
+	}
+	mock.lockListComputeClusterQoS.Lock()
+	mock.calls.ListComputeClusterQoS = append(mock.calls.ListComputeClusterQoS, callInfo)
+	mock.lockListComputeClusterQoS.Unlock()
+	return mock.ListComputeClusterQoSFunc(ctx, clusterID, allocationID)
+}
+
+// ListComputeClusterQoSCalls gets all the calls that were made to ListComputeClusterQoS.
+// Check the length with:
+//
+//	len(mockedCoreService.ListComputeClusterQoSCalls())
+func (mock *CoreServiceMock) ListComputeClusterQoSCalls() []struct {
+	Ctx          context.Context
+	ClusterID    string
+	AllocationID string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		ClusterID    string
+		AllocationID string
+	}
+	mock.lockListComputeClusterQoS.RLock()
+	calls = mock.calls.ListComputeClusterQoS
+	mock.lockListComputeClusterQoS.RUnlock()
+	return calls
+}
+
 // ListComputeClusterUsersByCluster calls ListComputeClusterUsersByClusterFunc.
 func (mock *CoreServiceMock) ListComputeClusterUsersByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error) {
 	if mock.ListComputeClusterUsersByClusterFunc == nil {
@@ -6915,6 +7139,42 @@ func (mock *CoreServiceMock) ListRatesForResourceCalls() []struct {
 	mock.lockListRatesForResource.RLock()
 	calls = mock.calls.ListRatesForResource
 	mock.lockListRatesForResource.RUnlock()
+	return calls
+}
+
+// ListResourceMappingsForAllocation calls ListResourceMappingsForAllocationFunc.
+func (mock *CoreServiceMock) ListResourceMappingsForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResourceMapping, error) {
+	if mock.ListResourceMappingsForAllocationFunc == nil {
+		panic("CoreServiceMock.ListResourceMappingsForAllocationFunc: method is nil but CoreService.ListResourceMappingsForAllocation was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+	}
+	mock.lockListResourceMappingsForAllocation.Lock()
+	mock.calls.ListResourceMappingsForAllocation = append(mock.calls.ListResourceMappingsForAllocation, callInfo)
+	mock.lockListResourceMappingsForAllocation.Unlock()
+	return mock.ListResourceMappingsForAllocationFunc(ctx, allocationID)
+}
+
+// ListResourceMappingsForAllocationCalls gets all the calls that were made to ListResourceMappingsForAllocation.
+// Check the length with:
+//
+//	len(mockedCoreService.ListResourceMappingsForAllocationCalls())
+func (mock *CoreServiceMock) ListResourceMappingsForAllocationCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+	}
+	mock.lockListResourceMappingsForAllocation.RLock()
+	calls = mock.calls.ListResourceMappingsForAllocation
+	mock.lockListResourceMappingsForAllocation.RUnlock()
 	return calls
 }
 
@@ -7821,6 +8081,90 @@ func (mock *CoreServiceMock) RevokeRoleFromUserCalls() []struct {
 	return calls
 }
 
+// SetComputeAllocationQoS calls SetComputeAllocationQoSFunc.
+func (mock *CoreServiceMock) SetComputeAllocationQoS(ctx context.Context, allocationID string, qosNames []string) error {
+	if mock.SetComputeAllocationQoSFunc == nil {
+		panic("CoreServiceMock.SetComputeAllocationQoSFunc: method is nil but CoreService.SetComputeAllocationQoS was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+		QosNames     []string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+		QosNames:     qosNames,
+	}
+	mock.lockSetComputeAllocationQoS.Lock()
+	mock.calls.SetComputeAllocationQoS = append(mock.calls.SetComputeAllocationQoS, callInfo)
+	mock.lockSetComputeAllocationQoS.Unlock()
+	return mock.SetComputeAllocationQoSFunc(ctx, allocationID, qosNames)
+}
+
+// SetComputeAllocationQoSCalls gets all the calls that were made to SetComputeAllocationQoS.
+// Check the length with:
+//
+//	len(mockedCoreService.SetComputeAllocationQoSCalls())
+func (mock *CoreServiceMock) SetComputeAllocationQoSCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+	QosNames     []string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+		QosNames     []string
+	}
+	mock.lockSetComputeAllocationQoS.RLock()
+	calls = mock.calls.SetComputeAllocationQoS
+	mock.lockSetComputeAllocationQoS.RUnlock()
+	return calls
+}
+
+// SetSlurmPending calls SetSlurmPendingFunc.
+func (mock *CoreServiceMock) SetSlurmPending(ctx context.Context, kind SlurmPendingKind, id string, clearSince *time.Time) error {
+	if mock.SetSlurmPendingFunc == nil {
+		panic("CoreServiceMock.SetSlurmPendingFunc: method is nil but CoreService.SetSlurmPending was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		Kind       SlurmPendingKind
+		ID         string
+		ClearSince *time.Time
+	}{
+		Ctx:        ctx,
+		Kind:       kind,
+		ID:         id,
+		ClearSince: clearSince,
+	}
+	mock.lockSetSlurmPending.Lock()
+	mock.calls.SetSlurmPending = append(mock.calls.SetSlurmPending, callInfo)
+	mock.lockSetSlurmPending.Unlock()
+	return mock.SetSlurmPendingFunc(ctx, kind, id, clearSince)
+}
+
+// SetSlurmPendingCalls gets all the calls that were made to SetSlurmPending.
+// Check the length with:
+//
+//	len(mockedCoreService.SetSlurmPendingCalls())
+func (mock *CoreServiceMock) SetSlurmPendingCalls() []struct {
+	Ctx        context.Context
+	Kind       SlurmPendingKind
+	ID         string
+	ClearSince *time.Time
+} {
+	var calls []struct {
+		Ctx        context.Context
+		Kind       SlurmPendingKind
+		ID         string
+		ClearSince *time.Time
+	}
+	mock.lockSetSlurmPending.RLock()
+	calls = mock.calls.SetSlurmPending
+	mock.lockSetSlurmPending.RUnlock()
+	return calls
+}
+
 // UpdateAllocationResourceMapping calls UpdateAllocationResourceMappingFunc.
 func (mock *CoreServiceMock) UpdateAllocationResourceMapping(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 	if mock.UpdateAllocationResourceMappingFunc == nil {
@@ -8118,6 +8462,42 @@ func (mock *CoreServiceMock) UpdateComputeClusterCalls() []struct {
 	mock.lockUpdateComputeCluster.RLock()
 	calls = mock.calls.UpdateComputeCluster
 	mock.lockUpdateComputeCluster.RUnlock()
+	return calls
+}
+
+// UpdateComputeClusterQoS calls UpdateComputeClusterQoSFunc.
+func (mock *CoreServiceMock) UpdateComputeClusterQoS(ctx context.Context, q *models.ComputeClusterQoS) (*models.ComputeClusterQoS, error) {
+	if mock.UpdateComputeClusterQoSFunc == nil {
+		panic("CoreServiceMock.UpdateComputeClusterQoSFunc: method is nil but CoreService.UpdateComputeClusterQoS was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Q   *models.ComputeClusterQoS
+	}{
+		Ctx: ctx,
+		Q:   q,
+	}
+	mock.lockUpdateComputeClusterQoS.Lock()
+	mock.calls.UpdateComputeClusterQoS = append(mock.calls.UpdateComputeClusterQoS, callInfo)
+	mock.lockUpdateComputeClusterQoS.Unlock()
+	return mock.UpdateComputeClusterQoSFunc(ctx, q)
+}
+
+// UpdateComputeClusterQoSCalls gets all the calls that were made to UpdateComputeClusterQoS.
+// Check the length with:
+//
+//	len(mockedCoreService.UpdateComputeClusterQoSCalls())
+func (mock *CoreServiceMock) UpdateComputeClusterQoSCalls() []struct {
+	Ctx context.Context
+	Q   *models.ComputeClusterQoS
+} {
+	var calls []struct {
+		Ctx context.Context
+		Q   *models.ComputeClusterQoS
+	}
+	mock.lockUpdateComputeClusterQoS.RLock()
+	calls = mock.calls.UpdateComputeClusterQoS
+	mock.lockUpdateComputeClusterQoS.RUnlock()
 	return calls
 }
 

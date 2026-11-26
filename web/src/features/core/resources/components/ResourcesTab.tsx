@@ -17,7 +17,9 @@
 
 "use client";
 
-import { useClusters } from "@/features/core/clusters/queries";
+import type { Partition } from "@/features/connectors/slurm/api";
+import { formatMinutes, type Joined, joinByName } from "@/features/connectors/slurm/format";
+import { useSlurmCluster } from "@/features/connectors/slurm/queries";
 import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -26,7 +28,6 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { GuardedButton } from "@/shared/ui/GuardedButton";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import * as React from "react";
 import { useDeleteResource, useEffectiveRate, useResourceSummaries } from "../queries";
 import { ResourceDialog } from "./ResourceDialog";
@@ -44,47 +45,75 @@ export function EffectiveRateCell({ resource }: { resource: ComputeAllocationRes
   );
 }
 
-export function ResourcesTab() {
+// A partition's billing record in Custos joined to its SLURM partition; either may be missing.
+type Row = Joined<ComputeAllocationResourceSummary, Partition>;
+
+export function ResourcesTab({ clusterId }: { clusterId: string }) {
   const can = usePermissions();
+  const partitions = useSlurmCluster(clusterId, (v) => v.partitions ?? []);
   const query = useResourceSummaries();
-  const clusters = useClusters().data ?? [];
-  const [search, setSearch] = React.useState("");
-  const [editing, setEditing] = React.useState<ComputeAllocationResourceSummary | "new" | null>(
-    null,
-  );
+  const [editing, setEditing] = React.useState<Row | null>(null);
   const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResourceSummary | null>(null);
   const [deleting, setDeleting] = React.useState<ComputeAllocationResourceSummary | null>(null);
   const remove = useDeleteResource();
 
-  const rows = query.data ?? [];
-  const filtered = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return rows.filter((row) => `${row.name} ${row.resource_type}`.toLowerCase().includes(needle));
-  }, [rows, search]);
+  if (partitions.isLoading || query.isLoading) return <CardSkeleton />;
+  if (query.error) {
+    return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
+  }
+  const billing = (query.data ?? []).filter((b) => b.compute_cluster_id === clusterId);
+  const rows = joinByName(billing, partitions.data ?? []);
+  const slurmKnown = !partitions.error;
 
-  const columns: Array<DataTableColumn<ComputeAllocationResourceSummary>> = [
+  const columns: Array<DataTableColumn<Row>> = [
+    { key: "name", header: "Resource", cell: (r) => <b>{r.name}</b> },
+    { key: "nodes", header: "Nodes", cell: (r) => r.slurm?.nodes ?? "–" },
     {
-      key: "name",
-      header: "Resource",
-      cell: (row) => (
-        <div>
-          <div className="font-medium text-foreground">{row.name}</div>
-          <div className="text-xs text-muted-foreground">{row.resource_type}</div>
-        </div>
-      ),
+      key: "state",
+      header: "State",
+      cell: (r) =>
+        r.slurm ? (
+          r.slurm.state
+        ) : slurmKnown ? (
+          <span className="text-[color:var(--tone-warn-fg)]">Not in SLURM</span>
+        ) : (
+          "–"
+        ),
+    },
+    {
+      key: "max",
+      header: "MaxTime",
+      cell: (r) => (r.slurm ? formatMinutes(r.slurm.max_time_minutes) : "–"),
+    },
+    {
+      key: "default",
+      header: "DefaultTime",
+      cell: (r) => (r.slurm ? formatMinutes(r.slurm.default_time_minutes) : "–"),
+    },
+    {
+      key: "tres",
+      header: "TRES",
+      cell: (r) => r.custos?.resource_type ?? "–",
     },
     {
       key: "rate",
       header: "SU rate",
       align: "right",
-      cell: (row) => <EffectiveRateCell resource={row} />,
+      cell: (r) =>
+        r.custos ? (
+          <EffectiveRateCell resource={r.custos} />
+        ) : (
+          <span className="text-sm text-muted-foreground">Not billed</span>
+        ),
     },
     {
       key: "allocation_count",
       header: "Allocations",
       align: "right",
-      cell: (row) => (
-        <span className="text-sm tabular-nums text-foreground">{row.allocation_count}</span>
+      cell: (r) => (
+        <span className="text-sm tabular-nums text-foreground">
+          {r.custos ? r.custos.allocation_count : "–"}
+        </span>
       ),
     },
     {
@@ -92,79 +121,70 @@ export function ResourcesTab() {
       header: "",
       align: "right",
       interactive: true,
-      cell: (row) => (
-        <div className="flex justify-end gap-2">
-          <GuardedButton
-            variant="outline"
-            size="sm"
-            allowed={can.allocationsWrite}
-            reason={requires("allocationsWrite")}
-            onClick={() => setEditing(row)}
-          >
-            Edit
-          </GuardedButton>
-          <Button variant="outline" size="sm" onClick={() => setRatesFor(row)}>
-            Rates ({row.rate_count})
-          </Button>
-          <GuardedButton
-            variant="destructive"
-            size="sm"
-            allowed={can.allocationsWrite}
-            reason={requires("allocationsWrite")}
-            onClick={() => {
-              remove.reset();
-              setDeleting(row);
-            }}
-          >
-            Delete
-          </GuardedButton>
-        </div>
-      ),
+      cell: (r) => {
+        const b = r.custos;
+        return (
+          <div className="flex justify-end gap-2">
+            <GuardedButton
+              variant="outline"
+              size="sm"
+              allowed={can.allocationsWrite}
+              reason={requires("allocationsWrite")}
+              onClick={() => setEditing(r)}
+            >
+              {b ? "Edit" : "Set rate"}
+            </GuardedButton>
+            {b ? (
+              <Button variant="outline" size="sm" onClick={() => setRatesFor(b)}>
+                Rates ({b.rate_count})
+              </Button>
+            ) : null}
+            {b && !r.slurm && slurmKnown ? (
+              <GuardedButton
+                variant="destructive"
+                size="sm"
+                allowed={can.allocationsWrite}
+                reason={requires("allocationsWrite")}
+                onClick={() => {
+                  remove.reset();
+                  setDeleting(b);
+                }}
+              >
+                Delete
+              </GuardedButton>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          type="search"
-          placeholder="Search resources"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search resources"
-          className="sm:w-72"
-        />
-        <GuardedButton
-          allowed={can.allocationsWrite}
-          reason={requires("allocationsWrite")}
-          onClick={() => setEditing("new")}
-        >
-          + Add resource
-        </GuardedButton>
-      </div>
-
-      {query.isLoading ? (
-        <CardSkeleton />
-      ) : query.error ? (
-        <ErrorState message={query.error.message} onRetry={() => query.refetch()} />
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={filtered}
-          rowKey={(row) => row.id}
-          empty={
-            rows.length === 0 ? "No resources registered." : "No resources match these filters."
-          }
-        />
-      )}
+      <p className="text-sm text-muted-foreground">
+        SLURM partitions and their billing. SLURM columns are read-only.
+      </p>
+      {partitions.error ? (
+        <p className="text-sm text-[color:var(--tone-warn-fg)]">
+          SLURM unreachable; showing billing only.
+        </p>
+      ) : null}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(r) => r.name}
+        empty="No resources registered."
+      />
 
       <ResourceDialog
+        key={editing?.name}
         open={editing !== null}
         onOpenChange={(open) => {
           if (!open) setEditing(null);
         }}
-        clusters={clusters}
-        resource={editing === "new" ? null : editing}
+        clusterId={clusterId}
+        partition={editing?.name ?? ""}
+        resource={editing?.custos ?? null}
       />
       <ConfirmDialog
         open={deleting !== null}

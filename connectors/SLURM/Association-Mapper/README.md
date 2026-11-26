@@ -65,7 +65,7 @@ Settings are in the `connectors.slurm-mapper` block of [`config/custos.yaml`](..
 | `slurm_api.url` | `SLURM_API` | `slurmrestd` base URL, such as `https://slurm.example.org:6820` |
 | `slurm_api.username` | `SLURM_USER` | SLURM user, sent as `X-SLURM-USER-NAME` |
 | `slurm_api.token` | `SLURM_TOKEN` | JWT for that user, sent as `X-SLURM-USER-TOKEN` |
-| `slurm_api.version` | `SLURM_API_VERSION` | Minor version only, such as `40` for `v0.0.40`. `slurmrestd -d list` shows supported versions. |
+| `slurm_api.version` | `SLURM_API_VERSION` | Minor version only, such as `45` for `v0.0.45`. `slurmrestd -d list` shows supported versions. |
 | `association_reconcile_interval` | | Sweep interval, default `5m`. It bounds the wait after a lost event. |
 | `association_provision_grace` | | How long the sweep holds back a just-provisioned account, default `30s` |
 
@@ -80,7 +80,7 @@ Check the endpoint and token with a ping:
 export SLURM_API='https://slurm.example.org:6820'
 export SLURM_USER='slurm'
 export SLURM_TOKEN="$(scontrol token lifespan=3600 | awk -F= '{print $2}')"
-export SLURM_API_VERSION='40'
+export SLURM_API_VERSION='45'
 
 curl -sS \
   -H "X-SLURM-USER-NAME: $SLURM_USER" \

@@ -29,7 +29,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
+const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status, slurm_pending_since"
 
 // MembershipWithUser is the result shape of the join-based list methods. Role
 // is the user's project-wide role (MEMBER without one). Joined user fields stay
@@ -111,6 +111,16 @@ func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, use
 	return rows, nil
 }
 
+func (s *pgComputeAllocationMembershipStore) IsActiveMemberOnClusterTx(ctx context.Context, tx *sql.Tx, userID, clusterID string) (bool, error) {
+	var active bool
+	err := tx.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM compute_allocation_memberships m
+		                  JOIN compute_allocations a ON a.id = m.compute_allocation_id
+		                 WHERE m.user_id = $1 AND a.compute_cluster_id = $2 AND m.membership_status = 'ACTIVE' AND a.status = 'ACTIVE')`,
+		userID, clusterID).Scan(&active)
+	return active, err
+}
+
 func (s *pgComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_memberships
@@ -162,7 +172,7 @@ func (s *pgComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql
 func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
 	rows := []MembershipWithUser{}
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time, m.membership_status,
+		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time, m.membership_status, m.slurm_pending_since,
 		        COALESCE(r.role, 'MEMBER') AS role, `+displayNameSQL+`, u.email,
 		        COALESCE(cu.local_username, '') AS local_username, cu.provisioned_at
 		   FROM compute_allocation_memberships m

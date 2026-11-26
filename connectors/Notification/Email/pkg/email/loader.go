@@ -40,7 +40,7 @@ import (
 const Type = "email-notifier"
 
 // LoadConnector registers the email subscribers.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, cfg *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, cfg *config.ConnectorConfig) error {
 	get := func(key string) string {
 		v, _ := cfg.GetStringField(key)
 		return v
@@ -83,6 +83,7 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 		return err
 	}
 	notify.NewNotifier(coreService, sender, site).RegisterSubscribers(eventBus, Type)
+	health.Probe(ctx, wg, Type, Type, func(ctx context.Context) error { return notify.Ping(ctx, host, port) }, health.ProbeInterval)
 	slog.Info("email notifications: subscribers registered", "smtp_host", host, "from", from)
 	return nil
 }

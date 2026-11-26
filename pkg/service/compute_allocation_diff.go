@@ -53,10 +53,20 @@ func (s *Service) CreateComputeAllocationDiffTx(ctx context.Context, tx *sql.Tx,
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
 
-	if alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID, store.UpdateLock); err != nil {
+	alloc, err := s.allocs.FindByIDTx(ctx, tx, diff.ComputeAllocationID, store.UpdateLock)
+	if err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)
 	} else if alloc == nil {
 		return nil, fmt.Errorf("%w: compute allocation %q not found", ErrInvalidInput, diff.ComputeAllocationID)
+	}
+	if diff.DiffType == "ALLOCATION_STATUS_CHANGE" {
+		if diff.Status != models.ACTIVE && diff.Status != models.INACTIVE {
+			return nil, fmt.Errorf("%w: status must be ACTIVE or INACTIVE", ErrInvalidInput)
+		}
+		alloc.Status = diff.Status
+		if err := s.UpdateComputeAllocationTx(ctx, tx, alloc); err != nil {
+			return nil, err
+		}
 	}
 
 	if diff.ID == "" {

@@ -42,6 +42,9 @@ export const allocationMembershipSchema = zAllocationMembershipResponse.extend({
 });
 export type AllocationMembership = z.infer<typeof allocationMembershipSchema>;
 
+export const isActiveMembership = (m?: Pick<AllocationMembership, "membership_status">) =>
+  m?.membership_status === "ACTIVE";
+
 // ChangeStatus is a free-form string on the Go side; we narrow to the documented enum.
 export const changeRequestSchema = zComputeAllocationChangeRequest.extend({
   change_status: changeRequestStatusSchema,

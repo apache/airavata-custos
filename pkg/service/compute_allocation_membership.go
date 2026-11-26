@@ -166,6 +166,9 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 		if err := s.memberships.Update(ctx, tx, m); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, m.ID); err != nil {
+			return err
+		}
 		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: m.UserID, AllocationID: m.ComputeAllocationID}); err != nil {
 			return err
 		}
@@ -205,6 +208,9 @@ func (s *Service) UpdateMembershipStatusTx(ctx context.Context, tx *sql.Tx, id s
 		if err := s.memberships.Update(ctx, tx, existing); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, id); err != nil {
+			return err
+		}
 		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{UserID: existing.UserID, AllocationID: existing.ComputeAllocationID}); err != nil {
 			return err
 		}
@@ -220,14 +226,17 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
 	}
-	existing, err := s.memberships.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute allocation membership: %w", err)
-	}
-	if existing == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		existing, err := s.memberships.FindByIDTx(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("lookup compute allocation membership: %w", err)
+		}
+		if existing == nil {
+			return ErrNotFound
+		}
+		if err := refuseDeleteHeldBySlurm("compute allocation membership", id, existing.MembershipStatus, existing.SlurmPendingSince); err != nil {
+			return err
+		}
 		if err := s.memberships.Delete(ctx, tx, id); err != nil {
 			return err
 		}

@@ -17,12 +17,14 @@
 
 "use client";
 
-import { skipToken, useQuery } from "@tanstack/react-query";
-import { getCluster, listClusters } from "./api";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ComputeClusterQoSInput } from "@/generated/core/zod.gen";
+import { createQoS, deleteQoS, getCluster, listClusters, listQoS, updateQoS } from "./api";
 
 export const clusterKeys = {
   all: ["clusters"] as const,
   list: () => [...clusterKeys.all, "list"] as const,
+  qos: (id: string) => [...clusterKeys.all, "qos", id] as const,
   detail: (id: string) => [...clusterKeys.all, "detail", id] as const,
 };
 
@@ -48,3 +50,37 @@ export function useCluster(id: string | undefined) {
     ...DEFAULTS,
   });
 }
+
+export function useClusterQoS(clusterId: string) {
+  return useQuery({
+    queryKey: clusterKeys.qos(clusterId),
+    queryFn: () => listQoS(clusterId),
+    ...DEFAULTS,
+  });
+}
+
+// The cluster's QoS names plus `current`, as picker options.
+export function useQoSOptions(clusterId: string, current: string[]) {
+  const names = (useClusterQoS(clusterId).data ?? []).map((q) => q.name);
+  return [...new Set([...names, ...current])].map((name) => ({ id: name, label: name }));
+}
+
+// QoS edits also change conflicts, so both refetch.
+function useQoSMutation<Input>(clusterId: string, mutationFn: (input: Input) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: clusterKeys.qos(clusterId) }),
+  });
+}
+
+export const useCreateQoS = (clusterId: string) =>
+  useQoSMutation(clusterId, (body: ComputeClusterQoSInput) => createQoS(clusterId, body));
+
+export const useUpdateQoS = (clusterId: string) =>
+  useQoSMutation(clusterId, ({ id, body }: { id: string; body: ComputeClusterQoSInput }) =>
+    updateQoS(clusterId, id, body),
+  );
+
+export const useDeleteQoS = (clusterId: string) =>
+  useQoSMutation(clusterId, (qosId: string) => deleteQoS(clusterId, qosId));

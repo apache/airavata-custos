@@ -76,7 +76,7 @@ echo "==> TEST_SLURM_TOKEN4 set (${#TEST_SLURM_TOKEN4} chars)"
 
 export TEST_SLURM_API="http://localhost:6820"
 export TEST_SLURM_USER="root"
-export TEST_SLURM_API_VERSION="41"
+export TEST_SLURM_API_VERSION="45"
 
 # go test -tags integration -v -count=1 \
 #    ./connectors/SLURM/Rest-Client/pkg/client/...

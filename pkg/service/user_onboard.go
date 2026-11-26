@@ -430,7 +430,7 @@ func (s *Service) CompleteOnboarding(ctx context.Context, claims *identity.Claim
 			}
 		}
 		user.Status = models.UserActive
-		return s.eventBus.Publish(ctx, tx, events.UserOnboardedEvent, *user)
+		return s.publishUserTx(ctx, tx, events.UserOnboardedEvent, user)
 	}); err != nil {
 		return nil, err
 	}

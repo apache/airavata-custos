@@ -77,6 +77,10 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /compute-clusters", models.ClustersWrite, s.createComputeCluster)
 	s.router.RequirePrivilege("GET /compute-clusters", models.ClustersRead, s.listComputeClusters)
 	s.router.RequirePrivilege("GET /compute-clusters/{id}", models.ClustersRead, s.getComputeCluster)
+	s.router.RequirePrivilege("GET /compute-clusters/{id}/qos", models.ClustersRead, s.listComputeClusterQoS)
+	s.router.RequirePrivilege("POST /compute-clusters/{id}/qos", models.ClustersWrite, s.createComputeClusterQoS)
+	s.router.RequirePrivilege("PUT /compute-clusters/{id}/qos/{qosId}", models.ClustersWrite, s.updateComputeClusterQoS)
+	s.router.RequirePrivilege("DELETE /compute-clusters/{id}/qos/{qosId}", models.ClustersWrite, s.deleteComputeClusterQoS)
 
 	s.router.RequirePrivilege("POST /compute-cluster-users", models.ClustersWrite, s.createComputeClusterUser)
 	s.router.RequirePrivilege("GET /compute-cluster-users", models.ClustersRead, s.listClusterAccounts)
@@ -97,6 +101,8 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /compute-allocations", models.AllocationsWrite, s.createComputeAllocation)
 	s.router.RequireScoped("GET /compute-allocations/{id}", s.canReadAllocation, s.getComputeAllocation)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}", models.AllocationsWrite, s.deleteComputeAllocation)
+	s.router.RequirePrivilege("GET /compute-allocations/{id}/qos", models.AllocationsRead, s.listComputeAllocationQoS)
+	s.router.RequirePrivilege("PUT /compute-allocations/{id}/qos", models.AllocationsWrite, s.setComputeAllocationQoS)
 
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)

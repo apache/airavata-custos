@@ -34,9 +34,8 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// Subscriber drives the orchestrator from three events,
-// ComputeClusterUserApproveEvent, ComputeClusterUserDeleteEvent, and UserOnboardedEvent.
-// Both are ignored if the user doesn't have a cluster account on `CustosClusterID`.
+// Subscriber drives the orchestrator from cluster user approve and delete, user onboarded and user update events.
+// It ignores users without an account on `CustosClusterID`.
 type Subscriber struct {
 	ops             provisioner
 	bus             *events.Bus
@@ -64,11 +63,12 @@ func NewSubscriber(c *client.Client, bus *events.Bus, core *service.Service, cus
 
 // RegisterSubscribers subscribes the handlers under the given subscriber name.
 func (s *Subscriber) RegisterSubscribers(subscriber string) {
-	// Provisioning needs an approved account and an onboarded user approving the user agreement.
-	// Whichever of the `approve event` and the `onboarded event` comes second starts it.
+	// Provisioning needs an approved account and an ACTIVE user.
+	// The later of the approve event and the onboarded or update event starts it.
 	s.bus.SubscribeComputeClusterUserApproved(subscriber, s.handleClusterUserApproved)
 	s.bus.SubscribeComputeClusterUserDeleted(subscriber, s.handleClusterUserDeleted)
 	s.bus.SubscribeUserOnboarded(subscriber, s.handleUserOnboarded)
+	s.bus.SubscribeUserUpdated(subscriber, s.handleUserUpdated)
 
 	s.bus.SubscribeComputeAllocationCreated(subscriber, s.handleComputeAllocationChanged)
 	s.bus.SubscribeComputeAllocationUpdated(subscriber, s.handleComputeAllocationChanged)
@@ -92,6 +92,28 @@ func (s *Subscriber) handleClusterUserDeleted(ctx context.Context, cu models.Com
 		return err
 	}
 	return s.syncUserAllocations(ctx, cu.UserID)
+}
+
+// handleUserUpdated provisions an approved account once its user is ACTIVE.
+// It resends a provisioned account so its registry status follows the user's.
+func (s *Subscriber) handleUserUpdated(ctx context.Context, user models.User) error {
+	cu, err := s.core.GetComputeClusterUserByPair(ctx, s.custosClusterID, user.ID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if cu.ProvisionedAt == nil {
+		if cu.ApprovalStatus != models.ClusterAccountApproved || user.Status != models.UserActive {
+			return nil
+		}
+		return s.handleClusterUserApproved(ctx, *cu)
+	}
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.user_updated")
+	defer span.End()
+	return s.ops.EnsureClusterAccount(ctx, cu)
 }
 
 // handleUserOnboarded re-runs provisioning once the `User` has a `sub`.
@@ -141,18 +163,17 @@ func (s *Subscriber) handleClusterUserApproved(ctx context.Context, cu models.Co
 		attribute.String("comanage.cluster_user_id", cu.ID),
 		attribute.String("comanage.user_id", cu.UserID),
 	)
-	oidc, err := s.core.GetOIDCIdentity(ctx, cu.UserID)
+	user, err := s.core.GetUser(ctx, cu.UserID)
 	if err != nil {
 		return err
 	}
-	if oidc == nil {
-		// The registry needs the sign-in sub, so provisioning waits for the first sign-in.
-		// The onboarded event runs it then.
+	if user.Status != models.UserActive {
+		// The user update event runs provisioning once the user is ACTIVE.
 		_, _ = s.core.CreateAuditEvent(ctx, &models.AuditEvent{
 			EventType:  "ComanageProvisioningDeferred",
 			EntityID:   cu.ID,
 			EntityType: "compute_cluster_user",
-			Details:    "cluster_user_id=" + cu.ID + " reason=no_oidc_identity",
+			Details:    "cluster_user_id=" + cu.ID + " reason=user_not_active",
 		})
 		return nil
 	}

@@ -56,5 +56,5 @@ Point the [SLURM Association-Mapper](../../connectors/SLURM/Association-Mapper/R
 export SLURM_API='http://localhost:6820'
 export SLURM_USER='root'
 export SLURM_TOKEN="$(make -s token | awk -F= '{print $2}')"
-export SLURM_API_VERSION='40'
+export SLURM_API_VERSION='45'
 ```

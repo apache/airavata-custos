@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/Storage/VAST-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -40,6 +41,7 @@ type Cluster struct {
 }
 
 type StorageSubscriber struct {
+	name     string
 	bus      *events.Bus
 	core     service.CoreService
 	clusters map[string]Cluster
@@ -50,6 +52,7 @@ func NewStorageSubscriber(bus *events.Bus, core service.CoreService, clusters ma
 }
 
 func (s *StorageSubscriber) RegisterSubscribers(subscriber string) {
+	s.name = subscriber
 	s.bus.SubscribeStorageCreated(subscriber, s.createStorage)
 	s.bus.SubscribeStorageUpdated(subscriber, s.updateStorage)
 	s.bus.SubscribeStorageDeleted(subscriber, s.deleteStorage)
@@ -65,13 +68,12 @@ func (s *StorageSubscriber) createStorage(ctx context.Context, st models.Storage
 	if err != nil {
 		return err
 	}
-	if err := c.VMS.CreateFolder(ctx, st.Path, st.Owner, st.Group, int(mode)); err != nil {
-		return err
+	err = c.VMS.CreateFolder(ctx, st.Path, st.Owner, st.Group, int(mode))
+	if err == nil && c.Views[st.Type] {
+		err = c.VMS.CreateView(ctx, st.Path, c.ViewPolicyID, c.ViewProtocols)
 	}
-	if c.Views[st.Type] {
-		if err := c.VMS.CreateView(ctx, st.Path, c.ViewPolicyID, c.ViewProtocols); err != nil {
-			return err
-		}
+	if err := s.recorded(st.ComputeClusterID, err); err != nil {
+		return err
 	}
 	return s.updateStorage(ctx, st)
 }
@@ -79,16 +81,22 @@ func (s *StorageSubscriber) createStorage(ctx context.Context, st models.Storage
 // updateStorage brings the storage's quota to its state. A storage without one counts against its parent's.
 func (s *StorageSubscriber) updateStorage(ctx context.Context, st models.Storage) error {
 	if c, ok := s.clusters[st.ComputeClusterID]; ok && st.QuotaBytes != 0 {
-		return c.VMS.CreateQuota(ctx, st.Path, st.QuotaBytes, st.QuotaInodes)
+		return s.recorded(st.ComputeClusterID, c.VMS.CreateQuota(ctx, st.Path, st.QuotaBytes, st.QuotaInodes))
 	}
 	return nil
 }
 
 func (s *StorageSubscriber) deleteStorage(ctx context.Context, st models.Storage) error {
 	if c, ok := s.clusters[st.ComputeClusterID]; ok {
-		return c.VMS.DeleteFolder(ctx, st.Path)
+		return s.recorded(st.ComputeClusterID, c.VMS.DeleteFolder(ctx, st.Path))
 	}
 	return nil
+}
+
+// recorded records a VMS call's outcome as the cluster's health check.
+func (s *StorageSubscriber) recorded(clusterID string, err error) error {
+	health.Record(s.name, clusterID, err)
+	return err
 }
 
 func (s *StorageSubscriber) StartReconciler(ctx context.Context, interval time.Duration) {

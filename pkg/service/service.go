@@ -47,6 +47,7 @@ type Service struct {
 	projs               store.ProjectStore
 	clusters            store.ComputeClusterStore
 	clusterUsers        store.ComputeClusterUserStore
+	clusterQoS          store.ComputeClusterQoSStore
 	allocs              store.ComputeAllocationStore
 	resources           store.ComputeAllocationResourceStore
 	resourceMappings    store.ComputeAllocationResourceMappingStore
@@ -87,6 +88,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		projs:               store.NewProjectStore(database),
 		clusters:            store.NewComputeClusterStore(database),
 		clusterUsers:        store.NewComputeClusterUserStore(database),
+		clusterQoS:          store.NewComputeClusterQoSStore(database),
 		allocs:              store.NewComputeAllocationStore(database),
 		resources:           store.NewComputeAllocationResourceStore(database),
 		resourceMappings:    store.NewComputeAllocationResourceMappingStore(database),
@@ -223,4 +225,62 @@ func newID() string {
 // nowUTC returns the current time in UTC.
 func nowUTC() time.Time {
 	return time.Now().UTC()
+}
+
+// SlurmPendingKind names the table a pending mark sits on.
+type SlurmPendingKind = store.SlurmPendingTable
+
+const (
+	SlurmPendingAllocation = store.SlurmPendingAllocations
+	SlurmPendingMembership = store.SlurmPendingMemberships
+	SlurmPendingQoS        = store.SlurmPendingQoS
+)
+
+type withoutSlurmMarkKey struct{}
+
+// WithoutSlurmMark returns a context whose writes set no mark, for saving what SLURM already holds.
+func WithoutSlurmMark(ctx context.Context) context.Context {
+	return context.WithValue(ctx, withoutSlurmMarkKey{}, true)
+}
+
+func slurmMarkWanted(ctx context.Context) bool {
+	return ctx.Value(withoutSlurmMarkKey{}) == nil
+}
+
+// markSlurmPendingTx marks the row pending, unless ctx comes from WithoutSlurmMark.
+func (s *Service) markSlurmPendingTx(ctx context.Context, tx *sql.Tx, kind SlurmPendingKind, id string) error {
+	if !slurmMarkWanted(ctx) {
+		return nil
+	}
+	_, err := store.MarkSlurmPending(ctx, tx, kind, `id = $1`, id)
+	return err
+}
+
+// SetSlurmPending marks the row pending when clearSince is nil, else clears its mark unless a change marked it after clearSince.
+func (s *Service) SetSlurmPending(ctx context.Context, kind SlurmPendingKind, id string, clearSince *time.Time) error {
+	found := true
+	if err := s.inTx(ctx, func(tx *sql.Tx) (err error) {
+		if clearSince != nil {
+			return store.ClearSlurmPending(ctx, tx, kind, id, *clearSince)
+		}
+		found, err = store.MarkSlurmPending(ctx, tx, kind, `id = $1`, id)
+		return err
+	}); err != nil {
+		return fmt.Errorf("set slurm pending %s: %w", kind, err)
+	}
+	if !found {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// refuseDeleteHeldBySlurm refuses deleting a row SLURM still holds or has a change pending for.
+func refuseDeleteHeldBySlurm(what, id string, status models.AllocationStatus, pendingSince *time.Time) error {
+	if status == models.ACTIVE {
+		return fmt.Errorf("%w: %s %q is active, set it INACTIVE first", ErrInUse, what, id)
+	}
+	if pendingSince != nil {
+		return fmt.Errorf("%w: %s %q has a change SLURM has not applied yet", ErrInUse, what, id)
+	}
+	return nil
 }

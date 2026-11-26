@@ -121,7 +121,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
 	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, amie, database, cfg)
 
-	wg.Add(3)
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		poller.Run(ctx)
@@ -129,30 +129,14 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	}()
 	go func() {
 		defer wg.Done()
-		reportHealth(ctx, amie, cfg)
-	}()
-	go func() {
-		defer wg.Done()
 		processor.Run(ctx)
 		slog.Info("AMIE processor stopped")
 	}()
 
+	health.Probe(ctx, wg, Type, cfg.SiteCode, amie.CheckHealth, cfg.PollInterval)
+
 	slog.Info("AMIE connector started", "site", cfg.SiteCode, "baseURL", cfg.BaseURL)
 	return nil
-}
-
-// reportHealth caches whether AMIE answers, checked on the poll interval.
-func reportHealth(ctx context.Context, amie *amieclient.Client, cfg amieclient.Config) {
-	ticker := time.NewTicker(cfg.PollInterval)
-	defer ticker.Stop()
-	for {
-		health.Record(Type, cfg.SiteCode, amie.CheckHealth(ctx))
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
 }
 
 func loadConfig(connectorConfig *custosconfig.ConnectorConfig) amieclient.Config {

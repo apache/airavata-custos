@@ -21,6 +21,9 @@
 package health
 
 import (
+	"context"
+	"fmt"
+	"net/http"
 	"slices"
 	"strings"
 	"sync"
@@ -54,6 +57,27 @@ func Record(connectorType, target string, err error) {
 	checks[connectorType][target] = c
 }
 
+// HTTPResult is the call's error or 5xx status; a 4xx counts as healthy.
+func HTTPResult(resp *http.Response, err error) error {
+	if err == nil && resp.StatusCode >= http.StatusInternalServerError {
+		return fmt.Errorf("answered %s", resp.Status)
+	}
+	return err
+}
+
+// GetProbe GETs url and returns its HTTPResult.
+func GetProbe(ctx context.Context, client *http.Client, url string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err == nil {
+		resp.Body.Close()
+	}
+	return HTTPResult(resp, err)
+}
+
 // For returns connectorType's last results, ordered by target.
 func For(connectorType string) []ConnectorCheck {
 	mu.RLock()
@@ -64,4 +88,23 @@ func For(connectorType string) []ConnectorCheck {
 	}
 	slices.SortFunc(out, func(a, b ConnectorCheck) int { return strings.Compare(a.Target, b.Target) })
 	return out
+}
+
+// ProbeInterval is how often an event-driven connector checks its outside system.
+const ProbeInterval = 5 * time.Minute
+
+// Probe records check against target now and every interval until ctx ends.
+func Probe(ctx context.Context, wg *sync.WaitGroup, connectorType, target string, check func(context.Context) error, interval time.Duration) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			Record(connectorType, target, check(ctx))
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(interval):
+			}
+		}
+	}()
 }

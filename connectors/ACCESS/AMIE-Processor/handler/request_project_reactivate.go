@@ -101,10 +101,6 @@ func (h *RequestProjectReactivateHandler) reactivateAllocationsAndPI(ctx context
 		return fmt.Errorf("list allocations: %w", err)
 	}
 	for _, a := range allocations {
-		a.Status = models.ACTIVE
-		if err := h.svc.UpdateComputeAllocationTx(ctx, tx, &a); err != nil {
-			return fmt.Errorf("reactivate allocation %s: %w", a.ID, err)
-		}
 		if _, err := h.svc.CreateComputeAllocationDiffTx(ctx, tx, &models.ComputeAllocationDiff{
 			ComputeAllocationID: a.ID,
 			DiffType:            "ALLOCATION_STATUS_CHANGE",

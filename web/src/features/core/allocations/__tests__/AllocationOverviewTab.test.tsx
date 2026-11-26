@@ -15,13 +15,36 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as renderDom, screen } from "@testing-library/react";
+import { setupServer } from "msw/node";
+import type * as React from "react";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { slurmHandlers } from "@/mocks/handlers/slurm";
 
 let attached: ComputeAllocationResource[] = [];
 
+vi.mock("@/shared/casl/AbilityProvider", () => ({ useAbility: () => ({ can: () => true }) }));
+
+const server = setupServer(...slurmHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+const render = (ui: React.ReactElement) =>
+  renderDom(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      {ui}
+    </QueryClientProvider>,
+  );
+
 vi.mock("../queries", () => ({
+  useAllocationQoS: () => ({ data: ["normal", "openfold"] }),
+  useSetAllocationQoS: () => ({ mutate: vi.fn(), isPending: false }),
+  useSetAllocationResources: () => ({ mutate: vi.fn(), isPending: false }),
   useAllocationResources: () => ({
     data: attached,
     isLoading: false,
@@ -37,6 +60,7 @@ vi.mock("@/shared/casl/permissions", async (importOriginal) => ({
 }));
 
 vi.mock("@/features/core/resources/queries", () => ({
+  useResourceSummaries: () => ({ data: [] }),
   // res-a-gpu has an effective rate; res-b-gpu 404s (query error, no data).
   useEffectiveRate: (id: string) =>
     id === "res-a-gpu"

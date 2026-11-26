@@ -63,10 +63,18 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 		}
 		return c
 	}
-	shared, onlyRetiring := cluster(), cluster()
+	shared, onlyRetiring, retiringProvisioned, bothProvisioned := cluster(), cluster(), cluster(), cluster()
 	account(survivor, shared)
 	dropped := account(retiring, shared)
 	moved := account(retiring, onlyRetiring)
+	deletedSurvivor := account(survivor, retiringProvisioned)
+	kept := account(retiring, retiringProvisioned)
+	deletedBoth := account(retiring, bothProvisioned)
+	for _, cu := range []*models.ComputeClusterUser{kept, deletedBoth, account(survivor, bothProvisioned)} {
+		if err := svc.MarkComputeClusterUserProvisioned(ctx(), cu.ID); err != nil {
+			t.Fatalf("mark provisioned: %v", err)
+		}
+	}
 
 	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
 		t.Fatalf("merge: %v", err)
@@ -76,15 +84,16 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list deliveries: %v", err)
 	}
-	if len(deliveries) != 1 || deliveries[0].Event.EventType != string(events.ComputeClusterUserDeleteEvent) {
-		t.Fatalf("expected one delivery of the delete event, got %+v", deliveries)
+	want := map[string]string{dropped.ID: dropped.LocalUsername, deletedSurvivor.ID: deletedSurvivor.LocalUsername, deletedBoth.ID: deletedBoth.LocalUsername}
+	if len(deliveries) != len(want) {
+		t.Fatalf("expected %d deliveries of the delete event, got %+v", len(want), deliveries)
 	}
-	var got models.ComputeClusterUser
-	if err := json.Unmarshal(deliveries[0].Event.Payload, &got); err != nil {
-		t.Fatalf("decode payload: %v", err)
-	}
-	if got.ID != dropped.ID || got.LocalUsername != dropped.LocalUsername {
-		t.Errorf("delete event is for %s (%s), want the dropped account %s (%s)", got.ID, got.LocalUsername, dropped.ID, dropped.LocalUsername)
+	for _, d := range deliveries {
+		var got models.ComputeClusterUser
+		if err := json.Unmarshal(d.Event.Payload, &got); err != nil || d.Event.EventType != string(events.ComputeClusterUserDeleteEvent) || want[got.ID] != got.LocalUsername {
+			t.Errorf("%s is for %s (%s), %v, want a delete event for a deleted account %v", d.Event.EventType, got.ID, got.LocalUsername, err, want)
+		}
+		delete(want, got.ID)
 	}
 
 	after, err := svc.GetComputeClusterUser(ctx(), moved.ID)
@@ -93,6 +102,9 @@ func TestMergeUsers_PublishesDeleteForTheDroppedClusterAccount(t *testing.T) {
 	}
 	if after.UserID != survivor {
 		t.Errorf("moved account belongs to %s, want the survivor %s", after.UserID, survivor)
+	}
+	if after, err := svc.GetComputeClusterUser(ctx(), kept.ID); err != nil || after.UserID != survivor {
+		t.Errorf("provisioned account: got %+v, %v, want owner %s", after, err, survivor)
 	}
 }
 
@@ -180,6 +192,18 @@ func TestMergeUsers_LetsALockHolderReferenceTheUser(t *testing.T) {
 	}
 }
 
+func TestUpdateUser_KeepsStatus(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	user := seedUser(t, database, "keeps-status@example.edu")
+	if err := svc.UpdateUser(ctx(), &models.User{ID: user, FirstName: "Renamed", Status: models.UserInactive}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if after, err := svc.GetUser(ctx(), user); err != nil || after.FirstName != "Renamed" || after.Status != models.UserActive {
+		t.Errorf("user: got %+v, %v, want renamed and ACTIVE", after, err)
+	}
+}
+
 func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
@@ -193,6 +217,26 @@ func TestDeleteUser_RemovesTheirAllocationMemberships(t *testing.T) {
 	}
 	if left, _ := svc.memberships.FindByUser(ctx(), member); len(left) != 0 {
 		t.Fatalf("%d memberships left", len(left))
+	}
+}
+
+func TestUpdateUserStatus_RefusesMergedUser(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	survivor := seedUser(t, database, "survivor@example.edu")
+	retiring := seedUser(t, database, "retiring@example.edu")
+	if _, err := svc.MergeUsers(ctx(), survivor, retiring); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	for _, status := range []models.UserStatus{models.UserMerged, models.UserActive} {
+		if _, err := svc.UpdateUserStatus(ctx(), retiring, status); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("set %q on a merged user: got %v, want ErrInvalidInput", status, err)
+		}
+	}
+	for _, status := range []models.UserStatus{"", "SUSPENDED", models.UserPending, models.UserMerged} {
+		if _, err := svc.UpdateUserStatus(ctx(), survivor, status); !errors.Is(err, ErrInvalidInput) {
+			t.Errorf("set %q: got %v, want ErrInvalidInput", status, err)
+		}
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/connectors/health"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -54,6 +55,7 @@ type jobLister interface {
 }
 
 type SlurmMonitor struct {
+	name            string
 	slurmClient     jobLister
 	eventBus        *events.Bus
 	coreService     service.CoreService
@@ -62,11 +64,12 @@ type SlurmMonitor struct {
 	lastMonitorTime int64
 }
 
-func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreService service.CoreService, clusterId string, pollOverlap time.Duration) *SlurmMonitor {
+func NewSlurmMonitor(name string, slurmClient *client.Client, eventBus *events.Bus, coreService service.CoreService, clusterId string, pollOverlap time.Duration) *SlurmMonitor {
 	if pollOverlap <= 0 {
 		pollOverlap = defaultPollOverlap
 	}
 	return &SlurmMonitor{
+		name:            name,
 		slurmClient:     slurmClient,
 		eventBus:        eventBus,
 		coreService:     coreService,
@@ -129,6 +132,7 @@ func (m *SlurmMonitor) poll(ctx context.Context) {
 	}
 
 	jobs, err := m.slurmClient.ListJobs(jobFilter)
+	health.Record(m.name, m.clusterId, err)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to list SLURM jobs", "error", err)
 		return

@@ -17,7 +17,6 @@
 
 "use client";
 
-import type { ComputeAllocation, ComputeAllocationResource } from "@/generated/core/zod.gen";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -28,56 +27,53 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import * as React from "react";
-import { toast } from "sonner";
-import { useSetAllocationResources } from "../queries";
-import { ResourcePicker } from "./ResourcePicker";
+import { type PickerOption, ResourcePicker } from "./ResourcePicker";
 
-// Mounted only while open, so the picker starts from the current grants each time.
+// Mounted only while open, so the picker starts from `initial` each time.
 export function AllocationResourcesDialog({
-  allocation,
-  granted,
+  title,
+  description,
+  options,
+  empty,
+  initial,
+  pending,
+  error,
+  onSave,
   onOpenChange,
 }: {
-  allocation: ComputeAllocation;
-  granted: ComputeAllocationResource[];
+  title: string;
+  description?: React.ReactNode;
+  options: PickerOption[];
+  empty?: string | undefined;
+  initial: string[];
+  pending: boolean;
+  error?: string | null | undefined;
+  onSave: (ids: string[]) => void;
   onOpenChange: (open: boolean) => void;
 }) {
-  const save = useSetAllocationResources(allocation.id);
-  const [resourceIds, setResourceIds] = React.useState(() => granted.map((r) => r.id));
+  const [ids, setIds] = React.useState(initial);
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Resources</DialogTitle>
-          <DialogDescription>
-            Usage on these resources is charged to the allocation&apos;s{" "}
-            {allocation.initial_su_amount.toLocaleString()} SUs at each resource&apos;s rate.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
         <form
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            save.mutate(resourceIds, {
-              onSuccess: () => {
-                toast.success("Resources saved.");
-                onOpenChange(false);
-              },
-            });
+            onSave(ids);
           }}
         >
-          <ResourcePicker
-            clusterId={allocation.compute_cluster_id}
-            value={resourceIds}
-            onChange={setResourceIds}
-          />
-          {save.error ? <p className="text-destructive text-sm">{save.error.message}</p> : null}
+          <ResourcePicker options={options} empty={empty} value={ids} onChange={setIds} />
+          {error ? <p className="text-destructive text-sm">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? "Saving…" : "Save"}
+            <Button type="submit" disabled={pending}>
+              {pending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </form>

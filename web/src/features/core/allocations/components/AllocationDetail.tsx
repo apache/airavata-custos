@@ -21,11 +21,18 @@ import { useProject } from "@/features/core/projects/queries";
 import { requires, usePermissions } from "@/shared/casl/permissions";
 import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
 import { DeleteButton } from "@/shared/ui/ConfirmDialog";
+import { EnableToggle } from "@/shared/ui/EnableToggle";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
 import { useSession } from "next-auth/react";
-import { useAllocation, useAllocationMembers, useDeleteAllocation } from "../queries";
+import {
+  useAllocation,
+  useAllocationMembers,
+  useDeleteAllocation,
+  useSetAllocationStatus,
+} from "../queries";
+import { isActiveMembership } from "../schemas";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
 import { AllocationHistoryTab } from "./AllocationHistoryTab";
@@ -43,6 +50,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const allocationQuery = useAllocation(allocationId);
   const membersQuery = useAllocationMembers(allocationId);
   const remove = useDeleteAllocation();
+  const setStatus = useSetAllocationStatus(allocationId);
   useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
   const projectId = allocationQuery.data?.project_id;
   useBreadcrumbLabel(projectId, useProject(projectId).data?.title);
@@ -59,23 +67,32 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const allocation = allocationQuery.data;
   if (!allocation) return null;
 
-  const memberCount = membersQuery.data?.length ?? 0;
+  const memberCount = membersQuery.data?.filter(isActiveMembership).length ?? 0;
 
   return (
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <AllocationDetailHeader allocation={allocation} memberCount={memberCount} />
-        <DeleteButton
-          noun="Allocation"
-          id={allocation.id}
-          name={allocation.name}
-          mutation={remove}
-          redirectTo="/allocations"
-          allowed={can.allocationsWrite}
-          reason={requires("allocationsWrite")}
-        >
-          Its members, resources and usage records are deleted with it. This cannot be undone.
-        </DeleteButton>
+        <div className="flex gap-2">
+          <EnableToggle
+            enabled={allocation.status === "ACTIVE"}
+            resource={{ kind: "allocation", id: allocation.id, label: allocation.name }}
+            description="Members lose access while it is disabled."
+            disabled={!can.allocationsWrite}
+            onConfirm={(next) => setStatus.mutateAsync(next ? "ACTIVE" : "INACTIVE")}
+          />
+          <DeleteButton
+            noun="Allocation"
+            id={allocation.id}
+            name={allocation.name}
+            mutation={remove}
+            redirectTo="/allocations"
+            allowed={can.allocationsWrite && allocation.status !== "ACTIVE"}
+            reason={can.allocationsWrite ? "Disable it first" : requires("allocationsWrite")}
+          >
+            Its members, resources and usage records are deleted with it. This cannot be undone.
+          </DeleteButton>
+        </div>
       </div>
       <TabsRouter
         defaultValue="overview"

@@ -45,12 +45,12 @@ fi
 
 export TEST_SLURM_API="http://localhost:6820"
 export TEST_SLURM_USER="root"
-export TEST_SLURM_API_VERSION="41"
+export TEST_SLURM_API_VERSION="45"
 export TEST_SLURM_TOKEN="${TOKEN_LINE#SLURM_JWT=}"
 echo "==> TEST_SLURM_TOKEN set (${#TEST_SLURM_TOKEN} chars)"
 
-# go test -tags integration -v -count=1 \
-#    ./connectors/SLURM/Rest-Client/pkg/client/...
+go test -tags integration -v -count=1 \
+    ./connectors/SLURM/Rest-Client/pkg/client/...
 
  go test -tags integration -v -count=1 \
     ./connectors/SLURM/Association-Mapper/internal/subscribers/...

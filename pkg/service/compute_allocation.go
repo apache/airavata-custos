@@ -168,8 +168,17 @@ func (s *Service) UpdateComputeAllocationTx(ctx context.Context, tx *sql.Tx, all
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
 	}
 	if err := func() error {
+		before, err := s.allocs.FindByIDTx(ctx, tx, alloc.ID, store.UpdateLock)
+		if err != nil {
+			return err
+		}
 		if err := s.allocs.Update(ctx, tx, alloc); err != nil {
 			return err
+		}
+		if before != nil && before.Status != alloc.Status {
+			if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingAllocation, alloc.ID); err != nil {
+				return err
+			}
 		}
 		if err := s.ensureStoragesTx(ctx, tx, store.StorageScope{AllocationID: alloc.ID}); err != nil {
 			return err
@@ -216,14 +225,17 @@ func (s *Service) DeleteComputeAllocation(ctx context.Context, id string) error 
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
 	}
-	alloc, err := s.allocs.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("lookup compute allocation: %w", err)
-	}
-	if alloc == nil {
-		return ErrNotFound
-	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		alloc, err := s.allocs.FindByIDTx(ctx, tx, id, store.UpdateLock)
+		if err != nil {
+			return fmt.Errorf("lookup compute allocation: %w", err)
+		}
+		if alloc == nil {
+			return ErrNotFound
+		}
+		if err := refuseDeleteHeldBySlurm("compute allocation", id, alloc.Status, alloc.SlurmPendingSince); err != nil {
+			return err
+		}
 		if err := s.allocs.Delete(ctx, tx, id); err != nil {
 			return err
 		}

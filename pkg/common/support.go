@@ -94,6 +94,10 @@ func WriteServiceError(w http.ResponseWriter, err error) {
 		WriteError(w, http.StatusConflict, err)
 	case errors.Is(err, service.ErrInvalidInput):
 		WriteError(w, http.StatusBadRequest, err)
+	case errors.Is(err, service.ErrUnavailable):
+		WriteError(w, http.StatusServiceUnavailable, err)
+	case errors.Is(err, service.ErrUpstream):
+		WriteError(w, http.StatusBadGateway, err)
 	case errors.As(err, &pgErr) && pgErr.Code == "23505":
 		WriteError(w, http.StatusConflict, service.ErrAlreadyExists)
 	case errors.As(err, &pgErr) && (pgErr.Code == "23503" || pgErr.Code == "22001"):

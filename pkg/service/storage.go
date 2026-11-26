@@ -278,11 +278,8 @@ func (s *Service) publishUserTx(ctx context.Context, tx *sql.Tx, topic events.Ev
 		return err
 	}
 	s.claimedMu.RLock()
-	claimedClusterIDs, claimed := slices.Collect(maps.Keys(s.claimedClusters)), len(s.storageHolders) > 0
+	claimedClusterIDs := slices.Collect(maps.Keys(s.claimedClusters))
 	s.claimedMu.RUnlock()
-	if !claimed {
-		return nil
-	}
 	if topic == events.UserDeleteEvent {
 		return s.storages.Retire(ctx, tx, store.StorageScope{UserID: u.ID}, claimedClusterIDs, nil, nil)
 	}

@@ -468,6 +468,31 @@ definitions:
           A", "Cluster B", etc.
         type: string
     type: object
+  ComputeClusterQoS:
+    properties:
+      compute_cluster_id:
+        type: string
+      flags:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      is_default:
+        description: The cluster's default QoS; at most one per cluster.
+        type: boolean
+      max_jobs_per_user:
+        type: integer
+      max_tres_per_user:
+        description: SLURM TRES string, e.g. "gres/gpu=8"
+        type: string
+      max_wall_minutes:
+        type: integer
+      name:
+        type: string
+      priority:
+        type: integer
+    type: object
   ComputeClusterUser:
     properties:
       access_level:
@@ -1190,6 +1215,13 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  allocationQoSRequest:
+    properties:
+      qos:
+        items:
+          type: string
+        type: array
     type: object
   attachResourceRequest:
     properties:
@@ -2603,6 +2635,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute allocation membership
@@ -3292,6 +3331,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute allocation
@@ -3455,6 +3501,73 @@ paths:
       summary: List members of a compute allocation
       tags:
       - Compute Allocation Memberships
+  /compute-allocations/{id}/qos:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeClusterQoS'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the QoS a compute allocation grants
+      tags:
+      - Compute Allocations
+    put:
+      consumes:
+      - application/json
+      description: Replaces the allocation's QoS with the named QoS of its cluster.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS names
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/allocationQoSRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set the QoS a compute allocation grants
+      tags:
+      - Compute Allocations
   /compute-allocations/{id}/resources:
     get:
       description: Callers without the allocations read privilege must hold a membership
@@ -3851,6 +3964,13 @@ paths:
               error:
                 type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a compute cluster user
@@ -4090,6 +4210,164 @@ paths:
       summary: Get a compute cluster by ID
       tags:
       - Compute Clusters
+  /compute-clusters/{id}/qos:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeClusterQoS'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List a compute cluster's QoS definitions
+      tags:
+      - Compute Cluster QoS
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeClusterQoS'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ComputeClusterQoS'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a QoS on a compute cluster
+      tags:
+      - Compute Cluster QoS
+  /compute-clusters/{id}/qos/{qosId}:
+    delete:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS ID
+        in: path
+        name: qosId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a QoS from a compute cluster
+      tags:
+      - Compute Cluster QoS
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: QoS ID
+        in: path
+        name: qosId
+        required: true
+        type: string
+      - description: QoS payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ComputeClusterQoS'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeClusterQoS'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a QoS on a compute cluster
+      tags:
+      - Compute Cluster QoS
   /compute-clusters/{id}/users:
     get:
       parameters:

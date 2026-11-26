@@ -33,6 +33,7 @@ import {
   createAllocation,
   deleteAllocation,
   getAllocation,
+  getAllocationQoS,
   getAllocationUsedSU,
   getChangeRequest,
   listAllocationDiffs,
@@ -44,22 +45,26 @@ import {
   listChangeRequests,
   listUserMemberships,
   rejectChangeRequest,
-  removeMember,
+  setAllocationQoS,
   setAllocationResources,
+  setMemberStatus,
   submitChangeRequest,
 } from "./api";
+import { setAllocationStatus } from "./api";
 import type {
   AllocationMembership,
   CreateAllocationPayload,
   CreateChangeRequestPayload,
   CreateMembershipPayload,
 } from "./schemas";
+import { isActiveMembership } from "./schemas";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
 
 export const allocationKeys = {
   all: ["allocations"] as const,
   list: (params: AllocationListParams = {}) => [...allocationKeys.all, "list", params] as const,
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
+  qos: (id: string) => [...allocationKeys.detail(id), "qos"] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
   usedSU: (id: string) => [...allocationKeys.detail(id), "used-su"] as const,
@@ -135,6 +140,14 @@ export function useDeleteAllocation() {
   });
 }
 
+export function useSetAllocationStatus(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (status: "ACTIVE" | "INACTIVE") => setAllocationStatus(allocationId, status),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.all }),
+  });
+}
+
 export function useSetAllocationResources(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
@@ -156,6 +169,22 @@ export function useAllocationResources(id: string | undefined) {
     queryKey: id ? allocationKeys.resources(id) : [...allocationKeys.all, "resources", "none"],
     queryFn: id ? () => listAllocationResources(id) : skipToken,
     ...DEFAULTS,
+  });
+}
+
+export function useAllocationQoS(id: string) {
+  return useQuery({
+    queryKey: allocationKeys.qos(id),
+    queryFn: () => getAllocationQoS(id),
+    ...DEFAULTS,
+  });
+}
+
+export function useSetAllocationQoS(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (qos: string[]) => setAllocationQoS(allocationId, qos),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.qos(allocationId) }),
   });
 }
 
@@ -199,10 +228,11 @@ export function useAddMember(allocationId: string) {
   });
 }
 
-export function useRemoveMember(allocationId: string) {
+export function useSetMemberStatus(allocationId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => removeMember(id),
+    mutationFn: ({ id, status }: { id: string; status: "ACTIVE" | "INACTIVE" }) =>
+      setMemberStatus(id, status),
     onSuccess: () => invalidateMembers(client, allocationId),
   });
 }
@@ -224,7 +254,7 @@ export function useMembershipsByAllocation(allocationIds: string[]) {
   });
 }
 
-// Revokes access by deleting the membership, or grants it for the allocation's remaining term.
+// Flips an existing membership's status, or adds one for the allocation's remaining term.
 export function useToggleAllocationAccess() {
   const client = useQueryClient();
   return useMutation({
@@ -238,7 +268,7 @@ export function useToggleAllocationAccess() {
       membership: AllocationMembership | undefined;
     }) =>
       membership
-        ? removeMember(membership.id)
+        ? setMemberStatus(membership.id, isActiveMembership(membership) ? "INACTIVE" : "ACTIVE")
         : addMember({
             compute_allocation_id: allocation.id,
             user_id: userId,

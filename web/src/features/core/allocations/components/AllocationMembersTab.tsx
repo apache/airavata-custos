@@ -17,6 +17,13 @@
 
 "use client";
 
+import { SyncRows } from "@/features/connectors/slurm/components/SyncRows";
+import {
+  allocationConflicts,
+  conflictsOf,
+  MEMBER_KINDS,
+  useSlurmCluster,
+} from "@/features/connectors/slurm/queries";
 import { useUpdateProjectMember } from "@/features/core/projects/queries";
 import { UserDetailsDrawer } from "@/features/core/users/components/UserDetailsDrawer";
 import type { ComputeAllocation } from "@/generated/core/zod.gen";
@@ -29,12 +36,13 @@ import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import * as React from "react";
 import { toast } from "sonner";
-import { useAddMember, useAllocationMembers, useRemoveMember } from "../queries";
+import { useAddMember, useAllocationMembers, useSetMemberStatus } from "../queries";
 import type {
   AllocationMembership,
   AllocationMembershipRole,
   CreateMembershipPayload,
 } from "../schemas";
+import { isActiveMembership } from "../schemas";
 import { AddMemberDialog, type Role } from "./AddMemberDialog";
 import { MemberEditDialog, type MemberEditPayload } from "./MemberEditDialog";
 
@@ -67,10 +75,14 @@ export function AllocationMembersTab({
   const query = useAllocationMembers(allocation.id);
   const addMutation = useAddMember(allocation.id);
   const roleMutation = useUpdateProjectMember(allocation.project_id);
-  const removeMutation = useRemoveMember(allocation.id);
+  const statusMutation = useSetMemberStatus(allocation.id);
   const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
   const [viewing, setViewing] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
+  const sync = allocationConflicts(
+    useSlurmCluster(allocation.compute_cluster_id, conflictsOf),
+    allocation.id,
+  );
 
   function handleAdd(payload: CreateMembershipPayload, role: Role) {
     addMutation.mutate(payload, {
@@ -140,7 +152,7 @@ export function AllocationMembersTab({
       cell: (row) => (
         <StatusBadge
           variant={
-            row.membership_status === "ACTIVE"
+            isActiveMembership(row)
               ? "active"
               : row.membership_status === "INACTIVE"
                 ? "inactive"
@@ -171,17 +183,20 @@ export function AllocationMembersTab({
               Edit
             </GuardedButton>
             <GuardedButton
-              variant="destructive"
+              variant={isActiveMembership(row) ? "destructive" : "outline"}
               size="sm"
               allowed={canEditAccess}
               reason={requires("allocationsWrite")}
               onClick={() =>
-                removeMutation.mutate(row.id, { onError: (err) => toast.error(err.message) })
+                statusMutation.mutate(
+                  { id: row.id, status: isActiveMembership(row) ? "INACTIVE" : "ACTIVE" },
+                  { onError: (err) => toast.error(err.message) },
+                )
               }
-              aria-label={`Remove ${row.display_name ?? row.user_id}`}
-              disabled={removeMutation.isPending}
+              aria-label={`${isActiveMembership(row) ? "Deactivate" : "Activate"} ${row.display_name ?? row.user_id}`}
+              disabled={statusMutation.isPending}
             >
-              Remove
+              {isActiveMembership(row) ? "Deactivate" : "Activate"}
             </GuardedButton>
           </div>
         ) : null,
@@ -208,6 +223,18 @@ export function AllocationMembersTab({
         rowKey={(row) => row.id}
         onRowClick={(row) => setViewing(row.user_id)}
         empty="No members yet."
+      />
+      <h3 className="text-sm font-medium text-foreground">Scheduling</h3>
+      <SyncRows
+        clusterId={allocation.compute_cluster_id}
+        syncUnknown={sync.syncUnknown}
+        rows={sync.ofKinds(MEMBER_KINDS).map((c) => ({
+          label: `${c.user ?? c.name}${c.membership_id ? "" : " (not in Custos)"} · ${c.label}`,
+          custos: c.custos,
+          slurm: c.slurm,
+          conflicts: [c],
+        }))}
+        empty={sync.syncUnknown ? "Sync unknown." : "In sync."}
       />
       <UserDetailsDrawer userId={viewing} onClose={() => setViewing(null)} />
       <MemberEditDialog

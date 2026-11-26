@@ -38,15 +38,15 @@ test.describe("admin viewer persona", () => {
     await expect(page.getByRole("link", { name: "Resources" })).toBeVisible();
 
     await page.goto("/admin/resources");
-    await expect(page.getByRole("heading", { name: /Resources & Clusters/ })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /^clusters$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Resources$/ })).toBeVisible();
     await expect(page.getByRole("tab", { name: /^resources$/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^qos$/i })).toBeVisible();
 
     // Viewer lacks manage Allocation, so the rates drawer offers no create action.
     await page.getByRole("tab", { name: /^resources$/i }).click();
     await page
       .getByRole("row", { name: /ClusterA CPU/ })
-      .getByRole("button", { name: "Rates" })
+      .getByRole("button", { name: /^Rates \(\d+\)$/ })
       .click();
     await expect(page.getByText("Rates: ClusterA CPU")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("button", { name: "+ Add rate" })).toHaveCount(0);

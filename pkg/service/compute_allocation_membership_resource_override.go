@@ -75,6 +75,9 @@ func (s *Service) CreateComputeAllocationMembershipResourceOverride(ctx context.
 		if err := s.membershipOverrides.Create(ctx, tx, o); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, o.ComputeAllocationMembershipID); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipResourceOverrideCreateEvent, o)
 	}); err != nil {
 		return nil, fmt.Errorf("create membership resource override: %w", err)
@@ -169,6 +172,9 @@ func (s *Service) UpdateComputeAllocationMembershipResourceOverride(ctx context.
 		if err := s.membershipOverrides.Update(ctx, tx, o); err != nil {
 			return err
 		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, o.ComputeAllocationMembershipID); err != nil {
+			return err
+		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipResourceOverrideUpdateEvent, o)
 	}); err != nil {
 		return nil, fmt.Errorf("update membership resource override: %w", err)
@@ -190,6 +196,9 @@ func (s *Service) DeleteComputeAllocationMembershipResourceOverride(ctx context.
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.membershipOverrides.Delete(ctx, tx, id); err != nil {
+			return err
+		}
+		if err := s.markSlurmPendingTx(ctx, tx, SlurmPendingMembership, existing.ComputeAllocationMembershipID); err != nil {
 			return err
 		}
 		return s.eventBus.Publish(ctx, tx, events.ComputeAllocationMembershipResourceOverrideDeleteEvent, existing)

@@ -1,0 +1,245 @@
+definitions:
+  Choice:
+    enum:
+    - custos
+    - slurm
+    - manual
+    type: string
+    x-enum-varnames:
+    - ChoiceCustos
+    - ChoiceSlurm
+    - ChoiceManual
+  ClusterView:
+    properties:
+      conflicts:
+        items:
+          $ref: '#/definitions/Conflict'
+        type: array
+      partitions:
+        items:
+          $ref: '#/definitions/Partition'
+        type: array
+      system_accounts:
+        items:
+          $ref: '#/definitions/SystemAccount'
+        type: array
+    type: object
+  Conflict:
+    properties:
+      allocation_id:
+        type: string
+      choices:
+        items:
+          $ref: '#/definitions/Choice'
+        type: array
+      custos: {}
+      key:
+        type: string
+      kind:
+        $ref: '#/definitions/Kind'
+      label:
+        type: string
+      membership_id:
+        type: string
+      name:
+        type: string
+      slurm: {}
+      user:
+        type: string
+    type: object
+  Kind:
+    enum:
+    - qos_definition
+    - allocation_qos
+    - member_qos
+    - allocation_limit
+    - member_limit
+    - partition_association
+    - access
+    type: string
+    x-enum-varnames:
+    - KindQoSDefinition
+    - KindAllocationQoS
+    - KindMemberQoS
+    - KindAllocationLimit
+    - KindMemberLimit
+    - KindPartitionAssociation
+    - KindAccess
+  Partition:
+    properties:
+      default_time_minutes:
+        type: integer
+      max_time_minutes:
+        type: integer
+      name:
+        type: string
+      nodes:
+        type: string
+      state:
+        type: string
+    type: object
+  ResolveRequest:
+    properties:
+      choice:
+        $ref: '#/definitions/Choice'
+      key:
+        type: string
+      manual: {}
+      seen_slurm: {}
+    type: object
+  SystemAccount:
+    properties:
+      name:
+        type: string
+      parent:
+        type: string
+      qos:
+        items:
+          type: string
+        type: array
+      users:
+        items:
+          $ref: '#/definitions/SystemUser'
+        type: array
+    type: object
+  SystemUser:
+    properties:
+      default_account:
+        type: string
+      name:
+        type: string
+      qos:
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /connectors/slurm/clusters/{id}:
+    get:
+      description: The cluster's partitions, system accounts and conflicts, read live
+        in one snapshot.
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ClusterView'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks core:clusters:read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Compute cluster not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: slurmrestd cannot be read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Read the cluster's live SLURM state
+      tags:
+      - SLURM
+  /connectors/slurm/clusters/{id}/conflicts/resolve:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Applies one decision to one conflict of a fresh diff: custos marks the owner pending, slurm saves SLURM's value without a mark, manual saves the given value and marks pending.
+        A QoS definition conflict needs core:clusters:write; every other kind needs core:allocations:write.
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: The decision
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ResolveRequest'
+      responses:
+        "204":
+          description: Resolved
+        "400":
+          description: Malformed body or choice not offered
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks the write privilege for the conflict's kind
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Compute cluster not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict is stale, or the change would break SLURM
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "502":
+          description: SLURM refused the delete
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: slurmrestd cannot be read
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Resolve a SLURM conflict
+      tags:
+      - SLURM
+swagger: "2.0"

@@ -15,15 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { ComputeAllocationResourceSummary, ComputeCluster } from "@/generated/core/zod.gen";
+import type { ComputeAllocationResourceSummary } from "@/generated/core/zod.gen";
+import type { Partition } from "@/generated/slurm/zod.gen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setupServer } from "msw/node";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { slurmHandlers, slurmView } from "@/mocks/handlers/slurm";
 
 let resources: ComputeAllocationResourceSummary[] = [];
-const clusters: ComputeCluster[] = [
-  { id: "cluster-a", name: "ClusterA" },
-  { id: "cluster-b", name: "ClusterB" },
-];
+let partitions: Partition[] = [];
 
 vi.mock("../queries", () => ({
   useResourceSummaries: () => ({
@@ -44,10 +45,6 @@ vi.mock("@/shared/casl/permissions", async (importOriginal) => ({
   usePermissions: () => ({ allocationsWrite: false }),
 }));
 
-vi.mock("@/features/core/clusters/queries", () => ({
-  useClusters: () => ({ data: clusters, isLoading: false, error: null, refetch: vi.fn() }),
-}));
-
 // The rates drawer owns its own queries; stub it so this suite stays on the
 // table and its filters.
 vi.mock("../components/ResourcesRatesDrawer", () => ({
@@ -58,11 +55,29 @@ vi.mock("../components/ResourcesRatesDrawer", () => ({
 
 import { ResourcesTab } from "../components/ResourcesTab";
 
+const server = setupServer(...slurmHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+function renderTab() {
+  server.use(slurmView({ partitions }));
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ResourcesTab clusterId="cluster-a" />
+    </QueryClientProvider>,
+  );
+}
+
 beforeEach(() => {
+  partitions = [
+    { name: "cpu", nodes: "c[1-4]", state: "UP", max_time_minutes: 60, default_time_minutes: 30 },
+    { name: "debug", nodes: "d1", state: "UP", max_time_minutes: null, default_time_minutes: null },
+  ];
   resources = [
     {
       id: "res-a-cpu",
-      name: "ClusterA CPU",
+      name: "cpu",
       resource_type: "CPU",
       resource_amount: 1000,
       compute_cluster_id: "cluster-a",
@@ -72,8 +87,19 @@ beforeEach(() => {
       rate_count: 2,
     },
     {
+      id: "res-a-old",
+      name: "old",
+      resource_type: "CPU",
+      resource_amount: 200,
+      compute_cluster_id: "cluster-a",
+      allocation_count: 0,
+      total_allocated: 0,
+      total_used_su: 0,
+      rate_count: 0,
+    },
+    {
       id: "res-b-gpu",
-      name: "ClusterB GPU",
+      name: "gpu",
       resource_type: "GPU",
       resource_amount: 200,
       compute_cluster_id: "cluster-b",
@@ -86,28 +112,30 @@ beforeEach(() => {
 });
 
 describe("<ResourcesTab />", () => {
-  it("filters by search text", () => {
-    render(<ResourcesTab />);
-    fireEvent.change(screen.getByLabelText("Search resources"), { target: { value: "gpu" } });
-    expect(screen.queryByText("ClusterA CPU")).not.toBeInTheDocument();
-    expect(screen.getByText("ClusterB GPU")).toBeInTheDocument();
+  it("joins the cluster's SLURM partitions with their billing", async () => {
+    renderTab();
+    expect(await screen.findByText("debug")).toBeInTheDocument();
+    expect(screen.getByText("Not billed")).toBeInTheDocument();
+    expect(screen.getByText("Not in SLURM")).toBeInTheDocument();
+    expect(screen.queryByText("gpu")).not.toBeInTheDocument();
   });
 
-  it("opens the rates drawer for the chosen resource", () => {
-    render(<ResourcesTab />);
-    fireEvent.click(screen.getByRole("button", { name: "Rates (2)" }));
-    expect(screen.getByText("rates-drawer:ClusterA CPU")).toBeInTheDocument();
+  it("opens the rates drawer for the chosen resource", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByRole("button", { name: "Rates (2)" }));
+    expect(screen.getByText("rates-drawer:cpu")).toBeInTheDocument();
   });
 
-  it("shows each resource's effective rate", () => {
-    render(<ResourcesTab />);
-    expect(screen.getByText("2.5 SU/unit·h")).toBeInTheDocument();
+  it("shows each resource's effective rate", async () => {
+    renderTab();
+    expect(await screen.findByText("2.5 SU/unit·h")).toBeInTheDocument();
     expect(screen.getByText("No rate")).toBeInTheDocument();
   });
 
-  it("shows the empty state when no resources are registered", () => {
+  it("shows the empty state when the cluster has no partitions", async () => {
     resources = [];
-    render(<ResourcesTab />);
-    expect(screen.getByText("No resources registered.")).toBeInTheDocument();
+    partitions = [];
+    renderTab();
+    expect(await screen.findByText("No resources registered.")).toBeInTheDocument();
   });
 });

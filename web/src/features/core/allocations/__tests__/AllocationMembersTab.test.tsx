@@ -15,9 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { setupServer } from "msw/node";
+import type * as React from "react";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { ComputeAllocation } from "@/generated/core/zod.gen";
+import { slurmConflicts, slurmHandlers } from "@/mocks/handlers/slurm";
 
 const members = [
   {
@@ -49,6 +53,22 @@ const members = [
   },
 ];
 
+vi.mock("@/shared/casl/AbilityProvider", () => ({ useAbility: () => ({ can: () => true }) }));
+
+const server = setupServer(...slurmHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+const renderTab = (ui: React.ReactElement) =>
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      {ui}
+    </QueryClientProvider>,
+  );
+
 const mutation = { mutate: vi.fn(), isPending: false };
 vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({
   UserDetailsDrawer: () => null,
@@ -56,7 +76,7 @@ vi.mock("@/features/core/users/components/UserDetailsDrawer", () => ({
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,
-  useRemoveMember: () => mutation,
+  useSetMemberStatus: () => mutation,
 }));
 vi.mock("@/features/core/projects/queries", () => ({
   useUpdateProjectMember: () => mutation,
@@ -81,20 +101,20 @@ const allocation: ComputeAllocation = {
 };
 
 describe("<AllocationMembersTab />", () => {
-  it("offers no Edit or Remove for PI or Co-PI members", () => {
-    render(
+  it("offers no Edit or Deactivate for PI or Co-PI members", () => {
+    renderTab(
       <AllocationMembersTab allocation={allocation} canEditAccess canEditRoles canSearchUsers />,
     );
     for (const name of ["Paula Ivey", "Carl Osei"]) {
       expect(screen.queryByRole("button", { name: `Edit ${name}` })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: `Remove ${name}` })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: `Deactivate ${name}` })).not.toBeInTheDocument();
     }
     expect(screen.getByRole("button", { name: "Edit Mina Frey" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Deactivate Mina Frey" })).toBeInTheDocument();
   });
 
   it("disables each action whose privilege is missing", () => {
-    render(
+    renderTab(
       <AllocationMembersTab
         allocation={allocation}
         canEditAccess={false}
@@ -102,8 +122,42 @@ describe("<AllocationMembersTab />", () => {
         canSearchUsers
       />,
     );
-    expect(screen.getByRole("button", { name: "Remove Mina Frey" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Deactivate Mina Frey" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit Mina Frey" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "+ Add member" })).toBeDisabled();
+  });
+
+  it("lists this allocation's conflicts, marking those without a membership", async () => {
+    server.use(
+      slurmConflicts([
+        {
+          key: "member:bio1:ghost:access",
+          name: "access",
+          label: "Access",
+          user: "ghost",
+          kind: "access",
+          allocation_id: "alloc-001",
+          custos: null,
+          slurm: "access",
+          choices: ["custos"],
+        },
+        {
+          key: "member:bio9:ghost2:access",
+          name: "access",
+          label: "Access",
+          user: "ghost2",
+          kind: "access",
+          allocation_id: "other",
+          custos: null,
+          slurm: "access",
+          choices: ["custos"],
+        },
+      ]),
+    );
+    renderTab(
+      <AllocationMembersTab allocation={allocation} canEditAccess canEditRoles canSearchUsers />,
+    );
+    expect(await screen.findByText("ghost (not in Custos) · Access")).toBeInTheDocument();
+    expect(screen.queryByText(/ghost2/)).not.toBeInTheDocument();
   });
 });
