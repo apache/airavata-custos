@@ -78,7 +78,7 @@ describe("AccountApprovalsContainer", () => {
     await approveAll({ status: 409, error: "already approved" });
 
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("Approved 3 cluster accounts on cluster-a."),
+      expect(toast.success).toHaveBeenCalledWith("Approved 3 compute cluster users on cluster-a."),
     );
     expect(screen.queryByRole("list", { name: "Accounts to approve" })).toBeNull();
   });

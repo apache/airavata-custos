@@ -60,7 +60,7 @@ export function useClusterAccounts(
   });
 }
 
-// Each user's cluster accounts, filled in with the cluster and user names the per-user route omits.
+// Each user's compute cluster users, filled in with the cluster and user names the per-user route omits.
 export function useUserClusterAccounts(users: User[], enabled: boolean) {
   const clusters = useClusters(enabled).data ?? [];
   const names = new Map(clusters.map((c) => [c.id, c.name]));

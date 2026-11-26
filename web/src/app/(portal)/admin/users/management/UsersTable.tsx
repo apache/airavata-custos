@@ -122,7 +122,7 @@ export function UsersTable({
   total: number;
   onPageChange: (page: number) => void;
   toolbarAction?: React.ReactNode;
-  // Present when the viewer can read cluster accounts.
+  // Present when the viewer can read compute cluster users.
   clusterAccounts: ClusterAccountActions | undefined;
   // Shown in place of the table, under the toolbar, while rows load or fail.
   placeholder?: React.ReactNode;
@@ -303,7 +303,10 @@ export function UsersTable({
             value={clusterAccounts.status}
             onValueChange={(value) => clusterAccounts.onStatusChange(toAccountStatus(value))}
           >
-            <SelectTrigger aria-label="Filter by cluster account status" className="h-9 w-36 px-3">
+            <SelectTrigger
+              aria-label="Filter by compute cluster user status"
+              className="h-9 w-36 px-3"
+            >
               <SelectValue>
                 {(value: AccountStatusFilter) => ACCOUNT_STATUS_LABELS[value]}
               </SelectValue>

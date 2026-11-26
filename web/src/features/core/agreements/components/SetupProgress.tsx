@@ -30,7 +30,7 @@ import { GateLayout } from "./GateLayout";
 
 const LABELS: Record<string, string> = {
   registry: "Identity registered",
-  cluster_account: "Cluster account created",
+  cluster_account: "Compute cluster user created",
   project_group: "Project group ready",
 };
 
@@ -220,7 +220,7 @@ export function SetupProgress() {
         Connect
       </span>
       <p className="text-[13px] text-muted-foreground">
-        The SSH command will appear here when your cluster account is ready.
+        The SSH command will appear here when your compute cluster user is ready.
       </p>
     </div>
   );

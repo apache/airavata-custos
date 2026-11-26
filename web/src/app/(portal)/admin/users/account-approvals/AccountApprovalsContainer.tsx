@@ -60,7 +60,7 @@ const FILTERS: Array<{ value: Filter; label: string; empty: string }> = [
   { value: "PENDING", label: "Pending approval", empty: "Nothing waiting for approval." },
   { value: "APPROVED", label: "Approved", empty: "No approved accounts yet." },
   { value: "DENIED", label: "Denied", empty: "No denied accounts." },
-  { value: "ALL", label: "All", empty: "No cluster accounts yet." },
+  { value: "ALL", label: "All", empty: "No compute cluster users yet." },
 ];
 
 function readFilter(params: URLSearchParams): Filter {
@@ -139,7 +139,7 @@ export function AccountApprovalsContainer() {
     if (failedAccounts.length === 0) {
       const n = accounts.length;
       toast.success(
-        `Approved ${n} cluster account${n === 1 ? "" : "s"} on ${accounts[0]?.cluster_name}.`,
+        `Approved ${n} compute cluster user${n === 1 ? "" : "s"} on ${accounts[0]?.cluster_name}.`,
       );
       setReview(null);
       return;
@@ -161,12 +161,12 @@ export function AccountApprovalsContainer() {
       if (review.action === "approve") {
         await approve.mutateAsync(account.id);
         toast.success(
-          `Cluster account approved for ${account.local_username} on ${account.cluster_name}`,
+          `Compute cluster user approved for ${account.local_username} on ${account.cluster_name}`,
         );
       } else {
         await deny.mutateAsync({ id: account.id, note });
         toast.success(
-          `Cluster account denied for ${account.local_username} on ${account.cluster_name}`,
+          `Compute cluster user denied for ${account.local_username} on ${account.cluster_name}`,
         );
       }
       setReview(null);
@@ -176,7 +176,7 @@ export function AccountApprovalsContainer() {
   }
 
   if (!canRead) {
-    return <ErrorState heading="Not permitted" message="You cannot view cluster accounts." />;
+    return <ErrorState heading="Not permitted" message="You cannot view compute cluster users." />;
   }
 
   const emptyHeading =

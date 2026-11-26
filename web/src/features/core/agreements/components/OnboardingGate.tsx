@@ -152,7 +152,7 @@ function OnboardingForm({
         </p>
       </div>
 
-      {/* Users without a cluster account have no username to choose. */}
+      {/* Users without a compute cluster user have no username to choose. */}
       {initialUsername ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="username">Username</Label>
@@ -179,7 +179,7 @@ function OnboardingForm({
             />
           ) : null}
           <p id="username-help" className="text-xs text-muted-foreground">
-            Used for your cluster account. It cannot be changed later.
+            Your username on the compute cluster. It cannot be changed later.
           </p>
         </div>
       ) : null}
